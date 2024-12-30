@@ -36,7 +36,7 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/config
     ${Python_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/include/rapidjson
+    ${PROJECT_SOURCE_DIR}/include/nlohmann
 )
 
 target_link_libraries(${PROJECT_NAME}
