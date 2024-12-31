@@ -53,6 +53,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CUDA_ARCHITECTURES "70;75;80;89"
     CUDA_SEPARABLE_COMPILATION ON)
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_features(${PROJECT_NAME} PRIVATE cuda_std_14)
+target_compile_features(${PROJECT_NAME} PRIVATE cuda_std_17)
