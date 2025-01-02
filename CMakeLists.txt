@@ -5,6 +5,8 @@ project(PASS
 
 set(CMAKE_BUILD_TYPE Release)
 
+option (PASS_CAL_PHASE "Record the coordinates of the particle at the previous position/turn to calculate the phase shift" ON)
+
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(Python COMPONENTS Interpreter Development)
