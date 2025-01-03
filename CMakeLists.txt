@@ -19,12 +19,14 @@ configure_file(${PROJECT_SOURCE_DIR}/config/config.h.in ${PROJECT_SOURCE_DIR}/co
 set(SOURCES
     src/main.cpp
     src/general.cu
+    src/parameter.cpp
 )
 
 # set header files
 set(HEADERS
     include/general.h
     include/particle.h
+    include/parameter.h
 )
 
 # generate executable file
@@ -39,6 +41,8 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/config
     ${Python_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/include/nlohmann
+    ${PROJECT_SOURCE_DIR}/include/cmdline
+    ${PROJECT_SOURCE_DIR}/include/tabulate
 )
 
 target_link_libraries(${PROJECT_NAME}
