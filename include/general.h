@@ -1,6 +1,15 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <stdlib.h>
+#include <filesystem>
+
+#include <cmdline/cmdline.h>
+#include <tabulate/tabulate.hpp>
+
+#include "parameter.h"
 
 #ifndef STRNCASECMP
 #define STRNCASECMP _strnicmp
@@ -25,9 +34,6 @@ void print_logo();
 
 void print_copyright();
 
-int string_remove_delimiter(char delimiter, const char* string);
+void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec);
 
-bool check_cmd_line_flag(const int argc, const char** argv,
-	const char* string_ref);
-
-void show_help();
+void print_beam_and_bunch_parameter(const Parameter&);
