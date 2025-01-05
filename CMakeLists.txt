@@ -24,8 +24,9 @@ set(SOURCES
 
 # set header files
 set(HEADERS
-    include/general.h
     include/particle.h
+    include/constant.h
+    include/general.h
     include/parameter.h
 )
 
