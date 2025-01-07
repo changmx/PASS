@@ -18,14 +18,15 @@ configure_file(${PROJECT_SOURCE_DIR}/config/config.h.in ${PROJECT_SOURCE_DIR}/co
 # set source files
 set(SOURCES
     src/main.cpp
+    src/particle.cpp
     src/general.cu
     src/parameter.cpp
 )
 
 # set header files
 set(HEADERS
-    include/particle.h
     include/constant.h
+    include/particle.h
     include/general.h
     include/parameter.h
 )
@@ -44,6 +45,7 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/include/nlohmann
     ${PROJECT_SOURCE_DIR}/include/cmdline
     ${PROJECT_SOURCE_DIR}/include/tabulate
+    ${PROJECT_SOURCE_DIR}/include/spdlog
 )
 
 target_link_libraries(${PROJECT_NAME}
