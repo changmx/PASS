@@ -1,28 +1,65 @@
 #include <iostream>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
 #include "general.h"
 #include "particle.h"
 #include "parameter.h"
+#include "command.h"
+#include "injection.h"
+
 
 int main(int argc, char** argv)
 {
-	print_logo();
-	print_copyright();
+	Parameter Para(argc, argv);
 
-	Parameter para(argc, argv);
+	create_logger(Para);
+	std::shared_ptr<spdlog::logger> logger = spdlog::get("logger");
 
-	std::vector<Bunch> beam0;
-	std::vector<Bunch> beam1;
-	for (size_t i = 0; i < para.Nbunch[0]; i++)
+	print_logo(Para);
+	print_copyright(Para);
+
+	std::vector<Bunch> Beam0;
+	std::vector<Bunch> Beam1;
+	for (size_t i = 0; i < Para.Nbunch[0]; i++)
 	{
-		Bunch bunch;
-		beam0.push_back(bunch);
+		Bunch bunch(Para, 0, i);
+		Beam0.push_back(bunch);
 	}
-	for (size_t i = 0; i < para.Nbunch[1]; i++)
+	for (size_t i = 0; i < Para.Nbunch[1]; i++)
 	{
-		Bunch bunch;
-		beam0.push_back(bunch);
+		Bunch bunch(Para, 1, i);
+		Beam1.push_back(bunch);
 	}
 
-	print_beam_and_bunch_parameter(para);
+	print_config_parameter(Para);
+	print_beam_parameter(Para, Beam0, Beam1);
+
+	cudaSetDevice(Para.gpuId[0]);
+
+	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
+	{
+		iter->init_gpu_memory();
+	}
+	for (auto iter = Beam1.begin(); iter != Beam1.end(); iter++)
+	{
+		iter->init_gpu_memory();
+	}
+
+
+	Injection* inj = new Injection(Para, 0, Beam0[0]);
+	Command* command = new InjectionCommand(inj);
+
+	command->execute();
+
+	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
+	{
+		iter->free_gpu_memory();
+	}
+	for (auto iter = Beam1.begin(); iter != Beam1.end(); iter++)
+	{
+		iter->free_gpu_memory();
+	}
 }
