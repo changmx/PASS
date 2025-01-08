@@ -1,29 +1,46 @@
 #include "general.h"
 
 #include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
 
-void print_logo() {
-	std::cout << "                                                                                 " << std::endl;
-	std::cout << " PPPPPPPPPPPPPPPPP        AAA                 SSSSSSSSSSSSSSS    SSSSSSSSSSSSSSS " << std::endl;
-	std::cout << " P::::::::::::::::P      A:::A              SS:::::::::::::::S SS:::::::::::::::S" << std::endl;
-	std::cout << " P::::::PPPPPP:::::P    A:::::A            S:::::SSSSSS::::::SS:::::SSSSSS::::::S" << std::endl;
-	std::cout << " PP:::::P     P:::::P  A:::::::A           S:::::S     SSSSSSSS:::::S     SSSSSSS" << std::endl;
-	std::cout << "   P::::P     P:::::P A:::::::::A          S:::::S            S:::::S            " << std::endl;
-	std::cout << "   P::::P     P:::::PA:::::A:::::A         S:::::S            S:::::S            " << std::endl;
-	std::cout << "   P::::PPPPPP:::::PA:::::A A:::::A         S::::SSSS          S::::SSSS         " << std::endl;
-	std::cout << "   P:::::::::::::PPA:::::A   A:::::A         SS::::::SSSSS      SS::::::SSSSS    " << std::endl;
-	std::cout << "   P::::PPPPPPPPP A:::::A     A:::::A          SSS::::::::SS      SSS::::::::SS  " << std::endl;
-	std::cout << "   P::::P        A:::::AAAAAAAAA:::::A            SSSSSS::::S        SSSSSS::::S " << std::endl;
-	std::cout << "   P::::P       A:::::::::::::::::::::A                S:::::S            S:::::S" << std::endl;
-	std::cout << "   P::::P      A:::::AAAAAAAAAAAAA:::::A               S:::::S            S:::::S" << std::endl;
-	std::cout << " PP::::::PP   A:::::A             A:::::A  SSSSSSS     S:::::SSSSSSSS     S:::::S" << std::endl;
-	std::cout << " P::::::::P  A:::::A               A:::::A S::::::SSSSSS:::::SS::::::SSSSSS:::::S" << std::endl;
-	std::cout << " P::::::::P A:::::A                 A:::::AS:::::::::::::::SS S:::::::::::::::SS " << std::endl;
-	std::cout << " PPPPPPPPPPAAAAAAA                   AAAAAAASSSSSSSSSSSSSSS    SSSSSSSSSSSSSSS   " << std::endl;
-	std::cout << "                                                                                 " << std::endl;
+
+void print_logo(const Parameter& Para) {
+
+	auto logger = spdlog::get("logger");
+	logger->set_pattern("%v");
+
+	logger->info("                                                                                 ");
+	logger->info(" PPPPPPPPPPPPPPPPP        AAA                 SSSSSSSSSSSSSSS    SSSSSSSSSSSSSSS ");
+	logger->info(" P::::::::::::::::P      A:::A              SS:::::::::::::::S SS:::::::::::::::S");
+	logger->info(" P::::::PPPPPP:::::P    A:::::A            S:::::SSSSSS::::::SS:::::SSSSSS::::::S");
+	logger->info(" PP:::::P     P:::::P  A:::::::A           S:::::S     SSSSSSSS:::::S     SSSSSSS");
+	logger->info("   P::::P     P:::::P A:::::::::A          S:::::S            S:::::S            ");
+	logger->info("   P::::P     P:::::PA:::::A:::::A         S:::::S            S:::::S            ");
+	logger->info("   P::::PPPPPP:::::PA:::::A A:::::A         S::::SSSS          S::::SSSS         ");
+	logger->info("   P:::::::::::::PPA:::::A   A:::::A         SS::::::SSSSS      SS::::::SSSSS    ");
+	logger->info("   P::::PPPPPPPPP A:::::A     A:::::A          SSS::::::::SS      SSS::::::::SS  ");
+	logger->info("   P::::P        A:::::AAAAAAAAA:::::A            SSSSSS::::S        SSSSSS::::S ");
+	logger->info("   P::::P       A:::::::::::::::::::::A                S:::::S            S:::::S");
+	logger->info("   P::::P      A:::::AAAAAAAAAAAAA:::::A               S:::::S            S:::::S");
+	logger->info(" PP::::::PP   A:::::A             A:::::A  SSSSSSS     S:::::SSSSSSSS     S:::::S");
+	logger->info(" P::::::::P  A:::::A               A:::::A S::::::SSSSSS:::::SS::::::SSSSSS:::::S");
+	logger->info(" P::::::::P A:::::A                 A:::::AS:::::::::::::::SS S:::::::::::::::SS ");
+	logger->info(" PPPPPPPPPPAAAAAAA                   AAAAAAASSSSSSSSSSSSSSS    SSSSSSSSSSSSSSS   ");
+	logger->info("                                                                                 ");
+
+	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+
 }
 
-void print_copyright() {};
+void print_copyright(const Parameter& Para) {};
+
+std::string to_scientific_string(const double value, const int precision) {
+	std::ostringstream out;
+	out << std::scientific << std::setprecision(precision) << value;
+	return out.str();
+}
 
 void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec) {
 
@@ -144,18 +161,18 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 	//std::cout << hourMinSec << std::endl;
 }
 
-void print_beam_and_bunch_parameter(const Parameter& Para) {
+void print_config_parameter(const Parameter& Para) {
 
 	using namespace tabulate;
 
-	Table tables;
+	Table Para_table;
 
-	tables.add_row({ "Parameter", "Beam0", (1 != Para.Nbeam) ? "Beam1" : "^_^" });
-	tables.add_row({ "Beam name", Para.beam_name[0], (1 != Para.Nbeam) ? Para.beam_name[1] : "^_^" });
-	tables.add_row({ "Beam Id", std::to_string(Para.beamId[0]), (1 != Para.Nbeam) ? std::to_string(Para.beamId[1]) : "^_^" });
-	tables.add_row({ "Number of bunches", std::to_string(Para.beamId[0]), (1 != Para.Nbeam) ? std::to_string(Para.beamId[1]) : "^_^" });
-	tables.add_row({ "Number of turns", std::to_string(Para.Nturn), (1 != Para.Nbeam) ? "<--" : "^_^" });
-	tables.add_row({ "Number of GPU devices", std::to_string(Para.Ngpu), (1 != Para.Nbeam) ? "<--" : "^_^" });
+	Para_table.add_row({ "Parameter", "Beam0", (1 != Para.Nbeam) ? "Beam1" : "^_^" });
+	Para_table.add_row({ "Beam name", Para.beam_name[0], (1 != Para.Nbeam) ? Para.beam_name[1] : "^_^" });
+	Para_table.add_row({ "Beam Id", std::to_string(Para.beamId[0]), (1 != Para.Nbeam) ? std::to_string(Para.beamId[1]) : "^_^" });
+	Para_table.add_row({ "Number of bunches", std::to_string(Para.Nbunch[0]), (1 != Para.Nbeam) ? std::to_string(Para.Nbunch[1]) : "^_^" });
+	Para_table.add_row({ "Number of turns", std::to_string(Para.Nturn), (1 != Para.Nbeam) ? "<--" : "^_^" });
+	Para_table.add_row({ "Number of GPU devices", std::to_string(Para.Ngpu), (1 != Para.Nbeam) ? "<--" : "^_^" });
 
 	std::string tmp_gpuId;
 	for (auto i : Para.gpuId)
@@ -163,36 +180,147 @@ void print_beam_and_bunch_parameter(const Parameter& Para) {
 		tmp_gpuId += std::to_string(i);
 		tmp_gpuId += ", ";
 	}
-	tables.add_row({ "GPU device Id", tmp_gpuId, (1 != Para.Nbeam) ? "<--" : "^_^" });
+	Para_table.add_row({ "GPU device Id", tmp_gpuId, (1 != Para.Nbeam) ? "<--" : "^_^" });
 
 	//tables.add_row({ "Beam-beam effect", Para.is_beambeam ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
 	//tables.add_row({ "Space charge effect", Para.is_spacecharge ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
 
-	tables.add_row({ "Qx", std::to_string(Para.Qx[0]), (1 != Para.Nbeam) ? std::to_string(Para.Qx[1]) : "^_^" });
-	tables.add_row({ "Qy", std::to_string(Para.Qy[0]), (1 != Para.Nbeam) ? std::to_string(Para.Qy[1]) : "^_^" });
-	tables.add_row({ "Qz", std::to_string(Para.Qz[0]), (1 != Para.Nbeam) ? std::to_string(Para.Qz[1]) : "^_^" });
-	tables.add_row({ "Chromaticity x", std::to_string(Para.chromx[0]), (1 != Para.Nbeam) ? std::to_string(Para.chromx[1]) : "^_^" });
-	tables.add_row({ "Chromaticity y", std::to_string(Para.chromy[0]), (1 != Para.Nbeam) ? std::to_string(Para.chromy[1]) : "^_^" });
-	tables.add_row({ "Gamma T", std::to_string(Para.gammaT[0]), (1 != Para.Nbeam) ? std::to_string(Para.gammaT[1]) : "^_^" });
-	tables.add_row({ "Input path", Para.path_input_para[0].string(), (1 != Para.Nbeam) ? Para.path_input_para[1].string() : "^_^" });
-	tables.add_row({ "Output directory", Para.dir_output.string(), (1 != Para.Nbeam) ? "<--" : "^_^" });
-	tables.add_row({ "Starting time", Para.yearMonDay + ", " + Para.hourMinSec, (1 != Para.Nbeam) ? "<--" : "^_^" });
-
-
+	Para_table.add_row({ "Input path", Para.path_input_para[0].string(), (1 != Para.Nbeam) ? Para.path_input_para[1].string() : "^_^" });
+	Para_table.add_row({ "Output directory", Para.dir_output.string(), (1 != Para.Nbeam) ? "<--" : "^_^" });
+	Para_table.add_row({ "Starting time", Para.yearMonDay + ", " + Para.hourMinSec, (1 != Para.Nbeam) ? "<--" : "^_^" });
 
 	/////////////////////////////////////////// configure table start ///////////////////////////////////////////
 
-	for (size_t i = 0; i < (Para.Nbeam + 1); i++)
+	Para_table[0][0].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
+	Para_table[0][1].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
+	if (2 == Para.Nbeam)
+		Para_table[0][2].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
+
+	Para_table.column(0).format().font_align(FontAlign::left);
+	Para_table.column(0).format().width(25);
+	Para_table.column(1).format().font_align(FontAlign::center);
+	Para_table.column(1).format().width(30);
+	if (2 == Para.Nbeam)
 	{
-		tables[0][i].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
-	}
-	for (size_t i = 0; i < Para.Nbeam; i++)
-	{
-		tables.column(i + 1).format().font_align(FontAlign::center);
-		tables.column(i + 1).format().width(30);
+		Para_table.column(2).format().font_align(FontAlign::center);
+		Para_table.column(2).format().width(30);
 	}
 
 	/////////////////////////////////////////// configure table end /////////////////////////////////////////////
 
-	std::cout << tables << std::endl;
+	std::cout << Para_table << std::endl;
+
+	std::ofstream outputFile(Para.path_logfile, std::ios::app);
+	std::streambuf* coutbuf = std::cout.rdbuf();
+	std::cout.rdbuf(outputFile.rdbuf());
+
+	std::cout << Para_table << std::endl;
+	outputFile.flush();
+	outputFile.close();
+
+	std::cout.rdbuf(coutbuf);
+}
+
+void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1) {
+
+	using namespace tabulate;
+	int Nbeam = (0 == Beam1.size()) ? 1 : 2;
+
+	for (size_t i = 0; i < Beam0.size(); i++)
+	{
+		Table Beam_table;
+
+		Beam_table.add_row({ "Parameter", "Bunch " + std::to_string(Beam0[i].bunchId), (1 != Nbeam) ? "Bunch " + std::to_string(Beam1[i].bunchId) : "^_^" });
+		Beam_table.add_row({ "Proton number",std::to_string(Beam0[i].Nproton),(1 != Nbeam) ? std::to_string(Beam1[i].Nproton) : "^_^" });
+		Beam_table.add_row({ "Neutron number",std::to_string(Beam0[i].Nneutron),(1 != Nbeam) ? std::to_string(Beam1[i].Nneutron) : "^_^" });
+		Beam_table.add_row({ "Charge number",std::to_string(Beam0[i].Ncharge),(1 != Nbeam) ? std::to_string(Beam1[i].Ncharge) : "^_^" });
+		Beam_table.add_row({ "Real  particles/bunch",to_scientific_string(Beam0[i].Nrp, 11),(1 != Nbeam) ? to_scientific_string(Beam1[i].Nrp, 11) : "^_^" });
+		Beam_table.add_row({ "Macro particles/bunch",std::to_string(Beam0[i].Np),(1 != Nbeam) ? std::to_string(Beam1[i].Np) : "^_^" });
+		Beam_table.add_row({ "Ratio Nrp/Np",std::to_string(Beam0[i].ratio),(1 != Nbeam) ? std::to_string(Beam1[i].ratio) : "^_^" });
+		Beam_table.add_row({ "Kinetic energy (GeV/u)", std::to_string(Beam0[i].Ek / 1e9), (1 != Nbeam) ? std::to_string(Beam1[i].Ek / 1e9) : "^_^" });
+		Beam_table.add_row({ "Statistic mass (MeV/c2)", std::to_string(Beam0[i].m0 / 1e6), (1 != Nbeam) ? std::to_string(Beam1[i].m0 / 1e6) : "^_^" });
+		Beam_table.add_row({ "Momentum (kg*m/s)", to_scientific_string(Beam0[i].p0_kg, 12),(1 != Nbeam) ? to_scientific_string(Beam1[i].p0_kg, 12) : "^_^" });
+		Beam_table.add_row({ "Momentum (GeV/c)", std::to_string(Beam0[i].p0 / 1e9),(1 != Nbeam) ? std::to_string(Beam1[i].p0 / 1e9) : "^_^" });
+		Beam_table.add_row({ "Brho (T*m)",std::to_string(Beam0[i].Brho),(1 != Nbeam) ? std::to_string(Beam1[i].Brho) : "^_^" });
+		Beam_table.add_row({ "Beta",to_scientific_string(Beam0[i].beta, 12),(1 != Nbeam) ? to_scientific_string(Beam1[i].beta, 12) : "^_^" });
+		Beam_table.add_row({ "Gamma",std::to_string(Beam0[i].gamma),(1 != Nbeam) ? std::to_string(Beam1[i].gamma) : "^_^" });
+		Beam_table.add_row({ "Geometric emittance x (m*rad)",to_scientific_string(Beam0[i].emitx, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx, 9) : "^_^" });
+		Beam_table.add_row({ "Geometric emittance y (m*rad)",to_scientific_string(Beam0[i].emity, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity, 9) : "^_^" });
+		Beam_table.add_row({ "Normalized emittance x (m*rad)",to_scientific_string(Beam0[i].emitx_norm, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx_norm, 9) : "^_^" });
+		Beam_table.add_row({ "Normalized emittance y (m*rad)",to_scientific_string(Beam0[i].emity_norm,9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity_norm,9) : "^_^" });
+		Beam_table.add_row({ "Twiss alpha x",std::to_string(Beam0[i].alphax),(1 != Nbeam) ? std::to_string(Beam1[i].alphax) : "^_^" });
+		Beam_table.add_row({ "Twiss alpha y",std::to_string(Beam0[i].alphay),(1 != Nbeam) ? std::to_string(Beam1[i].alphay) : "^_^" });
+		Beam_table.add_row({ "Twiss beta x (m)",std::to_string(Beam0[i].betax),(1 != Nbeam) ? std::to_string(Beam1[i].betax) : "^_^" });
+		Beam_table.add_row({ "Twiss beta y (m)",std::to_string(Beam0[i].betay),(1 != Nbeam) ? std::to_string(Beam1[i].betay) : "^_^" });
+		Beam_table.add_row({ "Twiss gamma x (m-1)",std::to_string(Beam0[i].gammax),(1 != Nbeam) ? std::to_string(Beam1[i].gammax) : "^_^" });
+		Beam_table.add_row({ "Twiss gamma y (m-1)",std::to_string(Beam0[i].gammay),(1 != Nbeam) ? std::to_string(Beam1[i].gammay) : "^_^" });
+		Beam_table.add_row({ "Sigma x (mm)",std::to_string(Beam0[i].sigmax * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmax * 1e3) : "^_^" });
+		Beam_table.add_row({ "Sigma y (mm)",std::to_string(Beam0[i].sigmay * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmay * 1e3) : "^_^" });
+		Beam_table.add_row({ "Sigma px (mrad)",std::to_string(Beam0[i].sigmapx * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapx * 1e3) : "^_^" });
+		Beam_table.add_row({ "Sigma py (mrad)",std::to_string(Beam0[i].sigmapy * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapy * 1e3) : "^_^" });
+		Beam_table.add_row({ "Sigma z (mm)",std::to_string(Beam0[i].sigmaz * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmaz * 1e3) : "^_^" });
+		Beam_table.add_row({ "Deltap/P (1e-3)",std::to_string(Beam0[i].dp * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].dp * 1e3) : "^_^" });
+		Beam_table.add_row({ "Qx",std::to_string(Beam0[i].Qx),(1 != Nbeam) ? std::to_string(Beam1[i].Qx) : "^_^" });
+		Beam_table.add_row({ "Qy",std::to_string(Beam0[i].Qy),(1 != Nbeam) ? std::to_string(Beam1[i].Qy) : "^_^" });
+		Beam_table.add_row({ "Qz",std::to_string(Beam0[i].Qz),(1 != Nbeam) ? std::to_string(Beam1[i].Qz) : "^_^" });
+		Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromx),(1 != Nbeam) ? std::to_string(Beam1[i].chromx) : "^_^" });
+		Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromy),(1 != Nbeam) ? std::to_string(Beam1[i].chromy) : "^_^" });
+		Beam_table.add_row({ "Gamma T",std::to_string(Beam0[i].gammat),(1 != Nbeam) ? std::to_string(Beam1[i].gammat) : "^_^" });
+
+
+		/////////////////////////////////////////// configure table start ///////////////////////////////////////////
+
+		Beam_table[0][0].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
+		Beam_table[0][1].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
+		if (2 == Nbeam)
+			Beam_table[0][2].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
+
+		Beam_table.column(0).format().font_align(FontAlign::left);
+		Beam_table.column(0).format().width(25);
+		Beam_table.column(1).format().font_align(FontAlign::center);
+		Beam_table.column(1).format().width(30);
+		if (2 == Nbeam)
+		{
+			Beam_table.column(2).format().font_align(FontAlign::center);
+			Beam_table.column(2).format().width(30);
+		}
+
+		/////////////////////////////////////////// configure table end /////////////////////////////////////////////
+
+		std::cout << Beam_table << std::endl;
+
+		std::ofstream outputFile(Para.path_logfile, std::ios::app);
+		std::streambuf* coutbuf = std::cout.rdbuf();
+		std::cout.rdbuf(outputFile.rdbuf());
+
+		std::cout << Beam_table << std::endl;
+		outputFile.flush();
+		outputFile.close();
+
+		std::cout.rdbuf(coutbuf);
+	}
+
+}
+
+void create_logger(const Parameter& Para) {
+
+	std::string logfile = Para.path_logfile.string();
+
+	auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	console_sink->set_level(spdlog::level::debug);  // Set the console log level
+	console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v"); // Set tho console log pattern
+
+	auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logfile, true);
+	file_sink->set_level(spdlog::level::debug);
+	file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+
+	std::vector<spdlog::sink_ptr> sinks{ console_sink, file_sink };
+	auto logger = std::make_shared<spdlog::logger>("logger", sinks.begin(), sinks.end());
+
+	spdlog::set_default_logger(logger);
+
+	spdlog::set_level(spdlog::level::debug);
+
+	spdlog::flush_on(spdlog::level::debug);
+
 }

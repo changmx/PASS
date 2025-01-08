@@ -9,7 +9,12 @@
 #include <cmdline/cmdline.h>
 #include <tabulate/tabulate.hpp>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
 #include "parameter.h"
+#include "particle.h"
 
 #ifndef STRNCASECMP
 #define STRNCASECMP _strnicmp
@@ -30,10 +35,14 @@ printf("\nUnknown runtime system.\n");
 exit(1);
 #endif
 
-void print_logo();
+void print_logo(const Parameter& Para);
 
-void print_copyright();
+void print_copyright(const Parameter& Para);
 
 void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec);
 
-void print_beam_and_bunch_parameter(const Parameter&);
+void print_config_parameter(const Parameter&);
+
+void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1);
+
+void create_logger(const Parameter& Para);
