@@ -1,0 +1,143 @@
+{
+    "Name": "proton",
+    "Number of protons per particle": 1,
+    "Number of neutrons per particle": 0,
+    "Number of charges per particle": 1,
+    "Number of bunches per beam": 1,
+    "Qx": 0.31,
+    "Qy": 0.32,
+    "Qz": 0.0125,
+    "Chromaticity x": 0,
+    "Chromaticity y": 0,
+    "GammaT": 1,
+    "Number of turns": 10,
+    "Number of GPU devices": 1,
+    "Device Id": [
+        0,
+        3
+    ],
+    "Output directory": "D:\\PassSimulation",
+    "Is plot figure": false,
+    "Space charge simulation parameters": {
+        "Is space charge": false,
+        "Number of grid x": 256,
+        "Number of grid y": 256,
+        "Grid x length": 1e-05,
+        "Grid y length": 3.5e-06,
+        "Number of bunch slices": 10,
+        "Field solver:": "PIC_conv"
+    },
+    "Beam-beam simulation parameters": {
+        "Is beam-beam": false,
+        "Number of IP": 1,
+        "IP0": {
+            "Number of grid x": 256,
+            "Number of grid y": 256,
+            "Grid x length": 1e-05,
+            "Grid y length": 3.5e-06,
+            "Number of bunch slices": 10,
+            "Field solver:": "PIC_conv"
+        }
+    },
+    "Sequence": {
+        "Injection": {
+            "S (m)": 0,
+            "Command": "Injection",
+            "bunch0": {
+                "Kinetic energy per particle (eV)": 19080000000.0,
+                "Number of real particles per bunch": 105000000000.0,
+                "Number of macro particles per bunch": 1000000.0,
+                "Mode": "1turn1time",
+                "Inject turns": [
+                    0
+                ],
+                "Alpha x": 0,
+                "Alpha y": 0,
+                "Beta x (m)": 0.05,
+                "Beta y (m)": 0.012,
+                "Emittance x (m'rad)": 1e-07,
+                "Emittance y (m'rad)": 5e-08,
+                "Sigma z (m)": 0.08,
+                "DeltaP/P": 0.00162,
+                "Transverse dist": "kv",
+                "Logitudinal dist": "gaussian",
+                "Offset x": {
+                    "Is offset": false,
+                    "Offset (m)": 0
+                },
+                "Offset y": {
+                    "Is offset": false,
+                    "Offset (m)": 0
+                },
+                "Is load distribution": true,
+                "Name of loaded file": "1600_45_gaussian_proton_bunch0_1000000_superPeriod0.csv"
+            }
+        },
+        "Transfer0": {
+            "S (m)": 0,
+            "Command": "Transfer",
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 0.05,
+            "Beta y (m)": 0.012,
+            "Phase advance x (2pi)": 0.3,
+            "Phase advance y (2pi)": 0.3
+        },
+        "Space charge0": {
+            "S (m)": 0
+        },
+        "Command": "Spacecharge",
+        "Transfer1": {
+            "S (m)": 10,
+            "Command": "Transfer",
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 0.05,
+            "Beta y (m)": 0.012,
+            "Phase advance x (2pi)": 0.3,
+            "Phase advance y (2pi)": 0.3
+        },
+        "Space charge1": {
+            "S (m)": 10
+        },
+        "Transfer2": {
+            "S (m)": 20,
+            "Command": "Transfer",
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 0.05,
+            "Beta y (m)": 0.012,
+            "Phase advance x (2pi)": 0.3,
+            "Phase advance y (2pi)": 0.3
+        },
+        "Space charge2": {
+            "S (m)": 20
+        },
+        "Transfer3": {
+            "S (m)": 30,
+            "Command": "Transfer",
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 0.05,
+            "Beta y (m)": 0.012,
+            "Phase advance x (2pi)": 0.3,
+            "Phase advance y (2pi)": 0.3
+        },
+        "Space charge3": {
+            "S (m)": 30
+        },
+        "Transfer4": {
+            "S (m)": 40,
+            "Command": "Transfer",
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 0.05,
+            "Beta y (m)": 0.012,
+            "Phase advance x (2pi)": 0.3,
+            "Phase advance y (2pi)": 0.3
+        },
+        "Space charge4": {
+            "S (m)": 40
+        }
+    }
+}
