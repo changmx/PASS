@@ -24,12 +24,6 @@ Parameter::Parameter(int argc, char** argv)
 				try {
 					beam_name.push_back(data.at("Name"));
 					Nbunch.push_back(data.at("Number of bunches per beam"));
-					Qx.push_back(data.at("Qx"));
-					Qy.push_back(data.at("Qy"));
-					Qz.push_back(data.at("Qz"));
-					chromx.push_back(data.at("Chromaticity x"));
-					chromy.push_back(data.at("Chromaticity y"));
-					gammaT.push_back(data.at("GammaT"));
 
 					if (0 == i)
 					{
@@ -76,6 +70,10 @@ Parameter::Parameter(int argc, char** argv)
 	dir_output_chargeDensity = dir_output / "chargeDensity" / yearMonDay / hourMinSec;
 	dir_output_plot = dir_output / "plot" / yearMonDay / hourMinSec;
 
+	dir_load_distribution = dir_output / "distribution" / "fixed";
+
+	path_logfile = dir_output_statistic / (hourMinSec + ".log");
+
 	try
 	{
 		fs::create_directories(dir_output);
@@ -84,12 +82,17 @@ Parameter::Parameter(int argc, char** argv)
 		fs::create_directories(dir_output_tuneSpread);
 		fs::create_directories(dir_output_chargeDensity);
 		fs::create_directories(dir_output_plot);
+
+		fs::create_directories(dir_load_distribution);
 	}
 	catch (const fs::filesystem_error& e)
 	{
 		std::cerr << "Can not create directory: " << e.what() << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
+
+	std::ofstream outputFile_tmp(path_logfile, std::ios::out | std::ios::trunc);
+	outputFile_tmp.close();
 
 	try
 	{
