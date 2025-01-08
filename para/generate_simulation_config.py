@@ -13,9 +13,9 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     ########## config start ##########
 
     Beampara = {
-        "Name": "proton",  # [Any string]: just to let the user distinguish the beam
+        "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
         "Number of protons per particle": 1,
-        "Number of neutrons per particle": 0,
+        "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
         "Number of charges per particle": 1,
         "Number of bunches per beam": 1,
         "Qx": 0.31,  # <optional>, will not be used if a madx file is loaded. Todo: read ramping file
@@ -76,7 +76,8 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Kinetic energy per particle (eV)": 19.08e9,
                 "Number of real particles per bunch": 1.05e11,
                 "Number of macro particles per bunch": 1e6,
-                "working turns": [0],
+                "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
+                "Inject turns": [0],
                 "Alpha x": 0,
                 "Alpha y": 0,
                 "Beta x (m)": 0.05,
@@ -85,8 +86,8 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Emittance y (m'rad)": 50e-9,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
-                "Transverse dist": "gaussian",
-                "Logitudinal dist": "gaussian",
+                "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
+                "Logitudinal dist": "gaussian", # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -95,8 +96,8 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": False,
-                "Name of loaded file": "name",
+                "Is load distribution": True,
+                "Name of loaded file": "1600_45_gaussian_proton_bunch0_1000000_superPeriod0.csv",  # file must be put in "Output directory/distribution/fixed/"
             },
         }
     }
@@ -147,20 +148,22 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
     ########## config start ##########
 
     Beampara = {
-        "Name": "electron",  # [Any string]: just to let the user distinguish the beam
-        "Number of protons per particle": 0,
-        "Number of neutrons per particle": 0,
-        "Number of charges per particle": -1,
+        "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
+        "Number of protons per particle": 1,
+        "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
+        "Number of charges per particle": 1,
         "Number of bunches per beam": 1,
-        "Qx": 0.58,  # <optional>, will not be used if madx file is loaded. Todo: read ramping file
-        "Qy": 0.56,
+        "Qx": 0.31,  # <optional>, will not be used if a madx file is loaded. Todo: read ramping file
+        "Qy": 0.32,
         "Qz": 0.0125,
         "Chromaticity x": 0,
         "Chromaticity y": 0,
         "GammaT": 1,
-        # "Number of turns": 10,    # Only declared in beam0.json
-        # "Number of GPU devices": 1,   # Only declared in beam0.json
-        # "device Id": [0],   # Only declared in beam0.json
+        "Number of turns": 10,
+        "Number of GPU devices": 1,
+        "Device Id": [0, 3],
+        "Output directory": "D:\PassSimulation",
+        "Is plot figure": False,
     }
 
     # Field solver
@@ -208,7 +211,8 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                 "Kinetic energy per particle (eV)": 19.08e9,
                 "Number of real particles per bunch": 1.05e11,
                 "Number of macro particles per bunch": 1e6,
-                "working turns": [0],
+                "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
+                "Inject turns": [0],
                 "Alpha x": 0,
                 "Alpha y": 0,
                 "Beta x (m)": 0.05,
@@ -217,8 +221,8 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                 "Emittance y (m'rad)": 50e-9,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
-                "Transverse dist": "gaussian",
-                "Logitudinal dist": "gaussian",
+                "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
+                "Logitudinal dist": "gaussian", # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -227,8 +231,8 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": False,
-                "Name of loaded file": "name",
+                "Is load distribution": True,
+                "Name of loaded file": "name",  # file must be put in "Output directory/distribution/fixed/"
             },
         }
     }
