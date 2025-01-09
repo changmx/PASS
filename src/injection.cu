@@ -224,7 +224,8 @@ void Injection::load_distribution() {
 		delete[] host_bunch;
 		//callCuda(cudaFree(dev_bunch2));
 
-		spdlog::get("logger")->info("[injection] Distribution file has been loadded successfully.");
+		spdlog::get("logger")->info("[injection] Distribution file {} has been loadded successfully to {} beam-{} bunch-{}.",
+			dist_path.string(), beam_name, beamId, bunchId);
 	}
 	else
 	{
@@ -240,7 +241,8 @@ void Injection::generate_transverse_KV_distribution() {
 	// The two beams shoule have different seed values to generate different random values.
 	// This is 4-D generator.
 
-	spdlog::get("logger")->info("[injection] Generating initial transverse KV distribution of {} beam bunch-{}.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Generating initial transverse KV distribution of {} beam-{} bunch-{}.",
+		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
 	double emittence_y = emity;
@@ -350,13 +352,15 @@ void Injection::generate_transverse_KV_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial KV distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] Initial transverse KV distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
 }
 
 
 void Injection::generate_transverse_Gaussian_distribution() {
 
-	spdlog::get("logger")->info("[injection] Generating initial transverse Gaussian distribution of {} beam bunch-{}.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Generating initial transverse Gaussian distribution of {} beam-{} bunch-{}.",
+		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
 	double emittence_y = emity;
@@ -442,13 +446,15 @@ void Injection::generate_transverse_Gaussian_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] Initial transverse Gaussian distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
 
 }
 
 void Injection::generate_transverse_uniform_distribution() {
 
-	spdlog::get("logger")->info("[injection] Generating initial transverse uniform distribution of {} beam bunch-{}.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Generating initial transverse uniform distribution of {} beam-{} bunch-{}.",
+		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
 	double emittence_y = emity;
@@ -543,7 +549,8 @@ void Injection::generate_transverse_uniform_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial Uniform distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] Initial transverse uniform distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
 }
 
 
@@ -552,7 +559,8 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 	//	Generate particle's z position and momentum.
 	//	Here we think the correlation coefficient of 2D Gaussian distribution rho = 0
 
-	spdlog::get("logger")->info("[injection] Generating initial logitudinal Gaussian distribution of {} beam bunch-{}.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Generating initial logitudinal Gaussian distribution of {} beam-{} bunch-{}.",
+		beam_name, beamId, bunchId);
 
 	int rank = 0;
 	int i = bunchId;
@@ -593,7 +601,8 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 
 	delete[] host_bunch;
 	//printf("Rank[%d]: %d initial longitude Gaussian distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
-	spdlog::get("logger")->info("[injection] Initial longitudinal Gaussian distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
 
 }
 
@@ -604,7 +613,8 @@ void Injection::generate_logitudinal_uniform_distribution() {
 	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
 	//	The uniform distribution of z ranges from 0 to sigmaz.
 
-	spdlog::get("logger")->info("[injection] Generating initial logitudinal uniform distribution of {} beam bunch-{}.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Generating initial logitudinal uniform distribution of {} beam-{} bunch-{}.",
+		beam_name, beamId, bunchId);
 
 	int rank = 0;
 	int i = bunchId;
@@ -645,7 +655,8 @@ void Injection::generate_logitudinal_uniform_distribution() {
 
 	delete[] host_bunch;
 	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
-	spdlog::get("logger")->info("[injection] Initial longitudinal uniform distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
 
 }
 
@@ -656,8 +667,8 @@ void Injection::save_initial_distribution() {
 
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
-	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_" + dist_transverse + "_" + dist_logitudinal + "_" + beam_name +
-		"_bunch" + std::to_string(bunchId) + "_" + std::to_string(Np) + "_initial.csv");
+	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_" + dist_transverse + "_" + dist_logitudinal + "_" + beam_name + std::to_string(beamId)
+		+ "_bunch" + std::to_string(bunchId) + "_" + std::to_string(Np) + "_initial.csv");
 	std::ofstream file(path_tmp);
 
 	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
@@ -676,6 +687,7 @@ void Injection::save_initial_distribution() {
 	file.close();
 	delete[]host_bunch;
 
-	spdlog::get("logger")->info("[injection] Initial {} distribution of {} beam bunch-{} has been saved to {}.", dist_transverse, beam_name, bunchId, path_tmp.string());
+	spdlog::get("logger")->info("[injection] Initial {} distribution of {} beam-{} bunch-{} has been saved to {}.",
+		dist_transverse, beam_name, beamId, bunchId, path_tmp.string());
 
 }
