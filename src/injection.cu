@@ -581,6 +581,8 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 
 	Particle* host_bunch = new Particle[Np];
 
+	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+
 	for (int j = 0; j < Np; ++j)
 	{
 		tmp_z = n1(e1);
@@ -635,6 +637,8 @@ void Injection::generate_logitudinal_uniform_distribution() {
 
 	Particle* host_bunch = new Particle[Np];
 
+	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+
 	for (int j = 0; j < Np; ++j)
 	{
 		tmp_z = n1(e1);
@@ -667,8 +671,8 @@ void Injection::save_initial_distribution() {
 
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
-	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_" + dist_transverse + "_" + dist_logitudinal + "_" + beam_name + std::to_string(beamId)
-		+ "_bunch" + std::to_string(bunchId) + "_" + std::to_string(Np) + "_initial.csv");
+	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_" + dist_transverse + "_" + dist_logitudinal + "_" + beam_name +
+		"_beam" + std::to_string(beamId) + "_bunch" + std::to_string(bunchId) + "_" + std::to_string(Np) + "_initial.csv");
 	std::ofstream file(path_tmp);
 
 	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
