@@ -81,10 +81,12 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 }
 
 void Bunch::init_gpu_memory() {
-	callCuda(cudaMalloc(&dev_particle, Np * sizeof(double)), spdlog::get("logger"));
-	callCuda(cudaMemset(dev_particle, 0, Np * sizeof(double)), spdlog::get("logger"));
+	//std::cout << "pointer 0 " << std::hex << dev_bunch << std::endl;
+	callCuda(cudaMalloc(&dev_bunch, Np * sizeof(Particle)));
+	callCuda(cudaMemset(dev_bunch, 0, Np * sizeof(Particle)));
+	//std::cout << "pointer 1 " << std::hex << dev_bunch << std::endl;
 }
 
 void Bunch::free_gpu_memory() {
-	callCuda(cudaFree(dev_particle), spdlog::get("logger"));
+	callCuda(cudaFree(dev_bunch));
 }
