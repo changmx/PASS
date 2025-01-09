@@ -86,7 +86,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Emittance y (m'rad)": 50e-9,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
-                "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
+                "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Logitudinal dist": "gaussian", # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
@@ -96,8 +96,9 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
+                "Is load distribution": False,
                 "Name of loaded file": "1600_45_gaussian_proton_bunch0_1000000_superPeriod0.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is save initial distribution": True,
             },
         }
     }
@@ -221,7 +222,7 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                 "Emittance y (m'rad)": 50e-9,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
-                "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
+                "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Logitudinal dist": "gaussian", # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
@@ -231,8 +232,9 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
+                "Is load distribution": False,
                 "Name of loaded file": "name",  # file must be put in "Output directory/distribution/fixed/"
+                "Is save initial distribution": True,
             },
         }
     }
