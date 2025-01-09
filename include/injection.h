@@ -13,10 +13,20 @@ public:
 	std::string name = "Injection";
 
 	void execute();
+
 	void load_distribution();
+	
+	void generate_transverse_KV_distribution();
+	void generate_transverse_Gaussian_distribution();
+	void generate_transverse_uniform_distribution();
+
+	void generate_logitudinal_Gaussian_distribution();
+	void generate_logitudinal_uniform_distribution();
+
+	void save_initial_distribution();
 
 private:
-	Particle* dev_particle = NULL;
+	Particle* dev_bunch = NULL;
 
 	int Np = 0;
 
@@ -33,6 +43,9 @@ private:
 	double sigmaz = 0;
 	double dp = 0;
 
+	int beamId = 0;
+	int bunchId = 0;
+
 	std::string beam_name;
 
 	std::string injection_mode;
@@ -47,8 +60,12 @@ private:
 	double offset_x = 0;
 	double offset_y = 0;
 
+	bool is_save_initial_dist = false;
+
 	std::vector<int> inject_turns;
 	std::filesystem::path dir_load_distribution;
+	std::filesystem::path dir_save_distribution;
+	std::string hourMinSec;
 };
 
 class InjectionCommand : public Command

@@ -11,7 +11,7 @@
 
 #include <random>
 
-Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch) {
+Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch) {
 	std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
 	std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
 
@@ -84,26 +84,51 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch) {
 void Injection::execute() {
 	auto logger = spdlog::get("logger");
 
-	logger->debug("Injection action");
+	//logger->debug("Injection action");
 
-	if (injection_mode == "1turn1time")
+	if ("1turn1time" == injection_mode)
 	{
-		logger->debug("Start: 1-turn and 1-time injection");
+		//logger->debug("Start: 1-turn and 1-time injection");
 
 		if (is_load_dist)
 		{
 			load_distribution();
 		}
-		else if (dist_transverse == "kv")
-		{
-			generate_KV_distribution();
-		}
 		else
 		{
-			logger->error("Sorry, we don't support distribution type {}.", dist_transverse);
-			std::exit(EXIT_FAILURE);
-		}
+			if ("kv" == dist_transverse)
+			{
+				generate_transverse_KV_distribution();
+			}
+			else if ("gaussian" == dist_transverse)
+			{
+				generate_transverse_Gaussian_distribution();
+			}
+			else if ("uniform" == dist_transverse)
+			{
+				generate_transverse_uniform_distribution();
+			}
+			else
+			{
+				logger->error("[injection] Sorry, we don't support transverse distribution type {}.", dist_transverse);
+				std::exit(EXIT_FAILURE);
+			}
 
+			if ("gaussian" == dist_logitudinal)
+			{
+				generate_logitudinal_Gaussian_distribution();
+			}
+			else if ("uniform" == dist_logitudinal)
+			{
+				generate_logitudinal_uniform_distribution();
+			}
+			else
+			{
+				logger->error("[injection] Sorry, we don't support logitudinal distribution type {}.", dist_logitudinal);
+				std::exit(EXIT_FAILURE);
+			}
+
+		}
 
 		if (is_save_initial_dist)
 		{
@@ -111,19 +136,20 @@ void Injection::execute() {
 		}
 
 	}
-	else if (injection_mode == "1turnxtime")
+	else if ("1turnxtime" == injection_mode)
 	{
-		logger->error("Sorry, we don't support: 1-turn and multi-time injection.");
+		logger->error("[injection] Sorry, we don't support: 1-turn and multi-time injection.");
 		std::exit(EXIT_FAILURE);
 	}
-	else if (injection_mode == "xturnxtime")
+	else if ("xturnxtime" == injection_mode)
 	{
-		logger->error("Sorry, we don't support: multi-turn and multi-time injection.");
+		logger->error("[injection] Sorry, we don't support: multi-turn and multi-time injection.");
 		std::exit(EXIT_FAILURE);
 	}
 	else
 	{
-		logger->error("Input wrong injection mode value: {}.", injection_mode);
+		logger->error("[injection] Input wrong injection mode value: {}.", injection_mode);
+		std::exit(EXIT_FAILURE);
 	}
 }
 
@@ -134,13 +160,13 @@ void Injection::load_distribution() {
 	if (std::filesystem::exists(dist_path))
 	{
 		if (filename_load_dist.find(beam_name) == std::string::npos)
-			spdlog::get("logger")->warn("Please be careful to confirm that the file is {} distribution: {}.", beam_name, dist_path.string());
+			spdlog::get("logger")->warn("[injection] Please be careful to confirm that the file is {} distribution: {}.", beam_name, dist_path.string());
 		if (filename_load_dist.find(dist_transverse) == std::string::npos)
-			spdlog::get("logger")->warn("Please be careful to confirm that the file is {} distribution: {}.", dist_transverse, dist_path.string());
+			spdlog::get("logger")->warn("[injection] Please be careful to confirm that the file is {} distribution: {}.", dist_transverse, dist_path.string());
 		if (filename_load_dist.find(std::to_string(Np)) == std::string::npos)
-			spdlog::get("logger")->warn("Please be careful to confirm that the file contain {} particles: {}.", Np, dist_path.string());
+			spdlog::get("logger")->warn("[injection] Please be careful to confirm that the file contain {} particles: {}.", Np, dist_path.string());
 
-		spdlog::get("logger")->info("... loading distribution file: {}", dist_path.string());
+		spdlog::get("logger")->info("[injection] Loading distribution file: {}", dist_path.string());
 
 		Particle* host_bunch = new Particle[Np];
 
@@ -186,7 +212,7 @@ void Injection::load_distribution() {
 
 		if (j != (Np - 1))
 		{
-			spdlog::get("logger")->warn("We only load {}/{} particles from file {}.", j, Np, dist_path.string());
+			spdlog::get("logger")->warn("[injection] We only load {}/{} particles from file {}.", j, Np, dist_path.string());
 		}
 
 		input.close();
@@ -198,23 +224,23 @@ void Injection::load_distribution() {
 		delete[] host_bunch;
 		//callCuda(cudaFree(dev_bunch2));
 
-		spdlog::get("logger")->info("... distribution file has been loadded successfully.");
+		spdlog::get("logger")->info("[injection] Distribution file has been loadded successfully.");
 	}
 	else
 	{
-		spdlog::get("logger")->error("We don't find distribution file: {}.", dist_path.string());
+		spdlog::get("logger")->error("[injection] We don't find distribution file: {}.", dist_path.string());
 		std::exit(EXIT_FAILURE);
 	}
 }
 
 
-void Injection::generate_KV_distribution() {
+void Injection::generate_transverse_KV_distribution() {
 
 	/* This menthod is derived from "Particle - in - cell code BEAMPATH for beam dynamics simulations in linear accelerators and beamlines"*/
 	// The two beams shoule have different seed values to generate different random values.
 	// This is 4-D generator.
 
-	spdlog::get("logger")->info("... generating initial KV distribution of beam-{} bunch-{}.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Generating initial transverse KV distribution of {} beam bunch-{}.", beam_name, bunchId);
 
 	double emittence_x = emitx;
 	double emittence_y = emity;
@@ -324,8 +350,305 @@ void Injection::generate_KV_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial KV distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("... initial KV distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+	spdlog::get("logger")->info("[injection] Initial transverse KV distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
 }
+
+
+void Injection::generate_transverse_Gaussian_distribution() {
+
+	spdlog::get("logger")->info("[injection] Generating initial transverse Gaussian distribution of {} beam bunch-{}.", beam_name, bunchId);
+
+	double emittence_x = emitx;
+	double emittence_y = emity;
+	double alpha_x_twiss = alphax;
+	double alpha_y_twiss = alphay;
+	double beta_x_twiss = betax;
+	double beta_y_twiss = betay;
+	double gamma_x_twiss = gammax;
+	double gamma_y_twiss = gammay;
+
+	double sigmax = sqrt(emittence_x * betax);
+	double sigmay = sqrt(emittence_y * betay);
+
+	// [-1考, 1考] = 0.6826894921370859, [-4考, 4考] = 0.9999366575163338
+	// [-2考, 2考] = 0.9544997361036416, [-5考, 5考] = 0.9999994266968562
+	// [-3考, 3考] = 0.9973002039367398, [-6考, 6考] = 0.9999999980268246
+	double x_max = 4 * sigmax;
+	double x_min = -4 * sigmax;
+	double y_max = 4 * sigmay;
+	double y_min = -4 * sigmay;
+
+	int rank = 0;
+	int i = bunchId;
+	int beam_label = beamId;
+
+	std::default_random_engine e1;
+	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
+
+	Particle* host_bunch = new Particle[Np];
+
+	for (int j = 0; j < Np; ++j)
+	{
+
+		double x, px, y, py;
+		double Xm, thetaXm, Ym, thetaYm;
+		double a_x, a_y, u_x, u_y, v_x, v_y;
+		double alpha_x, alpha_y, chi_x, chi_y;
+		double pi = PassConstant::PI;
+
+		double random_s1_x = u1(e1); //range (0,1)
+		double random_s1_y = u1(e1); //range (0,1)
+		double random_s2_x = u1(e1); //range (0,1)
+		double random_s2_y = u1(e1); //range (0,1)
+
+		Xm = 2 * sqrt(emittence_x * beta_x_twiss);
+		thetaXm = 2 * sqrt(emittence_x * gamma_x_twiss);
+		a_x = sqrt(2) / 2 * sqrt(-log(random_s1_x));
+		alpha_x = 2 * pi * random_s2_x;
+		chi_x = -1 * atan(alpha_x_twiss);
+		u_x = a_x * cos(alpha_x);
+		v_x = a_x * sin(alpha_x);
+		x = Xm * u_x;
+		px = thetaXm * (u_x * sin(chi_x) + v_x * cos(chi_x));
+
+		Ym = 2 * sqrt(emittence_y * beta_y_twiss);
+		thetaYm = 2 * sqrt(emittence_y * gamma_y_twiss);
+		a_y = sqrt(2) / 2 * sqrt(-log(random_s1_y));
+		alpha_y = 2 * pi * random_s2_y;
+		chi_y = -1 * atan(alpha_y_twiss);
+		u_y = a_y * cos(alpha_y);
+		v_y = a_y * sin(alpha_y);
+		y = Ym * u_y;
+		py = thetaYm * (u_y * sin(chi_y) + v_y * cos(chi_y));
+
+		if (x > x_min && x < x_max && y > y_min && y < y_max)
+		{
+			host_bunch[j].x = x;
+			host_bunch[j].px = px;
+			host_bunch[j].y = y;
+			host_bunch[j].py = py;
+			host_bunch[j].tag = j + 1;
+		}
+		else
+		{
+			--j;
+		}
+		/*std::cout << "tag: " << beam.tag(i) << std::endl;
+		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
+	}
+
+	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+
+	delete[] host_bunch;
+	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
+	spdlog::get("logger")->info("[injection] Initial transverse Gaussian distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+
+}
+
+void Injection::generate_transverse_uniform_distribution() {
+
+	spdlog::get("logger")->info("[injection] Generating initial transverse uniform distribution of {} beam bunch-{}.", beam_name, bunchId);
+
+	double emittence_x = emitx;
+	double emittence_y = emity;
+	double alpha_x_twiss = alphax;
+	double alpha_y_twiss = alphay;
+	double beta_x_twiss = betax;
+	double beta_y_twiss = betay;
+	double gamma_x_twiss = gammax;
+	double gamma_y_twiss = gammay;
+
+	double sigmax = sqrt(emittence_x * betax);
+	double sigmay = sqrt(emittence_y * betay);
+
+	// [-1考, 1考] = 0.6826894921370859, [-4考, 4考] = 0.9999366575163338
+	// [-2考, 2考] = 0.9544997361036416, [-5考, 5考] = 0.9999994266968562
+	// [-3考, 3考] = 0.9973002039367398, [-6考, 6考] = 0.9999999980268246
+	double x_max = 4 * sigmax;
+	double x_min = -4 * sigmax;
+	double y_max = 4 * sigmay;
+	double y_min = -4 * sigmay;
+
+	int rank = 0;
+	int i = bunchId;
+	int beam_label = beamId;
+
+	std::default_random_engine e1;
+	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
+
+	Particle* host_bunch = new Particle[Np];
+
+	for (int j = 0; j < Np; ++j)
+	{
+
+		double m = 1;
+		double x, px, y, py;
+		double Xm, thetaXm, Ym, thetaYm;
+		double Xl, Xlpx, Yl, Ylpy;
+		double a_x, a_y, u_x, u_y, v_x, v_y;
+		double alpha_x, alpha_y, chi_x, chi_y;
+		double pi = PassConstant::PI;
+
+		double random_s1_x = u1(e1); //range (0,1)
+		double random_s2_x = u1(e1); //range (0,1)
+		double random_s1_y = u1(e1); //range (0,1)
+		double random_s2_y = u1(e1); //range (0,1)
+
+		Xm = 2 * sqrt(emittence_x * beta_x_twiss);
+		thetaXm = 2 * sqrt(emittence_x * gamma_x_twiss);
+		Xl = sqrt((m + 1) / 2) * Xm;
+		Xlpx = sqrt((m + 1) / 2) * thetaXm;
+		a_x = sqrt(1 - pow(random_s1_x, 1 / m));
+		alpha_x = 2 * pi * random_s2_x;
+		chi_x = -1 * atan(alpha_x_twiss);
+		u_x = a_x * cos(alpha_x);
+		v_x = a_x * sin(alpha_x);
+
+		x = Xl * u_x;
+		px = Xlpx * (u_x * sin(chi_x) + v_x * cos(chi_x));
+		//printf("Xm = %f, thetaXm = %f, Xl = %f, Xlpx = %f, alphaX = %f, ux = %f, vx = %f, x = %f, px = %f\n", Xm, thetaXm, Xl, Xlpx, alpha_x, u_x, v_x, x, px);
+
+		Ym = 2 * sqrt(emittence_y * beta_y_twiss);
+		thetaYm = 2 * sqrt(emittence_y * gamma_y_twiss);
+		Yl = sqrt((m + 1) / 2) * Ym;
+		Ylpy = sqrt((m + 1) / 2) * thetaYm;
+		a_y = sqrt(1 - pow(random_s1_y, 1 / m));
+		alpha_y = 2 * pi * random_s2_y;
+		chi_y = -1 * atan(alpha_y_twiss);
+		u_y = a_y * cos(alpha_y);
+		v_y = a_y * sin(alpha_y);
+
+		y = Yl * u_y;
+		py = Ylpy * (u_y * sin(chi_y) + v_y * cos(chi_y));
+
+		if (x > x_min && x < x_max && y > y_min && y < y_max)
+		{
+			host_bunch[j].x = x;
+			host_bunch[j].px = px;
+			host_bunch[j].y = y;
+			host_bunch[j].py = py;
+			host_bunch[j].tag = j + 1;
+		}
+		else
+		{
+			--j;
+		}
+		/*std::cout << "tag: " << beam.tag(i) << std::endl;
+		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
+	}
+
+	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+
+	delete[] host_bunch;
+	//std::cout << "initial Uniform distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
+	spdlog::get("logger")->info("[injection] Initial transverse uniform distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+}
+
+
+void Injection::generate_logitudinal_Gaussian_distribution() {
+
+	//	Generate particle's z position and momentum.
+	//	Here we think the correlation coefficient of 2D Gaussian distribution rho = 0
+
+	spdlog::get("logger")->info("[injection] Generating initial logitudinal Gaussian distribution of {} beam bunch-{}.", beam_name, bunchId);
+
+	int rank = 0;
+	int i = bunchId;
+	int beam_label = beamId;
+
+	double sigma_z = sigmaz;
+	double sigma_pz = dp;
+	//double rho = 0;
+	double tmp_z, tmp_pz;
+
+	std::default_random_engine e1;
+	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	std::normal_distribution<> n1(0, sigma_z);
+
+	std::default_random_engine e2;
+	e2.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + 10 + beam_label);
+	std::normal_distribution<> n2(0, sigma_pz);
+
+	Particle* host_bunch = new Particle[Np];
+
+	for (int j = 0; j < Np; ++j)
+	{
+		tmp_z = n1(e1);
+		tmp_pz = n2(e2);
+
+		if (tmp_z >= (-4 * sigma_z) && tmp_z <= (4 * sigma_z))
+		{
+			host_bunch[j].z = tmp_z;
+			host_bunch[j].pz = tmp_pz;
+		}
+		else
+		{
+			--j;
+		}
+	}
+
+	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+
+	delete[] host_bunch;
+	//printf("Rank[%d]: %d initial longitude Gaussian distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
+	spdlog::get("logger")->info("[injection] Initial longitudinal Gaussian distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+
+}
+
+
+void Injection::generate_logitudinal_uniform_distribution() {
+
+	//	Generate particle's z position and momentum.
+	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
+	//	The uniform distribution of z ranges from 0 to sigmaz.
+
+	spdlog::get("logger")->info("[injection] Generating initial logitudinal uniform distribution of {} beam bunch-{}.", beam_name, bunchId);
+
+	int rank = 0;
+	int i = bunchId;
+	int beam_label = beamId;
+
+	double sigma_z = sigmaz;
+	double sigma_pz = dp;
+	//double rho = 0;
+	double tmp_z, tmp_pz;
+
+	std::default_random_engine e1;
+	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	std::uniform_real_distribution<> n1(0, sigma_z);
+
+	std::default_random_engine e2;
+	e2.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + 10 + beam_label);
+	std::normal_distribution<> n2(0, sigma_pz);
+
+	Particle* host_bunch = new Particle[Np];
+
+	for (int j = 0; j < Np; ++j)
+	{
+		tmp_z = n1(e1);
+		tmp_pz = n2(e2);
+
+		if (tmp_z >= (-4 * sigma_z) && tmp_z <= (4 * sigma_z))
+		{
+			host_bunch[j].z = tmp_z;
+			host_bunch[j].pz = tmp_pz;
+		}
+		else
+		{
+			--j;
+		}
+	}
+
+	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+
+	delete[] host_bunch;
+	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
+	spdlog::get("logger")->info("[injection] Initial longitudinal uniform distribution of {} beam bunch-{} has been genetated successfully.", beam_name, bunchId);
+
+}
+
 
 void Injection::save_initial_distribution() {
 
@@ -333,7 +656,7 @@ void Injection::save_initial_distribution() {
 
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
-	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_" + dist_transverse + "_" + beam_name +
+	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_" + dist_transverse + "_" + dist_logitudinal + "_" + beam_name +
 		"_bunch" + std::to_string(bunchId) + "_" + std::to_string(Np) + "_initial.csv");
 	std::ofstream file(path_tmp);
 
@@ -353,5 +676,6 @@ void Injection::save_initial_distribution() {
 	file.close();
 	delete[]host_bunch;
 
-	spdlog::get("logger")->info("... initial {} distribution of {} beam bunch-{} has been saved to {}.", dist_transverse, beam_name, bunchId, path_tmp.string());
+	spdlog::get("logger")->info("[injection] Initial {} distribution of {} beam bunch-{} has been saved to {}.", dist_transverse, beam_name, bunchId, path_tmp.string());
+
 }
