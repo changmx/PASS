@@ -29,7 +29,10 @@ public:
 	double pz = 0;
 
 	int tag = 0;
-	int lostTurn = 0;
+
+	/*The integer part of lossTurn is the number of turns in which the loss occured, 
+	and the decimal part is the loss position (in unit of m) divided by 1e6*/
+	double lostTurn = 0;
 
 #ifdef PASS_CAL_PHASE
 
@@ -92,7 +95,7 @@ public:
 
 	//int dampTurn = 0;	// Transverse damping turns
 
-	Particle* dev_particle = NULL;
+	Particle* dev_bunch = NULL;
 
 private:
 
