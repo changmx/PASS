@@ -49,10 +49,14 @@ int main(int argc, char** argv)
 	}
 
 
-	Injection* inj = new Injection(Para, 0, Beam0[0]);
-	Command* command = new InjectionCommand(inj);
+	Injection* inj_beam0 = new Injection(Para, 0, Beam0[0]);
+	Injection* inj_beam1 = new Injection(Para, 1, Beam1[0]);
 
-	command->execute();
+	Command* command0 = new InjectionCommand(inj_beam0);
+	Command* command1 = new InjectionCommand(inj_beam1);
+
+	command0->execute();
+	command1->execute();
 
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
 	{
