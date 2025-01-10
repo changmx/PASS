@@ -324,3 +324,83 @@ void create_logger(const Parameter& Para) {
 	spdlog::flush_on(spdlog::level::debug);
 
 }
+
+
+void show_device_info() {
+
+	auto logger = spdlog::get("logger");
+	logger->set_pattern("%v");
+
+	logger->info("\n********** Runtime environment ************\n");
+
+	cudaDeviceProp prop; //"cuda_runtime.h"
+	int count;
+	cudaGetDeviceCount(&count);
+
+	logger->info("Operation system:        {}", MY_SYSTEM);
+	logger->info("CUDA toolkit version:    {}.{}", CUDART_VERSION / 1000, CUDART_VERSION / 10 % 100);
+	//printf("CPU threads available:   %d\n", omp_get_num_procs());
+	logger->info("GPU available:           {}", count);
+	//printf("GPU used number:         %d\n", numtask);
+#ifdef _MSC_VER
+	logger->info("MSVC version:            {}", _MSC_VER);
+#endif
+#ifdef __GNUC__
+	logger->info("GCC version:             {}.{}.{}", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#endif //
+
+	//if (omp_get_num_procs() < numtask)
+	//{
+	//	printf("\nUser warning: cpu threads is less than gpu devices, this may cause unknown error. Please change gpu device number.\n");
+	//}
+
+	//printf("\n%-9s %-9s\n", "rank", "device");
+	//for (size_t i = 0; i < device.size(); i++)
+	//{
+	//	printf("%-9d %-9d\n", device[i].rank, device[i].deviceId);
+	//}
+
+	for (int i = 0; i < count; ++i)
+	{
+		cudaGetDeviceProperties(&prop, i);
+		logger->info("\n--- General Information for device {} ---\n", i);
+		logger->info("Name:                     {}", prop.name);
+		logger->info("Compute capability:       {}.{}", prop.major, prop.minor);
+		logger->info("Device copy overlap:      {}", (prop.deviceOverlap) ? "Enabled" : "Disabled");
+		logger->info("Kernel execition timeout: {}", (prop.kernelExecTimeoutEnabled) ? "Enabled" : "Disabled");
+		logger->info("Total global Men:         {} GiB", prop.totalGlobalMem / (1024 * 1024 * 1024));
+		logger->info("Multiprocessor count:     {}", prop.multiProcessorCount);
+		logger->info("Shared men per mp:        {} bytes", prop.sharedMemPerBlock);
+		logger->info("Threads in warp:          {}", prop.warpSize);
+		logger->info("Max threads per block:    {}", prop.maxThreadsPerBlock);
+		logger->info("Max thread dimensions:    ({}, {}, {})", prop.maxThreadsDim[0], prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
+		logger->info("Max grid dimensions:      ({}, {}, {})", prop.maxGridSize[0], prop.maxGridSize[1], prop.maxGridSize[2]);
+	}
+
+	////Check peer-to-peer connectivity
+	//printf("\nP2P Connectivity Matrix\n");
+	//printf("     D\\D");
+
+	//for (int j = 0; j < numtask; j++) {
+	//	printf("%6d", device[j].deviceId);
+	//}
+	//printf("\n");
+
+	//for (int i = 0; i < numtask; i++) {
+	//	printf("%6d\t", device[i].deviceId);
+	//	for (int j = 0; j < numtask; j++) {
+	//		if (i != j) {
+	//			int access;
+	//			callCuda(cudaDeviceCanAccessPeer(&access, device[i].deviceId, device[j].deviceId));
+	//			printf("%6d", (access) ? 1 : 0);
+	//		}
+	//		else {
+	//			printf("%6d", 1);
+	//		}
+	//	}
+	//	printf("\n");
+	//}
+	logger->info("\n*******************************************\n");
+
+	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+}
