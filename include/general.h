@@ -15,15 +15,16 @@
 
 #include "parameter.h"
 #include "particle.h"
+#include "command.h"
 
 #ifndef STRNCASECMP
 #define STRNCASECMP _strnicmp
 #endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
-#define MY_SYSTEM Windows
+#define MY_SYSTEM "Windows"
 #elif __linux__
-#define MY_SYSTEM Linux
+#define MY_SYSTEM "Linux"
 #elif __APPLE__
 printf("\nSorry, we don't support Apple system now.\n");
 exit(1);
@@ -46,3 +47,5 @@ void print_config_parameter(const Parameter&);
 void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1);
 
 void create_logger(const Parameter& Para);
+
+void show_device_info();
