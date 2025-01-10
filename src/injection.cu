@@ -12,11 +12,11 @@
 #include <random>
 
 Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch) {
-	std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
-	std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
+	//std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
+	//std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
 
 	dev_bunch = Bunch.dev_bunch;
-	std::cout << "pointer 4 " << std::hex << dev_bunch << std::endl;
+	//std::cout << "pointer 4 " << std::hex << dev_bunch << std::endl;
 
 	Np = Bunch.Np;
 
@@ -241,7 +241,7 @@ void Injection::generate_transverse_KV_distribution() {
 	// The two beams shoule have different seed values to generate different random values.
 	// This is 4-D generator.
 
-	spdlog::get("logger")->info("[injection] Generating initial transverse KV distribution of {} beam-{} bunch-{}.",
+	spdlog::get("logger")->info("[injection] The initial transverse KV distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
@@ -352,14 +352,14 @@ void Injection::generate_transverse_KV_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial KV distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] Initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[injection] The initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 }
 
 
 void Injection::generate_transverse_Gaussian_distribution() {
 
-	spdlog::get("logger")->info("[injection] Generating initial transverse Gaussian distribution of {} beam-{} bunch-{}.",
+	spdlog::get("logger")->info("[injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
@@ -446,14 +446,14 @@ void Injection::generate_transverse_Gaussian_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] Initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
 }
 
 void Injection::generate_transverse_uniform_distribution() {
 
-	spdlog::get("logger")->info("[injection] Generating initial transverse uniform distribution of {} beam-{} bunch-{}.",
+	spdlog::get("logger")->info("[injection] The initial transverse uniform distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
@@ -549,7 +549,7 @@ void Injection::generate_transverse_uniform_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial Uniform distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] Initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[injection] The initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 }
 
@@ -559,7 +559,7 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 	//	Generate particle's z position and momentum.
 	//	Here we think the correlation coefficient of 2D Gaussian distribution rho = 0
 
-	spdlog::get("logger")->info("[injection] Generating initial logitudinal Gaussian distribution of {} beam-{} bunch-{}.",
+	spdlog::get("logger")->info("[injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	int rank = 0;
@@ -603,7 +603,7 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 
 	delete[] host_bunch;
 	//printf("Rank[%d]: %d initial longitude Gaussian distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
-	spdlog::get("logger")->info("[injection] Initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
 }
@@ -615,7 +615,7 @@ void Injection::generate_logitudinal_uniform_distribution() {
 	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
 	//	The uniform distribution of z ranges from 0 to sigmaz.
 
-	spdlog::get("logger")->info("[injection] Generating initial logitudinal uniform distribution of {} beam-{} bunch-{}.",
+	spdlog::get("logger")->info("[injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	int rank = 0;
@@ -659,7 +659,7 @@ void Injection::generate_logitudinal_uniform_distribution() {
 
 	delete[] host_bunch;
 	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
-	spdlog::get("logger")->info("[injection] Initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
 }
