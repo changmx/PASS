@@ -26,7 +26,8 @@ namespace PassConstant {
 	constexpr double mu0 = 1.00000000055 * 4 * PI * 1e-7;	// permeability of free space
 
 	constexpr double re = 2.8179403262e-15;	// classical electron radius (m)
-	constexpr double rp = re * me / mp;	// classical proton radius (m)
+	// constexpr double rp = re * me / mp;	// classical proton radius (m)
+	constexpr double rp = 1.5346982672e-18;	// classical proton radius (m)
 }
 
 #endif // !PASS_CONSTANT
