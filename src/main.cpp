@@ -13,8 +13,9 @@
 
 int main(int argc, char** argv)
 {
-	Parameter Para(argc, argv);
+	Parameter Para(argc, argv);	// read parameter from json file
 
+	// create a logger named "logger" which can be called globally
 	create_logger(Para);
 	std::shared_ptr<spdlog::logger> logger = spdlog::get("logger");
 
@@ -22,9 +23,11 @@ int main(int argc, char** argv)
 	print_copyright(Para);
 	show_device_info();
 
+	// Beam0 and Beam1 are two vectors of Bunch class
 	std::vector<Bunch> Beam0;
 	std::vector<Bunch> Beam1;
 
+	// create Bunch objects according input parameters(Para object) and push them into Beam0 and Beam1 vector
 	for (size_t i = 0; i < Para.Nbunch[0]; i++)
 	{
 		Bunch bunch(Para, 0, i);
@@ -41,6 +44,7 @@ int main(int argc, char** argv)
 
 	cudaSetDevice(Para.gpuId[0]);
 
+	//	initialize GPU memory of Bunch objects
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
 	{
 		iter->init_memory();
@@ -50,6 +54,7 @@ int main(int argc, char** argv)
 		iter->init_memory();
 	}
 
+	//	create vector to store all commands
 	std::vector<Command*> command_beam0;
 	std::vector<Command*> command_beam1;
 
@@ -63,8 +68,8 @@ int main(int argc, char** argv)
 	{
 		logger->info("Turn: {}/{}", turn, Para.Nturn);
 
-		int icb0 = 0;	// i command of beam0
-		int icb1 = 0;	// i command of beam1
+		int icb0 = 0;	// i-th command of beam0
+		int icb1 = 0;	// i-th command of beam1
 
 		int N_break_off = (0 == Para.Ncollision) ? 1 : Para.Ncollision + 1;
 
