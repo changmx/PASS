@@ -27,7 +27,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "Number of turns": 10,
         "Number of GPU devices": 1,
         "Device Id": [0, 3],
-        "Output directory": "D:\PassSimulation",
+        "Output directory": "D:\\PassSimulation",
         "Is plot figure": False,
     }
 
@@ -75,7 +75,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
             "bunch0": {
                 "Kinetic energy per particle (eV)": 19.08e9,
                 "Number of real particles per bunch": 1.05e11,
-                "Number of macro particles per bunch": 1e6,
+                "Number of macro particles per bunch": 1e4,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [0],
                 "Alpha x": 0,
@@ -86,8 +86,8 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Emittance y (m'rad)": 50e-9,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
-                "Transverse dist": "kv",  # [kv/gaussian/uniform]
-                "Logitudinal dist": "gaussian", # [gaussian/uniform]
+                "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
+                "Logitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -118,16 +118,15 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Phase advance y (2pi)": 0.3,
             },
         }
-        Sequence.update(Transfer)
+        # Sequence.update(Transfer)
 
         Spacecharge = {
-            "Space charge" + str(i): {"S (m)": 0 + i * 10},
-            "Command": "Spacecharge",
+            "SpaceCharge" + str(i): {"S (m)": 0 + i * 10, "Command": "Space charge"}
         }
         # for key in Spacecharge_sim_para:
         #     Spacecharge["Space charge" + str(i)][key] = Spacecharge_sim_para[key]
 
-        Sequence.update(Spacecharge)
+        # Sequence.update(Spacecharge)
 
     Sequencepara = {"Sequence": Sequence}
 
@@ -163,7 +162,7 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
         "Number of turns": 10,
         "Number of GPU devices": 1,
         "Device Id": [0, 3],
-        "Output directory": "D:\PassSimulation",
+        "Output directory": "D:\\PassSimulation",
         "Is plot figure": False,
     }
 
@@ -211,9 +210,11 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
             "bunch0": {
                 "Kinetic energy per particle (eV)": 19.08e9,
                 "Number of real particles per bunch": 1.05e11,
-                "Number of macro particles per bunch": 1e6,
+                "Number of macro particles per bunch": 1e4,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
-                "Inject turns": [0],
+                "Inject turns": [
+                    0
+                ],  # [turn]/[startTurn, endTurn] e.g. [0]:turn 0, [0,3]:turn 0,1,2,3
                 "Alpha x": 0,
                 "Alpha y": 0,
                 "Beta x (m)": 0.05,
@@ -222,8 +223,8 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                 "Emittance y (m'rad)": 50e-9,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
-                "Transverse dist": "kv",  # [kv/gaussian/uniform]
-                "Logitudinal dist": "gaussian", # [gaussian/uniform]
+                "Transverse dist": "uniform",  # [kv/gaussian/uniform]
+                "Logitudinal dist": "gaussian",  # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -254,16 +255,15 @@ def generate_linear_lattice_config_beam1(fileName="beam1.json"):
                 "Phase advance y (2pi)": 0.3,
             },
         }
-        Sequence.update(Transfer)
+        # Sequence.update(Transfer)
 
         Spacecharge = {
-            "Space charge" + str(i): {"S (m)": 0 + i * 10},
-            "Command": "Spacecharge",
+            "SpaceCharge" + str(i): {"S (m)": 0 + i * 10, "Command": "Space charge"}
         }
         # for key in Spacecharge_sim_para:
         #     Spacecharge["Space charge" + str(i)][key] = Spacecharge_sim_para[key]
 
-        Sequence.update(Spacecharge)
+        # Sequence.update(Spacecharge)
 
     Sequencepara = {"Sequence": Sequence}
 
