@@ -411,7 +411,7 @@ void read_simulation_config(const Parameter& Para, const std::vector<Bunch>& bea
 
 	if (1 == Para.Nbeam && 1 == input_beamId)
 	{
-		return;
+		return;	// if we only have one beam, we don't need to read the json file of beam1. The size of beam1 vector will be zero.
 	}
 
 	using json = nlohmann::json;
