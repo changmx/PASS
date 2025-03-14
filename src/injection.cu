@@ -20,19 +20,6 @@ Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch
 
 	Np = Bunch.Np;
 
-	alphax = Bunch.alphax;
-	alphay = Bunch.alphay;
-	betax = Bunch.betax;
-	betay = Bunch.betay;
-	gammax = Bunch.gammax;
-	gammay = Bunch.gammay;
-
-	emitx = Bunch.emitx;
-	emity = Bunch.emity;
-
-	sigmaz = Bunch.sigmaz;
-	dp = Bunch.dp;
-
 	beamId = input_beamId;
 	bunchId = Bunch.bunchId;
 
@@ -52,6 +39,47 @@ Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch
 	{
 		s = data.at("Sequence").at("Injection").at("S (m)");
 		name = data.at("Sequence").at("Injection").at("Command");
+
+		if (1 == data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size())
+		{
+			startTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[0];
+			endTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[0];
+		}
+		else if (2 == data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size())
+		{
+			startTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[0];
+			endTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[1];
+		}
+		else
+		{
+			spdlog::get("logger")->error("[Injection] The number of parameters of 'Inject turns' should be 1 or 2, but now is: {}.",
+				data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size());
+			std::exit(EXIT_FAILURE);
+		}
+
+		alphax = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha x");
+		alphay = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha y");
+
+		betax = data.at("Sequence").at("Injection").at(key_bunch).at("Beta x (m)");
+		betay = data.at("Sequence").at("Injection").at(key_bunch).at("Beta y (m)");
+
+		gammax = (1 + alphax * alphax) / betax;
+		gammay = (1 + alphay * alphay) / betay;
+
+		emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
+		emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
+
+		emitx_norm = emitx * Bunch.gamma * Bunch.beta;
+		emity_norm = emity * Bunch.gamma * Bunch.beta;
+
+		sigmaz = data.at("Sequence").at("Injection").at(key_bunch).at("Sigma z (m)");
+		dp = data.at("Sequence").at("Injection").at(key_bunch).at("DeltaP/P");
+
+		sigmax = sqrt(betax * emitx);
+		sigmay = sqrt(betay * emity);
+
+		sigmapx = sqrt(gammax * emitx);
+		sigmapy = sqrt(gammay * emity);
 
 		injection_mode = data.at("Sequence").at("Injection").at(key_bunch).at("Mode");
 		dist_transverse = data.at("Sequence").at("Injection").at(key_bunch).at("Transverse dist");
@@ -81,7 +109,7 @@ Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch
 	}
 }
 
-void Injection::execute() {
+void Injection::run(int turn) {
 	auto logger = spdlog::get("logger");
 
 	//logger->debug("Injection action");
@@ -89,66 +117,76 @@ void Injection::execute() {
 	if ("1turn1time" == injection_mode)
 	{
 		//logger->debug("Start: 1-turn and 1-time injection");
-
-		if (is_load_dist)
+		if (startTurn != endTurn)
 		{
-			load_distribution();
+			logger->warn("[Injection] In the 1-turn 1-time injection mode, we only inject 1 turn, but input parameters is from turn {} to turn {}. We will only inject at turn {}.",
+				startTurn, endTurn, startTurn);
 		}
-		else
+
+		if (turn == startTurn)
 		{
-			if ("kv" == dist_transverse)
+			if (is_load_dist)
 			{
-				generate_transverse_KV_distribution();
-			}
-			else if ("gaussian" == dist_transverse)
-			{
-				generate_transverse_Gaussian_distribution();
-			}
-			else if ("uniform" == dist_transverse)
-			{
-				generate_transverse_uniform_distribution();
+				load_distribution();
 			}
 			else
 			{
-				logger->error("[injection] Sorry, we don't support transverse distribution type {}.", dist_transverse);
-				std::exit(EXIT_FAILURE);
+				if ("kv" == dist_transverse)
+				{
+					generate_transverse_KV_distribution();
+				}
+				else if ("gaussian" == dist_transverse)
+				{
+					generate_transverse_Gaussian_distribution();
+				}
+				else if ("uniform" == dist_transverse)
+				{
+					generate_transverse_uniform_distribution();
+				}
+				else
+				{
+					logger->error("[Injection] Sorry, we don't support transverse distribution type {}.", dist_transverse);
+					std::exit(EXIT_FAILURE);
+				}
+
+				if ("gaussian" == dist_logitudinal)
+				{
+					generate_logitudinal_Gaussian_distribution();
+				}
+				else if ("uniform" == dist_logitudinal)
+				{
+					generate_logitudinal_uniform_distribution();
+				}
+				else
+				{
+					logger->error("[Injection] Sorry, we don't support logitudinal distribution type {}.", dist_logitudinal);
+					std::exit(EXIT_FAILURE);
+				}
+
 			}
 
-			if ("gaussian" == dist_logitudinal)
+			if (is_save_initial_dist)
 			{
-				generate_logitudinal_Gaussian_distribution();
+				save_initial_distribution();
 			}
-			else if ("uniform" == dist_logitudinal)
-			{
-				generate_logitudinal_uniform_distribution();
-			}
-			else
-			{
-				logger->error("[injection] Sorry, we don't support logitudinal distribution type {}.", dist_logitudinal);
-				std::exit(EXIT_FAILURE);
-			}
-
 		}
-
-		if (is_save_initial_dist)
-		{
-			save_initial_distribution();
-		}
-
 	}
+
 	else if ("1turnxtime" == injection_mode)
 	{
-		logger->error("[injection] Sorry, we don't support: 1-turn and multi-time injection.");
+		logger->error("[Injection] Sorry, we don't support: 1-turn and multi-time injection.");
 		std::exit(EXIT_FAILURE);
 	}
+
 	else if ("xturnxtime" == injection_mode)
 	{
-		logger->error("[injection] Sorry, we don't support: multi-turn and multi-time injection.");
+		logger->error("[Injection] Sorry, we don't support: multi-turn and multi-time injection.");
 		std::exit(EXIT_FAILURE);
 	}
+
 	else
 	{
-		logger->error("[injection] Input wrong injection mode value: {}.", injection_mode);
+		logger->error("[Injection] Input wrong injection mode value: {}.", injection_mode);
 		std::exit(EXIT_FAILURE);
 	}
 }
@@ -160,13 +198,13 @@ void Injection::load_distribution() {
 	if (std::filesystem::exists(dist_path))
 	{
 		if (filename_load_dist.find(beam_name) == std::string::npos)
-			spdlog::get("logger")->warn("[injection] Please be careful to confirm that the file is {} distribution: {}.", beam_name, dist_path.string());
+			spdlog::get("logger")->warn("[Injection] Please be careful to confirm that the file is {} distribution: {}.", beam_name, dist_path.string());
 		if (filename_load_dist.find(dist_transverse) == std::string::npos)
-			spdlog::get("logger")->warn("[injection] Please be careful to confirm that the file is {} distribution: {}.", dist_transverse, dist_path.string());
+			spdlog::get("logger")->warn("[Injection] Please be careful to confirm that the file is {} distribution: {}.", dist_transverse, dist_path.string());
 		if (filename_load_dist.find(std::to_string(Np)) == std::string::npos)
-			spdlog::get("logger")->warn("[injection] Please be careful to confirm that the file contain {} particles: {}.", Np, dist_path.string());
+			spdlog::get("logger")->warn("[Injection] Please be careful to confirm that the file contain {} particles: {}.", Np, dist_path.string());
 
-		spdlog::get("logger")->info("[injection] Loading distribution file: {}", dist_path.string());
+		spdlog::get("logger")->info("[Injection] Loading distribution file: {}", dist_path.string());
 
 		Particle* host_bunch = new Particle[Np];
 
@@ -212,7 +250,7 @@ void Injection::load_distribution() {
 
 		if (j != (Np - 1))
 		{
-			spdlog::get("logger")->warn("[injection] We only load {}/{} particles from file {}.", j, Np, dist_path.string());
+			spdlog::get("logger")->warn("[Injection] We only load {}/{} particles from file {}.", j, Np, dist_path.string());
 		}
 
 		input.close();
@@ -224,12 +262,12 @@ void Injection::load_distribution() {
 		delete[] host_bunch;
 		//callCuda(cudaFree(dev_bunch2));
 
-		spdlog::get("logger")->info("[injection] Distribution file {} has been loadded successfully to {} beam-{} bunch-{}.",
+		spdlog::get("logger")->info("[Injection] Distribution file {} has been loadded successfully to {} beam-{} bunch-{}.",
 			dist_path.string(), beam_name, beamId, bunchId);
 	}
 	else
 	{
-		spdlog::get("logger")->error("[injection] We don't find distribution file: {}.", dist_path.string());
+		spdlog::get("logger")->error("[Injection] We don't find distribution file: {}.", dist_path.string());
 		std::exit(EXIT_FAILURE);
 	}
 }
@@ -241,7 +279,7 @@ void Injection::generate_transverse_KV_distribution() {
 	// The two beams shoule have different seed values to generate different random values.
 	// This is 4-D generator.
 
-	spdlog::get("logger")->info("[injection] The initial transverse KV distribution of {} beam-{} bunch-{} is begin generated ...",
+	spdlog::get("logger")->info("[Injection] The initial transverse KV distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
@@ -352,14 +390,14 @@ void Injection::generate_transverse_KV_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial KV distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] The initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[Injection] The initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 }
 
 
 void Injection::generate_transverse_Gaussian_distribution() {
 
-	spdlog::get("logger")->info("[injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
+	spdlog::get("logger")->info("[Injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
@@ -446,14 +484,14 @@ void Injection::generate_transverse_Gaussian_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[Injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
 }
 
 void Injection::generate_transverse_uniform_distribution() {
 
-	spdlog::get("logger")->info("[injection] The initial transverse uniform distribution of {} beam-{} bunch-{} is begin generated ...",
+	spdlog::get("logger")->info("[Injection] The initial transverse uniform distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	double emittence_x = emitx;
@@ -549,7 +587,7 @@ void Injection::generate_transverse_uniform_distribution() {
 
 	delete[] host_bunch;
 	//std::cout << "initial Uniform distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
-	spdlog::get("logger")->info("[injection] The initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[Injection] The initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 }
 
@@ -559,7 +597,7 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 	//	Generate particle's z position and momentum.
 	//	Here we think the correlation coefficient of 2D Gaussian distribution rho = 0
 
-	spdlog::get("logger")->info("[injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
+	spdlog::get("logger")->info("[Injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	int rank = 0;
@@ -603,7 +641,7 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 
 	delete[] host_bunch;
 	//printf("Rank[%d]: %d initial longitude Gaussian distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
-	spdlog::get("logger")->info("[injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[Injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
 }
@@ -615,7 +653,7 @@ void Injection::generate_logitudinal_uniform_distribution() {
 	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
 	//	The uniform distribution of z ranges from 0 to sigmaz.
 
-	spdlog::get("logger")->info("[injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} is begin generated ...",
+	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	int rank = 0;
@@ -659,7 +697,7 @@ void Injection::generate_logitudinal_uniform_distribution() {
 
 	delete[] host_bunch;
 	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
-	spdlog::get("logger")->info("[injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
 }
@@ -691,7 +729,12 @@ void Injection::save_initial_distribution() {
 	file.close();
 	delete[]host_bunch;
 
-	spdlog::get("logger")->info("[injection] Initial {} distribution of {} beam-{} bunch-{} has been saved to {}.",
+	spdlog::get("logger")->info("[Injection] Initial {} distribution of {} beam-{} bunch-{} has been saved to {}.",
 		dist_transverse, beam_name, beamId, bunchId, path_tmp.string());
+
+}
+
+void Injection::print_config() {
+
 
 }

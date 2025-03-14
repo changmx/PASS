@@ -12,10 +12,10 @@ public:
 	double s = -1;
 	std::string name = "Injection";
 
-	void execute();
+	void run(int turn);
 
 	void load_distribution();
-	
+
 	void generate_transverse_KV_distribution();
 	void generate_transverse_Gaussian_distribution();
 	void generate_transverse_uniform_distribution();
@@ -25,10 +25,15 @@ public:
 
 	void save_initial_distribution();
 
+	void print_config();
+
 private:
 	Particle* dev_bunch = NULL;
 
 	int Np = 0;
+
+	int startTurn = 0;
+	int endTurn = 0;
 
 	double alphax = 0;
 	double alphay = 0;
@@ -39,9 +44,11 @@ private:
 
 	double emitx = 0;
 	double emity = 0;
+	double emitx_norm = 0;
+	double emity_norm = 0;
 
-	double sigmaz = 0;
-	double dp = 0;
+	double sigmax = 0, sigmay = 0, sigmaz = 0;	// RMS value of horizontal, vertical bunch size and bunch length (m)
+	double sigmapx = 0, sigmapy = 0, dp = 0;	// RMS value of horizontal, vertical divergence (rad) and deltap/p
 
 	int beamId = 0;
 	int bunchId = 0;
@@ -79,8 +86,8 @@ public:
 		name = inj->name;
 	}
 
-	void execute() override {
-		injection->execute();
+	void execute(int turn) override {
+		injection->run(turn);
 	}
 
 private:
