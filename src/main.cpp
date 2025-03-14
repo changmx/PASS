@@ -20,9 +20,11 @@ int main(int argc, char** argv)
 
 	print_logo(Para);
 	print_copyright(Para);
+	show_device_info();
 
 	std::vector<Bunch> Beam0;
 	std::vector<Bunch> Beam1;
+
 	for (size_t i = 0; i < Para.Nbunch[0]; i++)
 	{
 		Bunch bunch(Para, 0, i);
@@ -41,29 +43,76 @@ int main(int argc, char** argv)
 
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
 	{
-		iter->init_gpu_memory();
+		iter->init_memory();
 	}
 	for (auto iter = Beam1.begin(); iter != Beam1.end(); iter++)
 	{
-		iter->init_gpu_memory();
+		iter->init_memory();
 	}
 
+	std::vector<Command*> command_beam0;
+	std::vector<Command*> command_beam1;
 
-	Injection* inj_beam0 = new Injection(Para, 0, Beam0[0]);
-	Injection* inj_beam1 = new Injection(Para, 1, Beam1[0]);
+	read_simulation_config(Para, Beam0, 0, command_beam0);
+	read_simulation_config(Para, Beam1, 1, command_beam1);
 
-	Command* command0 = new InjectionCommand(inj_beam0);
-	Command* command1 = new InjectionCommand(inj_beam1);
+	logger->debug("Command vector size of beam0: {}", command_beam0.size());
+	logger->debug("Command vector size of beam1: {}", command_beam1.size());
 
-	command0->execute();
-	command1->execute();
+	for (int turn = 0; turn < Para.Nturn; turn++)
+	{
+		logger->info("Turn: {}/{}", turn, Para.Nturn);
+
+		int icb0 = 0;	// i command of beam0
+		int icb1 = 0;	// i command of beam1
+
+		int N_break_off = (0 == Para.Ncollision) ? 1 : Para.Ncollision + 1;
+
+		for (int ibo = 0; ibo < N_break_off; ibo++)
+		{
+			for (int icb0_tmp = icb0; icb0_tmp < command_beam0.size(); icb0_tmp++)
+			{
+				if ("BeamBeam" == command_beam0[icb0_tmp]->name)
+				{
+					icb0 = icb0_tmp;
+					break;
+				}
+
+				command_beam0[icb0_tmp]->execute(turn);
+
+			}
+
+			for (int icb1_tmp = icb1; icb1_tmp < command_beam1.size(); icb1_tmp++)
+			{
+				if ("BeamBeam" == command_beam1[icb1_tmp]->name)
+				{
+					icb1 = icb1_tmp;
+					break;
+				}
+
+				command_beam1[icb1_tmp]->execute(turn);
+
+			}
+
+			if (icb0 < command_beam0.size() && icb1 < command_beam1.size())
+			{
+				// Beam-beam
+				//command_beam0[icb0]->execute(turn);
+				//command_beam1[icb1]->execute(turn);
+			}
+
+			icb0++;
+			icb1++;
+
+		}
+	}
 
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
 	{
-		iter->free_gpu_memory();
+		iter->free_memory();
 	}
 	for (auto iter = Beam1.begin(); iter != Beam1.end(); iter++)
 	{
-		iter->free_gpu_memory();
+		iter->free_memory();
 	}
 }
