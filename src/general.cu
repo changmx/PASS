@@ -1,4 +1,5 @@
 #include "general.h"
+#include "injection.h"
 
 #include <ctime>
 #include <iomanip>
@@ -244,28 +245,28 @@ void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0
 		Beam_table.add_row({ "Brho (T*m)",std::to_string(Beam0[i].Brho),(1 != Nbeam) ? std::to_string(Beam1[i].Brho) : "^_^" });
 		Beam_table.add_row({ "Beta",to_scientific_string(Beam0[i].beta, 12),(1 != Nbeam) ? to_scientific_string(Beam1[i].beta, 12) : "^_^" });
 		Beam_table.add_row({ "Gamma",std::to_string(Beam0[i].gamma),(1 != Nbeam) ? std::to_string(Beam1[i].gamma) : "^_^" });
-		Beam_table.add_row({ "Geometric emittance x (m*rad)",to_scientific_string(Beam0[i].emitx, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx, 9) : "^_^" });
-		Beam_table.add_row({ "Geometric emittance y (m*rad)",to_scientific_string(Beam0[i].emity, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity, 9) : "^_^" });
-		Beam_table.add_row({ "Normalized emittance x (m*rad)",to_scientific_string(Beam0[i].emitx_norm, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx_norm, 9) : "^_^" });
-		Beam_table.add_row({ "Normalized emittance y (m*rad)",to_scientific_string(Beam0[i].emity_norm,9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity_norm,9) : "^_^" });
-		Beam_table.add_row({ "Twiss alpha x",std::to_string(Beam0[i].alphax),(1 != Nbeam) ? std::to_string(Beam1[i].alphax) : "^_^" });
-		Beam_table.add_row({ "Twiss alpha y",std::to_string(Beam0[i].alphay),(1 != Nbeam) ? std::to_string(Beam1[i].alphay) : "^_^" });
-		Beam_table.add_row({ "Twiss beta x (m)",std::to_string(Beam0[i].betax),(1 != Nbeam) ? std::to_string(Beam1[i].betax) : "^_^" });
-		Beam_table.add_row({ "Twiss beta y (m)",std::to_string(Beam0[i].betay),(1 != Nbeam) ? std::to_string(Beam1[i].betay) : "^_^" });
-		Beam_table.add_row({ "Twiss gamma x (m-1)",std::to_string(Beam0[i].gammax),(1 != Nbeam) ? std::to_string(Beam1[i].gammax) : "^_^" });
-		Beam_table.add_row({ "Twiss gamma y (m-1)",std::to_string(Beam0[i].gammay),(1 != Nbeam) ? std::to_string(Beam1[i].gammay) : "^_^" });
-		Beam_table.add_row({ "Sigma x (mm)",std::to_string(Beam0[i].sigmax * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmax * 1e3) : "^_^" });
-		Beam_table.add_row({ "Sigma y (mm)",std::to_string(Beam0[i].sigmay * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmay * 1e3) : "^_^" });
-		Beam_table.add_row({ "Sigma px (mrad)",std::to_string(Beam0[i].sigmapx * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapx * 1e3) : "^_^" });
-		Beam_table.add_row({ "Sigma py (mrad)",std::to_string(Beam0[i].sigmapy * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapy * 1e3) : "^_^" });
-		Beam_table.add_row({ "Sigma z (mm)",std::to_string(Beam0[i].sigmaz * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmaz * 1e3) : "^_^" });
-		Beam_table.add_row({ "Deltap/P (1e-3)",std::to_string(Beam0[i].dp * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].dp * 1e3) : "^_^" });
-		Beam_table.add_row({ "Qx",std::to_string(Beam0[i].Qx),(1 != Nbeam) ? std::to_string(Beam1[i].Qx) : "^_^" });
-		Beam_table.add_row({ "Qy",std::to_string(Beam0[i].Qy),(1 != Nbeam) ? std::to_string(Beam1[i].Qy) : "^_^" });
-		Beam_table.add_row({ "Qz",std::to_string(Beam0[i].Qz),(1 != Nbeam) ? std::to_string(Beam1[i].Qz) : "^_^" });
-		Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromx),(1 != Nbeam) ? std::to_string(Beam1[i].chromx) : "^_^" });
-		Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromy),(1 != Nbeam) ? std::to_string(Beam1[i].chromy) : "^_^" });
-		Beam_table.add_row({ "Gamma T",std::to_string(Beam0[i].gammat),(1 != Nbeam) ? std::to_string(Beam1[i].gammat) : "^_^" });
+		//Beam_table.add_row({ "Geometric emittance x (m*rad)",to_scientific_string(Beam0[i].emitx, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx, 9) : "^_^" });
+		//Beam_table.add_row({ "Geometric emittance y (m*rad)",to_scientific_string(Beam0[i].emity, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity, 9) : "^_^" });
+		//Beam_table.add_row({ "Normalized emittance x (m*rad)",to_scientific_string(Beam0[i].emitx_norm, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx_norm, 9) : "^_^" });
+		//Beam_table.add_row({ "Normalized emittance y (m*rad)",to_scientific_string(Beam0[i].emity_norm,9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity_norm,9) : "^_^" });
+		//Beam_table.add_row({ "Twiss alpha x",std::to_string(Beam0[i].alphax),(1 != Nbeam) ? std::to_string(Beam1[i].alphax) : "^_^" });
+		//Beam_table.add_row({ "Twiss alpha y",std::to_string(Beam0[i].alphay),(1 != Nbeam) ? std::to_string(Beam1[i].alphay) : "^_^" });
+		//Beam_table.add_row({ "Twiss beta x (m)",std::to_string(Beam0[i].betax),(1 != Nbeam) ? std::to_string(Beam1[i].betax) : "^_^" });
+		//Beam_table.add_row({ "Twiss beta y (m)",std::to_string(Beam0[i].betay),(1 != Nbeam) ? std::to_string(Beam1[i].betay) : "^_^" });
+		//Beam_table.add_row({ "Twiss gamma x (m-1)",std::to_string(Beam0[i].gammax),(1 != Nbeam) ? std::to_string(Beam1[i].gammax) : "^_^" });
+		//Beam_table.add_row({ "Twiss gamma y (m-1)",std::to_string(Beam0[i].gammay),(1 != Nbeam) ? std::to_string(Beam1[i].gammay) : "^_^" });
+		//Beam_table.add_row({ "Sigma x (mm)",std::to_string(Beam0[i].sigmax * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmax * 1e3) : "^_^" });
+		//Beam_table.add_row({ "Sigma y (mm)",std::to_string(Beam0[i].sigmay * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmay * 1e3) : "^_^" });
+		//Beam_table.add_row({ "Sigma px (mrad)",std::to_string(Beam0[i].sigmapx * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapx * 1e3) : "^_^" });
+		//Beam_table.add_row({ "Sigma py (mrad)",std::to_string(Beam0[i].sigmapy * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapy * 1e3) : "^_^" });
+		//Beam_table.add_row({ "Sigma z (mm)",std::to_string(Beam0[i].sigmaz * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmaz * 1e3) : "^_^" });
+		//Beam_table.add_row({ "Deltap/P (1e-3)",std::to_string(Beam0[i].dp * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].dp * 1e3) : "^_^" });
+		//Beam_table.add_row({ "Qx",std::to_string(Beam0[i].Qx),(1 != Nbeam) ? std::to_string(Beam1[i].Qx) : "^_^" });
+		//Beam_table.add_row({ "Qy",std::to_string(Beam0[i].Qy),(1 != Nbeam) ? std::to_string(Beam1[i].Qy) : "^_^" });
+		//Beam_table.add_row({ "Qz",std::to_string(Beam0[i].Qz),(1 != Nbeam) ? std::to_string(Beam1[i].Qz) : "^_^" });
+		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromx),(1 != Nbeam) ? std::to_string(Beam1[i].chromx) : "^_^" });
+		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromy),(1 != Nbeam) ? std::to_string(Beam1[i].chromy) : "^_^" });
+		//Beam_table.add_row({ "Gamma T",std::to_string(Beam0[i].gammat),(1 != Nbeam) ? std::to_string(Beam1[i].gammat) : "^_^" });
 
 
 		/////////////////////////////////////////// configure table start ///////////////////////////////////////////
@@ -403,4 +404,71 @@ void show_device_info() {
 	logger->info("\n*******************************************\n");
 
 	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+}
+
+
+void read_simulation_config(const Parameter& Para, const std::vector<Bunch>& beam, int input_beamId, std::vector<Command*>& command_vec) {
+
+	if (1 == Para.Nbeam && 1 == input_beamId)
+	{
+		return;
+	}
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(Para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	/*std::string a = "Sequence";
+	double s = data.at(a).at("Injection").at("S (m)");
+	std::cout << "s = " << s << ", " << typeid(a).name() << std::endl;*/
+
+	for (auto item = data.at("Sequence").begin(); item != data.at("Sequence").end(); item++) {
+
+		try
+		{
+			/******
+			Key is the keyword that indicates the types of simulation module
+			Now, we have these keys (modules):
+				Injection: generate particles of a bunch in one turn or multi turns
+				Transfer: transfer particles of a bunch from s0 to s1
+				SpaceCharge: perform space charge simulation at specified position
+				BeamBeam: perform beam-beam simulation at specified position
+				Wakefield: perform wakefield simulation at specified position
+				RFCavity: perform acceleration or logituninal phase space manipulation
+				StatMonitor: calculate and save bunch's information like centroid, size, emittance ...
+				LumiMonitor: calculate and save collision luminosity
+				DistMonitor: save bunch's distribution
+				PhaseMonitor: save particle's phase advance for tune spread analysis, FMA analysis ...
+			*******/
+
+			std::string ikey = std::string(item.key());
+
+			if ("Injection" == ikey)
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					Injection* inj = new Injection(Para, input_beamId, beam[i]);
+					Command* command = new InjectionCommand(inj);
+					command_vec.push_back(command);
+				}
+
+			}
+			else
+			{
+				spdlog::get("logger")->error("[Read sequence] We don't suppoert {} command now.", ikey);
+				//std::exit(EXIT_FAILURE);
+			}
+			//std::string test1 = std::string(item.key());
+
+			//std::cout << data.at("Sequence").at(test1).at("Command") << std::endl;
+			//std::cout << data.at("Sequence").at(test1).at("S (m)") << std::endl;
+
+		}
+		catch (json::exception e)
+		{
+			spdlog::get("logger")->error(e.what());
+			std::exit(EXIT_FAILURE);
+		}
+
+	}
 }
