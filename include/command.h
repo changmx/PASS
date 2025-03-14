@@ -16,7 +16,7 @@ class Command
 {
 public:
 	virtual ~Command() {};
-	virtual void execute() = 0;
+	virtual void execute(int turn) = 0;
 
 	double s = -1;
 	std::string name = "empty";
