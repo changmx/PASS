@@ -11,7 +11,6 @@ Parameter::Parameter(int argc, char** argv)
 	if (1 == path_input_para.size() || 2 == path_input_para.size())
 	{
 		Nbeam = path_input_para.size();
-
 		for (size_t i = 0; i < path_input_para.size(); i++)
 		{
 			if (fs::exists(path_input_para[i])) {
@@ -62,6 +61,12 @@ Parameter::Parameter(int argc, char** argv)
 			std::cerr << "\t" << i << std::endl;
 		}
 		std::exit(EXIT_FAILURE);
+	}
+
+	if (1 == path_input_para.size()) {
+		beam_name.push_back("empty");
+		beamId.push_back(-1);
+		Nbunch.push_back(0);
 	}
 
 	dir_output_statistic = dir_output / "statistic" / yearMonDay / hourMinSec;
