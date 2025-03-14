@@ -96,8 +96,22 @@ if __name__ == "__main__":
     )
     calc_magnetic_rigidity(
         m_unified_atomic_mass,
-        E_total=100e6 + m_unified_atomic_mass,
+        E_total=50e6 + m_unified_atomic_mass,
         N_particle=238,
-        N_charge=46,
+        N_charge=33,
+        is_print=True,
+    )
+    calc_magnetic_rigidity(
+        m_proton,
+        E_total=1400e6 + m_proton,
+        N_particle=1,
+        N_charge=1,
+        is_print=True,
+    )
+    calc_magnetic_rigidity(
+        m_unified_atomic_mass,
+        E_total=4e6 + m_unified_atomic_mass,
+        N_particle=12,
+        N_charge=6,
         is_print=True,
     )
