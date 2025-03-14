@@ -32,7 +32,7 @@ public:
 
 	/*The integer part of lossTurn is the number of turns in which the loss occured,
 	and the decimal part is the loss position (in unit of m) divided by 1e6*/
-	double lostTurn = 0;
+	double lostTurn = -1;
 
 #ifdef PASS_CAL_PHASE
 
