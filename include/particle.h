@@ -30,7 +30,7 @@ public:
 
 	int tag = 0;
 
-	/*The integer part of lossTurn is the number of turns in which the loss occured, 
+	/*The integer part of lossTurn is the number of turns in which the loss occured,
 	and the decimal part is the loss position (in unit of m) divided by 1e6*/
 	double lostTurn = 0;
 
@@ -57,8 +57,8 @@ public:
 	Bunch(const Parameter& para, int input_beamId, int input_bunchId);
 	__host__ __device__ ~Bunch() {};
 
-	void init_gpu_memory();
-	void free_gpu_memory();
+	void init_memory();
+	void free_memory();
 
 	int bunchId = 0;
 
@@ -78,20 +78,20 @@ public:
 
 	double Brho = 0;
 
-	double emitx = 0, emity = 0;	// Geometric emittance (rad'm)
-	double emitx_norm = 0, emity_norm = 0;	// Normalized emittance (rad'm)
-	//double emitx_equi = 0, emity_equi = 0;	// Equilibrium emittance, used in synchrotron radiation (rad'm)
+	//double emitx = 0, emity = 0;	// Geometric emittance (rad'm)
+	//double emitx_norm = 0, emity_norm = 0;	// Normalized emittance (rad'm)
+	////double emitx_equi = 0, emity_equi = 0;	// Equilibrium emittance, used in synchrotron radiation (rad'm)
 
-	double alphax = 0, alphay = 0;	// Twiss parameters
-	double betax = 0, betay = 0;	// Twiss parameters
-	double gammax = 0, gammay = 0;	// Twiss parameters
+	//double alphax = 0, alphay = 0;	// Twiss parameters
+	//double betax = 0, betay = 0;	// Twiss parameters
+	//double gammax = 0, gammay = 0;	// Twiss parameters
 
-	double sigmax = 0, sigmay = 0, sigmaz = 0;	// RMS value of horizontal, vertical bunch size and bunch length (m)
-	double sigmapx = 0, sigmapy = 0, dp = 0;	// RMS value of horizontal, vertical divergence (rad) and deltap/p
+	//double sigmax = 0, sigmay = 0, sigmaz = 0;	// RMS value of horizontal, vertical bunch size and bunch length (m)
+	//double sigmapx = 0, sigmapy = 0, dp = 0;	// RMS value of horizontal, vertical divergence (rad) and deltap/p
 
-	double Qx = 0, Qy = 0, Qz = 0;	// Tunes
-	double chromx = 0, chromy = 0;	// Chromaticity
-	double gammat = 0;
+	//double Qx = 0, Qy = 0, Qz = 0;	// Tunes
+	//double chromx = 0, chromy = 0;	// Chromaticity
+	//double gammat = 0;
 
 	//int dampTurn = 0;	// Transverse damping turns
 

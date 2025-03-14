@@ -40,35 +40,35 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 
 		Brho = p0 / (abs(Ncharge) * PassConstant::c);
 
-		emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
-		emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
-		emitx_norm = emitx * gamma * beta;
-		emity_norm = emity * gamma * beta;
+		//emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
+		//emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
+		//emitx_norm = emitx * gamma * beta;
+		//emity_norm = emity * gamma * beta;
 
-		alphax = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha x");
-		alphay = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha y");
+		//alphax = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha x");
+		//alphay = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha y");
 
-		betax = data.at("Sequence").at("Injection").at(key_bunch).at("Beta x (m)");
-		betay = data.at("Sequence").at("Injection").at(key_bunch).at("Beta y (m)");
+		//betax = data.at("Sequence").at("Injection").at(key_bunch).at("Beta x (m)");
+		//betay = data.at("Sequence").at("Injection").at(key_bunch).at("Beta y (m)");
 
-		gammax = (1 + alphax * alphax) / betax;
-		gammay = (1 + alphay * alphay) / betay;
+		//gammax = (1 + alphax * alphax) / betax;
+		//gammay = (1 + alphay * alphay) / betay;
 
-		sigmax = sqrt(betax * emitx);
-		sigmay = sqrt(betay * emity);
+		//sigmax = sqrt(betax * emitx);
+		//sigmay = sqrt(betay * emity);
 
-		sigmapx = sqrt(gammax * emitx);
-		sigmapy = sqrt(gammay * emity);
+		//sigmapx = sqrt(gammax * emitx);
+		//sigmapy = sqrt(gammay * emity);
 
-		sigmaz = data.at("Sequence").at("Injection").at(key_bunch).at("Sigma z (m)");
-		dp = data.at("Sequence").at("Injection").at(key_bunch).at("DeltaP/P");
+		//sigmaz = data.at("Sequence").at("Injection").at(key_bunch).at("Sigma z (m)");
+		//dp = data.at("Sequence").at("Injection").at(key_bunch).at("DeltaP/P");
 
-		Qx = data.at("Qx");
-		Qy = data.at("Qy");
-		Qz = data.at("Qz");
-		chromx = data.at("Chromaticity x");
-		chromy = data.at("Chromaticity y");
-		gammat = data.at("GammaT");
+		//Qx = data.at("Qx");
+		//Qy = data.at("Qy");
+		//Qz = data.at("Qz");
+		//chromx = data.at("Chromaticity x");
+		//chromy = data.at("Chromaticity y");
+		//gammat = data.at("GammaT");
 
 
 	}
@@ -80,13 +80,13 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 	}
 }
 
-void Bunch::init_gpu_memory() {
+void Bunch::init_memory() {
 	//std::cout << "pointer 0 " << std::hex << dev_bunch << std::endl;
 	callCuda(cudaMalloc(&dev_bunch, Np * sizeof(Particle)));
 	callCuda(cudaMemset(dev_bunch, 0, Np * sizeof(Particle)));
 	//std::cout << "pointer 1 " << std::hex << dev_bunch << std::endl;
 }
 
-void Bunch::free_gpu_memory() {
+void Bunch::free_memory() {
 	callCuda(cudaFree(dev_bunch));
 }
