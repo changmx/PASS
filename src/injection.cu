@@ -39,7 +39,7 @@ Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch
 	{
 		s = data.at("Sequence").at("Injection").at("S (m)");
 		name = data.at("Sequence").at("Injection").at("Command");
-		if (abs(s) < 1e-10)
+		if (abs(s) > 1e-10)
 		{
 			spdlog::get("logger")->error("[Injection] The position of injection point (simulation start point) should be 0, but now is : {}.", s);
 			std::exit(EXIT_FAILURE);
