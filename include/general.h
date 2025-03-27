@@ -15,7 +15,6 @@
 
 #include "parameter.h"
 #include "particle.h"
-#include "command.h"
 
 #ifndef STRNCASECMP
 #define STRNCASECMP _strnicmp
@@ -49,5 +48,3 @@ void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0
 void create_logger(const Parameter& Para);
 
 void show_device_info();
-
-void read_simulation_config(const Parameter& Para, const std::vector<Bunch>& beam, int input_beamId, std::vector<Command*>& command_vec);
