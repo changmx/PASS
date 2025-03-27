@@ -8,7 +8,9 @@
 #include "particle.h"
 #include "parameter.h"
 #include "command.h"
+#include "readCommand.h"
 #include "injection.h"
+
 
 
 int main(int argc, char** argv)
@@ -58,8 +60,8 @@ int main(int argc, char** argv)
 	std::vector<Command*> command_beam0;
 	std::vector<Command*> command_beam1;
 
-	read_simulation_config(Para, Beam0, 0, command_beam0);
-	read_simulation_config(Para, Beam1, 1, command_beam1);
+	read_command_sequence(Para, Beam0, 0, command_beam0);
+	read_command_sequence(Para, Beam1, 1, command_beam1);
 
 	logger->debug("Command vector size of beam0: {}", command_beam0.size());
 	logger->debug("Command vector size of beam1: {}", command_beam1.size());
