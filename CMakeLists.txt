@@ -21,7 +21,9 @@ set(SOURCES
     src/particle.cpp
     src/general.cu
     src/parameter.cpp
+    src/readCommand.cu
     src/injection.cu
+    src/lattice.cu
 )
 
 # set header files
@@ -31,7 +33,9 @@ set(HEADERS
     include/general.h
     include/parameter.h
     include/command.h
+    include/readCommand.h
     include/injection.h
+    include/lattice.h
 )
 
 # generate executable file
