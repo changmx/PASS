@@ -4,25 +4,65 @@
 #include "particle.h"
 #include "parameter.h"
 
-class Lattice
+class Twiss
 {
 public:
-	Lattice();
-	~Lattice();
+	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
 
 	double s = -1;
-	std::string name = "Lattice";
+	std::string name = "Twiss";
 
 	void run(int turn);
 
-private:
+	void print();
 
+private:
+	Particle* dev_bunch = NULL;
+
+	int Np = 0;
+
+	// Twiss parameters of current position
+	double alphax = 0;
+	double alphay = 0;
+	double alphaz = 0;
+
+	double betax = 0;
+	double betay = 0;
+	double betaz = 0;
+
+	double mux = 0;
+	double muy = 0;
+	double muz = 0;
+
+	double Dx = 0;
+
+	// Twiss parameters of previos position
+	double alphax_previous = 0;
+	double alphay_previous = 0;
+
+	double betax_previous = 0;
+	double betay_previous = 0;
+
+	double mux_previous = 0;
+	double muy_previous = 0;
 };
 
-Lattice::Lattice()
-{
-}
 
-Lattice::~Lattice()
+class TwissCommand : public Command
 {
-}
+public:
+	~TwissCommand() {};
+
+	TwissCommand(Twiss* twi) {
+		twiss = twi;
+		s = twi->s;
+		name = twi->name;
+	}
+
+	void execute(int turn) override {
+		twiss->run(turn);
+	}
+
+private:
+	Twiss* twiss;
+};
