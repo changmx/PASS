@@ -11,10 +11,10 @@
 
 #include <random>
 
-Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch) {
+Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
 	//std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
 	//std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
-
+	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 	//std::cout << "pointer 4 " << std::hex << dev_bunch << std::endl;
 
@@ -38,7 +38,7 @@ Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch
 	try
 	{
 		s = data.at("Sequence").at("Injection").at("S (m)");
-		name = data.at("Sequence").at("Injection").at("Command");
+		//name = data.at("Sequence").at("Injection").at("Command");
 		if (abs(s) > 1e-10)
 		{
 			spdlog::get("logger")->error("[Injection] The position of injection point (simulation start point) should be 0, but now is : {}.", s);
