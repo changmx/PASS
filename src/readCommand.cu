@@ -1,16 +1,20 @@
 #include "readCommand.h"
 #include "injection.h"
+#include "lattice.h"
 
 #include <fstream>
 
-void read_command_sequence(const Parameter& Para, const std::vector<Bunch>& beam, int input_beamId, std::vector<Command*>& command_vec) {
+void read_command_sequence(const Parameter& Para, const std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec) {
 
 	if (1 == Para.Nbeam && 1 == input_beamId)
 	{
 		return;	// if we only have one beam, we don't need to read the json file of beam1. The size of beam1 vector will be zero.
 	}
 
-	using json = nlohmann::json;
+	// nlohmann::order_json means that the data read will remain in the original order of the file
+	// if use nlohmann::json, the data read from file will be sorted alphabetically
+	using json = nlohmann::ordered_json;
+
 	std::ifstream jsonFile(Para.path_input_para[input_beamId]);
 	json data = json::parse(jsonFile);
 
@@ -43,11 +47,21 @@ void read_command_sequence(const Parameter& Para, const std::vector<Bunch>& beam
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					Injection* inj = new Injection(Para, input_beamId, beam[i]);
+					Injection* inj = new Injection(Para, input_beamId, bunch[i], ikey);
 					Command* command = new InjectionCommand(inj);
 					command_vec.push_back(command);
 				}
 
+			}
+			else if ("Twiss" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					Twiss* twiss = new Twiss(Para, input_beamId, bunch[i], ikey);
+					//twiss->print();
+					Command* command = new TwissCommand(twiss);
+					command_vec.push_back(command);
+				}
 			}
 			else
 			{
@@ -67,4 +81,32 @@ void read_command_sequence(const Parameter& Para, const std::vector<Bunch>& beam
 		}
 
 	}
+
+	sort_commands(command_vec);
+
+	for (const Command* cmd : command_vec)
+	{
+		spdlog::get("logger")->debug("[Print command sequence]: name = {}, s = {}", cmd->name, cmd->s);
+	}
+}
+
+int get_priority(const std::string& name) {
+	// 将name转换为优先级数值
+	if (name == "Injection") return 0;	// 最高优先级
+	else if (name == "Twiss") return 1;	// 次级优先级
+	else if (name == "Element") return 2;
+	else return 999; // 最低优先级，其他情况
+}
+
+void sort_commands(std::vector<Command*>& vec) {
+	std::sort(vec.begin(), vec.end(), [](const Command* a, const Command* b) {
+		// 分步比较指针指向的对象的成员
+		if (a->s != b->s) {
+			return a->s < b->s;  // 按 s 升序
+		}
+		else {
+			// s 相等时，按 name 的优先级升序
+			return get_priority(a->name) < get_priority(b->name);
+		}
+		});
 }
