@@ -319,9 +319,10 @@ void create_logger(const Parameter& Para) {
 
 	spdlog::set_default_logger(logger);
 
-	spdlog::set_level(spdlog::level::debug);
+	constexpr auto active_level = static_cast<spdlog::level::level_enum>(PASS_SPDLOG_ACTIVE_LEVEL);
+	spdlog::set_level(active_level);
 
-	spdlog::flush_on(spdlog::level::debug);
+	spdlog::flush_on(active_level);
 
 }
 
