@@ -98,7 +98,7 @@ def get_specificTwiss(filepath, twissName, positionName="S"):
     return np.array(s), np.array(twiss)
 
 
-def generate_twiss_json(filepath):
+def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off"):
     # get S, name, beta, alpha, phase, Dx, Dpx from madx twiss file
     s, name = get_specificTwiss(filepath, twissName="name")
     s, betax = get_specificTwiss(filepath, twissName="betx")
@@ -147,6 +147,7 @@ def generate_twiss_json(filepath):
                 + str(s[i]): {
                     "S (m)": s[i],
                     "Command": "Twiss",
+                    "S previous (m)": s[i],
                     "Alpha x": alfx[i],
                     "Alpha y": alfy[i],
                     "Beta x (m)": betax[i],
@@ -159,8 +160,9 @@ def generate_twiss_json(filepath):
                     "Beta y previous (m)": betay[i],
                     "Mu x previous": mux[i],
                     "Mu y previous": muy[i],
-                    "Dx (m)": Dx[i],
-                    "Dpx": Dpx[i],
+                    # "Dx (m)": Dx[i],
+                    # "Dpx": Dpx[i],
+                    "Logitudinal transfer": logi_transfer,
                 },
             }
         else:
@@ -170,6 +172,7 @@ def generate_twiss_json(filepath):
                 + str(s[i]): {
                     "S (m)": s[i],
                     "Command": "Twiss",
+                    "S previous (m)": s[i - 1],
                     "Alpha x": alfx[i],
                     "Alpha y": alfy[i],
                     "Beta x (m)": betax[i],
@@ -182,8 +185,9 @@ def generate_twiss_json(filepath):
                     "Beta y previous (m)": betay[i - 1],
                     "Mu x previous": mux[i - 1],
                     "Mu y previous": muy[i - 1],
-                    "Dx (m)": Dx[i],
-                    "Dpx": Dpx[i],
+                    # "Dx (m)": Dx[i],
+                    # "Dpx": Dpx[i],
+                    "Logitudinal transfer": logi_transfer,
                 },
             }
         print(name[i] + "_" + str(s[i]))

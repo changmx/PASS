@@ -115,7 +115,9 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     }
     Sequence.update(LatticeElement_Sextupole)
 
-    Lattice_twiss_list = generate_twiss_json(r"D:\AthenaLattice\SZA\v9\sza_sta1.dat")
+    Lattice_twiss_list = generate_twiss_json(
+        r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
+    )
     for i in Lattice_twiss_list:
         Sequence.update(i)
 
