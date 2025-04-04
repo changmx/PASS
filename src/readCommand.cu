@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-void read_command_sequence(const Parameter& Para, const std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec) {
+void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec) {
 
 	if (1 == Para.Nbeam && 1 == input_beamId)
 	{
@@ -86,7 +86,7 @@ void read_command_sequence(const Parameter& Para, const std::vector<Bunch>& bunc
 
 	for (const Command* cmd : command_vec)
 	{
-		spdlog::get("logger")->debug("[Print command sequence]: name = {}, s = {}", cmd->name, cmd->s);
+		spdlog::get("logger")->debug("[Print command sequence] name = {}, s = {}", cmd->name, cmd->s);
 	}
 }
 

@@ -11,7 +11,7 @@
 
 #include <random>
 
-Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name) {
 	//std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
 	//std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
 	name = obj_name;
@@ -112,6 +112,9 @@ Injection::Injection(const Parameter& para, int input_beamId, const Bunch& Bunch
 		spdlog::get("logger")->error(e.what());
 		std::exit(EXIT_FAILURE);
 	}
+
+	Bunch.sigmaz = sigmaz;
+	Bunch.dp = dp;
 }
 
 void Injection::run(int turn) {

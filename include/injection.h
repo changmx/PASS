@@ -7,7 +7,7 @@
 class Injection
 {
 public:
-	Injection(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
+	Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name);
 
 	double s = -1;
 	std::string name = "Injection";
