@@ -40,6 +40,8 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 
 		Brho = p0 / (abs(Ncharge) * PassConstant::c);
 
+		gammat = data.at("GammaT");
+
 		//emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
 		//emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
 		//emitx_norm = emitx * gamma * beta;
@@ -68,7 +70,7 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		//Qz = data.at("Qz");
 		//chromx = data.at("Chromaticity x");
 		//chromy = data.at("Chromaticity y");
-		//gammat = data.at("GammaT");
+
 
 
 	}
