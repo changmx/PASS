@@ -91,7 +91,12 @@ public:
 
 	//double Qx = 0, Qy = 0, Qz = 0;	// Tunes
 	//double chromx = 0, chromy = 0;	// Chromaticity
-	//double gammat = 0;
+	
+	double gammat = 0;
+	
+	// sigmaz and dp will be set in Injection initialize function
+	double sigmaz = 0;
+	double dp = 0;
 
 	//int dampTurn = 0;	// Transverse damping turns
 
