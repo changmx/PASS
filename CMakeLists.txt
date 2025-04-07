@@ -23,7 +23,7 @@ set(SOURCES
     src/parameter.cpp
     src/readCommand.cu
     src/injection.cu
-    src/lattice.cu
+    src/twiss.cu
 )
 
 # set header files
@@ -35,7 +35,7 @@ set(HEADERS
     include/command.h
     include/readCommand.h
     include/injection.h
-    include/lattice.h
+    include/twiss.h
 )
 
 # generate executable file

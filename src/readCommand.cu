@@ -1,6 +1,6 @@
 #include "readCommand.h"
 #include "injection.h"
-#include "lattice.h"
+#include "twiss.h"
 
 #include <fstream>
 
