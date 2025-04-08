@@ -65,7 +65,7 @@ class TwissCommand : public Command
 public:
 	~TwissCommand() {};
 
-	TwissCommand(Twiss* twi) {
+	explicit TwissCommand(Twiss* twi) {
 		twiss = twi;
 		s = twi->s;
 		name = twi->name;

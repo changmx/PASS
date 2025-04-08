@@ -80,7 +80,7 @@ class InjectionCommand : public Command
 public:
 	~InjectionCommand() {};
 
-	InjectionCommand(Injection* inj) {
+	explicit InjectionCommand(Injection* inj) {
 		injection = inj;
 		s = inj->s;
 		name = inj->name;
