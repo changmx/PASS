@@ -28,7 +28,7 @@ public:
 	void print_config();
 
 private:
-	Particle* dev_bunch = NULL;
+	Particle* dev_bunch = nullptr;
 
 	int Np = 0;
 
@@ -91,7 +91,7 @@ public:
 	}
 
 private:
-	Injection* injection;
+	Injection* injection = nullptr;
 };
 
 

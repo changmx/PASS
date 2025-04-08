@@ -17,7 +17,7 @@ public:
 	void print();
 
 private:
-	Particle* dev_bunch = NULL;
+	Particle* dev_bunch = nullptr;
 
 	double s_previous = -1;
 
@@ -76,5 +76,5 @@ public:
 	}
 
 private:
-	Twiss* twiss;
+	Twiss* twiss = nullptr;
 };
