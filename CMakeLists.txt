@@ -24,6 +24,7 @@ set(SOURCES
     src/readCommand.cu
     src/injection.cu
     src/twiss.cu
+    src/element.cu
 )
 
 # set header files
@@ -36,6 +37,7 @@ set(HEADERS
     include/readCommand.h
     include/injection.h
     include/twiss.h
+    include/element.h
 )
 
 # generate executable file
