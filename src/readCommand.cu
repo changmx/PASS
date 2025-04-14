@@ -1,6 +1,7 @@
 #include "readCommand.h"
 #include "injection.h"
 #include "twiss.h"
+#include "element.h"
 
 #include <fstream>
 
@@ -27,10 +28,18 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 		try
 		{
 			/******
-			Key is the keyword that indicates the types of simulation module
-			Now, we have these keys (modules):
+			key is the name of the object in the sequence
+			command is the keyword used to distinguish the type of the object
+
+			Now, we have these commands (modules):
 				Injection: generate particles of a bunch in one turn or multi turns
-				Transfer: transfer particles of a bunch from s0 to s1
+				Twiss: Point-to-point linear transfer according to the input twiss parameters
+				Element: Element-to element transfer according to the input element parameters
+					--> SBendElement: Sector dipole
+					--> RBendElement: rectangular dipole
+					--> QuadrupoleElement: quadrupole
+					--> SextupoleElement: sextupole
+
 				SpaceCharge: perform space charge simulation at specified position
 				BeamBeam: perform beam-beam simulation at specified position
 				Wakefield: perform wakefield simulation at specified position
@@ -63,9 +72,49 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					command_vec.push_back(command);
 				}
 			}
+			else if ("SBend" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					SBendElement* mb = new SBendElement(Para, input_beamId, bunch[i], ikey);
+					//twiss->print();
+					Command* command = new ElementCommand(mb);
+					command_vec.push_back(command);
+				}
+			}
+			else if ("RBend" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					RBendElement* mb = new RBendElement(Para, input_beamId, bunch[i], ikey);
+					//twiss->print();
+					Command* command = new ElementCommand(mb);
+					command_vec.push_back(command);
+				}
+			}
+			else if ("Quadrupole" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					QuadrupoleElement* quad = new QuadrupoleElement(Para, input_beamId, bunch[i], ikey);
+					//twiss->print();
+					Command* command = new ElementCommand(quad);
+					command_vec.push_back(command);
+				}
+			}
+			else if ("Sextupole" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					SextupoleElement* sext = new SextupoleElement(Para, input_beamId, bunch[i], ikey);
+					//twiss->print();
+					Command* command = new ElementCommand(sext);
+					command_vec.push_back(command);
+				}
+			}
 			else
 			{
-				spdlog::get("logger")->warn("[Read sequence] We don't suppoert '{}' command of object: {}.", data.at("Sequence").at(ikey).at("Command"), ikey);
+				spdlog::get("logger")->warn("[Read sequence] We don't suppoert '{}' command of object: {}", data.at("Sequence").at(ikey).at("Command"), ikey);
 				//std::exit(EXIT_FAILURE);
 			}
 			//std::string test1 = std::string(item.key());
@@ -94,7 +143,11 @@ int get_priority(const std::string& name) {
 	// 将name转换为优先级数值
 	if (name == "Injection") return 0;	// 最高优先级
 	else if (name == "Twiss") return 1;	// 次级优先级
-	else if (name == "Element") return 2;
+	else if (name == "SBend") return 2;
+	else if (name == "RBend") return 2;
+	else if (name == "Quadrupole") return 2;
+	else if (name == "Sextupole") return 2;
+	else if (name == "BeamBeam") return 3;
 	else return 999; // 最低优先级，其他情况
 }
 
