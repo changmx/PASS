@@ -2,7 +2,8 @@ import numpy as np
 import os
 import json
 from collections import OrderedDict
-from get_twiss_element_from_madx import generate_twiss_json
+from get_twiss_from_madx import generate_twiss_json
+from get_element_from_madx import generate_element_json
 
 
 def convert_ordereddict(obj):
@@ -18,7 +19,10 @@ def sort_sequence(sequence):
     Command_order = {
         "Injection": 0,  # 最高优先级
         "Twiss": 1,  # 次级优先级
-        "Element": 2,
+        "SBend": 2,
+        "RBend": 2,
+        "Quadrupole": 2,
+        "Sextupole": 2,
         "BeamBeam": 3,
         "Other": 999,  # 最低优先级
     }
@@ -106,39 +110,6 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     Sequence = {}
 
     # Initialize all bunches' distribution of the beam
-
-    LatticeElement_Sextupole = {
-        "LatticeElement_sextupole": {
-            "S (m)": 0.2,
-            "Command": "Element",
-        }
-    }
-    Sequence.update(LatticeElement_Sextupole)
-
-    Lattice_twiss_list = generate_twiss_json(
-        r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
-    )
-    for i in Lattice_twiss_list:
-        Sequence.update(i)
-
-    LatticeTwiss0 = {
-        "LatticeTwiss_oneTurn": {
-            "S (m)": 100,
-            "Command": "Twiss",
-            "Alpha x": 0,
-            "Alpha y": 0,
-            "Beta x (m)": 0.05,
-            "Beta y (m)": 0.1,
-            "Mu x": 0.3,
-            "Mu y": 0.3,
-            # If there is a "Mu z", 6D linear transmission is performed.
-            # If there is no "Mu z", a 4D linear transmission is performed,
-            # and if there is an additional RF cavity, the RF element will achieve longitudinal motion.
-            "Mu z": 0.002,
-        },
-    }
-    # Sequence.update(LatticeTwiss0)
-
     Injection = {
         "Injection": {
             "S (m)": 0,
@@ -175,61 +146,24 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     }
     Sequence.update(Injection)
 
-    LatticeTwissFile = {
-        "LatticeTwissFile": {
-            "S (m)": 0,  # If it is the mode of loading twiss file, the value of S is meaningless.
-            "Command": "Lattice",
-            "Transfer type": "twissfile",  # [twiss/twissfile/element/elementfile]. The transmission method used to transfer from the previous lattice object to the current object
-            "File path": "D\\",
-        },
-    }
+    # Spacecharge = {
+    #     "SpaceCharge" + str(i): {"S (m)": 0 + i * 10, "Command": "Space charge"}
+    # }
+    # for key in Spacecharge_sim_para:
+    #     Spacecharge["Space charge" + str(i)][key] = Spacecharge_sim_para[key]
 
-    LatticeElementDipole0 = {
-        "LatticeElementDipole0": {
-            "S (m)": 0,
-            "Command": "Lattice",
-            "Transfer type": "element",  # [twiss/twissfile/element/elementfile]. The transmission method used to transfer from the previous lattice object to the current object
-            "Element type": "Dipole",
-            "Length": 1,
-            "Angle (rad)": 0.2,
-            "E1 (rad)": 0.1,
-            "E2 (rad)": 0.1,
-            "Fint": 0.5,
-        },
-    }
+    # Sequence.update(Spacecharge)
 
-    LatticeElementFile = {
-        "LatticeElementFile": {
-            "S (m)": 0,  # If it is the mode of loading twiss file, the value of S is meaningless.
-            "Command": "Lattice",
-            "Transfer type": "elementfile",  # [twiss/twissfile/element/elementfile]. The transmission method used to transfer from the previous lattice object to the current object
-            "File path": "D\\",
-        }
-    }
+    # twiss_list_from_madx = generate_twiss_json(
+    #     r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
+    # )
+    # for twiss in twiss_list_from_madx:
+    #     Sequence.update(twiss)
 
-    for i in range(5):
-        Transfer = {
-            "Transfer"
-            + str(i): {
-                "S (m)": 0 + i * 10,
-                "Command": "Transfer",
-                "Alpha x": 0,
-                "Alpha y": 0,
-                "Beta x (m)": 0.05,
-                "Beta y (m)": 0.012,
-                "Phase advance x (2pi)": 0.3,
-                "Phase advance y (2pi)": 0.3,
-            },
-        }
-        # Sequence.update(Transfer)
-
-        Spacecharge = {
-            "SpaceCharge" + str(i): {"S (m)": 0 + i * 10, "Command": "Space charge"}
-        }
-        # for key in Spacecharge_sim_para:
-        #     Spacecharge["Space charge" + str(i)][key] = Spacecharge_sim_para[key]
-
-        # Sequence.update(Spacecharge)
+    element_list_from_madx = generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
+    for element in element_list_from_madx:
+        # print(element)
+        Sequence.update(element)
 
     Sequence = sort_sequence(Sequence)
     Sequencepara = {"Sequence": Sequence}
