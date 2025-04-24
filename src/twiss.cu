@@ -4,10 +4,13 @@
 
 #include <fstream>
 
-Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d) {
 
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
 
 	Np = Bunch.Np;
 
@@ -46,6 +49,8 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 
 		if (data.at("Sequence").at(obj_name).contains("Mu z"))
 		{
+			// when ¦Ã > ¦Ãt (¦Ç > 0), muz (input value) should be > 0
+			// when ¦Ã < ¦Ãt (¦Ç < 0), muz (input value) should be < 0
 			muz = data.at("Sequence").at(obj_name).at("Mu z");
 		}
 		else
@@ -86,8 +91,8 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 	else if ("matrix" == logitudinal_transfer)
 	{
 		m11_z = cos(phi_z);
-		m12_z = -1 * sigmaz / dp * sin(phi_z);
-		m21_z = dp / sigmaz * sin(phi_z);
+		m12_z = sigmaz / dp * sin(phi_z);
+		m21_z = -1 * dp / sigmaz * sin(phi_z);
 		m22_z = cos(phi_z);
 	}
 	else
@@ -121,5 +126,96 @@ void Twiss::print() {
 void Twiss::run(int turn) {
 	auto logger = spdlog::get("logger");
 
-	logger->debug("[Twiss] turn = {}, start running of : {}, s = {}", turn, name, s);
+	if ("drift" == logitudinal_transfer || "matrix" == logitudinal_transfer) {
+
+		logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, logitudinal_transfer);
+
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np,
+			m11_x, m12_x, m21_x, m22_x,
+			m11_y, m12_y, m21_y, m22_y,
+			m11_z, m12_z, m21_z, m22_z);
+	}
+	else
+	{
+		logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 4D (logi = {})", turn, name, s, logitudinal_transfer);
+
+		transfer_matrix_4D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np,
+			m11_x, m12_x, m21_x, m22_x,
+			m11_y, m12_y, m21_y, m22_y);
+	}
+
+	callCuda(cudaDeviceSynchronize());
+}
+
+
+__global__ void transfer_matrix_4D(Particle* dev_bunch, int Np,
+	double m11_x, double m12_x, double m21_x, double m22_x,
+	double m11_y, double m12_y, double m21_y, double m22_y) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double x1 = 0, px1 = 0, y1 = 0, py1 = 0;
+
+	while (tid < Np)
+	{
+		x1 = dev_bunch[tid].x;
+		px1 = dev_bunch[tid].px;
+
+		y1 = dev_bunch[tid].y;
+		py1 = dev_bunch[tid].py;
+
+		dev_bunch[tid].x = x1 * m11_x + px1 * m12_x;
+		dev_bunch[tid].px = x1 * m21_x + px1 * m22_x;
+
+		dev_bunch[tid].y = y1 * m11_y + py1 * m12_y;
+		dev_bunch[tid].py = y1 * m21_y + py1 * m22_y;
+
+		if (tid == 0)
+		{
+			printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
+		}
+
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np,
+	double m11_x, double m12_x, double m21_x, double m22_x,
+	double m11_y, double m12_y, double m21_y, double m22_y,
+	double m11_z, double m12_z, double m21_z, double m22_z) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double x1 = 0, px1 = 0, y1 = 0, py1 = 0, z1 = 0, pz1 = 0;
+
+	while (tid < Np)
+	{
+		x1 = dev_bunch[tid].x;
+		px1 = dev_bunch[tid].px;
+
+		y1 = dev_bunch[tid].y;
+		py1 = dev_bunch[tid].py;
+
+		z1 = dev_bunch[tid].z;
+		pz1 = dev_bunch[tid].pz;
+
+		dev_bunch[tid].x = x1 * m11_x + px1 * m12_x;
+		dev_bunch[tid].px = x1 * m21_x + px1 * m22_x;
+
+		dev_bunch[tid].y = y1 * m11_y + py1 * m12_y;
+		dev_bunch[tid].py = y1 * m21_y + py1 * m22_y;
+
+		dev_bunch[tid].z = z1 * m11_z + pz1 * m12_z;
+		dev_bunch[tid].pz = z1 * m21_z + pz1 * m22_z;
+
+		if (tid == 0)
+		{
+			printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
+		}
+
+		tid += stride;
+	}
 }

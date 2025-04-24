@@ -3,11 +3,12 @@
 #include "command.h"
 #include "particle.h"
 #include "parameter.h"
+#include "parallelPlan.h"
 
 class Twiss
 {
 public:
-	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
+	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d);
 
 	double s = -1;
 	std::string name = "Twiss";
@@ -58,6 +59,9 @@ private:
 	double m11_x = 0, m12_x = 0, m21_x = 0, m22_x = 0;	// transfer matrix elements;
 	double m11_y = 0, m12_y = 0, m21_y = 0, m22_y = 0;
 	double m11_z = 0, m12_z = 0, m21_z = 0, m22_z = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
 };
 
 class TwissCommand : public Command
@@ -78,3 +82,13 @@ public:
 private:
 	Twiss* twiss = nullptr;
 };
+
+
+__global__ void transfer_matrix_4D(Particle* dev_bunch, int Np,
+	double m11_x, double m12_x, double m21_x, double m22_x,
+	double m11_y, double m12_y, double m21_y, double m22_y);
+
+__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np,
+	double m11_x, double m12_x, double m21_x, double m22_x,
+	double m11_y, double m12_y, double m21_y, double m22_y,
+	double m11_z, double m12_z, double m21_z, double m22_z);
