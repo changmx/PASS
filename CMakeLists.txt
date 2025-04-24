@@ -38,6 +38,7 @@ set(HEADERS
     include/injection.h
     include/twiss.h
     include/element.h
+    include/parallelPlan.h
 )
 
 # generate executable file
