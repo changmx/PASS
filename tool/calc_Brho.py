@@ -122,3 +122,4 @@ if __name__ == "__main__":
         N_charge=33,
         is_print=True,
     )
+    calc_magnetic_rigidity(m_proton, E_total=150e6 + m_proton, is_print=True)
