@@ -2,8 +2,10 @@
 #include "injection.h"
 #include "twiss.h"
 #include "element.h"
+#include "parallelPlan.h"
 
 #include <fstream>
+#include "cuda_runtime.h"
 
 void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec) {
 
@@ -11,6 +13,10 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 	{
 		return;	// if we only have one beam, we don't need to read the json file of beam1. The size of beam1 vector will be zero.
 	}
+
+	cudaDeviceProp prop; //"cuda_runtime.h"
+	cudaGetDeviceProperties(&prop, 0);
+	int maxThreadsPerBlock = prop.maxThreadsPerBlock;
 
 	// nlohmann::order_json means that the data read will remain in the original order of the file
 	// if use nlohmann::json, the data read from file will be sorted alphabetically
@@ -34,7 +40,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			Now, we have these commands (modules):
 				Injection: generate particles of a bunch in one turn or multi turns
 				Twiss: Point-to-point linear transfer according to the input twiss parameters
-				Element: Element-to element transfer according to the input element parameters
+				Element: Element-to-element transfer according to the input element parameters
 					--> SBendElement: Sector dipole
 					--> RBendElement: rectangular dipole
 					--> QuadrupoleElement: quadrupole
@@ -66,7 +72,9 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					Twiss* twiss = new Twiss(Para, input_beamId, bunch[i], ikey);
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
+					Twiss* twiss = new Twiss(Para, input_beamId, bunch[i], ikey, plan1d);
 					//twiss->print();
 					Command* command = new TwissCommand(twiss);
 					command_vec.push_back(command);
