@@ -7,7 +7,7 @@
 #include <fstream>
 #include "cuda_runtime.h"
 
-void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec) {
+void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec, TimeEvent& simTime) {
 
 	if (1 == Para.Nbeam && 1 == input_beamId)
 	{
@@ -15,7 +15,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 	}
 
 	cudaDeviceProp prop; //"cuda_runtime.h"
-	cudaGetDeviceProperties(&prop, 0);
+	cudaGetDeviceProperties(&prop, Para.gpuId[0]);
 	int maxThreadsPerBlock = prop.maxThreadsPerBlock;
 
 	// nlohmann::order_json means that the data read will remain in the original order of the file
@@ -74,7 +74,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 				{
 					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
 
-					Twiss* twiss = new Twiss(Para, input_beamId, bunch[i], ikey, plan1d);
+					Twiss* twiss = new Twiss(Para, input_beamId, bunch[i], ikey, plan1d, simTime);
 					//twiss->print();
 					Command* command = new TwissCommand(twiss);
 					command_vec.push_back(command);
