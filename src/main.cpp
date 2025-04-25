@@ -15,6 +15,9 @@
 
 int main(int argc, char** argv)
 {
+	std::chrono::steady_clock::time_point simulatorStart = std::chrono::steady_clock::now();
+	std::string startTime = timeStamp();
+
 	Parameter Para(argc, argv);	// read parameter from json file
 
 	// create a logger named "logger" which can be called globally
@@ -44,7 +47,7 @@ int main(int argc, char** argv)
 	print_config_parameter(Para);
 	print_beam_parameter(Para, Beam0, Beam1);
 
-	cudaSetDevice(Para.gpuId[0]);
+	callCuda(cudaSetDevice(Para.gpuId[0]));
 
 	//	initialize GPU memory of Bunch objects
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
@@ -56,18 +59,23 @@ int main(int argc, char** argv)
 		iter->init_memory();
 	}
 
+	TimeEvent simTime;
+	simTime.initial(Para.gpuId[0], true);
+
 	//	create vector to store all commands
 	std::vector<Command*> command_beam0;
 	std::vector<Command*> command_beam1;
 
-	read_command_sequence(Para, Beam0, 0, command_beam0);
-	read_command_sequence(Para, Beam1, 1, command_beam1);
+	read_command_sequence(Para, Beam0, 0, command_beam0, simTime);
+	read_command_sequence(Para, Beam1, 1, command_beam1, simTime);
 
 	logger->debug("Command vector size of beam0: {}", command_beam0.size());
 	logger->debug("Command vector size of beam1: {}", command_beam1.size());
 
 	for (int turn = 0; turn < Para.Nturn; turn++)
 	{
+		callCuda(cudaEventRecord(simTime.startPerTurn, 0));
+
 		logger->info("Turn: {}/{}", turn, Para.Nturn);
 
 		int icb0 = 0;	// i-th command of beam0
@@ -112,6 +120,13 @@ int main(int argc, char** argv)
 			icb1++;
 
 		}
+
+		callCuda(cudaEventRecord(simTime.stopPerTurn, 0));
+		callCuda(cudaEventSynchronize(simTime.stopPerTurn));
+		float time_perTurn_tmp;
+		callCuda(cudaEventElapsedTime(&time_perTurn_tmp, simTime.startPerTurn, simTime.stopPerTurn));
+		simTime.turn += time_perTurn_tmp;
+
 	}
 
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
@@ -122,4 +137,22 @@ int main(int argc, char** argv)
 	{
 		iter->free_memory();
 	}
+
+	simTime.free(Para.gpuId[0]);
+
+	logger->info("All resources have been released.\n");
+
+	logger->info("*********************************** Simulation  Time ***********************************\n");
+	std::string endTime = timeStamp();
+	std::chrono::steady_clock::time_point simulatorEnd = std::chrono::steady_clock::now();
+	double simulatorTime = std::chrono::duration<double>(simulatorEnd - simulatorStart).count();	// in second
+	//double simulatorTime = std::chrono::duration<double, std::milli>(simulatorEnd - simulatorStart).count();	// in millisecond
+
+	simTime.print(Para.Nturn, simulatorTime, Para.gpuId[0]);
+
+	logger->info("{:<30} {}", "simulator starts at:", startTime.c_str());
+	logger->info("{:<30} {}", "simulator ends at:", endTime.c_str());
+	logger->info("{:<30} {:d}h:{:d}min:{:d}s\n", "simulator running:",
+		div(simulatorTime, 3600).quot, div(div(simulatorTime, 3600).rem, 60).quot, div(simulatorTime, 60).rem);
+
 }
