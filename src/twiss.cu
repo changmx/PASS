@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d) {
+Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent) {
 
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
@@ -124,6 +124,10 @@ void Twiss::print() {
 
 
 void Twiss::run(int turn) {
+
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
 	auto logger = spdlog::get("logger");
 
 	if ("drift" == logitudinal_transfer || "matrix" == logitudinal_transfer) {
@@ -144,7 +148,11 @@ void Twiss::run(int turn) {
 			m11_y, m12_y, m21_y, m22_y);
 	}
 
-	callCuda(cudaDeviceSynchronize());
+	//callCuda(cudaDeviceSynchronize());
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.twiss += time_tmp;
 }
 
 

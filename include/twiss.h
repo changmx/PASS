@@ -4,11 +4,12 @@
 #include "particle.h"
 #include "parameter.h"
 #include "parallelPlan.h"
+#include "general.h"
 
 class Twiss
 {
 public:
-	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d);
+	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	double s = -1;
 	std::string name = "Twiss";
@@ -19,6 +20,7 @@ public:
 
 private:
 	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
 
 	double s_previous = -1;
 
