@@ -48,3 +48,52 @@ void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0
 void create_logger(const Parameter& Para);
 
 void show_device_info();
+
+std::string timeStamp();
+
+class TimeEvent
+{
+public:
+
+	// Save the time used in the following steps
+	// In units of ms.
+	float allocate2grid = 0;
+	float calBoundary = 0;
+	float calPotential = 0;
+	float calElectric = 0;
+	float calBeamkick = 0;
+	float sort = 0;
+	float slice = 0;
+	float hourGlass = 0;
+	float calPhase = 0;
+	float statistic = 0;
+	float crossingAngle = 0;
+	float crabCavity = 0;
+	float floatWaist = 0;
+	float oneTurnMap = 0;
+	float transferFixPoint = 0;
+	float saveStatistic = 0;
+	float savePhase = 0;
+	float saveBunch = 0;
+	float saveFixpoint = 0;
+	float saveLuminosity = 0;
+
+	float twiss = 0;
+
+	float total = 0;
+
+	float turn = 0;
+
+	bool isTime;
+
+	cudaEvent_t start, stop;
+	cudaEvent_t startPerTurn, stopPerTurn;
+
+	void initial(int deviceid, bool timeOrNot);
+	void free(int deviceid);
+	TimeEvent& add(const TimeEvent& rhs);
+	void print(int totalTurn, double cpuTime, int deviceid);
+
+private:
+
+};
