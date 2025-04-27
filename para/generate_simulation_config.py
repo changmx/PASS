@@ -60,11 +60,12 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
         "Number of charges per particle": 1,
         "Number of bunches per beam": 1,
-        "Qx": 0.31,  # <optional>, will not be used if a madx file is loaded. Todo: read ramping file
-        "Qy": 0.32,
-        "Qz": 0.0125,
-        "Chromaticity x": 0,
-        "Chromaticity y": 0,
+        "Circumference (m)": 200,
+        # "Qx": 0.31,  # <optional>, will not be used if a madx file is loaded. Todo: read ramping file
+        # "Qy": 0.32,
+        # "Qz": 0.0125,
+        # "Chromaticity x": 0,
+        # "Chromaticity y": 0,
         "GammaT": 1,
         "Number of turns": 10,
         "Number of GPU devices": 1,
@@ -154,16 +155,16 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(Spacecharge)
 
-    # twiss_list_from_madx = generate_twiss_json(
-    #     r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
-    # )
-    # for twiss in twiss_list_from_madx:
-    #     Sequence.update(twiss)
+    twiss_list_from_madx = generate_twiss_json(
+        r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
+    )
+    for twiss in twiss_list_from_madx:
+        Sequence.update(twiss)
 
-    element_list_from_madx = generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
-    for element in element_list_from_madx:
-        # print(element)
-        Sequence.update(element)
+    # element_list_from_madx = generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
+    # for element in element_list_from_madx:
+    #     # print(element)
+    #     Sequence.update(element)
 
     Sequence = sort_sequence(Sequence)
     Sequencepara = {"Sequence": Sequence}
