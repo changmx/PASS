@@ -33,6 +33,7 @@ private:
 	double dp = 0;
 
 	int Np = 0;
+	double circumference = 0;
 
 	// Twiss parameters of current position
 	double alphax = 0;
@@ -90,7 +91,7 @@ __global__ void transfer_matrix_4D(Particle* dev_bunch, int Np,
 	double m11_x, double m12_x, double m21_x, double m22_x,
 	double m11_y, double m12_y, double m21_y, double m22_y);
 
-__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np,
+__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumference,
 	double m11_x, double m12_x, double m21_x, double m22_x,
 	double m11_y, double m12_y, double m21_y, double m22_y,
 	double m11_z, double m12_z, double m21_z, double m22_z);

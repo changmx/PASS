@@ -13,6 +13,7 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 	block_x = plan1d.get_blocks_x();
 
 	Np = Bunch.Np;
+	circumference = para.circumference;
 
 	gamma = Bunch.gamma;
 	gammat = Bunch.gammat;
@@ -134,7 +135,7 @@ void Twiss::run(int turn) {
 
 		logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, logitudinal_transfer);
 
-		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np,
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, circumference,
 			m11_x, m12_x, m21_x, m22_x,
 			m11_y, m12_y, m21_y, m22_y,
 			m11_z, m12_z, m21_z, m22_z);
@@ -189,7 +190,7 @@ __global__ void transfer_matrix_4D(Particle* dev_bunch, int Np,
 }
 
 
-__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np,
+__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumference,
 	double m11_x, double m12_x, double m21_x, double m22_x,
 	double m11_y, double m12_y, double m21_y, double m22_y,
 	double m11_z, double m12_z, double m21_z, double m22_z) {
@@ -218,6 +219,14 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np,
 
 		dev_bunch[tid].z = z1 * m11_z + pz1 * m12_z;
 		dev_bunch[tid].pz = z1 * m21_z + pz1 * m22_z;
+
+		if (dev_bunch[tid].z > circumference / 2) {
+			dev_bunch[tid].z -= circumference;
+		}
+		else if (dev_bunch[tid].z < -circumference / 2)
+		{
+			dev_bunch[tid].z += circumference;
+		}
 
 		if (tid == 0)
 		{
