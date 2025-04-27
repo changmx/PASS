@@ -27,6 +27,7 @@ Parameter::Parameter(int argc, char** argv)
 					if (0 == i)
 					{
 						Nturn = data.at("Number of turns");
+						circumference = data.at("Circumference (m)");
 
 						Ngpu = data.at("Number of GPU devices");
 						for (size_t idevice = 0; idevice < data.at("Device Id").size(); idevice++)

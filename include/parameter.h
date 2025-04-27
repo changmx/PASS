@@ -19,6 +19,8 @@ public:
 	int Nturn = 0;	// Number of simulation turns
 	int Ncollision = 0;	// Number of interaction points
 
+	double circumference = 0;	// in unit of m
+
 	int Ngpu = 0;	// Number of GPU devices
 	std::vector<int> gpuId;	// GPU device Id
 
