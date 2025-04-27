@@ -25,6 +25,7 @@ set(SOURCES
     src/injection.cu
     src/twiss.cu
     src/element.cu
+    src/monitor.cu
 )
 
 # set header files
@@ -39,6 +40,7 @@ set(HEADERS
     include/twiss.h
     include/element.h
     include/parallelPlan.h
+    include/monitor.h
 )
 
 # generate executable file
