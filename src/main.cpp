@@ -49,7 +49,7 @@ int main(int argc, char** argv)
 
 	callCuda(cudaSetDevice(Para.gpuId[0]));
 
-	//	initialize GPU memory of Bunch objects
+	// Initialize the gpu memory used to store the particles 
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
 	{
 		iter->init_memory();
@@ -63,8 +63,8 @@ int main(int argc, char** argv)
 	simTime.initial(Para.gpuId[0], true);
 
 	//	create vector to store all commands
-	std::vector<Command*> command_beam0;
-	std::vector<Command*> command_beam1;
+	std::vector<std::unique_ptr<Command>> command_beam0;
+	std::vector<std::unique_ptr<Command>> command_beam1;
 
 	read_command_sequence(Para, Beam0, 0, command_beam0, simTime);
 	read_command_sequence(Para, Beam1, 1, command_beam1, simTime);
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 		{
 			for (int icb0_tmp = icb0; icb0_tmp < command_beam0.size(); icb0_tmp++)
 			{
-				if ("BeamBeam" == command_beam0[icb0_tmp]->name)
+				if ("BeamBeam" == command_beam0[icb0_tmp]->get_commandType())
 				{
 					icb0 = icb0_tmp;
 					break;
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 
 			for (int icb1_tmp = icb1; icb1_tmp < command_beam1.size(); icb1_tmp++)
 			{
-				if ("BeamBeam" == command_beam1[icb1_tmp]->name)
+				if ("BeamBeam" == command_beam1[icb1_tmp]->get_commandType())
 				{
 					icb1 = icb1_tmp;
 					break;
@@ -129,6 +129,7 @@ int main(int argc, char** argv)
 
 	}
 
+	// Release the gpu memory used to store the particles 
 	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
 	{
 		iter->free_memory();
