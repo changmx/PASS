@@ -17,9 +17,10 @@ class Command
 public:
 	virtual ~Command() {};
 	virtual void execute(int turn) = 0;
+	virtual std::string get_name() const = 0;
+	virtual std::string get_commandType()const = 0;
+	virtual double get_s() const = 0;
 
-	double s = -1;
-	std::string name = "empty";
 protected:
 
 private:
@@ -27,20 +28,30 @@ private:
 };
 
 
-//class Invoker
-//{
-//public:
-//	void setCommand(Command* command) {
-//		this->command = command;
-//	}
-//
-//	void executeCommand() {
-//		command->execute();
-//	}
-//
-//private:
-//	Command* command;
-//};
+template <typename Receiver>
+class ConcreteCommand : public Command {
+public:
+	explicit ConcreteCommand(std::unique_ptr<Receiver> receiver)
+		: receiver_(std::move(receiver)) {
+	}
+
+	void execute(int turn) override {
+		//spdlog::get("logger")->debug("[Command] turn: {}, execute command: {} at {}.", turn, receiver_->name, receiver_->s);
+		receiver_->execute(turn);
+	}
+	std::string get_name() const override {
+		return receiver_->name;
+	}
+	std::string get_commandType() const override {
+		return receiver_->commandType;
+	}
+	double get_s() const override {
+		return receiver_->s;
+	}
+
+private:
+	std::unique_ptr<Receiver> receiver_;
+};
 
 
 inline void checkCudaError(cudaError_t err, const char* file, int line)
