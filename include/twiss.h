@@ -12,9 +12,10 @@ public:
 	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	double s = -1;
-	std::string name = "Twiss";
+	std::string commandType = "Twiss";
+	std::string name = "TwissObj";
 
-	void run(int turn);
+	void execute(int turn);
 
 	void print();
 
@@ -59,31 +60,14 @@ private:
 	double mux_previous = 0;
 	double muy_previous = 0;
 
+	double muz_previous = 0;
+
 	double m11_x = 0, m12_x = 0, m21_x = 0, m22_x = 0;	// transfer matrix elements;
 	double m11_y = 0, m12_y = 0, m21_y = 0, m22_y = 0;
 	double m11_z = 0, m12_z = 0, m21_z = 0, m22_z = 0;
 
 	int thread_x = 0;
 	int block_x = 0;
-};
-
-class TwissCommand : public Command
-{
-public:
-	~TwissCommand() {};
-
-	explicit TwissCommand(Twiss* twi) {
-		twiss = twi;
-		s = twi->s;
-		name = twi->name;
-	}
-
-	void execute(int turn) override {
-		twiss->run(turn);
-	}
-
-private:
-	Twiss* twiss = nullptr;
 };
 
 

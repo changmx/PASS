@@ -53,10 +53,12 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 			// when ¦Ã > ¦Ãt (¦Ç > 0), muz (input value) should be > 0
 			// when ¦Ã < ¦Ãt (¦Ç < 0), muz (input value) should be < 0
 			muz = data.at("Sequence").at(obj_name).at("Mu z");
+			muz_previous = data.at("Sequence").at(obj_name).at("Mu z");
 		}
 		else
 		{
 			muz = 0;
+			muz_previous = 0;
 		}
 
 		logitudinal_transfer = data.at("Sequence").at(obj_name).at("Logitudinal transfer");
@@ -70,15 +72,15 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 
 	double phi_x = (mux - mux_previous) * 2 * PassConstant::PI;
 	double phi_y = (muy - muy_previous) * 2 * PassConstant::PI;
-	double phi_z = muz * 2 * PassConstant::PI;
+	double phi_z = (muz - muz_previous) * 2 * PassConstant::PI;
 
 	m11_x = sqrt(betax / betax_previous) * (cos(phi_x) + alphax_previous * sin(phi_x));
-	m12_x = sqrt(betax * betax_previous);
+	m12_x = sqrt(betax * betax_previous) * sin(phi_x);
 	m21_x = -1 * (1 + alphax * alphax_previous) / sqrt(betax * betax_previous) * sin(phi_x) + (alphax_previous - alphax) / sqrt(betax * betax_previous) * cos(phi_x);
 	m22_x = sqrt(betax_previous / betax) * (cos(phi_x) - alphax * sin(phi_x));
 
 	m11_y = sqrt(betay / betay_previous) * (cos(phi_y) + alphay_previous * sin(phi_y));
-	m12_y = sqrt(betay * betay_previous);
+	m12_y = sqrt(betay * betay_previous) * sin(phi_y);
 	m21_y = -1 * (1 + alphay * alphay_previous) / sqrt(betay * betay_previous) * sin(phi_y) + (alphay_previous - alphay) / sqrt(betay * betay_previous) * cos(phi_y);
 	m22_y = sqrt(betay_previous / betay) * (cos(phi_y) - alphay * sin(phi_y));
 
@@ -119,12 +121,13 @@ void Twiss::print() {
 
 	logger->info("[Twiss] Logitunial transfer = {}", logitudinal_transfer);
 	logger->info("[Twiss] Mu   z = {}", muz);
+	logger->info("[Twiss] Mu   z previous = {}", muz);
 	logger->info("[Twiss] gamma  = {}, gammat = {}", gamma, gammat);
 	logger->info("[Twiss] sigmaz = {}, dp     = {}", sigmaz, dp);
 }
 
 
-void Twiss::run(int turn) {
+void Twiss::execute(int turn) {
 
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
@@ -133,7 +136,7 @@ void Twiss::run(int turn) {
 
 	if ("drift" == logitudinal_transfer || "matrix" == logitudinal_transfer) {
 
-		logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, logitudinal_transfer);
+		//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, logitudinal_transfer);
 
 		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, circumference,
 			m11_x, m12_x, m21_x, m22_x,
@@ -142,7 +145,7 @@ void Twiss::run(int turn) {
 	}
 	else
 	{
-		logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 4D (logi = {})", turn, name, s, logitudinal_transfer);
+		//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 4D (logi = {})", turn, name, s, logitudinal_transfer);
 
 		transfer_matrix_4D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np,
 			m11_x, m12_x, m21_x, m22_x,
@@ -180,10 +183,10 @@ __global__ void transfer_matrix_4D(Particle* dev_bunch, int Np,
 		dev_bunch[tid].y = y1 * m11_y + py1 * m12_y;
 		dev_bunch[tid].py = y1 * m21_y + py1 * m22_y;
 
-		if (tid == 0)
-		{
-			printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
-		}
+		//if (tid == 0)
+		//{
+		//	printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
+		//}
 
 		tid += stride;
 	}
@@ -228,10 +231,10 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 			dev_bunch[tid].z += circumference;
 		}
 
-		if (tid == 0)
-		{
-			printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
-		}
+		//if (tid == 0)
+		//{
+		//	printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
+		//}
 
 		tid += stride;
 	}
