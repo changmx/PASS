@@ -1,5 +1,7 @@
 #pragma once
 
+#include <typeinfo>
+
 #include "command.h"
 #include "particle.h"
 #include "parameter.h"
@@ -11,28 +13,12 @@ public:
 	virtual ~Element() = default;
 
 	double s = -1;
-	std::string name = "Element";
+	std::string commandType = "Element";
+	std::string name = "ElementObj";
 
-	virtual void run(int turn) = 0;
+	virtual void execute(int turn) = 0;
 	virtual void print() = 0;
 
-};
-
-
-template<typename ElementType>
-class ElementCommand :public Command {
-public:
-	~ElementCommand() {};
-	explicit ElementCommand(ElementType* ele) {
-		element = ele;
-		s = ele->s;
-		name = ele->name;
-	}
-	void execute(int turn) override {
-		element->run(turn);
-	}
-private:
-	ElementType* element = nullptr;
 };
 
 
@@ -43,7 +29,7 @@ public:
 
 	~SBendElement() = default;
 
-	void run(int turn) override;
+	void execute(int turn) override;
 
 	void print() override {
 		auto logger = spdlog::get("logger");
@@ -72,7 +58,7 @@ public:
 
 	~RBendElement() = default;
 
-	void run(int turn) override;
+	void execute(int turn) override;
 
 	void print() override {
 		auto logger = spdlog::get("logger");
@@ -101,7 +87,7 @@ public:
 
 	~QuadrupoleElement() = default;
 
-	void run(int turn) override;
+	void execute(int turn) override;
 
 	void print() override {
 		auto logger = spdlog::get("logger");
@@ -125,7 +111,7 @@ public:
 
 	~SextupoleElement() = default;
 
-	void run(int turn) override;
+	void execute(int turn) override;
 
 	void print() override {
 		auto logger = spdlog::get("logger");

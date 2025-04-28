@@ -3,6 +3,7 @@
 #include <fstream>
 
 SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+	commandType = "SBendElement";
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
@@ -37,13 +38,14 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 	}
 }
 
-void SBendElement::run(int turn) {
+void SBendElement::execute(int turn) {
 	auto logger = spdlog::get("logger");
 	logger->info("[SBend Element] run: " + name);
 }
 
 
 RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+	commandType = "RBendElement";
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
@@ -78,13 +80,14 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 	}
 }
 
-void RBendElement::run(int turn) {
+void RBendElement::execute(int turn) {
 	auto logger = spdlog::get("logger");
 	logger->info("[RBend Element] run: " + name);
 }
 
 
 QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+	commandType = "QuadrupoleElement";
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
@@ -109,13 +112,14 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 	}
 }
 
-void QuadrupoleElement::run(int turn) {
+void QuadrupoleElement::execute(int turn) {
 	auto logger = spdlog::get("logger");
 	logger->info("[Quadrupole Element] run: " + name);
 }
 
 
 SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+	commandType = "SextupoleElement";
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
@@ -129,7 +133,7 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("l (m)");
-		k2= data.at("Sequence").at(obj_name).at("k2 (m^-3)");
+		k2 = data.at("Sequence").at(obj_name).at("k2 (m^-3)");
 
 	}
 	catch (json::exception e)
@@ -140,7 +144,7 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 	}
 }
 
-void SextupoleElement::run(int turn) {
+void SextupoleElement::execute(int turn) {
 	auto logger = spdlog::get("logger");
 	logger->info("[Sextupole Element] run: " + name);
 }
