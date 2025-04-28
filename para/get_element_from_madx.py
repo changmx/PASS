@@ -9,7 +9,7 @@ class Element:
         self.S = 0.0  # S值只在sequence中设置
 
 
-class SBend(Element):
+class SBendElement(Element):
     def __init__(self, name):
         super().__init__(name)
         self.l = 0.0
@@ -21,7 +21,7 @@ class SBend(Element):
         self.fintx = 0.0
 
 
-class RBend(Element):
+class RBendElement(Element):
     def __init__(self, name):
         super().__init__(name)
         self.l = 0.0
@@ -33,30 +33,30 @@ class RBend(Element):
         self.fintx = 0.0
 
 
-class Quadrupole(Element):
+class QuadrupoleElement(Element):
     def __init__(self, name):
         super().__init__(name)
         self.l = 0.0
         self.k1 = 0.0
 
 
-class Sextupole(Element):
+class SextupoleElement(Element):
     def __init__(self, name):
         super().__init__(name)
         self.l = 0.0
         self.k2 = 0.0
 
 
-class Marker(Element):
+class MarkerElement(Element):
     pass
 
 
 class_map = {
-    "sbend": SBend,
-    "rbend": RBend,
-    "quadrupole": Quadrupole,
-    "sextupole": Sextupole,
-    "marker": Marker,
+    "sbend": SBendElement,
+    "rbend": RBendElement,
+    "quadrupole": QuadrupoleElement,
+    "sextupole": SextupoleElement,
+    "marker": MarkerElement,
 }
 
 
@@ -165,9 +165,9 @@ def generate_element_json(filepath):
     for elem in sequence:
         element_dict = {}
 
-        if isinstance(elem, Marker):
+        if isinstance(elem, MarkerElement):
             continue
-        elif isinstance(elem, SBend):
+        elif isinstance(elem, SBendElement):
             element_dict = {
                 str(elem.name)
                 + "_"
@@ -183,7 +183,7 @@ def generate_element_json(filepath):
                     "fintx": elem.fintx,
                 }
             }
-        elif isinstance(elem, RBend):
+        elif isinstance(elem, RBendElement):
             element_dict = {
                 str(elem.name)
                 + "_"
@@ -199,7 +199,7 @@ def generate_element_json(filepath):
                     "fintx": elem.fintx,
                 }
             }
-        elif isinstance(elem, Quadrupole):
+        elif isinstance(elem, QuadrupoleElement):
             element_dict = {
                 str(elem.name)
                 + "_"
@@ -210,7 +210,7 @@ def generate_element_json(filepath):
                     "k1 (m^-2)": elem.k1,
                 }
             }
-        elif isinstance(elem, Sextupole):
+        elif isinstance(elem, SextupoleElement):
             element_dict = {
                 str(elem.name)
                 + "_"
@@ -238,9 +238,9 @@ def test_parse_file(filepath):
     # for elem in sequence[:3]:
     for elem in sequence:
         print(f"{elem.name} ({type(elem).__name__}) @ S={elem.S}")
-        if isinstance(elem, Quadrupole):
+        if isinstance(elem, QuadrupoleElement):
             print(f"  l={elem.l}, k1={elem.k1}")
-        elif isinstance(elem, SBend):
+        elif isinstance(elem, SBendElement):
             print(
                 f"  l={elem.l}, angle={elem.angle}, e1={elem.e1}, e2={elem.e2}, fint={elem.fint}, fintx={elem.fintx}"
             )

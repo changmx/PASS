@@ -18,12 +18,13 @@ def convert_ordereddict(obj):
 def sort_sequence(sequence):
     Command_order = {
         "Injection": 0,  # 最高优先级
-        "Twiss": 1,  # 次级优先级
-        "SBend": 2,
-        "RBend": 2,
-        "Quadrupole": 2,
-        "Sextupole": 2,
-        "BeamBeam": 3,
+        "Twiss": 50,  # 次级优先级
+        "SBendElement": 100,
+        "RBendElement": 100,
+        "QuadrupoleElement": 100,
+        "SextupoleElement": 100,
+        "DistMonitor": 150,
+        "BeamBeam": 300,
         "Other": 999,  # 最低优先级
     }
 
@@ -155,16 +156,46 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(Spacecharge)
 
-    twiss_list_from_madx = generate_twiss_json(
-        r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
-    )
-    for twiss in twiss_list_from_madx:
-        Sequence.update(twiss)
+    # twiss_list_from_madx = generate_twiss_json(
+    #     r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
+    # )
+    # for twiss in twiss_list_from_madx:
+    #     Sequence.update(twiss)
 
     # element_list_from_madx = generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
     # for element in element_list_from_madx:
     #     # print(element)
     #     Sequence.update(element)
+
+    lattice_oneturn_map = {
+        "oneturn_map": {
+            "S (m)": 0,
+            "Command": "Twiss",
+            "S previous (m)": 0,
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 0.05,
+            "Beta y (m)": 0.012,
+            "Mu x": 1,
+            "Mu y": 1,
+            "Mu z": 1,
+            "Alpha x previous": 0,
+            "Alpha y previous": 0,
+            "Beta x previous (m)": 0.05,
+            "Beta y previous (m)": 0.012,
+            "Mu x previous": 0,
+            "Mu y previous": 0,
+            # "Dx (m)": Dx[i],
+            # "Dpx": Dpx[i],
+            "Logitudinal transfer": "matrix",
+        },
+    }
+    Sequence.update(lattice_oneturn_map)
+
+    Monitor_Dist_oneturn = {
+        "DistMonitor_oneturn_0": {"S (m)": 0, "Command": "DistMonitor"},
+    }
+    Sequence.update(Monitor_Dist_oneturn)
 
     Sequence = sort_sequence(Sequence)
     Sequencepara = {"Sequence": Sequence}
