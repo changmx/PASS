@@ -3,11 +3,12 @@
 #include "twiss.h"
 #include "element.h"
 #include "parallelPlan.h"
+#include "monitor.h"
 
 #include <fstream>
 #include "cuda_runtime.h"
 
-void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int input_beamId, std::vector<Command*>& command_vec, TimeEvent& simTime) {
+void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int input_beamId, std::vector<std::unique_ptr<Command>>& command_vec, TimeEvent& simTime) {
 
 	if (1 == Para.Nbeam && 1 == input_beamId)
 	{
@@ -45,6 +46,11 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					--> RBendElement: rectangular dipole
 					--> QuadrupoleElement: quadrupole
 					--> SextupoleElement: sextupole
+				Monitor: save information
+					--> DistMonitor: save the distribution of all particles in a bunch
+					--> PhaseMonitor: save the phase advance of all particles in a bunch
+					--> StatMonitor: save statistical data of a bunch (e.g. centroid, size, emittance ...)
+					--> LumiMonitor: save the luminosity of collision
 
 				SpaceCharge: perform space charge simulation at specified position
 				BeamBeam: perform beam-beam simulation at specified position
@@ -62,9 +68,10 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					Injection* inj = new Injection(Para, input_beamId, bunch[i], ikey);
-					Command* command = new InjectionCommand(inj);
-					command_vec.push_back(command);
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<Injection>>(
+							std::make_unique<Injection>(Para, input_beamId, bunch[i], ikey))
+					);
 				}
 
 			}
@@ -74,50 +81,60 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 				{
 					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
 
-					Twiss* twiss = new Twiss(Para, input_beamId, bunch[i], ikey, plan1d, simTime);
-					//twiss->print();
-					Command* command = new TwissCommand(twiss);
-					command_vec.push_back(command);
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<Twiss>>(
+							std::make_unique<Twiss>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
 				}
 			}
 			else if ("SBend" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					SBendElement* mb = new SBendElement(Para, input_beamId, bunch[i], ikey);
-					//twiss->print();
-					Command* command = new ElementCommand(mb);
-					command_vec.push_back(command);
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<SBendElement>>(
+							std::make_unique<SBendElement>(Para, input_beamId, bunch[i], ikey))
+					);
 				}
 			}
 			else if ("RBend" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					RBendElement* mb = new RBendElement(Para, input_beamId, bunch[i], ikey);
-					//twiss->print();
-					Command* command = new ElementCommand(mb);
-					command_vec.push_back(command);
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<RBendElement>>(
+							std::make_unique<RBendElement>(Para, input_beamId, bunch[i], ikey))
+					);
 				}
 			}
 			else if ("Quadrupole" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					QuadrupoleElement* quad = new QuadrupoleElement(Para, input_beamId, bunch[i], ikey);
-					//twiss->print();
-					Command* command = new ElementCommand(quad);
-					command_vec.push_back(command);
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<QuadrupoleElement>>(
+							std::make_unique<QuadrupoleElement>(Para, input_beamId, bunch[i], ikey))
+					);
 				}
 			}
 			else if ("Sextupole" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					SextupoleElement* sext = new SextupoleElement(Para, input_beamId, bunch[i], ikey);
-					//twiss->print();
-					Command* command = new ElementCommand(sext);
-					command_vec.push_back(command);
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<SextupoleElement>>(
+							std::make_unique<SextupoleElement>(Para, input_beamId, bunch[i], ikey))
+					);
+				}
+			}
+			else if ("DistMonitor" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<DistMonitor>>(
+							std::make_unique<DistMonitor>(Para, input_beamId, bunch[i], ikey, simTime))
+					);
 				}
 			}
 			else
@@ -141,33 +158,48 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 
 	sort_commands(command_vec);
 
-	for (const Command* cmd : command_vec)
+	for (const auto& cmd : command_vec)
 	{
-		spdlog::get("logger")->debug("[Print command sequence] name = {}, s = {}", cmd->name, cmd->s);
+		spdlog::get("logger")->debug("[ReadCommand] Print sequence: command = {:<18}, s = {:<9}, name = {}", cmd->get_commandType(), cmd->get_s(), cmd->get_name());
 	}
 }
 
-int get_priority(const std::string& name) {
-	// 将name转换为优先级数值
-	if (name == "Injection") return 0;	// 最高优先级
-	else if (name == "Twiss") return 1;	// 次级优先级
-	else if (name == "SBend") return 2;
-	else if (name == "RBend") return 2;
-	else if (name == "Quadrupole") return 2;
-	else if (name == "Sextupole") return 2;
-	else if (name == "BeamBeam") return 3;
+int get_priority(const std::string& commandType) {
+	// 将commandType转换为优先级数值
+	if (commandType == "Injection") return 0;	// 最高优先级
+	else if (commandType == "Twiss") return 50;	// 次级优先级
+	else if (commandType == "SBendElement") return 100;
+	else if (commandType == "RBendElement") return 100;
+	else if (commandType == "QuadrupoleElement") return 100;
+	else if (commandType == "SextupoleElement") return 100;
+	else if (commandType == "DistMonitor") return 150;
+	else if (commandType == "BeamBeam") return 300;
 	else return 999; // 最低优先级，其他情况
 }
 
-void sort_commands(std::vector<Command*>& vec) {
-	std::sort(vec.begin(), vec.end(), [](const Command* a, const Command* b) {
-		// 分步比较指针指向的对象的成员
-		if (a->s != b->s) {
-			return a->s < b->s;  // 按 s 升序
-		}
-		else {
-			// s 相等时，按 name 的优先级升序
-			return get_priority(a->name) < get_priority(b->name);
-		}
+//void sort_commands(std::vector<Command*>& vec) {
+//	std::sort(vec.begin(), vec.end(), [](const Command* a, const Command* b) {
+//		// 分步比较指针指向的对象的成员
+//		if (a->s != b->s) {
+//			return a->s < b->s;  // 按 s 升序
+//		}
+//		else {
+//			// s 相等时，按 name 的优先级升序
+//			return get_priority(a->name) < get_priority(b->name);
+//		}
+//		});
+//}
+
+void sort_commands(std::vector<std::unique_ptr<Command>>& command_vec) {
+	std::sort(command_vec.begin(), command_vec.end(),
+		[](const std::unique_ptr<Command>& a, const std::unique_ptr<Command>& b) {
+			// 分步比较指针指向的对象的成员
+			if (a->get_s() != b->get_s()) {
+				return a->get_s() < b->get_s();  // 按 s 升序
+			}
+			else {
+				// s 相等时，按 name 的优先级升序
+				return get_priority(a->get_commandType()) < get_priority(b->get_commandType());
+			}
 		});
 }
