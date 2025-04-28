@@ -10,9 +10,10 @@ public:
 	Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name);
 
 	double s = -1;
-	std::string name = "Injection";
+	std::string commandType = "Injection";
+	std::string name = "InjectionObj";
 
-	void run(int turn);
+	void execute(int turn);
 
 	void load_distribution();
 
@@ -74,24 +75,4 @@ private:
 	std::filesystem::path dir_save_distribution;
 	std::string hourMinSec;
 };
-
-class InjectionCommand : public Command
-{
-public:
-	~InjectionCommand() {};
-
-	explicit InjectionCommand(Injection* inj) {
-		injection = inj;
-		s = inj->s;
-		name = inj->name;
-	}
-
-	void execute(int turn) override {
-		injection->run(turn);
-	}
-
-private:
-	Injection* injection = nullptr;
-};
-
 

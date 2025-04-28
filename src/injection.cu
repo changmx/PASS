@@ -120,7 +120,7 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	Bunch.dist_logitudinal = dist_logitudinal;
 }
 
-void Injection::run(int turn) {
+void Injection::execute(int turn) {
 	auto logger = spdlog::get("logger");
 
 	//logger->debug("Injection action");
@@ -721,7 +721,7 @@ void Injection::save_initial_distribution() {
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
 	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_beam" + std::to_string(beamId) + "_" + beam_name + "_bunch" + std::to_string(bunchId)
-		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_logitudinal + "_" + "_injection.csv");
+		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_logitudinal + "_injection.csv");
 	std::ofstream file(path_tmp);
 
 	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
