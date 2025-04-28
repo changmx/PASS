@@ -55,7 +55,7 @@ class Bunch
 public:
 	Bunch() = default;
 	Bunch(const Parameter& para, int input_beamId, int input_bunchId);
-	__host__ __device__ ~Bunch() {};
+	~Bunch() = default;
 
 	void init_memory();
 	void free_memory();
