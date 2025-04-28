@@ -69,9 +69,10 @@ target_link_libraries(${PROJECT_NAME}
     CUDA::cusparse
 )
 
-# set CUDA ARCHITECTURE. 70 for V100, 75 for RTX2060, 80 for A100, 89 for RTX4080
+# set CUDA ARCHITECTURE. (https://developer.nvidia.com/cuda-gpus)
+# 70 for V100, 75 for RTX2060~2080Ti, 80 for A100, 86 for RTX3050~RTX3090Ti, 89 for RTX4050~RTX4090
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    CUDA_ARCHITECTURES "70;75;80;89"
+    CUDA_ARCHITECTURES "70;75;80;86;89"
     CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
