@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 	logger->debug("Command vector size of beam0: {}", command_beam0.size());
 	logger->debug("Command vector size of beam1: {}", command_beam1.size());
 
-	for (int turn = 0; turn < Para.Nturn; turn++)
+	for (int turn = 1; turn < Para.Nturn + 1; turn++)
 	{
 		callCuda(cudaEventRecord(simTime.startPerTurn, 0));
 
