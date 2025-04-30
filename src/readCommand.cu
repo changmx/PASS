@@ -137,6 +137,18 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
+			else if ("StatMonitor" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(256, 4, bunch[i].Np);	// Important, block_x in cal_statistic_perblock() is 256, so we set it to 256 here. Do not change it.
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<StatMonitor>>(
+							std::make_unique<StatMonitor>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
 			else
 			{
 				spdlog::get("logger")->warn("[Read sequence] We don't suppoert '{}' command of object: {}", data.at("Sequence").at(ikey).at("Command"), ikey);
@@ -173,6 +185,7 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "QuadrupoleElement") return 100;
 	else if (commandType == "SextupoleElement") return 100;
 	else if (commandType == "DistMonitor") return 150;
+	else if (commandType == "StatMonitor") return 150;
 	else if (commandType == "BeamBeam") return 300;
 	else return 999; // 最低优先级，其他情况
 }
