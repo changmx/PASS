@@ -85,7 +85,7 @@ StatMonitor::StatMonitor(const Parameter& para, int input_beamId, const Bunch& B
 	saveName_part = para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId)
 		+ "_" + std::to_string(Np) + "_stat_" + name;
 
-	callCuda(cudaMallocHost((void**)&host_statistic, Nstat * sizeof(double)));
+	callCuda(cudaHostAlloc((void**)&host_statistic, Nstat * sizeof(double), cudaHostAllocMapped));
 	callCuda(cudaMallocPitch((void**)&dev_statistic, &pitch_statistic, block_x * sizeof(double), Nstat));
 	callCuda(cudaMemset2D(dev_statistic, pitch_statistic, 0, block_x * sizeof(double), Nstat));
 
@@ -112,7 +112,7 @@ void StatMonitor::execute(int turn) {
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
 
-	// host_statistic[13]
+	// host_statistic[22]
 	// 0:x, 1:x^2, 2:x*px, 3:px^2
 	// 4:y, 5:y^2, 6:y*py, 7:py^2
 	// 8:beam loss
@@ -125,18 +125,23 @@ void StatMonitor::execute(int turn) {
 	callCuda(cudaMemset2D(dev_statistic, pitch_statistic, 0, block_x * sizeof(double), Nstat));
 
 	cal_statistic_perblock << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_statistic, pitch_statistic, Np);
-	cal_statistic_allblock_2 << <1, thread_x, 0, 0 >> > (dev_statistic, pitch_statistic, block_x, Np);
 
-	for (size_t i = 0; i < Nstat; i++)
-	{
-		callCuda(cudaMemcpy(host_statistic + i, (double*)((char*)dev_statistic + i * pitch_statistic), 1 * sizeof(double), cudaMemcpyDeviceToHost));
-	}
+	// 使用统一虚拟寻址 (UVA) 和固定内存（Mapped Pinned Memory）
+	// 通过 cudaHostAlloc 分配固定且映射到设备地址空间的主机内存，使得设备可以直接修改主机内存，省去显式的 cudaMemcpy
+	double* host_dev_statistic = nullptr;
+	callCuda(cudaHostGetDevicePointer((void**)&host_dev_statistic, host_statistic, 0));
 
+	cal_statistic_allblock_2 << <1, thread_x, 0, 0 >> > (dev_statistic, pitch_statistic, host_dev_statistic, block_x, Np);
+
+	//for (size_t i = 0; i < Nstat; i++)
+	//{
+	//	callCuda(cudaMemcpy(host_statistic + i, (double*)((char*)dev_statistic + i * pitch_statistic), 1 * sizeof(double), cudaMemcpyDeviceToHost));
+	//}
+	 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
 	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
 	simTime.statistic += time_tmp;
-
 
 	clock_t start_tmp, end_tmp;
 	start_tmp = clock();
@@ -413,7 +418,7 @@ __global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statisti
 }
 
 
-__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, int gridDimX, int NpInit) {
+__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit) {
 
 	// Summarize data in all grids.
 
@@ -687,6 +692,35 @@ __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_sta
 		dev_y_quad[0] /= NpNotLoss;
 
 	}
+
+	host_dev_statistic[0] = dev_x[0];
+	host_dev_statistic[1] = dev_xSquare[0];
+	host_dev_statistic[2] = dev_xpx[0];
+	host_dev_statistic[3] = dev_pxSquare[0];
+
+	host_dev_statistic[4] = dev_y[0];
+	host_dev_statistic[5] = dev_ySquare[0];
+	host_dev_statistic[6] = dev_ypy[0];
+	host_dev_statistic[7] = dev_pySquare[0];
+
+	host_dev_statistic[8] = dev_beamLoss[0];
+
+	host_dev_statistic[9] = dev_zSquare[0];
+	host_dev_statistic[10] = dev_pzSquare[0];
+	host_dev_statistic[11] = dev_z[0];
+	host_dev_statistic[12] = dev_pz[0];
+
+	host_dev_statistic[13] = dev_px[0];
+	host_dev_statistic[14] = dev_py[0];
+
+	host_dev_statistic[15] = dev_xz[0];
+	host_dev_statistic[16] = dev_xy[0];
+	host_dev_statistic[17] = dev_yz[0];
+
+	host_dev_statistic[18] = dev_x_cube[0];
+	host_dev_statistic[19] = dev_x_quad[0];
+	host_dev_statistic[20] = dev_y_cube[0];
+	host_dev_statistic[21] = dev_y_quad[0];
 }
 
 
