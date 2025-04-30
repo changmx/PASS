@@ -39,8 +39,7 @@ void DistMonitor::execute(int turn) {
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
 
-	auto logger = spdlog::get("logger");
-	logger->debug("[DistMonitor] run: " + name);
+	//spdlog::getlogger->debug("[DistMonitor] run: " + name);
 
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
@@ -67,4 +66,730 @@ void DistMonitor::execute(int turn) {
 	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
 	simTime.saveBunch += time_tmp;
 
+}
+
+
+StatMonitor::StatMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent) {
+	commandType = "StatMonitor";
+	name = obj_name;
+
+	dev_bunch = Bunch.dev_bunch;
+	Np = Bunch.Np;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	bunchId = Bunch.bunchId;
+
+	saveDir = para.dir_output_statistic;
+	saveName_part = para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId)
+		+ "_" + std::to_string(Np) + "_stat_" + name;
+
+	callCuda(cudaMallocHost((void**)&host_statistic, Nstat * sizeof(double)));
+	callCuda(cudaMallocPitch((void**)&dev_statistic, &pitch_statistic, block_x * sizeof(double), Nstat));
+	callCuda(cudaMemset2D(dev_statistic, pitch_statistic, 0, block_x * sizeof(double), Nstat));
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+}
+
+
+void StatMonitor::execute(int turn) {
+
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	// host_statistic[13]
+	// 0:x, 1:x^2, 2:x*px, 3:px^2
+	// 4:y, 5:y^2, 6:y*py, 7:py^2
+	// 8:beam loss
+	// 9:z^2, 10:pz^2
+	// 11:z, 12:pz
+	// 13:x', 14:y'
+	// 15:xz, 16:xy, 17:yz
+	// 18:x^3, 19:x^4, 20:y^3, 21:y^4
+
+	callCuda(cudaMemset2D(dev_statistic, pitch_statistic, 0, block_x * sizeof(double), Nstat));
+
+	cal_statistic_perblock << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_statistic, pitch_statistic, Np);
+	cal_statistic_allblock_2 << <1, thread_x, 0, 0 >> > (dev_statistic, pitch_statistic, block_x, Np);
+
+	for (size_t i = 0; i < Nstat; i++)
+	{
+		callCuda(cudaMemcpy(host_statistic + i, (double*)((char*)dev_statistic + i * pitch_statistic), 1 * sizeof(double), cudaMemcpyDeviceToHost));
+	}
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.statistic += time_tmp;
+
+
+	clock_t start_tmp, end_tmp;
+	start_tmp = clock();
+
+	save_bunchInfo_statistic(host_statistic, Np, saveDir, saveName_part, turn);
+
+	end_tmp = clock();
+	simTime.saveStatistic += (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC * 1000;
+}
+
+
+__device__ void warpReduce(volatile double* data, int tid) {
+
+	data[tid] += data[tid + 32];
+	data[tid] += data[tid + 16];
+	data[tid] += data[tid + 8];
+	data[tid] += data[tid + 4];
+	data[tid] += data[tid + 2];
+	data[tid] += data[tid + 1];
+}
+
+
+__global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statistic, size_t pitch_statistic, int NpPerBunch) {
+
+	// Count the information about the particles in each block
+
+	int i = blockIdx.x;
+	int j = threadIdx.x;
+	int tid = j + i * blockDim.x;
+
+	const int ThreadsPerBlock = 256;
+
+	// 0:x, 1:x^2, 2:x*px, 3:px^2
+	// 4:y, 5:y^2, 6:y*py, 7:py^2
+	// 8:beam loss
+	// 9:z^2, 10:pz^2
+	// 11:z, 12:pz
+	// 13:x', 14:y'
+	// 15: xz, 16:xy, 17:yz
+	// 18:x^3, 19:x^4, 20:y^3, 21:y^4
+
+	__shared__ double x_cache[ThreadsPerBlock];			// 0
+	__shared__ double xSquare_cache[ThreadsPerBlock];	// 1
+	__shared__ double xpx_cache[ThreadsPerBlock];		// 2
+	__shared__ double pxSquare_cache[ThreadsPerBlock];	// 3
+
+	__shared__ double y_cache[ThreadsPerBlock];			// 4
+	__shared__ double ySquare_cache[ThreadsPerBlock];	// 5
+	__shared__ double ypy_cache[ThreadsPerBlock];		// 6
+	__shared__ double pySquare_cache[ThreadsPerBlock];	// 7
+
+	__shared__ double beamLoss_cache[ThreadsPerBlock];	// 8
+
+	__shared__ double zSquare_cache[ThreadsPerBlock];	// 9
+	__shared__ double pzSquare_cache[ThreadsPerBlock];	// 10
+
+	__shared__ double z_cache[ThreadsPerBlock];			// 11
+	__shared__ double pz_cache[ThreadsPerBlock];		// 12
+
+	__shared__ double px_cache[ThreadsPerBlock];		// 13
+	__shared__ double py_cache[ThreadsPerBlock];		// 14
+
+	__shared__ double xz_cache[ThreadsPerBlock];		// 15
+	__shared__ double xy_cache[ThreadsPerBlock];		// 16
+	__shared__ double yz_cache[ThreadsPerBlock];		// 17
+
+	__shared__ double x_cube_cache[ThreadsPerBlock];	// 18
+	__shared__ double x_quad_cache[ThreadsPerBlock];	// 19
+	__shared__ double y_cube_cache[ThreadsPerBlock];	// 20
+	__shared__ double y_quad_cache[ThreadsPerBlock];	// 21
+
+	int cacheIdx = threadIdx.x;
+
+	// The __shared__ cache value must be initialized explicitly, otherwise we will get the wrong result.
+	x_cache[cacheIdx] = 0;
+	xSquare_cache[cacheIdx] = 0;
+	xpx_cache[cacheIdx] = 0;
+	pxSquare_cache[cacheIdx] = 0;
+
+	y_cache[cacheIdx] = 0;
+	ySquare_cache[cacheIdx] = 0;
+	ypy_cache[cacheIdx] = 0;
+	pySquare_cache[cacheIdx] = 0;
+
+	beamLoss_cache[cacheIdx] = 0;
+
+	zSquare_cache[cacheIdx] = 0;
+	pzSquare_cache[cacheIdx] = 0;
+
+	z_cache[cacheIdx] = 0;
+	pz_cache[cacheIdx] = 0;
+
+	px_cache[cacheIdx] = 0;
+	py_cache[cacheIdx] = 0;
+
+	xz_cache[cacheIdx] = 0;
+	xy_cache[cacheIdx] = 0;
+	yz_cache[cacheIdx] = 0;
+
+	x_cube_cache[cacheIdx] = 0;
+	x_quad_cache[cacheIdx] = 0;
+	y_cube_cache[cacheIdx] = 0;
+	y_quad_cache[cacheIdx] = 0;
+
+	double* dev_x = (double*)((char*)dev_statistic + 0 * pitch_statistic);
+	double* dev_xSquare = (double*)((char*)dev_statistic + 1 * pitch_statistic);
+	double* dev_xpx = (double*)((char*)dev_statistic + 2 * pitch_statistic);
+	double* dev_pxSquare = (double*)((char*)dev_statistic + 3 * pitch_statistic);
+
+	double* dev_y = (double*)((char*)dev_statistic + 4 * pitch_statistic);
+	double* dev_ySquare = (double*)((char*)dev_statistic + 5 * pitch_statistic);
+	double* dev_ypy = (double*)((char*)dev_statistic + 6 * pitch_statistic);
+	double* dev_pySquare = (double*)((char*)dev_statistic + 7 * pitch_statistic);
+
+	double* dev_beamLoss = (double*)((char*)dev_statistic + 8 * pitch_statistic);
+
+	double* dev_zSquare = (double*)((char*)dev_statistic + 9 * pitch_statistic);
+	double* dev_pzSquare = (double*)((char*)dev_statistic + 10 * pitch_statistic);
+	double* dev_z = (double*)((char*)dev_statistic + 11 * pitch_statistic);
+	double* dev_pz = (double*)((char*)dev_statistic + 12 * pitch_statistic);
+
+	double* dev_px = (double*)((char*)dev_statistic + 13 * pitch_statistic);
+	double* dev_py = (double*)((char*)dev_statistic + 14 * pitch_statistic);
+
+	double* dev_xz = (double*)((char*)dev_statistic + 15 * pitch_statistic);
+	double* dev_xy = (double*)((char*)dev_statistic + 16 * pitch_statistic);
+	double* dev_yz = (double*)((char*)dev_statistic + 17 * pitch_statistic);
+
+	double* dev_x_cube = (double*)((char*)dev_statistic + 18 * pitch_statistic);
+	double* dev_x_quad = (double*)((char*)dev_statistic + 19 * pitch_statistic);
+	double* dev_y_cube = (double*)((char*)dev_statistic + 20 * pitch_statistic);
+	double* dev_y_quad = (double*)((char*)dev_statistic + 21 * pitch_statistic);
+
+	for (; tid < NpPerBunch; tid += blockDim.x * gridDim.x)
+	{
+		if (dev_bunch[tid].tag > 0)
+		{
+			x_cache[cacheIdx] += dev_bunch[tid].x;
+			xSquare_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].x;
+			xpx_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].px;
+			pxSquare_cache[cacheIdx] += dev_bunch[tid].px * dev_bunch[tid].px;
+
+			y_cache[cacheIdx] += dev_bunch[tid].y;
+			ySquare_cache[cacheIdx] += dev_bunch[tid].y * dev_bunch[tid].y;
+			ypy_cache[cacheIdx] += dev_bunch[tid].y * dev_bunch[tid].py;
+			pySquare_cache[cacheIdx] += dev_bunch[tid].py * dev_bunch[tid].py;
+			//beamLoss_cache[cacheIdx] += 0;
+
+			zSquare_cache[cacheIdx] += dev_bunch[tid].z * dev_bunch[tid].z;
+			pzSquare_cache[cacheIdx] += dev_bunch[tid].pz * dev_bunch[tid].pz;
+			z_cache[cacheIdx] += dev_bunch[tid].z;
+			pz_cache[cacheIdx] += dev_bunch[tid].pz;
+
+			px_cache[cacheIdx] += dev_bunch[tid].px;
+			py_cache[cacheIdx] += dev_bunch[tid].py;
+
+			xz_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].z;
+			xy_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].y;
+			yz_cache[cacheIdx] += dev_bunch[tid].y * dev_bunch[tid].z;
+
+			x_cube_cache[cacheIdx] += pow(dev_bunch[tid].x, 3);
+			x_quad_cache[cacheIdx] += pow(dev_bunch[tid].x, 4);
+			y_cube_cache[cacheIdx] += pow(dev_bunch[tid].y, 3);
+			y_quad_cache[cacheIdx] += pow(dev_bunch[tid].y, 4);
+
+		}
+		else
+		{
+			beamLoss_cache[cacheIdx] += 1;
+		}
+	}
+	__syncthreads();
+
+	for (int m = blockDim.x / 2; m > 32; m >>= 1)
+	{
+		if (cacheIdx < m) {
+			x_cache[cacheIdx] += x_cache[cacheIdx + m];
+			xSquare_cache[cacheIdx] += xSquare_cache[cacheIdx + m];
+			xpx_cache[cacheIdx] += xpx_cache[cacheIdx + m];
+			pxSquare_cache[cacheIdx] += pxSquare_cache[cacheIdx + m];
+
+			y_cache[cacheIdx] += y_cache[cacheIdx + m];
+			ySquare_cache[cacheIdx] += ySquare_cache[cacheIdx + m];
+			ypy_cache[cacheIdx] += ypy_cache[cacheIdx + m];
+			pySquare_cache[cacheIdx] += pySquare_cache[cacheIdx + m];
+
+			beamLoss_cache[cacheIdx] += beamLoss_cache[cacheIdx + m];
+
+			zSquare_cache[cacheIdx] += zSquare_cache[cacheIdx + m];
+			pzSquare_cache[cacheIdx] += pzSquare_cache[cacheIdx + m];
+			z_cache[cacheIdx] += z_cache[cacheIdx + m];
+			pz_cache[cacheIdx] += pz_cache[cacheIdx + m];
+
+			px_cache[cacheIdx] += px_cache[cacheIdx + m];
+			py_cache[cacheIdx] += py_cache[cacheIdx + m];
+
+			xz_cache[cacheIdx] += xz_cache[cacheIdx + m];
+			xy_cache[cacheIdx] += xy_cache[cacheIdx + m];
+			yz_cache[cacheIdx] += yz_cache[cacheIdx + m];
+
+			x_cube_cache[cacheIdx] += x_cube_cache[cacheIdx + m];
+			x_quad_cache[cacheIdx] += x_quad_cache[cacheIdx + m];
+			y_cube_cache[cacheIdx] += y_cube_cache[cacheIdx + m];
+			y_quad_cache[cacheIdx] += y_quad_cache[cacheIdx + m];
+		}
+		__syncthreads();
+	}
+
+	if (cacheIdx < 32)
+	{
+		warpReduce(x_cache, cacheIdx);
+		warpReduce(xSquare_cache, cacheIdx);
+		warpReduce(xpx_cache, cacheIdx);
+		warpReduce(pxSquare_cache, cacheIdx);
+
+		warpReduce(y_cache, cacheIdx);
+		warpReduce(ySquare_cache, cacheIdx);
+		warpReduce(ypy_cache, cacheIdx);
+		warpReduce(pySquare_cache, cacheIdx);
+
+		warpReduce(beamLoss_cache, cacheIdx);
+
+		warpReduce(zSquare_cache, cacheIdx);
+		warpReduce(pzSquare_cache, cacheIdx);
+		warpReduce(z_cache, cacheIdx);
+		warpReduce(pz_cache, cacheIdx);
+
+		warpReduce(px_cache, cacheIdx);
+		warpReduce(py_cache, cacheIdx);
+
+		warpReduce(xz_cache, cacheIdx);
+		warpReduce(xy_cache, cacheIdx);
+		warpReduce(yz_cache, cacheIdx);
+
+		warpReduce(x_cube_cache, cacheIdx);
+		warpReduce(x_quad_cache, cacheIdx);
+		warpReduce(y_cube_cache, cacheIdx);
+		warpReduce(y_quad_cache, cacheIdx);
+
+	}
+	if (0 == cacheIdx)
+	{
+		dev_x[i] = x_cache[0];
+		dev_xSquare[i] = xSquare_cache[0];
+		dev_xpx[i] = xpx_cache[0];
+		dev_pxSquare[i] = pxSquare_cache[0];
+
+		dev_y[i] = y_cache[0];
+		dev_ySquare[i] = ySquare_cache[0];
+		dev_ypy[i] = ypy_cache[0];
+		dev_pySquare[i] = pySquare_cache[0];
+
+		dev_beamLoss[i] = beamLoss_cache[0];
+
+		dev_zSquare[i] = zSquare_cache[0];
+		dev_pzSquare[i] = pzSquare_cache[0];
+		dev_z[i] = z_cache[0];
+		dev_pz[i] = pz_cache[0];
+
+		dev_px[i] = px_cache[0];
+		dev_py[i] = py_cache[0];
+
+		dev_xz[i] = xz_cache[0];
+		dev_xy[i] = xy_cache[0];
+		dev_yz[i] = yz_cache[0];
+
+		dev_x_cube[i] = x_cube_cache[0];
+		dev_x_quad[i] = x_quad_cache[0];
+		dev_y_cube[i] = y_cube_cache[0];
+		dev_y_quad[i] = y_quad_cache[0];
+
+	}
+
+}
+
+
+__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, int gridDimX, int NpInit) {
+
+	// Summarize data in all grids.
+
+	// 0:x, 1:x^2, 2:x*px, 3:px^2
+	// 4:y, 5:y^2, 6:y*py, 7:py^2
+	// 8:beam loss
+	// 9:z^2, 10:pz^2
+	// 11:z, 12:pz
+	// 13:x', 14:y'
+	// 15: xz, 16:xy, 17:yz
+	// 18:x^3, 19:x^4, 20:y^3, 21:y^4
+
+	int tid = threadIdx.x;
+
+	const int ThreadsPerBlock = 256;
+
+	__shared__ double x_cache[ThreadsPerBlock];			// 0
+	__shared__ double xSquare_cache[ThreadsPerBlock];	// 1
+	__shared__ double xpx_cache[ThreadsPerBlock];		// 2
+	__shared__ double pxSquare_cache[ThreadsPerBlock];	// 3
+
+	__shared__ double y_cache[ThreadsPerBlock];			// 4
+	__shared__ double ySquare_cache[ThreadsPerBlock];	// 5
+	__shared__ double ypy_cache[ThreadsPerBlock];		// 6
+	__shared__ double pySquare_cache[ThreadsPerBlock];	// 7
+
+	__shared__ double beamLoss_cache[ThreadsPerBlock];	// 8
+
+	__shared__ double zSquare_cache[ThreadsPerBlock];	// 9
+	__shared__ double pzSquare_cache[ThreadsPerBlock];	// 10
+
+	__shared__ double z_cache[ThreadsPerBlock];			// 11
+	__shared__ double pz_cache[ThreadsPerBlock];		// 12
+
+	__shared__ double px_cache[ThreadsPerBlock];		// 13
+	__shared__ double py_cache[ThreadsPerBlock];		// 14
+
+	__shared__ double xz_cache[ThreadsPerBlock];		// 15
+	__shared__ double xy_cache[ThreadsPerBlock];		// 16
+	__shared__ double yz_cache[ThreadsPerBlock];		// 17
+
+	__shared__ double x_cube_cache[ThreadsPerBlock];	// 18
+	__shared__ double x_quad_cache[ThreadsPerBlock];	// 19
+	__shared__ double y_cube_cache[ThreadsPerBlock];	// 20
+	__shared__ double y_quad_cache[ThreadsPerBlock];	// 21
+
+	int cacheIdx = threadIdx.x;
+
+	x_cache[cacheIdx] = 0;
+	xSquare_cache[cacheIdx] = 0;
+	xpx_cache[cacheIdx] = 0;
+	pxSquare_cache[cacheIdx] = 0;
+
+	y_cache[cacheIdx] = 0;
+	ySquare_cache[cacheIdx] = 0;
+	ypy_cache[cacheIdx] = 0;
+	pySquare_cache[cacheIdx] = 0;
+
+	beamLoss_cache[cacheIdx] = 0;
+
+	zSquare_cache[cacheIdx] = 0;
+	pzSquare_cache[cacheIdx] = 0;
+
+	z_cache[cacheIdx] = 0;
+	pz_cache[cacheIdx] = 0;
+
+	px_cache[cacheIdx] = 0;
+	py_cache[cacheIdx] = 0;
+
+	xz_cache[cacheIdx] = 0;
+	xy_cache[cacheIdx] = 0;
+	yz_cache[cacheIdx] = 0;
+
+	x_cube_cache[cacheIdx] = 0;
+	x_quad_cache[cacheIdx] = 0;
+	y_cube_cache[cacheIdx] = 0;
+	y_quad_cache[cacheIdx] = 0;
+
+	double* dev_x = (double*)((char*)dev_statistic + 0 * pitch_statistic);
+	double* dev_xSquare = (double*)((char*)dev_statistic + 1 * pitch_statistic);
+	double* dev_xpx = (double*)((char*)dev_statistic + 2 * pitch_statistic);
+	double* dev_pxSquare = (double*)((char*)dev_statistic + 3 * pitch_statistic);
+
+	double* dev_y = (double*)((char*)dev_statistic + 4 * pitch_statistic);
+	double* dev_ySquare = (double*)((char*)dev_statistic + 5 * pitch_statistic);
+	double* dev_ypy = (double*)((char*)dev_statistic + 6 * pitch_statistic);
+	double* dev_pySquare = (double*)((char*)dev_statistic + 7 * pitch_statistic);
+
+	double* dev_beamLoss = (double*)((char*)dev_statistic + 8 * pitch_statistic);
+
+	double* dev_zSquare = (double*)((char*)dev_statistic + 9 * pitch_statistic);
+	double* dev_pzSquare = (double*)((char*)dev_statistic + 10 * pitch_statistic);
+	double* dev_z = (double*)((char*)dev_statistic + 11 * pitch_statistic);
+	double* dev_pz = (double*)((char*)dev_statistic + 12 * pitch_statistic);
+
+	double* dev_px = (double*)((char*)dev_statistic + 13 * pitch_statistic);
+	double* dev_py = (double*)((char*)dev_statistic + 14 * pitch_statistic);
+
+	double* dev_xz = (double*)((char*)dev_statistic + 15 * pitch_statistic);
+	double* dev_xy = (double*)((char*)dev_statistic + 16 * pitch_statistic);
+	double* dev_yz = (double*)((char*)dev_statistic + 17 * pitch_statistic);
+
+	double* dev_x_cube = (double*)((char*)dev_statistic + 18 * pitch_statistic);
+	double* dev_x_quad = (double*)((char*)dev_statistic + 19 * pitch_statistic);
+	double* dev_y_cube = (double*)((char*)dev_statistic + 20 * pitch_statistic);
+	double* dev_y_quad = (double*)((char*)dev_statistic + 21 * pitch_statistic);
+
+	for (; tid < gridDimX; tid += blockDim.x)
+	{
+		x_cache[cacheIdx] += dev_x[tid];
+		xSquare_cache[cacheIdx] += dev_xSquare[tid];
+		xpx_cache[cacheIdx] += dev_xpx[tid];
+		pxSquare_cache[cacheIdx] += dev_pxSquare[tid];
+
+		y_cache[cacheIdx] += dev_y[tid];
+		ySquare_cache[cacheIdx] += dev_ySquare[tid];
+		ypy_cache[cacheIdx] += dev_ypy[tid];
+		pySquare_cache[cacheIdx] += dev_pySquare[tid];
+
+		beamLoss_cache[cacheIdx] += dev_beamLoss[tid];
+
+		zSquare_cache[cacheIdx] += dev_zSquare[tid];
+		pzSquare_cache[cacheIdx] += dev_pzSquare[tid];
+		z_cache[cacheIdx] += dev_z[tid];
+		pz_cache[cacheIdx] += dev_pz[tid];
+
+		px_cache[cacheIdx] += dev_px[tid];
+		py_cache[cacheIdx] += dev_py[tid];
+
+		xz_cache[cacheIdx] += dev_xz[tid];
+		xy_cache[cacheIdx] += dev_xy[tid];
+		yz_cache[cacheIdx] += dev_yz[tid];
+
+		x_cube_cache[cacheIdx] += dev_x_cube[tid];
+		x_quad_cache[cacheIdx] += dev_x_quad[tid];
+		y_cube_cache[cacheIdx] += dev_y_cube[tid];
+		y_quad_cache[cacheIdx] += dev_y_quad[tid];
+
+	}
+	__syncthreads();
+
+	for (int m = blockDim.x / 2; m > 32; m >>= 1)
+	{
+		if (cacheIdx < m) {
+			x_cache[cacheIdx] += x_cache[cacheIdx + m];
+			xSquare_cache[cacheIdx] += xSquare_cache[cacheIdx + m];
+			xpx_cache[cacheIdx] += xpx_cache[cacheIdx + m];
+			pxSquare_cache[cacheIdx] += pxSquare_cache[cacheIdx + m];
+
+			y_cache[cacheIdx] += y_cache[cacheIdx + m];
+			ySquare_cache[cacheIdx] += ySquare_cache[cacheIdx + m];
+			ypy_cache[cacheIdx] += ypy_cache[cacheIdx + m];
+			pySquare_cache[cacheIdx] += pySquare_cache[cacheIdx + m];
+
+			beamLoss_cache[cacheIdx] += beamLoss_cache[cacheIdx + m];
+
+			zSquare_cache[cacheIdx] += zSquare_cache[cacheIdx + m];
+			pzSquare_cache[cacheIdx] += pzSquare_cache[cacheIdx + m];
+			z_cache[cacheIdx] += z_cache[cacheIdx + m];
+			pz_cache[cacheIdx] += pz_cache[cacheIdx + m];
+
+			px_cache[cacheIdx] += px_cache[cacheIdx + m];
+			py_cache[cacheIdx] += py_cache[cacheIdx + m];
+
+			xz_cache[cacheIdx] += xz_cache[cacheIdx + m];
+			xy_cache[cacheIdx] += xy_cache[cacheIdx + m];
+			yz_cache[cacheIdx] += yz_cache[cacheIdx + m];
+
+			x_cube_cache[cacheIdx] += x_cube_cache[cacheIdx + m];
+			x_quad_cache[cacheIdx] += x_quad_cache[cacheIdx + m];
+			y_cube_cache[cacheIdx] += y_cube_cache[cacheIdx + m];
+			y_quad_cache[cacheIdx] += y_quad_cache[cacheIdx + m];
+
+		}
+		__syncthreads();
+	}
+
+	if (cacheIdx < 32)
+	{
+		warpReduce(x_cache, cacheIdx);
+		warpReduce(xSquare_cache, cacheIdx);
+		warpReduce(xpx_cache, cacheIdx);
+		warpReduce(pxSquare_cache, cacheIdx);
+
+		warpReduce(y_cache, cacheIdx);
+		warpReduce(ySquare_cache, cacheIdx);
+		warpReduce(ypy_cache, cacheIdx);
+		warpReduce(pySquare_cache, cacheIdx);
+
+		warpReduce(beamLoss_cache, cacheIdx);
+
+		warpReduce(zSquare_cache, cacheIdx);
+		warpReduce(pzSquare_cache, cacheIdx);
+		warpReduce(z_cache, cacheIdx);
+		warpReduce(pz_cache, cacheIdx);
+
+		warpReduce(px_cache, cacheIdx);
+		warpReduce(py_cache, cacheIdx);
+
+		warpReduce(xz_cache, cacheIdx);
+		warpReduce(xy_cache, cacheIdx);
+		warpReduce(yz_cache, cacheIdx);
+
+		warpReduce(x_cube_cache, cacheIdx);
+		warpReduce(x_quad_cache, cacheIdx);
+		warpReduce(y_cube_cache, cacheIdx);
+		warpReduce(y_quad_cache, cacheIdx);
+
+	}
+
+	if (0 == cacheIdx)
+	{
+		dev_x[0] = x_cache[0];
+		dev_xSquare[0] = xSquare_cache[0];
+		dev_xpx[0] = xpx_cache[0];
+		dev_pxSquare[0] = pxSquare_cache[0];
+
+		dev_y[0] = y_cache[0];
+		dev_ySquare[0] = ySquare_cache[0];
+		dev_ypy[0] = ypy_cache[0];
+		dev_pySquare[0] = pySquare_cache[0];
+
+		dev_beamLoss[0] = beamLoss_cache[0];
+
+		dev_zSquare[0] = zSquare_cache[0];
+		dev_pzSquare[0] = pzSquare_cache[0];
+		dev_z[0] = z_cache[0];
+		dev_pz[0] = pz_cache[0];
+
+		dev_px[0] = px_cache[0];
+		dev_py[0] = py_cache[0];
+
+		dev_xz[0] = xz_cache[0];
+		dev_xy[0] = xy_cache[0];
+		dev_yz[0] = yz_cache[0];
+
+		dev_x_cube[0] = x_cube_cache[0];
+		dev_x_quad[0] = x_quad_cache[0];
+		dev_y_cube[0] = y_cube_cache[0];
+		dev_y_quad[0] = y_quad_cache[0];
+
+		int NpNotLoss = NpInit - dev_beamLoss[0];
+
+		dev_x[0] /= NpNotLoss;
+		dev_xSquare[0] /= NpNotLoss;
+		dev_xpx[0] /= NpNotLoss;
+		dev_pxSquare[0] /= NpNotLoss;
+
+		dev_y[0] /= NpNotLoss;
+		dev_ySquare[0] /= NpNotLoss;
+		dev_ypy[0] /= NpNotLoss;
+		dev_pySquare[0] /= NpNotLoss;
+
+		// Beamloss doesn't need to be averaged.
+
+		dev_zSquare[0] /= NpNotLoss;
+		dev_pzSquare[0] /= NpNotLoss;
+		dev_z[0] /= NpNotLoss;
+		dev_pz[0] /= NpNotLoss;
+
+		dev_px[0] /= NpNotLoss;
+		dev_py[0] /= NpNotLoss;
+
+		dev_xz[0] /= NpNotLoss;
+		dev_xy[0] /= NpNotLoss;
+		dev_yz[0] /= NpNotLoss;
+
+		dev_x_cube[0] /= NpNotLoss;
+		dev_x_quad[0] /= NpNotLoss;
+		dev_y_cube[0] /= NpNotLoss;
+		dev_y_quad[0] /= NpNotLoss;
+
+	}
+}
+
+
+void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
+
+	int stat_turn = turn;
+	double stat_beamloss = host_statistic[8];
+	double stat_lossPercent = host_statistic[8] / Np * 100;
+
+	double stat_xAverage = host_statistic[0];
+	double stat_yAverage = host_statistic[4];
+	double stat_zAverage = host_statistic[11];
+
+	double stat_pxAverage = host_statistic[13];
+	double stat_pyAverage = host_statistic[14];
+	double stat_pzAverage = host_statistic[12];
+
+	double xsquareAverage = host_statistic[1];
+	double ysquareAverage = host_statistic[5];
+	double zsquareAverage = host_statistic[9];
+
+	double pxsquareAverage = host_statistic[3];
+	double pysquareAverage = host_statistic[7];
+	double pzsquareAverage = host_statistic[10];
+
+	double xpxAverage = host_statistic[2];
+	double ypyAverage = host_statistic[6];
+
+	double xcubeAverage = host_statistic[18];
+	double xquadAverage = host_statistic[19];
+	double ycubeAverage = host_statistic[20];
+	double yquadAverage = host_statistic[21];
+
+	double stat_sigmaX = sqrt(xsquareAverage - stat_xAverage * stat_xAverage);
+	double stat_sigmaY = sqrt(ysquareAverage - stat_yAverage * stat_yAverage);
+	double stat_sigmaZ = sqrt(zsquareAverage - stat_zAverage * stat_zAverage);
+
+	double stat_sigmaPx = sqrt(pxsquareAverage - stat_pxAverage * stat_pxAverage);
+	double stat_sigmaPy = sqrt(pysquareAverage - stat_pyAverage * stat_pyAverage);
+	double stat_sigmaPz = sqrt(pzsquareAverage - stat_pzAverage * stat_pzAverage);
+
+	double sigmaxpx = xpxAverage - stat_xAverage * stat_pxAverage;
+	double sigmaypy = ypyAverage - stat_yAverage * stat_pyAverage;
+
+	double stat_emitX = sqrt(stat_sigmaX * stat_sigmaX * stat_sigmaPx * stat_sigmaPx - sigmaxpx * sigmaxpx);
+	double stat_emitY = sqrt(stat_sigmaY * stat_sigmaY * stat_sigmaPy * stat_sigmaPy - sigmaypy * sigmaypy);
+
+	double stat_xzAverage = host_statistic[15];
+	double stat_xyAverage = host_statistic[16];
+	double stat_yzAverage = host_statistic[17];
+	double stat_xzDevideSigmaxSigmaz = host_statistic[15] / (stat_sigmaX * stat_sigmaZ);
+
+	double stat_betax = stat_sigmaX * stat_sigmaX / stat_emitX;
+	double stat_betay = stat_sigmaY * stat_sigmaY / stat_emitY;
+	double stat_alphax = -1 * sigmaxpx / stat_emitX;
+	double stat_alphay = -1 * sigmaypy / stat_emitY;
+	double stat_gammax = stat_sigmaPx * stat_sigmaPx / stat_emitX;
+	double stat_gammay = stat_sigmaPy * stat_sigmaPy / stat_emitY;
+	double stat_invariantx = stat_gammax * stat_betax - stat_alphax * stat_alphax;
+	double stat_invarianty = stat_gammay * stat_betay - stat_alphay * stat_alphay;
+
+	double stat_xSkewness = (xcubeAverage - 3 * stat_xAverage * pow(stat_sigmaX, 2) - pow(stat_xAverage, 3))
+		/ (pow(stat_sigmaX, 3));
+	double stat_xKurtosis = (xquadAverage - 4 * stat_xAverage * xcubeAverage + 2 * pow(stat_xAverage, 2) * xsquareAverage
+		+ 4 * pow(stat_xAverage, 2) * pow(stat_sigmaX, 2) + pow(stat_xAverage, 4)) / (pow(stat_sigmaX, 4));
+	double stat_ySkewness = (ycubeAverage - 3 * stat_yAverage * pow(stat_sigmaY, 2) - pow(stat_yAverage, 3))
+		/ (pow(stat_sigmaY, 3));
+	double stat_yKurtosis = (yquadAverage - 4 * stat_yAverage * ycubeAverage + 2 * pow(stat_yAverage, 2) * ysquareAverage
+		+ 4 * pow(stat_yAverage, 2) * pow(stat_sigmaY, 2) + pow(stat_yAverage, 4)) / (pow(stat_sigmaY, 4));
+
+	//stat_print(__FILE__);
+
+	std::filesystem::path saveName_full = saveDir / (saveName_part + ".csv");
+	std::ofstream file(saveName_full, std::ofstream::out | std::ofstream::app);
+
+	if (0 == turn)
+	{
+		file << "turn" << ","
+			<< "xAverage" << "," << "pxAverage" << "," << "sigmaX" << "," << "sigmaPx" << ","
+			<< "yAverage" << "," << "pyAverage" << "," << "sigmaY" << "," << "sigmaPy" << ","
+			<< "zAverage" << "," << "pzAverage" << "," << "sigmaZ" << "," << "sigmaPz" << ","
+			<< "xEmittance" << "," << "yEmittance" << ","
+			<< "betax" << "," << "betay" << "," << "alphax" << "," << "alphay" << "," << "gammax" << "," << "gammay" << ","
+			<< "invariantx twiss" << "," << "invarianty twiss" << ","
+			<< "xzAverage" << "," << "xyAverage" << "," << "yzAverage" << "," << "xzDevideSigmaxSigmaz" << ","
+			<< "beamLossTotal" << "," << "lossPercent" << ","
+			<< "xSkewness" << "," << "xKurtosis" << "," << "ySkewness" << "," << "yKurtosis"
+			<< std::endl;
+	}
+	file << stat_turn << ","
+		<< stat_xAverage << "," << stat_pxAverage << "," << stat_sigmaX << "," << stat_sigmaPx << ","
+		<< stat_yAverage << "," << stat_pyAverage << "," << stat_sigmaY << "," << stat_sigmaPy << ","
+		<< stat_zAverage << "," << stat_pzAverage << "," << stat_sigmaZ << "," << stat_sigmaPz << ","
+		<< stat_emitX << "," << stat_emitY << ","
+		<< stat_betax << "," << stat_betay << "," << stat_alphax << "," << stat_alphay << "," << stat_gammax << "," << stat_gammay << ","
+		<< stat_invariantx << "," << stat_invarianty << ","
+		<< stat_xzAverage << "," << stat_xyAverage << "," << stat_yzAverage << "," << stat_xzDevideSigmaxSigmaz << ","
+		<< stat_beamloss << "," << stat_lossPercent << ","
+		<< stat_xSkewness << "," << stat_xKurtosis << "," << stat_ySkewness << "," << stat_yKurtosis
+		<< std::endl;
+
+	file.close();
+
+	//printf("stat s : % f, ms : % f\n", (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC, (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC * 1000);
+	//std::cout << "start: " << start_tmp << ", end: " << end_tmp << std::endl;
 }
