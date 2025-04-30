@@ -224,7 +224,7 @@ void Injection::load_distribution() {
 		std::string line;
 		int j = 0;
 
-		double a[7];
+		double a[8] = { 0,0,0,0,0,0,0,0 };
 		std::string tmp;
 		int row = 0;
 		int skiprows = 0;
@@ -246,20 +246,25 @@ void Injection::load_distribution() {
 				//spdlog::get("logger")->debug("row [{}] a[0] = {}, a[1] = {}", row, a[0], a[1]);
 
 				int offset = j;
-				host_bunch[offset].x = a[0];
-				host_bunch[offset].px = a[1];
-				host_bunch[offset].y = a[2];
-				host_bunch[offset].py = a[3];
-				host_bunch[offset].z = a[4];
-				host_bunch[offset].pz = a[5];
-				host_bunch[offset].tag = a[6];
+				if (offset < Np)
+				{
+					host_bunch[offset].x = a[0];
+					host_bunch[offset].px = a[1];
+					host_bunch[offset].y = a[2];
+					host_bunch[offset].py = a[3];
+					host_bunch[offset].z = a[4];
+					host_bunch[offset].pz = a[5];
+					host_bunch[offset].tag = a[6];
+					host_bunch[offset].lostTurn = a[7];
 
-				j++;
+					j++;
+				}
+	
 			}
 			++row;
 		}
 
-		if (j != (Np - 1))
+		if (j != Np)
 		{
 			spdlog::get("logger")->warn("[Injection] We only load {}/{} particles from file {}.", j, Np, dist_path.string());
 		}
