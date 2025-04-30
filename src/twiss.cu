@@ -48,20 +48,20 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 
 		//Dx = data.at("Sequence").at(obj_name).at("Dx (m)");
 
-		if (data.at("Sequence").at(obj_name).contains("Mu z"))
+		logitudinal_transfer = data.at("Sequence").at(obj_name).at("Logitudinal transfer");
+
+		if ("matrix" == logitudinal_transfer)
 		{
 			// when ¦Ã > ¦Ãt (¦Ç > 0), muz (input value) should be > 0
 			// when ¦Ã < ¦Ãt (¦Ç < 0), muz (input value) should be < 0
 			muz = data.at("Sequence").at(obj_name).at("Mu z");
-			muz_previous = data.at("Sequence").at(obj_name).at("Mu z");
+			muz_previous = data.at("Sequence").at(obj_name).at("Mu z previous");
 		}
 		else
 		{
 			muz = 0;
 			muz_previous = 0;
 		}
-
-		logitudinal_transfer = data.at("Sequence").at(obj_name).at("Logitudinal transfer");
 	}
 	catch (json::exception e)
 	{
@@ -233,7 +233,7 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 
 		//if (tid == 0)
 		//{
-		//	printf("dev_bunch[%d]: x = %.10f\n", tid, dev_bunch[tid].x);
+		//	printf("dev_bunch[%d]: z1 = %.10f, z2 = %.10f, m11_z = %.5f, m12_z = %.5f\n", tid, z1, dev_bunch[tid].z, m11_z, m12_z);
 		//}
 
 		tid += stride;
