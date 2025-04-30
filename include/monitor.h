@@ -189,6 +189,6 @@ private:
 
 __global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statistic, size_t pitch_statistic, int NpPerBunch);
 
-__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, int gridDimX, int NpInit);
+__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
 
 void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);

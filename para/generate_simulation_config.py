@@ -24,6 +24,7 @@ def sort_sequence(sequence):
         "QuadrupoleElement": 100,
         "SextupoleElement": 100,
         "DistMonitor": 150,
+        "StatMonitor": 150,
         "BeamBeam": 300,
         "Other": 999,  # 最低优先级
     }
@@ -197,6 +198,11 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     }
     Sequence.update(Monitor_Dist_oneturn)
     
+    Monitor_Stat_oneturn = {
+        "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
+    }
+    Sequence.update(Monitor_Stat_oneturn)
+
     Monitor_Stat_oneturn = {
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
     }
