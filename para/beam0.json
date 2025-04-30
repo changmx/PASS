@@ -65,8 +65,8 @@
                     "Is offset": false,
                     "Offset (m)": 0
                 },
-                "Is load distribution": false,
-                "Name of loaded file": "1600_45_gaussian_proton_bunch0_1000000_superPeriod0.csv",
+                "Is load distribution": true,
+                "Name of loaded file": "1557_00_beam0_proton_bunch0_10000_hor_gaussian_longi_uniform_injection.csv",
                 "Is save initial distribution": true
             }
         },
@@ -92,6 +92,10 @@
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
             "Command": "DistMonitor"
+        },
+        "StatMonitor_oneturn_0": {
+            "S (m)": 0,
+            "Command": "StatMonitor"
         }
     }
 }
