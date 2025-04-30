@@ -140,8 +140,8 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": False,
-                "Name of loaded file": "1600_45_gaussian_proton_bunch0_1000000_superPeriod0.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is load distribution": True,
+                "Name of loaded file": "1557_00_beam0_proton_bunch0_10000_hor_gaussian_longi_uniform_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
             },
         }
@@ -196,6 +196,11 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "DistMonitor_oneturn_0": {"S (m)": 0, "Command": "DistMonitor"},
     }
     Sequence.update(Monitor_Dist_oneturn)
+    
+    Monitor_Stat_oneturn = {
+        "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
+    }
+    Sequence.update(Monitor_Stat_oneturn)
 
     Sequence = sort_sequence(Sequence)
     Sequencepara = {"Sequence": Sequence}
