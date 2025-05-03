@@ -69,7 +69,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         # "Chromaticity x": 0,
         # "Chromaticity y": 0,
         "GammaT": 1,
-        "Number of turns": 10,
+        "Number of turns": 10000,
         "Number of GPU devices": 1,
         "Device Id": [0, 3],
         "Output directory": "D:\\PassSimulation",
@@ -177,15 +177,16 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
             "Alpha y": 0,
             "Beta x (m)": 0.05,
             "Beta y (m)": 0.012,
-            "Mu x": 1,
-            "Mu y": 1,
-            "Mu z": 1,
+            "Mu x": 0.3152,
+            "Mu y": 0.3016,
+            "Mu z": 0.0102,
             "Alpha x previous": 0,
             "Alpha y previous": 0,
             "Beta x previous (m)": 0.05,
             "Beta y previous (m)": 0.012,
             "Mu x previous": 0,
             "Mu y previous": 0,
+            "Mu z previous": 0,
             # "Dx (m)": Dx[i],
             # "Dpx": Dpx[i],
             "Logitudinal transfer": "matrix",
@@ -194,14 +195,13 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     Sequence.update(lattice_oneturn_map)
 
     Monitor_Dist_oneturn = {
-        "DistMonitor_oneturn_0": {"S (m)": 0, "Command": "DistMonitor"},
+        "DistMonitor_oneturn_0": {
+            "S (m)": 0,
+            "Command": "DistMonitor",
+            "Save turns": [[1], [20000, 30000, 5000]],
+        },
     }
     Sequence.update(Monitor_Dist_oneturn)
-    
-    Monitor_Stat_oneturn = {
-        "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
-    }
-    Sequence.update(Monitor_Stat_oneturn)
 
     Monitor_Stat_oneturn = {
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
