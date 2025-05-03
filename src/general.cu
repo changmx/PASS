@@ -563,3 +563,33 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);
 
 }
+
+
+bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
+	for (const auto& range : ranges) {
+		const int step = range.step;
+		if (step == 0) continue; // 无效步长过滤
+
+		// 检查步长方向有效性（可选，如果数据已校验可移除）
+		if ((step > 0 && range.start > range.end) ||
+			(step < 0 && range.start < range.end)) {
+			continue;
+		}
+
+		// 快速范围检查
+		if ((step > 0 && (value < range.start || value > range.end)) ||
+			(step < 0 && (value > range.start || value < range.end))) {
+			continue;
+		}
+
+		// 计算步数并验证
+		const int delta = value - range.start;
+		if (delta % step != 0) continue;  // 必须能被步长整除
+
+		const int steps = delta / step;
+		if (steps >= 0) {  // 非负步数
+			return true;
+		}
+	}
+	return false;
+}
