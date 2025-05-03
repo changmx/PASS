@@ -35,6 +35,7 @@ public:
 	// 添加移动构造函数
 	DistMonitor(DistMonitor&& other)noexcept
 		:Np(other.Np), bunchId(other.bunchId), saveDir(other.saveDir), saveName_part(other.saveName_part), simTime(other.simTime),
+		saveTurn(other.saveTurn),
 		dev_bunch(other.dev_bunch), host_bunch(other.host_bunch)
 	{
 		other.host_bunch = nullptr;
@@ -52,6 +53,7 @@ public:
 			saveDir = other.saveDir;
 			saveName_part = other.saveName_part;
 			simTime = other.simTime;
+			saveTurn = other.saveTurn;
 
 			delete[] host_bunch; // 释放原有的内存
 			host_bunch = other.host_bunch;
@@ -77,6 +79,8 @@ public:
 		logger->info("[Distribution Monitor] print");
 	}
 
+	void print_saveTurn();
+
 private:
 	int Np = 0;
 
@@ -85,6 +89,8 @@ private:
 	std::string saveName_part;
 
 	TimeEvent& simTime;
+
+	std::vector<CycleRange> saveTurn;
 
 	Particle* dev_bunch = nullptr;
 	Particle* host_bunch = nullptr;

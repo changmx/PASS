@@ -25,6 +25,32 @@ DistMonitor::DistMonitor(const Parameter& para, int input_beamId, const Bunch& B
 	try
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
+
+		for (size_t Nset = 0; Nset < data.at("Sequence").at(obj_name).at("Save turns").size(); Nset++)
+		{
+			if (data.at("Sequence").at(obj_name).at("Save turns")[Nset].size() == 1)
+			{
+				int startTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][0];
+				int endTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][0];
+				int stepTurn = 1;
+
+				saveTurn.push_back(CycleRange(startTurn, endTurn, stepTurn));
+			}
+			else if (data.at("Sequence").at(obj_name).at("Save turns")[Nset].size() == 3)
+			{
+				int startTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][0];
+				int endTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][1];
+				int stepTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][2];
+
+				saveTurn.push_back(CycleRange(startTurn, endTurn, stepTurn));
+			}
+			else
+			{
+				spdlog::get("logger")->error("[DistMonitor] Error: The size of turn array to save should be 1 or 3, but now is {}.",
+					data.at("Sequence").at(obj_name).at("Save turns")[Nset].size());
+				std::exit(EXIT_FAILURE);
+			}
+		}
 	}
 	catch (json::exception e)
 	{
@@ -32,40 +58,75 @@ DistMonitor::DistMonitor(const Parameter& para, int input_beamId, const Bunch& B
 		spdlog::get("logger")->error(e.what());
 		std::exit(EXIT_FAILURE);
 	}
+
+	print_saveTurn();
 }
 
 void DistMonitor::execute(int turn) {
 
-	callCuda(cudaEventRecord(simTime.start, 0));
-	float time_tmp = 0;
+	if (is_value_in_turn_ranges(turn, saveTurn))
+	{
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp = 0;
 
-	//spdlog::getlogger->debug("[DistMonitor] run: " + name);
+		//spdlog::getlogger->debug("[DistMonitor] run: " + name);
 
-	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+		callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
-	std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(turn) + ".csv");
-	std::ofstream file(saveName_full);
+		std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(turn) + ".csv");
+		std::ofstream file(saveName_full);
 
-	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
+		file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
 
-	for (int j = 0; j < Np; j++) {
-		file << std::setprecision(10)
-			<< (host_bunch + j)->x << ","
-			<< (host_bunch + j)->px << ","
-			<< (host_bunch + j)->y << ","
-			<< (host_bunch + j)->py << ","
-			<< (host_bunch + j)->z << ","
-			<< (host_bunch + j)->pz << ","
-			<< (host_bunch + j)->tag << ","
-			<< (host_bunch + j)->lostTurn << "\n";
+		for (int j = 0; j < Np; j++) {
+			file << std::setprecision(10)
+				<< (host_bunch + j)->x << ","
+				<< (host_bunch + j)->px << ","
+				<< (host_bunch + j)->y << ","
+				<< (host_bunch + j)->py << ","
+				<< (host_bunch + j)->z << ","
+				<< (host_bunch + j)->pz << ","
+				<< (host_bunch + j)->tag << ","
+				<< (host_bunch + j)->lostTurn << "\n";
+		}
+		file.close();
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+		simTime.saveBunch += time_tmp;
 	}
-	file.close();
+}
 
-	callCuda(cudaEventRecord(simTime.stop, 0));
-	callCuda(cudaEventSynchronize(simTime.stop));
-	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
-	simTime.saveBunch += time_tmp;
+void DistMonitor::print_saveTurn() {
+	std::string saveTurn_string;
+	for (size_t i = 0; i < saveTurn.size(); i++)
+	{
+		if (i != 0 && (i % 10) == 0)
+		{
+			if (saveTurn[i].start == saveTurn[i].end)
+			{
+				saveTurn_string += std::to_string(saveTurn[i].start) + "\n";
+			}
+			else
+			{
+				saveTurn_string += std::to_string(saveTurn[i].start) + "-" + std::to_string(saveTurn[i].end) + "-" + std::to_string(saveTurn[i].step) + "\n";
+			}
 
+		}
+		else
+		{
+			if (saveTurn[i].start == saveTurn[i].end)
+			{
+				saveTurn_string += std::to_string(saveTurn[i].start) + ", ";
+			}
+			else
+			{
+				saveTurn_string += std::to_string(saveTurn[i].start) + "-" + std::to_string(saveTurn[i].end) + "-" + std::to_string(saveTurn[i].step) + ", ";
+			}
+		}
+	}
+	spdlog::get("logger")->info("[DistMonitor] save turns ({}): {}", name, saveTurn_string);
 }
 
 
@@ -137,7 +198,7 @@ void StatMonitor::execute(int turn) {
 	//{
 	//	callCuda(cudaMemcpy(host_statistic + i, (double*)((char*)dev_statistic + i * pitch_statistic), 1 * sizeof(double), cudaMemcpyDeviceToHost));
 	//}
-	 
+
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
 	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
