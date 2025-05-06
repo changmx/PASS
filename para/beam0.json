@@ -78,20 +78,31 @@
             "Alpha y": 0,
             "Beta x (m)": 0.05,
             "Beta y (m)": 0.012,
-            "Mu x": 1,
-            "Mu y": 1,
-            "Mu z": 1,
+            "Mu x": 0.3152,
+            "Mu y": 0.3016,
+            "Mu z": 0.0102,
             "Alpha x previous": 0,
             "Alpha y previous": 0,
             "Beta x previous (m)": 0.05,
             "Beta y previous (m)": 0.012,
             "Mu x previous": 0,
             "Mu y previous": 0,
+            "Mu z previous": 0,
             "Logitudinal transfer": "matrix"
         },
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
-            "Command": "DistMonitor"
+            "Command": "DistMonitor",
+            "Save turns": [
+                [
+                    1
+                ],
+                [
+                    20000,
+                    30000,
+                    5000
+                ]
+            ]
         },
         "StatMonitor_oneturn_0": {
             "S (m)": 0,
