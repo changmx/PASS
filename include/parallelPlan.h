@@ -22,9 +22,9 @@ public:
 
 	~ParallelPlan1d()
 	{
-		spdlog::get("logger")->debug(
-			"[ParallelPlan1d] class destructor: threads per block={}, blocks x={}, max call time per thread={}, Np={}, total threads ={}",
-			threads_per_block_, blocks_x_, max_calls_per_thread_, Np_, total_threads_);
+		//spdlog::get("logger")->debug(
+		//	"[ParallelPlan1d] class destructor: threads per block={}, blocks x={}, max call time per thread={}, Np={}, total threads ={}",
+		//	threads_per_block_, blocks_x_, max_calls_per_thread_, Np_, total_threads_);
 	};
 
 	void print() const {
