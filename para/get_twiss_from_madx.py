@@ -109,7 +109,7 @@ def get_specificTwiss(filepath, twissName, positionName="S"):
     return np.array(s), np.array(twiss)
 
 
-def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off"):
+def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0):
     # get S, name, beta, alpha, phase, Dx, Dpx from madx twiss file
     s, name = get_specificTwiss(filepath, twissName="name")
     s, betax = get_specificTwiss(filepath, twissName="betx")
@@ -121,32 +121,12 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off"):
     s, mux = get_specificTwiss(filepath, twissName="mux")
     s, muy = get_specificTwiss(filepath, twissName="muy")
 
-    phasex = []
-    phasey = []
+    circumference = s[-1]
+    print("Circumference (m): {}".format(circumference))
 
-    for i in np.arange(len(s)):
-        phasex.append(mux[i] * 2 * np.pi)
-        phasey.append(muy[i] * 2 * np.pi)
-
-    phasex = np.array(phasex)
-    phasey = np.array(phasey)
-
-    # for i in np.arange(len(s)):
-    #     print(
-    #         name[i],
-    #         s[i],
-    #         betax[i],
-    #         betay[i],
-    #         alfx[i],
-    #         alfy[i],
-    #         Dx[i],
-    #         Dpx[i],
-    #         mux[i],
-    #         phasex[i],
-    #         muy[i],
-    #         phasey[i],
-    #     )
-    #     pass
+    if s[0] != 0:
+        print("The start position of twiss data must be 0, but now is {}".format(s[0]))
+        sys.exit()
 
     Lattice_json = []
 
@@ -165,12 +145,14 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off"):
                     "Beta y (m)": betay[i],
                     "Mu x": mux[i],
                     "Mu y": muy[i],
+                    "Mu z": 0,
                     "Alpha x previous": alfx[i],
                     "Alpha y previous": alfy[i],
                     "Beta x previous (m)": betax[i],
                     "Beta y previous (m)": betay[i],
                     "Mu x previous": mux[i],
                     "Mu y previous": muy[i],
+                    "Mu z previous": 0,
                     # "Dx (m)": Dx[i],
                     # "Dpx": Dpx[i],
                     "Logitudinal transfer": logi_transfer,
@@ -190,12 +172,14 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off"):
                     "Beta y (m)": betay[i],
                     "Mu x": mux[i],
                     "Mu y": muy[i],
+                    "Mu z": s[i] / circumference * (muz - 0),
                     "Alpha x previous": alfx[i - 1],
                     "Alpha y previous": alfy[i - 1],
                     "Beta x previous (m)": betax[i - 1],
                     "Beta y previous (m)": betay[i - 1],
                     "Mu x previous": mux[i - 1],
                     "Mu y previous": muy[i - 1],
+                    "Mu z previous": s[i - 1] / circumference * (muz - 0),
                     # "Dx (m)": Dx[i],
                     # "Dpx": Dpx[i],
                     "Logitudinal transfer": logi_transfer,
