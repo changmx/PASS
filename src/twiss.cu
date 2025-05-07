@@ -50,18 +50,11 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 
 		logitudinal_transfer = data.at("Sequence").at(obj_name).at("Logitudinal transfer");
 
-		if ("matrix" == logitudinal_transfer)
-		{
-			// when ¦Ã > ¦Ãt (¦Ç > 0), muz (input value) should be > 0
-			// when ¦Ã < ¦Ãt (¦Ç < 0), muz (input value) should be < 0
-			muz = data.at("Sequence").at(obj_name).at("Mu z");
-			muz_previous = data.at("Sequence").at(obj_name).at("Mu z previous");
-		}
-		else
-		{
-			muz = 0;
-			muz_previous = 0;
-		}
+		// when ¦Ã > ¦Ãt (¦Ç > 0), muz (input value) should be > 0
+		// when ¦Ã < ¦Ãt (¦Ç < 0), muz (input value) should be < 0
+		muz = data.at("Sequence").at(obj_name).at("Mu z");
+		muz_previous = data.at("Sequence").at(obj_name).at("Mu z previous");
+
 	}
 	catch (json::exception e)
 	{
