@@ -857,7 +857,7 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 	std::filesystem::path saveName_full = saveDir / (saveName_part + ".csv");
 	std::ofstream file(saveName_full, std::ofstream::out | std::ofstream::app);
 
-	if (0 == turn)
+	if (1 == turn)
 	{
 		file << "turn" << ","
 			<< "xAverage" << "," << "pxAverage" << "," << "sigmaX" << "," << "sigmaPx" << ","
