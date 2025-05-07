@@ -32,7 +32,19 @@ def get_allTwiss(filepath):
                 line_tmp = line_tmp.split()
                 data.append(line_tmp)
 
-    data_array = np.array(data)
+    # Check and delete duplicate twiss data with the same name and the same position
+    # This process is mainly aimed at addressing the issue where multiple MARKERs with the same name repeatedly occur at the same position
+    seen = set()
+    data_remove_duplication = []
+    for sub_list in data:
+        tuple_sub = tuple(sub_list)
+        if tuple_sub not in seen:
+            seen.add(tuple_sub)
+            data_remove_duplication.append(sub_list)
+        else:
+            print("Delete duplication data: {}".format(sub_list))
+
+    data_array = np.array(data_remove_duplication)
     Nrow = data_array.shape[0]
     Ncol = data_array.shape[1]
 
@@ -85,13 +97,12 @@ def get_specificTwiss(filepath, twissName, positionName="S"):
     twiss = []
 
     if is_float(all_twiss[1][twissId]):
-        for i in range(1, Nrow - 1):
+        for i in range(1, Nrow):
             # range "1": means the first line holding the twiss name is ignored
-            # range "Nrow - 1": means the last line of repeated twiss values is ignored
             s.append(float(all_twiss[i][positionId]))
             twiss.append(float(all_twiss[i][twissId]))
     else:
-        for i in range(1, Nrow - 1):
+        for i in range(1, Nrow):
             s.append(float(all_twiss[i][positionId]))
             twiss.append(all_twiss[i][twissId])
 
@@ -190,11 +201,11 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off"):
                     "Logitudinal transfer": logi_transfer,
                 },
             }
-        print(name[i] + "_" + str(s[i]))
+        # print(name[i] + "_" + str(s[i]))
         Lattice_json.append(lattice)
 
     return Lattice_json
 
 
 if __name__ == "__main__":
-    generate_twiss_json(r"D:\AthenaLattice\SZA\v9\sza_sta1.dat")
+    generate_twiss_json(r"D:\AthenaLattice\SZA\v13\ring.dat")
