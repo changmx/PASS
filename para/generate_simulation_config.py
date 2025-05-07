@@ -122,17 +122,17 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Number of real particles per bunch": 1.05e11,
                 "Number of macro particles per bunch": 1e4,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
-                "Inject turns": [0],
-                "Alpha x": 0,
-                "Alpha y": 0,
-                "Beta x (m)": 0.05,
-                "Beta y (m)": 0.012,
-                "Emittance x (m'rad)": 100e-9,
-                "Emittance y (m'rad)": 50e-9,
+                "Inject turns": [1],
+                "Alpha x": -0.004122662723,
+                "Alpha y": -2.20069362e-06,
+                "Beta x (m)": 14.79791154,
+                "Beta y (m)": 1.793094864,
+                "Emittance x (m'rad)": 200e-6,
+                "Emittance y (m'rad)": 30e-6,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
                 "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
-                "Logitudinal dist": "uniform",  # [gaussian/uniform]
+                "Logitudinal dist": "gaussian",  # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -141,7 +141,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
+                "Is load distribution": False,
                 "Name of loaded file": "1557_00_beam0_proton_bunch0_10000_hor_gaussian_longi_uniform_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
             },
@@ -157,42 +157,42 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(Spacecharge)
 
-    # twiss_list_from_madx = generate_twiss_json(
-    #     r"D:\AthenaLattice\SZA\v9\sza_sta1.dat", logi_transfer="off"
-    # )
-    # for twiss in twiss_list_from_madx:
-    #     Sequence.update(twiss)
+    twiss_list_from_madx = generate_twiss_json(
+        r"D:\PASS\test\test_twiss_transfer\ring.dat", logi_transfer="matrix", muz=0.0123
+    )
+    for twiss in twiss_list_from_madx:
+        Sequence.update(twiss)
 
     # element_list_from_madx = generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
     # for element in element_list_from_madx:
     #     # print(element)
     #     Sequence.update(element)
 
-    lattice_oneturn_map = {
-        "oneturn_map": {
-            "S (m)": 0,
-            "Command": "Twiss",
-            "S previous (m)": 0,
-            "Alpha x": 0,
-            "Alpha y": 0,
-            "Beta x (m)": 0.05,
-            "Beta y (m)": 0.012,
-            "Mu x": 0.3152,
-            "Mu y": 0.3016,
-            "Mu z": 0.0102,
-            "Alpha x previous": 0,
-            "Alpha y previous": 0,
-            "Beta x previous (m)": 0.05,
-            "Beta y previous (m)": 0.012,
-            "Mu x previous": 0,
-            "Mu y previous": 0,
-            "Mu z previous": 0,
-            # "Dx (m)": Dx[i],
-            # "Dpx": Dpx[i],
-            "Logitudinal transfer": "matrix",
-        },
-    }
-    Sequence.update(lattice_oneturn_map)
+    # lattice_oneturn_map = {
+    #     "oneturn_map": {
+    #         "S (m)": 0,
+    #         "Command": "Twiss",
+    #         "S previous (m)": 0,
+    #         "Alpha x": 0,
+    #         "Alpha y": 0,
+    #         "Beta x (m)": 0.05,
+    #         "Beta y (m)": 0.012,
+    #         "Mu x": 0.3152,
+    #         "Mu y": 0.3016,
+    #         "Mu z": 0.0102,
+    #         "Alpha x previous": 0,
+    #         "Alpha y previous": 0,
+    #         "Beta x previous (m)": 0.05,
+    #         "Beta y previous (m)": 0.012,
+    #         "Mu x previous": 0,
+    #         "Mu y previous": 0,
+    #         "Mu z previous": 0,
+    #         # "Dx (m)": Dx[i],
+    #         # "Dpx": Dpx[i],
+    #         "Logitudinal transfer": "matrix",
+    #     },
+    # }
+    # Sequence.update(lattice_oneturn_map)
 
     Monitor_Dist_oneturn = {
         "DistMonitor_oneturn_0": {
