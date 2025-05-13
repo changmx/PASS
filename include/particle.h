@@ -103,7 +103,7 @@ public:
 	Particle* dev_bunch = NULL;
 
 	std::string dist_transverse;
-	std::string dist_logitudinal;
+	std::string dist_longitudinal;
 
 private:
 

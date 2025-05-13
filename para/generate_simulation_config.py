@@ -132,7 +132,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
                 "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
-                "Logitudinal dist": "gaussian",  # [gaussian/uniform]
+                "Longitudinal dist": "gaussian",  # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -189,7 +189,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     #         "Mu z previous": 0,
     #         # "Dx (m)": Dx[i],
     #         # "Dpx": Dpx[i],
-    #         "Logitudinal transfer": "matrix",
+    #         "longitudinal transfer": "matrix",
     #     },
     # }
     # Sequence.update(lattice_oneturn_map)

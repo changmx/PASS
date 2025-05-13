@@ -48,7 +48,7 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 
 		//Dx = data.at("Sequence").at(obj_name).at("Dx (m)");
 
-		logitudinal_transfer = data.at("Sequence").at(obj_name).at("Logitudinal transfer");
+		longitudinal_transfer = data.at("Sequence").at(obj_name).at("Longitudinal transfer");
 
 		// when ¦Ã > ¦Ãt (¦Ç > 0), muz (input value) should be > 0
 		// when ¦Ã < ¦Ãt (¦Ç < 0), muz (input value) should be < 0
@@ -77,14 +77,14 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 	m21_y = -1 * (1 + alphay * alphay_previous) / sqrt(betay * betay_previous) * sin(phi_y) + (alphay_previous - alphay) / sqrt(betay * betay_previous) * cos(phi_y);
 	m22_y = sqrt(betay_previous / betay) * (cos(phi_y) - alphay * sin(phi_y));
 
-	if ("drift" == logitudinal_transfer)
+	if ("drift" == longitudinal_transfer)
 	{
 		m11_z = 1;
 		m12_z = -1 * (1 / (gammat * gammat) - 1 / (gamma * gamma)) * (s - s_previous);
 		m21_z = 0;
 		m22_z = 1;
 	}
-	else if ("matrix" == logitudinal_transfer)
+	else if ("matrix" == longitudinal_transfer)
 	{
 		m11_z = cos(phi_z);
 		m12_z = sigmaz / dp * sin(phi_z);
@@ -112,7 +112,7 @@ void Twiss::print() {
 	logger->info("[Twiss] Mu    x previous = {}, Mu    y previous = {}", mux, muy);
 	//logger->info("[Twiss] Dx      = {}", Dx);
 
-	logger->info("[Twiss] Logitunial transfer = {}", logitudinal_transfer);
+	logger->info("[Twiss] Longitudinal transfer = {}", longitudinal_transfer);
 	logger->info("[Twiss] Mu   z = {}", muz);
 	logger->info("[Twiss] Mu   z previous = {}", muz);
 	logger->info("[Twiss] gamma  = {}, gammat = {}", gamma, gammat);
@@ -127,9 +127,9 @@ void Twiss::execute(int turn) {
 
 	auto logger = spdlog::get("logger");
 
-	if ("drift" == logitudinal_transfer || "matrix" == logitudinal_transfer) {
+	if ("drift" == longitudinal_transfer || "matrix" == longitudinal_transfer) {
 
-		//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, logitudinal_transfer);
+		//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, longitudinal_transfer);
 
 		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, circumference,
 			m11_x, m12_x, m21_x, m22_x,
@@ -138,7 +138,7 @@ void Twiss::execute(int turn) {
 	}
 	else
 	{
-		//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 4D (logi = {})", turn, name, s, logitudinal_transfer);
+		//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 4D (logi = {})", turn, name, s, longitudinal_transfer);
 
 		transfer_matrix_4D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np,
 			m11_x, m12_x, m21_x, m22_x,

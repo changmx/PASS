@@ -21,8 +21,8 @@ public:
 	void generate_transverse_Gaussian_distribution();
 	void generate_transverse_uniform_distribution();
 
-	void generate_logitudinal_Gaussian_distribution();
-	void generate_logitudinal_uniform_distribution();
+	void generate_longitudinal_Gaussian_distribution();
+	void generate_longitudinal_uniform_distribution();
 
 	void save_initial_distribution();
 
@@ -58,7 +58,7 @@ private:
 
 	std::string injection_mode;
 	std::string dist_transverse;
-	std::string dist_logitudinal;
+	std::string dist_longitudinal;
 
 	bool is_load_dist = false;
 	std::string filename_load_dist;

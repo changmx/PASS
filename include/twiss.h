@@ -25,11 +25,11 @@ private:
 
 	double s_previous = -1;
 
-	std::string logitudinal_transfer = "off";
-	// logitudinal parameters for point-to-point transfer
+	std::string longitudinal_transfer = "off";
+	// longitudinal parameters for point-to-point transfer
 	double gamma = 0;
 	double gammat = 0;
-	// logitudinal parameters for one-turn map
+	// longitudinal parameters for one-turn map
 	double sigmaz = 0;
 	double dp = 0;
 

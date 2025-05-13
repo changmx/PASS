@@ -16,7 +16,7 @@ DistMonitor::DistMonitor(const Parameter& para, int input_beamId, const Bunch& B
 
 	saveDir = para.dir_output_distribution;
 	saveName_part = para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId)
-		+ "_" + std::to_string(Np) + "_hor_" + Bunch.dist_transverse + "_longi_" + Bunch.dist_logitudinal + "_" + name;
+		+ "_" + std::to_string(Np) + "_hor_" + Bunch.dist_transverse + "_longi_" + Bunch.dist_longitudinal + "_" + name;
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);

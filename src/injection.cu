@@ -88,7 +88,7 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 
 		injection_mode = data.at("Sequence").at("Injection").at(key_bunch).at("Mode");
 		dist_transverse = data.at("Sequence").at("Injection").at(key_bunch).at("Transverse dist");
-		dist_logitudinal = data.at("Sequence").at("Injection").at(key_bunch).at("Logitudinal dist");
+		dist_longitudinal = data.at("Sequence").at("Injection").at(key_bunch).at("Longitudinal dist");
 
 		is_offset_x = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("Is offset");
 		is_offset_y = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("Is offset");
@@ -117,7 +117,7 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	Bunch.dp = dp;
 
 	Bunch.dist_transverse = dist_transverse;
-	Bunch.dist_logitudinal = dist_logitudinal;
+	Bunch.dist_longitudinal = dist_longitudinal;
 }
 
 void Injection::execute(int turn) {
@@ -160,17 +160,17 @@ void Injection::execute(int turn) {
 					std::exit(EXIT_FAILURE);
 				}
 
-				if ("gaussian" == dist_logitudinal)
+				if ("gaussian" == dist_longitudinal)
 				{
-					generate_logitudinal_Gaussian_distribution();
+					generate_longitudinal_Gaussian_distribution();
 				}
-				else if ("uniform" == dist_logitudinal)
+				else if ("uniform" == dist_longitudinal)
 				{
-					generate_logitudinal_uniform_distribution();
+					generate_longitudinal_uniform_distribution();
 				}
 				else
 				{
-					logger->error("[Injection] Sorry, we don't support logitudinal distribution type {}.", dist_logitudinal);
+					logger->error("[Injection] Sorry, we don't support longitudinal distribution type {}.", dist_longitudinal);
 					std::exit(EXIT_FAILURE);
 				}
 
@@ -608,7 +608,7 @@ void Injection::generate_transverse_uniform_distribution() {
 }
 
 
-void Injection::generate_logitudinal_Gaussian_distribution() {
+void Injection::generate_longitudinal_Gaussian_distribution() {
 
 	//	Generate particle's z position and momentum.
 	//	Here we think the correlation coefficient of 2D Gaussian distribution rho = 0
@@ -663,7 +663,7 @@ void Injection::generate_logitudinal_Gaussian_distribution() {
 }
 
 
-void Injection::generate_logitudinal_uniform_distribution() {
+void Injection::generate_longitudinal_uniform_distribution() {
 
 	//	Generate particle's z position and momentum.
 	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
@@ -726,7 +726,7 @@ void Injection::save_initial_distribution() {
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
 	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_beam" + std::to_string(beamId) + "_" + beam_name + "_bunch" + std::to_string(bunchId)
-		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_logitudinal + "_injection.csv");
+		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_longitudinal + "_injection.csv");
 	std::ofstream file(path_tmp);
 
 	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;

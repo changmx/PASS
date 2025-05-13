@@ -155,7 +155,7 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0
                     "Mu z previous": 0,
                     # "Dx (m)": Dx[i],
                     # "Dpx": Dpx[i],
-                    "Logitudinal transfer": logi_transfer,
+                    "Longitudinal transfer": logi_transfer,
                 },
             }
         else:
@@ -182,7 +182,7 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0
                     "Mu z previous": s[i - 1] / circumference * (muz - 0),
                     # "Dx (m)": Dx[i],
                     # "Dpx": Dpx[i],
-                    "Logitudinal transfer": logi_transfer,
+                    "Longitudinal transfer": logi_transfer,
                 },
             }
         # print(name[i] + "_" + str(s[i]))
