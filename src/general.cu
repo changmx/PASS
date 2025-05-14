@@ -492,6 +492,7 @@ TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
 	saveLuminosity += rhs.saveLuminosity;
 
 	twiss += rhs.twiss;
+	transferElement += transferElement;
 
 	total += rhs.total;
 
@@ -505,7 +506,7 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	total = sort + slice + allocate2grid + calBoundary + calPotential + calElectric + hourGlass
 		+ calPhase + statistic + crossingAngle + crabCavity + floatWaist + oneTurnMap + calBeamkick + transferFixPoint
 		+ saveStatistic + savePhase + saveBunch + saveFixpoint + saveLuminosity
-		+ twiss;
+		+ twiss + transferElement;
 
 	std::string name = "process(device " + std::to_string(deviceid) + ")";
 
@@ -534,6 +535,7 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save luminosity:", saveLuminosity / totalTurn, saveLuminosity / turn * 100, saveLuminosity / 1000 / cpuTime * 100);
 
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time twiss transfer:", twiss / totalTurn, twiss / turn * 100, twiss / 1000 / cpuTime * 100);
+	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time element transfer:", transferElement / totalTurn, transferElement / turn * 100, transferElement / 1000 / cpuTime * 100);
 
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "summary:", total / totalTurn, total / turn * 100, total / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);

@@ -79,6 +79,7 @@ public:
 	float saveLuminosity = 0;
 
 	float twiss = 0;
+	float transferElement;
 
 	float total = 0;
 
