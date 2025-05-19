@@ -179,12 +179,18 @@ void SBendElement::execute(int turn) {
 }
 
 
-RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name) {
+RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
 	commandType = "RBendElement";
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
 	Np = Bunch.Np;
+	circumference = para.circumference;
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -202,6 +208,7 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 		fint = data.at("Sequence").at(obj_name).at("fint");
 		fintx = data.at("Sequence").at(obj_name).at("fintx");
 
+		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
 	}
 	catch (json::exception e)
 	{
@@ -211,9 +218,89 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 	}
 }
 
+
 void RBendElement::execute(int turn) {
-	auto logger = spdlog::get("logger");
-	logger->info("[RBend Element] run: " + name);
+
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->info("[RBend Element] run: " + name);
+
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double drift = drift_length;
+
+	double l_used = 0;
+	double angle_used = 0;
+
+	if (isFieldError)
+	{
+		l_used = l / 2;
+		angle_used = angle / 2;
+	}
+	else
+	{
+		l_used = l;
+		angle_used = angle;
+	}
+
+	double rho = l_used / angle_used;
+	double h = 1 / rho;
+
+	double cx = cos(h * l_used);
+	double sx = sin(h * l_used);
+
+	double r11 = cx;
+	double r12 = sx / h;
+	double r16 = (1 - cx) / (h * beta);
+	double r21 = -h * sx;
+	double r22 = cx;
+	double r26 = sx / beta;
+	double r33 = 1;
+	double r34 = l_used;
+	double r44 = 1;
+	double r51 = -sx / beta;
+	double r52 = -(1 - cx) / (h * beta);
+	double r55 = 1;
+	double r56 = l_used / (beta * beta * gamma * gamma) - (h * l_used - sx) / (h * beta * beta);
+
+	double psi1 = e1;
+	double psi2 = e2;
+	double fint1 = fint;
+	double fint2 = fintx;
+	double psip1 = psi1 - 2.0 * hgap * h * fint1 / cos(psi1) * (1.0 + pow(sin(psi1), 2));
+	double psip2 = psi2 - 2.0 * hgap * h * fint2 / cos(psi2) * (1.0 + pow(sin(psi2), 2));
+
+	double fl21i = h * tan(psi1);
+	double fl43i = -h * tan(psip1);
+	double fr21i = h * tan(psi2);
+	double fr43i = -h * tan(psip2);
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift);
+
+	if (isFieldError)
+	{
+		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+
+		// transfer multipole error kicker
+
+		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+	}
+	else
+	{
+		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+	}
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
 }
 
 

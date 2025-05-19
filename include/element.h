@@ -96,7 +96,8 @@ private:
 class RBendElement :public Element
 {
 public:
-	RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
+	RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~RBendElement() = default;
 
@@ -108,8 +109,16 @@ public:
 	}
 private:
 	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
 
 	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
 
 	double l = 0;
 	double drift_length = 0;
