@@ -278,9 +278,9 @@ void QuadrupoleElement::execute(int turn) {
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
 		{
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l / 2);
+			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l / 2);
 			// transfer multipole error kicker
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l / 2);
+			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l / 2);
 		}
 		else
 		{
@@ -297,7 +297,7 @@ void QuadrupoleElement::execute(int turn) {
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)
 		{
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l);
+			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l);
 		}
 		else
 		{
@@ -372,7 +372,7 @@ void SextupoleElement::execute(int turn) {
 	}
 	else if (abs(k2) < EPSILON && abs(k2s) > EPSILON)	// k2 == 0 && k2s != 0
 	{
-		transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k2s, l);
+		transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k2s, l);
 	}
 	else
 	{
@@ -380,6 +380,207 @@ void SextupoleElement::execute(int turn) {
 			name, k2, k2s);
 		std::exit(EXIT_FAILURE);
 	}
+
+	if (isFieldError)
+	{
+		// transfer multipole error kicker
+	}
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+}
+
+
+OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "OctupoleElement";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	Np = Bunch.Np;
+	circumference = para.circumference;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		k3 = data.at("Sequence").at(obj_name).at("k3 (m^-4)");
+		k3s = data.at("Sequence").at(obj_name).at("k3s (m^-4)");
+
+		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+
+void OctupoleElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->info("[Sextupole Element] run: " + name);
+
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double drift = drift_length;
+
+	double EPSILON = 1e-9;
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+
+	if (abs(k3) > EPSILON && abs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
+	{
+		transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k3, l);
+
+	}
+	else if (abs(k3) < EPSILON && abs(k3s) > EPSILON)	// k3 == 0 && k3s != 0
+	{
+		transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k3s, l);
+	}
+	else
+	{
+		spdlog::get("logger")->error("[Octupole Element] {}: ks = {}, kss = {}, there should be and only 1 variable equal to 0",
+			name, k3, k3s);
+		std::exit(EXIT_FAILURE);
+	}
+
+	if (isFieldError)
+	{
+		// transfer multipole error kicker
+	}
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+}
+
+
+HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "HKickerElement";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	Np = Bunch.Np;
+	circumference = para.circumference;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		kick = data.at("Sequence").at(obj_name).at("kick");
+
+		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+
+void HKickerElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->info("[Sextupole Element] run: " + name);
+
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double drift = drift_length;
+
+	double EPSILON = 1e-9;
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+
+	transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
+
+	if (isFieldError)
+	{
+		// transfer multipole error kicker
+	}
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+}
+
+
+VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "VKickerElement";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	Np = Bunch.Np;
+	circumference = para.circumference;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		kick = data.at("Sequence").at(obj_name).at("kick");
+
+		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+
+void VKickerElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->info("[Sextupole Element] run: " + name);
+
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double drift = drift_length;
+
+	double EPSILON = 1e-9;
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+
+	transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
 
 	if (isFieldError)
 	{
@@ -794,6 +995,7 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta
 	int stride = blockDim.x * gridDim.x;
 
 	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double k2_chrom = 0;
 
 	while (tid < Np) {
 
@@ -802,8 +1004,10 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta
 		y0 = dev_bunch[tid].y;
 		py0 = dev_bunch[tid].py;
 
-		dev_bunch[tid].px += -0.5 * k2 * l * (x0 * x0 - y0 * y0);
-		dev_bunch[tid].py += k2 * l * x0 * y0;
+		k2_chrom = k2 / (1 + dev_bunch[tid].pz);
+
+		dev_bunch[tid].px += -0.5 * k2_chrom * l * (x0 * x0 - y0 * y0);
+		dev_bunch[tid].py += k2_chrom * l * x0 * y0;
 
 		tid += stride;
 	}
@@ -817,6 +1021,7 @@ __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta
 	int stride = blockDim.x * gridDim.x;
 
 	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double k2s_chrom = 0;
 
 	while (tid < Np) {
 
@@ -825,8 +1030,108 @@ __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta
 		y0 = dev_bunch[tid].y;
 		py0 = dev_bunch[tid].py;
 
-		dev_bunch[tid].px += k2s * l * x0 * y0;
-		dev_bunch[tid].py += 0.5 * k2s * l * (x0 * x0 - y0 * y0);
+		k2s_chrom = k2s / (1 + dev_bunch[tid].pz);
+
+		dev_bunch[tid].px += k2s_chrom * l * x0 * y0;
+		dev_bunch[tid].py += 0.5 * k2s_chrom * l * (x0 * x0 - y0 * y0);
+
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_octupole_norm(Particle* dev_bunch, int Np, double beta,
+	double k3, double l) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double k3_chrom = 0;
+
+	while (tid < Np) {
+
+		x0 = dev_bunch[tid].x;
+		px0 = dev_bunch[tid].px;
+		y0 = dev_bunch[tid].y;
+		py0 = dev_bunch[tid].py;
+
+		k3_chrom = k3 / (1 + dev_bunch[tid].pz);
+
+		dev_bunch[tid].px += -1.0 / 6 * k3_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2));
+		dev_bunch[tid].py += 1.0 / 6 * k3_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3));
+
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_octupole_skew(Particle* dev_bunch, int Np, double beta,
+	double k3s, double l) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double k3s_chrom = 0;
+
+	while (tid < Np) {
+
+		x0 = dev_bunch[tid].x;
+		px0 = dev_bunch[tid].px;
+		y0 = dev_bunch[tid].y;
+		py0 = dev_bunch[tid].py;
+
+		k3s_chrom = k3s / (1 + dev_bunch[tid].pz);
+
+		dev_bunch[tid].px += 1.0 / 6 * k3s_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3));
+		dev_bunch[tid].py += 1.0 / 6 * k3s_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2));
+
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
+	double kick) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double x0 = 0, px0 = 0;
+	double kick_chrom = 0;
+
+	while (tid < Np) {
+
+		x0 = dev_bunch[tid].x;
+		px0 = dev_bunch[tid].px;
+
+		kick_chrom = kick / (1 + dev_bunch[tid].pz);
+
+		dev_bunch[tid].px += kick_chrom;
+
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
+	double kick) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double y0 = 0, py0 = 0;
+	double kick_chrom = 0;
+
+	while (tid < Np) {
+
+		y0 = dev_bunch[tid].y;
+		py0 = dev_bunch[tid].py;
+
+		kick_chrom = kick / (1 + dev_bunch[tid].pz);
+
+		dev_bunch[tid].py += kick_chrom;
 
 		tid += stride;
 	}

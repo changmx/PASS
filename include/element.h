@@ -194,6 +194,109 @@ private:
 };
 
 
+class OctupoleElement :public Element
+{
+public:
+	OctupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~OctupoleElement() = default;
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Octupole Element] print");
+	}
+private:
+	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
+
+	double l = 0;
+	double drift_length = 0;
+	double k3 = 0;	// in unit of (m^-4)
+	double k3s = 0;	// in unit of (m^-4)
+
+};
+
+
+class HKickerElement :public Element
+{
+public:
+	HKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~HKickerElement() = default;
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Hor. Kicker Element] print");
+	}
+private:
+	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
+
+	double l = 0;
+	double drift_length = 0;
+	double kick = 0;
+
+};
+
+
+class VKickerElement :public Element
+{
+public:
+	VKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~VKickerElement() = default;
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Ver. Kicker Element] print");
+	}
+private:
+	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
+
+	double l = 0;
+	double drift_length = 0;
+	double kick = 0;
+
+};
+
+
 __global__ void transfer_drift(Particle* dev_bunch, int Np,
 	double beta, double gamma, double drift_length);
 
@@ -223,3 +326,15 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta
 
 __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta,
 	double k2s, double l);
+
+__global__ void transfer_octupole_norm(Particle* dev_bunch, int Np, double beta,
+	double k2, double l);
+
+__global__ void transfer_octupole_skew(Particle* dev_bunch, int Np, double beta,
+	double k2s, double l);
+
+__global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
+	double kick);
+
+__global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
+	double kick);
