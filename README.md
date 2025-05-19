@@ -298,6 +298,7 @@ K_2 = \frac{1}{B\rho} \frac{\partial B_y^2}{\partial x^2 }
 \\
 \Delta \theta_x = -\frac{1}{2}K_2L(x^2-y^2),\quad \Delta \theta_y = K_2Lxy
 $$
+对六极磁铁$K$值可以做以下动量修正：$K = K/(1+\delta)$。
 
 ### 斜六极磁铁
 
@@ -315,6 +316,7 @@ K_{2s} = \frac{1}{B\rho} \frac{\partial B_x^2}{\partial x^2 }
 \\
 \Delta \theta_x = K_{2s}Lxy,\quad \Delta \theta_y = \frac{1}{2}K_{2s}L(x^2-y^2)
 $$
+对六极磁铁$K$值可以做以下动量修正：$K = K/(1+\delta)$。
 
 ### 八极磁铁
 
@@ -344,6 +346,7 @@ K_{3s} = \frac{1}{B\rho}\frac{\partial ^3 B_x}{\partial x^3}
 \\
 \Delta \theta_x = \frac{1}{6}K_{3s}L(3x^2y-y^3), \quad \Delta \theta_x = \frac{1}{6}K_{3s}L(x^3-3xy^2)
 $$
+对八极磁铁$K$值可以做以下动量修正：$K = K/(1+\delta)$。
 
 ### 多极磁铁
 
@@ -388,3 +391,4 @@ $$
 \\
 \Delta \theta_x = K_{sn}L\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
 $$
+对多极磁铁$K$值可以做以下动量修正：$K = K/(1+\delta)$。
