@@ -1,6 +1,7 @@
 import re
 from copy import deepcopy
 import sys
+import numpy as np
 
 
 class Element:
@@ -19,6 +20,7 @@ class SBendElement(Element):
         self.hgap = 0.0
         self.fint = 0.0
         self.fintx = 0.0
+        self.isFieldError = False
 
 
 class RBendElement(Element):
@@ -31,6 +33,7 @@ class RBendElement(Element):
         self.hgap = 0.0
         self.fint = 0.0
         self.fintx = 0.0
+        self.isFieldError = False
 
 
 class QuadrupoleElement(Element):
@@ -38,6 +41,7 @@ class QuadrupoleElement(Element):
         super().__init__(name)
         self.l = 0.0
         self.k1 = 0.0
+        self.k1s = 0.0
 
 
 class SextupoleElement(Element):
@@ -45,10 +49,35 @@ class SextupoleElement(Element):
         super().__init__(name)
         self.l = 0.0
         self.k2 = 0.0
+        self.k2s = 0.0
+
+
+class OctupoleElement(Element):
+    def __init__(self, name):
+        super().__init__(name)
+        self.l = 0.0
+        self.k3 = 0.0
+        self.k3s = 0.0
+
+
+class HKickerElement(Element):
+    def __init__(self, name):
+        super().__init__(name)
+        self.l = 0.0
+        self.kick = 0.0
+
+
+class VKickerElement(Element):
+    def __init__(self, name):
+        super().__init__(name)
+        self.l = 0.0
+        self.kick = 0.0
 
 
 class MarkerElement(Element):
-    pass
+    def __init__(self, name):
+        super().__init__(name)
+        self.l = 0.0
 
 
 class_map = {
@@ -56,6 +85,9 @@ class_map = {
     "rbend": RBendElement,
     "quadrupole": QuadrupoleElement,
     "sextupole": SextupoleElement,
+    "octupole": OctupoleElement,
+    "hkicker": HKickerElement,
+    "vkicker": VKickerElement,
     "marker": MarkerElement,
 }
 
@@ -64,6 +96,8 @@ def parse_file(filepath):
     elements = {}
     sequence = []
     processing_sequence = False
+
+    circumference = 0
 
     with open(filepath, "r") as file:
         for line in file:
@@ -95,7 +129,7 @@ def parse_file(filepath):
                     continue
 
                 if elem_name not in elements:
-                    print(f"Warning: Undefined element '{elem_name}'")
+                    print(f"Warning: Undefined element '{elem_name}' at S = {s_value}")
                     continue
 
                 elem_copy = deepcopy(elements[elem_name])
@@ -103,8 +137,17 @@ def parse_file(filepath):
                 sequence.append(elem_copy)
 
             else:
+                # ！！！ sequence的名称必须为ring ！！！
                 if line.lower().startswith("ring: sequence"):
                     processing_sequence = True
+
+                    match_circum = re.search(r"=\s*([+-]?\d+\.?\d*)", line.lower())
+                    if match_circum:
+                        circumference = float(match_circum.group(1))
+                        print(f"Circumference (m) = {circumference}")
+                    else:
+                        print(f"Error: can't match ring: sequence, l = circumference")
+                        sys.exit(1)
                     continue
 
                 if not re.match(r"^\w+:", line):
@@ -119,7 +162,7 @@ def parse_file(filepath):
                 params_str = params_part[0].strip() if params_part else ""
 
                 if elem_type not in class_map:
-                    print(f"Warning: Unknown element type '{elem_type}'")
+                    print(f"Warning: Unknown element type '{elem_type}' of '{name}'")
                     continue
 
                 elem_class = class_map[elem_type]
@@ -153,20 +196,52 @@ def parse_file(filepath):
 
                 elements[name] = elem
 
-    return sequence
+    # Check and delete duplicate element data with the same name and the same position
+    # This process is mainly aimed at addressing the issue where multiple MARKERs with the same name repeatedly occur at the same position
+    seen = set()
+    data_remove_duplication = []
+    for elem in sequence:
+        identifier = (elem.S, elem.name, type(elem).__name__)
+        if identifier not in seen:
+            seen.add(identifier)
+            data_remove_duplication.append(elem)
+        else:
+            print(
+                f"Delete duplication data: S = {elem.S}, name = {elem.name}, type = {type(elem).__name__}"
+            )
+
+    data_array = np.array(data_remove_duplication)
+
+    return data_array, circumference
 
 
 def generate_element_json(filepath):
 
-    sequence = parse_file(filepath)
+    sequence, circumference = parse_file(filepath)
 
     element_json = []
 
-    for elem in sequence:
+    for i in np.arange(len(sequence)):
+        elem = sequence[i]
         element_dict = {}
 
+        s = elem.S
+        s_previous = 0 if i == 0 else sequence[i - 1].S
+        l = elem.l
+        l_previous = 0 if i == 0 else sequence[i - 1].l
+        drift_length = s - l / 2 - (s_previous + l_previous / 2)
+
         if isinstance(elem, MarkerElement):
-            continue
+            element_dict = {
+                str(elem.name)
+                + "_"
+                + str(elem.S): {
+                    "S (m)": elem.S,
+                    "Command": type(elem).__name__,
+                    "L (m)": elem.l,
+                    "Drift length (m)": drift_length,
+                }
+            }
         elif isinstance(elem, SBendElement):
             element_dict = {
                 str(elem.name)
@@ -174,13 +249,15 @@ def generate_element_json(filepath):
                 + str(elem.S): {
                     "S (m)": elem.S,
                     "Command": type(elem).__name__,
-                    "l (m)": elem.l,
+                    "L (m)": elem.l,
+                    "Drift length (m)": drift_length,
                     "angle (rad)": elem.angle,
                     "e1 (rad)": elem.e1,
                     "e2 (rad)": elem.e2,
                     "hgap (m)": elem.hgap,
                     "fint": elem.fint,
                     "fintx": elem.fintx,
+                    "isFieldError": elem.isFieldError,
                 }
             }
         elif isinstance(elem, RBendElement):
@@ -190,13 +267,15 @@ def generate_element_json(filepath):
                 + str(elem.S): {
                     "S (m)": elem.S,
                     "Command": type(elem).__name__,
-                    "l (m)": elem.l,
+                    "L (m)": elem.l,
+                    "Drift length (m)": drift_length,
                     "angle (rad)": elem.angle,
                     "e1 (rad)": elem.e1,
                     "e2 (rad)": elem.e2,
                     "hgap (m)": elem.hgap,
                     "fint": elem.fint,
                     "fintx": elem.fintx,
+                    "isFieldError": elem.isFieldError,
                 }
             }
         elif isinstance(elem, QuadrupoleElement):
@@ -206,8 +285,10 @@ def generate_element_json(filepath):
                 + str(elem.S): {
                     "S (m)": elem.S,
                     "Command": type(elem).__name__,
-                    "l (m)": elem.l,
+                    "L (m)": elem.l,
+                    "Drift length (m)": drift_length,
                     "k1 (m^-2)": elem.k1,
+                    "k1s (m^-2)": elem.k1s,
                 }
             }
         elif isinstance(elem, SextupoleElement):
@@ -217,8 +298,23 @@ def generate_element_json(filepath):
                 + str(elem.S): {
                     "S (m)": elem.S,
                     "Command": type(elem).__name__,
-                    "l (m)": elem.l,
+                    "L (m)": elem.l,
+                    "Drift length (m)": drift_length,
                     "k2 (m^-3)": elem.k2,
+                    "k2s (m^-3)": elem.k2,
+                }
+            }
+        elif isinstance(elem, OctupoleElement):
+            element_dict = {
+                str(elem.name)
+                + "_"
+                + str(elem.S): {
+                    "S (m)": elem.S,
+                    "Command": type(elem).__name__,
+                    "L (m)": elem.l,
+                    "Drift length (m)": drift_length,
+                    "k3 (m^-4)": elem.k3,
+                    "k3s (m^-4)": elem.k3,
                 }
             }
         else:
@@ -227,7 +323,22 @@ def generate_element_json(filepath):
             )
             continue
 
-        print(str(elem.name) + "_" + str(elem.S))
+        # print(str(elem.name) + "_" + str(elem.S))
+        element_json.append(element_dict)
+
+    if (circumference - sequence[-1].S - sequence[-1].l / 2) > 1e-9:
+        # 如果sequence最后一个元素的S不等于环周长，则人为补一个maker，使其位于环尾端
+        elem = class_map["marker"]("ring_end")
+        element_dict = {
+            str(elem.name)
+            + "_"
+            + str(circumference): {
+                "S (m)": circumference,
+                "Command": type(elem).__name__,
+                "L (m)": elem.l,
+                "Drift length (m)": circumference - sequence[-1].S - sequence[-1].l / 2,
+            }
+        }
         element_json.append(element_dict)
 
     return element_json
