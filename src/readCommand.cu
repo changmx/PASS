@@ -87,43 +87,99 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
-			else if ("SBend" == data.at("Sequence").at(ikey).at("Command"))
+			else if ("MarkerElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<MarkerElement>>(
+							std::make_unique<MarkerElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("SBendElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SBendElement>>(
-							std::make_unique<SBendElement>(Para, input_beamId, bunch[i], ikey))
+							std::make_unique<SBendElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
-			else if ("RBend" == data.at("Sequence").at(ikey).at("Command"))
+			else if ("RBendElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<RBendElement>>(
-							std::make_unique<RBendElement>(Para, input_beamId, bunch[i], ikey))
+							std::make_unique<RBendElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
-			else if ("Quadrupole" == data.at("Sequence").at(ikey).at("Command"))
+			else if ("QuadrupoleElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<QuadrupoleElement>>(
-							std::make_unique<QuadrupoleElement>(Para, input_beamId, bunch[i], ikey))
+							std::make_unique<QuadrupoleElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
-			else if ("Sextupole" == data.at("Sequence").at(ikey).at("Command"))
+			else if ("SextupoleElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SextupoleElement>>(
-							std::make_unique<SextupoleElement>(Para, input_beamId, bunch[i], ikey))
+							std::make_unique<SextupoleElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("OctupoleElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<OctupoleElement>>(
+							std::make_unique<OctupoleElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("HKickerElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<HKickerElement>>(
+							std::make_unique<HKickerElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("VKickerElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<VKickerElement>>(
+							std::make_unique<VKickerElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
@@ -184,6 +240,9 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "RBendElement") return 100;
 	else if (commandType == "QuadrupoleElement") return 100;
 	else if (commandType == "SextupoleElement") return 100;
+	else if (commandType == "OctupoleElement") return 100;
+	else if (commandType == "HKickerElement") return 100;
+	else if (commandType == "VKickerElement") return 100;
 	else if (commandType == "DistMonitor") return 150;
 	else if (commandType == "StatMonitor") return 150;
 	else if (commandType == "BeamBeam") return 300;
