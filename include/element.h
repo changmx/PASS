@@ -28,7 +28,8 @@ public:
 class MarkerElement :public Element
 {
 public:
-	MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+	MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~MarkerElement() = default;
 
@@ -43,29 +44,21 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	double s_previous = 0;
-
 	int Np = 0;
 	double circumference = 0;
 
-	double gamma = 0;
-	double beta = 0;
-
-	double muz = 0;
-	double muz_previous = 0;
-
-	double m12 = 0, m34 = 0, m56 = 0;	// transfer matrix elements;
+	double drift_length = 0;
 
 	int thread_x = 0;
 	int block_x = 0;
-
 };
 
 
 class SBendElement :public Element
 {
 public:
-	SBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
+	SBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~SBendElement() = default;
 
@@ -77,10 +70,19 @@ public:
 	}
 private:
 	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
 
 	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
 
 	double l = 0;
+	double drift_length = 0;
 	double angle = 0;	// in unit of rad
 	double e1 = 0;
 	double e2 = 0;
@@ -110,6 +112,7 @@ private:
 	int Np = 0;
 
 	double l = 0;
+	double drift_length = 0;
 	double angle = 0;	// in unit of rad
 	double e1 = 0;
 	double e2 = 0;
@@ -123,7 +126,8 @@ private:
 class QuadrupoleElement :public Element
 {
 public:
-	QuadrupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
+	QuadrupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~QuadrupoleElement() = default;
 
@@ -135,11 +139,22 @@ public:
 	}
 private:
 	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
 
 	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
 
 	double l = 0;
+	double drift_length = 0;
+
 	double k1 = 0;	// in unit of (m^-2)
+	double k1s = 0;	// in unit of (m^-2)
 
 };
 
@@ -147,7 +162,8 @@ private:
 class SextupoleElement :public Element
 {
 public:
-	SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name);
+	SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~SextupoleElement() = default;
 
@@ -159,14 +175,51 @@ public:
 	}
 private:
 	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
 
 	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isFieldError = false;
 
 	double l = 0;
+	double drift_length = 0;
 	double k2 = 0;	// in unit of (m^-3)
+	double k2s = 0;	// in unit of (m^-3)
 
 };
 
 
 __global__ void transfer_drift(Particle* dev_bunch, int Np,
-	double m12, double m34, double m56, double beta);
+	double beta, double gamma, double drift_length);
+
+__global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta,
+	double r11, double r12, double r16, double r21, double r22, double r26,
+	double r34, double r51, double r52, double r56,
+	double fl21i, double fl43i, double fr21i, double fr43i);
+
+__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double beta,
+	double r11, double r12, double r16, double r21, double r22, double r26,
+	double r34, double r51, double r52, double r56,
+	double fl21i, double fl43i, double fr21i, double fr43i);
+
+__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double beta,
+	double r11, double r12, double r16, double r21, double r22, double r26,
+	double r34, double r51, double r52, double r56,
+	double fl21i, double fl43i, double fr21i, double fr43i);
+
+__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double beta,
+	double k1, double l);
+
+__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double beta,
+	double k1s, double l);
+
+__global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta,
+	double k2, double l);
+
+__global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta,
+	double k2s, double l);
