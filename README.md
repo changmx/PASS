@@ -353,6 +353,14 @@ K_n = \frac{1}{B\rho}\frac{\partial ^n B_y}{\partial x^n}, \quad K_{sn} = \frac{
 $$
 
 $$
+(x+iy)^0=1
+\\
+(x+iy)^1=x+iy
+\\
+(x+iy)^2=x^2 + 2 i x y - y^2
+\\
+(x+iy)^3=x^3 - 3 x y^2 + i (3 x^2 y - y^3)
+\\
 (x+iy)^4=x^4 - 6 x^2 y^2 + y^4 + i (4 x^3 y - 4 x y^3)
 \\
 (x+iy)^5=x^5 - 10 x^3 y^2 + 5 x y^4 + i (5 x^4 y - 10 x^2 y^3 + y^5)
@@ -370,13 +378,13 @@ $$
 
 对于正多极铁来说：
 $$
-\Delta \theta_x = -K_n\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
+\Delta \theta_x = -K_nL\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
 \\
-\Delta \theta_x = K_n\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
+\Delta \theta_x = K_nL\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
 $$
 对于斜多极铁来说：
 $$
-\Delta \theta_x = K_{sn}\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
+\Delta \theta_x = K_{sn}L\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
 \\
-\Delta \theta_x = K_{sn}\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
+\Delta \theta_x = K_{sn}L\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
 $$
