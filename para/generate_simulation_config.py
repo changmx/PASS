@@ -23,6 +23,9 @@ def sort_sequence(sequence):
         "RBendElement": 100,
         "QuadrupoleElement": 100,
         "SextupoleElement": 100,
+        "OctupoleElement": 100,
+        "HKickerElement": 100,
+        "VKickerElement": 100,
         "DistMonitor": 150,
         "StatMonitor": 150,
         "BeamBeam": 300,
@@ -157,16 +160,20 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(Spacecharge)
 
-    twiss_list_from_madx = generate_twiss_json(
-        r"D:\PASS\test\test_twiss_transfer\ring.dat", logi_transfer="matrix", muz=0.0123
-    )
-    for twiss in twiss_list_from_madx:
-        Sequence.update(twiss)
+    # twiss_list_from_madx = generate_twiss_json(
+    #     r"D:\PASS\test\test_twiss_transfer\ring.dat",
+    #     logi_transfer="matrix",
+    #     muz=0.0123,
+    # )
+    # for twiss in twiss_list_from_madx:
+    #     Sequence.update(twiss)
 
-    # element_list_from_madx = generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
-    # for element in element_list_from_madx:
-    #     # print(element)
-    #     Sequence.update(element)
+    element_list_from_madx = generate_element_json(
+        r"D:\AthenaLattice\SZA\v13\sza.seq",
+    )
+    for element in element_list_from_madx:
+        # print(element)
+        Sequence.update(element)
 
     # lattice_oneturn_map = {
     #     "oneturn_map": {
