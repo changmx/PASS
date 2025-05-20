@@ -5,6 +5,7 @@
 #include "parameter.h"
 #include "parallelPlan.h"
 #include "general.h"
+#include "constant.h"
 
 class Twiss
 {
@@ -45,10 +46,12 @@ private:
 
 	double mux = 0;
 	double muy = 0;
-
 	double muz = 0;
 
-	//double Dx = 0;
+	double Dx = 0;
+
+	double DQx = 0;
+	double DQy = 0;
 
 	// Twiss parameters of previos position
 	double alphax_previous = 0;
@@ -59,11 +62,14 @@ private:
 
 	double mux_previous = 0;
 	double muy_previous = 0;
-
 	double muz_previous = 0;
 
-	double m11_x = 0, m12_x = 0, m21_x = 0, m22_x = 0;	// transfer matrix elements;
-	double m11_y = 0, m12_y = 0, m21_y = 0, m22_y = 0;
+	double Dx_previous = 0;
+
+	double phi_x = 0;
+	double phi_y = 0;
+	double phi_z = 0;
+
 	double m11_z = 0, m12_z = 0, m21_z = 0, m22_z = 0;
 
 	int thread_x = 0;
@@ -71,11 +77,9 @@ private:
 };
 
 
-__global__ void transfer_matrix_4D(Particle* dev_bunch, int Np,
-	double m11_x, double m12_x, double m21_x, double m22_x,
-	double m11_y, double m12_y, double m21_y, double m22_y);
-
 __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumference,
-	double m11_x, double m12_x, double m21_x, double m22_x,
-	double m11_y, double m12_y, double m21_y, double m22_y,
+	double betax, double betax_previous, double alphax, double alphax_previous,
+	double betay, double betay_previous, double alphay, double alphay_previous,
+	double phix, double phiy, double DQx, double DQy,
+	double Dx_previous, double Dx,
 	double m11_z, double m12_z, double m21_z, double m22_z);
