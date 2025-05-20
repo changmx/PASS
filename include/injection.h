@@ -26,6 +26,8 @@ public:
 
 	void save_initial_distribution();
 
+	void add_Dx();
+
 	void print_config();
 
 private:
@@ -47,6 +49,8 @@ private:
 	double emity = 0;
 	double emitx_norm = 0;
 	double emity_norm = 0;
+
+	double Dx = 0;
 
 	double sigmax = 0, sigmay = 0, sigmaz = 0;	// RMS value of horizontal, vertical bunch size and bunch length (m)
 	double sigmapx = 0, sigmapy = 0, dp = 0;	// RMS value of horizontal, vertical divergence (rad) and deltap/p

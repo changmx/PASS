@@ -74,6 +74,8 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
 		emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
 
+		Dx = data.at("Sequence").at("Injection").at(key_bunch).at("Dx (m)");
+
 		emitx_norm = emitx * Bunch.gamma * Bunch.beta;
 		emity_norm = emity * Bunch.gamma * Bunch.beta;
 
@@ -174,6 +176,8 @@ void Injection::execute(int turn) {
 					std::exit(EXIT_FAILURE);
 				}
 
+				add_Dx();
+
 			}
 
 			if (is_save_initial_dist)
@@ -259,7 +263,7 @@ void Injection::load_distribution() {
 
 					j++;
 				}
-	
+
 			}
 			++row;
 		}
@@ -726,7 +730,8 @@ void Injection::save_initial_distribution() {
 	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 
 	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_beam" + std::to_string(beamId) + "_" + beam_name + "_bunch" + std::to_string(bunchId)
-		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_longitudinal + "_injection.csv");
+		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_longitudinal
+		+ "_Dx_" + std::to_string(Dx) + "_injection.csv");
 	std::ofstream file(path_tmp);
 
 	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
@@ -749,6 +754,28 @@ void Injection::save_initial_distribution() {
 		dist_transverse, beam_name, beamId, bunchId, path_tmp.string());
 
 }
+
+void Injection::add_Dx() {
+	spdlog::get("logger")->info("[Injection] Dispersion = {} of {} beam-{} bunch-{} is begin added ...",
+		Dx, beam_name, beamId, bunchId);
+
+	Particle* host_bunch = new Particle[Np];
+
+	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+
+	for (int j = 0; j < Np; ++j)
+	{
+		host_bunch[j].x += Dx * host_bunch[j].pz;
+	}
+
+	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+
+	delete[] host_bunch;
+	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
+	spdlog::get("logger")->info("[Injection] Dispersion = {} of {} beam-{} bunch-{} has been genetated successfully.",
+		Dx, beam_name, beamId, bunchId);
+}
+
 
 void Injection::print_config() {
 
