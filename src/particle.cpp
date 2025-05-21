@@ -30,15 +30,20 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		else if (Nproton == 1 && Nneutron == 0)
 			m0 = PassConstant::mp;
 		else
-			m0 = PassConstant::mu * (Nproton + Nneutron);
+			m0 = PassConstant::mu;
 
-		Ek = data.at("Sequence").at("Injection").at(key_bunch).at("Kinetic energy per particle (eV)");
+		Ek = data.at("Sequence").at("Injection").at(key_bunch).at("Kinetic energy per nucleon (eV/u)");
 		gamma = Ek / m0 + 1;
 		beta = sqrt(1 - 1 / (gamma * gamma));
 		p0 = gamma * m0 * beta;
 		p0_kg = gamma * (m0 * PassConstant::e) / (PassConstant::c * PassConstant::c) * beta * PassConstant::c;
 
-		Brho = p0 / (abs(Ncharge) * PassConstant::c);
+		if (Nproton == 0 && Nneutron == 0)
+			Brho = p0 / (1 * PassConstant::c);
+		else if (Nproton == 1 && Nneutron == 0)
+			Brho = p0 / (1 * PassConstant::c);
+		else
+			Brho = p0 * (Nproton + Nneutron) / (abs(Ncharge) * PassConstant::c);
 
 		gammat = data.at("GammaT");
 

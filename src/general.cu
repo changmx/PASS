@@ -238,8 +238,8 @@ void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0
 		Beam_table.add_row({ "Real  particles/bunch",to_scientific_string(Beam0[i].Nrp, 11),(1 != Nbeam) ? to_scientific_string(Beam1[i].Nrp, 11) : "^_^" });
 		Beam_table.add_row({ "Macro particles/bunch",std::to_string(Beam0[i].Np),(1 != Nbeam) ? std::to_string(Beam1[i].Np) : "^_^" });
 		Beam_table.add_row({ "Ratio Nrp/Np",std::to_string(Beam0[i].ratio),(1 != Nbeam) ? std::to_string(Beam1[i].ratio) : "^_^" });
-		Beam_table.add_row({ "Kinetic energy (GeV/u)", std::to_string(Beam0[i].Ek / 1e9), (1 != Nbeam) ? std::to_string(Beam1[i].Ek / 1e9) : "^_^" });
-		Beam_table.add_row({ "Statistic mass (MeV/c2)", std::to_string(Beam0[i].m0 / 1e6), (1 != Nbeam) ? std::to_string(Beam1[i].m0 / 1e6) : "^_^" });
+		Beam_table.add_row({ "Kinetic energy per nucleon (GeV/u)", std::to_string(Beam0[i].Ek / 1e9), (1 != Nbeam) ? std::to_string(Beam1[i].Ek / 1e9) : "^_^" });
+		Beam_table.add_row({ "Statistic mass per nucleon (MeV/c2/u)", std::to_string(Beam0[i].m0 / 1e6), (1 != Nbeam) ? std::to_string(Beam1[i].m0 / 1e6) : "^_^" });
 		Beam_table.add_row({ "Momentum (kg*m/s)", to_scientific_string(Beam0[i].p0_kg, 12),(1 != Nbeam) ? to_scientific_string(Beam1[i].p0_kg, 12) : "^_^" });
 		Beam_table.add_row({ "Momentum (GeV/c)", std::to_string(Beam0[i].p0 / 1e9),(1 != Nbeam) ? std::to_string(Beam1[i].p0 / 1e9) : "^_^" });
 		Beam_table.add_row({ "Brho (T*m)",std::to_string(Beam0[i].Brho),(1 != Nbeam) ? std::to_string(Beam1[i].Brho) : "^_^" });
