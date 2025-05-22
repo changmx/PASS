@@ -727,8 +727,8 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	try
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		//l = data.at("Sequence").at(obj_name).at("L (m)");
+		//drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
 		
 		for (size_t Nset = 0; Nset < data.at("Sequence").at(obj_name).at("RF Data files").size(); Nset++) {
 			filenames.push_back(data.at("Sequence").at(obj_name).at("RF Data files")[Nset]);
@@ -787,7 +787,7 @@ void RFElement::execute(int turn) {
 	double beta0 = bunchRef.beta;
 	double eta0 = 1 / (gammat * gammat) - 1 / (gamma0 * gamma0);
 
-	double drift = drift_length;
+	//double drift = drift_length;
 
 	double dE_syn = 0.0;
 
@@ -805,7 +805,7 @@ void RFElement::execute(int turn) {
 	bunchRef.gamma = gamma1;
 	bunchRef.beta = beta1;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l);
+	//transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l);
 
 	transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, turn, beta0, beta1, gamma0, gamma1,
 		dev_rf_data, pitch_rf, Nrf, Nturn_rf,

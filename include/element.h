@@ -341,8 +341,8 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	double l = 0;
-	double drift_length = 0;
+	//double l = 0;
+	//double drift_length = 0;
 
 	double ratio = 0;	// e*q/m
 
