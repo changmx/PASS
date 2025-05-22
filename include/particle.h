@@ -70,10 +70,10 @@ public:
 	int Nneutron = 0;	// Number of neutrons per real particle
 	int Ncharge = 0;	// Number of charges per real particle. e.g. for electron beam, charge = -1, for positron/proton beam, charge = 1
 
-	double m0 = 0;	// Static mass of a real particle (eV/c2))
-	double Ek = 0;	// Kinetic energy of a real particle (eV)
-	double p0 = 0;	// Momentum of an ideal real particle (eV/c)
-	double p0_kg = 0;	// Momentum of an ideal real particle (kg*m/s)
+	double m0 = 0;	// Static mass of a nucleon (eV/c2/u))
+	double Ek = 0;	// Kinetic energy of a nucleon (eV)
+	double p0 = 0;	// Momentum of a nucleon (eV/c/u)
+	double p0_kg = 0;	// Momentum of a nucleon (kg*m/s/u)
 	double beta = 0, gamma = 0;	// Relativistic velocity and Lorentz factor
 
 	double Brho = 0;
