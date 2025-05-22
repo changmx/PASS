@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import json
+import sys
 from collections import OrderedDict
 from get_twiss_from_madx import generate_twiss_json
 from get_element_from_madx import generate_element_json
@@ -26,6 +27,7 @@ def sort_sequence(sequence):
         "OctupoleElement": 100,
         "HKickerElement": 100,
         "VKickerElement": 100,
+        "RFElement": 100,
         "DistMonitor": 150,
         "StatMonitor": 150,
         "BeamBeam": 300,
@@ -65,7 +67,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
         "Number of charges per particle": 1,
         "Number of bunches per beam": 1,
-        "Circumference (m)": 200,
+        "Circumference (m)": 140.8,
         # "Qx": 0.31,  # <optional>, will not be used if a madx file is loaded. Todo: read ramping file
         # "Qy": 0.32,
         # "Qz": 0.0125,
@@ -121,7 +123,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per particle (eV)": 19.08e9,
+                "Kinetic energy per nucleon (eV/u)": 19.08e9,
                 "Number of real particles per bunch": 1.05e11,
                 "Number of macro particles per bunch": 1e4,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
@@ -132,6 +134,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Beta y (m)": 1.793094864,
                 "Emittance x (m'rad)": 200e-6,
                 "Emittance y (m'rad)": 30e-6,
+                "Dx (m)": 0.0,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
                 "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
@@ -160,17 +163,29 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(Spacecharge)
 
-    # twiss_list_from_madx = generate_twiss_json(
+    # twiss_list_from_madx, circumference_twissFile = generate_twiss_json(
     #     r"D:\PASS\test\test_twiss_transfer\ring.dat",
     #     logi_transfer="matrix",
     #     muz=0.0123,
+    #     DQx=-1,
+    #     DQy=-2,
     # )
+    # if (Beampara["Circumference (m)"] - circumference_twissFile) > 1e-9:
+    #     print(
+    #         f"Error: Circumference from Beampara dict is = {Beampara["Circumference (m)"]}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
+    #     )
+    #     sys.exit(1)
     # for twiss in twiss_list_from_madx:
     #     Sequence.update(twiss)
 
-    element_list_from_madx = generate_element_json(
+    element_list_from_madx, circumference_seqFile = generate_element_json(
         r"D:\AthenaLattice\SZA\v13\sza.seq",
     )
+    if (Beampara["Circumference (m)"] - circumference_seqFile) > 1e-9:
+        print(
+            f"Error: Circumference from Beampara dict is = {Beampara["Circumference (m)"]}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
+        )
+        sys.exit(1)
     for element in element_list_from_madx:
         # print(element)
         Sequence.update(element)
@@ -214,6 +229,18 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
     }
     Sequence.update(Monitor_Stat_oneturn)
+
+    RF1 = {
+        "RF_cavity1_"
+        + str(Beampara["Circumference (m)"]): {
+            "S (m)": Beampara["Circumference (m)"],
+            "Command": "RFElement",
+            "L (m)": 0,
+            "Drift length (m)": 0,
+            "RF Data files": ["D:path"],
+        }
+    }
+    Sequence.update(RF1)
 
     Sequence = sort_sequence(Sequence)
     Sequencepara = {"Sequence": Sequence}
