@@ -42,7 +42,7 @@ def get_allTwiss(filepath):
             seen.add(tuple_sub)
             data_remove_duplication.append(sub_list)
         else:
-            print("Delete duplication data: {}".format(sub_list))
+            print("Delete duplication data: {} ...".format(sub_list[0:7]))
 
     data_array = np.array(data_remove_duplication)
     Nrow = data_array.shape[0]
@@ -109,7 +109,13 @@ def get_specificTwiss(filepath, twissName, positionName="S"):
     return np.array(s), np.array(twiss)
 
 
-def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0):
+def generate_twiss_json(
+    filepath,
+    logi_transfer: str = "drift/matrix/off",
+    muz=0,
+    DQx=0,
+    DQy=0,
+):
     # get S, name, beta, alpha, phase, Dx, Dpx from madx twiss file
     s, name = get_specificTwiss(filepath, twissName="name")
     s, betax = get_specificTwiss(filepath, twissName="betx")
@@ -117,12 +123,17 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0
     s, alfx = get_specificTwiss(filepath, twissName="alfx")
     s, alfy = get_specificTwiss(filepath, twissName="alfy")
     s, Dx = get_specificTwiss(filepath, twissName="Dx")
-    s, Dpx = get_specificTwiss(filepath, twissName="Dpx")
+    # s, Dpx = get_specificTwiss(filepath, twissName="Dpx")
     s, mux = get_specificTwiss(filepath, twissName="mux")
     s, muy = get_specificTwiss(filepath, twissName="muy")
 
     circumference = s[-1]
     print("Circumference (m): {}".format(circumference))
+
+    mux_ring = mux[-1]
+    muy_ring = muy[-1]
+    print(f"Mux = {mux_ring}, Muy = {muy_ring}")
+    print(f"DQx = {DQx}, DQy = {DQy}")
 
     if s[0] != 0:
         print("The start position of twiss data must be 0, but now is {}".format(s[0]))
@@ -145,16 +156,18 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0
                     "Beta y (m)": betay[i],
                     "Mu x": mux[i],
                     "Mu y": muy[i],
-                    "Mu z": 0,
+                    "Mu z": 0.0,
                     "Alpha x previous": alfx[i],
                     "Alpha y previous": alfy[i],
                     "Beta x previous (m)": betax[i],
                     "Beta y previous (m)": betay[i],
                     "Mu x previous": mux[i],
                     "Mu y previous": muy[i],
-                    "Mu z previous": 0,
-                    # "Dx (m)": Dx[i],
-                    # "Dpx": Dpx[i],
+                    "Mu z previous": 0.0,
+                    "Dx (m)": Dx[i],
+                    "Dx (m) previous": Dx[i],
+                    "DQx": 0.0,
+                    "DQy": 0.0,
                     "Longitudinal transfer": logi_transfer,
                 },
             }
@@ -180,15 +193,17 @@ def generate_twiss_json(filepath, logi_transfer: str = "drift/matrix/off", muz=0
                     "Mu x previous": mux[i - 1],
                     "Mu y previous": muy[i - 1],
                     "Mu z previous": s[i - 1] / circumference * (muz - 0),
-                    # "Dx (m)": Dx[i],
-                    # "Dpx": Dpx[i],
+                    "Dx (m)": Dx[i],
+                    "Dx (m) previous": Dx[i - 1],
+                    "DQx": DQx * (mux[i] - mux[i - 1]) / mux_ring,
+                    "DQy": DQy * (muy[i] - muy[i - 1]) / muy_ring,
                     "Longitudinal transfer": logi_transfer,
                 },
             }
         # print(name[i] + "_" + str(s[i]))
         Lattice_json.append(lattice)
 
-    return Lattice_json
+    return Lattice_json, circumference
 
 
 if __name__ == "__main__":
