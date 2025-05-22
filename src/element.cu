@@ -1,6 +1,11 @@
 #include "element.h"
+#include "constant.h"
 
+#include <iostream>
 #include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
 
 
 MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
@@ -474,6 +479,12 @@ void SextupoleElement::execute(int turn) {
 	}
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
 }
 
 
@@ -551,6 +562,12 @@ void OctupoleElement::execute(int turn) {
 	}
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
 }
 
 
@@ -613,6 +630,12 @@ void HKickerElement::execute(int turn) {
 	}
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
 }
 
 
@@ -675,6 +698,124 @@ void VKickerElement::execute(int turn) {
 	}
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
+}
+
+
+RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "RFElement";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	Np = Bunch.Np;
+	circumference = para.circumference;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		
+		for (size_t Nset = 0; Nset < data.at("Sequence").at(obj_name).at("RF Data files").size(); Nset++) {
+			filenames.push_back(data.at("Sequence").at(obj_name).at("RF Data files")[Nset]);
+		}
+
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+	if (Bunch.Nproton == 0 && Bunch.Nneutron == 0)
+		ratio = 1.0;
+	else if (Bunch.Nproton == 1 && Bunch.Nneutron == 0)
+		ratio = 1.0;
+	else
+		ratio = (double)Bunch.Ncharge / (Bunch.Nproton + Bunch.Nneutron);
+
+	radius = circumference / (2 * PassConstant::PI);
+
+	Nrf = filenames.size();
+
+	std::vector<RFData> fileData_tmp = readRFDataFromCSV(filenames[0]);
+	Nturn_rf = fileData_tmp.size();
+
+	callCuda(cudaMallocPitch((void**)&dev_rf_data, &pitch_rf, Nturn_rf * sizeof(RFData), Nrf));
+	callCuda(cudaMemset2D(dev_rf_data, pitch_rf, 0, Nturn_rf * sizeof(RFData), Nrf));
+
+	for (int i = 0; i < Nrf; i++) {
+		std::vector<RFData> hostData = readRFDataFromCSV(filenames[i]);
+
+		host_rf_data.push_back(hostData);
+
+		RFData* dev_rf_data_row = (RFData*)((char*)dev_rf_data + i * pitch_rf);
+		callCuda(cudaMemcpy(dev_rf_data_row, hostData.data(), Nturn_rf * sizeof(RFData), cudaMemcpyHostToDevice));
+	}
+
+}
+
+
+void RFElement::execute(int turn) {
+
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->info("[RF Element] run: " + name);
+
+	double m0 = bunchRef.m0;
+	double gammat = bunchRef.gammat;
+
+	double Ek0 = bunchRef.Ek;
+	double gamma0 = bunchRef.gamma;
+	double beta0 = bunchRef.beta;
+	double eta0 = 1 / (gammat * gammat) - 1 / (gamma0 * gamma0);
+
+	double drift = drift_length;
+
+	double dE_syn = 0.0;
+
+	for (int i = 0; i < Nrf; i++)
+	{
+		dE_syn += ratio * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
+	}
+
+	double Ek1 = Ek0 + dE_syn;
+	double gamma1 = Ek1 / m0 + 1;
+	double beta1 = sqrt(1 - 1 / (gamma1 * gamma1));
+	double eta1 = 1 / (gammat * gammat) - 1 / (gamma1 * gamma1);
+
+	bunchRef.Ek = Ek1;
+	bunchRef.gamma = gamma1;
+	bunchRef.beta = beta1;
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l);
+
+	transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, turn, beta0, beta1, gamma0, gamma1,
+		dev_rf_data, pitch_rf, Nrf, Nturn_rf,
+		radius, ratio, dE_syn, eta1, Ek1 + m0);
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
 }
 
 
@@ -1222,4 +1363,116 @@ __global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
 
 		tid += stride;
 	}
+}
+
+
+__global__ void transfer_rf(Particle* dev_bunch, int Np, int turn, double beta0, double beta1, double gamma0, double gamma1,
+	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
+	double radius, double ratio, double dE_syn, double eta1, double E_total1) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double z0 = 0, pz0 = 0, theta0 = 0, dE0 = 0;
+	double z1 = 0, pz1 = 0, theta1 = 0, dE1 = 0;
+
+	double dE_non_syn = 0;
+
+	double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
+
+	double pi = PassConstant::PI;
+	double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
+
+	while (tid < Np) {
+
+		z0 = dev_bunch[tid].z;
+		pz0 = dev_bunch[tid].pz;
+
+		convert_z_dp_to_theta_dE(z0, pz0, theta0, dE0, radius, beta0);
+
+		for (int i = 0; i < Nrf; i++)
+		{
+			RFData* dev_rf_data_row = (RFData*)((char*)dev_rf_data + i * pitch_rf);
+
+			voltage = dev_rf_data_row[turn - 1].voltage;
+			harmonic = dev_rf_data_row[turn - 1].harmonic;
+			phis = dev_rf_data_row[turn - 1].phis;
+			phi_offset = dev_rf_data_row[turn - 1].phi_offset;
+
+			dE_non_syn += ratio * voltage * sin(phis - harmonic * theta0 + phi_offset);
+		}
+
+		dE1 = (beta1 / beta0) * (dE0 + dE_non_syn - dE_syn);
+		theta1 = fmod((theta0 - 2 * pi * eta1 * dE1 / (E_total1 * beta1 * beta1) + pi), (2 * pi)) - pi;
+
+		convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1);
+
+		dev_bunch[tid].z = z1;
+		dev_bunch[tid].pz = pz1;
+
+		dev_bunch[tid].px *= trans_scale;
+		dev_bunch[tid].py *= trans_scale;
+
+		tid += stride;
+	}
+}
+
+
+__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta) {
+	theta = z / radius;
+	dE = dp * beta * beta;
+}
+
+
+__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta) {
+	z = theta * radius;
+	dp = dE / (beta * beta);
+}
+
+
+std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
+	// Read RF data from file
+
+	auto logger = spdlog::get("logger");
+
+	std::vector<RFData> data;
+	std::ifstream file(filename);
+
+	if (!file.is_open()) {
+		logger->error("[Read RF Data] Open file failed: {}", filename);
+		std::exit(EXIT_FAILURE);
+	}
+
+	std::string line;
+
+	// Skip the first line
+	std::getline(file, line);
+
+	while (std::getline(file, line)) {
+		std::stringstream ss(line);
+		std::string cell;
+		std::vector<double> values;
+
+		// split data
+		while (std::getline(ss, cell, ',')) {
+			try {
+				values.push_back(std::stod(cell));
+			}
+			catch (const std::exception& e) {
+				logger->error("[Read RF Data] Error parsing value in line: {}", line);
+				values.clear();
+				break;
+			}
+		}
+
+		if (values.size() == 4) {
+			data.push_back({ values[0], values[1], values[2], values[3] });
+		}
+		else {
+			logger->error("[Read RF Data] Invalid data format in line: {}", line);
+			std::exit(EXIT_FAILURE);
+		}
+	}
+
+	return data;
 }

@@ -306,6 +306,60 @@ private:
 };
 
 
+struct RFData {
+	double harmonic;
+	double voltage;
+	double phis;
+	double phi_offset;
+};
+
+
+class RFElement :public Element
+{
+public:
+	RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~RFElement() {
+		callCuda(cudaFree(dev_rf_data));
+	}
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[RF Element] print");
+	}
+private:
+	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	Bunch& bunchRef;
+
+	int Np = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	double l = 0;
+	double drift_length = 0;
+
+	double ratio = 0;	// e*q/m
+
+	double radius = 0;
+
+	std::vector<std::string> filenames;
+	int Nrf = 0;
+
+	std::vector<std::vector<RFData>> host_rf_data;
+
+	RFData* dev_rf_data = nullptr;
+	size_t pitch_rf = 0;
+	size_t Nturn_rf = 0;
+
+
+};
+
 __global__ void transfer_drift(Particle* dev_bunch, int Np,
 	double beta, double gamma, double drift_length);
 
@@ -347,3 +401,13 @@ __global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
 
 __global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
 	double kick);
+
+__global__ void transfer_rf(Particle* dev_bunch, int Np, int turn, double beta0, double beta1, double gamma0, double gamma1,
+	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
+	double radius, double ratio, double dE_syn, double eta1, double E_total1);
+
+__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta);
+
+__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta);
+
+std::vector<RFData> readRFDataFromCSV(const std::string& filename);
