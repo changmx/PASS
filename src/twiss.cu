@@ -155,6 +155,9 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 
 	double phi_x = 0, phi_y = 0;
 
+	double c_half = 0;
+	int over = 0, under = 0;
+
 	while (tid < Np)
 	{
 		z1 = dev_bunch[tid].z;
@@ -188,13 +191,17 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 		dev_bunch[tid].y = y1 * m11_y + py1 * m12_y;
 		dev_bunch[tid].py = y1 * m21_y + py1 * m22_y;
 
-		if (dev_bunch[tid].z > circumference / 2) {
-			dev_bunch[tid].z -= circumference;
-		}
-		else if (dev_bunch[tid].z < -circumference / 2)
-		{
-			dev_bunch[tid].z += circumference;
-		}
+		//if (dev_bunch[tid].z > circumference / 2) {
+		//	dev_bunch[tid].z -= circumference;
+		//}
+		//else if (dev_bunch[tid].z < -circumference / 2)
+		//{
+		//	dev_bunch[tid].z += circumference;
+		//}
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
 
 		//if (tid == 0)
 		//{
