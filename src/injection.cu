@@ -75,6 +75,7 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
 
 		Dx = data.at("Sequence").at("Injection").at(key_bunch).at("Dx (m)");
+		Dpx = data.at("Sequence").at("Injection").at(key_bunch).at("Dpx");
 
 		emitx_norm = emitx * Bunch.gamma * Bunch.beta;
 		emity_norm = emity * Bunch.gamma * Bunch.beta;
@@ -756,8 +757,8 @@ void Injection::save_initial_distribution() {
 }
 
 void Injection::add_Dx() {
-	spdlog::get("logger")->info("[Injection] Dispersion = {} of {} beam-{} bunch-{} is begin added ...",
-		Dx, beam_name, beamId, bunchId);
+	spdlog::get("logger")->info("[Injection] Dx = {}, Dpx = {} of {} beam-{} bunch-{} is begin added ...",
+		Dx, Dpx, beam_name, beamId, bunchId);
 
 	Particle* host_bunch = new Particle[Np];
 
@@ -766,6 +767,7 @@ void Injection::add_Dx() {
 	for (int j = 0; j < Np; ++j)
 	{
 		host_bunch[j].x += Dx * host_bunch[j].pz;
+		host_bunch[j].px += Dpx * host_bunch[j].pz;
 	}
 
 	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
