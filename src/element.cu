@@ -729,7 +729,7 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		//l = data.at("Sequence").at(obj_name).at("L (m)");
 		//drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		
+
 		for (size_t Nset = 0; Nset < data.at("Sequence").at(obj_name).at("RF Data files").size(); Nset++) {
 			filenames.push_back(data.at("Sequence").at(obj_name).at("RF Data files")[Nset]);
 		}
@@ -819,8 +819,8 @@ void RFElement::execute(int turn) {
 }
 
 
-__global__ void transfer_drift(Particle* dev_bunch, int Np,
-	double beta, double gamma, double drift_length) {
+__global__ void transfer_drift(Particle* dev_bunch, int Np, double beta, double circumference,
+	double gamma, double drift_length) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -831,6 +831,9 @@ __global__ void transfer_drift(Particle* dev_bunch, int Np,
 
 	double tau0 = 0, tau1 = 0;	// tau = z/beta - ct(=0) = z/beta
 	double pt0 = 0;	// pt = DeltaE/(P0*c) = beta*DeltaP/P0
+
+	double c_half = 0;
+	int over = 0, under = 0;
 
 	while (tid < Np) {
 
@@ -843,11 +846,16 @@ __global__ void transfer_drift(Particle* dev_bunch, int Np,
 		tau1 = tau0 + r56 * pt0;
 		dev_bunch[tid].z = tau1 * beta;
 
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
+
 		tid += stride;
 	}
 }
 
-__global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i) {
@@ -867,6 +875,9 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta,
 	double fl21 = 0, fl43 = 0, fr21 = 0, fr43 = 0;
 
 	double d = 0;	// about power error
+
+	double c_half = 0;
+	int over = 0, under = 0;
 
 	while (tid < Np) {
 
@@ -909,13 +920,18 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta,
 		dev_bunch[tid].z = tau3 * beta;
 		dev_bunch[tid].pz = pt3 / beta;
 
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
+
 		tid += stride;
 	}
 
 }
 
 
-__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i) {
@@ -932,6 +948,9 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 	double fl21 = 0, fl43 = 0, fr21 = 0, fr43 = 0;
 
 	double d = 0;	// about power error
+
+	double c_half = 0;
+	int over = 0, under = 0;
 
 	while (tid < Np) {
 
@@ -974,13 +993,18 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 		dev_bunch[tid].z = tau3 * beta;
 		dev_bunch[tid].pz = pt3 / beta;
 
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
+
 		tid += stride;
 	}
 
 }
 
 
-__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i) {
@@ -997,6 +1021,9 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 	double fl21 = 0, fl43 = 0, fr21 = 0, fr43 = 0;
 
 	double d = 0;	// about power error
+
+	double c_half = 0;
+	int over = 0, under = 0;
 
 	while (tid < Np) {
 
@@ -1039,13 +1066,18 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 		dev_bunch[tid].z = tau3 * beta;
 		dev_bunch[tid].pz = pt3 / beta;
 
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
+
 		tid += stride;
 	}
 
 }
 
 
-__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double beta, double circumference,
 	double k1, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1060,6 +1092,9 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double bet
 	double k1_chrom = 0, omega = 0;
 	double cx = 0, sx = 0, chx = 0, shx = 0;
 	double r11 = 0, r12 = 0, r21 = 0, r22 = 0, r33 = 0, r34 = 0, r43 = 0, r44 = 0, r56 = 0;
+
+	double c_half = 0;
+	int over = 0, under = 0;
 
 	while (tid < Np) {
 
@@ -1113,12 +1148,17 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double bet
 		dev_bunch[tid].py = py1;
 		dev_bunch[tid].z = tau1 * beta;
 
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
+
 		tid += stride;
 	}
 }
 
 
-__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double beta, double circumference,
 	double k1s, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1136,6 +1176,9 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double bet
 	double r11 = 0, r12 = 0, r13 = 0, r14 = 0, r21 = 0, r22 = 0, r23 = 0, r24 = 0;
 	double r31 = 0, r32 = 0, r33 = 0, r34 = 0, r41 = 0, r42 = 0, r43 = 0, r44 = 0;
 	double r56 = 0;
+
+	double c_half = 0;
+	int over = 0, under = 0;
 
 	while (tid < Np) {
 
@@ -1210,6 +1253,11 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double bet
 		dev_bunch[tid].y = y1;
 		dev_bunch[tid].py = py1;
 		dev_bunch[tid].z = tau1 * beta;
+
+		c_half = circumference * 0.5;
+		over = (dev_bunch[tid].z > c_half);
+		under = (dev_bunch[tid].z < -c_half);
+		dev_bunch[tid].z += (under - over) * circumference;
 
 		tid += stride;
 	}

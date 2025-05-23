@@ -360,28 +360,28 @@ private:
 
 };
 
-__global__ void transfer_drift(Particle* dev_bunch, int Np,
-	double beta, double gamma, double drift_length);
+__global__ void transfer_drift(Particle* dev_bunch, int Np, double beta, double circumference,
+	double gamma, double drift_length);
 
-__global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double beta, double circumference,
 	double k1, double l);
 
-__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double beta, double circumference,
 	double k1s, double l);
 
 __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta,
