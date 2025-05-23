@@ -26,6 +26,7 @@ set(SOURCES
     src/twiss.cu
     src/element.cu
     src/monitor.cu
+    src/cutSlice.cu
 )
 
 # set header files
@@ -41,6 +42,7 @@ set(HEADERS
     include/element.h
     include/parallelPlan.h
     include/monitor.h
+    include/cutSlice.h
 )
 
 # generate executable file
