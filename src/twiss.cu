@@ -49,6 +49,9 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 		Dx = data.at("Sequence").at(obj_name).at("Dx (m)");
 		Dx_previous = data.at("Sequence").at(obj_name).at("Dx (m) previous");
 
+		Dpx = data.at("Sequence").at(obj_name).at("Dpx");
+		Dpx_previous = data.at("Sequence").at(obj_name).at("Dpx previous");
+
 		DQx = data.at("Sequence").at(obj_name).at("DQx (m)");
 		DQy = data.at("Sequence").at(obj_name).at("DQy (m)");
 
@@ -101,11 +104,13 @@ void Twiss::print() {
 	logger->info("[Twiss] Alpha x = {}, Alpha y = {}", alphax, alphay);
 	logger->info("[Twiss] Beta  x = {}, Beta  y = {}", betax, betay);
 	logger->info("[Twiss] Mu    x = {}, Mu    y = {}", mux, muy);
-	logger->info("[Twiss] Alpha x previous = {}, Alpha y previous = {}", alphax, alphay);
-	logger->info("[Twiss] Beta  x previous = {}, Beta  y previous = {}", betax, betay);
-	logger->info("[Twiss] Mu    x previous = {}, Mu    y previous = {}", mux, muy);
-	logger->info("[Twiss] Dx               = {}, Dx previous      = {}", Dx, DQy);
-	logger->info("[Twiss] DQx              = {}, DQy              = {}", DQx, Dx_previous);
+	logger->info("[Twiss] Alpha x previous = {}, Alpha y previous = {}", alphax_previous, alphay_previous);
+	logger->info("[Twiss] Beta  x previous = {}, Beta  y previous = {}", betax_previous, betay_previous);
+	logger->info("[Twiss] Mu    x previous = {}, Mu    y previous = {}", mux_previous, muy_previous);
+
+	logger->info("[Twiss] Dx               = {}, Dx previous      = {}", Dx, Dx_previous);
+	logger->info("[Twiss] Dpx              = {}, Dpx previous     = {}", Dpx, Dpx_previous);
+	logger->info("[Twiss] DQx              = {}, DQy              = {}", DQx, DQy);
 
 	logger->info("[Twiss] Longitudinal transfer = {}", longitudinal_transfer);
 	logger->info("[Twiss] Mu   z          = {}", muz);
@@ -127,7 +132,7 @@ void Twiss::execute(int turn) {
 		betax, betax_previous, alphax, alphax_previous,
 		betay, betay_previous, alphay, alphay_previous,
 		phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
-		Dx_previous, Dx,
+		Dx, Dx_previous, Dpx, Dpx_previous,
 		m11_z, m12_z, m21_z, m22_z);
 
 	//callCuda(cudaDeviceSynchronize());
@@ -142,7 +147,7 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
-	double Dx_previous, double Dx,
+	double Dx, double Dx_previous, double Dpx, double Dpx_previous,
 	double m11_z, double m12_z, double m21_z, double m22_z) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -164,7 +169,7 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 		pz1 = dev_bunch[tid].pz;
 
 		x1 = dev_bunch[tid].x - Dx_previous * pz1;
-		px1 = dev_bunch[tid].px;
+		px1 = dev_bunch[tid].px - Dpx_previous * pz1;
 
 		y1 = dev_bunch[tid].y;
 		py1 = dev_bunch[tid].py;
@@ -186,7 +191,7 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 		dev_bunch[tid].pz = z1 * m21_z + pz1 * m22_z;
 
 		dev_bunch[tid].x = x1 * m11_x + px1 * m12_x + Dx * dev_bunch[tid].pz;
-		dev_bunch[tid].px = x1 * m21_x + px1 * m22_x;
+		dev_bunch[tid].px = x1 * m21_x + px1 * m22_x + Dpx * dev_bunch[tid].pz;
 
 		dev_bunch[tid].y = y1 * m11_y + py1 * m12_y;
 		dev_bunch[tid].py = y1 * m21_y + py1 * m22_y;

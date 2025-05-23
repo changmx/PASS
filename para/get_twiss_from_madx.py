@@ -123,7 +123,7 @@ def generate_twiss_json(
     s, alfx = get_specificTwiss(filepath, twissName="alfx")
     s, alfy = get_specificTwiss(filepath, twissName="alfy")
     s, Dx = get_specificTwiss(filepath, twissName="Dx")
-    # s, Dpx = get_specificTwiss(filepath, twissName="Dpx")
+    s, Dpx = get_specificTwiss(filepath, twissName="Dpx")
     s, mux = get_specificTwiss(filepath, twissName="mux")
     s, muy = get_specificTwiss(filepath, twissName="muy")
 
@@ -157,6 +157,8 @@ def generate_twiss_json(
                     "Mu x": mux[i],
                     "Mu y": muy[i],
                     "Mu z": 0.0,
+                    "Dx (m)": Dx[i],
+                    "Dpx": Dpx[i],
                     "Alpha x previous": alfx[i],
                     "Alpha y previous": alfy[i],
                     "Beta x previous (m)": betax[i],
@@ -164,8 +166,8 @@ def generate_twiss_json(
                     "Mu x previous": mux[i],
                     "Mu y previous": muy[i],
                     "Mu z previous": 0.0,
-                    "Dx (m)": Dx[i],
                     "Dx (m) previous": Dx[i],
+                    "Dpx previous": Dpx[i],
                     "DQx": 0.0,
                     "DQy": 0.0,
                     "Longitudinal transfer": logi_transfer,
@@ -186,6 +188,8 @@ def generate_twiss_json(
                     "Mu x": mux[i],
                     "Mu y": muy[i],
                     "Mu z": s[i] / circumference * (muz - 0),
+                    "Dx (m)": Dx[i],
+                    "Dpx": Dpx[i],
                     "Alpha x previous": alfx[i - 1],
                     "Alpha y previous": alfy[i - 1],
                     "Beta x previous (m)": betax[i - 1],
@@ -193,8 +197,8 @@ def generate_twiss_json(
                     "Mu x previous": mux[i - 1],
                     "Mu y previous": muy[i - 1],
                     "Mu z previous": s[i - 1] / circumference * (muz - 0),
-                    "Dx (m)": Dx[i],
                     "Dx (m) previous": Dx[i - 1],
+                    "Dpx previous": Dpx[i - 1],
                     "DQx": DQx * (mux[i] - mux[i - 1]) / mux_ring,
                     "DQy": DQy * (muy[i] - muy[i - 1]) / muy_ring,
                     "Longitudinal transfer": logi_transfer,

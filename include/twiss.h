@@ -49,6 +49,7 @@ private:
 	double muz = 0;
 
 	double Dx = 0;
+	double Dpx = 0;
 
 	double DQx = 0;
 	double DQy = 0;
@@ -65,6 +66,7 @@ private:
 	double muz_previous = 0;
 
 	double Dx_previous = 0;
+	double Dpx_previous = 0;
 
 	double phi_x = 0;
 	double phi_y = 0;
@@ -81,5 +83,5 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
-	double Dx_previous, double Dx,
+	double Dx, double Dx_previous, double Dpx, double Dpx_previous,
 	double m11_z, double m12_z, double m21_z, double m22_z);
