@@ -344,7 +344,7 @@ B_x = a_3(x^3-3xy^2)=\frac{1}{6}\frac{\partial ^3 B_y}{\partial x^3}(x^3-3xy^2)
 \\
 K_{3s} = \frac{1}{B\rho}\frac{\partial ^3 B_x}{\partial x^3}
 \\
-\Delta \theta_x = \frac{1}{6}K_{3s}L(3x^2y-y^3), \quad \Delta \theta_x = \frac{1}{6}K_{3s}L(x^3-3xy^2)
+\Delta \theta_x = \frac{1}{6}K_{3s}L(3x^2y-y^3), \quad \Delta \theta_y = \frac{1}{6}K_{3s}L(x^3-3xy^2)
 $$
 对八极磁铁$K$值可以做以下动量修正：$K = K/(1+\delta)$。
 
@@ -383,12 +383,12 @@ $$
 $$
 \Delta \theta_x = -K_nL\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
 \\
-\Delta \theta_x = K_nL\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
+\Delta \theta_y = K_nL\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
 $$
 对于斜多极铁来说：
 $$
 \Delta \theta_x = K_{sn}L\times \frac{1}{n!}\times Im\{ (x+iy)^n  \}
 \\
-\Delta \theta_x = K_{sn}L\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
+\Delta \theta_y = K_{sn}L\times \frac{1}{n!}\times Re\{ (x+iy)^n  \}
 $$
 对多极磁铁$K$值可以做以下动量修正：$K = K/(1+\delta)$。
