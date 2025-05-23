@@ -51,6 +51,7 @@ private:
 	double emity_norm = 0;
 
 	double Dx = 0;
+	double Dpx = 0;
 
 	double sigmax = 0, sigmay = 0, sigmaz = 0;	// RMS value of horizontal, vertical bunch size and bunch length (m)
 	double sigmapx = 0, sigmapy = 0, dp = 0;	// RMS value of horizontal, vertical divergence (rad) and deltap/p
