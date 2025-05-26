@@ -229,7 +229,9 @@ void Injection::load_distribution() {
 		std::string line;
 		int j = 0;
 
-		double a[8] = { 0,0,0,0,0,0,0,0 };
+		double a[6] = { 0,0,0,0,0,0 };
+		int a_tag = 0, a_lostTurn = -1;
+		double a_lostPos = -1.0;
 		std::string tmp;
 		int row = 0;
 		int skiprows = 0;
@@ -242,9 +244,24 @@ void Injection::load_distribution() {
 			{
 				while (std::getline(sline, tmp, ','))
 				{
-					//std::cout << tmp << std::endl;
-					a[k] = std::stod(tmp);
-					//std::cout << j << a[j] << std::endl;
+					if (k < 6)
+					{
+						//std::cout << tmp << std::endl;
+						a[k] = std::stod(tmp);
+						//std::cout << j << a[j] << std::endl;
+					}
+					else if (k == 6)
+					{
+						a_tag = std::stoi(tmp);
+					}
+					else if (k == 7)
+					{
+						a_lostTurn = std::stoi(tmp);
+					}
+					else if (k == 8)
+					{
+						a_lostPos = std::stod(tmp);
+					}
 					++k;
 				}
 				//std::cout << a[0] << "," << a[1] << std::endl;
@@ -259,8 +276,9 @@ void Injection::load_distribution() {
 					host_bunch[offset].py = a[3];
 					host_bunch[offset].z = a[4];
 					host_bunch[offset].pz = a[5];
-					host_bunch[offset].tag = a[6];
-					host_bunch[offset].lostTurn = a[7];
+					host_bunch[offset].tag = a_tag;
+					host_bunch[offset].lostTurn = a_lostTurn;
+					host_bunch[offset].lostPos = a_lostPos;
 
 					j++;
 				}
@@ -735,7 +753,8 @@ void Injection::save_initial_distribution() {
 		+ "_Dx_" + std::to_string(Dx) + "_injection.csv");
 	std::ofstream file(path_tmp);
 
-	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
+	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
+		<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
 
 	for (int j = 0; j < Np; j++) {
 		file << std::setprecision(10)
@@ -746,7 +765,8 @@ void Injection::save_initial_distribution() {
 			<< (host_bunch + j)->z << ","
 			<< (host_bunch + j)->pz << ","
 			<< (host_bunch + j)->tag << ","
-			<< (host_bunch + j)->lostTurn << "\n";
+			<< (host_bunch + j)->lostTurn << ","
+			<< (host_bunch + j)->lostPos << "\n";
 	}
 	file.close();
 	delete[]host_bunch;

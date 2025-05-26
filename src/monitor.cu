@@ -76,7 +76,8 @@ void DistMonitor::execute(int turn) {
 		std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(turn) + ".csv");
 		std::ofstream file(saveName_full);
 
-		file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << "," << "tag" << "," << "lostTurn" << std::endl;
+		file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
+			<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
 
 		for (int j = 0; j < Np; j++) {
 			file << std::setprecision(10)
@@ -87,7 +88,8 @@ void DistMonitor::execute(int turn) {
 				<< (host_bunch + j)->z << ","
 				<< (host_bunch + j)->pz << ","
 				<< (host_bunch + j)->tag << ","
-				<< (host_bunch + j)->lostTurn << "\n";
+				<< (host_bunch + j)->lostTurn << ","
+				<< (host_bunch + j)->lostPos << "\n";
 		}
 		file.close();
 
