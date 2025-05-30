@@ -30,6 +30,7 @@ def sort_sequence(sequence):
         "RFElement": 100,
         "DistMonitor": 150,
         "StatMonitor": 150,
+        "SortBunch": 200,
         "BeamBeam": 300,
         "Other": 999,  # 最低优先级
     }
@@ -59,7 +60,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     config_path = os.sep.join([parent_path, "para", fileName])
     print("The simulation configuration will be written to file: ", config_path)
 
-    ########## config start ##########
+    ############################################################ config start ############################################################
 
     Beampara = {
         "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
@@ -81,6 +82,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "Is plot figure": False,
     }
 
+    circumference = Beampara["Circumference (m)"]
     # Field solver
     # PIC_conv: using Green function with open boundary condition
     # PIC_FD_dm: in the case of rectangular boundary, solve the matrix after using DST
@@ -91,26 +93,23 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     Spacecharge_sim_para = {
         "Space charge simulation parameters": {
             "Is space charge": False,
-            "Number of grid x": 256,
-            "Number of grid y": 256,
-            "Grid x length": 1e-5,
-            "Grid y length": 3.5e-6,
             "Number of bunch slices": 10,
-            "Field solver:": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]: field solver
+            "Slice model": "Equal length",  # [Equal particle/Equal length]
+            "Field solver:": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]
         }
     }
 
     BeambeamPara = {
         "Beam-beam simulation parameters": {
             "Is beam-beam": False,
-            "Number of IP": 1,
+            "Number of bunch slices": 10,
+            "Slice model": "Equal particle",  # [Equal particle/Equal length]
+            "Field solver:": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]
             "IP0": {
                 "Number of grid x": 256,
                 "Number of grid y": 256,
                 "Grid x length": 1e-5,
                 "Grid y length": 3.5e-6,
-                "Number of bunch slices": 10,
-                "Field solver:": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]: field solver
             },
         }
     }
@@ -135,6 +134,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Emittance x (m'rad)": 200e-6,
                 "Emittance y (m'rad)": 30e-6,
                 "Dx (m)": 0.0,
+                "Dpx": 0.0,
                 "Sigma z (m)": 0.08,
                 "DeltaP/P": 1.62e-3,
                 "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
@@ -170,9 +170,9 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     #     DQx=-1,
     #     DQy=-2,
     # )
-    # if (Beampara["Circumference (m)"] - circumference_twissFile) > 1e-9:
+    # if (circumference - circumference_twissFile) > 1e-9:
     #     print(
-    #         f"Error: Circumference from Beampara dict is = {Beampara["Circumference (m)"]}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
+    #         f"Error: Circumference from Beampara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
     #     )
     #     sys.exit(1)
     # for twiss in twiss_list_from_madx:
@@ -181,9 +181,9 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     element_list_from_madx, circumference_seqFile = generate_element_json(
         r"D:\AthenaLattice\SZA\v13\sza.seq",
     )
-    if (Beampara["Circumference (m)"] - circumference_seqFile) > 1e-9:
+    if (circumference - circumference_seqFile) > 1e-9:
         print(
-            f"Error: Circumference from Beampara dict is = {Beampara["Circumference (m)"]}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
+            f"Error: Circumference from Beampara dict is = {circumference}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
         )
         sys.exit(1)
     for element in element_list_from_madx:
@@ -216,6 +216,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     # }
     # Sequence.update(lattice_oneturn_map)
 
+    # Monitor to save bunch distribution
     Monitor_Dist_oneturn = {
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
@@ -225,27 +226,43 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     }
     Sequence.update(Monitor_Dist_oneturn)
 
+    # Monitor to save bunch statistics
     Monitor_Stat_oneturn = {
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
     }
     Sequence.update(Monitor_Stat_oneturn)
 
+    # RF cavity, length is 0, no drift
     RF1 = {
         "RF_cavity1_"
-        + str(Beampara["Circumference (m)"]): {
-            "S (m)": Beampara["Circumference (m)"],
+        + str(circumference): {
+            "S (m)": circumference,
             "Command": "RFElement",
-            "L (m)": 0,
-            "Drift length (m)": 0,
             "RF Data files": ["D:path"],
         }
     }
     Sequence.update(RF1)
 
+    # Sort bunch at position s to realize bunch slicing
+    for s_sort in np.linspace(0, circumference, 10, endpoint=False):
+        sortPoint = {
+            "SortBunch_"
+            + str(s_sort): {
+                "S (m)": s_sort,
+                "Command": "SortBunch",
+                "Sort purpose": "Space-charge",  # [Space-charge/Beam-beam]
+                # "Sort model": "Sort z-index",  # [Sort z-index/Full sort]
+                # "Full sort period (Turn)": 100,  # in "Sort z-index" model，a full sort is performed once after the set number of turns to improve the memory hit rate
+            }
+        }
+        Sequence.update(sortPoint)
+
+    ######################################################### sort sequence by s ##########################################################
+
     Sequence = sort_sequence(Sequence)
     Sequencepara = {"Sequence": Sequence}
 
-    ########## config finish ##########
+    ############################################################ config finish ############################################################
 
     merged_dict = {**Beampara, **Spacecharge_sim_para, **BeambeamPara, **Sequencepara}
 
