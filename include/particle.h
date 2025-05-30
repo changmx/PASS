@@ -10,15 +10,22 @@
 #include "config.h"
 #include "parameter.h"
 
-class Particle
+
+// Align the memory to 64 bytes or 128 bytes
+#ifdef PASS_CAL_PHASE
+class alignas(128) Particle
+#else
+class alignas(64) Particle
+#endif
 {
+
 public:
 	Particle() = default;
 	__host__ __device__ ~Particle() {};
 
-	__host__ __device__ bool operator<(const Particle& a) const
+	__host__ __device__ bool operator>(const Particle& other) const
 	{
-		return z > a.z;
+		return this->z > other.z;
 	}
 
 	double x = 0;
@@ -28,11 +35,9 @@ public:
 	double z = 0;
 	double pz = 0;
 
-	int tag = 0;
-
-	/*The integer part of lossTurn is the number of turns in which the loss occured,
-	and the decimal part is the loss position (in unit of m) divided by 1e6*/
-	double lostTurn = -1;
+	int tag = 0;		// lost flag, >0 means not lost, <0 means lost
+	int lostTurn = -1;	// lost turn, -1 means not lost
+	double lostPos = -1;	// lost position, -1 means not lost
 
 #ifdef PASS_CAL_PHASE
 
@@ -49,6 +54,25 @@ private:
 
 };
 
+// ¾²Ì¬¶ÏÑÔÑéÖ¤
+#ifdef PASS_CAL_PHASE
+static_assert(sizeof(Particle) == 128, "Size mismatch");
+#else
+static_assert(sizeof(Particle) == 64, "Size mismatch");
+#endif
+
+
+struct Slice
+{
+	// Instruction for use of index_start and index_end:
+	// for (int idx = index_start; idx < index_end; ++idx) { ... } // Access particles in this slice
+	int index_start;	// start index of a slice
+	int index_end;		// end index of a slice
+	double z_start;		// start z of a slice
+	double z_end;		// end z of a slice
+	double z_avg;		// average z of all patricles in a slice
+};
+
 
 class Bunch
 {
@@ -63,7 +87,8 @@ public:
 	int bunchId = 0;
 
 	double Nrp = 0;	// Number of real particles
-	int Np = 0;	// Number of macro particles
+	int Np = 0;		// Number of macro particles
+	int Np_sur = 0;	// Number of surviving macro particles
 	double ratio = 0;	// Value of Nrp/Np
 
 	int Nproton = 0;	// Number of protons per real particle
@@ -100,10 +125,28 @@ public:
 
 	//int dampTurn = 0;	// Transverse damping turns
 
-	Particle* dev_bunch = NULL;
+	Particle* dev_bunch = nullptr;
+	Particle* dev_bunch_tmp = nullptr;	// Temporary buffer for sorting particles
 
 	std::string dist_transverse;
 	std::string dist_longitudinal;
+
+	bool is_slice_for_sc = false;		// Whether to slice for space-charge effect
+	bool is_slice_for_bb = false;		// Whether to slice for beam-beam effect
+
+	double* dev_sort_z = nullptr;		// particle z position
+	int* dev_sort_index = nullptr;		// particle index
+
+	int Nslice_sc = 0;	// Number of slices in longitudinal distribution
+	int Nslice_bb = 0;	// Number of slices in longitudinal distribution
+
+	std::string slice_model_sc;	// "Equal particle" or "Equal length"
+	std::string slice_model_bb;	// "Equal particle" or "Equal length"
+
+	Slice* dev_slice_sc = nullptr;	// slice information
+	Slice* dev_slice_bb = nullptr;	// slice information
+
+
 
 private:
 
