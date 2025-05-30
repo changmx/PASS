@@ -4,6 +4,7 @@
 #include "element.h"
 #include "parallelPlan.h"
 #include "monitor.h"
+#include "cutSlice.h"
 
 #include <fstream>
 #include "cuda_runtime.h"
@@ -46,16 +47,21 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					--> RBendElement: rectangular dipole
 					--> QuadrupoleElement: quadrupole
 					--> SextupoleElement: sextupole
+					--> OctupoleElement: octupole
+					--> HKickerElement: horizontal kicker
+					--> VKickerElement: vertical kicker
+					--> MarkerElement: marker, used to mark the position of an element in the sequence
+					--> RFElement: RF cavity, perform acceleration or logituninal phase space manipulation
 				Monitor: save information
 					--> DistMonitor: save the distribution of all particles in a bunch
 					--> PhaseMonitor: save the phase advance of all particles in a bunch
 					--> StatMonitor: save statistical data of a bunch (e.g. centroid, size, emittance ...)
 					--> LumiMonitor: save the luminosity of collision
-
+				SortBunch: sort particles in a bunch according z position and calculate slice information
 				SpaceCharge: perform space charge simulation at specified position
 				BeamBeam: perform beam-beam simulation at specified position
 				Wakefield: perform wakefield simulation at specified position
-				RFCavity: perform acceleration or logituninal phase space manipulation
+
 				StatMonitor: calculate and save bunch's information like centroid, size, emittance ...
 				LumiMonitor: calculate and save collision luminosity
 				DistMonitor: save bunch's distribution
@@ -197,11 +203,25 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(256, 4, bunch[i].Np);	// Important, block_x in cal_statistic_perblock() is 256, so we set it to 256 here. Do not change it.
+					// Important!!! block_x in cal_statistic_perblock() is 256, so we set it to 256 here. Do not change it !!!
+					ParallelPlan1d plan1d(256, 4, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<StatMonitor>>(
 							std::make_unique<StatMonitor>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("SortBunch" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					// Important!!! block_x in reduction_z_avg() is 256, so we set it to 256 here. Do not change it !!!
+					ParallelPlan1d plan1d(256, 1, 1000);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<SortBunch>>(
+							std::make_unique<SortBunch>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
