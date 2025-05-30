@@ -19,6 +19,7 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 	{
 		Nrp = data.at("Sequence").at("Injection").at(key_bunch).at("Number of real particles per bunch");
 		Np = data.at("Sequence").at("Injection").at(key_bunch).at("Number of macro particles per bunch");
+		Np_sur = Np;
 		ratio = Nrp / Np;
 
 		Nproton = data.at("Number of protons per particle");
@@ -89,11 +90,43 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 
 void Bunch::init_memory() {
 	//std::cout << "pointer 0 " << std::hex << dev_bunch << std::endl;
+
 	callCuda(cudaMalloc(&dev_bunch, Np * sizeof(Particle)));
+	callCuda(cudaMalloc(&dev_bunch_tmp, Np * sizeof(Particle)));
+
 	callCuda(cudaMemset(dev_bunch, 0, Np * sizeof(Particle)));
+	callCuda(cudaMemset(dev_bunch_tmp, 0, Np * sizeof(Particle)));
+
 	//std::cout << "pointer 1 " << std::hex << dev_bunch << std::endl;
+
+	if (is_slice_for_sc || is_slice_for_bb) {
+		callCuda(cudaMalloc(&dev_sort_z, Np * sizeof(double)));
+		callCuda(cudaMalloc(&dev_sort_index, Np * sizeof(int)));
+	}
+
+	if (is_slice_for_sc) {
+		callCuda(cudaMalloc(&dev_slice_sc, Nslice_sc * sizeof(Slice)));
+	}
+	if (is_slice_for_bb) {
+		callCuda(cudaMalloc(&dev_slice_bb, Nslice_bb * sizeof(Slice)));
+	}
+
 }
 
 void Bunch::free_memory() {
 	callCuda(cudaFree(dev_bunch));
+	callCuda(cudaFree(dev_bunch_tmp));
+
+	if (is_slice_for_sc || is_slice_for_bb) {
+		callCuda(cudaFree(dev_sort_z));
+		callCuda(cudaFree(dev_sort_index));
+	}
+
+	if (is_slice_for_sc) {
+		callCuda(cudaFree(dev_slice_sc));
+	}
+	if (is_slice_for_bb) {
+		callCuda(cudaFree(dev_slice_bb));
+	}
+
 }
