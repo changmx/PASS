@@ -44,13 +44,15 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np = 0;
+	int Np_sur = 0;
 	double circumference = 0;
 
 	double drift_length = 0;
 
 	int thread_x = 0;
 	int block_x = 0;
+
+	bool isAperture = 0;	// Whether to calculate the particle loss caused by the aperture
 };
 
 
@@ -360,7 +362,7 @@ private:
 
 };
 
-__global__ void transfer_drift(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length);
 
 __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, double circumference,

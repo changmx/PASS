@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <general.h>
 
 
 MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
@@ -18,7 +19,7 @@ MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunc
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	using json = nlohmann::json;
@@ -52,7 +53,7 @@ void MarkerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, gamma, drift);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -819,7 +820,7 @@ void RFElement::execute(int turn) {
 }
 
 
-__global__ void transfer_drift(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -835,7 +836,7 @@ __global__ void transfer_drift(Particle* dev_bunch, int Np, double beta, double 
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
