@@ -341,7 +341,7 @@ def generate_element_json(filepath):
         }
         element_json.append(element_dict)
 
-    return element_json
+    return element_json, circumference
 
 
 def test_parse_file(filepath):
