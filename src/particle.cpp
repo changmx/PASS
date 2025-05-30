@@ -77,6 +77,26 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		//chromx = data.at("Chromaticity x");
 		//chromy = data.at("Chromaticity y");
 
+		if (data.contains("Space-charge simulation parameters"))
+		{
+			is_slice_for_sc = true;
+			Nslice_sc = data.at("Space-charge simulation parameters").at("Number of bunch slices");
+		}
+		else
+		{
+			is_slice_for_sc = false;
+			Nslice_sc = 0;
+		}
+		if (data.contains("Beam-beam simulation parameters"))
+		{
+			is_slice_for_bb = true;
+			Nslice_bb = data.at("Beam-beam simulation parameters").at("Number of bunch slices");
+		}
+		else
+		{
+			is_slice_for_bb = false;
+			Nslice_bb = 0;
+		}
 
 
 	}

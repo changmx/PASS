@@ -140,9 +140,6 @@ public:
 	int Nslice_sc = 0;	// Number of slices in longitudinal distribution
 	int Nslice_bb = 0;	// Number of slices in longitudinal distribution
 
-	std::string slice_model_sc;	// "Equal particle" or "Equal length"
-	std::string slice_model_bb;	// "Equal particle" or "Equal length"
-
 	Slice* dev_slice_sc = nullptr;	// slice information
 	Slice* dev_slice_bb = nullptr;	// slice information
 
