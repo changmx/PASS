@@ -143,7 +143,10 @@ public:
 	Slice* dev_slice_sc = nullptr;	// slice information
 	Slice* dev_slice_bb = nullptr;	// slice information
 
-
+	int* dev_survive_flags;   // mark survive£¨tag>=0£©
+	int* dev_survive_prefix;  // sum of prefix of survive particles
+	void* dev_cub_temp = nullptr;	// CUB tmporary memory
+	size_t cub_temp_bytes = 0;      // size of CUB temporary memory
 
 private:
 
