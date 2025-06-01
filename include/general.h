@@ -118,11 +118,3 @@ struct CycleRange {
 // 判断值是否存在于任意一个循环范围中
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
-
-// 定义判断粒子是否存活的仿函数
-struct isSurvived {
-	__device__
-		bool operator()(const Particle& p) {
-		return p.tag > 0;
-	}
-};
