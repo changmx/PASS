@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <cub/cub.cuh>
 
 #include "particle.h"
 #include "parameter.h"
@@ -80,7 +81,7 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		if (data.contains("Space-charge simulation parameters"))
 		{
 			is_slice_for_sc = true;
-			Nslice_sc = data.at("Space-charge simulation parameters").at("Number of bunch slices");
+			Nslice_sc = data.at("Space-charge simulation parameters").at("Number of slices");
 		}
 		else
 		{
@@ -90,7 +91,7 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		if (data.contains("Beam-beam simulation parameters"))
 		{
 			is_slice_for_bb = true;
-			Nslice_bb = data.at("Beam-beam simulation parameters").at("Number of bunch slices");
+			Nslice_bb = data.at("Beam-beam simulation parameters").at("Number of slices");
 		}
 		else
 		{
@@ -131,6 +132,12 @@ void Bunch::init_memory() {
 		callCuda(cudaMalloc(&dev_slice_bb, Nslice_bb * sizeof(Slice)));
 	}
 
+	callCuda(cudaMalloc(&dev_survive_flags, Np * sizeof(int)));
+	callCuda(cudaMalloc(&dev_survive_prefix, Np * sizeof(int)));
+	cub::DeviceScan::ExclusiveSum(dev_cub_temp, cub_temp_bytes,
+		dev_survive_flags, dev_survive_prefix, Np);
+	callCuda(cudaMalloc(&dev_cub_temp, cub_temp_bytes));
+
 }
 
 void Bunch::free_memory() {
@@ -149,4 +156,7 @@ void Bunch::free_memory() {
 		callCuda(cudaFree(dev_slice_bb));
 	}
 
+	callCuda(cudaFree(dev_survive_flags));
+	callCuda(cudaFree(dev_survive_prefix));
+	callCuda(cudaFree(dev_cub_temp));
 }
