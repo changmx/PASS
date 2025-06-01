@@ -42,6 +42,7 @@ class QuadrupoleElement(Element):
         self.l = 0.0
         self.k1 = 0.0
         self.k1s = 0.0
+        self.isFieldError = False
 
 
 class SextupoleElement(Element):
@@ -50,6 +51,7 @@ class SextupoleElement(Element):
         self.l = 0.0
         self.k2 = 0.0
         self.k2s = 0.0
+        self.isFieldError = False
 
 
 class OctupoleElement(Element):
@@ -58,6 +60,7 @@ class OctupoleElement(Element):
         self.l = 0.0
         self.k3 = 0.0
         self.k3s = 0.0
+        self.isFieldError = False
 
 
 class HKickerElement(Element):
@@ -65,6 +68,7 @@ class HKickerElement(Element):
         super().__init__(name)
         self.l = 0.0
         self.kick = 0.0
+        self.isFieldError = False
 
 
 class VKickerElement(Element):
@@ -72,6 +76,7 @@ class VKickerElement(Element):
         super().__init__(name)
         self.l = 0.0
         self.kick = 0.0
+        self.isFieldError = False
 
 
 class MarkerElement(Element):
@@ -289,6 +294,7 @@ def generate_element_json(filepath):
                     "Drift length (m)": drift_length,
                     "k1 (m^-2)": elem.k1,
                     "k1s (m^-2)": elem.k1s,
+                    "isFieldError": elem.isFieldError,
                 }
             }
         elif isinstance(elem, SextupoleElement):
@@ -301,7 +307,8 @@ def generate_element_json(filepath):
                     "L (m)": elem.l,
                     "Drift length (m)": drift_length,
                     "k2 (m^-3)": elem.k2,
-                    "k2s (m^-3)": elem.k2,
+                    "k2s (m^-3)": elem.k2s,
+                    "isFieldError": elem.isFieldError,
                 }
             }
         elif isinstance(elem, OctupoleElement):
@@ -314,7 +321,8 @@ def generate_element_json(filepath):
                     "L (m)": elem.l,
                     "Drift length (m)": drift_length,
                     "k3 (m^-4)": elem.k3,
-                    "k3s (m^-4)": elem.k3,
+                    "k3s (m^-4)": elem.k3s,
+                    "isFieldError": elem.isFieldError,
                 }
             }
         else:
