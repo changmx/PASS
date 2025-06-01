@@ -53,7 +53,7 @@ void MarkerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, gamma, drift);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -107,7 +107,7 @@ void SBendElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[SBend Element] run: " + name);
+	//logger->debug("[SBend Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -160,21 +160,21 @@ void SBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
 
 	if (isFieldError)
 	{
-		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 
 		// transfer multipole error kicker
 
-		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 	}
 	else
 	{
-		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 	}
 
@@ -231,7 +231,7 @@ void RBendElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[RBend Element] run: " + name);
+	//logger->debug("[RBend Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -284,21 +284,21 @@ void RBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
 
 	if (isFieldError)
 	{
-		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 
 		// transfer multipole error kicker
 
-		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 	}
 	else
 	{
-		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta,
+		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 	}
 
@@ -350,7 +350,7 @@ void QuadrupoleElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[Quadrupole Element] run: " + name);
+	//logger->debug("[Quadrupole Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -359,21 +359,25 @@ void QuadrupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
 
 	if (isFieldError)
 	{
 		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)	// k1 != 0 && k1s == 0
 		{
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1, l / 2);
+			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, circumference, beta, k1, l / 2);
 			// transfer multipole error kicker
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1, l / 2);
+			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l / 2);
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
 		{
-			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l / 2);
+			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2);
 			// transfer multipole error kicker
-			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l / 2);
+			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2);
+		}
+		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
+		{
+			transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l);
 		}
 		else
 		{
@@ -386,11 +390,15 @@ void QuadrupoleElement::execute(int turn) {
 	{
 		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)
 		{
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1, l);
+			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l);
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)
 		{
-			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k1s, l);
+			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l);
+		}
+		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
+		{
+			transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l);
 		}
 		else
 		{
@@ -447,7 +455,7 @@ void SextupoleElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[Sextupole Element] run: " + name);
+	//logger->debug("[Sextupole Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -456,7 +464,7 @@ void SextupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
 
 	if (abs(k2) > EPSILON && abs(k2s) < EPSILON)	// k2 != 0 && k2s == 0
 	{
@@ -467,9 +475,13 @@ void SextupoleElement::execute(int turn) {
 	{
 		transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k2s, l);
 	}
+	else if (abs(k2) < EPSILON && abs(k2s) < EPSILON)	// k2 == 0 && k2s == 0
+	{
+		// do nothing
+	}
 	else
 	{
-		spdlog::get("logger")->error("[Sextupole Element] {}: ks = {}, kss = {}, there should be and only 1 variable equal to 0",
+		spdlog::get("logger")->error("[Sextupole Element] {}: k2 = {}, k2s = {}, there should be and only 1 variable equal to 0",
 			name, k2, k2s);
 		std::exit(EXIT_FAILURE);
 	}
@@ -479,7 +491,7 @@ void SextupoleElement::execute(int turn) {
 		// transfer multipole error kicker
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -530,7 +542,7 @@ void OctupoleElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[Sextupole Element] run: " + name);
+	//logger->debug("[Octupole Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -539,7 +551,7 @@ void OctupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
 
 	if (abs(k3) > EPSILON && abs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
 	{
@@ -550,9 +562,13 @@ void OctupoleElement::execute(int turn) {
 	{
 		transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k3s, l);
 	}
+	else if (abs(k3) < EPSILON && abs(k3s) < EPSILON)	// k3 == 0 && k3s == 0
+	{
+		// do nothing
+	}
 	else
 	{
-		spdlog::get("logger")->error("[Octupole Element] {}: ks = {}, kss = {}, there should be and only 1 variable equal to 0",
+		spdlog::get("logger")->error("[Octupole Element] {}: k3 = {}, k3s = {}, there should be and only 1 variable equal to 0",
 			name, k3, k3s);
 		std::exit(EXIT_FAILURE);
 	}
@@ -562,7 +578,7 @@ void OctupoleElement::execute(int turn) {
 		// transfer multipole error kicker
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -612,7 +628,7 @@ void HKickerElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[Sextupole Element] run: " + name);
+	//logger->debug("[HKicker Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -621,7 +637,7 @@ void HKickerElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
 
 	transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
 
@@ -630,7 +646,7 @@ void HKickerElement::execute(int turn) {
 		// transfer multipole error kicker
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -680,7 +696,7 @@ void VKickerElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[Sextupole Element] run: " + name);
+	//logger->debug("[VKicker Element] run: " + name);
 
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
@@ -689,7 +705,7 @@ void VKickerElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
 
 	transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
 
@@ -698,7 +714,7 @@ void VKickerElement::execute(int turn) {
 		// transfer multipole error kicker
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -778,7 +794,7 @@ void RFElement::execute(int turn) {
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[RF Element] run: " + name);
+	//logger->debug("[RF Element] run: " + name);
 
 	double m0 = bunchRef.m0;
 	double gammat = bunchRef.gammat;
