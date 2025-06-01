@@ -216,8 +216,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					// Important!!! block_x in reduction_z_avg() is 256, so we set it to 256 here. Do not change it !!!
-					ParallelPlan1d plan1d(256, 1, 1000);
+					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SortBunch>>(
@@ -248,7 +247,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 
 	for (const auto& cmd : command_vec)
 	{
-		spdlog::get("logger")->debug("[ReadCommand] Print sequence: command = {:<18}, s = {:<9}, name = {}", cmd->get_commandType(), cmd->get_s(), cmd->get_name());
+		spdlog::get("logger")->info("[ReadCommand] Print sequence: command = {:<20} s = {:<10} name = {}", cmd->get_commandType(), cmd->get_s(), cmd->get_name());
 	}
 }
 
@@ -256,6 +255,7 @@ int get_priority(const std::string& commandType) {
 	// 将commandType转换为优先级数值
 	if (commandType == "Injection") return 0;	// 最高优先级
 	else if (commandType == "Twiss") return 50;	// 次级优先级
+	else if (commandType == "MarkerElement") return 100;
 	else if (commandType == "SBendElement") return 100;
 	else if (commandType == "RBendElement") return 100;
 	else if (commandType == "QuadrupoleElement") return 100;
@@ -263,8 +263,14 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "OctupoleElement") return 100;
 	else if (commandType == "HKickerElement") return 100;
 	else if (commandType == "VKickerElement") return 100;
+	else if (commandType == "RFElement") return 100;
+	else if (commandType == "SpaceCharge") return 120;
+	//else if (commandType == "Wakefield") return 150;
+	//else if (commandType == "LumiMonitor") return 150;
+	//else if (commandType == "PhaseMonitor") return 150;
 	else if (commandType == "DistMonitor") return 150;
 	else if (commandType == "StatMonitor") return 150;
+	else if (commandType == "SortBunch") return 200;
 	else if (commandType == "BeamBeam") return 300;
 	else return 999; // 最低优先级，其他情况
 }
