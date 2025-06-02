@@ -20,6 +20,7 @@ def sort_sequence(sequence):
     Command_order = {
         "Injection": 0,  # 最高优先级
         "Twiss": 50,  # 次级优先级
+        "MarkerElement": 100,
         "SBendElement": 100,
         "RBendElement": 100,
         "QuadrupoleElement": 100,
@@ -28,6 +29,7 @@ def sort_sequence(sequence):
         "HKickerElement": 100,
         "VKickerElement": 100,
         "RFElement": 100,
+        "SpaceCharge": 120,
         "DistMonitor": 150,
         "StatMonitor": 150,
         "SortBunch": 200,
@@ -75,9 +77,9 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         # "Chromaticity x": 0,
         # "Chromaticity y": 0,
         "GammaT": 1,
-        "Number of turns": 10000,
+        "Number of turns": 1000,
         "Number of GPU devices": 1,
-        "Device Id": [0, 3],
+        "Device Id": [0],
         "Output directory": "D:\\PassSimulation",
         "Is plot figure": False,
     }
@@ -91,20 +93,24 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     # Eq_frozen: using th B-E formula with unchanged sigmax and sigmay
 
     Spacecharge_sim_para = {
-        "Space charge simulation parameters": {
+        "Space-charge simulation parameters": {
             "Is space charge": False,
-            "Number of bunch slices": 10,
+            "Number of slices": 10,
             "Slice model": "Equal length",  # [Equal particle/Equal length]
-            "Field solver:": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]
+            "Field solver": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]
+            "Number of grid x": 256,
+            "Number of grid y": 256,
+            "Grid x length": 1e-5,
+            "Grid y length": 3.5e-6,
         }
     }
 
     BeambeamPara = {
         "Beam-beam simulation parameters": {
             "Is beam-beam": False,
-            "Number of bunch slices": 10,
+            "Number of slices": 10,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
-            "Field solver:": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]
+            "Field solver": "PIC_conv",  # [PIC_conv/PIC_FD_dm/PIC_FD_m/Eq_quasi_static/Eq_frozen]
             "IP0": {
                 "Number of grid x": 256,
                 "Number of grid y": 256,
@@ -127,16 +133,16 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Number of macro particles per bunch": 1e4,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
-                "Alpha x": -0.004122662723,
-                "Alpha y": -2.20069362e-06,
-                "Beta x (m)": 14.79791154,
-                "Beta y (m)": 1.793094864,
+                "Alpha x": 0.0003343648345,
+                "Alpha y": -3.971599058e-06,
+                "Beta x (m)": 12.63010248,
+                "Beta y (m)": 2.147721948,
                 "Emittance x (m'rad)": 200e-6,
                 "Emittance y (m'rad)": 30e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 0.08,
-                "DeltaP/P": 1.62e-3,
+                "Sigma z (m)": 0.1,
+                "DeltaP/P": 5e-3,
                 "Transverse dist": "gaussian",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "gaussian",  # [gaussian/uniform]
                 "Offset x": {
@@ -163,6 +169,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(Spacecharge)
 
+    ################## Get twiss  from madx ####################
     # twiss_list_from_madx, circumference_twissFile = generate_twiss_json(
     #     r"D:\PASS\test\test_twiss_transfer\ring.dat",
     #     logi_transfer="matrix",
@@ -170,7 +177,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     #     DQx=-1,
     #     DQy=-2,
     # )
-    # if (circumference - circumference_twissFile) > 1e-9:
+    # if (abs(circumference - circumference_twissFile)) > 1e-9:
     #     print(
     #         f"Error: Circumference from Beampara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
     #     )
@@ -178,10 +185,33 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     # for twiss in twiss_list_from_madx:
     #     Sequence.update(twiss)
 
+    # ########### Space charge according to madx twiss ###########
+    # spacecharge_list = []
+    # for ielem in twiss_list_from_madx:
+    #     first_key = next(iter(ielem))
+    #     name_sc = first_key
+    #     s_sc = ielem[first_key]["S (m)"]
+    #     s_pre_sc = ielem[first_key]["S previous (m)"]
+
+    #     dict_sc = {
+    #         name_sc
+    #         + "_sc": {
+    #             "S (m)": s_sc,
+    #             "Command": "SpaceCharge",
+    #             "Length (m)": s_sc - s_pre_sc,
+    #         }
+    #     }
+    #     spacecharge_list.append(dict_sc)
+
+    # for dict_sc in spacecharge_list:
+    #     Sequence.update(dict_sc)
+    # print(f"Number of space charge points: {len(spacecharge_list)}")
+
+    ################### Get element from madx ###################
     element_list_from_madx, circumference_seqFile = generate_element_json(
-        r"D:\AthenaLattice\SZA\v13\sza.seq",
+        r"D:\AthenaLattice\sza\v13\sza.seq",
     )
-    if (circumference - circumference_seqFile) > 1e-9:
+    if (abs(circumference - circumference_seqFile)) > 1e-9:
         print(
             f"Error: Circumference from Beampara dict is = {circumference}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
         )
@@ -189,6 +219,29 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     for element in element_list_from_madx:
         # print(element)
         Sequence.update(element)
+
+    ########### Space charge according to madx element ###########
+    # spacecharge_list = []
+    # for ielem in element_list_from_madx:
+    #     first_key = next(iter(ielem))
+    #     name_sc = first_key
+    #     s_sc = ielem[first_key]["S (m)"]
+    #     l_sc = ielem[first_key]["L (m)"]
+    #     drift_sc = ielem[first_key]["Drift length (m)"]
+
+    #     dict_sc = {
+    #         name_sc
+    #         + "_sc": {
+    #             "S (m)": s_sc,
+    #             "Command": "SpaceCharge",
+    #             "Length (m)": l_sc + drift_sc,
+    #         }
+    #     }
+    #     spacecharge_list.append(dict_sc)
+
+    # for dict_sc in spacecharge_list:
+    #     Sequence.update(dict_sc)
+    # print(f"Number of space charge points: {len(spacecharge_list)}")
 
     # lattice_oneturn_map = {
     #     "oneturn_map": {
@@ -221,7 +274,7 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
             "Command": "DistMonitor",
-            "Save turns": [[1], [20000, 30000, 5000]],
+            "Save turns": [[1], [5000], [20000, 30000, 5000]],
         },
     }
     Sequence.update(Monitor_Dist_oneturn)
@@ -232,27 +285,25 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
     }
     Sequence.update(Monitor_Stat_oneturn)
 
-    # RF cavity, length is 0, no drift
-    RF1 = {
-        "RF_cavity1_"
-        + str(circumference): {
-            "S (m)": circumference,
-            "Command": "RFElement",
-            "RF Data files": ["D:path"],
-        }
-    }
-    Sequence.update(RF1)
+    # # RF cavity, length is 0, no drift
+    # RF1 = {
+    #     "RF_cavity1_"
+    #     + str(circumference): {
+    #         "S (m)": circumference,
+    #         "Command": "RFElement",
+    #         "RF Data files": ["D:path"],
+    #     }
+    # }
+    # Sequence.update(RF1)
 
     # Sort bunch at position s to realize bunch slicing
-    for s_sort in np.linspace(0, circumference, 10, endpoint=False):
+    for s_sort in np.linspace(0, circumference, 1, endpoint=False):
         sortPoint = {
             "SortBunch_"
             + str(s_sort): {
                 "S (m)": s_sort,
                 "Command": "SortBunch",
                 "Sort purpose": "Space-charge",  # [Space-charge/Beam-beam]
-                # "Sort model": "Sort z-index",  # [Sort z-index/Full sort]
-                # "Full sort period (Turn)": 100,  # in "Sort z-index" model，a full sort is performed once after the set number of turns to improve the memory hit rate
             }
         }
         Sequence.update(sortPoint)
@@ -268,6 +319,8 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     with open(config_path, "w") as jsonfile:
         json.dump(merged_dict, jsonfile, indent=4)
+
+    print("Success")
 
 
 if __name__ == "__main__":
