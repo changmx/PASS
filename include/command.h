@@ -127,3 +127,37 @@ inline void checkCublas(cublasStatus_t err, const char* file, int line)
 #ifndef callCublas
 #define callCublas(call) (checkCublas(call, __FILE__, __LINE__));
 #endif // !callCublas
+
+
+#define USE_CUDA_DEBUG_MODE 1
+
+#if USE_CUDA_DEBUG_MODE
+#define callKernel(...) LAUNCH_KERNEL_DEBUG(__VA_ARGS__)
+#else
+#define callKernel(...) LAUNCH_KERNEL_RELEASE(__VA_ARGS__)
+#endif
+
+#define LAUNCH_KERNEL_DEBUG(kernel_call) \
+    do { \
+        kernel_call; \
+        cudaError_t __err = cudaGetLastError(); \
+        if (__err != cudaSuccess) { \
+			spdlog::get("logger")->error("[CUDA kernel launch error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
+            exit(EXIT_FAILURE); \
+        } \
+        __err = cudaDeviceSynchronize(); \
+        if (__err != cudaSuccess) { \
+			spdlog::get("logger")->error("[CUDA kernel execution error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
+            exit(EXIT_FAILURE); \
+        } \
+    } while(0)
+
+#define LAUNCH_KERNEL_RELEASE(kernel_call) \
+    do { \
+        kernel_call; \
+        cudaError_t __err = cudaGetLastError(); \
+        if (__err != cudaSuccess) { \
+			spdlog::get("logger")->error("[CUDA kernel error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
+            exit(EXIT_FAILURE); \
+        } \
+	} while (0)
