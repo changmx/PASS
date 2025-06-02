@@ -142,8 +142,7 @@ def parse_file(filepath):
                 sequence.append(elem_copy)
 
             else:
-                # ！！！ sequence的名称必须为ring ！！！
-                if line.lower().startswith("ring: sequence"):
+                if ":sequence" in line.lower().replace(" ", ""):
                     processing_sequence = True
 
                     match_circum = re.search(r"=\s*([+-]?\d+\.?\d*)", line.lower())
@@ -151,7 +150,7 @@ def parse_file(filepath):
                         circumference = float(match_circum.group(1))
                         print(f"Circumference (m) = {circumference}")
                     else:
-                        print(f"Error: can't match ring: sequence, l = circumference")
+                        print(f"Error: can't match sequence, l = circumference")
                         sys.exit(1)
                     continue
 
