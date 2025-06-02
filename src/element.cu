@@ -92,6 +92,9 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 		fintx = data.at("Sequence").at(obj_name).at("fintx");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+
+		spdlog::get("logger")->debug("[SBend Element] run: {}, s = {}, l = {}, drift_length = {}, angle = {}, e1 = {}, e2 = {}, hgap = {}, fint = {}, fintx = {}, isFieldError = {}",
+			name, s, l, drift_length, angle, e1, e2, hgap, fint, fintx, isFieldError);
 	}
 	catch (json::exception e)
 	{
@@ -140,12 +143,9 @@ void SBendElement::execute(int turn) {
 	double r21 = -h * sx;
 	double r22 = cx;
 	double r26 = sx / beta;
-	double r33 = 1;
 	double r34 = l_used;
-	double r44 = 1;
 	double r51 = -sx / beta;
 	double r52 = -(1 - cx) / (h * beta);
-	double r55 = 1;
 	double r56 = l_used / (beta * beta * gamma * gamma) - (h * l_used - sx) / (h * beta * beta);
 
 	double psi1 = e1;
@@ -160,22 +160,22 @@ void SBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift));
 
 	if (isFieldError)
 	{
-		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
-			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
 		// transfer multipole error kicker
 
-		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
-			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 	}
 	else
 	{
-		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
-			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+		callKernel(transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -264,12 +264,9 @@ void RBendElement::execute(int turn) {
 	double r21 = -h * sx;
 	double r22 = cx;
 	double r26 = sx / beta;
-	double r33 = 1;
 	double r34 = l_used;
-	double r44 = 1;
 	double r51 = -sx / beta;
 	double r52 = -(1 - cx) / (h * beta);
-	double r55 = 1;
 	double r56 = l_used / (beta * beta * gamma * gamma) - (h * l_used - sx) / (h * beta * beta);
 
 	double psi1 = e1;
@@ -283,7 +280,7 @@ void RBendElement::execute(int turn) {
 	double fl43i = -h * tan(psip1);
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
-
+	
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
 
 	if (isFieldError)
@@ -336,6 +333,9 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 		k1s = data.at("Sequence").at(obj_name).at("k1s (m^-2)");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+
+		spdlog::get("logger")->debug("[Quadrupole Element] run: {}, s = {}, l = {}, drift_length = {}, k1 = {}, k1s = {}, isFieldError = {}",
+			name, s, l, drift_length, k1, k1s, isFieldError);
 	}
 	catch (json::exception e)
 	{
@@ -359,25 +359,26 @@ void QuadrupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift));
 
 	if (isFieldError)
 	{
+
 		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)	// k1 != 0 && k1s == 0
 		{
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, circumference, beta, k1, l / 2);
+			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l / 2));
 			// transfer multipole error kicker
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l / 2);
+			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l / 2));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
 		{
-			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2);
+			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2));
 			// transfer multipole error kicker
-			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2);
+			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
-			transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l);
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l));
 		}
 		else
 		{
@@ -390,15 +391,15 @@ void QuadrupoleElement::execute(int turn) {
 	{
 		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)
 		{
-			transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l);
+			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)
 		{
-			transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l);
+			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
-			transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l);
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l));
 		}
 		else
 		{
@@ -406,6 +407,7 @@ void QuadrupoleElement::execute(int turn) {
 				name, k1, k1s);
 			std::exit(EXIT_FAILURE);
 		}
+
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -635,8 +637,6 @@ void HKickerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	double EPSILON = 1e-9;
-
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
 
 	transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
@@ -702,8 +702,6 @@ void VKickerElement::execute(int turn) {
 	double beta = bunchRef.beta;
 
 	double drift = drift_length;
-
-	double EPSILON = 1e-9;
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
 
@@ -867,7 +865,11 @@ __global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, dou
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
 		dev_bunch[tid].z += (under - over) * circumference;
-
+		//if (dev_bunch[tid].tag == 1)
+		//{
+		//	printf("dev_bunch[1] pz0 = %f, z0 = %f, z1 = %f, z2 = %f\n",
+		//		pt0 / beta, tau0 * beta, tau1 * beta, dev_bunch[tid].z);
+		//}
 		tid += stride;
 	}
 }
@@ -901,10 +903,10 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, d
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
 
-		double fl21 = fl21i / (1 + pt0 / beta);
-		double fl43 = fl43i / (1 + pt0 / beta);
-		double fr21 = fr21i / (1 + pt0 / beta);
-		double fr43 = fr43i / (1 + pt0 / beta);
+		fl21 = fl21i / (1 + pt0 / beta);
+		fl43 = fl43i / (1 + pt0 / beta);
+		fr21 = fr21i / (1 + pt0 / beta);
+		fr43 = fr43i / (1 + pt0 / beta);
 
 		// apply the influence of left fringe field
 		x1 = dev_bunch[tid].x;
@@ -941,7 +943,11 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, d
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
 		dev_bunch[tid].z += (under - over) * circumference;
-
+		//if (dev_bunch[tid].tag == 1)
+		//{
+		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
+		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
+		//}
 		tid += stride;
 	}
 
@@ -962,7 +968,7 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 	double tau0 = 0, tau1 = 0, tau2 = 0, tau3 = 0;	// tau = z/beta - ct(=0) = z/beta
 	double pt0 = 0, pt1 = 0, pt2 = 0, pt3 = 0;	// pt = DeltaE/(P0*c) = beta*DeltaP/P0
 
-	double fl21 = 0, fl43 = 0, fr21 = 0, fr43 = 0;
+	double fl21 = 0, fl43 = 0;
 
 	double d = 0;	// about power error
 
@@ -974,10 +980,8 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
 
-		double fl21 = fl21i / (1 + pt0 / beta);
-		double fl43 = fl43i / (1 + pt0 / beta);
-		double fr21 = fr21i / (1 + pt0 / beta);
-		double fr43 = fr43i / (1 + pt0 / beta);
+		fl21 = fl21i / (1 + pt0 / beta);
+		fl43 = fl43i / (1 + pt0 / beta);
 
 		// apply the influence of left fringe field
 		x1 = dev_bunch[tid].x;
@@ -1014,7 +1018,11 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
 		dev_bunch[tid].z += (under - over) * circumference;
-
+		//if (dev_bunch[tid].tag == 1)
+		//{
+		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
+		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
+		//}
 		tid += stride;
 	}
 
@@ -1035,7 +1043,7 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 	double tau0 = 0, tau1 = 0, tau2 = 0, tau3 = 0;	// tau = z/beta - ct(=0) = z/beta
 	double pt0 = 0, pt1 = 0, pt2 = 0, pt3 = 0;	// pt = DeltaE/(P0*c) = beta*DeltaP/P0
 
-	double fl21 = 0, fl43 = 0, fr21 = 0, fr43 = 0;
+	double fr21 = 0, fr43 = 0;
 
 	double d = 0;	// about power error
 
@@ -1047,10 +1055,8 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
 
-		double fl21 = fl21i / (1 + pt0 / beta);
-		double fl43 = fl43i / (1 + pt0 / beta);
-		double fr21 = fr21i / (1 + pt0 / beta);
-		double fr43 = fr43i / (1 + pt0 / beta);
+		fr21 = fr21i / (1 + pt0 / beta);
+		fr43 = fr43i / (1 + pt0 / beta);
 
 		// no influence of left fringe field
 		x1 = dev_bunch[tid].x;
@@ -1087,7 +1093,11 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
 		dev_bunch[tid].z += (under - over) * circumference;
-
+		//if (dev_bunch[tid].tag == 1)
+		//{
+		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
+		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
+		//}
 		tid += stride;
 	}
 
@@ -1130,6 +1140,9 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double bet
 		chx = cosh(omega * l);
 		shx = sinh(omega * l);
 
+		//printf("Quadrupole: k1_chrom = %f, pz = %f, beta = %f, pt = %f, cx = %f, sx = %f, chx =%f, shx = %f\n",
+		//	k1_chrom, dev_bunch[tid].pz, beta, pt0, cx, sx, chx, shx);
+
 		if (k1_chrom > 0) {
 			r11 = cx;
 			r12 = sx / omega;
@@ -1169,7 +1182,11 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double bet
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
 		dev_bunch[tid].z += (under - over) * circumference;
-
+		//if (dev_bunch[tid].tag == 1)
+		//{
+		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
+		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
+		//}
 		tid += stride;
 	}
 }
@@ -1275,7 +1292,11 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double bet
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
 		dev_bunch[tid].z += (under - over) * circumference;
-
+		//if (dev_bunch[tid].tag == 1)
+		//{
+		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
+		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
+		//}
 		tid += stride;
 	}
 }
@@ -1287,15 +1308,13 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double x0 = 0, y0 = 0;
 	double k2_chrom = 0;
 
 	while (tid < Np) {
 
 		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
 		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
 
 		k2_chrom = k2 / (1 + dev_bunch[tid].pz);
 
@@ -1313,15 +1332,13 @@ __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double x0 = 0, y0 = 0;
 	double k2s_chrom = 0;
 
 	while (tid < Np) {
 
 		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
 		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
 
 		k2s_chrom = k2s / (1 + dev_bunch[tid].pz);
 
@@ -1339,15 +1356,13 @@ __global__ void transfer_octupole_norm(Particle* dev_bunch, int Np, double beta,
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double x0 = 0, y0 = 0;
 	double k3_chrom = 0;
 
 	while (tid < Np) {
 
 		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
 		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
 
 		k3_chrom = k3 / (1 + dev_bunch[tid].pz);
 
@@ -1365,15 +1380,13 @@ __global__ void transfer_octupole_skew(Particle* dev_bunch, int Np, double beta,
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double x0 = 0, px0 = 0, y0 = 0, py0 = 0;
+	double x0 = 0, y0 = 0;
 	double k3s_chrom = 0;
 
 	while (tid < Np) {
 
 		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
 		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
 
 		k3s_chrom = k3s / (1 + dev_bunch[tid].pz);
 
@@ -1391,13 +1404,9 @@ __global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double x0 = 0, px0 = 0;
 	double kick_chrom = 0;
 
 	while (tid < Np) {
-
-		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
 
 		kick_chrom = kick / (1 + dev_bunch[tid].pz);
 
@@ -1414,13 +1423,9 @@ __global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double y0 = 0, py0 = 0;
 	double kick_chrom = 0;
 
 	while (tid < Np) {
-
-		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
 
 		kick_chrom = kick / (1 + dev_bunch[tid].pz);
 
