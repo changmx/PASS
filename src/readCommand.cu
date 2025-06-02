@@ -85,7 +85,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<Twiss>>(
@@ -97,7 +97,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<MarkerElement>>(
@@ -109,7 +109,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SBendElement>>(
@@ -121,7 +121,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<RBendElement>>(
@@ -133,7 +133,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(512, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<QuadrupoleElement>>(
@@ -145,7 +145,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SextupoleElement>>(
@@ -157,7 +157,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<OctupoleElement>>(
@@ -169,7 +169,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<HKickerElement>>(
@@ -181,7 +181,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<VKickerElement>>(
@@ -216,7 +216,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
-					ParallelPlan1d plan1d(maxThreadsPerBlock, 1, bunch[i].Np);
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SortBunch>>(
