@@ -15,10 +15,30 @@ find_package(Python COMPONENTS Interpreter Development)
 string(TIMESTAMP CMAKE_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 configure_file(${PROJECT_SOURCE_DIR}/config/config.h.in ${PROJECT_SOURCE_DIR}/config/config.h)
 
+# set AMGX installation path
+set(AMGX_ROOT ${PROJECT_SOURCE_DIR}/libs/amgx CACHE PATH "AMGX installation directory")
+message(STATUS "Using AMGX from: ${AMGX_ROOT}")
+
+find_path(AMGX_INCLUDE_DIR
+    NAMES amgx_c.h
+    PATHS "${AMGX_ROOT}/include"
+    REQUIRED
+)
+find_library(AMGX_LIBRARY
+    NAMES amgx
+    PATHS "${AMGX_ROOT}/lib"
+    REQUIRED
+)
+set(AMGX_LIBRARIES ${AMGX_LIBRARY}) 
+
+# Display the found AMGX information
+message(STATUS "AMGX include dir: ${AMGX_INCLUDE_DIR}")
+message(STATUS "AMGX library: ${AMGX_LIBRARIES}")
+
 # set source files
 set(SOURCES
     src/main.cpp
-    src/particle.cpp
+    src/particle.cu
     src/general.cu
     src/parameter.cpp
     src/readCommand.cu
@@ -27,6 +47,8 @@ set(SOURCES
     src/element.cu
     src/monitor.cu
     src/cutSlice.cu
+    src/pic.cu
+    src/spaceCharge.cu
 )
 
 # set header files
@@ -43,6 +65,8 @@ set(HEADERS
     include/parallelPlan.h
     include/monitor.h
     include/cutSlice.h
+    include/pic.h
+    include/spaceCharge.h
 )
 
 # generate executable file
@@ -60,6 +84,7 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/include/cmdline
     ${PROJECT_SOURCE_DIR}/include/tabulate
     ${PROJECT_SOURCE_DIR}/include/spdlog
+    ${AMGX_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -69,6 +94,7 @@ target_link_libraries(${PROJECT_NAME}
     CUDA::cufft
     CUDA::curand
     CUDA::cusparse
+    ${AMGX_LIBRARIES}
 )
 
 # set CUDA ARCHITECTURE. (https://developer.nvidia.com/cuda-gpus)
@@ -76,6 +102,10 @@ target_link_libraries(${PROJECT_NAME}
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CUDA_ARCHITECTURES "70;75;80;86;89"
     CUDA_SEPARABLE_COMPILATION ON)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>
+)
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
