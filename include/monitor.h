@@ -193,8 +193,57 @@ private:
 };
 
 
+class ParticleMonitor :public Monitor
+{
+public:
+	ParticleMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~ParticleMonitor() = default;
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[ParticleMonitor] s = {}, obsId = {}, isEnable = {}, Np_PM = {}, Nobs_PM = {}, Nturn_PM = {}, ",
+			s, obsId, is_enableParticleMonitor, Np_PM, Nobs_PM, Nturn_PM);
+
+		print_cycleRange(saveTurn);
+
+	}
+
+private:
+	int Np = 0;
+
+	int bunchId = 0;
+	std::filesystem::path saveDir;
+	std::string saveName_part;
+
+	TimeEvent& simTime;
+
+	bool is_enableParticleMonitor = false;
+
+	std::vector<CycleRange> saveTurn;
+
+	int Np_PM = 0;	// Number of particles to be saved
+	int Nobs_PM = 0;	// Number of observe points
+	int Nturn_PM = 0;	// Number of turns to save particles
+	int saveTurn_step = 0;	// Save particles every saveTurn_step turns
+
+	int obsId = 0;	// Observation Id, used to distinguish different observation points
+
+	Particle* dev_bunch = nullptr;
+	Particle* dev_particleMonitor = nullptr;
+
+	int thread_x = 0;
+	int block_x = 0;
+};
+
+
 __global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statistic, size_t pitch_statistic, int NpPerBunch);
 
 __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
 
 void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
+
+__global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_particleMonitor, int Np, int Np_PM,
+	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);

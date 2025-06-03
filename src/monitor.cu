@@ -216,6 +216,111 @@ void StatMonitor::execute(int turn) {
 }
 
 
+ParticleMonitor::ParticleMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent) {
+
+	commandType = "ParticleMonitor";
+	name = obj_name;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	dev_bunch = Bunch.dev_bunch;
+	Np = Bunch.Np;
+
+	bunchId = Bunch.bunchId;
+
+	saveDir = para.dir_output_particle;
+	saveName_part = para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId);
+
+	is_enableParticleMonitor = Bunch.is_enableParticleMonitor;
+	saveTurn = Bunch.saveTurn_PM;
+	Np_PM = Bunch.Np_PM;
+	Nobs_PM = Bunch.Nobs_PM;
+	Nturn_PM = Bunch.Nturn_PM;
+	dev_particleMonitor = Bunch.dev_PM;
+
+	saveTurn_step = saveTurn[0].step;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		obsId = data.at("Sequence").at(obj_name).at("Observer Id");
+	}
+	catch (json::exception e)
+	{
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+	print();
+}
+
+
+void ParticleMonitor::execute(int turn) {
+
+	if (!is_enableParticleMonitor)
+		return;
+
+	if (is_value_in_turn_ranges(turn, saveTurn))
+	{
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp = 0;
+
+		callKernel(get_particle_specified_tag << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_particleMonitor, Np, Np_PM, obsId, Nobs_PM, Nturn_PM, turn, saveTurn_step));
+
+		if (saveTurn[0].isLastPoint(turn))
+		{
+			Particle* host_particleMonitor = nullptr;
+			host_particleMonitor = new Particle[Np_PM * Nobs_PM * Nturn_PM];
+
+			callCuda(cudaMemcpy(host_particleMonitor, dev_particleMonitor, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle), cudaMemcpyDeviceToHost));
+
+			for (size_t i = 0; i < Np_PM; i++)
+			{
+				int j = obsId;
+				std::filesystem::path saveName_full = saveDir / (saveName_part + "_particle_tag_" + std::to_string(i + 1) + "_obs_" + std::to_string(j) + ".csv");
+				std::ofstream file(saveName_full);
+
+				file << "turn" << ","
+					<< "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
+					<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
+
+				for (size_t k = 0; k < Nturn_PM; k++)
+				{
+					int index = i * Nobs_PM * Nturn_PM
+						+ j * Nturn_PM
+						+ k;
+					file << std::setprecision(10)
+						<< saveTurn_step * k + 1 << ","
+						<< (host_particleMonitor + index)->x << ","
+						<< (host_particleMonitor + index)->px << ","
+						<< (host_particleMonitor + index)->y << ","
+						<< (host_particleMonitor + index)->py << ","
+						<< (host_particleMonitor + index)->z << ","
+						<< (host_particleMonitor + index)->pz << ","
+						<< (host_particleMonitor + index)->tag << ","
+						<< (host_particleMonitor + index)->lostTurn << ","
+						<< (host_particleMonitor + index)->lostPos << "\n";
+				}
+				file.close();
+
+			}
+
+			delete[] host_particleMonitor;
+		}
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+		simTime.saveBunch += time_tmp;
+	}
+}
+
 __device__ void warpReduce(volatile double* data, int tid) {
 
 	data[tid] += data[tid + 32];
@@ -889,4 +994,31 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 
 	//printf("stat s : % f, ms : % f\n", (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC, (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC * 1000);
 	//std::cout << "start: " << start_tmp << ", end: " << end_tmp << std::endl;
+}
+
+
+__global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_particleMonitor, int Np, int Np_PM,
+	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveTurn_step) {
+
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	int stride = blockDim.x * gridDim.x;
+
+	int particleId = 0;
+	int index = 0;
+	int tag = 0;
+
+	while (tid < Np)
+	{
+		tag = abs(dev_bunch[tid].tag);
+		if (tag >= 1 && tag <= Np_PM)
+		{
+			particleId = tag - 1;	// tag ranges from 1 not 0
+			index = particleId * Nobs_PM * Nturn_PM
+				+ obsId * Nturn_PM
+				+ (current_turn - 1) / saveTurn_step;	// turn ranges from 1 not 0, and turn may have a step
+			dev_particleMonitor[index] = dev_bunch[tid];
+		}
+
+		tid += stride;
+	}
 }
