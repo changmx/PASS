@@ -568,14 +568,8 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
 	for (const auto& range : ranges) {
-		const int step = range.step;
-		if (step == 0) continue; // 无效步长过滤
 
-		// 检查步长方向有效性（可选，如果数据已校验可移除）
-		if ((step > 0 && range.start > range.end) ||
-			(step < 0 && range.start < range.end)) {
-			continue;
-		}
+		const int step = range.step;
 
 		// 快速范围检查
 		if ((step > 0 && (value < range.start || value > range.end)) ||
@@ -593,4 +587,12 @@ bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
 		}
 	}
 	return false;
+}
+
+
+int print_cycleRange(const std::vector<CycleRange>& ranges) {
+	for (const auto& range : ranges) {
+
+		spdlog::get("logger")->info("[CycleRange] Start = {}, end = {}, step = {}, totalPoints = {}", range.start, range.end, range.step, range.totalPoints);
+	}
 }
