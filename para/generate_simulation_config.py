@@ -32,6 +32,7 @@ def sort_sequence(sequence):
         "SpaceCharge": 120,
         "DistMonitor": 150,
         "StatMonitor": 150,
+        "ParticleMonitor": 150,
         "SortBunch": 200,
         "BeamBeam": 300,
         "Other": 999,  # 最低优先级
@@ -117,6 +118,14 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
                 "Grid x length": 1e-5,
                 "Grid y length": 3.5e-6,
             },
+        }
+    }
+    ParticleMonitorPara = {
+        "Particle Monitor parameters": {
+            "Is enable particle monitor": True,
+            "Number of particles to save": 3,
+            "Save turn range": [1, 10000, 1],
+            "Observer position S (m)": [0, 10],
         }
     }
 
@@ -308,6 +317,20 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
         }
         Sequence.update(sortPoint)
 
+    # ParticleMonitor at position s to save specified particles
+    PM_para = ParticleMonitorPara["Particle Monitor parameters"]
+    s_PM = PM_para["Observer position S (m)"]
+    for i in np.arange(len(s_PM)):
+        partMoni = {
+            "ParticleMonitor_"
+            + str(s_PM[i]): {
+                "S (m)": s_PM[i],
+                "Command": "ParticleMonitor",
+                "Observer Id": int(i),
+            }
+        }
+        Sequence.update(partMoni)
+
     ######################################################### sort sequence by s ##########################################################
 
     Sequence = sort_sequence(Sequence)
@@ -315,7 +338,13 @@ def generate_linear_lattice_config_beam0(fileName="beam0.json"):
 
     ############################################################ config finish ############################################################
 
-    merged_dict = {**Beampara, **Spacecharge_sim_para, **BeambeamPara, **Sequencepara}
+    merged_dict = {
+        **Beampara,
+        **Spacecharge_sim_para,
+        **BeambeamPara,
+        **ParticleMonitorPara,
+        **Sequencepara,
+    }
 
     with open(config_path, "w") as jsonfile:
         json.dump(merged_dict, jsonfile, indent=4)
