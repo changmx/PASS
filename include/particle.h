@@ -74,6 +74,53 @@ struct Slice
 };
 
 
+struct CycleRange {
+	int start;
+	int end;
+	int step;
+	int totalPoints;
+
+	// 添加构造函数进行数据校验
+	CycleRange(int s, int e, int st) : start(s), end(e), step(st) {
+		if (st == 0) {
+			throw std::invalid_argument("Step cannot be zero");
+		}
+		if ((st > 0 && s > e) || (st < 0 && s < e)) {
+			throw std::invalid_argument("Invalid range direction");
+		}
+
+		if (step > 0)
+		{
+			int diff = end - start;
+			totalPoints = diff / step + 1;
+			end = start + (totalPoints - 1) * step;  // 确保end是最后一个点
+		}
+		else
+		{
+			int diff = start - end;
+			totalPoints = diff / (-step) + 1;
+			end = start + (totalPoints - 1) * step;  // 确保end是最后一个点
+		}
+	}
+
+	// 检查值是否在范围内
+	bool contains(int value) const {
+		if (step > 0) {
+			if (value < start || value > end) return false;
+		}
+		else {
+			if (value > start || value < end) return false;
+		}
+		return (value - start) % step == 0;
+	}
+
+	// 判断是否是范围内的最后一个点
+	bool isLastPoint(int value) const {
+		return contains(value) && (value == end);
+	}
+};
+
+
 class Bunch
 {
 public:
@@ -147,6 +194,18 @@ public:
 	int* dev_survive_prefix;  // sum of prefix of survive particles
 	void* dev_cub_temp = nullptr;	// CUB tmporary memory
 	size_t cub_temp_bytes = 0;      // size of CUB temporary memory
+
+
+	// Parameters for particle monitor
+	bool is_enableParticleMonitor = false;	// Whether to use particle monitor to save particles
+
+	std::vector<CycleRange> saveTurn_PM;
+
+	int Np_PM = 0;	// Number of particles to be saved
+	int Nobs_PM = 0;	// Number of observe points
+	int Nturn_PM = 0;	// Number of turns to save particles
+
+	Particle* dev_PM = nullptr;
 
 private:
 

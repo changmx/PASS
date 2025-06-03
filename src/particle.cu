@@ -99,6 +99,26 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 			Nslice_bb = 0;
 		}
 
+		if (data.contains("Particle Monitor parameters"))
+		{
+			is_enableParticleMonitor = data.at("Particle Monitor parameters").at("Is enable particle monitor");
+			Np_PM = data.at("Particle Monitor parameters").at("Number of particles to save");
+
+			int startTurn = data.at("Particle Monitor parameters").at("Save turn range")[0];
+			int endTurn = data.at("Particle Monitor parameters").at("Save turn range")[1];
+			int stepTurn = data.at("Particle Monitor parameters").at("Save turn range")[2];
+			if (endTurn > para.Nturn)
+			{
+				spdlog::get("logger")->warn("Particle Monitor end turn '{}' exceeds total number of turns '{}'. Adjusting to total turns.", endTurn, para.Nturn);
+				endTurn = para.Nturn;
+			}
+
+			saveTurn_PM.push_back(CycleRange(startTurn, endTurn, stepTurn));
+			Nturn_PM = saveTurn_PM[0].totalPoints;
+
+			Nobs_PM = data.at("Particle Monitor parameters").at("Observer position S (m)").size();
+		}
+
 
 	}
 	catch (json::exception e)
@@ -138,6 +158,11 @@ void Bunch::init_memory() {
 		dev_survive_flags, dev_survive_prefix, Np);
 	callCuda(cudaMalloc(&dev_cub_temp, cub_temp_bytes));
 
+	if (is_enableParticleMonitor)
+	{
+		callCuda(cudaMalloc((void**)&dev_PM, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle)));
+	}
+
 }
 
 void Bunch::free_memory() {
@@ -159,4 +184,10 @@ void Bunch::free_memory() {
 	callCuda(cudaFree(dev_survive_flags));
 	callCuda(cudaFree(dev_survive_prefix));
 	callCuda(cudaFree(dev_cub_temp));
+
+	if (is_enableParticleMonitor)
+	{
+		callCuda(cudaFree(dev_PM));
+	}
+
 }
