@@ -100,21 +100,7 @@ private:
 };
 
 
-struct CycleRange {
-	int start;
-	int end;
-	int step;
-
-	// 添加构造函数进行数据校验
-	CycleRange(int s, int e, int st) : start(s), end(e), step(st) {
-		if (st == 0) throw std::invalid_argument("Step cannot be zero");
-		if ((st > 0 && s > e) || (st < 0 && s < e)) {
-			throw std::invalid_argument("Invalid range direction");
-		}
-	}
-};
-
-
 // 判断值是否存在于任意一个循环范围中
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
+int print_cycleRange(const std::vector<CycleRange>& ranges);
