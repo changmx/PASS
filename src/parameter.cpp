@@ -75,6 +75,7 @@ Parameter::Parameter(int argc, char** argv)
 	dir_output_tuneSpread = dir_output / "tuneSpread" / yearMonDay / hourMinSec;
 	dir_output_chargeDensity = dir_output / "chargeDensity" / yearMonDay / hourMinSec;
 	dir_output_plot = dir_output / "plot" / yearMonDay / hourMinSec;
+	dir_output_particle = dir_output / "particle" / yearMonDay / hourMinSec;
 
 	dir_load_distribution = dir_output / "distribution" / "fixed";
 
@@ -88,6 +89,7 @@ Parameter::Parameter(int argc, char** argv)
 		fs::create_directories(dir_output_tuneSpread);
 		fs::create_directories(dir_output_chargeDensity);
 		fs::create_directories(dir_output_plot);
+		fs::create_directories(dir_output_particle);
 
 		fs::create_directories(dir_load_distribution);
 	}

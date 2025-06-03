@@ -40,6 +40,7 @@ public:
 	std::filesystem::path dir_output_tuneSpread;
 	std::filesystem::path dir_output_chargeDensity;
 	std::filesystem::path dir_output_plot;
+	std::filesystem::path dir_output_particle;
 
 	std::filesystem::path dir_load_distribution;
 
