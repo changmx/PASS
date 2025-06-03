@@ -87,12 +87,14 @@ int main(int argc, char** argv)
 		{
 			for (int icb0_tmp = icb0; icb0_tmp < command_beam0.size(); icb0_tmp++)
 			{
+				//logger->debug("Ececuting: turn = {:<5} command = {:<20} s = {:<10} name = {}",
+				//	turn, command_beam0[icb0_tmp]->get_commandType(), command_beam0[icb0_tmp]->get_s(), command_beam0[icb0_tmp]->get_name());
+
 				if ("BeamBeam" == command_beam0[icb0_tmp]->get_commandType())
 				{
 					icb0 = icb0_tmp;
 					break;
 				}
-
 				command_beam0[icb0_tmp]->execute(turn);
 
 			}
