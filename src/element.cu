@@ -72,8 +72,11 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -160,21 +163,21 @@ void SBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift));
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift));
 
 	if (isFieldError)
 	{
-		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
-		// transfer multipole error kicker
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 
-		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 	}
 	else
 	{
-		callKernel(transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+		callKernel(transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 	}
 
@@ -195,8 +198,11 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -280,22 +286,22 @@ void RBendElement::execute(int turn) {
 	double fl43i = -h * tan(psip1);
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
-	
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift);
+
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift);
 
 	if (isFieldError)
 	{
-		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 
-		// transfer multipole error kicker
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 
-		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 	}
 	else
 	{
-		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference,
+		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
 	}
 
@@ -317,8 +323,11 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -359,26 +368,28 @@ void QuadrupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift));
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift));
 
 	if (isFieldError)
 	{
 
 		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)	// k1 != 0 && k1s == 0
 		{
-			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l / 2));
-			// transfer multipole error kicker
-			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l / 2));
+			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1, l / 2));
+			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
+			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1, l / 2));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
 		{
-			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2));
-			// transfer multipole error kicker
-			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l / 2));
+			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1s, l / 2));
+			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
+			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1s, l / 2));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
-			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l));
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
+			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 		}
 		else
 		{
@@ -391,15 +402,15 @@ void QuadrupoleElement::execute(int turn) {
 	{
 		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)
 		{
-			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1, l));
+			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1, l));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)
 		{
-			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, k1s, l));
+			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1s, l));
 		}
 		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
-			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l));
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l));
 		}
 		else
 		{
@@ -427,8 +438,11 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -466,20 +480,20 @@ void SextupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
 
 	if (abs(k2) > EPSILON && abs(k2s) < EPSILON)	// k2 != 0 && k2s == 0
 	{
-		transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k2, l);
+		transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2, l);
 
 	}
 	else if (abs(k2) < EPSILON && abs(k2s) > EPSILON)	// k2 == 0 && k2s != 0
 	{
-		transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k2s, l);
+		transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2s, l);
 	}
 	else if (abs(k2) < EPSILON && abs(k2s) < EPSILON)	// k2 == 0 && k2s == 0
 	{
-		// do nothing
+		// Thin lens approximation, do nothing
 	}
 	else
 	{
@@ -490,10 +504,10 @@ void SextupoleElement::execute(int turn) {
 
 	if (isFieldError)
 	{
-		// transfer multipole error kicker
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -513,8 +527,11 @@ OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const 
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -553,16 +570,16 @@ void OctupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
 
 	if (abs(k3) > EPSILON && abs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
 	{
-		transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k3, l);
+		transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3, l);
 
 	}
 	else if (abs(k3) < EPSILON && abs(k3s) > EPSILON)	// k3 == 0 && k3s != 0
 	{
-		transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, k3s, l);
+		transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3s, l);
 	}
 	else if (abs(k3) < EPSILON && abs(k3s) < EPSILON)	// k3 == 0 && k3s == 0
 	{
@@ -577,10 +594,10 @@ void OctupoleElement::execute(int turn) {
 
 	if (isFieldError)
 	{
-		// transfer multipole error kicker
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -600,8 +617,11 @@ HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bu
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -637,16 +657,16 @@ void HKickerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
 
-	transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
+	transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick);
 
 	if (isFieldError)
 	{
-		// transfer multipole error kicker
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -666,8 +686,11 @@ VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bu
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -703,16 +726,16 @@ void VKickerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, drift + l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
 
-	transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, kick);
+	transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick);
 
 	if (isFieldError)
 	{
-		// transfer multipole error kicker
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, circumference, gamma, l / 2);
+	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -732,7 +755,7 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	using json = nlohmann::json;
@@ -820,9 +843,9 @@ void RFElement::execute(int turn) {
 	bunchRef.gamma = gamma1;
 	bunchRef.beta = beta1;
 
-	//transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, beta, gamma, drift + l);
+	//transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, gamma, drift + l);
 
-	transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, turn, beta0, beta1, gamma0, gamma1,
+	transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, turn, beta0, beta1, gamma0, gamma1,
 		dev_rf_data, pitch_rf, Nrf, Nturn_rf,
 		radius, ratio, dE_syn, eta1, Ek1 + m0);
 
@@ -874,7 +897,7 @@ __global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, dou
 	}
 }
 
-__global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_dipole_full(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i) {
@@ -898,7 +921,7 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, d
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
@@ -954,7 +977,7 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np, double beta, d
 }
 
 
-__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i) {
@@ -975,7 +998,7 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
@@ -1029,7 +1052,7 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np, double be
 }
 
 
-__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i) {
@@ -1050,7 +1073,7 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		tau0 = dev_bunch[tid].z / beta;
 		pt0 = dev_bunch[tid].pz * beta;
@@ -1104,7 +1127,7 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np, double b
 }
 
 
-__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double k1, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1123,7 +1146,7 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double bet
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		x0 = dev_bunch[tid].x;
 		px0 = dev_bunch[tid].px;
@@ -1192,7 +1215,7 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np, double bet
 }
 
 
-__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double beta, double circumference,
+__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double k1s, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1214,7 +1237,7 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double bet
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		x0 = dev_bunch[tid].x;
 		px0 = dev_bunch[tid].px;
@@ -1302,7 +1325,7 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np, double bet
 }
 
 
-__global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np_sur, double beta,
 	double k2, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1311,7 +1334,7 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta
 	double x0 = 0, y0 = 0;
 	double k2_chrom = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		x0 = dev_bunch[tid].x;
 		y0 = dev_bunch[tid].y;
@@ -1326,7 +1349,7 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np, double beta
 }
 
 
-__global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np_sur, double beta,
 	double k2s, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1335,7 +1358,7 @@ __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta
 	double x0 = 0, y0 = 0;
 	double k2s_chrom = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		x0 = dev_bunch[tid].x;
 		y0 = dev_bunch[tid].y;
@@ -1350,7 +1373,7 @@ __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np, double beta
 }
 
 
-__global__ void transfer_octupole_norm(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_octupole_norm(Particle* dev_bunch, int Np_sur, double beta,
 	double k3, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1359,7 +1382,7 @@ __global__ void transfer_octupole_norm(Particle* dev_bunch, int Np, double beta,
 	double x0 = 0, y0 = 0;
 	double k3_chrom = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		x0 = dev_bunch[tid].x;
 		y0 = dev_bunch[tid].y;
@@ -1374,7 +1397,7 @@ __global__ void transfer_octupole_norm(Particle* dev_bunch, int Np, double beta,
 }
 
 
-__global__ void transfer_octupole_skew(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_octupole_skew(Particle* dev_bunch, int Np_sur, double beta,
 	double k3s, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1383,7 +1406,7 @@ __global__ void transfer_octupole_skew(Particle* dev_bunch, int Np, double beta,
 	double x0 = 0, y0 = 0;
 	double k3s_chrom = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		x0 = dev_bunch[tid].x;
 		y0 = dev_bunch[tid].y;
@@ -1398,7 +1421,7 @@ __global__ void transfer_octupole_skew(Particle* dev_bunch, int Np, double beta,
 }
 
 
-__global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_hkicker(Particle* dev_bunch, int Np_sur, double beta,
 	double kick) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1406,7 +1429,7 @@ __global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
 
 	double kick_chrom = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		kick_chrom = kick / (1 + dev_bunch[tid].pz);
 
@@ -1417,7 +1440,7 @@ __global__ void transfer_hkicker(Particle* dev_bunch, int Np, double beta,
 }
 
 
-__global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
+__global__ void transfer_vkicker(Particle* dev_bunch, int Np_sur, double beta,
 	double kick) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1425,7 +1448,7 @@ __global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
 
 	double kick_chrom = 0;
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		kick_chrom = kick / (1 + dev_bunch[tid].pz);
 
@@ -1436,7 +1459,7 @@ __global__ void transfer_vkicker(Particle* dev_bunch, int Np, double beta,
 }
 
 
-__global__ void transfer_rf(Particle* dev_bunch, int Np, int turn, double beta0, double beta1, double gamma0, double gamma1,
+__global__ void transfer_rf(Particle* dev_bunch, int Np_sur, int turn, double beta0, double beta1, double gamma0, double gamma1,
 	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
 	double radius, double ratio, double dE_syn, double eta1, double E_total1) {
 
@@ -1453,7 +1476,7 @@ __global__ void transfer_rf(Particle* dev_bunch, int Np, int turn, double beta0,
 	double pi = PassConstant::PI;
 	double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
 
-	while (tid < Np) {
+	while (tid < Np_sur) {
 
 		z0 = dev_bunch[tid].z;
 		pz0 = dev_bunch[tid].pz;
@@ -1545,4 +1568,68 @@ std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
 	}
 
 	return data;
+}
+
+
+__global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int order, const double* dev_kn, const double* dev_ks, double l) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	if (order < 0) return;
+
+	const int max_order = 20;
+	if (order > max_order)
+		order = max_order;
+
+	double x = 0, y = 0;
+	double dpx = 0, dpy = 0;
+
+	double real = 1.0, imag = 0.0;
+	double real_temp = 0.0, imag_temp = 0.0;
+
+	double inv_factorial = 0;
+	constexpr double factorial_table[max_order + 1] = { 1.0, 1.0, 2.0, 6.0, 24.0, 120.0, 720.0, 5040.0, 40320.0, 362880.0,
+		3628800.0, 39916800.0, 479001600.0, 6227020800.0, 87178291200.0, 1307674368000.0,20922789888000.0,
+		355687428096000.0, 6402373705728000.0, 121645100408832000.0 ,2432902008176640000.0 };
+
+	while (tid < Np_sur)
+	{
+		x = dev_bunch[tid].x;
+		y = dev_bunch[tid].y;
+
+		dpx = 0.0;
+		dpy = 0.0;
+		real = 1.0;
+		imag = 0.0;
+
+		if (order >= 0)
+		{
+			double kn0l = dev_kn[0] * l;
+			double ks0l = dev_ks[0] * l;
+			dpx += -kn0l * real;
+			dpy += ks0l * real;
+		}
+
+		for (int iorder = 1; iorder <= order; iorder++)
+		{
+			real_temp = real * x - imag * y;
+			imag_temp = real * y + imag * x;
+			real = real_temp;
+			imag = imag_temp;
+
+			inv_factorial = 1.0 / factorial_table[iorder];
+
+			double knl = dev_kn[iorder] * l;
+			double ksl = dev_ks[iorder] * l;
+
+			dpx += -knl * (inv_factorial * real) + ksl * (inv_factorial * imag);
+			dpy += knl * (inv_factorial * imag) + ksl * (inv_factorial * real);
+		}
+
+		dev_bunch[tid].px += dpx;
+		dev_bunch[tid].py += dpy;
+
+		tid += stride;
+	}
 }
