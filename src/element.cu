@@ -373,19 +373,19 @@ void QuadrupoleElement::execute(int turn) {
 	if (isFieldError)
 	{
 
-		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)	// k1 != 0 && k1s == 0
+		if (fabs(k1) > EPSILON && fabs(k1s) < EPSILON)	// k1 != 0 && k1s == 0
 		{
 			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1, l / 2));
 			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1, l / 2));
 		}
-		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
+		else if (fabs(k1) < EPSILON && fabs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
 		{
 			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1s, l / 2));
 			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1s, l / 2));
 		}
-		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
+		else if (fabs(k1) < EPSILON && fabs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
 			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
@@ -400,15 +400,15 @@ void QuadrupoleElement::execute(int turn) {
 	}
 	else
 	{
-		if (abs(k1) > EPSILON && abs(k1s) < EPSILON)
+		if (fabs(k1) > EPSILON && fabs(k1s) < EPSILON)
 		{
 			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1, l));
 		}
-		else if (abs(k1) < EPSILON && abs(k1s) > EPSILON)
+		else if (fabs(k1) < EPSILON && fabs(k1s) > EPSILON)
 		{
 			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, k1s, l));
 		}
-		else if (abs(k1) < EPSILON && abs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
+		else if (fabs(k1) < EPSILON && fabs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
 			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l));
 		}
@@ -482,16 +482,16 @@ void SextupoleElement::execute(int turn) {
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
 
-	if (abs(k2) > EPSILON && abs(k2s) < EPSILON)	// k2 != 0 && k2s == 0
+	if (fabs(k2) > EPSILON && fabs(k2s) < EPSILON)	// k2 != 0 && k2s == 0
 	{
 		transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2, l);
 
 	}
-	else if (abs(k2) < EPSILON && abs(k2s) > EPSILON)	// k2 == 0 && k2s != 0
+	else if (fabs(k2) < EPSILON && fabs(k2s) > EPSILON)	// k2 == 0 && k2s != 0
 	{
 		transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2s, l);
 	}
-	else if (abs(k2) < EPSILON && abs(k2s) < EPSILON)	// k2 == 0 && k2s == 0
+	else if (fabs(k2) < EPSILON && fabs(k2s) < EPSILON)	// k2 == 0 && k2s == 0
 	{
 		// Thin lens approximation, do nothing
 	}
@@ -572,16 +572,16 @@ void OctupoleElement::execute(int turn) {
 
 	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
 
-	if (abs(k3) > EPSILON && abs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
+	if (fabs(k3) > EPSILON && fabs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
 	{
 		transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3, l);
 
 	}
-	else if (abs(k3) < EPSILON && abs(k3s) > EPSILON)	// k3 == 0 && k3s != 0
+	else if (fabs(k3) < EPSILON && fabs(k3s) > EPSILON)	// k3 == 0 && k3s != 0
 	{
 		transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3s, l);
 	}
-	else if (abs(k3) < EPSILON && abs(k3s) < EPSILON)	// k3 == 0 && k3s == 0
+	else if (fabs(k3) < EPSILON && fabs(k3s) < EPSILON)	// k3 == 0 && k3s == 0
 	{
 		// do nothing
 	}
@@ -1156,7 +1156,7 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np_sur, double
 		pt0 = dev_bunch[tid].pz * beta;
 
 		k1_chrom = k1 / (1 + pt0 / beta);
-		omega = sqrt(abs(k1_chrom));
+		omega = sqrt(fabs(k1_chrom));
 
 		cx = cos(omega * l);
 		sx = sin(omega * l);
@@ -1247,7 +1247,7 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np_sur, double
 		pt0 = dev_bunch[tid].pz * beta;
 
 		k1s_chrom = k1s / (1 + pt0 / beta);
-		omega = sqrt(abs(k1s_chrom));
+		omega = sqrt(fabs(k1s_chrom));
 
 		cx = cos(omega * l);
 		sx = sin(omega * l);
