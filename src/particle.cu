@@ -27,12 +27,24 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		Nneutron = data.at("Number of neutrons per particle");
 		Ncharge = data.at("Number of charges per particle");
 
-		if (Nproton == 0 && Nneutron == 0)
+		if (Nproton == 0 && Nneutron == 0) {
 			m0 = PassConstant::me;
+			mass = ratio * m0;
+			charge = ratio * Ncharge * PassConstant::e;
+		}
+
 		else if (Nproton == 1 && Nneutron == 0)
+		{
 			m0 = PassConstant::mp;
+			mass = ratio * m0;
+			charge = ratio * Ncharge * PassConstant::e;
+		}
 		else
+		{
 			m0 = PassConstant::mu;
+			mass = ratio * (Nproton + Nneutron) * m0;
+			charge = ratio * Ncharge * PassConstant::e;
+		}
 
 		Ek = data.at("Sequence").at("Injection").at(key_bunch).at("Kinetic energy per nucleon (eV/u)");
 		gamma = Ek / m0 + 1;

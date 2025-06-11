@@ -148,6 +148,9 @@ public:
 	double p0_kg = 0;	// Momentum of a nucleon (kg*m/s/u)
 	double beta = 0, gamma = 0;	// Relativistic velocity and Lorentz factor
 
+	double mass = 0;	// Mass of a macro particle
+	double charge = 0;	// Charge of a macro particle
+
 	double Brho = 0;
 
 	//double emitx = 0, emity = 0;	// Geometric emittance (rad'm)
