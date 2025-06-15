@@ -409,3 +409,26 @@ __global__ void show_slice_info(const Slice* dev_slice, int Nslice) {
 		}
 	}
 }
+
+
+__device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle_index) {
+
+	int left = 0;
+	int right = Nslice - 1;
+
+	while (left <= right) {
+		int mid = left + (right - left) / 2;
+		Slice slice = dev_slice[mid];            // Load slice data into registers (reduce global memory access)
+
+		if (particle_index < slice.index_start) {
+			right = mid - 1;  // Searching in the left half of the area
+		}
+		else if (particle_index >= slice.index_end) {
+			left = mid + 1;   // Searching in the right half of the area
+		}
+		else {
+			return mid;       // Find the target slice
+		}
+	}
+	return -1;  // Not find
+}

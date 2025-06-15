@@ -66,3 +66,5 @@ __global__ void setup_slice_euqal_length(const Particle* dev_bunch, Slice* dev_s
 __global__ void test_change_particle_tag(Particle* dev_bunch, int Np, int turn);
 
 __global__ void show_slice_info(const Slice* dev_slice, int Nslice);
+
+__device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle_index);
