@@ -48,6 +48,7 @@ void MarkerElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->info("[Marker Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -115,6 +116,7 @@ void SBendElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[SBend Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -239,6 +241,7 @@ void RBendElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[RBend Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -361,6 +364,7 @@ void QuadrupoleElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Quadrupole Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -473,6 +477,7 @@ void SextupoleElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Sextupole Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -563,6 +568,7 @@ void OctupoleElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Octupole Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -652,6 +658,7 @@ void HKickerElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[HKicker Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -721,6 +728,7 @@ void VKickerElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[VKicker Element] run: " + name);
 
+	Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -816,6 +824,8 @@ void RFElement::execute(int turn) {
 
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[RF Element] run: " + name);
+
+	Np_sur = bunchRef.Np_sur;
 
 	double m0 = bunchRef.m0;
 	double gammat = bunchRef.gammat;

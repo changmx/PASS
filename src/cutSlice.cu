@@ -125,6 +125,8 @@ void SortBunch::execute(int turn) {
 	cudaDeviceSynchronize();
 	Np_sur = last_prefix + last_flag; // 最后元素前缀和+标志值
 
+	bunchRef.Np_sur = Np_sur;
+
 	// 4. Maintain the original order, the surviving particles move to [0,Np_sur), and the non-surviving particles move to [Np_sur, Np).
 	stable_partition << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_bunch_tmp, dev_survive_prefix, Np, Np_sur);
 	//callCuda(cudaMemcpy(dev_bunch, dev_bunch_tmp, Np * sizeof(Particle), cudaMemcpyDeviceToDevice));
