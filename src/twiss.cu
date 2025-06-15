@@ -4,7 +4,8 @@
 
 #include <fstream>
 
-Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent) {
+Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent)
+	:simTime(timeevent), bunchRef(Bunch) {
 
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
@@ -13,6 +14,7 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 	block_x = plan1d.get_blocks_x();
 
 	Np = Bunch.Np;
+	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	gamma = Bunch.gamma;
@@ -128,7 +130,9 @@ void Twiss::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, longitudinal_transfer);
 
-	transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, circumference,
+	Np_sur = bunchRef.Np_sur;
+
+	transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, circumference,
 		betax, betax_previous, alphax, alphax_previous,
 		betay, betay_previous, alphay, alphay_previous,
 		phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
@@ -143,7 +147,7 @@ void Twiss::execute(int turn) {
 }
 
 
-__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumference,
+__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circumference,
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
@@ -163,7 +167,7 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumfer
 	double c_half = 0;
 	int over = 0, under = 0;
 
-	while (tid < Np)
+	while (tid < Np_sur)
 	{
 		z1 = dev_bunch[tid].z;
 		pz1 = dev_bunch[tid].pz;

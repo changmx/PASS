@@ -23,6 +23,7 @@ public:
 private:
 	Particle* dev_bunch = nullptr;
 	TimeEvent& simTime;
+	const Bunch& bunchRef;
 
 	double s_previous = -1;
 
@@ -35,6 +36,7 @@ private:
 	double dp = 0;
 
 	int Np = 0;
+	int Np_sur = 0;
 	double circumference = 0;
 
 	// Twiss parameters of current position
