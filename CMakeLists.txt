@@ -49,6 +49,7 @@ set(SOURCES
     src/cutSlice.cu
     src/pic.cu
     src/spaceCharge.cu
+    src/aperture.cu
 )
 
 # set header files
@@ -67,6 +68,7 @@ set(HEADERS
     include/cutSlice.h
     include/pic.h
     include/spaceCharge.h
+    include/aperture.h
 )
 
 # generate executable file
@@ -98,9 +100,9 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # set CUDA ARCHITECTURE. (https://developer.nvidia.com/cuda-gpus)
-# 70 for V100, 75 for RTX2060~2080Ti, 80 for A100, 86 for RTX3050~RTX3090Ti, 89 for RTX4050~RTX4090
+# 70 for V100, 75 for RTX2060~2080Ti, 80 for A100, 86 for RTX3050~RTX3090Ti, 89 for RTX4050~RTX4090, 120 for RTX5060-5090
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    CUDA_ARCHITECTURES "70;75;80;86;89"
+    CUDA_ARCHITECTURES "80;86;89;120"
     CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_options(${PROJECT_NAME} PRIVATE
