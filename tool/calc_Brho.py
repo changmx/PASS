@@ -36,7 +36,7 @@ def calc_magnetic_rigidity(
 
     if is_print:
         print(
-            "Brho: {0:.6f}, E total (GeV): {1:.3f}, beta: {2:.6f}, gamma: {3:.6f}, gamma*beta: {4:.6f}, p_MeV/c/u: {5:.6f}, p_kg*m/s/u: {6:e}".format(
+            "Brho: {0:.6f}, E total (GeV): {1:.6f}, beta: {2:.6f}, gamma: {3:.6f}, gamma*beta: {4:.6f}, p_MeV/c/u: {5:.6f}, p_kg*m/s/u: {6:.6e}".format(
                 Brho,
                 E_total / 1e9,
                 beta,
@@ -122,4 +122,19 @@ if __name__ == "__main__":
         N_charge=33,
         is_print=True,
     )
-    calc_magnetic_rigidity(m_proton, E_total=150e6 + m_proton, is_print=True)
+    calc_magnetic_rigidity(m_proton, E_total=300e6 + m_proton, is_print=True)
+
+    calc_magnetic_rigidity(
+        m_unified_atomic_mass,
+        E_total=4e6 + m_unified_atomic_mass,
+        N_particle=12,
+        N_charge=4,
+        is_print=True,
+    )
+    calc_magnetic_rigidity(
+        m_unified_atomic_mass,
+        E_total=60e6 + m_unified_atomic_mass,
+        N_particle=12,
+        N_charge=4,
+        is_print=True,
+    )
