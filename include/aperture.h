@@ -1,10 +1,6 @@
 #pragma once
 
-#include "command.h"
-#include "particle.h"
-#include "parameter.h"
-#include "general.h"
-#include "constant.h"
+#include <typeinfo>
 
 
 class Aperture
@@ -13,9 +9,14 @@ public:
 
 	virtual ~Aperture() = default;
 
-	std::string aperture_type = "empty";
+	virtual bool is_equal(const Aperture* other) const = 0;
 
 	virtual __host__ __device__ int get_particle_position(double x, double y) = 0;
+
+	virtual double get_xmin() = 0;
+	virtual double get_xmax() = 0;
+	virtual double get_ymin() = 0;
+	virtual double get_ymax() = 0;
 
 private:
 
@@ -27,12 +28,24 @@ class CircleAperture :public Aperture
 public:
 
 	CircleAperture(double radius_) {
-		aperture_type = "Circle";
-		radius = radius_;
+		radius = fabs(radius_);
 		radius_square = radius_ * radius_;
 	}
 
 	~CircleAperture() = default;
+
+	bool is_equal(const Aperture* other) const override {
+
+		const CircleAperture* circle = dynamic_cast<const CircleAperture*>(other);
+
+		// if dynamic_cast fails, it means the types are different
+		if (circle == nullptr)
+			return false;
+
+		// compare all members
+		return (fabs(radius - circle->radius) < 1.0e-10);
+
+	}
 
 	__host__ __device__ int get_particle_position(double x, double y) override {
 
@@ -49,6 +62,19 @@ public:
 		return is_outside * (-1) + is_inside * 1 + is_boundary * 2;
 	}
 
+	double get_xmin() override {
+		return -radius;
+	}
+	double get_xmax() override {
+		return radius;
+	}
+	double get_ymin() override {
+		return -radius;
+	}
+	double get_ymax() override {
+		return radius;
+	}
+
 private:
 
 	double radius = 0;	// in unit of m
@@ -62,12 +88,23 @@ class RectangleAperture :public Aperture
 public:
 
 	RectangleAperture(double half_width_, double half_height_) {
-		aperture_type = "Rectangle";
-		half_width = half_width_;
-		half_height = half_height_;
+		half_width = fabs(half_width_);
+		half_height = fabs(half_height_);
 	}
 
 	~RectangleAperture() = default;
+
+	bool is_equal(const Aperture* other)const override {
+		const RectangleAperture* rectangle = dynamic_cast<const RectangleAperture*>(other);
+
+		// if dynamic_cast fails, it means the types are different
+		if (rectangle == nullptr)
+			return false;
+
+		// compare all members
+		return (fabs(half_width - rectangle->half_width) < 1.0e-10) &&
+			(fabs(half_height - rectangle->half_height) < 1.0e-10);
+	}
 
 	__host__ __device__ int get_particle_position(double x, double y) override {
 
@@ -86,6 +123,19 @@ public:
 		return is_outside * (-1) + is_inside * 1 + is_boundary * 2;
 	}
 
+	double get_xmin() override {
+		return -half_width;
+	}
+	double get_xmax() override {
+		return half_width;
+	}
+	double get_ymin() override {
+		return -half_height;
+	}
+	double get_ymax() override {
+		return half_height;
+	}
+
 private:
 
 	double half_width = 0;	// in unit of m
@@ -99,12 +149,25 @@ class EllipseAperture :public Aperture
 public:
 
 	EllipseAperture(double hor_semi_axis_, double ver_semi_axis_) {
-		aperture_type = "Ellipse";
-		hor_semi_axis = hor_semi_axis_;
-		ver_semi_axis = ver_semi_axis_;
+		hor_semi_axis = fabs(hor_semi_axis_);
+		ver_semi_axis = fabs(ver_semi_axis_);
 	}
 
 	~EllipseAperture() = default;
+
+	bool is_equal(const Aperture* other) const override {
+
+		const EllipseAperture* ellipse = dynamic_cast<const EllipseAperture*>(other);
+
+		// if dynamic_cast fails, it means the types are different
+		if (ellipse == nullptr)
+			return false;
+
+		// compare all members
+		return (fabs(hor_semi_axis - ellipse->hor_semi_axis) < 1.0e-10) &&
+			(fabs(ver_semi_axis - ellipse->ver_semi_axis) < 1.0e-10);
+
+	}
 
 	__host__ __device__ int get_particle_position(double x, double y) override {
 
@@ -124,9 +187,25 @@ public:
 
 	}
 
+	double get_xmin() override {
+		return -hor_semi_axis;
+	}
+	double get_xmax() override {
+		return hor_semi_axis;
+	}
+	double get_ymin() override {
+		return -ver_semi_axis;
+	}
+	double get_ymax() override {
+		return ver_semi_axis;
+	}
+
 private:
 
 	double hor_semi_axis = 0;	// Half the length of the horizontal axis (a), in unit of m
 	double ver_semi_axis = 0;	// Half the length of the verticle axis (b), in unit of m
 
 };
+
+
+bool compare_apertures(const Aperture* a1, const Aperture* a2);
