@@ -25,10 +25,12 @@ find_path(AMGX_INCLUDE_DIR
     REQUIRED
 )
 find_library(AMGX_LIBRARY
-    NAMES amgx
+    NAMES amgxsh
     PATHS "${AMGX_ROOT}/lib"
+    NO_DEFAULT_PATH
     REQUIRED
 )
+
 set(AMGX_LIBRARIES ${AMGX_LIBRARY}) 
 
 # Display the found AMGX information
