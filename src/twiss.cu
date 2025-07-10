@@ -54,8 +54,8 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 		Dpx = data.at("Sequence").at(obj_name).at("Dpx");
 		Dpx_previous = data.at("Sequence").at(obj_name).at("Dpx previous");
 
-		DQx = data.at("Sequence").at(obj_name).at("DQx (m)");
-		DQy = data.at("Sequence").at(obj_name).at("DQy (m)");
+		DQx = data.at("Sequence").at(obj_name).at("DQx");
+		DQy = data.at("Sequence").at(obj_name).at("DQy");
 
 		longitudinal_transfer = data.at("Sequence").at(obj_name).at("Longitudinal transfer");
 
