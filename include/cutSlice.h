@@ -1,10 +1,24 @@
 #pragma once
 
 #include "command.h"
-#include "particle.h"
 #include "parameter.h"
 #include "parallelPlan.h"
 #include "general.h"
+
+
+class Particle;
+class Bunch;
+
+struct Slice
+{
+	// Instruction for use of index_start and index_end:
+	// for (int idx = index_start; idx < index_end; ++idx) { ... } // Access particles in this slice
+	int index_start;	// start index of a slice
+	int index_end;		// end index of a slice
+	double z_start;		// start z of a slice
+	double z_end;		// end z of a slice
+	double z_avg;		// average z of all patricles in a slice
+};
 
 
 class SortBunch
