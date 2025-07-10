@@ -61,6 +61,10 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 				SpaceCharge: perform space charge simulation at specified position
 				BeamBeam: perform beam-beam simulation at specified position
 				Wakefield: perform wakefield simulation at specified position
+				Aperture: define PIC boundary and calculate particle loss
+					--> CircleAperture: circular aperture
+					--> RectangleAperture: rectangular aperture
+					--> EllipseAperture: elliptical aperture
 
 				StatMonitor: calculate and save bunch's information like centroid, size, emittance ...
 				LumiMonitor: calculate and save collision luminosity
