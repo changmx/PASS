@@ -1,4 +1,5 @@
 #include "cutSlice.h"
+#include "particle.h"
 
 #include <thrust/device_vector.h>
 #include <thrust/partition.h>
@@ -125,7 +126,7 @@ void SortBunch::execute(int turn) {
 	cudaDeviceSynchronize();
 	Np_sur = last_prefix + last_flag; // 最后元素前缀和+标志值
 
-	bunchRef.Np_sur = Np_sur;
+	bunchRef.Np_sur = Np_sur;	// Update Np_sur
 
 	// 4. Maintain the original order, the surviving particles move to [0,Np_sur), and the non-surviving particles move to [Np_sur, Np).
 	stable_partition << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_bunch_tmp, dev_survive_prefix, Np, Np_sur);
