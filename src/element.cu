@@ -432,10 +432,10 @@ void QuadrupoleElement::execute(int turn) {
 }
 
 
-SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+SextupoleNormElement::SextupoleNormElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
 	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
 
-	commandType = "SextupoleElement";
+	commandType = "SextupoleNormElement";
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
@@ -458,9 +458,23 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 		l = data.at("Sequence").at(obj_name).at("L (m)");
 		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
 		k2 = data.at("Sequence").at(obj_name).at("k2 (m^-3)");
-		k2s = data.at("Sequence").at(obj_name).at("k2s (m^-3)");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+
+		if (data.at("Sequence").at(obj_name).contains("isIgnoreLength"))
+		{
+			is_ignore_length = data.at("Sequence").at(obj_name).at("isIgnoreLength");
+		}
+
+		if (data.at("Sequence").at(obj_name).contains("isRamping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("isRamping");
+		}
+		if (is_ramping)
+		{
+			std::string ramping_file_path = data.at("Sequence").at(obj_name).at("Ramping file path");
+			ramping_data = readSextRampingDataFromCSV(ramping_file_path);
+		}
 	}
 	catch (json::exception e)
 	{
@@ -470,7 +484,7 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 	}
 }
 
-void SextupoleElement::execute(int turn) {
+void SextupoleNormElement::execute(int turn) {
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
 
@@ -483,36 +497,142 @@ void SextupoleElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	double EPSILON = 1e-9;
+	if (!is_ignore_length)
+	{
+		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+	double k2_current = k2;
+	if (is_ramping)
+	{
+		if (turn > ramping_data.size())
+		{
+			spdlog::get("logger")->warn("[Sextupole] {}, ramping data size ({}) is less than turn ({}), so k2 is set to the last value ({})", name, ramping_data.size(), turn, ramping_data.back().second);
+			k2_current = ramping_data.back().second;
+		}
+		else
+		{
+			k2_current = ramping_data[turn - 1].second;
+		}
+	}
 
-	if (fabs(k2) > EPSILON && fabs(k2s) < EPSILON)	// k2 != 0 && k2s == 0
-	{
-		transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2, l);
+	transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2_current, l);
 
-	}
-	else if (fabs(k2) < EPSILON && fabs(k2s) > EPSILON)	// k2 == 0 && k2s != 0
-	{
-		transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2s, l);
-	}
-	else if (fabs(k2) < EPSILON && fabs(k2s) < EPSILON)	// k2 == 0 && k2s == 0
-	{
-		// Thin lens approximation, do nothing
-	}
-	else
-	{
-		spdlog::get("logger")->error("[Sextupole Element] {}: k2 = {}, k2s = {}, there should be and only 1 variable equal to 0",
-			name, k2, k2s);
-		std::exit(EXIT_FAILURE);
-	}
 
 	if (isFieldError)
 	{
 		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+	if (!is_ignore_length)
+	{
+		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+	}
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
+}
+
+
+SextupoleSkewElement::SextupoleSkewElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "SextupoleSkewElement";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	Np_sur = Bunch.Np_sur;
+	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		k2s = data.at("Sequence").at(obj_name).at("k2s (m^-3)");
+
+		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+
+		if (data.at("Sequence").at(obj_name).contains("isIgnoreLength"))
+		{
+			is_ignore_length = data.at("Sequence").at(obj_name).at("isIgnoreLength");
+		}
+
+		if (data.at("Sequence").at(obj_name).contains("isRamping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("isRamping");
+		}
+		if (is_ramping)
+		{
+			std::string ramping_file_path = data.at("Sequence").at(obj_name).at("Ramping file path");
+			ramping_data = readSextRampingDataFromCSV(ramping_file_path);
+		}
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+void SextupoleSkewElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->debug("[Sextupole Element] run: " + name);
+
+	Np_sur = bunchRef.Np_sur;
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double drift = drift_length;
+
+	if (!is_ignore_length)
+	{
+		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+	}
+
+	double k2s_current = k2s;
+	if (is_ramping)
+	{
+		if (turn > ramping_data.size())
+		{
+			spdlog::get("logger")->warn("[Sextupole] {}, ramping data size ({}) is less than turn ({}), so k2s is set to the last value ({})", name, ramping_data.size(), turn, ramping_data.back().second);
+			k2s_current = ramping_data.back().second;
+		}
+		else
+		{
+			k2s_current = ramping_data[turn - 1].second;
+		}
+	}
+
+	transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2s_current, l);
+
+
+	if (isFieldError)
+	{
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
+	}
+
+	if (!is_ignore_length)
+	{
+		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -1533,54 +1653,6 @@ __device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, do
 }
 
 
-std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
-	// Read RF data from file
-
-	auto logger = spdlog::get("logger");
-
-	std::vector<RFData> data;
-	std::ifstream file(filename);
-
-	if (!file.is_open()) {
-		logger->error("[Read RF Data] Open file failed: {}", filename);
-		std::exit(EXIT_FAILURE);
-	}
-
-	std::string line;
-
-	// Skip the first line
-	std::getline(file, line);
-
-	while (std::getline(file, line)) {
-		std::stringstream ss(line);
-		std::string cell;
-		std::vector<double> values;
-
-		// split data
-		while (std::getline(ss, cell, ',')) {
-			try {
-				values.push_back(std::stod(cell));
-			}
-			catch (const std::exception& e) {
-				logger->error("[Read RF Data] Error parsing value in line: {}", line);
-				values.clear();
-				break;
-			}
-		}
-
-		if (values.size() == 4) {
-			data.push_back({ values[0], values[1], values[2], values[3] });
-		}
-		else {
-			logger->error("[Read RF Data] Invalid data format in line: {}", line);
-			std::exit(EXIT_FAILURE);
-		}
-	}
-
-	return data;
-}
-
-
 __global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int order, const double* dev_kn, const double* dev_ks, double l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1642,4 +1714,103 @@ __global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int o
 
 		tid += stride;
 	}
+}
+
+
+
+
+std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
+	// Read RF data from file
+
+	auto logger = spdlog::get("logger");
+
+	std::vector<RFData> data;
+	std::ifstream file(filename);
+
+	if (!file.is_open()) {
+		logger->error("[Read RF Data] Open file failed: {}", filename);
+		std::exit(EXIT_FAILURE);
+	}
+
+	std::string line;
+
+	// Skip the first line
+	std::getline(file, line);
+
+	while (std::getline(file, line)) {
+		std::stringstream ss(line);
+		std::string cell;
+		std::vector<double> values;
+
+		// split data
+		while (std::getline(ss, cell, ',')) {
+			try {
+				values.push_back(std::stod(cell));
+			}
+			catch (const std::exception& e) {
+				logger->error("[Read RF Data] Error parsing value in line: {}", line);
+				values.clear();
+				break;
+			}
+		}
+
+		if (values.size() == 4) {
+			data.push_back({ values[0], values[1], values[2], values[3] });
+		}
+		else {
+			logger->error("[Read RF Data] Invalid data format in line: {}", line);
+			std::exit(EXIT_FAILURE);
+		}
+	}
+
+	return data;
+}
+
+
+std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename) {
+	// Read Sextupole ramping data from file
+
+	auto logger = spdlog::get("logger");
+
+	std::vector<std::pair<double, double>> data;
+	std::ifstream file(filename);
+
+	if (!file.is_open()) {
+		logger->error("[Read Sextupole Ramping Data] Open file failed: {}", filename);
+		std::exit(EXIT_FAILURE);
+	}
+
+	std::string line;
+
+	// Skip the first line
+	//std::getline(file, line);
+
+	while (std::getline(file, line)) {
+		std::stringstream ss(line);
+		std::string cell;
+		std::vector<double> values;
+
+		// split data
+		while (std::getline(ss, cell, ',')) {
+			try {
+				values.push_back(std::stod(cell));
+			}
+			catch (const std::exception& e) {
+				logger->error("[Read Sextupole Ramping Data] Error parsing value in line: {}", line);
+				values.clear();
+				break;
+			}
+		}
+
+		if (values.size() == 2) {
+			data.push_back(std::pair(values[0], values[1]));
+		}
+		else {
+			logger->error("[Read Sextupole Ramping Data] Invalid data format in line: {}", line);
+			std::exit(EXIT_FAILURE);
+		}
+	}
+
+	return data;
+
 }
