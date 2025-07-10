@@ -11,12 +11,15 @@
 #include "parameter.h"
 
 
-// Align the memory to 64 bytes or 128 bytes
-#ifdef PASS_CAL_PHASE
-class alignas(128) Particle
-#else
-class alignas(64) Particle
-#endif
+//// Align the memory to 64 bytes or 128 bytes
+//#ifdef PASS_CAL_PHASE
+//class alignas(128) Particle
+//#else
+//class alignas(64) Particle
+//#endif
+
+
+class Particle
 {
 
 public:
@@ -54,25 +57,16 @@ private:
 
 };
 
-// æ≤Ã¨∂œ—‘—È÷§
-#ifdef PASS_CAL_PHASE
-static_assert(sizeof(Particle) == 128, "Size mismatch");
-#else
-static_assert(sizeof(Particle) == 64, "Size mismatch");
-#endif
+//// æ≤Ã¨∂œ—‘—È÷§
+//#ifdef PASS_CAL_PHASE
+//static_assert(sizeof(Particle) == 128, "Size mismatch");
+//#else
+//static_assert(sizeof(Particle) == 64, "Size mismatch");
+//#endif
 
 
-struct Slice
-{
-	// Instruction for use of index_start and index_end:
-	// for (int idx = index_start; idx < index_end; ++idx) { ... } // Access particles in this slice
-	int index_start;	// start index of a slice
-	int index_end;		// end index of a slice
-	double z_start;		// start z of a slice
-	double z_end;		// end z of a slice
-	double z_avg;		// average z of all patricles in a slice
-};
-
+struct Slice;	// Forward declaration of Slice struct (in cutSlice.h)
+class PicConfig;	// Forward declaration of PicConfig class (in pic.h)
 
 struct CycleRange {
 	int start;
@@ -126,10 +120,7 @@ class Bunch
 public:
 	Bunch() = default;
 	Bunch(const Parameter& para, int input_beamId, int input_bunchId);
-	~Bunch() = default;
-
-	void init_memory();
-	void free_memory();
+	~Bunch();
 
 	int bunchId = 0;
 
@@ -181,6 +172,7 @@ public:
 	std::string dist_transverse;
 	std::string dist_longitudinal;
 
+	/********************** Parameters for sorting and cutting slice **********************/
 	bool is_slice_for_sc = false;		// Whether to slice for space-charge effect
 	bool is_slice_for_bb = false;		// Whether to slice for beam-beam effect
 
@@ -199,7 +191,7 @@ public:
 	size_t cub_temp_bytes = 0;      // size of CUB temporary memory
 
 
-	// Parameters for particle monitor
+	/********************** Parameters for particle monitor (PM) **********************/
 	bool is_enableParticleMonitor = false;	// Whether to use particle monitor to save particles
 
 	std::vector<CycleRange> saveTurn_PM;
@@ -209,6 +201,13 @@ public:
 	int Nturn_PM = 0;	// Number of turns to save particles
 
 	Particle* dev_PM = nullptr;
+
+
+	/********************** Parameters for space charge (sc) **********************/
+	bool is_enable_spaceCharge = false;
+	std::string fieldSolver_sc = "empty";
+
+	std::vector<std::shared_ptr<PicConfig>> picConfig_sc;
 
 private:
 

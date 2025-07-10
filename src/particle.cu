@@ -3,9 +3,13 @@
 #include <cub/cub.cuh>
 
 #include "particle.h"
+#include "pic.h"
+#include "cutSlice.h"
 #include "parameter.h"
 #include "constant.h"
 #include "command.h"
+
+#include "amgx_c.h"
 
 Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 	using json = nlohmann::json;
@@ -131,7 +135,11 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 			Nobs_PM = data.at("Particle Monitor parameters").at("Observer position S (m)").size();
 		}
 
-
+		if (data.contains("Space-charge simulation parameters"))
+		{
+			is_enable_spaceCharge = data.at("Space-charge simulation parameters").at("Is enable space charge");
+			fieldSolver_sc = data.at("Space-charge simulation parameters").at("Field solver");
+		}
 	}
 	catch (json::exception e)
 	{
@@ -139,11 +147,9 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		spdlog::get("logger")->error(e.what());
 		std::exit(EXIT_FAILURE);
 	}
-}
 
-void Bunch::init_memory() {
-	//std::cout << "pointer 0 " << std::hex << dev_bunch << std::endl;
 
+	// Start to allocate memory //
 	callCuda(cudaMalloc(&dev_bunch, Np * sizeof(Particle)));
 	callCuda(cudaMalloc(&dev_bunch_tmp, Np * sizeof(Particle)));
 
@@ -175,9 +181,16 @@ void Bunch::init_memory() {
 		callCuda(cudaMalloc((void**)&dev_PM, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle)));
 	}
 
+	if (is_enable_spaceCharge && "PIC_FD_AMGX" == fieldSolver_sc)
+	{
+		AMGX_initialize();
+	}
+
 }
 
-void Bunch::free_memory() {
+
+Bunch::~Bunch() {
+
 	callCuda(cudaFree(dev_bunch));
 	callCuda(cudaFree(dev_bunch_tmp));
 
@@ -202,4 +215,8 @@ void Bunch::free_memory() {
 		callCuda(cudaFree(dev_PM));
 	}
 
+	if (is_enable_spaceCharge && "PIC_FD_AMGX" == fieldSolver_sc)
+	{
+		AMGX_finalize();
+	}
 }
