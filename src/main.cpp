@@ -32,32 +32,21 @@ int main(int argc, char** argv)
 	std::vector<Bunch> Beam0;
 	std::vector<Bunch> Beam1;
 
+	callCuda(cudaSetDevice(Para.gpuId[0]));
+
 	// create Bunch objects according input parameters(Para object) and push them into Beam0 and Beam1 vector
 	for (size_t i = 0; i < Para.Nbunch[0]; i++)
 	{
-		Bunch bunch(Para, 0, i);
-		Beam0.push_back(bunch);
+		Beam0.emplace_back(Para, 0, i);
 	}
 	for (size_t i = 0; i < Para.Nbunch[1]; i++)
 	{
-		Bunch bunch(Para, 1, i);
-		Beam1.push_back(bunch);
+		Beam0.emplace_back(Para, 1, i);
 	}
 
 	print_config_parameter(Para);
 	print_beam_parameter(Para, Beam0, Beam1);
 
-	callCuda(cudaSetDevice(Para.gpuId[0]));
-
-	// Initialize the gpu memory used to store the particles 
-	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
-	{
-		iter->init_memory();
-	}
-	for (auto iter = Beam1.begin(); iter != Beam1.end(); iter++)
-	{
-		iter->init_memory();
-	}
 
 	TimeEvent simTime;
 	simTime.initial(Para.gpuId[0], true);
@@ -129,16 +118,6 @@ int main(int argc, char** argv)
 		callCuda(cudaEventElapsedTime(&time_perTurn_tmp, simTime.startPerTurn, simTime.stopPerTurn));
 		simTime.turn += time_perTurn_tmp;
 
-	}
-
-	// Release the gpu memory used to store the particles 
-	for (auto iter = Beam0.begin(); iter != Beam0.end(); iter++)
-	{
-		iter->free_memory();
-	}
-	for (auto iter = Beam1.begin(); iter != Beam1.end(); iter++)
-	{
-		iter->free_memory();
 	}
 
 	simTime.free(Para.gpuId[0]);
