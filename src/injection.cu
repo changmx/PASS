@@ -468,6 +468,9 @@ void Injection::generate_transverse_Gaussian_distribution() {
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
 	Particle* host_bunch = new Particle[Np];
+	//Particle* host_bunch;
+	//cudaHostAlloc((void**)&host_bunch, Np * sizeof(Particle), cudaHostAllocDefault);
+
 
 	for (int j = 0; j < Np; ++j)
 	{
@@ -522,6 +525,7 @@ void Injection::generate_transverse_Gaussian_distribution() {
 	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 
 	delete[] host_bunch;
+	//cudaFreeHost(host_bunch);
 	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
 	spdlog::get("logger")->info("[Injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
