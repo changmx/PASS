@@ -145,15 +145,27 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
-			else if ("SextupoleElement" == data.at("Sequence").at(ikey).at("Command"))
+			else if ("SextupoleNormElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
 					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
 
 					command_vec.emplace_back(
-						std::make_unique<ConcreteCommand<SextupoleElement>>(
-							std::make_unique<SextupoleElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+						std::make_unique<ConcreteCommand<SextupoleNormElement>>(
+							std::make_unique<SextupoleNormElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("SextupoleSkewElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<SextupoleSkewElement>>(
+							std::make_unique<SextupoleSkewElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
@@ -275,7 +287,8 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "SBendElement") return 100;
 	else if (commandType == "RBendElement") return 100;
 	else if (commandType == "QuadrupoleElement") return 100;
-	else if (commandType == "SextupoleElement") return 100;
+	else if (commandType == "SextupoleNormElement") return 100;
+	else if (commandType == "SextupoleSkewElement") return 100;
 	else if (commandType == "OctupoleElement") return 100;
 	else if (commandType == "HKickerElement") return 100;
 	else if (commandType == "VKickerElement") return 100;
