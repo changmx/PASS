@@ -56,7 +56,7 @@ void MarkerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift));
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -292,22 +292,22 @@ void RBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift));
 
 	if (isFieldError)
 	{
-		transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
-			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
 		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 
-		transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
-			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 	}
 	else
 	{
-		transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
-			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i);
+		callKernel(transfer_dipole_full << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference,
+			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -501,7 +501,7 @@ void SextupoleNormElement::execute(int turn) {
 
 	if (!is_ignore_length)
 	{
-		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2));
 	}
 
 	double k2_current = k2;
@@ -518,7 +518,7 @@ void SextupoleNormElement::execute(int turn) {
 		}
 	}
 
-	transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2_current, l);
+	callKernel(transfer_sextupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2_current, l));
 
 
 	if (isFieldError)
@@ -528,7 +528,7 @@ void SextupoleNormElement::execute(int turn) {
 
 	if (!is_ignore_length)
 	{
-		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -606,7 +606,7 @@ void SextupoleSkewElement::execute(int turn) {
 
 	if (!is_ignore_length)
 	{
-		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2));
 	}
 
 	double k2s_current = k2s;
@@ -623,7 +623,7 @@ void SextupoleSkewElement::execute(int turn) {
 		}
 	}
 
-	transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2s_current, l);
+	callKernel(transfer_sextupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k2s_current, l));
 
 
 	if (isFieldError)
@@ -633,7 +633,7 @@ void SextupoleSkewElement::execute(int turn) {
 
 	if (!is_ignore_length)
 	{
-		transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -698,16 +698,16 @@ void OctupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-9;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2));
 
 	if (fabs(k3) > EPSILON && fabs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
 	{
-		transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3, l);
+		callKernel(transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3, l));
 
 	}
 	else if (fabs(k3) < EPSILON && fabs(k3s) > EPSILON)	// k3 == 0 && k3s != 0
 	{
-		transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3s, l);
+		callKernel(transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, k3s, l));
 	}
 	else if (fabs(k3) < EPSILON && fabs(k3s) < EPSILON)	// k3 == 0 && k3s == 0
 	{
@@ -725,7 +725,7 @@ void OctupoleElement::execute(int turn) {
 		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -786,16 +786,16 @@ void HKickerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2));
 
-	transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick);
+	callKernel(transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick));
 
 	if (isFieldError)
 	{
 		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -856,16 +856,16 @@ void VKickerElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2));
 
-	transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick);
+	callKernel(transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick);
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l)));
 	}
 
-	transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2);
+	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -977,9 +977,9 @@ void RFElement::execute(int turn) {
 
 	//transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, gamma, drift + l);
 
-	transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, turn, beta0, beta1, gamma0, gamma1,
+	callKernel(transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, turn, beta0, beta1, gamma0, gamma1,
 		dev_rf_data, pitch_rf, Nrf, Nturn_rf,
-		radius, ratio, dE_syn, eta1, Ek1 + m0);
+		radius, ratio, dE_syn, eta1, Ek1 + m0));
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -1116,24 +1116,24 @@ __global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, dou
 
 	while (tid < Np_sur) {
 
-		tau0 = dev_bunch[tid].z / beta;
-		pt0 = dev_bunch[tid].pz * beta;
+		Particle* p = &dev_bunch[tid];
 
-		dev_bunch[tid].x += r12 * dev_bunch[tid].px;
-		dev_bunch[tid].y += r34 * dev_bunch[tid].py;
+		tau0 = p->z / beta;
+		pt0 = p->pz * beta;
 
-		tau1 = tau0 + r56 * pt0;
-		dev_bunch[tid].z = tau1 * beta;
+		int mask = (p->tag > 0);
+
+		p->x += (r12 * p->px) * mask;
+		p->y += (r34 * p->py) * mask;
+
+		tau1 = tau0 + (r56 * pt0) * mask;
+		p->z = tau1 * beta;
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
-		//if (dev_bunch[tid].tag == 1)
-		//{
-		//	printf("dev_bunch[1] pz0 = %f, z0 = %f, z1 = %f, z2 = %f\n",
-		//		pt0 / beta, tau0 * beta, tau1 * beta, dev_bunch[tid].z);
-		//}
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
+
 		tid += stride;
 	}
 }
@@ -1164,8 +1164,10 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np_sur, double bet
 
 	while (tid < Np_sur) {
 
-		tau0 = dev_bunch[tid].z / beta;
-		pt0 = dev_bunch[tid].pz * beta;
+		Particle* p = &dev_bunch[tid];
+
+		tau0 = p->z / beta;
+		pt0 = p->pz * beta;
 
 		fl21 = fl21i / (1 + pt0 / beta);
 		fl43 = fl43i / (1 + pt0 / beta);
@@ -1173,10 +1175,10 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np_sur, double bet
 		fr43 = fr43i / (1 + pt0 / beta);
 
 		// apply the influence of left fringe field
-		x1 = dev_bunch[tid].x;
-		px1 = dev_bunch[tid].px + fl21 * x1;
-		y1 = dev_bunch[tid].y;
-		py1 = dev_bunch[tid].py + fl43 * y1;
+		x1 = p->x;
+		px1 = p->px + fl21 * x1;
+		y1 = p->y;
+		py1 = p->py + fl43 * y1;
 		tau1 = tau0;
 		pt1 = pt0 + d;
 
@@ -1196,22 +1198,30 @@ __global__ void transfer_dipole_full(Particle* dev_bunch, int Np_sur, double bet
 		tau3 = tau2;
 		pt3 = pt2 - d;
 
-		dev_bunch[tid].x = x3;
-		dev_bunch[tid].px = px3;
-		dev_bunch[tid].y = y3;
-		dev_bunch[tid].py = py3;
-		dev_bunch[tid].z = tau3 * beta;
-		dev_bunch[tid].pz = pt3 / beta;
+		// 对于判定已损失的粒子，不再改变其坐标
+		// 使用位掩码方法，避免条件分支
+		const bool cond = (p->tag > 0);
+		const long long mask = -static_cast<long long>(cond);
+
+		double* z_ptr = &p->z;
+		double* pz_ptr = &p->pz;
+		double* x_ptr = &p->x;
+		double* px_ptr = &p->px;
+		double* y_ptr = &p->y;
+		double* py_ptr = &p->py;
+
+		*z_ptr = __longlong_as_double((__double_as_longlong(tau3 * beta) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
+		*pz_ptr = __longlong_as_double((__double_as_longlong(pt3 / beta) & mask) | (__double_as_longlong(*pz_ptr) & ~mask));
+		*x_ptr = __longlong_as_double((__double_as_longlong(x3) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
+		*px_ptr = __longlong_as_double((__double_as_longlong(px3) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
+		*y_ptr = __longlong_as_double((__double_as_longlong(y3) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
+		*py_ptr = __longlong_as_double((__double_as_longlong(py3) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
-		//if (dev_bunch[tid].tag == 1)
-		//{
-		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
-		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
-		//}
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
+
 		tid += stride;
 	}
 
@@ -1241,17 +1251,19 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np_sur, doubl
 
 	while (tid < Np_sur) {
 
-		tau0 = dev_bunch[tid].z / beta;
-		pt0 = dev_bunch[tid].pz * beta;
+		Particle* p = &dev_bunch[tid];
+
+		tau0 = p->z / beta;
+		pt0 = p->pz * beta;
 
 		fl21 = fl21i / (1 + pt0 / beta);
 		fl43 = fl43i / (1 + pt0 / beta);
 
 		// apply the influence of left fringe field
-		x1 = dev_bunch[tid].x;
-		px1 = dev_bunch[tid].px + fl21 * x1;
-		y1 = dev_bunch[tid].y;
-		py1 = dev_bunch[tid].py + fl43 * y1;
+		x1 = p->x;
+		px1 = p->px + fl21 * x1;
+		y1 = p->y;
+		py1 = p->py + fl43 * y1;
 		tau1 = tau0;
 		pt1 = pt0 + d;
 
@@ -1271,22 +1283,30 @@ __global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np_sur, doubl
 		tau3 = tau2;
 		pt3 = pt2 - d;
 
-		dev_bunch[tid].x = x3;
-		dev_bunch[tid].px = px3;
-		dev_bunch[tid].y = y3;
-		dev_bunch[tid].py = py3;
-		dev_bunch[tid].z = tau3 * beta;
-		dev_bunch[tid].pz = pt3 / beta;
+		// 对于判定已损失的粒子，不再改变其坐标
+		// 使用位掩码方法，避免条件分支
+		const bool cond = (p->tag > 0);
+		const long long mask = -static_cast<long long>(cond);
+
+		double* z_ptr = &p->z;
+		double* pz_ptr = &p->pz;
+		double* x_ptr = &p->x;
+		double* px_ptr = &p->px;
+		double* y_ptr = &p->y;
+		double* py_ptr = &p->py;
+
+		*z_ptr = __longlong_as_double((__double_as_longlong(tau3 * beta) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
+		*pz_ptr = __longlong_as_double((__double_as_longlong(pt3 / beta) & mask) | (__double_as_longlong(*pz_ptr) & ~mask));
+		*x_ptr = __longlong_as_double((__double_as_longlong(x3) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
+		*px_ptr = __longlong_as_double((__double_as_longlong(px3) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
+		*y_ptr = __longlong_as_double((__double_as_longlong(y3) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
+		*py_ptr = __longlong_as_double((__double_as_longlong(py3) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
-		//if (dev_bunch[tid].tag == 1)
-		//{
-		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
-		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
-		//}
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
+
 		tid += stride;
 	}
 
@@ -1316,17 +1336,19 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np_sur, doub
 
 	while (tid < Np_sur) {
 
-		tau0 = dev_bunch[tid].z / beta;
-		pt0 = dev_bunch[tid].pz * beta;
+		Particle* p = &dev_bunch[tid];
+
+		tau0 = p->z / beta;
+		pt0 = p->pz * beta;
 
 		fr21 = fr21i / (1 + pt0 / beta);
 		fr43 = fr43i / (1 + pt0 / beta);
 
 		// no influence of left fringe field
-		x1 = dev_bunch[tid].x;
-		px1 = dev_bunch[tid].px;
-		y1 = dev_bunch[tid].y;
-		py1 = dev_bunch[tid].py;
+		x1 = p->x;
+		px1 = p->px;
+		y1 = p->y;
+		py1 = p->py;
 		tau1 = tau0;
 		pt1 = pt0 + d;
 
@@ -1346,22 +1368,30 @@ __global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np_sur, doub
 		tau3 = tau2;
 		pt3 = pt2 - d;
 
-		dev_bunch[tid].x = x3;
-		dev_bunch[tid].px = px3;
-		dev_bunch[tid].y = y3;
-		dev_bunch[tid].py = py3;
-		dev_bunch[tid].z = tau3 * beta;
-		dev_bunch[tid].pz = pt3 / beta;
+		// 对于判定已损失的粒子，不再改变其坐标
+		// 使用位掩码方法，避免条件分支
+		const bool cond = (p->tag > 0);
+		const long long mask = -static_cast<long long>(cond);
+
+		double* z_ptr = &p->z;
+		double* pz_ptr = &p->pz;
+		double* x_ptr = &p->x;
+		double* px_ptr = &p->px;
+		double* y_ptr = &p->y;
+		double* py_ptr = &p->py;
+
+		*z_ptr = __longlong_as_double((__double_as_longlong(tau3 * beta) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
+		*pz_ptr = __longlong_as_double((__double_as_longlong(pt3 / beta) & mask) | (__double_as_longlong(*pz_ptr) & ~mask));
+		*x_ptr = __longlong_as_double((__double_as_longlong(x3) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
+		*px_ptr = __longlong_as_double((__double_as_longlong(px3) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
+		*y_ptr = __longlong_as_double((__double_as_longlong(y3) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
+		*py_ptr = __longlong_as_double((__double_as_longlong(py3) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
-		//if (dev_bunch[tid].tag == 1)
-		//{
-		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
-		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
-		//}
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
+
 		tid += stride;
 	}
 
@@ -1389,12 +1419,14 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np_sur, double
 
 	while (tid < Np_sur) {
 
-		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
-		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
-		tau0 = dev_bunch[tid].z / beta;
-		pt0 = dev_bunch[tid].pz * beta;
+		Particle* p = &dev_bunch[tid];
+
+		x0 = p->x;
+		px0 = p->px;
+		y0 = p->y;
+		py0 = p->py;
+		tau0 = p->z / beta;
+		pt0 = p->pz * beta;
 
 		k1_chrom = k1 / (1 + pt0 / beta);
 		omega = sqrt(fabs(k1_chrom));
@@ -1405,7 +1437,7 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np_sur, double
 		shx = sinh(omega * l);
 
 		//printf("Quadrupole: k1_chrom = %f, pz = %f, beta = %f, pt = %f, cx = %f, sx = %f, chx =%f, shx = %f\n",
-		//	k1_chrom, dev_bunch[tid].pz, beta, pt0, cx, sx, chx, shx);
+		//	k1_chrom, p->pz, beta, pt0, cx, sx, chx, shx);
 
 		if (k1_chrom > 0) {
 			r11 = cx;
@@ -1436,21 +1468,28 @@ __global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np_sur, double
 		py1 = r43 * y0 + r44 * py0;
 		tau1 = tau0 + r56 * pt0;
 
-		dev_bunch[tid].x = x1;
-		dev_bunch[tid].px = px1;
-		dev_bunch[tid].y = y1;
-		dev_bunch[tid].py = py1;
-		dev_bunch[tid].z = tau1 * beta;
+		// 对于判定已损失的粒子，不再改变其坐标
+		// 使用位掩码方法，避免条件分支
+		const bool cond = (p->tag > 0);
+		const long long mask = -static_cast<long long>(cond);
+
+		double* z_ptr = &p->z;
+		double* x_ptr = &p->x;
+		double* px_ptr = &p->px;
+		double* y_ptr = &p->y;
+		double* py_ptr = &p->py;
+
+		*z_ptr = __longlong_as_double((__double_as_longlong(tau1 * beta) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
+		*x_ptr = __longlong_as_double((__double_as_longlong(x1) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
+		*px_ptr = __longlong_as_double((__double_as_longlong(px1) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
+		*y_ptr = __longlong_as_double((__double_as_longlong(y1) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
+		*py_ptr = __longlong_as_double((__double_as_longlong(py1) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
-		//if (dev_bunch[tid].tag == 1)
-		//{
-		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
-		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
-		//}
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
+
 		tid += stride;
 	}
 }
@@ -1480,12 +1519,14 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np_sur, double
 
 	while (tid < Np_sur) {
 
-		x0 = dev_bunch[tid].x;
-		px0 = dev_bunch[tid].px;
-		y0 = dev_bunch[tid].y;
-		py0 = dev_bunch[tid].py;
-		tau0 = dev_bunch[tid].z / beta;
-		pt0 = dev_bunch[tid].pz * beta;
+		Particle* p = &dev_bunch[tid];
+
+		x0 = p->x;
+		px0 = p->px;
+		y0 = p->y;
+		py0 = p->py;
+		tau0 = p->z / beta;
+		pt0 = p->pz * beta;
 
 		k1s_chrom = k1s / (1 + pt0 / beta);
 		omega = sqrt(fabs(k1s_chrom));
@@ -1546,21 +1587,28 @@ __global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np_sur, double
 		py1 = r41 * x0 + r42 * px0 + r43 * y0 + r44 * py0;
 		tau1 = tau0 + r56 * pt0;
 
-		dev_bunch[tid].x = x1;
-		dev_bunch[tid].px = px1;
-		dev_bunch[tid].y = y1;
-		dev_bunch[tid].py = py1;
-		dev_bunch[tid].z = tau1 * beta;
+		// 对于判定已损失的粒子，不再改变其坐标
+		// 使用位掩码方法，避免条件分支
+		const bool cond = (p->tag > 0);
+		const long long mask = -static_cast<long long>(cond);
+
+		double* z_ptr = &p->z;
+		double* x_ptr = &p->x;
+		double* px_ptr = &p->px;
+		double* y_ptr = &p->y;
+		double* py_ptr = &p->py;
+
+		*z_ptr = __longlong_as_double((__double_as_longlong(tau1 * beta) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
+		*x_ptr = __longlong_as_double((__double_as_longlong(x1) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
+		*px_ptr = __longlong_as_double((__double_as_longlong(px1) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
+		*y_ptr = __longlong_as_double((__double_as_longlong(y1) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
+		*py_ptr = __longlong_as_double((__double_as_longlong(py1) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
-		//if (dev_bunch[tid].tag == 1)
-		//{
-		//	printf("dev_bunch[1] z0 = %f, z1 = %f, z2 = %f, circumference = %f\n",
-		//		tau0 * beta, tau1 * beta, dev_bunch[tid].z, circumference);
-		//}
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
+
 		tid += stride;
 	}
 }
@@ -1577,16 +1625,17 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np_sur, double 
 
 	while (tid < Np_sur) {
 
-		x0 = dev_bunch[tid].x;
-		y0 = dev_bunch[tid].y;
+		Particle* p = &dev_bunch[tid];
 
-		k2_chrom = k2 / (1 + dev_bunch[tid].pz);
+		x0 = p->x;
+		y0 = p->y;
 
-		int mask = (dev_bunch[tid].tag > 0);
-		//int mask = 1;
+		k2_chrom = k2 / (1 + p->pz);
 
-		dev_bunch[tid].px += (-0.5 * k2_chrom * l * (x0 * x0 - y0 * y0)) * mask;
-		dev_bunch[tid].py += (k2_chrom * l * x0 * y0) * mask;
+		int mask = (p->tag > 0);
+
+		p->px += (-0.5 * k2_chrom * l * (x0 * x0 - y0 * y0)) * mask;
+		p->py += (k2_chrom * l * x0 * y0) * mask;
 
 		tid += stride;
 	}
@@ -1604,13 +1653,17 @@ __global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np_sur, double 
 
 	while (tid < Np_sur) {
 
-		x0 = dev_bunch[tid].x;
-		y0 = dev_bunch[tid].y;
+		Particle* p = &dev_bunch[tid];
 
-		k2s_chrom = k2s / (1 + dev_bunch[tid].pz);
+		x0 = p->x;
+		y0 = p->y;
 
-		dev_bunch[tid].px += k2s_chrom * l * x0 * y0;
-		dev_bunch[tid].py += 0.5 * k2s_chrom * l * (x0 * x0 - y0 * y0);
+		k2s_chrom = k2s / (1 + p->pz);
+
+		int mask = (p->tag > 0);
+
+		p->px += (k2s_chrom * l * x0 * y0) * mask;
+		p->py += (0.5 * k2s_chrom * l * (x0 * x0 - y0 * y0)) * mask;
 
 		tid += stride;
 	}
@@ -1628,13 +1681,17 @@ __global__ void transfer_octupole_norm(Particle* dev_bunch, int Np_sur, double b
 
 	while (tid < Np_sur) {
 
-		x0 = dev_bunch[tid].x;
-		y0 = dev_bunch[tid].y;
+		Particle* p = &dev_bunch[tid];
 
-		k3_chrom = k3 / (1 + dev_bunch[tid].pz);
+		x0 = p->x;
+		y0 = p->y;
 
-		dev_bunch[tid].px += -1.0 / 6 * k3_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2));
-		dev_bunch[tid].py += 1.0 / 6 * k3_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3));
+		k3_chrom = k3 / (1 + p->pz);
+
+		int mask = (p->tag > 0);
+
+		p->px += (-1.0 / 6 * k3_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2))) * mask;
+		p->py += (1.0 / 6 * k3_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3))) * mask;
 
 		tid += stride;
 	}
@@ -1652,13 +1709,17 @@ __global__ void transfer_octupole_skew(Particle* dev_bunch, int Np_sur, double b
 
 	while (tid < Np_sur) {
 
-		x0 = dev_bunch[tid].x;
-		y0 = dev_bunch[tid].y;
+		Particle* p = &dev_bunch[tid];
 
-		k3s_chrom = k3s / (1 + dev_bunch[tid].pz);
+		x0 = p->x;
+		y0 = p->y;
 
-		dev_bunch[tid].px += 1.0 / 6 * k3s_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3));
-		dev_bunch[tid].py += 1.0 / 6 * k3s_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2));
+		k3s_chrom = k3s / (1 + p->pz);
+
+		int mask = (p->tag > 0);
+
+		p->px += (1.0 / 6 * k3s_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3))) * mask;
+		p->py += (1.0 / 6 * k3s_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2))) * mask;
 
 		tid += stride;
 	}
@@ -1675,9 +1736,13 @@ __global__ void transfer_hkicker(Particle* dev_bunch, int Np_sur, double beta,
 
 	while (tid < Np_sur) {
 
-		kick_chrom = kick / (1 + dev_bunch[tid].pz);
+		Particle* p = &dev_bunch[tid];
 
-		dev_bunch[tid].px += kick_chrom;
+		kick_chrom = kick / (1 + p->pz);
+
+		int mask = (p->tag > 0);
+
+		p->px += kick_chrom * mask;
 
 		tid += stride;
 	}
@@ -1694,9 +1759,13 @@ __global__ void transfer_vkicker(Particle* dev_bunch, int Np_sur, double beta,
 
 	while (tid < Np_sur) {
 
-		kick_chrom = kick / (1 + dev_bunch[tid].pz);
+		Particle* p = &dev_bunch[tid];
 
-		dev_bunch[tid].py += kick_chrom;
+		kick_chrom = kick / (1 + p->pz);
+
+		int mask = (p->tag > 0);
+
+		p->py += kick_chrom * mask;
 
 		tid += stride;
 	}
@@ -1722,8 +1791,10 @@ __global__ void transfer_rf(Particle* dev_bunch, int Np_sur, int turn, double be
 
 	while (tid < Np_sur) {
 
-		z0 = dev_bunch[tid].z;
-		pz0 = dev_bunch[tid].pz;
+		Particle* p = &dev_bunch[tid];
+
+		z0 = p->z;
+		pz0 = p->pz;
 
 		convert_z_dp_to_theta_dE(z0, pz0, theta0, dE0, radius, beta0);
 
@@ -1744,11 +1815,13 @@ __global__ void transfer_rf(Particle* dev_bunch, int Np_sur, int turn, double be
 
 		convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1);
 
-		dev_bunch[tid].z = z1;
-		dev_bunch[tid].pz = pz1;
+		int mask = (p->tag > 0);
 
-		dev_bunch[tid].px *= trans_scale;
-		dev_bunch[tid].py *= trans_scale;
+		p->z = z1 * mask + z0 * (1 - mask);
+		p->pz = pz1 * mask + pz0 * (1 - mask);
+
+		p->px = p->px * trans_scale * mask + p->px * (1 - mask);
+		p->py = p->py * trans_scale * mask + p->py * (1 - mask);
 
 		tid += stride;
 	}
@@ -1791,8 +1864,10 @@ __global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int o
 
 	while (tid < Np_sur)
 	{
-		x = dev_bunch[tid].x;
-		y = dev_bunch[tid].y;
+		Particle* p = &dev_bunch[tid];
+
+		x = p->x;
+		y = p->y;
 
 		dpx = 0.0;
 		dpy = 0.0;
@@ -1823,8 +1898,10 @@ __global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int o
 			dpy += knl * (inv_factorial * imag) + ksl * (inv_factorial * real);
 		}
 
-		dev_bunch[tid].px += dpx;
-		dev_bunch[tid].py += dpy;
+		int mask = (p->tag > 0);
+
+		p->px += dpx * mask;
+		p->py += dpy * mask;
 
 		tid += stride;
 	}
@@ -1838,11 +1915,13 @@ __global__ void check_particle_in_ElSeparator(Particle* dev_bunch, int Np_sur, P
 
 	while (tid < Np_sur) {
 
-		if (dev_bunch[tid].x >= ES_position && dev_bunch[tid].tag > 0) {
+		Particle* p = &dev_bunch[tid];
 
-			dev_bunch[tid].tag *= -1;
-			dev_bunch[tid].lostPos = s;
-			dev_bunch[tid].lostTurn = turn;
+		if (p->x >= ES_position && p->tag > 0) {
+
+			p->tag *= -1;
+			p->lostPos = s;
+			p->lostTurn = turn;
 
 			// 每次排序后粒子坐标会变，这里通过原子加法，确保在不同圈数中，如果多个粒子下标对应同一个tid值时，数据不会被覆盖
 			int write_index = atomicAdd(global_counter, 1);
