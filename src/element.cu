@@ -8,6 +8,8 @@
 #include <string>
 #include <general.h>
 
+#include <cuda_runtime.h>
+
 
 MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
 	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
@@ -987,6 +989,115 @@ void RFElement::execute(int turn) {
 }
 
 
+ElSeparatorElement::ElSeparatorElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "ElSeparatorElement";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	Np = Bunch.Np;
+	Nturn = para.Nturn;
+	circumference = para.circumference;
+
+	bunchId = Bunch.bunchId;
+	Np_sur = Bunch.Np_sur;
+
+	saveDir = para.dir_output_slowExt_particle;
+	saveName_part = para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId);
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		//l = data.at("Sequence").at(obj_name).at("L (m)");
+		//drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+
+		// Todo
+		//Ex = data.at("Sequence").at(obj_name).at("Ex (kV/cm)");
+		//Ey = data.at("Sequence").at(obj_name).at("Ey (kV/cm)");
+
+		ES_hor_position = data.at("Sequence").at(obj_name).at("ES Horizontal position (m)");
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+	callCuda(cudaMalloc((void**)&dev_particle_Es, Np * sizeof(Particle)));
+	callCuda(cudaMalloc((void**)&dev_counter, 1 * sizeof(int)));
+
+	callCuda(cudaMemset(dev_particle_Es, 0, Np * sizeof(Particle)));
+	callCuda(cudaMemset(dev_counter, 0, 1 * sizeof(int)));
+
+}
+
+
+void ElSeparatorElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->debug("[VKicker Element] run: " + name);
+
+	Np_sur = bunchRef.Np_sur;
+	//double gamma = bunchRef.gamma;
+	//double beta = bunchRef.beta;
+
+	//double drift = drift_length;
+
+	callKernel(check_particle_in_ElSeparator << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np, dev_particle_Es, ES_hor_position, dev_counter, s, turn));
+
+	if (turn == Nturn)
+	{
+		Particle* host_particle_Es = nullptr;
+		host_particle_Es = new Particle[Np];
+
+		callCuda(cudaMemcpy(host_particle_Es, dev_particle_Es, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+
+		std::filesystem::path saveName_full = saveDir / (saveName_part + "_slowExtraction_ES_" + std::to_string(ES_hor_position) + "_.csv");
+		std::ofstream file(saveName_full);
+
+		file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
+			<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
+
+		for (size_t i = 0; i < Np; i++)
+		{
+			if (host_particle_Es[i].tag < 0)	// tag != 0, means there is a particle at this index
+			{
+				file << std::setprecision(10)
+					<< host_particle_Es[i].x << ","
+					<< host_particle_Es[i].px << ","
+					<< host_particle_Es[i].y << ","
+					<< host_particle_Es[i].py << ","
+					<< host_particle_Es[i].z << ","
+					<< host_particle_Es[i].pz << ","
+					<< host_particle_Es[i].tag << ","
+					<< host_particle_Es[i].lostTurn << ","
+					<< host_particle_Es[i].lostPos << "\n";
+			}
+		}
+
+		file.close();
+		delete[] host_particle_Es;
+	}
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
+}
+
+
 __global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length) {
 
@@ -1471,8 +1582,11 @@ __global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np_sur, double 
 
 		k2_chrom = k2 / (1 + dev_bunch[tid].pz);
 
-		dev_bunch[tid].px += -0.5 * k2_chrom * l * (x0 * x0 - y0 * y0);
-		dev_bunch[tid].py += k2_chrom * l * x0 * y0;
+		int mask = (dev_bunch[tid].tag > 0);
+		//int mask = 1;
+
+		dev_bunch[tid].px += (-0.5 * k2_chrom * l * (x0 * x0 - y0 * y0)) * mask;
+		dev_bunch[tid].py += (k2_chrom * l * x0 * y0) * mask;
 
 		tid += stride;
 	}
@@ -1717,6 +1831,32 @@ __global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int o
 }
 
 
+__global__ void check_particle_in_ElSeparator(Particle* dev_bunch, int Np_sur, Particle* dev_particle_ES, double ES_position, int* global_counter, double s, int turn) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur) {
+
+		if (dev_bunch[tid].x >= ES_position && dev_bunch[tid].tag > 0) {
+
+			dev_bunch[tid].tag *= -1;
+			dev_bunch[tid].lostPos = s;
+			dev_bunch[tid].lostTurn = turn;
+
+			// 每次排序后粒子坐标会变，这里通过原子加法，确保在不同圈数中，如果多个粒子下标对应同一个tid值时，数据不会被覆盖
+			int write_index = atomicAdd(global_counter, 1);
+
+			dev_particle_ES[write_index] = dev_bunch[tid]; // Copy the particle to the ElSeparator array
+
+		}
+
+		// 同步块内线程
+		__syncthreads();
+
+		tid += stride;
+	}
+}
 
 
 std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
