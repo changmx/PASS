@@ -133,12 +133,14 @@ void Twiss::execute(int turn) {
 
 	Np_sur = bunchRef.Np_sur;
 
-	transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, circumference,
-		betax, betax_previous, alphax, alphax_previous,
-		betay, betay_previous, alphay, alphay_previous,
-		phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
-		Dx, Dx_previous, Dpx, Dpx_previous,
-		m11_z, m12_z, m21_z, m22_z);
+	callKernel(
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, circumference,
+			betax, betax_previous, alphax, alphax_previous,
+			betay, betay_previous, alphay, alphay_previous,
+			phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
+			Dx, Dx_previous, Dpx, Dpx_previous,
+			m11_z, m12_z, m21_z, m22_z)
+	);
 
 	//callCuda(cudaDeviceSynchronize());
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -181,7 +183,7 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 
 	while (tid < Np_sur)
 	{
-		
+
 		z1 = dev_bunch[tid].z;
 		pz1 = dev_bunch[tid].pz;
 
