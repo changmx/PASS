@@ -183,15 +183,16 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 
 	while (tid < Np_sur)
 	{
+		Particle* p = &dev_bunch[tid];
 
-		z1 = dev_bunch[tid].z;
-		pz1 = dev_bunch[tid].pz;
+		z1 = p->z;
+		pz1 = p->pz;
 
-		x1 = dev_bunch[tid].x - Dx_previous * pz1;
-		px1 = dev_bunch[tid].px - Dpx_previous * pz1;
+		x1 = p->x - Dx_previous * pz1;
+		px1 = p->px - Dpx_previous * pz1;
 
-		y1 = dev_bunch[tid].y;
-		py1 = dev_bunch[tid].py;
+		y1 = p->y;
+		py1 = p->py;
 
 		phi_x = phix + pz1 * DQx;
 		phi_y = phiy + pz1 * DQy;
@@ -220,15 +221,15 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 
 		// 对于判定已损失的粒子，不再改变其坐标
 		// 使用位掩码方法，避免条件分支
-		const bool cond = (dev_bunch[tid].tag > 0);
+		const bool cond = (p->tag > 0);
 		const long long mask = -static_cast<long long>(cond);
 
-		double* z_ptr = &dev_bunch[tid].z;
-		double* pz_ptr = &dev_bunch[tid].pz;
-		double* x_ptr = &dev_bunch[tid].x;
-		double* px_ptr = &dev_bunch[tid].px;
-		double* y_ptr = &dev_bunch[tid].y;
-		double* py_ptr = &dev_bunch[tid].py;
+		double* z_ptr = &p->z;
+		double* pz_ptr = &p->pz;
+		double* x_ptr = &p->x;
+		double* px_ptr = &p->px;
+		double* y_ptr = &p->y;
+		double* py_ptr = &p->py;
 
 		*z_ptr = __longlong_as_double((__double_as_longlong(z2) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
 		*pz_ptr = __longlong_as_double((__double_as_longlong(pz2) & mask) | (__double_as_longlong(*pz_ptr) & ~mask));
@@ -238,9 +239,9 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 		*py_ptr = __longlong_as_double((__double_as_longlong(py2) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
 
 		c_half = circumference * 0.5;
-		over = (dev_bunch[tid].z > c_half);
-		under = (dev_bunch[tid].z < -c_half);
-		dev_bunch[tid].z += (under - over) * circumference;
+		over = (p->z > c_half);
+		under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
 
 		//if (tid == 0)
 		//{
