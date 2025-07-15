@@ -205,6 +205,30 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
+			else if ("RFElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<RFElement>>(
+							std::make_unique<RFElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("ElSeparatorElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(maxThreadsPerBlock / 2, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<ElSeparatorElement>>(
+							std::make_unique<ElSeparatorElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
 			else if ("DistMonitor" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
@@ -281,6 +305,7 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 
 int get_priority(const std::string& commandType) {
 	// 将commandType转换为优先级数值
+	// 当两个command的s相同时,首先执行优先级高的命令
 	if (commandType == "Injection") return 0;	// 最高优先级
 	else if (commandType == "Twiss") return 50;	// 次级优先级
 	else if (commandType == "MarkerElement") return 100;
@@ -293,6 +318,7 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "HKickerElement") return 100;
 	else if (commandType == "VKickerElement") return 100;
 	else if (commandType == "RFElement") return 100;
+	else if (commandType == "ElSeparatorElement") return 100;
 	else if (commandType == "SpaceCharge") return 120;
 	//else if (commandType == "Wakefield") return 150;
 	//else if (commandType == "LumiMonitor") return 150;
