@@ -453,6 +453,54 @@ private:
 
 };
 
+
+class ElSeparatorElement :public Element
+{
+public:
+	ElSeparatorElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~ElSeparatorElement() {
+		callCuda(cudaFree(dev_counter));
+		callCuda(cudaFree(dev_particle_Es));
+	}
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Electrostatic Separator Element] print");
+	}
+private:
+	Particle* dev_bunch = nullptr;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	int Np = 0;
+	int Nturn = 0;
+	int bunchId = 0;
+	int Np_sur = 0;
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	double Ex = 0, Ey = 0;
+
+	double l = 0;
+	double drift_length = 0;
+
+	int* dev_counter = 0;
+
+	double ES_hor_position = 0;	// The horizontal position of the separator relative to the center of the beam pipe, in unit of m
+
+	Particle* dev_particle_Es = nullptr;	// Device memory for the particles transfered into the electrostatic separator
+	
+	std::filesystem::path saveDir;
+	std::string saveName_part;
+};
+
+
 __global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length);
 
@@ -508,3 +556,5 @@ __global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int o
 std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 
 std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename);
+
+__global__ void check_particle_in_ElSeparator(Particle* dev_bunch, int Np_sur, Particle* dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);
