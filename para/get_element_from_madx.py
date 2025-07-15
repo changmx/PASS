@@ -45,7 +45,7 @@ class QuadrupoleElement(Element):
         self.isFieldError = False
 
 
-class SextupoleElement(Element):
+class Sextupole(Element):
     def __init__(self, name):
         super().__init__(name)
         self.l = 0.0
@@ -68,6 +68,10 @@ class HKickerElement(Element):
         super().__init__(name)
         self.l = 0.0
         self.kick = 0.0
+        self.sinkick = 0
+        self.sinpeak = 0
+        self.sintune = 0
+        self.sinphase = 0
         self.isFieldError = False
 
 
@@ -76,6 +80,10 @@ class VKickerElement(Element):
         super().__init__(name)
         self.l = 0.0
         self.kick = 0.0
+        self.sinkick = 0
+        self.sinpeak = 0
+        self.sintune = 0
+        self.sinphase = 0
         self.isFieldError = False
 
 
@@ -89,7 +97,7 @@ class_map = {
     "sbend": SBendElement,
     "rbend": RBendElement,
     "quadrupole": QuadrupoleElement,
-    "sextupole": SextupoleElement,
+    "sextupole": Sextupole,
     "octupole": OctupoleElement,
     "hkicker": HKickerElement,
     "vkicker": VKickerElement,
@@ -296,20 +304,51 @@ def generate_element_json(filepath):
                     "isFieldError": elem.isFieldError,
                 }
             }
-        elif isinstance(elem, SextupoleElement):
-            element_dict = {
-                str(elem.name)
-                + "_"
-                + str(elem.S): {
-                    "S (m)": elem.S,
-                    "Command": type(elem).__name__,
-                    "L (m)": elem.l,
-                    "Drift length (m)": drift_length,
-                    "k2 (m^-3)": elem.k2,
-                    "k2s (m^-3)": elem.k2s,
-                    "isFieldError": elem.isFieldError,
+        elif isinstance(elem, Sextupole):
+            if (np.abs(elem.k2 > 1e-9) and np.abs(elem.k2s) < 1e-9):
+                element_dict = {
+                    str(elem.name)
+                    + "_"
+                    + str(elem.S): {
+                        "S (m)": elem.S,
+                        "Command": type(elem).__name__ + "NormElement",
+                        "L (m)": elem.l,
+                        "Drift length (m)": drift_length,
+                        "k2 (m^-3)": elem.k2,
+                        "isFieldError": elem.isFieldError,
+                    }
                 }
-            }
+            elif (np.abs(elem.k2 < 1e-9) and np.abs(elem.k2s) > 1e-9):
+                element_dict = {
+                    str(elem.name)
+                    + "_"
+                    + str(elem.S): {
+                        "S (m)": elem.S,
+                        "Command": type(elem).__name__ + "SkewElement",
+                        "L (m)": elem.l,
+                        "Drift length (m)": drift_length,
+                        "k2s (m^-3)": elem.k2s,
+                        "isFieldError": elem.isFieldError,
+                    }
+                }
+            elif (np.abs(elem.k2 < 1e-9) and np.abs(elem.k2s) < 1e-9):
+                element_dict = {
+                    str(elem.name)
+                    + "_"
+                    + str(elem.S): {
+                        "S (m)": elem.S,
+                        "Command": type(elem).__name__ + "NorwElement",
+                        "L (m)": elem.l,
+                        "Drift length (m)": drift_length,
+                        "k2 (m^-3)": elem.k2,
+                        "isFieldError": elem.isFieldError,
+                    }
+                }
+            else:
+                print(
+                    f"Error: Sextupole: k2 = {elem.k2}, k2s = {elem.k2s}, there should be and only 1 variable equal to 0"
+                )
+                sys.exit(1)
         elif isinstance(elem, OctupoleElement):
             element_dict = {
                 str(elem.name)
