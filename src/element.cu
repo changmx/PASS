@@ -858,11 +858,11 @@ void VKickerElement::execute(int turn) {
 
 	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, drift + l / 2));
 
-	callKernel(transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick);
+	callKernel(transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, kick));
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l)));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, max_error_order, dev_kn, dev_ks, l));
 	}
 
 	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, circumference, gamma, l / 2));
