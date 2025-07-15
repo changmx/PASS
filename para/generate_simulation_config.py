@@ -29,6 +29,7 @@ def sort_sequence(sequence):
         "HKickerElement": 100,
         "VKickerElement": 100,
         "RFElement": 100,
+        "ElSeparatorElement": 100,
         "SpaceCharge": 120,
         "DistMonitor": 150,
         "StatMonitor": 150,
@@ -78,7 +79,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         # "Chromaticity x": 0,
         # "Chromaticity y": 0,
         "GammaT": 1,
-        "Number of turns": 100,
+        "Number of turns": 5000,
         "Number of GPU devices": 1,
         "Device Id": [0],
         "Output directory": "D:\\PassSimulation",
@@ -147,8 +148,8 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Alpha y": 0,
                 "Beta x (m)": 10.21803918,
                 "Beta y (m)": 1.396696787,
-                "Emittance x (m'rad)": 84e-6,
-                "Emittance y (m'rad)": 84e-6,
+                "Emittance x (m'rad)": 28e-6,
+                "Emittance y (m'rad)": 28e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
                 "Sigma z (m)": 0.1,
@@ -163,8 +164,8 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
-                "Name of loaded file": "1812_49_beam0_proton_bunch0_10000_hor_kv_longi_gaussian_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is load distribution": False,
+                "Name of loaded file": "1511_49_beam0_proton_bunch0_10000_hor_kv_longi_gaussian_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
             },
         }
@@ -216,107 +217,147 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     SF1_ARC1_1 = {
         "sf1_arc1_1": {
             "S (m)": 8.37,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": 2.768917952,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
     SF1_ARC1_2 = {
         "sf1_arc1_2": {
             "S (m)": 59.93,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": 2.768917952,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
     SF1_ARC1_3 = {
         "sf1_arc1_3": {
             "S (m)": 76.67,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": 2.768917952,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
     SF1_ARC1_4 = {
         "sf1_arc1_4": {
             "S (m)": 128.23,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": 2.768917952,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
-    
+
     SD1_ARC1_1 = {
         "sd1_arc1_1": {
             "S (m)": 10.82,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": -3.493098505,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
     SD1_ARC1_2 = {
         "sd1_arc1_2": {
             "S (m)": 57.48,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": -3.493098505,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
     SD1_ARC1_3 = {
         "sd1_arc1_3": {
             "S (m)": 79.12,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": -3.493098505,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
     SD1_ARC1_4 = {
         "sd1_arc1_4": {
             "S (m)": 125.78,
-            "Command": "SextupoleElement",
+            "Command": "SextupoleNormElement",
             "L (m)": 0.2,
             "Drift length (m)": 0,
             "k2 (m^-3)": -3.493098505,
-            "k2s (m^-3)": 0.0,
             "isFieldError": False,
+            "isIgnoreLength": True,
         },
     }
-    
-    Sequence.update(SF1_ARC1_1)
-    Sequence.update(SF1_ARC1_2)
-    Sequence.update(SF1_ARC1_3)
-    Sequence.update(SF1_ARC1_4)
-    
-    Sequence.update(SD1_ARC1_1)
-    Sequence.update(SD1_ARC1_2)
-    Sequence.update(SD1_ARC1_3)
-    Sequence.update(SD1_ARC1_4)
+
+    SF1_STA1_1 = {
+        "sf1_sta1_1": {
+            "S (m)": 31.55,
+            "Command": "SextupoleNormElement",
+            "L (m)": 0.2,
+            "Drift length (m)": 0,
+            "k2 (m^-3)": 3,
+            "isFieldError": False,
+            "isIgnoreLength": True,
+            "isRamping": True,
+            "Ramping file path": r"D:\PASS\para\sf1_sta1_ramping.csv",
+        },
+    }
+    SF1_STA1_2 = {
+        "sf1_sta1_2": {
+            "S (m)": 41.96,
+            "Command": "SextupoleNormElement",
+            "L (m)": 0.2,
+            "Drift length (m)": 0,
+            "k2 (m^-3)": 3,
+            "isFieldError": False,
+            "isIgnoreLength": True,
+            "isRamping": True,
+            "Ramping file path": r"D:\PASS\para\sf1_sta1_ramping.csv",
+        },
+    }
+
+    ElSeparatorElement_entrance = {
+        "ES_26.84": {
+            "Command": "ElSeparatorElement",
+            "S (m)": 26.84,
+            "ES Horizontal position (m)": 0.04,
+        }
+    }
+
+    # Sequence.update(SF1_ARC1_1)
+    # Sequence.update(SF1_ARC1_2)
+    # Sequence.update(SF1_ARC1_3)
+    # Sequence.update(SF1_ARC1_4)
+
+    # Sequence.update(SD1_ARC1_1)
+    # Sequence.update(SD1_ARC1_2)
+    # Sequence.update(SD1_ARC1_3)
+    # Sequence.update(SD1_ARC1_4)
+
+    Sequence.update(SF1_STA1_1)
+    Sequence.update(SF1_STA1_2)
+
+    Sequence.update(ElSeparatorElement_entrance)
 
     ###################################### Get element from madx ######################################
 
     # element_list_from_madx, circumference_seqFile = generate_element_json(
-    #     r"D:\AthenaLattice\sza\v13\sza.seq",
+    #     r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\itm.seq",
     # )
     # if (abs(circumference - circumference_seqFile)) > 1e-9:
     #     print(
@@ -440,6 +481,19 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         },
     }
     Sequence.update(Monitor_Dist_oneturn)
+
+    Monitor_Dist_ES = {
+        "DistMonitor_ES": {
+            "S (m)": 26.84,
+            "Command": "DistMonitor",
+            "Save turns": [
+                [100],
+                [500],
+                [1000, 5000, 1000],
+            ],
+        },
+    }
+    Sequence.update(Monitor_Dist_ES)
 
     ###################################### Statistic Monitor ######################################
 
