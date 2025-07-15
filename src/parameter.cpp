@@ -76,6 +76,7 @@ Parameter::Parameter(int argc, char** argv)
 	dir_output_chargeDensity = dir_output / "chargeDensity" / yearMonDay / hourMinSec;
 	dir_output_plot = dir_output / "plot" / yearMonDay / hourMinSec;
 	dir_output_particle = dir_output / "particleMonitor" / yearMonDay / hourMinSec;
+	dir_output_slowExt_particle = dir_output / "slowExtraction" / yearMonDay / hourMinSec;
 
 	dir_load_distribution = dir_output / "distribution" / "fixed";
 
@@ -90,6 +91,7 @@ Parameter::Parameter(int argc, char** argv)
 		fs::create_directories(dir_output_chargeDensity);
 		fs::create_directories(dir_output_plot);
 		fs::create_directories(dir_output_particle);
+		fs::create_directories(dir_output_slowExt_particle);
 
 		fs::create_directories(dir_load_distribution);
 	}
