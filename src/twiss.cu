@@ -3,6 +3,7 @@
 #include "constant.h"
 
 #include <fstream>
+#include <cuda_runtime.h>
 
 Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent)
 	:simTime(timeevent), bunchRef(Bunch) {
@@ -161,14 +162,26 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 	double m11_y = 0, m12_y = 0, m21_y = 0, m22_y = 0;
 
 	double x1 = 0, px1 = 0, y1 = 0, py1 = 0, z1 = 0, pz1 = 0;
+	double x2 = 0, px2 = 0, y2 = 0, py2 = 0, z2 = 0, pz2 = 0;
 
 	double phi_x = 0, phi_y = 0;
 
 	double c_half = 0;
 	int over = 0, under = 0;
 
+	double sqrt_betax_betaxprev = sqrt(betax * betax_previous);
+	double sqrt_betax_de_betaxprev = sqrt(betax / betax_previous);
+	double sqrt_betaxprev_de_betax = sqrt(betax_previous / betax);
+
+	double sqrt_betay_betayprev = sqrt(betay * betay_previous);
+	double sqrt_betay_de_betayprev = sqrt(betay / betay_previous);
+	double sqrt_betayprev_de_betay = sqrt(betay_previous / betay);
+
+	double cx = 0, sx = 0, cy = 0, sy = 0;
+
 	while (tid < Np_sur)
 	{
+		
 		z1 = dev_bunch[tid].z;
 		pz1 = dev_bunch[tid].pz;
 
@@ -181,32 +194,47 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 		phi_x = phix + pz1 * DQx;
 		phi_y = phiy + pz1 * DQy;
 
-		m11_x = sqrt(betax / betax_previous) * (cos(phi_x) + alphax_previous * sin(phi_x));
-		m12_x = sqrt(betax * betax_previous) * sin(phi_x);
-		m21_x = -1 * (1 + alphax * alphax_previous) / sqrt(betax * betax_previous) * sin(phi_x) + (alphax_previous - alphax) / sqrt(betax * betax_previous) * cos(phi_x);
-		m22_x = sqrt(betax_previous / betax) * (cos(phi_x) - alphax * sin(phi_x));
+		sincos(phi_x, &sx, &cx);	// calculate sin(phix) and cos(phix) simultaneously
+		sincos(phi_y, &sy, &cy);
 
-		m11_y = sqrt(betay / betay_previous) * (cos(phi_y) + alphay_previous * sin(phi_y));
-		m12_y = sqrt(betay * betay_previous) * sin(phi_y);
-		m21_y = -1 * (1 + alphay * alphay_previous) / sqrt(betay * betay_previous) * sin(phi_y) + (alphay_previous - alphay) / sqrt(betay * betay_previous) * cos(phi_y);
-		m22_y = sqrt(betay_previous / betay) * (cos(phi_y) - alphay * sin(phi_y));
+		m11_x = sqrt_betax_de_betaxprev * (cx + alphax_previous * sx);
+		m12_x = sqrt_betax_betaxprev * sx;
+		m21_x = -1 * (1 + alphax * alphax_previous) / sqrt_betax_betaxprev * sx + (alphax_previous - alphax) / sqrt_betax_betaxprev * cx;
+		m22_x = sqrt_betaxprev_de_betax * (cx - alphax * sx);
 
-		dev_bunch[tid].z = z1 * m11_z + pz1 * m12_z;
-		dev_bunch[tid].pz = z1 * m21_z + pz1 * m22_z;
+		m11_y = sqrt_betay_de_betayprev * (cy + alphay_previous * sy);
+		m12_y = sqrt_betay_betayprev * sy;
+		m21_y = -1 * (1 + alphay * alphay_previous) / sqrt_betay_betayprev * sy + (alphay_previous - alphay) / sqrt_betay_betayprev * cy;
+		m22_y = sqrt_betayprev_de_betay * (cy - alphay * sy);
 
-		dev_bunch[tid].x = x1 * m11_x + px1 * m12_x + Dx * dev_bunch[tid].pz;
-		dev_bunch[tid].px = x1 * m21_x + px1 * m22_x + Dpx * dev_bunch[tid].pz;
+		z2 = z1 * m11_z + pz1 * m12_z;
+		pz2 = z1 * m21_z + pz1 * m22_z;
 
-		dev_bunch[tid].y = y1 * m11_y + py1 * m12_y;
-		dev_bunch[tid].py = y1 * m21_y + py1 * m22_y;
+		x2 = x1 * m11_x + px1 * m12_x + Dx * pz2;
+		px2 = x1 * m21_x + px1 * m22_x + Dpx * pz2;
 
-		//if (dev_bunch[tid].z > circumference / 2) {
-		//	dev_bunch[tid].z -= circumference;
-		//}
-		//else if (dev_bunch[tid].z < -circumference / 2)
-		//{
-		//	dev_bunch[tid].z += circumference;
-		//}
+		y2 = y1 * m11_y + py1 * m12_y;
+		py2 = y1 * m21_y + py1 * m22_y;
+
+		// 对于判定已损失的粒子，不再改变其坐标
+		// 使用位掩码方法，避免条件分支
+		const bool cond = (dev_bunch[tid].tag > 0);
+		const long long mask = -static_cast<long long>(cond);
+
+		double* z_ptr = &dev_bunch[tid].z;
+		double* pz_ptr = &dev_bunch[tid].pz;
+		double* x_ptr = &dev_bunch[tid].x;
+		double* px_ptr = &dev_bunch[tid].px;
+		double* y_ptr = &dev_bunch[tid].y;
+		double* py_ptr = &dev_bunch[tid].py;
+
+		*z_ptr = __longlong_as_double((__double_as_longlong(z2) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
+		*pz_ptr = __longlong_as_double((__double_as_longlong(pz2) & mask) | (__double_as_longlong(*pz_ptr) & ~mask));
+		*x_ptr = __longlong_as_double((__double_as_longlong(x2) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
+		*px_ptr = __longlong_as_double((__double_as_longlong(px2) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
+		*y_ptr = __longlong_as_double((__double_as_longlong(y2) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
+		*py_ptr = __longlong_as_double((__double_as_longlong(py2) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
+
 		c_half = circumference * 0.5;
 		over = (dev_bunch[tid].z > c_half);
 		under = (dev_bunch[tid].z < -c_half);
