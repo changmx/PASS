@@ -187,7 +187,7 @@ void StatMonitor::execute(int turn) {
 
 	callCuda(cudaMemset2D(dev_statistic, pitch_statistic, 0, block_x * sizeof(double), Nstat));
 
-	cal_statistic_perblock << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_statistic, pitch_statistic, Np);
+	callKernel(cal_statistic_perblock << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_statistic, pitch_statistic, Np));
 
 	// 使用统一虚拟寻址 (UVA) 和固定内存（Mapped Pinned Memory）
 	// 通过 cudaHostAlloc 分配固定且映射到设备地址空间的主机内存，使得设备可以直接修改主机内存，省去显式的 cudaMemcpy

@@ -113,7 +113,7 @@ void SortBunch::execute(int turn) {
 	}
 
 	// 1: Survived particle is marked with 1, not survived with 0
-	mark_survive_particles << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_survive_flags, Np);
+	callKernel(mark_survive_particles << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_survive_flags, Np));
 
 	// 2£ºCalculate prefix sum of survived particles by exclusive method
 	cub::DeviceScan::ExclusiveSum(dev_cub_temp, cub_temp_bytes,
@@ -129,7 +129,7 @@ void SortBunch::execute(int turn) {
 	bunchRef.Np_sur = Np_sur;	// Update Np_sur
 
 	// 4. Maintain the original order, the surviving particles move to [0,Np_sur), and the non-surviving particles move to [Np_sur, Np).
-	stable_partition << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_bunch_tmp, dev_survive_prefix, Np, Np_sur);
+	callKernel(stable_partition << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_bunch_tmp, dev_survive_prefix, Np, Np_sur));
 	//callCuda(cudaMemcpy(dev_bunch, dev_bunch_tmp, Np * sizeof(Particle), cudaMemcpyDeviceToDevice));
 
 	// 5. Sort the bunch by z value in descending order
@@ -160,14 +160,14 @@ void SortBunch::execute(int turn) {
 
 	if ("Equal particle" == slice_model) {
 		// 6. Set z_start, z_end, index_start and index_end for each slice
-		setup_slice_euqal_particle << <gridSize_s, blockSize_s, 0, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice);
+		callKernel(setup_slice_euqal_particle << <gridSize_s, blockSize_s, 0, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice));
 	}
 	else if ("Equal length" == slice_model) {
 		// 6. Set z_start and z_end for each slice
-		setup_slice_euqal_length << <gridSize_s, blockSize_s, 0, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice);
+		callKernel(setup_slice_euqal_length << <gridSize_s, blockSize_s, 0, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice));
 
 		// 6. Set index_start and index_end for each slice
-		find_slice_indices << <gridSize_s, blockSize_s, 0, 0 >> > (dev_sort_z, Np_sur, dev_slice, Nslice);
+		callKernel(find_slice_indices << <gridSize_s, blockSize_s, 0, 0 >> > (dev_sort_z, Np_sur, dev_slice, Nslice));
 	}
 	else {
 		spdlog::get("logger")->error("[SortBunch] Error: Slice model must be 'Equal particle' or 'Equal length', but now is {}", slice_model);
@@ -175,7 +175,7 @@ void SortBunch::execute(int turn) {
 	}
 
 	// 6. Set z_avg for each slice
-	reduction_z_avg << <Nslice, 256, 0, 0 >> > (dev_bunch, dev_slice, Nslice);
+	callKernel(reduction_z_avg << <Nslice, 256, 0, 0 >> > (dev_bunch, dev_slice, Nslice));
 
 	//show_slice_info << <1, 1, 0, 0 >> > (dev_slice, Nslice);
 	//cudaDeviceSynchronize();
