@@ -19,7 +19,9 @@ def convert_ordereddict(obj):
 def sort_sequence(sequence):
     Command_order = {
         "Injection": 0,  # 最高优先级
+        
         "Twiss": 50,  # 次级优先级
+        
         "MarkerElement": 100,
         "SBendElement": 100,
         "RBendElement": 100,
@@ -30,12 +32,16 @@ def sort_sequence(sequence):
         "VKickerElement": 100,
         "RFElement": 100,
         "ElSeparatorElement": 100,
-        "SpaceCharge": 120,
-        "DistMonitor": 150,
-        "StatMonitor": 150,
-        "ParticleMonitor": 150,
-        "SortBunch": 200,
-        "BeamBeam": 300,
+        
+        "SpaceCharge": 200,
+        "BeamBeam": 200,
+        
+        "DistMonitor": 300,
+        "StatMonitor": 300,
+        "ParticleMonitor": 300,
+        
+        "SortBunch": 400,
+        
         "Other": 999,  # 最低优先级
     }
 
@@ -79,7 +85,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         # "Chromaticity x": 0,
         # "Chromaticity y": 0,
         "GammaT": 1,
-        "Number of turns": 5000,
+        "Number of turns": 1000,
         "Number of GPU devices": 1,
         "Device Id": [0],
         "Output directory": "D:\\PassSimulation",

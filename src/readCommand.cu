@@ -307,7 +307,9 @@ int get_priority(const std::string& commandType) {
 	// 将commandType转换为优先级数值
 	// 当两个command的s相同时,首先执行优先级高的命令
 	if (commandType == "Injection") return 0;	// 最高优先级
+
 	else if (commandType == "Twiss") return 50;	// 次级优先级
+
 	else if (commandType == "MarkerElement") return 100;
 	else if (commandType == "SBendElement") return 100;
 	else if (commandType == "RBendElement") return 100;
@@ -319,15 +321,19 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "VKickerElement") return 100;
 	else if (commandType == "RFElement") return 100;
 	else if (commandType == "ElSeparatorElement") return 100;
-	else if (commandType == "SpaceCharge") return 120;
-	//else if (commandType == "Wakefield") return 150;
-	//else if (commandType == "LumiMonitor") return 150;
-	//else if (commandType == "PhaseMonitor") return 150;
-	else if (commandType == "DistMonitor") return 150;
-	else if (commandType == "StatMonitor") return 150;
-	else if (commandType == "ParticleMonitor") return 150;
-	else if (commandType == "SortBunch") return 200;
-	else if (commandType == "BeamBeam") return 300;
+
+	else if (commandType == "SpaceCharge") return 200;
+	else if (commandType == "Wakefield") return 200;
+	else if (commandType == "BeamBeam") return 200;
+	// 
+	//else if (commandType == "LumiMonitor") return 300;
+	//else if (commandType == "PhaseMonitor") return 300;
+	else if (commandType == "DistMonitor") return 300;
+	else if (commandType == "StatMonitor") return 300;
+	else if (commandType == "ParticleMonitor") return 300;
+
+	else if (commandType == "SortBunch") return 400;
+
 	else return 999; // 最低优先级，其他情况
 }
 
