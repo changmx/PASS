@@ -5,6 +5,7 @@
 #include "parallelPlan.h"
 #include "monitor.h"
 #include "cutSlice.h"
+#include "spaceCharge.h"
 
 #include <fstream>
 #include "cuda_runtime.h"
@@ -273,6 +274,18 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<SortBunch>>(
 							std::make_unique<SortBunch>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("SpaceCharge" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++) {
+
+					ParallelPlan1d plan1d(512, 1, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<SpaceCharge>>(
+							std::make_unique<SpaceCharge>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
