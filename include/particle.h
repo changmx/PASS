@@ -66,7 +66,7 @@ private:
 
 
 struct Slice;	// Forward declaration of Slice struct (in cutSlice.h)
-class PicConfig;	// Forward declaration of PicConfig class (in pic.h)
+class FieldSolver;	// Forward declaration of FieldSolver class (in pic.h)
 
 struct CycleRange {
 	int start;
@@ -205,9 +205,8 @@ public:
 
 	/********************** Parameters for space charge (sc) **********************/
 	bool is_enable_spaceCharge = false;
-	std::string fieldSolver_sc = "empty";
 
-	std::vector<std::shared_ptr<PicConfig>> picConfig_sc;
+	std::vector<std::shared_ptr<FieldSolver>> solver_sc;
 
 private:
 
