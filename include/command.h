@@ -11,6 +11,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/reduce.h>
 #include <thrust/system/cuda/execution_policy.h>	//thrust::cuda::par.on(stream)
+#include <cudss.h>
+
 
 class Command
 {
@@ -108,6 +110,18 @@ inline void checkCublas(cublasStatus_t err, const char* file, int line)
 	}
 }
 
+inline void checkCudss(cudssStatus_t err, const char* file, int line)
+{
+	if (err != CUDSS_STATUS_SUCCESS)
+	{
+		//std::cerr << "\nError: cudss error number: " << err << ", in " << file << ", at line " << line << "\n";
+		spdlog::get("logger")->error("cudss error: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
+		cudaDeviceReset();
+		exit(EXIT_FAILURE);
+	}
+}
+
+
 #ifndef callCuda
 #define callCuda(call) (checkCudaError(call, __FILE__, __LINE__));
 #endif // !callCuda
@@ -127,6 +141,10 @@ inline void checkCublas(cublasStatus_t err, const char* file, int line)
 #ifndef callCublas
 #define callCublas(call) (checkCublas(call, __FILE__, __LINE__));
 #endif // !callCublas
+
+#ifndef callCudss
+#define callCudss(call) (checkCudss(call, __FILE__, __LINE__));
+#endif // !callCudss
 
 
 #define USE_CUDA_DEBUG_MODE 1
