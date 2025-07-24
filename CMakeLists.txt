@@ -15,6 +15,12 @@ find_package(Python COMPONENTS Interpreter Development)
 string(TIMESTAMP CMAKE_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 configure_file(${PROJECT_SOURCE_DIR}/config/config.h.in ${PROJECT_SOURCE_DIR}/config/config.h)
 
+# set cuDSS installation path
+#set(CUDSS_ROOT "C:/Program Files/NVIDIA cuDSS/v0.6")
+find_package(cudss REQUIRED PATHS "C:/Program Files/NVIDIA cuDSS/v0.6/lib/12/cmake/cudss")
+message(STATUS "CUDSS include dir: ${cudss_INCLUDE_DIR}")
+message(STATUS "CUDSS library dir: ${cudss_LIBRARY_DIR}")
+
 # set AMGX installation path
 set(AMGX_ROOT ${PROJECT_SOURCE_DIR}/libs/amgx CACHE PATH "AMGX installation directory")
 message(STATUS "Using AMGX from: ${AMGX_ROOT}")
@@ -89,16 +95,23 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/include/tabulate
     ${PROJECT_SOURCE_DIR}/include/spdlog
     ${AMGX_INCLUDE_DIR}
+    ${cudss_INCLUDE_DIR}
+)
+
+target_link_directories(${PROJECT_NAME}
+    PRIVATE
+    ${Python_LIBRARIES}
+    ${cudss_LIBRARY_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
     OpenMP::OpenMP_CXX
-    ${Python_LIBRARIES}
     CUDA::cufft
     CUDA::curand
     CUDA::cusparse
     ${AMGX_LIBRARIES}
+    cudss
 )
 
 # set CUDA ARCHITECTURE. (https://developer.nvidia.com/cuda-gpus)
