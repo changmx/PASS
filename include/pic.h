@@ -2,6 +2,7 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <cudss.h>
 
 #include "parameter.h"
 #include "constant.h"
@@ -17,122 +18,144 @@ class Particle;	// Forward declaration of Particle class
 class Bunch;	// Forward declaration of Bunch class
 
 
-enum class FieldSolverMethod
+enum class FieldSolverType
 {
+	PIC_Conv,	// Using Green function with open boundary condition, only rectangle aperture
+	PIC_FD_CUDSS,	// Using finite difference method with CUDSS solver, any aperture
 	PIC_FD_AMGX,	// Using finite difference method with AMGX solver, any aperture
-	PIC_conv,	// Using Green function with open boundary condition, only rectangle aperture
 	PIC_FD_FFT,	// Using finite difference method with FFT solver, only rectangle aperture
-	Eq_quasi_static,	// Quasi-static equation solver, using the B-E formula, each calculation is based on the current sigmax, sigmay, any aperture
-	Eq_frozen	// Frozen equation solver, using th B-E formula with unchanged sigmax and sigmay, any aperture
+	Eq_Quasi_Static,	// Quasi-static equation solver, using the B-E formula, each calculation is based on the current sigmax, sigmay, any aperture
+	Eq_Frozen	// Frozen equation solver, using th B-E formula with unchanged sigmax and sigmay, any aperture
 };
 
 
-class PicConfig
+FieldSolverType  string2Enum(const std::string& str);
+
+
+class FieldSolver
 {
 public:
-	PicConfig() = default;
-	PicConfig(int input_Nx, int input_Ny, double input_Lx, double input_Ly, int input_Nslice, FieldSolverMethod input_solverMethod, std::unique_ptr<Aperture> input_aperture)
-		: Nx(input_Nx), Ny(input_Ny), Lx(input_Lx), Ly(input_Ly), Nslice(input_Nslice), solverMethod(input_solverMethod), aperture(std::move(input_aperture))
-	{
-		if (!aperture) {
-			spdlog::get("logger")->error("Aperture is null in PicConfig constructor, please check your code.");
-			exit(EXIT_FAILURE);
-		}
+	virtual ~FieldSolver();
 
-		if (input_solverMethod == FieldSolverMethod::PIC_FD_AMGX)
-		{
-			callCuda(cudaMalloc((void**)&dev_charDensity, Nx * Ny * Nslice * sizeof(double)));
-			callCuda(cudaMalloc((void**)&dev_potential, Nx * Ny * Nslice * sizeof(double)));
-			callCuda(cudaMalloc((void**)&dev_electicField, Nx * Ny * Nslice * sizeof(double)));
+	virtual void initialize() = 0;	// Initialize the field solver, allocate memory, etc.
+	virtual void finalize() = 0;	// Finalize the field solver, free memory, etc.
+	virtual void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) = 0;
+	virtual void solve_x_values() = 0;
+	virtual void calculate_electricField() = 0;
 
-			// AMGX create
+	bool operator==(const FieldSolver& other) const;
+	bool operator!=(const FieldSolver& other) const;
 
-			callCuda(cudaMalloc((void**)&dev_meshMask, Nx * Ny * sizeof(double)));
-		}
-	}
+protected:
+	FieldSolver(int input_Nx, int input_Ny, double input_Lx, double input_Ly, int input_Nslice,
+		FieldSolverType input_solverType, std::shared_ptr<Aperture> input_aperture);
 
 	int Nx = 0;	// Number of grid points in x direction, Nx = Ngrid_x + 1
 	int Ny = 0;
 	double Lx = 0;	// Length of one grid in x direction (m), mesh size in x direction = Lx * (Nx - 1)
 	double Ly = 0;
 	int Nslice = 0;	// Number of bunch slices
+	double charge = 0;	// Charge of macro-particle
 
-	FieldSolverMethod solverMethod;	// Field solver method
+	FieldSolverType  solverType;	// Field solver method
 
-	std::unique_ptr<Aperture> aperture;	// Aperture for PIC boundary condition and particle loss
+	std::shared_ptr<Aperture> aperture;	// Aperture for FieldSolver boundary condition and particle loss
 
 	double* dev_charDensity = nullptr;
 	double* dev_potential = nullptr;
 	double* dev_electicField = nullptr;
+	double* dev_meshMask = nullptr;	// Device memory for mesh mask, used to mark the aperture position
 
-	// PIC_FD_AMGX: related parameters, if not using PIC_FD_AMGX, these parameters will be ignored
-	// Solve Mx = y
+private:
+	// Disable the copy constructor and assignment operator
+	FieldSolver(const FieldSolver&) = delete;
+	FieldSolver& operator=(const FieldSolver&) = delete;
+
+};
+
+
+class FieldSolverCUDSS : public FieldSolver
+{
+	/*
+		Using cuDSS APIs for solving a system of linear algebraic equations with a sparse matrix:
+			Ax = b,
+		where:
+			A is the sparse input matrix,
+			b is the (dense) right-hand side vector (or a matrix),
+			x is the (dense) solution vector (or a matrix).
+		website:
+			https://docs.nvidia.com/cuda/cudss/getting_started.html
+	*/
+public:
+	FieldSolverCUDSS(int input_Nx, int input_Ny, double input_Lx, double input_Ly, int input_Nslice,
+		std::shared_ptr<Aperture> input_aperture);
+
+	~FieldSolverCUDSS() override;
+
+	void initialize() override;
+	void finalize() override;
+	void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
+	void solve_x_values() override;
+	void calculate_electricField() override;
+
+private:
+	cudssHandle_t cudss_handle = nullptr;
+	cudssConfig_t cudss_config = nullptr;
+	cudssData_t cudss_data = nullptr;
+	cudssMatrix_t cudss_A = nullptr;
+	cudssMatrix_t cudss_x = nullptr;
+	cudssMatrix_t cudss_b = nullptr;
+
+	int ncol = 0, nrow = 0;	// Number of rows in the grid, excluding the boundary points
+	int n = 0;	// Matrix dimension of A, A is a square matrix of size n x n, without condidering the boundary points
+	int nnz = 0;	// Number of non-zero value
+	int nrhs = 0;	// Number of right-hand side vector
+
+	int* csr_offsets_d = nullptr;
+	int* csr_columns_d = nullptr;
+	double* csr_values_d = nullptr;
+
+};
+
+
+class FieldSolverAMGX :public FieldSolver
+{
+	/*
+		Using AmgX APIs for solving a system of linear algebraic equations with a sparse matrix:
+			Ax = b,
+		where:
+			A is the sparse input matrix,
+			b is the (dense) right-hand side vector (or a matrix),
+			x is the (dense) solution vector (or a matrix).
+		website:
+			https://developer.nvidia.com/amgx
+	*/
+public:
+	FieldSolverAMGX(int input_Nx, int input_Ny, double input_Lx, double input_Ly, int input_Nslice,
+		std::shared_ptr<Aperture> input_aperture);
+
+	~FieldSolverAMGX() override;
+
+	void initialize() override;
+	void finalize() override;
+	void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
+	void solve_x_values() override;
+	void calculate_electricField() override;
+
+private:
 	AMGX_config_handle amgx_config = nullptr;	// AMGX configuration handle
 	AMGX_resources_handle amgx_resources = nullptr;	// AMGX resources handle
 	AMGX_matrix_handle amgx_matrix = nullptr;	// AMGX matrix handle
 	AMGX_vector_handle amgx_vector_x = nullptr;	// AMGX left vector handle
 	AMGX_vector_handle amgx_vector_y = nullptr;	// AMGX right vector handle
 	AMGX_solver_handle amgx_solver = nullptr;	// AMGX solver handle
-	double* dev_meshMask = nullptr;	// Device memory for mesh mask, used to mark the aperture position
 
-
-	// PIC_FD_FFT: related parameters, if not using PIC_FD_FFT, these parameters will be ignored
-
-
-	bool operator==(const PicConfig& other) const
-	{
-		if (Nx != other.Nx || Ny != other.Ny || fabs(Lx - other.Lx) > 1e-10 || fabs(Ly - other.Ly) > 1e-10 || solverMethod != other.solverMethod)
-		{
-			return false;
-		}
-
-		return aperture->is_equal(other.aperture.get());
-	}
-
-	bool operator!=(const PicConfig& other) const {
-		return !(*this == other);
-	}
-
-	~PicConfig() {
-
-		//if (aperture) delete aperture;	// 智能指针自动管理释放
-
-		if (dev_charDensity) callCuda(cudaFree(dev_charDensity));
-		if (dev_potential) callCuda(cudaFree(dev_potential));
-		if (dev_electicField) callCuda(cudaFree(dev_electicField));
-
-		if (amgx_solver) AMGX_solver_destroy(amgx_solver);
-		if (amgx_vector_y) AMGX_vector_destroy(amgx_vector_y);
-		if (amgx_vector_x) AMGX_vector_destroy(amgx_vector_x);
-		if (amgx_matrix) AMGX_matrix_destroy(amgx_matrix);
-		if (amgx_resources) AMGX_resources_destroy(amgx_resources);
-		if (amgx_config) AMGX_config_destroy(amgx_config);
-		if (dev_meshMask) callCuda(cudaFree(dev_meshMask));
-
-	}
-
-private:
-
-};
-
-
-class PicSolver_AMGX
-{
-public:
-	PicSolver_AMGX(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
-
-	~PicSolver_AMGX() = default;
-
-
-private:
-
-	Particle* dev_bunch = nullptr;
-	TimeEvent& simTime;
-	Bunch& bunchRef;
-
-	std::shared_ptr<PicConfig> picConfig;
 };
 
 
 __global__ void allocate2grid_multi_slice(const Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge);
+
+void generate_5points_FD_matrix_exclude_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
+void generate_5points_FD_matrix_include_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
+
+void convert_2d_matrix_to_CSR(int nrow, int ncol, int nnz, double* matrix, int* csr_row_ptr, int* csr_col_indices, double* csr_values);
