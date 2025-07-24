@@ -38,7 +38,6 @@ public:
 	virtual ~FieldSolver();
 
 	virtual void initialize() = 0;	// Initialize the field solver, allocate memory, etc.
-	virtual void finalize() = 0;	// Finalize the field solver, free memory, etc.
 	virtual void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) = 0;
 	virtual void solve_x_values() = 0;
 	virtual void calculate_electricField() = 0;
@@ -93,7 +92,6 @@ public:
 	~FieldSolverCUDSS() override;
 
 	void initialize() override;
-	void finalize() override;
 	void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
@@ -137,7 +135,6 @@ public:
 	~FieldSolverAMGX() override;
 
 	void initialize() override;
-	void finalize() override;
 	void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;

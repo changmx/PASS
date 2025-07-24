@@ -89,7 +89,16 @@ FieldSolverCUDSS::FieldSolverCUDSS(int input_Nx, int input_Ny, double input_Lx, 
 
 FieldSolverCUDSS::~FieldSolverCUDSS()
 {
+	callCuda(cudaFree(csr_offsets_d));
+	callCuda(cudaFree(csr_columns_d));
+	callCuda(cudaFree(csr_values_d));
 
+	callCudss(cudssMatrixDestroy(cudss_A));
+	callCudss(cudssMatrixDestroy(cudss_x));
+	callCudss(cudssMatrixDestroy(cudss_b));
+	callCudss(cudssDataDestroy(cudss_handle, cudss_data));
+	callCudss(cudssConfigDestroy(cudss_config));
+	callCudss(cudssDestroy(cudss_handle));
 }
 
 
@@ -176,22 +185,6 @@ void FieldSolverCUDSS::initialize() {
 	free(A_values_h);
 
 	spdlog::get("logger")->info("[FieldSolver] CUDSS solver initialized successfully.");
-
-}
-
-
-void FieldSolverCUDSS::finalize() {
-
-	callCuda(cudaFree(csr_offsets_d));
-	callCuda(cudaFree(csr_columns_d));
-	callCuda(cudaFree(csr_values_d));
-
-	callCudss(cudssMatrixDestroy(cudss_A));
-	callCudss(cudssMatrixDestroy(cudss_x));
-	callCudss(cudssMatrixDestroy(cudss_b));
-	callCudss(cudssDataDestroy(cudss_handle, cudss_data));
-	callCudss(cudssConfigDestroy(cudss_config));
-	callCudss(cudssDestroy(cudss_handle));
 
 }
 
@@ -289,12 +282,6 @@ FieldSolverAMGX::~FieldSolverAMGX() {
 
 
 void FieldSolverAMGX::initialize() {
-
-
-}
-
-
-void FieldSolverAMGX::finalize() {
 
 
 }
