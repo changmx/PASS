@@ -138,7 +138,6 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		if (data.contains("Space-charge simulation parameters"))
 		{
 			is_enable_spaceCharge = data.at("Space-charge simulation parameters").at("Is enable space charge");
-			fieldSolver_sc = data.at("Space-charge simulation parameters").at("Field solver");
 		}
 	}
 	catch (json::exception e)
@@ -181,10 +180,6 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		callCuda(cudaMalloc((void**)&dev_PM, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle)));
 	}
 
-	if (is_enable_spaceCharge && "PIC_FD_AMGX" == fieldSolver_sc)
-	{
-		AMGX_initialize();
-	}
 
 }
 
@@ -215,8 +210,5 @@ Bunch::~Bunch() {
 		callCuda(cudaFree(dev_PM));
 	}
 
-	if (is_enable_spaceCharge && "PIC_FD_AMGX" == fieldSolver_sc)
-	{
-		AMGX_finalize();
-	}
+
 }
