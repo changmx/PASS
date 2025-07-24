@@ -8,7 +8,6 @@
 #include "constant.h"
 #include "pic.h"
 #include "aperture.h"
-#include "pic.h"
 
 
 class SpaceCharge {
@@ -39,8 +38,9 @@ private:
 
 	bool is_enable_spaceCharge = false;		// Flag to enable/disable space charge
 	double scLength = 0.0;			// Length of the space charge region
+	double charge = 0.0;		// Charge of the macro-particle
 
-	std::shared_ptr<PicConfig> picConfig = nullptr;
+	std::shared_ptr<FieldSolver> solver = nullptr;
 
 };
 
