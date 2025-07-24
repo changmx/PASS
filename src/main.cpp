@@ -10,6 +10,7 @@
 #include "command.h"
 #include "readCommand.h"
 #include "injection.h"
+#include "pic.h"
 
 
 
@@ -58,8 +59,8 @@ int main(int argc, char** argv)
 	read_command_sequence(Para, Beam0, 0, command_beam0, simTime);
 	read_command_sequence(Para, Beam1, 1, command_beam1, simTime);
 
-	logger->debug("Command vector size of beam0: {}", command_beam0.size());
-	logger->debug("Command vector size of beam1: {}", command_beam1.size());
+	logger->info("Command vector size of beam0: {}", command_beam0.size());
+	logger->info("Command vector size of beam1: {}", command_beam1.size());
 
 	for (int turn = 1; turn < Para.Nturn + 1; turn++)
 	{
