@@ -125,7 +125,7 @@ void FieldSolverCUDSS::initialize() {
 	host_meshMask = (MeshMask*)malloc(Nx * Ny * sizeof(MeshMask));
 
 	if (!host_meshMask) {
-		spdlog::get("logger")->error("[FieldSolver] Memory allocation failed for matrix.");
+		spdlog::get("logger")->error("[FieldSolver] func(initialize): Memory allocation failed for matrix.");
 		std::exit(EXIT_FAILURE);
 	}
 
@@ -407,6 +407,11 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
+		
+		//if (tid==0)
+		//{
+		//	printf("Allocate to grid (circle): tid[%d], LB = {%e}, RB = {%e}, LT = {%e}, RT = {%e}\n", tid, LB, RB, LT, RT);
+		//}
 
 		tid += stride;
 	}
@@ -485,7 +490,12 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
-
+		
+		//if (tid == 0)
+		//{
+		//	printf("Allocate to grid (rectangle): tid[%d], LB = {%e}, RB = {%e}, LT = {%e}, RT = {%e}\n", tid, LB, RB, LT, RT);
+		//}
+		
 		tid += stride;
 	}
 }
@@ -563,6 +573,11 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
+		
+		//if (tid == 0)
+		//{
+		//	printf("Allocate to grid (ellipse): tid[%d], LB = {%e}, RB = {%e}, LT = {%e}, RT = {%e}\n", tid, LB, RB, LT, RT);
+		//}
 
 		tid += stride;
 	}

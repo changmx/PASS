@@ -62,6 +62,8 @@ int main(int argc, char** argv)
 	logger->info("Command vector size of beam0: {}", command_beam0.size());
 	logger->info("Command vector size of beam1: {}", command_beam1.size());
 
+	logger->info("*********************************** Simulation Start ***********************************\n");
+
 	for (int turn = 1; turn < Para.Nturn + 1; turn++)
 	{
 		callCuda(cudaEventRecord(simTime.startPerTurn, 0));

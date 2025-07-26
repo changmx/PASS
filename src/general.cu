@@ -515,8 +515,8 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	logger->info("{:<30} {:>10s} {:>10s} {:>10s}", name.c_str(), "GPU time", "GPU/GPU", "GPU/CPU");
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time sort:", sort / totalTurn, sort / turn * 100, sort / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cut slice:", slice / totalTurn, slice / turn * 100, slice / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time allocate to grids:", allocate2grid / totalTurn, allocate2grid / turn * 100, allocate2grid / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate boundary:", calBoundary / totalTurn, calBoundary / turn * 100, calBoundary / 1000 / cpuTime * 100);
+	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time allocate to grids:", allocate2grid / totalTurn, allocate2grid / turn * 100, allocate2grid / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate potential:", calPotential / totalTurn, calPotential / turn * 100, calPotential / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate electric:", calElectric / totalTurn, calElectric / turn * 100, calElectric / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100, hourGlass / 1000 / cpuTime * 100);
