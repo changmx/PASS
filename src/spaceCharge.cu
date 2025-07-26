@@ -193,9 +193,6 @@ SpaceCharge::SpaceCharge(const Parameter& para, int input_beamId, Bunch& Bunch, 
 
 void SpaceCharge::execute(int turn) {
 
-	callCuda(cudaEventRecord(simTime.start, 0));
-	float time_tmp = 0;
-
 	if (is_enable_spaceCharge)
 	{
 		// Solve Ax=b for space charge
@@ -205,13 +202,43 @@ void SpaceCharge::execute(int turn) {
 			spdlog::get("logger")->warn("[SpaceCharge] No particles in the bunch, skipping space charge calculation.");
 			return;
 		}
+
+		// Allocate particle to grid
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp1 = 0;
+
 		solver->update_b_values(dev_bunch, dev_slice, Np_sur, charge, thread_x, block_x);
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp1, simTime.start, simTime.stop));
+		simTime.allocate2grid += time_tmp1;
+
+		// Solve Ax=b
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp2 = 0;
+
 		solver->solve_x_values();
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp2, simTime.start, simTime.stop));
+		simTime.calPotential += time_tmp2;
+
+		// Calculate electric field
+
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp3 = 0;
+
 		solver->calculate_electricField();
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp3, simTime.start, simTime.stop));
+		simTime.calElectric += time_tmp3;
+
+		//simTime.spaceCharge += (time_tmp1 + time_tmp2 + time_tmp3);
+
 	}
 
-	callCuda(cudaEventRecord(simTime.stop, 0));
-	callCuda(cudaEventSynchronize(simTime.stop));
-	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
-	simTime.spaceCharge += time_tmp;
 }
