@@ -44,10 +44,6 @@ public:
 };
 
 
-void generate_meshMask_and_5points_FD_matrix_include_boundary(MeshMask* host_meshMask, double* host_matrix, int Nx, int Ny, double Lx, double Ly, int& nnz,
-	const std::shared_ptr<Aperture>& aperture);
-
-
 class FieldSolver
 {
 public:
@@ -125,8 +121,8 @@ private:
 	int nnz = 0;	// Number of non-zero value
 	int nrhs = 0;	// Number of right-hand side vector
 
-	int* csr_offsets_d = nullptr;
-	int* csr_columns_d = nullptr;
+	int* csr_row_ptr_d = nullptr;
+	int* csr_col_indices_d = nullptr;
 	double* csr_values_d = nullptr;
 
 };
@@ -179,3 +175,10 @@ void generate_5points_FD_matrix_exclude_boundary(int Nx, int Ny, double Lx, doub
 void generate_5points_FD_matrix_include_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
 
 void convert_2d_matrix_to_CSR(int nrow, int ncol, int nnz, double* matrix, int* csr_row_ptr, int* csr_col_indices, double* csr_values);
+
+void generate_meshMask_and_5points_FD_matrix_include_boundary(MeshMask* host_meshMask, double* host_matrix, int Nx, int Ny, double Lx, double Ly, int& nnz,
+	const std::shared_ptr<Aperture>& aperture);
+
+void generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(
+	std::vector<int>& csr_row_ptr, std::vector<int>& csr_col_indices, std::vector<double>& csr_values,
+	MeshMask* host_meshMask, int Nx, int Ny, double Lx, double Ly, int& nnz, const std::shared_ptr<Aperture>& aperture);

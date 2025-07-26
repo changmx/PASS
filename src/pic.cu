@@ -90,8 +90,8 @@ FieldSolverCUDSS::FieldSolverCUDSS(int input_Nx, int input_Ny, double input_Lx, 
 
 FieldSolverCUDSS::~FieldSolverCUDSS()
 {
-	callCuda(cudaFree(csr_offsets_d));
-	callCuda(cudaFree(csr_columns_d));
+	callCuda(cudaFree(csr_row_ptr_d));
+	callCuda(cudaFree(csr_col_indices_d));
 	callCuda(cudaFree(csr_values_d));
 
 	callCudss(cudssMatrixDestroy(cudss_A));
@@ -107,76 +107,68 @@ void FieldSolverCUDSS::initialize() {
 
 	spdlog::get("logger")->info("[FieldSolver] Start initializing CUDSS solver ...");
 
-	//ncol = Nx - 2;	// Number of columns in the grid, excluding the boundary points
-	//nrow = Ny - 2;	// Number of rows in the grid, excluding the boundary points
-	//n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, without condidering the boundary points
-	//nnz											// Number of non-zero elements in the sparse matrix A
-	//	= 4 * 3										// 3-point per grid point on the sub-boundary corner
-	//	+ (ncol - 2) * 4 * 2 + (nrow - 2) * 4 * 2	// 4-point per grid point on the sub-boundary edge
-	//	+ (ncol - 2) * (nrow - 2) * 5;				// 5-point per grid point
-	//nrhs = Nslice;
-
-	//ncol = Nx;	// Number of columns in the grid, including the boundary points
-	//nrow = Ny;	// Number of rows in the grid, including the boundary points
-	//n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
+	ncol = Nx;	// Number of columns in the grid, including the boundary points
+	nrow = Ny;	// Number of rows in the grid, including the boundary points
+	n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
+	nrhs = Nslice;
 	//nnz
 	//	= (2 * (ncol + nrow) - 4) * 1				// 1-point per grid point on all boundary points
 	//	+ 4 * 3										// 3-point per grid point on the sub-boundary corner
 	//	+ (ncol - 4) * 4 * 2 + (nrow - 4) * 4 * 2	// 4-point per grid point on the sub-boundary edge
 	//	+ (ncol - 4) * (nrow - 4) * 5;				// 5-point per grid point
-	//nrhs = Nslice;
-
-	ncol = Nx;	// Number of columns in the grid, including the boundary points
-	nrow = Ny;	// Number of rows in the grid, including the boundary points
-	n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
-	nrhs = Nslice;
 
 	// Allocate host memory for matrix A and meshMask
-	double* A_values_h = nullptr;
+	//double* A_values_h = nullptr;
 	MeshMask* host_meshMask = nullptr;
 
-	A_values_h = (double*)malloc(n * n * sizeof(double));
+	//A_values_h = (double*)malloc(n * n * sizeof(double));
 	host_meshMask = (MeshMask*)malloc(Nx * Ny * sizeof(MeshMask));
 
-	if (!A_values_h || !host_meshMask) {
+	if (!host_meshMask) {
 		spdlog::get("logger")->error("[FieldSolver] Memory allocation failed for matrix.");
 		std::exit(EXIT_FAILURE);
 	}
 
+	// Allocate host memory for the CSR format of matrix A
+	//int* csr_offsets_h = nullptr;
+	//int* csr_columns_h = nullptr;
+	//double* csr_values_h = nullptr;
+	std::vector<int>csr_row_ptr;
+	std::vector<int>csr_col_indices;
+	std::vector<double>csr_values;
+
+	generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(csr_row_ptr, csr_col_indices, csr_values, host_meshMask, Nx, Ny, Lx, Ly, nnz, aperture);
+
 	// Initialize host memory for A and meshMask
-	generate_meshMask_and_5points_FD_matrix_include_boundary(host_meshMask, A_values_h, Nx, Ny, Lx, Ly, nnz, aperture);
+	//generate_meshMask_and_5points_FD_matrix_include_boundary(host_meshMask, A_values_h, Nx, Ny, Lx, Ly, nnz, aperture);
 
 	callCuda(cudaMemcpy(dev_meshMask, host_meshMask, Nx * Ny * sizeof(MeshMask), cudaMemcpyHostToDevice));
 
 	spdlog::get("logger")->info("[FieldSolver] nnz: count = {}, formula = {}", nnz,
 		(2 * (ncol + nrow) - 4) * 1 + 4 * 3 + (ncol - 4) * 4 * 2 + (nrow - 4) * 4 * 2 + (ncol - 4) * (nrow - 4) * 5);
 
-	// Allocate host memory for the CSR format of matrix A
-	int* csr_offsets_h = nullptr;
-	int* csr_columns_h = nullptr;
-	double* csr_values_h = nullptr;
 
-	csr_offsets_h = (int*)malloc((n + 1) * sizeof(int));
-	csr_columns_h = (int*)malloc(nnz * sizeof(int));
-	csr_values_h = (double*)malloc(nnz * sizeof(double));
+	//csr_offsets_h = (int*)malloc((n + 1) * sizeof(int));
+	//csr_columns_h = (int*)malloc(nnz * sizeof(int));
+	//csr_values_h = (double*)malloc(nnz * sizeof(double));
 
-	if (!csr_offsets_h || !csr_columns_h || !csr_values_h) {
-		spdlog::get("logger")->error("[FieldSolver] Memory allocation failed for CSR format.");
-		std::exit(EXIT_FAILURE);
-	}
+	//if (!csr_offsets_h || !csr_columns_h || !csr_values_h) {
+	//	spdlog::get("logger")->error("[FieldSolver] Memory allocation failed for CSR format.");
+	//	std::exit(EXIT_FAILURE);
+	//}
 
 	// Convert matrix A to CSR format
-	convert_2d_matrix_to_CSR(n, n, nnz, A_values_h, csr_offsets_h, csr_columns_h, csr_values_h);
+	//convert_2d_matrix_to_CSR(n, n, nnz, A_values_h, csr_offsets_h, csr_columns_h, csr_values_h);
 
 	// Allocate device memory for A, x and b
-	callCuda(cudaMalloc((void**)&csr_offsets_d, (n + 1) * sizeof(int)));
-	callCuda(cudaMalloc((void**)&csr_columns_d, nnz * sizeof(int)));
+	callCuda(cudaMalloc((void**)&csr_row_ptr_d, (n + 1) * sizeof(int)));
+	callCuda(cudaMalloc((void**)&csr_col_indices_d, nnz * sizeof(int)));
 	callCuda(cudaMalloc((void**)&csr_values_d, nnz * sizeof(double)));
 
 	// Copy host memory to device for A, and memset x, b to zero
-	callCuda(cudaMemcpy(csr_offsets_d, csr_offsets_h, (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
-	callCuda(cudaMemcpy(csr_columns_d, csr_columns_h, nnz * sizeof(int), cudaMemcpyHostToDevice));
-	callCuda(cudaMemcpy(csr_values_d, csr_values_h, nnz * sizeof(double), cudaMemcpyHostToDevice));
+	callCuda(cudaMemcpy(csr_row_ptr_d, csr_row_ptr.data(), (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
+	callCuda(cudaMemcpy(csr_col_indices_d, csr_col_indices.data(), nnz * sizeof(int), cudaMemcpyHostToDevice));
+	callCuda(cudaMemcpy(csr_values_d, csr_values.data(), nnz * sizeof(double), cudaMemcpyHostToDevice));
 
 	// Create cuDSS configuration and handle
 	callCudss(cudssCreate(&cudss_handle));
@@ -187,7 +179,7 @@ void FieldSolverCUDSS::initialize() {
 	cudssMatrixViewType_t mview = CUDSS_MVIEW_FULL;
 	cudssIndexBase_t base = CUDSS_BASE_ZERO;
 
-	callCudss(cudssMatrixCreateCsr(&cudss_A, n, n, nnz, csr_offsets_d, NULL, csr_columns_d, csr_values_d, CUDA_R_32I, CUDA_R_64F, mtype, mview, base));
+	callCudss(cudssMatrixCreateCsr(&cudss_A, n, n, nnz, csr_row_ptr_d, NULL, csr_col_indices_d, csr_values_d, CUDA_R_32I, CUDA_R_64F, mtype, mview, base));
 
 	int ldb = n;	// Leading dimension of b
 	int ldx = n;	// Leading dimension of x
@@ -202,10 +194,10 @@ void FieldSolverCUDSS::initialize() {
 	callCudss(cudssExecute(cudss_handle, CUDSS_PHASE_FACTORIZATION, cudss_config, cudss_data, cudss_A, NULL, NULL));
 
 	free(host_meshMask);
-	free(A_values_h);
-	free(csr_offsets_h);
-	free(csr_columns_h);
-	free(csr_values_h);
+	//free(A_values_h);
+	//free(csr_offsets_h);
+	//free(csr_columns_h);
+	//free(csr_values_h);
 
 	spdlog::get("logger")->info("[FieldSolver] CUDSS solver initialized successfully.");
 
@@ -1247,42 +1239,357 @@ void convert_2d_matrix_to_CSR(int nrow, int ncol, int nnz, double* matrix, int* 
 	}
 
 	// Output CSR matrix value and check it
-	//std::filesystem::path csr_matrix_savepath = "D:/PASS/test/fd_matrix_csr.csv";
-	//std::ofstream file(csr_matrix_savepath);
+	std::filesystem::path csr_matrix_savepath = "D:/PASS/test/fd_matrix_csr.csv";
+	std::ofstream file(csr_matrix_savepath);
 
-	//for (int i = 0; i < (nrow + 1); i++)
-	//{
-	//	file << csr_row_ptr[i];
-	//	if (i < nrow)
-	//	{
-	//		file << ",";
-	//	}
-	//}
-	//file << "\n";
+	for (int i = 0; i < (nrow + 1); i++)
+	{
+		file << csr_row_ptr[i];
+		if (i < nrow)
+		{
+			file << ",";
+		}
+	}
+	file << "\n";
 
-	//for (int i = 0; i < nnz; i++)
-	//{
-	//	file << csr_col_indices[i];
-	//	if (i < (nnz - 1))
-	//	{
-	//		file << ",";
-	//	}
-	//}
-	//file << "\n";
+	for (int i = 0; i < nnz; i++)
+	{
+		file << csr_col_indices[i];
+		if (i < (nnz - 1))
+		{
+			file << ",";
+		}
+	}
+	file << "\n";
 
-	//for (int i = 0; i < nnz; i++)
-	//{
-	//	file << csr_values[i];
-	//	if (i < (nnz - 1))
-	//	{
-	//		file << ",";
-	//	}
-	//}
-	//file << "\n";
+	for (int i = 0; i < nnz; i++)
+	{
+		file << csr_values[i];
+		if (i < (nnz - 1))
+		{
+			file << ",";
+		}
+	}
+	file << "\n";
 
-	//file.close();
+	file.close();
 
-	//spdlog::get("logger")->info("[FieldSolver] func(convert_2d_matrix_to_CSR): CSR format matrix data has been writted to {}", csr_matrix_savepath.string());
+	spdlog::get("logger")->info("[FieldSolver] func(convert_2d_matrix_to_CSR): CSR format matrix data has been writted to {}", csr_matrix_savepath.string());
 
-	//spdlog::get("logger")->info("[FieldSolver] func(convert_2d_denseMatrix_to_CSR): 2D dense matrix has been converted to CSR format.");
+	spdlog::get("logger")->info("[FieldSolver] func(convert_2d_denseMatrix_to_CSR): 2D dense matrix has been converted to CSR format.");
+}
+
+
+void generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(
+	std::vector<int>& csr_row_ptr, std::vector<int>& csr_col_indices, std::vector<double>& csr_values,
+	MeshMask* host_meshMask, int Nx, int Ny, double Lx, double Ly, int& nnz, const std::shared_ptr<Aperture>& aperture) {
+
+	// Generate the matrix coefficients for solving potential and the coefficients for solving electric field in the five-point difference method
+
+	int nrow = Ny;	// Number of rows in the particle grid, including the boundary points
+	int ncol = Nx;	// Number of columns in the particle grid, including the boundary points
+	int n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
+
+	double a = 1.0 / (Lx * Lx);
+	double b = 1.0 / (Ly * Ly);
+	double c = -2.0 * (a + b); // Coefficient for the diagonal elements
+
+	double x0 = 0, y0 = 0;	// coordinate of the grid point
+	const double xmin = -(Nx - 1) / 2.0 * Lx;
+	const double ymin = -(Ny - 1) / 2.0 * Ly;
+	int inAperture;
+
+	int gridId;		// Serial number of the grid point in the particle grid, row-major order
+	int index;		// Index of value in the matrix A
+
+	// Initialize row_ptr value
+	csr_row_ptr.assign(n + 1, 0);
+
+	// Initialize meshMask
+	for (int row = 0; row < nrow; row++)
+	{
+		for (int col = 0; col < ncol; col++)
+		{
+			gridId = row * ncol + col;
+
+			if (row == 0 || row == (nrow - 1))
+			{
+				// Bottom boundary || Top boundary
+				host_meshMask[gridId].mask_grid = 0;	// Forbid charge on boundary
+			}
+			else
+			{
+				if (col == 0 || col == (ncol - 1))
+				{
+					// Left boundary || Right boundary
+					host_meshMask[gridId].mask_grid = 0;	// Forbid charge on boundary
+				}
+				else
+				{
+					// Inner points
+					x0 = xmin + col * Lx;
+					y0 = ymin + row * Ly;
+
+					inAperture = aperture->get_particle_position(x0, y0);
+
+					if (inAperture == 1)
+					{
+						host_meshMask[gridId].mask_grid = 1;	// Allow charge on the grid
+					}
+					else
+					{
+						host_meshMask[gridId].mask_grid = 0;	// Forbid charge on the grid
+					}
+				}
+			}
+		}
+	}
+
+	// Count the number of non-zero elements in each row, and initialize meshMask
+	for (int row = 0; row < nrow; row++)
+	{
+		for (int col = 0; col < ncol; col++)
+		{
+			gridId = row * ncol + col;
+			index = gridId * (ncol * nrow) + gridId;
+
+			if (row == 0 || row == (nrow - 1))
+			{
+				// Bottom boundary || Top boundary
+				csr_row_ptr[gridId + 1]++;
+			}
+			else
+			{
+				if (col == 0 || col == (ncol - 1))
+				{
+					// Left boundary || Right boundary
+					csr_row_ptr[gridId + 1]++;
+				}
+				else
+				{
+					// Inner points
+					x0 = xmin + col * Lx;
+					y0 = ymin + row * Ly;
+
+					inAperture = aperture->get_particle_position(x0, y0);
+
+					if (inAperture == 1)
+					{
+						auto tmp = aperture->get_intersection_points(x0, y0);
+
+						double hx_left = ((x0 - tmp.x_left) >= Lx) ? Lx : (x0 - tmp.x_left);
+						double hx_right = ((tmp.x_right - x0) >= Lx) ? Lx : (tmp.x_right - x0);
+						double hy_bottom = ((y0 - tmp.y_bottom) >= Ly) ? Ly : (y0 - tmp.y_bottom);
+						double hy_top = ((tmp.y_top - y0) >= Ly) ? Ly : (tmp.y_top - y0);
+
+						double FD_C = -(2.0 / (hx_left * hx_right) + 2.0 / (hy_bottom * hy_top));
+						double FD_L = 2.0 / (hx_left * (hx_left + hx_right));
+						double FD_R = 2.0 / (hx_right * (hx_left + hx_right));
+						double FD_B = 2.0 / (hy_bottom * (hy_bottom + hy_top));
+						double FD_T = 2.0 / (hy_top * (hy_bottom + hy_top));
+
+						if (host_meshMask[gridId - ncol].mask_grid == 1)
+						{
+							csr_row_ptr[gridId + 1]++;
+						}
+						if (host_meshMask[gridId - 1].mask_grid == 1)
+						{
+							csr_row_ptr[gridId + 1]++;
+						}
+						if (host_meshMask[gridId].mask_grid == 1)
+						{
+							csr_row_ptr[gridId + 1]++;
+						}
+						if (host_meshMask[gridId + 1].mask_grid == 1)
+						{
+							csr_row_ptr[gridId + 1]++;
+						}
+						if (host_meshMask[gridId + ncol].mask_grid == 1)
+						{
+							csr_row_ptr[gridId + 1]++;
+						}
+
+						host_meshMask[gridId].inv_hx_left = 1.0 / hx_left;		// Distance to the left grid line
+						host_meshMask[gridId].inv_hx_right = 1.0 / hx_right;	// Distance to the right grid line
+						host_meshMask[gridId].inv_hy_bottom = 1.0 / hy_bottom;	// Distance to the bottom grid line
+						host_meshMask[gridId].inv_hy_top = 1.0 / hy_top;		// Distance to the top grid line
+
+					}
+					else
+					{
+						csr_row_ptr[gridId + 1]++;
+					}
+				}
+			}
+		}
+	}
+
+	// Convert the count to cumulative sum
+	for (int i = 0; i < n; i++)
+	{
+		csr_row_ptr[i + 1] += csr_row_ptr[i];
+	}
+
+	// Initialize csr_col_indices and csr_values
+	nnz = csr_row_ptr[n];
+	csr_col_indices.assign(nnz, 0);
+	csr_values.assign(nnz, 0);
+
+	// Fill col_indices and values arrays
+	for (int row = 0; row < nrow; row++)
+	{
+		for (int col = 0; col < ncol; col++)
+		{
+			gridId = row * ncol + col;
+			index = gridId * (ncol * nrow) + gridId;
+
+			int start = csr_row_ptr[gridId];
+			int count = 0;
+
+			if (row == 0 || row == (nrow - 1))
+			{
+				// Bottom boundary || Top boundary
+				int pos = start + count;
+				csr_col_indices[pos] = gridId;
+				csr_values[pos] = c;
+				count++;
+			}
+			else
+			{
+				if (col == 0 || col == (ncol - 1))
+				{
+					// Left boundary || Right boundary
+					int pos = start + count;
+					csr_col_indices[pos] = gridId;
+					csr_values[pos] = c;
+					count++;
+				}
+				else
+				{
+					// Inner points
+					x0 = xmin + col * Lx;
+					y0 = ymin + row * Ly;
+
+					inAperture = aperture->get_particle_position(x0, y0);
+
+					if (inAperture == 1)
+					{
+						auto tmp = aperture->get_intersection_points(x0, y0);
+
+						double hx_left = ((x0 - tmp.x_left) >= Lx) ? Lx : (x0 - tmp.x_left);
+						double hx_right = ((tmp.x_right - x0) >= Lx) ? Lx : (tmp.x_right - x0);
+						double hy_bottom = ((y0 - tmp.y_bottom) >= Ly) ? Ly : (y0 - tmp.y_bottom);
+						double hy_top = ((tmp.y_top - y0) >= Ly) ? Ly : (tmp.y_top - y0);
+
+						double FD_C = -(2.0 / (hx_left * hx_right) + 2.0 / (hy_bottom * hy_top));
+						double FD_L = 2.0 / (hx_left * (hx_left + hx_right));
+						double FD_R = 2.0 / (hx_right * (hx_left + hx_right));
+						double FD_B = 2.0 / (hy_bottom * (hy_bottom + hy_top));
+						double FD_T = 2.0 / (hy_top * (hy_bottom + hy_top));
+
+						if (host_meshMask[gridId - ncol].mask_grid == 1)
+						{
+							int pos = start + count;
+							csr_col_indices[pos] = gridId - ncol;
+							csr_values[pos] = FD_B;
+							count++;
+						}
+						if (host_meshMask[gridId - 1].mask_grid == 1)
+						{
+							int pos = start + count;
+							csr_col_indices[pos] = gridId - 1;
+							csr_values[pos] = FD_L;
+							count++;
+						}
+						if (host_meshMask[gridId].mask_grid == 1)
+						{
+							int pos = start + count;
+							csr_col_indices[pos] = gridId;
+							csr_values[pos] = FD_C;
+							count++;
+						}
+						if (host_meshMask[gridId + 1].mask_grid == 1)
+						{
+							int pos = start + count;
+							csr_col_indices[pos] = gridId + 1;
+							csr_values[pos] = FD_R;
+							count++;
+						}
+						if (host_meshMask[gridId + ncol].mask_grid == 1)
+						{
+							int pos = start + count;
+							csr_col_indices[pos] = gridId + ncol;
+							csr_values[pos] = FD_T;
+							count++;
+						}
+
+					}
+					else
+					{
+						int pos = start + count;
+						csr_col_indices[pos] = gridId;
+						csr_values[pos] = c;
+						count++;
+					}
+				}
+			}
+		}
+	}
+
+	//Output matrix value and check it
+	std::filesystem::path matrix_savepath = "D:/PASS/test/fd_matrix_csr2.csv";
+	std::ofstream file1(matrix_savepath);
+
+	for (int i = 0; i < (n + 1); i++)
+	{
+		file1 << csr_row_ptr[i];
+		if (i < n)
+		{
+			file1 << ",";
+		}
+	}
+	file1 << "\n";
+
+	for (int i = 0; i < nnz; i++)
+	{
+		file1 << csr_col_indices[i];
+		if (i < (nnz - 1))
+		{
+			file1 << ",";
+		}
+	}
+	file1 << "\n";
+
+	for (int i = 0; i < nnz; i++)
+	{
+		file1 << csr_values[i];
+		if (i < (nnz - 1))
+		{
+			file1 << ",";
+		}
+	}
+	file1 << "\n";
+
+	file1.close();
+
+	spdlog::get("logger")->info("[FieldSolver] func(generate_5points_FD_CSR_matrix_and_meshMask_include_boundary): CSR format matrix data has been writted to {}", matrix_savepath.string());
+
+	std::filesystem::path meshMask_savepath = "D:/PASS/test/mesh_mask2.csv";
+	std::ofstream file2(meshMask_savepath);
+
+	for (int i = 0; i < nrow; i++)
+	{
+		for (int j = 0; j < ncol; j++)
+		{
+			file2 << host_meshMask[i * ncol + j].mask_grid;
+			if (j < (ncol - 1))
+			{
+				file2 << ",";
+			}
+		}
+		file2 << "\n";
+	}
+	file2.close();
+
+	spdlog::get("logger")->info("[FieldSolver] func(generate_meshMask_and_5points_FD_matrix): 5-points FD mesh mask data has been writted to {}", meshMask_savepath.string());
 }
