@@ -1,6 +1,7 @@
 #include "pic.h"
 #include "particle.h"
 #include "cutSlice.h"
+#include "aperture.h"
 
 #include "amgx_c.h"
 
@@ -47,10 +48,10 @@ FieldSolver::FieldSolver(int input_Nx, int input_Ny, double input_Lx, double inp
 		exit(EXIT_FAILURE);
 	}
 
-	cudaMalloc((void**)&dev_charDensity, Nx * Ny * Nslice * sizeof(double));
-	cudaMalloc((void**)&dev_potential, Nx * Ny * Nslice * sizeof(double));
-	cudaMalloc((void**)&dev_electicField, Nx * Ny * Nslice * sizeof(double));
-	cudaMalloc((void**)&dev_meshMask, Nx * Ny * sizeof(double));
+	callCuda(cudaMalloc((void**)&dev_charDensity, Nx * Ny * Nslice * sizeof(double)));
+	callCuda(cudaMalloc((void**)&dev_potential, Nx * Ny * Nslice * sizeof(double)));
+	callCuda(cudaMalloc((void**)&dev_electicField, Nx * Ny * Nslice * sizeof(double)));
+	callCuda(cudaMalloc((void**)&dev_meshMask, Nx * Ny * sizeof(MeshMask)));
 }
 
 
@@ -115,41 +116,62 @@ void FieldSolverCUDSS::initialize() {
 	//	+ (ncol - 2) * (nrow - 2) * 5;				// 5-point per grid point
 	//nrhs = Nslice;
 
+	//ncol = Nx;	// Number of columns in the grid, including the boundary points
+	//nrow = Ny;	// Number of rows in the grid, including the boundary points
+	//n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
+	//nnz
+	//	= (2 * (ncol + nrow) - 4) * 1				// 1-point per grid point on all boundary points
+	//	+ 4 * 3										// 3-point per grid point on the sub-boundary corner
+	//	+ (ncol - 4) * 4 * 2 + (nrow - 4) * 4 * 2	// 4-point per grid point on the sub-boundary edge
+	//	+ (ncol - 4) * (nrow - 4) * 5;				// 5-point per grid point
+	//nrhs = Nslice;
+
 	ncol = Nx;	// Number of columns in the grid, including the boundary points
 	nrow = Ny;	// Number of rows in the grid, including the boundary points
 	n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
-	nnz
-		= (2 * (ncol + nrow) - 4) * 1				// 1-point per grid point on all boundary points
-		+ 4 * 3										// 3-point per grid point on the sub-boundary corner
-		+ (ncol - 4) * 4 * 2 + (nrow - 4) * 4 * 2	// 4-point per grid point on the sub-boundary edge
-		+ (ncol - 4) * (nrow - 4) * 5;				// 5-point per grid point
 	nrhs = Nslice;
 
+	// Allocate host memory for matrix A and meshMask
+	double* A_values_h = nullptr;
+	MeshMask* host_meshMask = nullptr;
+
+	A_values_h = (double*)malloc(n * n * sizeof(double));
+	host_meshMask = (MeshMask*)malloc(Nx * Ny * sizeof(MeshMask));
+
+	if (!A_values_h || !host_meshMask) {
+		spdlog::get("logger")->error("[FieldSolver] Memory allocation failed for matrix.");
+		std::exit(EXIT_FAILURE);
+	}
+
+	// Initialize host memory for A and meshMask
+	generate_meshMask_and_5points_FD_matrix_include_boundary(host_meshMask, A_values_h, Nx, Ny, Lx, Ly, nnz, aperture);
+
+	callCuda(cudaMemcpy(dev_meshMask, host_meshMask, Nx * Ny * sizeof(MeshMask), cudaMemcpyHostToDevice));
+
+	spdlog::get("logger")->info("[FieldSolver] nnz: count = {}, formula = {}", nnz,
+		(2 * (ncol + nrow) - 4) * 1 + 4 * 3 + (ncol - 4) * 4 * 2 + (nrow - 4) * 4 * 2 + (ncol - 4) * (nrow - 4) * 5);
+
+	// Allocate host memory for the CSR format of matrix A
 	int* csr_offsets_h = nullptr;
 	int* csr_columns_h = nullptr;
 	double* csr_values_h = nullptr;
-	double* A_values_h = nullptr;
 
-	// Allocate host memory for the sparse input matrix A, right-hand side x and solution b
 	csr_offsets_h = (int*)malloc((n + 1) * sizeof(int));
 	csr_columns_h = (int*)malloc(nnz * sizeof(int));
 	csr_values_h = (double*)malloc(nnz * sizeof(double));
-	A_values_h = (double*)malloc(n * n * sizeof(double));
 
-	if (!csr_offsets_h || !csr_columns_h || !csr_values_h || !A_values_h) {
+	if (!csr_offsets_h || !csr_columns_h || !csr_values_h) {
 		spdlog::get("logger")->error("[FieldSolver] Memory allocation failed for CSR format.");
 		std::exit(EXIT_FAILURE);
 	}
+
+	// Convert matrix A to CSR format
+	convert_2d_matrix_to_CSR(n, n, nnz, A_values_h, csr_offsets_h, csr_columns_h, csr_values_h);
 
 	// Allocate device memory for A, x and b
 	callCuda(cudaMalloc((void**)&csr_offsets_d, (n + 1) * sizeof(int)));
 	callCuda(cudaMalloc((void**)&csr_columns_d, nnz * sizeof(int)));
 	callCuda(cudaMalloc((void**)&csr_values_d, nnz * sizeof(double)));
-
-	// Initialize host memory for A
-	//generate_5points_FD_matrix_exclude_boundary(Nx, Ny, Lx, Ly, A_values_h);
-	generate_5points_FD_matrix_include_boundary(Nx, Ny, Lx, Ly, A_values_h);
-	convert_2d_matrix_to_CSR(n, n, nnz, A_values_h, csr_offsets_h, csr_columns_h, csr_values_h);
 
 	// Copy host memory to device for A, and memset x, b to zero
 	callCuda(cudaMemcpy(csr_offsets_d, csr_offsets_h, (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
@@ -179,10 +201,11 @@ void FieldSolverCUDSS::initialize() {
 	// Factorization
 	callCudss(cudssExecute(cudss_handle, CUDSS_PHASE_FACTORIZATION, cudss_config, cudss_data, cudss_A, NULL, NULL));
 
+	free(host_meshMask);
+	free(A_values_h);
 	free(csr_offsets_h);
 	free(csr_columns_h);
 	free(csr_values_h);
-	free(A_values_h);
 
 	spdlog::get("logger")->info("[FieldSolver] CUDSS solver initialized successfully.");
 
@@ -222,9 +245,26 @@ void FieldSolverCUDSS::solve_x_values() {
 }
 
 
-void FieldSolverCUDSS::update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
+void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
 
-	callKernel(allocate2grid_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, Np_sur, Nslice, Nx, Ny, Lx, Ly, charge));
+	if (aperture->type == Aperture::CIRCLE)
+	{
+		CircleAperture* a = static_cast<CircleAperture*>(aperture.get());
+		callKernel(allocate2grid_circle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
+			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->radius_square));
+	}
+	else if (aperture->type == Aperture::RECTANGLE)
+	{
+		RectangleAperture* a = static_cast<RectangleAperture*>(aperture.get());
+		callKernel(allocate2grid_rectangle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
+			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->half_width, a->half_height));
+	}
+	else if (aperture->type == Aperture::ELLIPSE)
+	{
+		EllipseAperture* a = static_cast<EllipseAperture*>(aperture.get());
+		callKernel(allocate2grid_ellipse_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
+			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->hor_semi_axis, a->ver_semi_axis));
+	}
 
 	// Output b value and check it
 	//double* host_charDensity = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
@@ -293,7 +333,7 @@ void FieldSolverAMGX::solve_x_values() {
 }
 
 
-void FieldSolverAMGX::update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
+void FieldSolverAMGX::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
 
 
 }
@@ -305,66 +345,232 @@ void FieldSolverAMGX::calculate_electricField() {
 }
 
 
-__global__ void allocate2grid_multi_slice(const Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge) {
+__global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
 
 	const double epsilon = PassConstant::epsilon0;
 
-	int x_index = 0, y_index = 0;
-	double dx = 0, dy = 0;
-	double grid_area = Lx * Ly;
-	double  LB = 0, RB = 0, LT = 0, RT = 0;		//Left bottom, Right bottom, Left top, Right top
+	const double xmin = -(Nx - 1) / 2.0 * Lx;
+	const double ymin = -(Ny - 1) / 2.0 * Ly;
 
-	double factor = charge * 1 / (grid_area * epsilon);
+	const double inv_Lx = 1.0 / Lx;
+	const double inv_Ly = 1.0 / Ly;
+	const double grid_area = Lx * Ly;
+	const double factor = charge * 1 / (grid_area * epsilon);
 
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int stride = blockDim.x * gridDim.x;
 
-	const double xmax = (Nx - 1) / 2.0 * Lx;
-	const double xmin = -xmax;
-	const double ymax = (Ny - 1) / 2.0 * Ly;
-	const double ymin = -ymax;
+	while (tid < Np_sur)
+	{
+		Particle* p = &dev_bunch[tid];
+
+		double x = p->x;
+		double y = p->y;
+		int tag = p->tag;
+
+		const double epsilon = 1.0e-10;
+
+		double dist_square = x * x + y * y;
+		double diff = dist_square - radius_square;
+
+		int is_inside = (diff < -epsilon);
+		int inAperture = (is_inside << 1) - 1;
+
+		int loss_now = (tag > 0) & (inAperture != 1);
+		int flip_factor = 1 - 2 * loss_now;
+		int skip = (tag < 0) | (loss_now);
+		int alive = 1 - skip;
+		p->tag *= flip_factor;
+
+		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
+		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
+
+		double dx = x - (xmin + x_index * Lx);	// distance to the left grid line
+		double dy = y - (ymin + y_index * Ly);	// distance to the bottom grid line
+
+		double dx_ratio = dx * inv_Lx;
+		double dy_ratio = dy * inv_Ly;
+
+		//double LB = (1 - dx / Lx) * (1 - dy / Ly) * factor;
+		//double RB = (dx / Lx) * (1 - dy / Ly) * factor;
+		//double LT = (1 - dx / Lx) * (dy / Ly) * factor;
+		//double RT = (dx / Lx) * (dy / Ly) * factor;
+		double LB = (1 - dx_ratio) * (1 - dy_ratio) * factor;
+		double RB = dx_ratio * (1 - dy_ratio) * factor;
+		double LT = (1 - dx_ratio) * dy_ratio * factor;
+		double RT = dx_ratio * dy_ratio * factor;
+
+		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int base = slice_index * Nx * Ny;
+
+		int LB_index = y_index * Nx + x_index;
+		int RB_index = LB_index + 1;
+		int LT_index = (y_index + 1) * Nx + x_index;
+		int RT_index = LT_index + 1;
+
+		atomicAdd(&(dev_charDensity[base + LB_index]), LB * alive * dev_meshMask[LB_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
+
+		tid += stride;
+	}
+}
+
+
+__global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height) {
+
+	// Allocate charges to grid and calculate the rho/epsilon
+
+	const double epsilon = PassConstant::epsilon0;
+
+	const double xmin = -(Nx - 1) / 2.0 * Lx;
+	const double ymin = -(Ny - 1) / 2.0 * Ly;
+
+	const double inv_Lx = 1.0 / Lx;
+	const double inv_Ly = 1.0 / Ly;
+	const double grid_area = Lx * Ly;
+	const double factor = charge * 1 / (grid_area * epsilon);
+
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	int stride = blockDim.x * gridDim.x;
 
 	while (tid < Np_sur)
 	{
-		double x = dev_bunch[tid].x;
-		double y = dev_bunch[tid].y;
-		int tag = dev_bunch[tid].tag;
+		Particle* p = &dev_bunch[tid];
 
-		// x is in [xmin, xmax)£¬y is in [ymin, ymax). When x=xmax, the index of RD and RT are Nx, which causes the problem of out-of-bounds memory access. So is y.
-		int inBoundary = (x >= xmin) & (x < xmax) & (y >= ymin) & (y < ymax) & (tag > 0);
+		double x = p->x;
+		double y = p->y;
+		int tag = p->tag;
 
-		unsigned mask = __ballot_sync(0xFFFFFFFF, inBoundary);
-		if (!mask) return;
+		const double epsilon = 1.0e-10;
 
-		if (inBoundary)
-		{
-			x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
-			y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
+		double dist_left = -x - half_width;	// if inside, dist_left < 0
+		double dist_right = x - half_width;	// if inside, dist_right < 0
+		double dist_bottom = -y - half_height;	// if inside, dist_bottom < 0
+		double dist_top = y - half_height;	// if inside, dist_top < 0
 
-			dx = x - (xmin + x_index * Lx);	// distance to the left grid line
-			dy = y - (ymin + y_index * Ly);	// distance to the bottom grid line
+		int is_inside = (dist_left < -epsilon) & (dist_right < -epsilon) & (dist_bottom < -epsilon) & (dist_top < -epsilon);
+		int inAperture = (is_inside << 1) - 1;
 
-			LB = (1 - dx / Lx) * (1 - dy / Ly) * factor;
-			RB = (dx / Lx) * (1 - dy / Ly) * factor;
-			LT = (1 - dx / Lx) * (dy / Ly) * factor;
-			RT = (dx / Lx) * (dy / Ly) * factor;
+		int loss_now = (tag > 0) & (inAperture != 1);
+		int flip_factor = 1 - 2 * loss_now;
+		int skip = (tag < 0) | (loss_now);
+		int alive = 1 - skip;
+		p->tag *= flip_factor;
 
-			int slice_index = find_slice_index(dev_slice, Nslice, tid);
-			int base = slice_index * Nx * Ny;
+		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
+		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
 
-			int LB_index = base + y_index * Nx + x_index;
-			int RB_index = base + y_index * Nx + x_index + 1;
-			int LT_index = base + (y_index + 1) * Nx + x_index;
-			int RT_index = base + (y_index + 1) * Nx + x_index + 1;
+		double dx = x - (xmin + x_index * Lx);	// distance to the left grid line
+		double dy = y - (ymin + y_index * Ly);	// distance to the bottom grid line
 
-			atomicAdd(&(dev_charDensity[LB_index]), LB);
-			atomicAdd(&(dev_charDensity[RB_index]), RB);
-			atomicAdd(&(dev_charDensity[LT_index]), LT);
-			atomicAdd(&(dev_charDensity[RT_index]), RT);
+		double dx_ratio = dx * inv_Lx;
+		double dy_ratio = dy * inv_Ly;
 
-		}
+		//double LB = (1 - dx / Lx) * (1 - dy / Ly) * factor;
+		//double RB = (dx / Lx) * (1 - dy / Ly) * factor;
+		//double LT = (1 - dx / Lx) * (dy / Ly) * factor;
+		//double RT = (dx / Lx) * (dy / Ly) * factor;
+		double LB = (1 - dx_ratio) * (1 - dy_ratio) * factor;
+		double RB = dx_ratio * (1 - dy_ratio) * factor;
+		double LT = (1 - dx_ratio) * dy_ratio * factor;
+		double RT = dx_ratio * dy_ratio * factor;
+
+		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int base = slice_index * Nx * Ny;
+
+		int LB_index = y_index * Nx + x_index;
+		int RB_index = LB_index + 1;
+		int LT_index = (y_index + 1) * Nx + x_index;
+		int RT_index = LT_index + 1;
+
+		atomicAdd(&(dev_charDensity[base + LB_index]), LB * alive * dev_meshMask[LB_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
+
+		tid += stride;
+	}
+}
+
+
+__global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis) {
+
+	// Allocate charges to grid and calculate the rho/epsilon
+
+	const double epsilon = PassConstant::epsilon0;
+
+	const double xmin = -(Nx - 1) / 2.0 * Lx;
+	const double ymin = -(Ny - 1) / 2.0 * Ly;
+
+	const double inv_Lx = 1.0 / Lx;
+	const double inv_Ly = 1.0 / Ly;
+	const double grid_area = Lx * Ly;
+	const double factor = charge * 1 / (grid_area * epsilon);
+
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur)
+	{
+		Particle* p = &dev_bunch[tid];
+
+		double x = p->x;
+		double y = p->y;
+		int tag = p->tag;
+
+		const double epsilon = 1.0e-10;
+
+		double x1 = x / hor_semi_axis;	// x/a
+		double y1 = y / ver_semi_axis;	// y/b
+
+		double dist_square = x1 * x1 + y1 * y1;
+
+		int is_inside = (dist_square < (1.0 - epsilon));
+		int inAperture = (is_inside << 1) - 1;
+
+		int loss_now = (tag > 0) & (inAperture != 1);
+		int flip_factor = 1 - 2 * loss_now;
+		int skip = (tag < 0) | (loss_now);
+		int alive = 1 - skip;
+		p->tag *= flip_factor;
+
+		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
+		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
+
+		double dx = x - (xmin + x_index * Lx);	// distance to the left grid line
+		double dy = y - (ymin + y_index * Ly);	// distance to the bottom grid line
+
+		double dx_ratio = dx * inv_Lx;
+		double dy_ratio = dy * inv_Ly;
+
+		//double LB = (1 - dx / Lx) * (1 - dy / Ly) * factor;
+		//double RB = (dx / Lx) * (1 - dy / Ly) * factor;
+		//double LT = (1 - dx / Lx) * (dy / Ly) * factor;
+		//double RT = (dx / Lx) * (dy / Ly) * factor;
+		double LB = (1 - dx_ratio) * (1 - dy_ratio) * factor;
+		double RB = dx_ratio * (1 - dy_ratio) * factor;
+		double LT = (1 - dx_ratio) * dy_ratio * factor;
+		double RT = dx_ratio * dy_ratio * factor;
+
+		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int base = slice_index * Nx * Ny;
+
+		int LB_index = y_index * Nx + x_index;
+		int RB_index = LB_index + 1;
+		int LT_index = (y_index + 1) * Nx + x_index;
+		int RT_index = LT_index + 1;
+
+		atomicAdd(&(dev_charDensity[base + LB_index]), LB * alive * dev_meshMask[LB_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
+		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
 
 		tid += stride;
 	}
@@ -750,6 +956,246 @@ void generate_5points_FD_matrix_include_boundary(int Nx, int Ny, double Lx, doub
 	//file.close();
 
 	//spdlog::get("logger")->info("[FieldSolver] func(generate_5points_FD_matrix): 5-points FD matrix data has been writted to {}", matrix_savepath.string());
+
+}
+
+
+void generate_meshMask_and_5points_FD_matrix_include_boundary(MeshMask* host_meshMask, double* host_matrix, int Nx, int Ny, double Lx, double Ly, int& nnz,
+	const std::shared_ptr<Aperture>& aperture) {
+
+	// Generate the matrix coefficients for solving potential and the coefficients for solving electric field in the five-point difference method
+
+	int nrow = Ny;	// Number of rows in the particle grid, including the boundary points
+	int ncol = Nx;	// Number of columns in the particle grid, including the boundary points
+	int n = nrow * ncol;	// Matrix dimension, A is a square matrix of size n x n, condidering the boundary points
+
+	double a = 1.0 / (Lx * Lx);
+	double b = 1.0 / (Ly * Ly);
+	double c = -2.0 * (a + b); // Coefficient for the diagonal elements
+
+	double x0 = 0, y0 = 0;	// coordinate of the grid point
+	const double xmin = -(Nx - 1) / 2.0 * Lx;
+	const double ymin = -(Ny - 1) / 2.0 * Ly;
+	int inAperture;
+
+	int row, col;	// Index of the grid point in the particle grid, not in the matrix A
+	int gridId;		// Serial number of the grid point in the particle grid, row-major order
+	int index;		// Index of value in the matrix A
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	// Initialize the host matrix to zero
+	for (int i = 0; i < n * n; i++) {
+		host_matrix[i] = 0.0;
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	// For the boundary corner points
+	row = 0, col = 0;	// Left Bottom vertice
+	gridId = row * ncol + col;
+	index = gridId * (ncol * nrow) + gridId;
+	host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+	host_matrix[index] = c;	// Diagonal element
+
+	row = 0, col = ncol - 1;	// Right Bottom vertice
+	gridId = row * ncol + col;
+	index = gridId * (ncol * nrow) + gridId;
+	host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+	host_matrix[index] = c;	// Diagonal element
+
+	row = nrow - 1, col = 0;	// Left Top vertice
+	gridId = row * ncol + col;
+	index = gridId * (ncol * nrow) + gridId;
+	host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+	host_matrix[index] = c;	// Diagonal element
+
+	row = nrow - 1, col = ncol - 1;	// Right Top vertice
+	gridId = row * ncol + col;
+	index = gridId * (ncol * nrow) + gridId;
+	host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+	host_matrix[index] = c;	// Diagonal element
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	// For the boundary edge points
+	std::vector<std::pair<int, int>>boundary_top;
+	std::vector<std::pair<int, int>>boundary_bottom;
+	std::vector<std::pair<int, int>>boundary_left;
+	std::vector<std::pair<int, int>>boundary_right;
+
+	for (int i = 1; i < (ncol - 1); i++) {
+		boundary_top.push_back({ nrow - 1, i });	// Top boundary
+		boundary_bottom.push_back({ 0, i });	// Bottom boundary
+	}
+	for (int i = 1; i < (nrow - 1); i++)
+	{
+		boundary_left.push_back({ i, 0 });	// Left boundary
+		boundary_right.push_back({ i, ncol - 1 });	// Right boundary
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	for (const auto& point : boundary_top) {
+		row = point.first;
+		col = point.second;
+		gridId = row * ncol + col;
+		index = gridId * (ncol * nrow) + gridId;
+		host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+		host_matrix[index] = c;	// Diagonal element
+	}
+
+	for (const auto& point : boundary_bottom) {
+		row = point.first;
+		col = point.second;
+		gridId = row * ncol + col;
+		index = gridId * (ncol * nrow) + gridId;
+		host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+		host_matrix[index] = c;	// Diagonal element
+	}
+
+	for (const auto& point : boundary_left) {
+		row = point.first;
+		col = point.second;
+		gridId = row * ncol + col;
+		index = gridId * (ncol * nrow) + gridId;
+		host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+		host_matrix[index] = c;	// Diagonal element
+	}
+
+	for (const auto& point : boundary_right) {
+		row = point.first;
+		col = point.second;
+		gridId = row * ncol + col;
+		index = gridId * (ncol * nrow) + gridId;
+		host_meshMask[gridId].mask_grid = 0;	// No charge on boundary
+		host_matrix[index] = c;	// Diagonal element
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	// For the inner points
+	std::vector<std::pair<int, int>>inner_points;
+
+	for (int i = 1; i < (nrow - 1); i++)
+	{
+		for (int j = 1; j < (ncol - 1); j++)
+		{
+			inner_points.push_back({ i, j });	// Inner points
+		}
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	for (const auto& point : inner_points)
+	{
+		row = point.first;
+		col = point.second;
+		gridId = row * ncol + col;
+		index = gridId * (ncol * nrow) + gridId;
+
+		x0 = xmin + col * Lx;
+		y0 = ymin + row * Ly;
+
+		inAperture = aperture->get_particle_position(x0, y0);
+
+		if (inAperture == 1)
+		{
+			host_meshMask[gridId].mask_grid = 1;	// Charge on the grid
+		}
+		else
+		{
+			host_meshMask[gridId].mask_grid = 0;	// No charge on the grid
+		}
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	for (const auto& point : inner_points) {
+		row = point.first;
+		col = point.second;
+		gridId = row * ncol + col;
+		index = gridId * (ncol * nrow) + gridId;
+
+		x0 = xmin + col * Lx;
+		y0 = ymin + row * Ly;
+
+		inAperture = aperture->get_particle_position(x0, y0);
+
+		if (inAperture == 1)
+		{
+			auto tmp = aperture->get_intersection_points(x0, y0);
+
+			double hx_left = ((x0 - tmp.x_left) >= Lx) ? Lx : x0 - tmp.x_left;
+			double hx_right = ((tmp.x_right - x0) >= Lx) ? Lx : tmp.x_right - x0;
+			double hy_bottom = ((y0 - tmp.y_bottom) >= Ly) ? Ly : y0 - tmp.y_bottom;
+			double hy_top = ((tmp.y_top - y0) >= Ly) ? Ly : tmp.y_top - y0;
+
+			double FD_C = -(2.0 / (hx_left * hx_right) + 2.0 / (hy_bottom * hy_top));
+			double FD_L = 2.0 / (hx_left * (hx_left + hx_right));
+			double FD_R = 2.0 / (hx_right * (hx_left + hx_right));
+			double FD_B = 2.0 / (hy_bottom * (hy_bottom + hy_top));
+			double FD_T = 2.0 / (hy_top * (hy_bottom + hy_top));
+
+			host_matrix[index] = FD_C;	// Diagonal element
+			host_matrix[index - 1] = FD_L * host_meshMask[gridId - 1].mask_grid;	// Left neighbor
+			host_matrix[index + 1] = FD_R * host_meshMask[gridId + 1].mask_grid;	// Right neighbor
+			host_matrix[index - ncol] = FD_B * host_meshMask[gridId - ncol].mask_grid;	// Bottom neighbor
+			host_matrix[index + ncol] = FD_T * host_meshMask[gridId + ncol].mask_grid;	// Top neighbor
+
+			host_meshMask[gridId].inv_hx_left = 1.0 / hx_left;		// Distance to the left grid line
+			host_meshMask[gridId].inv_hx_right = 1.0 / hx_right;	// Distance to the right grid line
+			host_meshMask[gridId].inv_hy_bottom = 1.0 / hy_bottom;	// Distance to the bottom grid line
+			host_meshMask[gridId].inv_hy_top = 1.0 / hy_top;		// Distance to the top grid line
+
+			spdlog::get("logger")->debug("x0 = {}, x_left = {}, x_right = {}, xmin = {}, Lx = {}, hx_left = {}, hx_right = {}",
+				x0, tmp.x_left, tmp.x_right, xmin, Lx, hx_left, hx_right);
+			spdlog::get("logger")->debug("y0 = {}, y_bottom = {}, y_top = {}, ymin = {}, Ly = {}, hy_bottom = {}, hy_top = {}",
+				y0, tmp.y_bottom, tmp.y_top, ymin, Ly, hy_bottom, hy_top);
+			spdlog::get("logger")->debug("FD_C = {}, FD_L = {}, FD_R = {}, FD_B = {}, FD_T = {}",
+				FD_C, FD_L, FD_R, FD_B, FD_T);
+			spdlog::get("logger")->debug("mask L = {}, R = {}, B = {}, T = {}",
+				host_meshMask[gridId - 1].mask_grid, host_meshMask[gridId + 1].mask_grid, host_meshMask[gridId - ncol].mask_grid, host_meshMask[gridId + ncol].mask_grid);
+			spdlog::get("logger")->debug("FD_C = {}, FD_L = {}, FD_R = {}, FD_B = {}, FD_T = {}\n",
+				host_matrix[index], host_matrix[index - 1], host_matrix[index + 1], host_matrix[index - ncol], host_matrix[index + ncol]);
+		}
+
+		else
+		{
+			host_matrix[index] = c;	// Diagonal element
+		}
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	for (int i = 0; i < n * n; i++) {
+		if (fabs(host_matrix[i]) > 1e-10)
+		{
+			nnz++;
+		}
+	}
+	spdlog::get("logger")->debug("FieldSolver] func(generate_meshMask_and_5points_FD_matrix): line = {}", __LINE__);
+	//Output matrix value and check it
+	std::filesystem::path matrix_savepath = "D:/PASS/test/fd_matrix.csv";
+	std::ofstream file1(matrix_savepath);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			file1 << host_matrix[i * n + j];
+			if (j < (n - 1))
+			{
+				file1 << ",";
+			}
+		}
+		file1 << "\n";
+	}
+	file1.close();
+	spdlog::get("logger")->info("[FieldSolver] func(generate_meshMask_and_5points_FD_matrix): 5-points FD matrix data has been writted to {}", matrix_savepath.string());
+
+	std::filesystem::path meshMask_savepath = "D:/PASS/test/mesh_mask.csv";
+	std::ofstream file2(meshMask_savepath);
+
+	for (int i = 0; i < nrow; i++)
+	{
+		for (int j = 0; j < ncol; j++)
+		{
+			file2 << host_meshMask[i * ncol + j].mask_grid;
+			if (j < (ncol - 1))
+			{
+				file2 << ",";
+			}
+		}
+		file2 << "\n";
+	}
+	file2.close();
+
+	spdlog::get("logger")->info("[FieldSolver] func(generate_meshMask_and_5points_FD_matrix): 5-points FD mesh mask data has been writted to {}", meshMask_savepath.string());
 
 }
 

@@ -32,13 +32,29 @@ enum class FieldSolverType
 FieldSolverType  string2Enum(const std::string& str);
 
 
+class MeshMask
+{
+public:
+	MeshMask() = default;
+	__host__ __device__ ~MeshMask() {};
+
+	int mask_grid = 0;	// 1: grid is in aperture, 0: grid is out of aperture
+	double inv_hx_left = 0, inv_hx_right = 0; // Inverse of distance between the grid point to neighbor grid points, in unit of m
+	double inv_hy_bottom = 0, inv_hy_top = 0;
+};
+
+
+void generate_meshMask_and_5points_FD_matrix_include_boundary(MeshMask* host_meshMask, double* host_matrix, int Nx, int Ny, double Lx, double Ly, int& nnz,
+	const std::shared_ptr<Aperture>& aperture);
+
+
 class FieldSolver
 {
 public:
 	virtual ~FieldSolver();
 
 	virtual void initialize() = 0;	// Initialize the field solver, allocate memory, etc.
-	virtual void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) = 0;
+	virtual void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) = 0;
 	virtual void solve_x_values() = 0;
 	virtual void calculate_electricField() = 0;
 
@@ -63,7 +79,7 @@ protected:
 	double* dev_charDensity = nullptr;
 	double* dev_potential = nullptr;
 	double* dev_electicField = nullptr;
-	double* dev_meshMask = nullptr;	// Device memory for mesh mask, used to mark the aperture position
+	MeshMask* dev_meshMask = nullptr;	// Device memory for mesh mask, used to mark the aperture position
 
 private:
 	// Disable the copy constructor and assignment operator
@@ -92,7 +108,7 @@ public:
 	~FieldSolverCUDSS() override;
 
 	void initialize() override;
-	void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
+	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
 
@@ -135,7 +151,7 @@ public:
 	~FieldSolverAMGX() override;
 
 	void initialize() override;
-	void update_b_values(const Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
+	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
 
@@ -150,7 +166,14 @@ private:
 };
 
 
-__global__ void allocate2grid_multi_slice(const Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge);
+__global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square);
+
+__global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height);
+
+__global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis);
 
 void generate_5points_FD_matrix_exclude_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
 void generate_5points_FD_matrix_include_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
