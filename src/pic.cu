@@ -50,7 +50,7 @@ FieldSolver::FieldSolver(int input_Nx, int input_Ny, double input_Lx, double inp
 
 	callCuda(cudaMalloc((void**)&dev_charDensity, Nx * Ny * Nslice * sizeof(double)));
 	callCuda(cudaMalloc((void**)&dev_potential, Nx * Ny * Nslice * sizeof(double)));
-	callCuda(cudaMalloc((void**)&dev_electicField, Nx * Ny * Nslice * sizeof(double)));
+	callCuda(cudaMalloc((void**)&dev_electicField, Nx * Ny * Nslice * sizeof(double2)));
 	callCuda(cudaMalloc((void**)&dev_meshMask, Nx * Ny * sizeof(MeshMask)));
 }
 
@@ -209,9 +209,9 @@ void FieldSolverCUDSS::solve_x_values() {
 	callCudss(cudssExecute(cudss_handle, CUDSS_PHASE_SOLVE, cudss_config, cudss_data, cudss_A, cudss_x, cudss_b));
 
 	// Output x value and check it
-	//double* host_potential = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
-	//callCuda(cudaMemcpy(host_potential, dev_potential, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
-	//cudaDeviceSynchronize();
+	double* host_potential = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
+	callCuda(cudaMemcpy(host_potential, dev_potential, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
+	cudaDeviceSynchronize();
 
 	//std::filesystem::path matrix_savepath = "D:/PASS/test/potential.csv";
 	//std::ofstream file(matrix_savepath);
@@ -233,11 +233,38 @@ void FieldSolverCUDSS::solve_x_values() {
 
 	//spdlog::get("logger")->info("[FieldSolver] func(solve_x_values): potential matrix data has been writted to {}", matrix_savepath.string());
 
-	//free(host_potential);
+	static int count = 1;
+	for (int k = 0; k < Nslice; k++)
+	{
+		std::filesystem::path matrix_savepath = "D:/PASS/test/potential_slice_" + std::to_string(k) + "_turn_" + std::to_string(count) + "_.csv";
+		std::ofstream file(matrix_savepath);
+
+		for (int i = 0; i < Ny; i++)
+		{
+			for (int j = 0; j < Nx; j++)
+			{
+				file << std::setprecision(15)
+					<< host_potential[j + i * Nx + k * Nx * Ny];
+				if (j < (Nx - 1))
+				{
+					file << ",";
+				}
+			}
+			file << "\n";
+		}
+		file.close();
+
+		spdlog::get("logger")->info("[FieldSolver] func(solve_x_values): potential data has been writted to {}", matrix_savepath.string());
+	}
+	count++;
+
+	free(host_potential);
 }
 
 
 void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
+
+	callCuda(cudaMemset(dev_charDensity, 0, Nx * Ny * Nslice * sizeof(double)));
 
 	if (aperture->type == Aperture::CIRCLE)
 	{
@@ -259,37 +286,88 @@ void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_sli
 	}
 
 	// Output b value and check it
-	//double* host_charDensity = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
-	//callCuda(cudaMemcpy(host_charDensity, dev_charDensity, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
-	//cudaDeviceSynchronize();
+	double* host_charDensity = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
+	callCuda(cudaMemcpy(host_charDensity, dev_charDensity, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
+	cudaDeviceSynchronize();
 
-	//std::filesystem::path matrix_savepath = "D:/PASS/test/charDensity.csv";
-	//std::ofstream file(matrix_savepath);
+	static int count = 1;
+	for (int k = 0; k < Nslice; k++)
+	{
+		std::filesystem::path matrix_savepath = "D:/PASS/test/charDensity_slice_" + std::to_string(k) + "_turn_" + std::to_string(count) + "_.csv";
+		std::ofstream file(matrix_savepath);
 
-	//for (int i = 0; i < Nx * Ny; i++)
-	//{
-	//	for (int j = 0; j < Nslice; j++)
-	//	{
-	//		file << std::setprecision(15)
-	//			<< host_charDensity[i + j * Nx * Ny];
-	//		if (j < (Nslice - 1))
-	//		{
-	//			file << ",";
-	//		}
-	//	}
-	//	file << "\n";
-	//}
-	//file.close();
+		for (int i = 0; i < Ny; i++)
+		{
+			for (int j = 0; j < Nx; j++)
+			{
+				file << std::setprecision(15)
+					<< host_charDensity[j + i * Nx + k * Nx * Ny];
+				if (j < (Nx - 1))
+				{
+					file << ",";
+				}
+			}
+			file << "\n";
+		}
+		file.close();
 
-	//spdlog::get("logger")->info("[FieldSolver] func(update_b_values): charge density matrix data has been writted to {}", matrix_savepath.string());
-
-	//free(host_charDensity);
+		spdlog::get("logger")->info("[FieldSolver] func(update_b_values): charge density matrix data has been writted to {}", matrix_savepath.string());
+	}
+	count++;
+	free(host_charDensity);
 }
 
 
 void FieldSolverCUDSS::calculate_electricField() {
 
+	callCuda(cudaMemset(dev_electicField, 0, Nx * Ny * Nslice * sizeof(double2)));
 
+	const int BLOCK_X = 16;
+	const int BLOCK_Y = 16;
+	dim3 block(BLOCK_X, BLOCK_Y);
+
+	dim3 grid(
+		(Nx + BLOCK_X - 1) / BLOCK_X,
+		(Nx + BLOCK_Y - 1) / BLOCK_Y,
+		Nslice + 1
+	);
+
+	callKernel(cal_electricField << <grid, block, 0, 0 >> > (dev_potential, dev_electicField, dev_meshMask, Nx, Ny, Nslice));
+
+	double2* host_electricField = (double2*)malloc(Nx * Ny * Nslice * sizeof(double2));
+	callCuda(cudaMemcpy(host_electricField, dev_electicField, Nx * Ny * Nslice * sizeof(double2), cudaMemcpyDeviceToHost));
+	cudaDeviceSynchronize();
+
+	static int count = 1;
+	std::filesystem::path savepath1 = "D:/PASS/test/electricField_x_slice0_turn_" + std::to_string(count) + "_.csv";
+	std::filesystem::path savepath2 = "D:/PASS/test/electricField_y_slice0_turn_" + std::to_string(count) + "_.csv";
+	std::ofstream file1(savepath1);
+	std::ofstream file2(savepath2);
+
+	for (int i = 0; i < Ny; i++)
+	{
+		for (int j = 0; j < Nx; j++)
+		{
+			file1 << std::setprecision(15)
+				<< host_electricField[j + i * Nx].x;
+			file2 << std::setprecision(15)
+				<< host_electricField[j + i * Nx].y;
+			if (j < (Nx - 1))
+			{
+				file1 << ",";
+				file2 << ",";
+			}
+		}
+		file1 << "\n";
+		file2 << "\n";
+	}
+	file1.close();
+	file2.close();
+
+	count++;
+	spdlog::get("logger")->info("[FieldSolver] func(calculate_electricField): electric field data has been writted to {} and {}.", savepath1.string(), savepath2.string());
+
+	free(host_electricField);
 }
 
 
@@ -407,7 +485,7 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
-		
+
 		//if (tid==0)
 		//{
 		//	printf("Allocate to grid (circle): tid[%d], LB = {%e}, RB = {%e}, LT = {%e}, RT = {%e}\n", tid, LB, RB, LT, RT);
@@ -490,12 +568,12 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
-		
+
 		//if (tid == 0)
 		//{
 		//	printf("Allocate to grid (rectangle): tid[%d], LB = {%e}, RB = {%e}, LT = {%e}, RT = {%e}\n", tid, LB, RB, LT, RT);
 		//}
-		
+
 		tid += stride;
 	}
 }
@@ -573,7 +651,7 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 		atomicAdd(&(dev_charDensity[base + RB_index]), RB * alive * dev_meshMask[RB_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + LT_index]), LT * alive * dev_meshMask[LT_index].mask_grid);
 		atomicAdd(&(dev_charDensity[base + RT_index]), RT * alive * dev_meshMask[RT_index].mask_grid);
-		
+
 		//if (tid == 0)
 		//{
 		//	printf("Allocate to grid (ellipse): tid[%d], LB = {%e}, RB = {%e}, LT = {%e}, RT = {%e}\n", tid, LB, RB, LT, RT);
@@ -581,6 +659,49 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 
 		tid += stride;
 	}
+}
+
+
+__global__ void cal_electricField(double* dev_potential, double2* dev_electricField, const MeshMask* dev_meshMask,
+	int Nx, int Ny, int Nslice) {
+
+	// Calculate the electric field from the potential using finite difference method
+
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;	// Global index of the grid point in the mesh, row-major order
+	const int j = blockIdx.y * blockDim.y + threadIdx.y;	// Global index of the grid point in the mesh, row-major order
+	const int slice = blockIdx.z;	// Slice index
+
+	if (i < 1 || i >= (Nx - 1) || j < 1 || j >= (Ny - 1) || slice >= Nslice)
+	{
+		return;
+	}
+
+	const int idx_potential = slice * Nx * Ny + j * Nx + i;	// Index of the potential grid point in the 1D array
+	const int idx_meshMask = j * Nx + i;	// Index of the mesh mask grid point in the 1D array
+
+	const double center = dev_potential[idx_potential];
+	const double left = dev_potential[idx_potential - 1];
+	const double right = dev_potential[idx_potential + 1];
+	const double bottom = dev_potential[idx_potential - Nx];
+	const double top = dev_potential[idx_potential + Nx];
+
+	MeshMask mask = dev_meshMask[idx_meshMask];
+	const int mask_grid = mask.mask_grid;	// Mask for the grid point, 1 if the grid point is inside the aperture, 0 otherwise
+	const double inv_hx_left = mask.inv_hx_left;
+	const double inv_hx_right = mask.inv_hx_right;
+	const double inv_hy_bottom = mask.inv_hy_bottom;
+	const double inv_hy_top = mask.inv_hy_top;
+
+	const double Ex = -0.5 * mask_grid * ((right - center) * inv_hx_right + (center - left) * inv_hx_left);
+	const double Ey = -0.5 * mask_grid * ((top - center) * inv_hy_top + (center - bottom) * inv_hy_bottom);
+
+	dev_electricField[idx_potential] = make_double2(Ex, Ey);
+
+	//if (idx_potential == (Nx + Nx / 2))
+	//{
+	//	printf("idx = %d, Ex = %e, Ey = %e\n", idx_potential, Ex, Ey);
+	//}
+
 }
 
 

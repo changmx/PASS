@@ -74,7 +74,7 @@ protected:
 
 	double* dev_charDensity = nullptr;
 	double* dev_potential = nullptr;
-	double* dev_electicField = nullptr;
+	double2* dev_electicField = nullptr;
 	MeshMask* dev_meshMask = nullptr;	// Device memory for mesh mask, used to mark the aperture position
 
 private:
@@ -170,6 +170,9 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 
 __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis);
+
+__global__ void cal_electricField(double* dev_potential, double2* dev_electricField, const MeshMask* dev_meshMask,
+	int Nx, int Ny, int Nslice);
 
 void generate_5points_FD_matrix_exclude_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
 void generate_5points_FD_matrix_include_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);
