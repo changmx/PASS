@@ -53,10 +53,10 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		if (Nproton == 0 && Nneutron == 0)
 			qm_ratio = 1;
 		else
-			qm_ratio = abs(Ncharge) / (Nproton + Nneutron);
+			qm_ratio = abs(Ncharge) / static_cast<double>(Nproton + Nneutron);
 
 		Brho = p0_kg / (qm_ratio * PassConstant::e);
-		
+
 		gammat = data.at("GammaT");
 
 		//emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
