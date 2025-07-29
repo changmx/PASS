@@ -262,7 +262,7 @@ void FieldSolverCUDSS::solve_x_values() {
 }
 
 
-void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
+void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) {
 
 	callCuda(cudaMemset(dev_charDensity, 0, Nx * Ny * Nslice * sizeof(double)));
 
@@ -270,19 +270,19 @@ void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_sli
 	{
 		CircleAperture* a = static_cast<CircleAperture*>(aperture.get());
 		callKernel(allocate2grid_circle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
-			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->radius_square));
+			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->radius_square, turn, s));
 	}
 	else if (aperture->type == Aperture::RECTANGLE)
 	{
 		RectangleAperture* a = static_cast<RectangleAperture*>(aperture.get());
 		callKernel(allocate2grid_rectangle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
-			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->half_width, a->half_height));
+			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->half_width, a->half_height, turn, s));
 	}
 	else if (aperture->type == Aperture::ELLIPSE)
 	{
 		EllipseAperture* a = static_cast<EllipseAperture*>(aperture.get());
 		callKernel(allocate2grid_ellipse_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
-			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->hor_semi_axis, a->ver_semi_axis));
+			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->hor_semi_axis, a->ver_semi_axis, turn, s));
 	}
 
 	// Output b value and check it
@@ -403,7 +403,7 @@ void FieldSolverAMGX::solve_x_values() {
 }
 
 
-void FieldSolverAMGX::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) {
+void FieldSolverAMGX::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) {
 
 
 }
@@ -416,7 +416,7 @@ void FieldSolverAMGX::calculate_electricField() {
 
 
 __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
-	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square) {
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square, int turn, double s) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
 
@@ -454,6 +454,8 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 		int skip = (tag < 0) | (loss_now);
 		int alive = 1 - skip;
 		p->tag *= flip_factor;
+		p->lostTurn = (p->lostTurn * (1 - loss_now) + turn * loss_now);
+		p->lostPos = (p->lostPos * (1 - loss_now) + s * loss_now);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -497,7 +499,7 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 
 
 __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
-	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height) {
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height, int turn, double s) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
 
@@ -537,6 +539,8 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 		int skip = (tag < 0) | (loss_now);
 		int alive = 1 - skip;
 		p->tag *= flip_factor;
+		p->lostTurn = (p->lostTurn * (1 - loss_now) + turn * loss_now);
+		p->lostPos = (p->lostPos * (1 - loss_now) + s * loss_now);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -580,7 +584,7 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 
 
 __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
-	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis) {
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis, int turn, double s) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
 
@@ -620,6 +624,8 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 		int skip = (tag < 0) | (loss_now);
 		int alive = 1 - skip;
 		p->tag *= flip_factor;
+		p->lostTurn = (p->lostTurn * (1 - loss_now) + turn * loss_now);
+		p->lostPos = (p->lostPos * (1 - loss_now) + s * loss_now);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -1518,11 +1524,11 @@ void generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(
 						double hy_bottom = ((y0 - tmp.y_bottom) >= Ly) ? Ly : (y0 - tmp.y_bottom);
 						double hy_top = ((tmp.y_top - y0) >= Ly) ? Ly : (tmp.y_top - y0);
 
-						double FD_C = -(2.0 / (hx_left * hx_right) + 2.0 / (hy_bottom * hy_top));
-						double FD_L = 2.0 / (hx_left * (hx_left + hx_right));
-						double FD_R = 2.0 / (hx_right * (hx_left + hx_right));
-						double FD_B = 2.0 / (hy_bottom * (hy_bottom + hy_top));
-						double FD_T = 2.0 / (hy_top * (hy_bottom + hy_top));
+						//double FD_C = -(2.0 / (hx_left * hx_right) + 2.0 / (hy_bottom * hy_top));
+						//double FD_L = 2.0 / (hx_left * (hx_left + hx_right));
+						//double FD_R = 2.0 / (hx_right * (hx_left + hx_right));
+						//double FD_B = 2.0 / (hy_bottom * (hy_bottom + hy_top));
+						//double FD_T = 2.0 / (hy_top * (hy_bottom + hy_top));
 
 						if (host_meshMask[gridId - ncol].mask_grid == 1)
 						{

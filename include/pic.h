@@ -50,9 +50,16 @@ public:
 	virtual ~FieldSolver();
 
 	virtual void initialize() = 0;	// Initialize the field solver, allocate memory, etc.
-	virtual void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) = 0;
+	virtual void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) = 0;
 	virtual void solve_x_values() = 0;
 	virtual void calculate_electricField() = 0;
+	
+	const double2* get_electricField() const { return dev_electicField; }
+	int get_Nx() const { return Nx; }
+	int get_Ny() const { return Ny; }
+	double get_Lx() const { return Lx; }
+	double get_Ly() const { return Ly; }
+	int get_Nslice() const { return Nslice; }
 
 	bool operator==(const FieldSolver& other) const;
 	bool operator!=(const FieldSolver& other) const;
@@ -66,7 +73,6 @@ protected:
 	double Lx = 0;	// Length of one grid in x direction (m), mesh size in x direction = Lx * (Nx - 1)
 	double Ly = 0;
 	int Nslice = 0;	// Number of bunch slices
-	double charge = 0;	// Charge of macro-particle
 
 	FieldSolverType  solverType;	// Field solver method
 
@@ -104,7 +110,7 @@ public:
 	~FieldSolverCUDSS() override;
 
 	void initialize() override;
-	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
+	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
 
@@ -147,7 +153,7 @@ public:
 	~FieldSolverAMGX() override;
 
 	void initialize() override;
-	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x) override;
+	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
 
@@ -163,13 +169,13 @@ private:
 
 
 __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
-	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square);
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square, int turn, double s);
 
 __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
-	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height);
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height, int turn, double s);
 
 __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
-	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis);
+	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis, int turn, double s);
 
 __global__ void cal_electricField(double* dev_potential, double2* dev_electricField, const MeshMask* dev_meshMask,
 	int Nx, int Ny, int Nslice);
