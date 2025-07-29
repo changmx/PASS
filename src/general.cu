@@ -492,8 +492,8 @@ TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
 	saveLuminosity += rhs.saveLuminosity;
 
 	twiss += rhs.twiss;
-	transferElement += transferElement;
-	spaceCharge += spaceCharge;
+	transferElement += rhs.transferElement;
+	calElectricKick += rhs.calElectricKick;
 
 	total += rhs.total;
 
@@ -507,7 +507,7 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	total = sort + slice + allocate2grid + calBoundary + calPotential + calElectric + hourGlass
 		+ calPhase + statistic + crossingAngle + crabCavity + floatWaist + oneTurnMap + calBeamkick + transferFixPoint
 		+ saveStatistic + savePhase + saveBunch + saveFixpoint + saveLuminosity
-		+ twiss + transferElement + spaceCharge;
+		+ twiss + transferElement + calElectricKick;
 
 	std::string name = "process(device " + std::to_string(deviceid) + ")";
 
@@ -518,7 +518,8 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate boundary:", calBoundary / totalTurn, calBoundary / turn * 100, calBoundary / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time allocate to grids:", allocate2grid / totalTurn, allocate2grid / turn * 100, allocate2grid / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate potential:", calPotential / totalTurn, calPotential / turn * 100, calPotential / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate electric:", calElectric / totalTurn, calElectric / turn * 100, calElectric / 1000 / cpuTime * 100);
+	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate electric field:", calElectric / totalTurn, calElectric / turn * 100, calElectric / 1000 / cpuTime * 100);
+	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate electric kick:", calElectricKick / totalTurn, calElectricKick / turn * 100, calElectricKick / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100, hourGlass / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cal phase:", calPhase / totalTurn, calPhase / turn * 100, calPhase / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time statistic:", statistic / totalTurn, statistic / turn * 100, statistic / 1000 / cpuTime * 100);
@@ -536,7 +537,6 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time twiss transfer:", twiss / totalTurn, twiss / turn * 100, twiss / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time element transfer:", transferElement / totalTurn, transferElement / turn * 100, transferElement / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time space charge:", spaceCharge / totalTurn, spaceCharge / turn * 100, spaceCharge / 1000 / cpuTime * 100);
 
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "summary:", total / totalTurn, total / turn * 100, total / 1000 / cpuTime * 100);
 	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);

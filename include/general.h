@@ -80,7 +80,7 @@ public:
 
 	float twiss = 0;
 	float transferElement;
-	float spaceCharge = 0;
+	float calElectricKick = 0;
 
 	float total = 0;
 
