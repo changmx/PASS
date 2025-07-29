@@ -37,11 +37,15 @@ private:
 	int block_x = 0;
 
 	bool is_enable_spaceCharge = false;		// Flag to enable/disable space charge
-	double scLength = 0.0;			// Length of the space charge region
-	double charge = 0.0;		// Charge of the macro-particle
+	double sc_length = 0.0;			// Length of the space charge region
+	int Ncharge = 0;	// Number of charges per real particle
+	double ratio = 0.0;		// Nrp/Np
+	double qm_ratio = 0.0;	// Charge/mass ratio of a particle (q/m)
 
 	std::shared_ptr<FieldSolver> solver = nullptr;
 
 };
 
 
+__global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, const Slice* dev_slice,
+	int Np_sur, int Nx, int Ny, double Lx, double Ly, int Nslice, double sc_factor);

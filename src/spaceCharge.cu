@@ -15,7 +15,9 @@ SpaceCharge::SpaceCharge(const Parameter& para, int input_beamId, Bunch& Bunch, 
 	block_x = plan1d.get_blocks_x();
 
 	dev_slice = Bunch.dev_slice_sc;
-	charge = Bunch.charge;
+	Ncharge = Bunch.Ncharge;
+	ratio = Bunch.ratio;
+	qm_ratio = Bunch.qm_ratio;
 
 	int Nslice = 0;					// Number of slices
 	FieldSolverType solverType;		// Field solver type
@@ -38,7 +40,7 @@ SpaceCharge::SpaceCharge(const Parameter& para, int input_beamId, Bunch& Bunch, 
 		solverType = string2Enum(data.at("Space-charge simulation parameters").at("Field solver"));
 
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		scLength = data.at("Sequence").at(obj_name).at("Length (m)");
+		sc_length = data.at("Sequence").at(obj_name).at("Length (m)");
 
 		apertureType = data.at("Sequence").at(obj_name).at("Aperture type");
 		apertureValueSize = data.at("Sequence").at(obj_name).at("Aperture value").size();
@@ -203,18 +205,21 @@ void SpaceCharge::execute(int turn) {
 			return;
 		}
 
-		// Allocate particle to grid
+		double charge_per_mp = ratio * Ncharge * PassConstant::e;
+		double charge_per_mp_nucleon = charge_per_mp * qm_ratio;
+
+		// Step 1: Allocate particle to grid
 		callCuda(cudaEventRecord(simTime.start, 0));
 		float time_tmp1 = 0;
 
-		solver->update_b_values(dev_bunch, dev_slice, Np_sur, charge, thread_x, block_x);
+		solver->update_b_values(dev_bunch, dev_slice, Np_sur, charge_per_mp, thread_x, block_x, turn, s);
 
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
 		callCuda(cudaEventElapsedTime(&time_tmp1, simTime.start, simTime.stop));
 		simTime.allocate2grid += time_tmp1;
 
-		// Solve Ax=b
+		// Step 2: Solve Ax=b
 		callCuda(cudaEventRecord(simTime.start, 0));
 		float time_tmp2 = 0;
 
@@ -225,8 +230,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventElapsedTime(&time_tmp2, simTime.start, simTime.stop));
 		simTime.calPotential += time_tmp2;
 
-		// Calculate electric field
-
+		// Step 3: Calculate electric field
 		callCuda(cudaEventRecord(simTime.start, 0));
 		float time_tmp3 = 0;
 
@@ -237,8 +241,98 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventElapsedTime(&time_tmp3, simTime.start, simTime.stop));
 		simTime.calElectric += time_tmp3;
 
-		//simTime.spaceCharge += (time_tmp1 + time_tmp2 + time_tmp3);
+		// Step 4: Apply electric field to particles
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp4 = 0;
+
+		const double2* dev_E = solver->get_electricField();
+		double sc_factor = 1 / (bunchRef.gamma * bunchRef.gamma) * charge_per_mp_nucleon * sc_length / (bunchRef.p0_kg * bunchRef.beta * PassConstant::c);
+		double Lx = solver->get_Lx();
+		double Ly = solver->get_Ly();
+		int Nx = solver->get_Nx();
+		int Ny = solver->get_Ny();
+		int Nslice = solver->get_Nslice();
+
+		callKernel(cal_spaceCharge_kick << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_E, dev_slice, Np_sur, Nx, Ny, Lx, Ly, Nslice, sc_factor));
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp4, simTime.start, simTime.stop));
+		simTime.calElectricKick += time_tmp4;
+
 
 	}
 
+}
+
+
+__global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, const Slice* dev_slice,
+	int Np_sur, int Nx, int Ny, double Lx, double Ly, int Nslice, double sc_factor) {
+
+	const double xmin = -(Nx - 1) / 2.0 * Lx;
+	const double ymin = -(Ny - 1) / 2.0 * Ly;
+
+	const double inv_Lx = 1.0 / Lx;
+	const double inv_Ly = 1.0 / Ly;
+
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur)
+	{
+		Particle* p = &dev_bunch[tid];
+
+		double x = p->x;
+		double y = p->y;
+		int alive = (p->tag > 0);
+
+		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
+		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
+
+		double dx = x - (xmin + x_index * Lx);	// distance to the left grid line
+		double dy = y - (ymin + y_index * Ly);	// distance to the bottom grid line
+
+		double dx_ratio = dx * inv_Lx;
+		double dy_ratio = dy * inv_Ly;
+
+		//double LB = (1 - dx / Lx) * (1 - dy / Ly);
+		//double RB = (dx / Lx) * (1 - dy / Ly);
+		//double LT = (1 - dx / Lx) * (dy / Ly) ;
+		//double RT = (dx / Lx) * (dy / Ly) ;
+		double LB = (1 - dx_ratio) * (1 - dy_ratio);
+		double RB = dx_ratio * (1 - dy_ratio);
+		double LT = (1 - dx_ratio) * dy_ratio;
+		double RT = dx_ratio * dy_ratio;
+
+		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int base = slice_index * Nx * Ny;
+
+		int LB_index = y_index * Nx + x_index;
+		int RB_index = LB_index + 1;
+		int LT_index = (y_index + 1) * Nx + x_index;
+		int RT_index = LT_index + 1;
+
+		double Ex_LB = dev_E[base + LB_index].x;
+		double Ey_LB = dev_E[base + LB_index].y;
+		double Ex_RB = dev_E[base + RB_index].x;
+		double Ey_RB = dev_E[base + RB_index].y;
+		double Ex_LT = dev_E[base + LT_index].x;
+		double Ey_LT = dev_E[base + LT_index].y;
+		double Ex_RT = dev_E[base + RT_index].x;
+		double Ey_RT = dev_E[base + RT_index].y;
+
+		double Ex = Ex_LB * LB + Ex_RB * RB + Ex_LT * LT + Ex_RT * RT;
+		double Ey = Ey_LB * LB + Ey_RB * RB + Ey_LT * LT + Ey_RT * RT;
+
+		double slice_length = dev_slice[slice_index].z_start - dev_slice[slice_index].z_end;
+
+		double delta_px = 1 / slice_length * Ex * sc_factor;
+		double delta_py = 1 / slice_length * Ey * sc_factor;
+
+		p->px += delta_px * alive;
+		p->py += delta_py * alive;
+
+		tid += stride;
+
+	}
 }
