@@ -128,19 +128,21 @@ public:
 	int Np = 0;		// Number of macro particles
 	int Np_sur = 0;	// Number of surviving macro particles
 	double ratio = 0;	// Value of Nrp/Np
+	double qm_ratio = 0;	// Charge/mass ratio of a particle (e/m)
 
+	// e.g. for electron beam: Nproton = 0, Nneutron = 0, Ncharge = -1
+	//		for positron beam, Nproton = 0, Nneutron = 0, Ncharge = +1
+	//		for proton   beam: Nproton = 1, Nneutron = 0, Ncharge = +1
+	//      for 238U35+  beam: Nproton = 92, Nneutron = 146, Ncharge = +35
 	int Nproton = 0;	// Number of protons per real particle
 	int Nneutron = 0;	// Number of neutrons per real particle
-	int Ncharge = 0;	// Number of charges per real particle. e.g. for electron beam, charge = -1, for positron/proton beam, charge = 1
+	int Ncharge = 0;	// Number of charges per real particle. charge of a macro particle is Ncharge*ratio, charge of a nucluon is Ncharge*qm_ration*ratio
 
 	double m0 = 0;	// Static mass of a nucleon (eV/c2/u))
-	double Ek = 0;	// Kinetic energy of a nucleon (eV)
+	double Ek = 0;	// Kinetic energy of a nucleon (eV/u)
 	double p0 = 0;	// Momentum of a nucleon (eV/c/u)
 	double p0_kg = 0;	// Momentum of a nucleon (kg*m/s/u)
 	double beta = 0, gamma = 0;	// Relativistic velocity and Lorentz factor
-
-	double mass = 0;	// Mass of a macro particle
-	double charge = 0;	// Charge of a macro particle
 
 	double Brho = 0;
 

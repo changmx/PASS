@@ -33,36 +33,30 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 
 		if (Nproton == 0 && Nneutron == 0) {
 			m0 = PassConstant::me;
-			mass = ratio * m0;
-			charge = ratio * Ncharge * PassConstant::e;
 		}
 
 		else if (Nproton == 1 && Nneutron == 0)
 		{
 			m0 = PassConstant::mp;
-			mass = ratio * m0;
-			charge = ratio * Ncharge * PassConstant::e;
 		}
 		else
 		{
 			m0 = PassConstant::mu;
-			mass = ratio * (Nproton + Nneutron) * m0;
-			charge = ratio * Ncharge * PassConstant::e;
 		}
 
 		Ek = data.at("Sequence").at("Injection").at(key_bunch).at("Kinetic energy per nucleon (eV/u)");
 		gamma = Ek / m0 + 1;
 		beta = sqrt(1 - 1 / (gamma * gamma));
-		p0 = gamma * m0 * beta;
-		p0_kg = gamma * (m0 * PassConstant::e) / (PassConstant::c * PassConstant::c) * beta * PassConstant::c;
+		p0 = gamma * m0 * beta;	// m0/c/c is in unit of eV, so gamma*m0/c/c*beta*c [unit: eV] = gamma*m0*beta/c [unit: eV] = gamma*m0*beta [unit: eV/c], so no need to multiply c again
+		p0_kg = gamma * (m0 * PassConstant::e / (PassConstant::c * PassConstant::c)) * beta * PassConstant::c;
 
 		if (Nproton == 0 && Nneutron == 0)
-			Brho = p0 / (1 * PassConstant::c);
-		else if (Nproton == 1 && Nneutron == 0)
-			Brho = p0 / (1 * PassConstant::c);
+			qm_ratio = 1;
 		else
-			Brho = p0 * (Nproton + Nneutron) / (abs(Ncharge) * PassConstant::c);
+			qm_ratio = abs(Ncharge) / (Nproton + Nneutron);
 
+		Brho = p0_kg / (qm_ratio * PassConstant::e);
+		
 		gammat = data.at("GammaT");
 
 		//emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
