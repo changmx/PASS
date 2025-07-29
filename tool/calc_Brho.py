@@ -28,10 +28,11 @@ def calc_magnetic_rigidity(
         E_total = gamma * m_static * N_particle
 
     p_eV = (
-        gamma * m_static * N_particle * beta * c
-    )  # The units of p_eV and m are eV/c and eV/c^2.
-    p_j = p_eV * e  # The unit of p_j is joule.
-    p_kg_ms = p_j / c / c  # The unit of p_kg_ms is kg*m/s.
+        gamma * m_static * N_particle * beta
+    )  # The units of p_eV and m are eV/c and eV/c^2
+    p_kg_ms = (
+        gamma * (m_static * e / c / c) * N_particle * beta * c
+    )  # The unit of p_kg_ms is kg*m/s.
     Brho = p_kg_ms / (e * N_charge)
 
     if is_print:
@@ -42,7 +43,7 @@ def calc_magnetic_rigidity(
                 beta,
                 gamma,
                 gamma * beta,
-                p_eV / 1e6 / c / N_particle,
+                p_eV / 1e6 / N_particle,
                 p_kg_ms / N_particle,
             )
         )
