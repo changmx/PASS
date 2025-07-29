@@ -888,6 +888,8 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
+	qm_ratio = Bunch.qm_ratio;
+
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
 	json data = json::parse(jsonFile);
@@ -909,13 +911,6 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		spdlog::get("logger")->error(e.what());
 		std::exit(EXIT_FAILURE);
 	}
-
-	if (Bunch.Nproton == 0 && Bunch.Nneutron == 0)
-		ratio = 1.0;
-	else if (Bunch.Nproton == 1 && Bunch.Nneutron == 0)
-		ratio = 1.0;
-	else
-		ratio = (double)Bunch.Ncharge / (Bunch.Nproton + Bunch.Nneutron);
 
 	radius = circumference / (2 * PassConstant::PI);
 
@@ -955,6 +950,7 @@ void RFElement::execute(int turn) {
 	double Ek0 = bunchRef.Ek;
 	double gamma0 = bunchRef.gamma;
 	double beta0 = bunchRef.beta;
+
 	double eta0 = 1 / (gammat * gammat) - 1 / (gamma0 * gamma0);
 
 	//double drift = drift_length;
@@ -963,23 +959,30 @@ void RFElement::execute(int turn) {
 
 	for (int i = 0; i < Nrf; i++)
 	{
-		dE_syn += ratio * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
+		dE_syn += qm_ratio * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
 	}
 
 	double Ek1 = Ek0 + dE_syn;
 	double gamma1 = Ek1 / m0 + 1;
 	double beta1 = sqrt(1 - 1 / (gamma1 * gamma1));
+	double p1 = gamma1 * m0 * beta1;	// In unit of eV/c, so no need to multiply by c
+	double p0_kg1 = gamma1 * (m0 * PassConstant::e / (PassConstant::c * PassConstant::c)) * beta1 * PassConstant::c;
+
 	double eta1 = 1 / (gammat * gammat) - 1 / (gamma1 * gamma1);
 
 	bunchRef.Ek = Ek1;
 	bunchRef.gamma = gamma1;
 	bunchRef.beta = beta1;
+	bunchRef.p0 = p1;
+	bunchRef.p0_kg = p0_kg1;
+
+	bunchRef.Brho = bunchRef.p0_kg / (qm_ratio * PassConstant::e);
 
 	//transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, beta, gamma, drift + l);
 
 	callKernel(transfer_rf << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, turn, beta0, beta1, gamma0, gamma1,
 		dev_rf_data, pitch_rf, Nrf, Nturn_rf,
-		radius, ratio, dE_syn, eta1, Ek1 + m0));
+		radius, qm_ratio, dE_syn, eta1, Ek1 + m0));
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));

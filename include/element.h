@@ -437,7 +437,7 @@ private:
 	//double l = 0;
 	//double drift_length = 0;
 
-	double ratio = 0;	// e*q/m
+	double qm_ratio = 0;	// q/m
 
 	double radius = 0;
 
