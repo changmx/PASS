@@ -1789,8 +1789,9 @@ __global__ void transfer_rf(Particle* dev_bunch, int Np_sur, int turn, double be
 
 	double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
 
-	double pi = PassConstant::PI;
-	double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
+	const double pi = PassConstant::PI;
+	const double circumference = 2 * pi * radius;
+	const double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
 
 	while (tid < Np_sur) {
 
@@ -1825,6 +1826,11 @@ __global__ void transfer_rf(Particle* dev_bunch, int Np_sur, int turn, double be
 
 		p->px = p->px * trans_scale * mask + p->px * (1 - mask);
 		p->py = p->py * trans_scale * mask + p->py * (1 - mask);
+
+		double c_half = circumference * 0.5;
+		int over = (p->z > c_half);
+		int under = (p->z < -c_half);
+		p->z += (under - over) * circumference;
 
 		tid += stride;
 	}
