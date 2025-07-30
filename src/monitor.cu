@@ -77,7 +77,7 @@ void DistMonitor::execute(int turn) {
 		std::ofstream file(saveName_full);
 
 		file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
-			<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
+			<< "tag" << "," << "sliceId" << "," << "lostTurn" << "," << "lostPos" << std::endl;
 
 		for (int j = 0; j < Np; j++) {
 			file << std::setprecision(10)
@@ -88,6 +88,7 @@ void DistMonitor::execute(int turn) {
 				<< (host_bunch + j)->z << ","
 				<< (host_bunch + j)->pz << ","
 				<< (host_bunch + j)->tag << ","
+				<< (host_bunch + j)->sliceId << ","
 				<< (host_bunch + j)->lostTurn << ","
 				<< (host_bunch + j)->lostPos << "\n";
 		}
@@ -288,7 +289,7 @@ void ParticleMonitor::execute(int turn) {
 
 				file << "turn" << ","
 					<< "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
-					<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
+					<< "tag" << "," << "sliceId" << "," << "lostTurn" << "," << "lostPos" << std::endl;
 
 				for (size_t k = 0; k < Nturn_PM; k++)
 				{
@@ -304,6 +305,7 @@ void ParticleMonitor::execute(int turn) {
 						<< (host_particleMonitor + index)->z << ","
 						<< (host_particleMonitor + index)->pz << ","
 						<< (host_particleMonitor + index)->tag << ","
+						<< (host_particleMonitor + index)->sliceId << ","
 						<< (host_particleMonitor + index)->lostTurn << ","
 						<< (host_particleMonitor + index)->lostPos << "\n";
 				}
