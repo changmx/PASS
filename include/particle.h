@@ -38,9 +38,11 @@ public:
 	double z = 0;
 	double pz = 0;
 
+	double lostPos = -1;	// lost position, -1 means not lost
+
 	int tag = 0;		// lost flag, >0 means not lost, <0 means lost
 	int lostTurn = -1;	// lost turn, -1 means not lost
-	double lostPos = -1;	// lost position, -1 means not lost
+	int sliceId = 0;		// Index of the slice to which the particle belongs, used in sorting and slicing
 
 #ifdef PASS_CAL_PHASE
 
