@@ -82,3 +82,7 @@ __global__ void test_change_particle_tag(Particle* dev_bunch, int Np, int turn);
 __global__ void show_slice_info(const Slice* dev_slice, int Nslice);
 
 __device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle_index);
+
+__global__ void setup_sliceId_small_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, int Nslice);
+
+__global__ void setup_sliceId_large_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Nslice);

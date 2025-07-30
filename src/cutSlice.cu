@@ -107,8 +107,8 @@ void SortBunch::execute(int turn) {
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
 
-	if (Np_sur == 0) {
-		spdlog::get("logger")->warn("[SortBunch] Np_sur=0, skipping.");
+	if (Np_sur < Nslice) {
+		spdlog::get("logger")->warn("[SortBunch] Np_sur = {} is less than number of slices {}, ignore the sorting process.", Np_sur, Nslice);
 		return;
 	}
 
@@ -174,7 +174,22 @@ void SortBunch::execute(int turn) {
 		std::exit(EXIT_FAILURE);
 	}
 
-	// 6. Set z_avg for each slice
+	// 6. Set sliceId for all particles and z_avg for each slice
+	size_t sharedMemSize = Nslice * sizeof(Slice);
+	if (sharedMemSize <= (48 * 1024))
+	{
+		const int particlesPerThread_sid = 8;
+		const int blockSize_sid = 256;
+		const int totalThreads_sid = (Np_sur + particlesPerThread_sid - 1) / particlesPerThread_sid;
+		const int gridSize_sid = (totalThreads_sid + blockSize_sid - 1) / blockSize_sid;
+
+		callKernel(setup_sliceId_small_Nslice << <gridSize_sid, blockSize_sid, sharedMemSize, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice));
+	}
+	else
+	{
+		callKernel(setup_sliceId_large_Nslice << <Nslice, 1024, 0, 0 >> > (dev_bunch, dev_slice, Nslice));
+	}
+
 	callKernel(reduction_z_avg << <Nslice, 256, 0, 0 >> > (dev_bunch, dev_slice, Nslice));
 
 	//show_slice_info << <1, 1, 0, 0 >> > (dev_slice, Nslice);
@@ -434,4 +449,56 @@ __device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle
 		}
 	}
 	return -1;  // Not find
+}
+
+
+__global__ void setup_sliceId_small_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, int Nslice) {
+
+	extern __shared__ Slice sharedSlices[];
+
+	for (int i = threadIdx.x; i < Nslice; i += blockDim.x)
+	{
+		sharedSlices[i] = dev_slice[i];
+	}
+	__syncthreads();
+
+	const int particlesPerThread = 8;
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int startParticle = tid * particlesPerThread;
+	int endParticle = min(startParticle + particlesPerThread, Np_sur);
+
+	int currentSlice = 0;
+	for (int i = startParticle; i < endParticle; i++) {
+		while (currentSlice < (Nslice - 1) && i >= sharedSlices[currentSlice + 1].index_start) {
+			currentSlice++;
+		}
+		dev_bunch[i].sliceId = currentSlice;
+	}
+}
+
+
+__global__ void setup_sliceId_large_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Nslice) {
+
+	int sliceId = blockIdx.x;
+
+	if (sliceId >= Nslice)
+	{
+		return;
+	}
+
+	int start = dev_slice[sliceId].index_start;
+	int end = dev_slice[sliceId].index_end;
+	int numParticlesInSlice = end - start;
+
+	int tid = threadIdx.x;
+	int stride = blockDim.x;
+
+	while (tid < numParticlesInSlice)
+	{
+		int particleIndex = start + tid;
+		dev_bunch[particleIndex].sliceId = sliceId;
+
+		tid += stride;
+	}
+
 }
