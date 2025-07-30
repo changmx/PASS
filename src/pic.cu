@@ -341,8 +341,10 @@ void FieldSolverCUDSS::calculate_electricField() {
 	static int count = 1;
 	std::filesystem::path savepath1 = "D:/PASS/test/electricField_x_slice0_turn_" + std::to_string(count) + "_.csv";
 	std::filesystem::path savepath2 = "D:/PASS/test/electricField_y_slice0_turn_" + std::to_string(count) + "_.csv";
+	std::filesystem::path savepath3 = "D:/PASS/test/electricField_r_slice0_turn_" + std::to_string(count) + "_.csv";
 	std::ofstream file1(savepath1);
 	std::ofstream file2(savepath2);
+	std::ofstream file3(savepath3);
 
 	for (int i = 0; i < Ny; i++)
 	{
@@ -352,20 +354,26 @@ void FieldSolverCUDSS::calculate_electricField() {
 				<< host_electricField[j + i * Nx].x;
 			file2 << std::setprecision(15)
 				<< host_electricField[j + i * Nx].y;
+			file3 << std::setprecision(15)
+				<< sqrt(host_electricField[j + i * Nx].x * host_electricField[j + i * Nx].x + host_electricField[j + i * Nx].y * host_electricField[j + i * Nx].y);
 			if (j < (Nx - 1))
 			{
 				file1 << ",";
 				file2 << ",";
+				file3 << ",";
 			}
 		}
 		file1 << "\n";
 		file2 << "\n";
+		file3 << "\n";
 	}
 	file1.close();
 	file2.close();
+	file3.close();
 
 	count++;
-	spdlog::get("logger")->info("[FieldSolver] func(calculate_electricField): electric field data has been writted to {} and {}.", savepath1.string(), savepath2.string());
+	spdlog::get("logger")->info("[FieldSolver] func(calculate_electricField): electric field data has been writted to {}, {} and {}.",
+		savepath1.string(), savepath2.string(), savepath3.string());
 
 	free(host_electricField);
 }
@@ -475,7 +483,8 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 		double LT = (1 - dx_ratio) * dy_ratio * factor;
 		double RT = dx_ratio * dy_ratio * factor;
 
-		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int slice_index = p->sliceId;
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
@@ -560,7 +569,8 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 		double LT = (1 - dx_ratio) * dy_ratio * factor;
 		double RT = dx_ratio * dy_ratio * factor;
 
-		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int slice_index = p->sliceId;
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
@@ -645,7 +655,8 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 		double LT = (1 - dx_ratio) * dy_ratio * factor;
 		double RT = dx_ratio * dy_ratio * factor;
 
-		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int slice_index = p->sliceId;
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
