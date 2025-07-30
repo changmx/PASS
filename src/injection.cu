@@ -231,6 +231,7 @@ void Injection::load_distribution() {
 
 		double a[6] = { 0,0,0,0,0,0 };
 		int a_tag = 0, a_lostTurn = -1;
+		int a_sliceId = 0;
 		double a_lostPos = -1.0;
 		std::string tmp;
 		int row = 0;
@@ -256,9 +257,13 @@ void Injection::load_distribution() {
 					}
 					else if (k == 7)
 					{
-						a_lostTurn = std::stoi(tmp);
+						a_sliceId = std::stoi(tmp);
 					}
 					else if (k == 8)
+					{
+						a_lostTurn = std::stoi(tmp);
+					}
+					else if (k == 9)
 					{
 						a_lostPos = std::stod(tmp);
 					}
@@ -277,6 +282,7 @@ void Injection::load_distribution() {
 					host_bunch[offset].z = a[4];
 					host_bunch[offset].pz = a[5];
 					host_bunch[offset].tag = a_tag;
+					host_bunch[offset].sliceId = a_sliceId;
 					host_bunch[offset].lostTurn = a_lostTurn;
 					host_bunch[offset].lostPos = a_lostPos;
 
@@ -341,16 +347,15 @@ void Injection::generate_transverse_KV_distribution() {
 	double y_max = 4 * sigmay;
 	double y_min = -4 * sigmay;
 
-	int rank = 0;
 	int i = bunchId;
 	int beam_label = beamId;
 
 	std::default_random_engine e1;
-	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
 	std::default_random_engine e2;
-	e2.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + 10 + beam_label);
+	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u2(0, 1);
 
 	Particle* host_bunch = new Particle[Np];
@@ -459,12 +464,11 @@ void Injection::generate_transverse_Gaussian_distribution() {
 	double y_max = 4 * sigmay;
 	double y_min = -4 * sigmay;
 
-	int rank = 0;
 	int i = bunchId;
 	int beam_label = beamId;
 
 	std::default_random_engine e1;
-	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
 	Particle* host_bunch = new Particle[Np];
@@ -557,12 +561,11 @@ void Injection::generate_transverse_uniform_distribution() {
 	double y_max = 4 * sigmay;
 	double y_min = -4 * sigmay;
 
-	int rank = 0;
 	int i = bunchId;
 	int beam_label = beamId;
 
 	std::default_random_engine e1;
-	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
 	Particle* host_bunch = new Particle[Np];
@@ -643,7 +646,6 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 	spdlog::get("logger")->info("[Injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
-	int rank = 0;
 	int i = bunchId;
 	int beam_label = beamId;
 
@@ -653,11 +655,11 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 	double tmp_z, tmp_pz;
 
 	std::default_random_engine e1;
-	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
+	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n1(0, sigma_z);
 
 	std::default_random_engine e2;
-	e2.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + 10 + beam_label);
+	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n2(0, sigma_pz);
 
 	Particle* host_bunch = new Particle[Np];
@@ -683,7 +685,6 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 
 	delete[] host_bunch;
-	//printf("Rank[%d]: %d initial longitude Gaussian distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
 	spdlog::get("logger")->info("[Injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
@@ -699,21 +700,20 @@ void Injection::generate_longitudinal_uniform_distribution() {
 	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
-	int rank = 0;
 	int i = bunchId;
 	int beam_label = beamId;
 
-	double sigma_z = sigmaz;
+	double sigma_z = sigmaz;	// Acctually, this is the range of uniform distribution, not RMS value
 	double sigma_pz = dp;
 	//double rho = 0;
 	double tmp_z, tmp_pz;
 
 	std::default_random_engine e1;
-	e1.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + beam_label);
-	std::uniform_real_distribution<> n1(0, sigma_z);
+	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
+	std::uniform_real_distribution<> n1(-0.5 * sigma_z, 0.5 * sigma_z);
 
 	std::default_random_engine e2;
-	e2.seed(time(NULL) + rank * 10000 + (i + 1) * 100 + 10 + beam_label);
+	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n2(0, sigma_pz);
 
 	Particle* host_bunch = new Particle[Np];
@@ -725,7 +725,7 @@ void Injection::generate_longitudinal_uniform_distribution() {
 		tmp_z = n1(e1);
 		tmp_pz = n2(e2);
 
-		if (tmp_z >= (-4 * sigma_z) && tmp_z <= (4 * sigma_z))
+		if (tmp_z >= (-0.5 * sigma_z) && tmp_z <= (0.5 * sigma_z))
 		{
 			host_bunch[j].z = tmp_z;
 			host_bunch[j].pz = tmp_pz;
@@ -739,7 +739,6 @@ void Injection::generate_longitudinal_uniform_distribution() {
 	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 
 	delete[] host_bunch;
-	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
 	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
@@ -758,7 +757,7 @@ void Injection::save_initial_distribution() {
 	std::ofstream file(path_tmp);
 
 	file << "x" << "," << "px" << "," << "y" << "," << "py" << "," << "z" << "," << "pz" << ","
-		<< "tag" << "," << "lostTurn" << "," << "lostPos" << std::endl;
+		<< "tag" << "," << "sliceId" << "," << "lostTurn" << "," << "lostPos" << std::endl;
 
 	for (int j = 0; j < Np; j++) {
 		file << std::setprecision(10)
@@ -769,6 +768,7 @@ void Injection::save_initial_distribution() {
 			<< (host_bunch + j)->z << ","
 			<< (host_bunch + j)->pz << ","
 			<< (host_bunch + j)->tag << ","
+			<< (host_bunch + j)->sliceId << ","
 			<< (host_bunch + j)->lostTurn << ","
 			<< (host_bunch + j)->lostPos << "\n";
 	}
@@ -797,7 +797,6 @@ void Injection::add_Dx() {
 	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 
 	delete[] host_bunch;
-	//printf("Rank[%d]: %d initial longitude uniform distribution of %s has been genetated successfully\n", rank, beam.nArray_rank[rank], beam.beamName.c_str());
 	spdlog::get("logger")->info("[Injection] Dispersion = {} of {} beam-{} bunch-{} has been genetated successfully.",
 		Dx, beam_name, beamId, bunchId);
 }

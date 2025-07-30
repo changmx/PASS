@@ -79,5 +79,8 @@ private:
 	std::filesystem::path dir_load_distribution;
 	std::filesystem::path dir_save_distribution;
 	std::string hourMinSec;
+
+	int callTime = 0;
+	time_t curTime = time(NULL);
 };
 
