@@ -1453,7 +1453,6 @@ void generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(
 	int inAperture;
 
 	int gridId;		// Serial number of the grid point in the particle grid, row-major order
-	int index;		// Index of value in the matrix A
 
 	// Initialize row_ptr value
 	csr_row_ptr.assign(n + 1, 0);
@@ -1504,7 +1503,6 @@ void generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(
 		for (int col = 0; col < ncol; col++)
 		{
 			gridId = row * ncol + col;
-			index = gridId * (ncol * nrow) + gridId;
 
 			if (row == 0 || row == (nrow - 1))
 			{
@@ -1594,7 +1592,6 @@ void generate_5points_FD_CSR_matrix_and_meshMask_include_boundary(
 		for (int col = 0; col < ncol; col++)
 		{
 			gridId = row * ncol + col;
-			index = gridId * (ncol * nrow) + gridId;
 
 			int start = csr_row_ptr[gridId];
 			int count = 0;
