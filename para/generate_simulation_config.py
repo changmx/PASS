@@ -5,6 +5,7 @@ import sys
 from collections import OrderedDict
 from get_twiss_from_madx import generate_twiss_json
 from get_element_from_madx import generate_element_json
+from generate_smooth_approx_twiss import generate_twiss_smooth_approximate
 
 
 def convert_ordereddict(obj):
@@ -19,23 +20,27 @@ def convert_ordereddict(obj):
 def sort_sequence(sequence):
     Command_order = {
         "Injection": 0,  # 最高优先级
-        "Twiss": 50,  # 次级优先级
-        "MarkerElement": 100,
-        "SBendElement": 100,
-        "RBendElement": 100,
-        "QuadrupoleElement": 100,
-        "SextupoleElement": 100,
-        "OctupoleElement": 100,
-        "HKickerElement": 100,
-        "VKickerElement": 100,
-        "RFElement": 100,
-        "ElSeparatorElement": 100,
-        "SpaceCharge": 200,
-        "BeamBeam": 200,
-        "DistMonitor": 300,
-        "StatMonitor": 300,
-        "ParticleMonitor": 300,
-        "SortBunch": 400,
+        "SortBunch": 100,  # 次级优先级
+        "Twiss": 200,
+        "MarkerElement": 300,
+        "SBendElement": 300,
+        "RBendElement": 300,
+        "QuadrupoleElement": 300,
+        "SextupoleElement": 300,
+        "OctupoleElement": 300,
+        "HKickerElement": 300,
+        "VKickerElement": 300,
+        "RFElement": 300,
+        "ElSeparatorElement": 300,
+        "SpaceCharge": 400,
+        "WakeField": 500,
+        "BeamBeam": 600,
+        "ElectronCloud": 700,
+        "LumiMonitor": 800,
+        "PhaseMonitor": 800,
+        "DistMonitor": 800,
+        "StatMonitor": 800,
+        "ParticleMonitor": 800,
         "Other": 999,  # 最低优先级
     }
 
@@ -64,20 +69,15 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     config_path = os.sep.join([parent_path, "para", fileName])
     print("The simulation configuration will be written to file: ", config_path)
 
-    ###################################### Config global parameters ######################################
+    # ------------------------------------------------------------ Config global parameters ------------------------------------------------------------ #
 
-    Beampara = {
+    BeamPara = {
         "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
         "Number of protons per particle": 1,
         "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
         "Number of charges per particle": 1,
         "Number of bunches per beam": 1,
-        "Circumference (m)": 136.6,
-        # "Qx": 0.31,  # <optional>, will not be used if a madx file is loaded. Todo: read ramping file
-        # "Qy": 0.32,
-        # "Qz": 0.0125,
-        # "Chromaticity x": 0,
-        # "Chromaticity y": 0,
+        "Circumference (m)": 569.1,
         "GammaT": 1,
         "Number of turns": 2,
         "Number of GPU devices": 1,
@@ -86,24 +86,18 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         "Is plot figure": False,
     }
 
-    circumference = Beampara["Circumference (m)"]
+    circumference = BeamPara["Circumference (m)"]
 
-    # Field solver
-    # PIC_conv: using Green function with open boundary condition
-    # PIC_FD_dm: in the case of rectangular boundary, solve the matrix after using DST
-    # PIC_FD_m: in the case of any boundary, the matrix is solved directly after LU decomposition
-    # Eq_quasi_static: using the B-E formula, each calculation is based on the current sigmax, sigmay
-    # Eq_frozen: using th B-E formula with unchanged sigmax and sigmay
-    Spacecharge_sim_para = {
+    SpaceChargePara = {
         "Space-charge simulation parameters": {
             "Is enable space charge": True,
-            "Number of slices": 3,
+            "Number of slices": 2,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
             "Field solver": "PIC_FD_CUDSS",  # [PIC_FD_CUDSS/PIC_Conv/PIC_FD_AMGX/PIC_FD_FFT/Eq_Quasi_Static/Eq_Frozen]
         }
     }
 
-    BeambeamPara = {
+    BeamBeamPara = {
         "Beam-beam simulation parameters": {
             "Is enable beam-beam": False,
             "Number of slices": 10,
@@ -126,13 +120,12 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "Observer position S (m)": [0, 26.84],
         }
     }
-
-    ###################################### Start create sequence ######################################
+    
+    # -------------------------------------------------------------- Start create sequence ------------------------------------------------------------- #
 
     Sequence = {}
 
-    ###################################### Injection parameters ######################################
-
+    # -------------------------------------------------------------- Injection parameters -------------------------------------------------------------- #
     # Initialize all bunches' distribution of the beam
     Injection = {
         "Injection": {
@@ -140,22 +133,22 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "Command": "Injection",
             "bunch0": {
                 "Kinetic energy per nucleon (eV/u)": 2000e9,
-                "Number of real particles per bunch": 1e4,
-                "Number of macro particles per bunch": 1e4,
+                "Number of real particles per bunch": 1e11,
+                "Number of macro particles per bunch": 1e5,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
                 "Alpha x": 0,
                 "Alpha y": 0,
-                "Beta x (m)": 10.21803918,
-                "Beta y (m)": 1.396696787,
-                "Emittance x (m'rad)": 28e-6,
-                "Emittance y (m'rad)": 28e-6,
+                "Beta x (m)": 9.564422187285917,
+                "Beta y (m)": 9.604992376839624,
+                "Emittance x (m'rad)": 100e-6,
+                "Emittance y (m'rad)": 50e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 0.1,
+                "Sigma z (m)": 569.1,
                 "DeltaP/P": 5e-3,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
-                "Longitudinal dist": "gaussian",  # [gaussian/uniform]
+                "Longitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
                     "Is offset": False,
                     "Offset (m)": 0,
@@ -164,15 +157,15 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
+                "Is load distribution": False,
                 "Name of loaded file": "1511_49_beam0_proton_bunch0_10000_hor_kv_longi_gaussian_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
-                "Is save initial distribution": True,
+                "Is save initial distribution": False,
             },
         }
     }
     Sequence.update(Injection)
-
-    ###################################### Get twiss  from madx ######################################
+    
+    # -------------------------------------------------------------- Get twiss  from madx -------------------------------------------------------------- #
 
     # twiss_list_from_madx, circumference_twissFile = generate_twiss_json(
     #     r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\ring.dat",
@@ -183,14 +176,14 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # )
     # if (abs(circumference - circumference_twissFile)) > 1e-9:
     #     print(
-    #         f"Error: Circumference from Beampara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
+    #         f"Error: Circumference from BeamPara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
     #     )
     #     sys.exit(1)
     # for twiss in twiss_list_from_madx:
     #     Sequence.update(twiss)
 
-    ###################################### Space charge according to madx twiss ######################################
-
+    # ------------------------------------------------------- Space charge according to madx twiss ----------------------------------------------------- #
+    
     # spacecharge_list = []
     # for ielem in twiss_list_from_madx:
     #     first_key = next(iter(ielem))
@@ -212,52 +205,108 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     Sequence.update(dict_sc)
     # print(f"Number of space charge points: {len(spacecharge_list)}")
 
-    ###################################### Space charge ######################################
-    SC1 = {
-        "SpaceCharge_0.1": {
-            "S (m)": 0.1,
-            "Command": "SpaceCharge",
-            "Length (m)": 0.5,
-            "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
-            "Aperture value": [0.1, 0.05],
-            "Number of PIC grid x": 64,
-            "Number of PIC grid y": 64,
-            "Grid x length": 0.004,
-            "Grid y length": 0.002,
+    # ------------------------------------------------------- Get twiss from smooth approximation ------------------------------------------------------ #
+
+    twiss_list_smooth_approx, circumference_smooth_approx = (
+        generate_twiss_smooth_approximate(
+            circum=569.1,
+            mux=9.47,
+            muy=9.43,
+            numPoints=100,
+            logi_transfer="drift",
+            muz=0.0123,
+        )
+    )
+    if (abs(circumference - circumference_smooth_approx)) > 1e-9:
+        print(
+            f"Error: Circumference from BeamPara dict is = {circumference}, circumference from smooth approximate file is {circumference_smooth_approx}. Check it!"
+        )
+        sys.exit(1)
+    for twiss in twiss_list_smooth_approx:
+        Sequence.update(twiss)
+    
+    # ----------------------------------------------- Space charge according to smooth approximate twiss ----------------------------------------------- #
+    
+    spacecharge_list = []
+    for ielem in twiss_list_smooth_approx:
+        first_key = next(iter(ielem))
+        name_sc = first_key
+        s_sc = ielem[first_key]["S (m)"]
+        s_pre_sc = ielem[first_key]["S previous (m)"]
+
+        dict_sc = {
+            name_sc
+            + "_sc": {
+                "S (m)": s_sc,
+                "Command": "SpaceCharge",
+                "Length (m)": s_sc - s_pre_sc,
+                "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+                "Aperture value": [
+                    0.1,
+                    0.1,
+                ],  # [Circle: radius/Rectangel:half width, half height/Ellipse:a,b]
+                "Number of PIC grid x": 100,
+                "Number of PIC grid y": 100,
+                "Grid x length": 0.002,
+                "Grid y length": 0.002,
+            }
         }
-    }
-    SC2 = {
-        "SpaceCharge_0.2": {
-            "S (m)": 0.2,
-            "Command": "SpaceCharge",
-            "Length (m)": 0.5,
-            "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
-            "Aperture value": [0.2, 0.05],
-            "Number of PIC grid x": 64,
-            "Number of PIC grid y": 64,
-            "Grid x length": 0.004,
-            "Grid y length": 0.002,
-        }
-    }
-    SC3 = {
-        "SpaceCharge_0.3": {
-            "S (m)": 0.3,
-            "Command": "SpaceCharge",
-            "Length (m)": 0.5,
-            "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
-            "Aperture value": [0.1, 0.05],
-            "Number of PIC grid x": 64,
-            "Number of PIC grid y": 64,
-            "Grid x length": 0.004,
-            "Grid y length": 0.002,
-        }
-    }
-    Sequence.update(SC1)
+        spacecharge_list.append(dict_sc)
+
+    for dict_sc in spacecharge_list:
+        Sequence.update(dict_sc)
+    print(f"Number of space charge points: {len(spacecharge_list)}")
+    
+    # ----------------------------------------------------------- Input single Space charge ------------------------------------------------------------ #
+    
+    # SC1 = {
+    #     "SpaceCharge_0.1": {
+    #         "S (m)": 0.1,
+    #         "Command": "SpaceCharge",
+    #         "Length (m)": 0.5,
+    #         "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+    #         "Aperture value": [
+    #             0.1,
+    #             0.1,
+    #         ],  # [Circle: radius/Rectangel:half width, half height/Ellipse:a,b]
+    #         "Number of PIC grid x": 100,
+    #         "Number of PIC grid y": 100,
+    #         "Grid x length": 0.002,
+    #         "Grid y length": 0.002,
+    #     }
+    # }
+    # SC2 = {
+    #     "SpaceCharge_0.2": {
+    #         "S (m)": 0.2,
+    #         "Command": "SpaceCharge",
+    #         "Length (m)": 0.5,
+    #         "Aperture type": "Circle",  # [Circle/Rectangle/Ellipse]
+    #         "Aperture value": [0.1],
+    #         "Number of PIC grid x": 100,
+    #         "Number of PIC grid y": 100,
+    #         "Grid x length": 0.002,
+    #         "Grid y length": 0.002,
+    #     }
+    # }
+    # SC3 = {
+    #     "SpaceCharge_0.3": {
+    #         "S (m)": 0.3,
+    #         "Command": "SpaceCharge",
+    #         "Length (m)": 0.5,
+    #         "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+    #         "Aperture value": [0.1, 0.05],
+    #         "Number of PIC grid x": 64,
+    #         "Number of PIC grid y": 64,
+    #         "Grid x length": 0.004,
+    #         "Grid y length": 0.002,
+    #     }
+    # }
+    # Sequence.update(SC1)
     # Sequence.update(SC2)
     # Sequence.update(SC3)
 
-    ###################################### Input element ######################################
-
+    # -------------------------------------------------------------- Input single element -------------------------------------------------------------- #
+    
     # SF1_ARC1_1 = {
     #     "sf1_arc1_1": {
     #         "S (m)": 8.37,
@@ -398,21 +447,21 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     # Sequence.update(ElSeparatorElement_entrance)
 
-    ###################################### Get element from madx ######################################
+    # -------------------------------------------------------------- Get element from madx ------------------------------------------------------------- #
 
     # element_list_from_madx, circumference_seqFile = generate_element_json(
     #     r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\itm.seq",
     # )
     # if (abs(circumference - circumference_seqFile)) > 1e-9:
     #     print(
-    #         f"Error: Circumference from Beampara dict is = {circumference}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
+    #         f"Error: Circumference from BeamPara dict is = {circumference}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
     #     )
     #     sys.exit(1)
     # for element in element_list_from_madx:
     #     # print(element)
     #     Sequence.update(element)
-
-    ###################################### Space charge according to madx element ######################################
+    
+    # ----------------------------------------------------- Space charge according to madx element ----------------------------------------------------- #
 
     # spacecharge_list = []
     # for ielem in element_list_from_madx:
@@ -486,7 +535,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # #     Sequence.update(dict_sc)
     # print(f"Number of space charge points: {len(spacecharge_list)}")
 
-    ###################################### Oneturn map ######################################
+    # ------------------------------------------------------------------ Oneturn map ------------------------------------------------------------------- #
 
     # lattice_oneturn_map = {
     #     "oneturn_map": {
@@ -513,15 +562,15 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     },
     # }
     # Sequence.update(lattice_oneturn_map)
-
-    ###################################### Distribution Monitor ######################################
+    
+    # -------------------------------------------------------------- Distribution Monitor -------------------------------------------------------------- #
 
     # Monitor to save bunch distribution
     Monitor_Dist_oneturn = {
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
             "Command": "DistMonitor",
-            "Save turns": [[1], [5000], [20000, 30000, 5000]],
+            "Save turns": [[1], [2], [5000], [20000, 30000, 5000]],
         },
     }
     Sequence.update(Monitor_Dist_oneturn)
@@ -539,15 +588,15 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # }
     # Sequence.update(Monitor_Dist_ES)
 
-    ###################################### Statistic Monitor ######################################
-
+    # --------------------------------------------------------------- Statistic Monitor ---------------------------------------------------------------- #
+    
     # Monitor to save bunch statistics
     Monitor_Stat_oneturn = {
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
     }
     Sequence.update(Monitor_Stat_oneturn)
-
-    ###################################### RF Cavity ######################################
+    
+    # ------------------------------------------------------------------- RF Cavity -------------------------------------------------------------------- #
 
     # # RF cavity, length is 0, no drift
     # RF1 = {
@@ -560,7 +609,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # }
     # Sequence.update(RF1)
 
-    ###################################### Sort and cut slice ######################################
+    # --------------------------------------------------------------- Sort and cut slice --------------------------------------------------------------- #
 
     # Sort bunch at position s to realize bunch slicing
     for s_sort in np.linspace(0, circumference, 1, endpoint=False):
@@ -574,8 +623,8 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         }
         Sequence.update(sortPoint)
 
-    ###################################### Particle Monitor ######################################
-
+    # --------------------------------------------------------------- Particle Monitor ----------------------------------------------------------------- #
+    
     # ParticleMonitor at position s to save specified particles
     # PM_para = ParticleMonitorPara["Particle Monitor parameters"]
     # s_PM = PM_para["Observer position S (m)"]
@@ -590,26 +639,26 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     }
     #     Sequence.update(partMoni)
 
-    ###################################### Sort sequence by s ######################################
-
+    # --------------------------------------------------------------- Sort sequence by s --------------------------------------------------------------- #
+    
     Sequence = sort_sequence(Sequence)
-    Sequencepara = {"Sequence": Sequence}
+    SequencePara = {"Sequence": Sequence}
 
-    ###################################### Write sequence to json file ######################################
-
+    # ---------------------------------------------------------- Write sequence to json file ----------------------------------------------------------- #
+    
     merged_dict = {
-        **Beampara,
-        **Spacecharge_sim_para,
-        **BeambeamPara,
+        **BeamPara,
+        **SpaceChargePara,
+        **BeamBeamPara,
         **ParticleMonitorPara,
-        **Sequencepara,
+        **SequencePara,
     }
 
     with open(config_path, "w") as jsonfile:
         json.dump(merged_dict, jsonfile, indent=4)
 
-    ###################################### Finish ######################################
-
+    # ------------------------------------------------------------------- Finished --------------------------------------------------------------------- #
+    
     print("Success")
 
 
