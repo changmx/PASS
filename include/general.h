@@ -104,4 +104,13 @@ private:
 // 判断值是否存在于任意一个循环范围中
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
-int print_cycleRange(const std::vector<CycleRange>& ranges);
+// 判断值是否存在于任意一个循环范围中，并返回所在循环的索引
+bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, int& index);
+
+// 判断值是否为任意一个循环范围的起始点
+bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
+
+// 判断值是否为任意一个循环范围的结束点
+bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
+
+void print_cycleRange(const std::vector<CycleRange>& ranges);

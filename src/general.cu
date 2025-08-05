@@ -592,7 +592,58 @@ bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
 }
 
 
-int print_cycleRange(const std::vector<CycleRange>& ranges) {
+bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, int& index) {
+
+	for (int i = 0; i < ranges.size(); ++i) {
+		const auto& range = ranges[i];
+
+		const int step = range.step;
+
+		// 快速范围检查
+		if ((step > 0 && (value < range.start || value > range.end)) ||
+			(step < 0 && (value > range.start || value < range.end))) {
+			continue;  // 跳过不满足范围条件的项
+		}
+
+		// 计算步数并验证整除性
+		const int delta = value - range.start;
+		if (delta % step != 0) continue;  // 必须能被步长整除
+
+		// 验证步数非负
+		const int steps = delta / step;
+		if (steps >= 0) {	// 非负步数
+			index = i;   // 设置匹配索引
+			return true; // 匹配成功
+		}
+	}
+	index = -1; // 未找到任何匹配
+	return false;
+}
+
+
+bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
+	for (const auto& range : ranges) {
+		if (value == range.start) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
+	for (const auto& range : ranges) {
+		if (value == range.end) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+
+void print_cycleRange(const std::vector<CycleRange>& ranges) {
 	for (const auto& range : ranges) {
 
 		spdlog::get("logger")->info("[CycleRange] Start = {}, end = {}, step = {}, totalPoints = {}", range.start, range.end, range.step, range.totalPoints);
