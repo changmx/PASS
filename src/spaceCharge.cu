@@ -241,7 +241,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventElapsedTime(&time_tmp3, simTime.start, simTime.stop));
 		simTime.calElectric += time_tmp3;
 
-		// Step 4: Apply electric field to particles
+		// Step 4: Apply space-charge kick to particles
 		callCuda(cudaEventRecord(simTime.start, 0));
 		float time_tmp4 = 0;
 
@@ -304,7 +304,8 @@ __global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, 
 		double LT = (1 - dx_ratio) * dy_ratio;
 		double RT = dx_ratio * dy_ratio;
 
-		int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
+		int slice_index = p->sliceId;
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
