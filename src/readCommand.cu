@@ -319,33 +319,33 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 int get_priority(const std::string& commandType) {
 	// 将commandType转换为优先级数值
 	// 当两个command的s相同时,首先执行优先级高的命令
-	if (commandType == "Injection") return 0;	// 最高优先级
+	if (commandType == "Injection") return 0;			// 最高优先级
+	else if (commandType == "SortBunch") return 100;	// 次级优先级
+	else if (commandType == "Twiss") return 200;
 
-	else if (commandType == "Twiss") return 50;	// 次级优先级
+	else if (commandType == "MarkerElement") return 300;
+	else if (commandType == "SBendElement") return 300;
+	else if (commandType == "RBendElement") return 300;
+	else if (commandType == "QuadrupoleElement") return 300;
+	else if (commandType == "SextupoleNormElement") return 300;
+	else if (commandType == "SextupoleSkewElement") return 300;
+	else if (commandType == "OctupoleElement") return 300;
+	else if (commandType == "HKickerElement") return 300;
+	else if (commandType == "VKickerElement") return 300;
+	else if (commandType == "RFElement") return 300;
+	else if (commandType == "ElSeparatorElement") return 300;
 
-	else if (commandType == "MarkerElement") return 100;
-	else if (commandType == "SBendElement") return 100;
-	else if (commandType == "RBendElement") return 100;
-	else if (commandType == "QuadrupoleElement") return 100;
-	else if (commandType == "SextupoleNormElement") return 100;
-	else if (commandType == "SextupoleSkewElement") return 100;
-	else if (commandType == "OctupoleElement") return 100;
-	else if (commandType == "HKickerElement") return 100;
-	else if (commandType == "VKickerElement") return 100;
-	else if (commandType == "RFElement") return 100;
-	else if (commandType == "ElSeparatorElement") return 100;
+	else if (commandType == "SpaceCharge") return 400;
+	else if (commandType == "Wakefield") return 500;
+	else if (commandType == "BeamBeam") return 600;
+	else if (commandType == "ElectronCloud") return 700;
 
-	else if (commandType == "SpaceCharge") return 200;
-	else if (commandType == "Wakefield") return 200;
-	else if (commandType == "BeamBeam") return 200;
-	// 
-	//else if (commandType == "LumiMonitor") return 300;
-	//else if (commandType == "PhaseMonitor") return 300;
-	else if (commandType == "DistMonitor") return 300;
-	else if (commandType == "StatMonitor") return 300;
-	else if (commandType == "ParticleMonitor") return 300;
+	else if (commandType == "LumiMonitor") return 800;
+	else if (commandType == "PhaseMonitor") return 800;
+	else if (commandType == "DistMonitor") return 800;
+	else if (commandType == "StatMonitor") return 800;
+	else if (commandType == "ParticleMonitor") return 800;
 
-	else if (commandType == "SortBunch") return 400;
 
 	else return 999; // 最低优先级，其他情况
 }
