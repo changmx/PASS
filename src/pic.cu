@@ -90,16 +90,16 @@ FieldSolverCUDSS::FieldSolverCUDSS(int input_Nx, int input_Ny, double input_Lx, 
 
 FieldSolverCUDSS::~FieldSolverCUDSS()
 {
-	callCuda(cudaFree(csr_row_ptr_d));
-	callCuda(cudaFree(csr_col_indices_d));
-	callCuda(cudaFree(csr_values_d));
+	if (csr_row_ptr_d) callCuda(cudaFree(csr_row_ptr_d));
+	if (csr_col_indices_d) callCuda(cudaFree(csr_col_indices_d));
+	if (csr_values_d) callCuda(cudaFree(csr_values_d));
 
-	callCudss(cudssMatrixDestroy(cudss_A));
-	callCudss(cudssMatrixDestroy(cudss_x));
-	callCudss(cudssMatrixDestroy(cudss_b));
-	callCudss(cudssDataDestroy(cudss_handle, cudss_data));
-	callCudss(cudssConfigDestroy(cudss_config));
-	callCudss(cudssDestroy(cudss_handle));
+	if (cudss_A) callCudss(cudssMatrixDestroy(cudss_A));
+	if (cudss_x) callCudss(cudssMatrixDestroy(cudss_x));
+	if (cudss_b) callCudss(cudssMatrixDestroy(cudss_b));
+	if (cudss_data) callCudss(cudssDataDestroy(cudss_handle, cudss_data));
+	if (cudss_config) callCudss(cudssConfigDestroy(cudss_config));
+	if (cudss_handle) callCudss(cudssDestroy(cudss_handle));
 }
 
 
@@ -437,7 +437,7 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 	const double inv_Lx = 1.0 / Lx;
 	const double inv_Ly = 1.0 / Ly;
 	const double grid_area = Lx * Ly;
-	const double factor = charge * 1 / (grid_area * epsilon);
+	const double factor = -1 * charge / (grid_area * epsilon);
 
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int stride = blockDim.x * gridDim.x;
@@ -521,7 +521,7 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 	const double inv_Lx = 1.0 / Lx;
 	const double inv_Ly = 1.0 / Ly;
 	const double grid_area = Lx * Ly;
-	const double factor = charge * 1 / (grid_area * epsilon);
+	const double factor = -1 * charge / (grid_area * epsilon);
 
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int stride = blockDim.x * gridDim.x;
@@ -607,7 +607,7 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 	const double inv_Lx = 1.0 / Lx;
 	const double inv_Ly = 1.0 / Ly;
 	const double grid_area = Lx * Ly;
-	const double factor = charge * 1 / (grid_area * epsilon);
+	const double factor = -1 * charge / (grid_area * epsilon);
 
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	int stride = blockDim.x * gridDim.x;
