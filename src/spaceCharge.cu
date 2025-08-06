@@ -217,7 +217,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
 		callCuda(cudaEventElapsedTime(&time_tmp1, simTime.start, simTime.stop));
-		simTime.allocate2grid += time_tmp1;
+		simTime.allocate2gridSC += time_tmp1;
 
 		// Step 2: Solve Ax=b
 		callCuda(cudaEventRecord(simTime.start, 0));
@@ -228,7 +228,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
 		callCuda(cudaEventElapsedTime(&time_tmp2, simTime.start, simTime.stop));
-		simTime.calPotential += time_tmp2;
+		simTime.calPotentialSC += time_tmp2;
 
 		// Step 3: Calculate electric field
 		callCuda(cudaEventRecord(simTime.start, 0));
@@ -239,7 +239,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
 		callCuda(cudaEventElapsedTime(&time_tmp3, simTime.start, simTime.stop));
-		simTime.calElectric += time_tmp3;
+		simTime.calElectricSC += time_tmp3;
 
 		// Step 4: Apply space-charge kick to particles
 		callCuda(cudaEventRecord(simTime.start, 0));
@@ -258,7 +258,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
 		callCuda(cudaEventElapsedTime(&time_tmp4, simTime.start, simTime.stop));
-		simTime.calElectricKick += time_tmp4;
+		simTime.calKickSC += time_tmp4;
 
 
 	}
