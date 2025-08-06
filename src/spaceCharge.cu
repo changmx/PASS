@@ -206,7 +206,7 @@ void SpaceCharge::execute(int turn) {
 		}
 
 		double charge_per_mp = ratio * Ncharge * PassConstant::e;
-		double charge_per_mp_nucleon = charge_per_mp * qm_ratio;
+		double p0_per_mp = ratio * (Ncharge / qm_ratio) * bunchRef.p0_kg;
 
 		// Step 1: Allocate particle to grid
 		callCuda(cudaEventRecord(simTime.start, 0));
@@ -246,7 +246,7 @@ void SpaceCharge::execute(int turn) {
 		float time_tmp4 = 0;
 
 		const double2* dev_E = solver->get_electricField();
-		double sc_factor = 1 / (bunchRef.gamma * bunchRef.gamma) * charge_per_mp_nucleon * sc_length / (bunchRef.p0_kg * bunchRef.beta * PassConstant::c);
+		double sc_factor = 1 / (bunchRef.gamma * bunchRef.gamma) * charge_per_mp * sc_length / (p0_per_mp * bunchRef.beta * PassConstant::c);
 		double Lx = solver->get_Lx();
 		double Ly = solver->get_Ly();
 		int Nx = solver->get_Nx();
@@ -329,7 +329,7 @@ __global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, 
 
 		double delta_px = 1 / slice_length * Ex * sc_factor;
 		double delta_py = 1 / slice_length * Ey * sc_factor;
-
+		
 		p->px += delta_px * alive;
 		p->py += delta_py * alive;
 
