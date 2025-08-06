@@ -453,12 +453,7 @@ void PhaseMonitor::execute(int turn) {
 			if (turn == endTurn)
 			{
 				int totalTurn = endTurn - startTurn;
-
 				callKernel(cal_averagePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, totalTurn));
-
-				std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(startTurn) + "_" + std::to_string(endTurn) + ".csv");
-
-				save_phase(dev_bunch, bunchRef.Np, saveName_full);
 			}
 		}
 
@@ -466,6 +461,18 @@ void PhaseMonitor::execute(int turn) {
 		callCuda(cudaEventSynchronize(simTime.stop));
 		callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
 		simTime.calPhase += time_tmp;
+
+		if (turn == endTurn) {
+
+			clock_t start_tmp, end_tmp;
+			start_tmp = clock();
+
+			std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(startTurn) + "_" + std::to_string(endTurn) + ".csv");
+			save_phase(dev_bunch, bunchRef.Np, saveName_full);
+
+			end_tmp = clock();
+			simTime.savePhase += (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC * 1000;
+		}
 	}
 }
 
