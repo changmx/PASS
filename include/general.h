@@ -57,11 +57,18 @@ public:
 
 	// Save the time used in the following steps
 	// In units of ms.
-	float allocate2grid = 0;
-	float calBoundary = 0;
-	float calPotential = 0;
-	float calElectric = 0;
-	float calBeamkick = 0;
+	float allocate2gridSC = 0;
+	float calBoundarySC = 0;
+	float calPotentialSC = 0;
+	float calElectricSC = 0;
+	float calKickSC = 0;
+
+	float allocate2gridBB = 0;
+	float calBoundaryBB = 0;
+	float calPotentialBB = 0;
+	float calElectricBB = 0;
+	float calKickBB = 0;
+
 	float sort = 0;
 	float slice = 0;
 	float hourGlass = 0;
@@ -80,7 +87,6 @@ public:
 
 	float twiss = 0;
 	float transferElement = 0;
-	float calElectricKick = 0;
 
 	float total = 0;
 

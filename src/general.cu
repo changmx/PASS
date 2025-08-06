@@ -470,11 +470,18 @@ void TimeEvent::free(int deviceid) {
 
 TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
 
-	allocate2grid += rhs.allocate2grid;
-	calBoundary += rhs.calBoundary;
-	calPotential += rhs.calPotential;
-	calElectric += rhs.calElectric;
-	calBeamkick += rhs.calBeamkick;
+	allocate2gridSC += rhs.allocate2gridSC;
+	calBoundarySC += rhs.calBoundarySC;
+	calPotentialSC += rhs.calPotentialSC;
+	calElectricSC += rhs.calElectricSC;
+	calKickSC += rhs.calKickSC;
+
+	allocate2gridBB += rhs.allocate2gridBB;
+	calBoundaryBB += rhs.calBoundaryBB;
+	calPotentialBB += rhs.calPotentialBB;
+	calElectricBB += rhs.calElectricBB;
+	calKickBB += rhs.calKickBB;
+
 	sort += rhs.sort;
 	slice += rhs.slice;
 	hourGlass += rhs.hourGlass;
@@ -493,7 +500,6 @@ TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
 
 	twiss += rhs.twiss;
 	transferElement += rhs.transferElement;
-	calElectricKick += rhs.calElectricKick;
 
 	total += rhs.total;
 
@@ -504,66 +510,49 @@ TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
 
 void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 
-	total = sort + slice + allocate2grid + calBoundary + calPotential + calElectric + hourGlass
-		+ calPhase + statistic + crossingAngle + crabCavity + floatWaist + oneTurnMap + calBeamkick + transferFixPoint
+	total
+		= allocate2gridSC + calBoundarySC + calPotentialSC + calElectricSC + calKickSC
+		+ allocate2gridBB + calBoundaryBB + calPotentialBB + calElectricBB + calKickBB
+		+ sort + slice + hourGlass + calPhase + statistic + crossingAngle + crabCavity
+		+ floatWaist + oneTurnMap + transferFixPoint
 		+ saveStatistic + savePhase + saveBunch + saveFixpoint + saveLuminosity
-		+ twiss + transferElement + calElectricKick;
+		+ twiss + transferElement;
 
 	std::string name = "process(device " + std::to_string(deviceid) + ")";
 
 	auto logger = spdlog::get("logger");
-	logger->info("{:<30} {:>10s} {:>10s} {:>10s}", name.c_str(), "GPU time", "GPU/GPU", "GPU/CPU");
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time sort:", sort / totalTurn, sort / turn * 100, sort / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cut slice:", slice / totalTurn, slice / turn * 100, slice / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate boundary:", calBoundary / totalTurn, calBoundary / turn * 100, calBoundary / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time allocate to grids:", allocate2grid / totalTurn, allocate2grid / turn * 100, allocate2grid / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate potential:", calPotential / totalTurn, calPotential / turn * 100, calPotential / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate electric field:", calElectric / totalTurn, calElectric / turn * 100, calElectric / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time calculate electric kick:", calElectricKick / totalTurn, calElectricKick / turn * 100, calElectricKick / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100, hourGlass / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cal phase:", calPhase / totalTurn, calPhase / turn * 100, calPhase / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time statistic:", statistic / totalTurn, statistic / turn * 100, statistic / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crossing angle:", crossingAngle / totalTurn, crossingAngle / turn * 100, crossingAngle / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crab cavity:", crabCavity / totalTurn, crabCavity / turn * 100, crabCavity / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time floatWaist:", floatWaist / totalTurn, floatWaist / turn * 100, floatWaist / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time one turn map:", oneTurnMap / totalTurn, oneTurnMap / turn * 100, oneTurnMap / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time beamkick:", calBeamkick / totalTurn, calBeamkick / turn * 100, calBeamkick / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time select fix points:", transferFixPoint / totalTurn, transferFixPoint / turn * 100, transferFixPoint / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save statistic:", saveStatistic / totalTurn, saveStatistic / turn * 100, saveStatistic / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save phase:", savePhase / totalTurn, savePhase / turn * 100, savePhase / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save bunch:", saveBunch / totalTurn, saveBunch / turn * 100, saveBunch / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save fix points:", saveFixpoint / totalTurn, saveFixpoint / turn * 100, saveFixpoint / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save luminosity:", saveLuminosity / totalTurn, saveLuminosity / turn * 100, saveLuminosity / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:>10s} {:>10s} {:>10s}", name.c_str(), "GPU time", "GPU/GPU", "GPU/CPU");
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time sort:", sort / totalTurn, sort / turn * 100, sort / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cut slice:", slice / totalTurn, slice / turn * 100, slice / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC allocate to grids:", allocate2gridSC / totalTurn, allocate2gridSC / turn * 100, allocate2gridSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate boundary:", calBoundarySC / totalTurn, calBoundarySC / turn * 100, calBoundarySC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate potential:", calPotentialSC / totalTurn, calPotentialSC / turn * 100, calPotentialSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate electric field:", calElectricSC / totalTurn, calElectricSC / turn * 100, calElectricSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate kick:", calKickSC / totalTurn, calKickSC / turn * 100, calKickSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB allocate to grids:", allocate2gridBB / totalTurn, allocate2gridBB / turn * 100, allocate2gridBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate boundary:", calBoundaryBB / totalTurn, calBoundaryBB / turn * 100, calBoundaryBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate potential:", calPotentialBB / totalTurn, calPotentialBB / turn * 100, calPotentialBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate electric field:", calElectricBB / totalTurn, calElectricBB / turn * 100, calElectricBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate kick:", calKickBB / totalTurn, calKickBB / turn * 100, calKickBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100, hourGlass / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cal phase:", calPhase / totalTurn, calPhase / turn * 100, calPhase / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time statistic:", statistic / totalTurn, statistic / turn * 100, statistic / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crossing angle:", crossingAngle / totalTurn, crossingAngle / turn * 100, crossingAngle / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crab cavity:", crabCavity / totalTurn, crabCavity / turn * 100, crabCavity / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time floatWaist:", floatWaist / totalTurn, floatWaist / turn * 100, floatWaist / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time one turn map:", oneTurnMap / totalTurn, oneTurnMap / turn * 100, oneTurnMap / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time select fix points:", transferFixPoint / totalTurn, transferFixPoint / turn * 100, transferFixPoint / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save statistic:", saveStatistic / totalTurn, saveStatistic / turn * 100, saveStatistic / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save phase:", savePhase / totalTurn, savePhase / turn * 100, savePhase / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save bunch:", saveBunch / totalTurn, saveBunch / turn * 100, saveBunch / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save fix points:", saveFixpoint / totalTurn, saveFixpoint / turn * 100, saveFixpoint / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save luminosity:", saveLuminosity / totalTurn, saveLuminosity / turn * 100, saveLuminosity / 1000 / cpuTime * 100);
 
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time twiss transfer:", twiss / totalTurn, twiss / turn * 100, twiss / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time element transfer:", transferElement / totalTurn, transferElement / turn * 100, transferElement / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time twiss transfer:", twiss / totalTurn, twiss / turn * 100, twiss / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time element transfer:", transferElement / totalTurn, transferElement / turn * 100, transferElement / 1000 / cpuTime * 100);
 
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "summary:", total / totalTurn, total / turn * 100, total / 1000 / cpuTime * 100);
-	logger->info("{:<30} {:8.2f}ms, {:8.2f}%, {:8.2f}%\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);
-
-	//printf("%-30s %9s  %9s  %9s\n", name.c_str(), "GPU time", "GPU/GPU", "GPU/CPU");
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time sort:", sort / totalTurn, sort / turn * 100, sort / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time cut slice:", slice / totalTurn, slice / turn * 100, slice / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time allocate to grids:", allocate2grid / totalTurn, allocate2grid / turn * 100, allocate2grid / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time calculate boundary:", calBoundary / totalTurn, calBoundary / turn * 100, calBoundary / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time calculate potential:", calPotential / totalTurn, calPotential / turn * 100, calPotential / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time calculate electric:", calElectric / totalTurn, calElectric / turn * 100, calElectric / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100, hourGlass / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time cal phase:", calPhase / totalTurn, calPhase / turn * 100, calPhase / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time statistic:", statistic / totalTurn, statistic / turn * 100, statistic / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time crossing angle:", crossingAngle / totalTurn, crossingAngle / turn * 100, crossingAngle / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time crab cavity:", crabCavity / totalTurn, crabCavity / turn * 100, crabCavity / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time floatWaist:", floatWaist / totalTurn, floatWaist / turn * 100, floatWaist / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time one turn map:", oneTurnMap / totalTurn, oneTurnMap / turn * 100, oneTurnMap / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time beamkick:", calBeamkick / totalTurn, calBeamkick / turn * 100, calBeamkick / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time select fix points:", transferFixPoint / totalTurn, transferFixPoint / turn * 100, transferFixPoint / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time save statistic:", saveStatistic / totalTurn, saveStatistic / turn * 100, saveStatistic / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time save phase:", savePhase / totalTurn, savePhase / turn * 100, savePhase / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time save bunch:", saveBunch / totalTurn, saveBunch / turn * 100, saveBunch / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time save fix points:", saveFixpoint / totalTurn, saveFixpoint / turn * 100, saveFixpoint / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "time save luminosity:", saveLuminosity / totalTurn, saveLuminosity / turn * 100, saveLuminosity / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n", "summary:", total / totalTurn, total / turn * 100, total / 1000 / cpuTime * 100);
-	//printf("%-30s %8.2fms, %8.2f%%, %8.2f%%\n\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "summary:", total / totalTurn, total / turn * 100, total / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);
 
 }
 
