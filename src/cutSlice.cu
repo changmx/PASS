@@ -152,6 +152,13 @@ void SortBunch::execute(int turn) {
 		callCuda(cudaMemcpy(dev_bunch + Np_sur, dev_bunch_tmp + Np_sur, (Np - Np_sur) * sizeof(Particle), cudaMemcpyDeviceToDevice));	// Copy sorted particles back to dev_bunch
 	}
 
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.sort += time_tmp;
+
+	callCuda(cudaEventRecord(simTime.start, 0));
+	time_tmp = 0;
 
 	// After sorting, the particles are arranged in descending order of z, so the first particle is the one with the largest z value
 	// 6. Calculate the information of the slices
@@ -174,7 +181,7 @@ void SortBunch::execute(int turn) {
 		std::exit(EXIT_FAILURE);
 	}
 
-	// 6. Set sliceId for all particles and z_avg for each slice
+	// 7. Set sliceId for all particles and z_avg for each slice
 	size_t sharedMemSize = Nslice * sizeof(Slice);
 	if (sharedMemSize <= (48 * 1024))
 	{
@@ -200,7 +207,7 @@ void SortBunch::execute(int turn) {
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
 	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
-	simTime.sort += time_tmp;
+	simTime.slice += time_tmp;
 }
 
 
