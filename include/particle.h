@@ -114,6 +114,11 @@ struct CycleRange {
 	bool isLastPoint(int value) const {
 		return contains(value) && (value == end);
 	}
+
+	// 判断是否是范围内的第一个点
+	bool isFirstPoint(int value) const {
+		return contains(value) && (value == start);
+	}
 };
 
 
