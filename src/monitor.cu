@@ -1296,9 +1296,10 @@ __global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int tota
 	while (tid < Np_sur)
 	{
 		Particle* p = &dev_bunch[tid];
+		int alive = (p->tag > 0);
 
-		p->phase_x = p->phase_x / totalTurn;
-		p->phase_y = p->phase_y / totalTurn;
+		p->phase_x = p->phase_x / totalTurn * alive;
+		p->phase_y = p->phase_y / totalTurn * alive;
 
 		tid += stride;
 	}
@@ -1316,16 +1317,16 @@ void save_phase(const Particle* dev_bunch, int Np, std::filesystem::path saveNam
 
 	std::ofstream file(saveName);
 
-	file << "phaseX" << "," << "phaseY" << "," << "nuX" << "," << "nuY" << "," << "tag" << std::endl;
+	file << "tag" << "," << "phaseX" << "," << "phaseY" << "," << "nuX" << "," << "nuY" << std::endl;
 
 	for (int i = 0; i < Np; i++)
 	{
 		file << std::setprecision(10)
+			<< (host_bunch + i)->tag << ","
 			<< (host_bunch + i)->phase_x << ","
 			<< (host_bunch + i)->phase_y << ","
 			<< (host_bunch + i)->phase_x / (2 * PassConstant::PI) << ","
-			<< (host_bunch + i)->phase_y / (2 * PassConstant::PI) << ","
-			<< (host_bunch + i)->tag << "\n";
+			<< (host_bunch + i)->phase_y / (2 * PassConstant::PI) << "\n";
 	}
 
 	file.close();
