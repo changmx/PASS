@@ -1,4 +1,5 @@
 #include "monitor.h"
+#include "constant.h"
 
 #include <fstream>
 
@@ -322,6 +323,152 @@ void ParticleMonitor::execute(int turn) {
 		simTime.saveBunch += time_tmp;
 	}
 }
+
+
+PhaseMonitor::PhaseMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "PhaseMonitor";
+	name = obj_name;
+	dev_bunch = Bunch.dev_bunch;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	bunchId = Bunch.bunchId;
+
+	saveDir = para.dir_output_tuneSpread;
+	saveName_part = para.hourMinSec + "_phase_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId);
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		is_enablePhaseMonitor = data.at("Sequence").at(obj_name).at("Is enable phase monitor");
+		betax = data.at("Sequence").at(obj_name).at("Beta x (m)");
+		betay = data.at("Sequence").at(obj_name).at("Beta y (m)");
+		alfx = data.at("Sequence").at(obj_name).at("Alpha x");
+		alfy = data.at("Sequence").at(obj_name).at("Alpha y");
+
+		for (size_t Nset = 0; Nset < data.at("Sequence").at(obj_name).at("Save turns").size(); Nset++)
+		{
+			if (data.at("Sequence").at(obj_name).at("Save turns")[Nset].size() == 2) {
+				int startTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][0];
+				int endTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][1];
+
+				saveTurn.push_back(CycleRange(startTurn, endTurn, 1));
+			}
+			else if (data.at("Sequence").at(obj_name).at("Save turns")[Nset].size() == 4)
+			{
+				int startTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][0];
+				int endTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][1];
+				int stepTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][2];
+				int numSaveTurn = data.at("Sequence").at(obj_name).at("Save turns")[Nset][3];
+
+				if (startTurn < 1)
+				{
+					spdlog::get("logger")->error("[PhaseMonitor] Error: ({}) Start turn should >= 1, because the first turn is 1 (not 0), now start turn = {}.",
+						startTurn);
+					std::exit(EXIT_FAILURE);
+				}
+				if (endTurn > para.Nturn)
+				{
+					spdlog::get("logger")->warn("[PhaseMonitor] End turn '{}' exceeds total number of turns '{}'. Adjusting to total turns.", endTurn, para.Nturn);
+					endTurn = para.Nturn;
+				}
+				if (stepTurn < numSaveTurn)
+				{
+					spdlog::get("logger")->error("[PhaseMonitor] Error: ({}) Turn step '{}' can't be less than the number of turns to be saved '{}'.",
+						name, stepTurn, numSaveTurn);
+					std::exit(EXIT_FAILURE);
+				}
+
+				for (size_t i = startTurn; i < endTurn; i += stepTurn)
+				{
+					if ((i + numSaveTurn) <= endTurn)
+					{
+						saveTurn.push_back(CycleRange(i, i + numSaveTurn, 1));
+					}
+					else
+					{
+						saveTurn.push_back(CycleRange(i, endTurn, 1));
+					}
+
+				}
+			}
+			else
+			{
+				spdlog::get("logger")->error("[PhaseMonitor] Error: The size of turn array to save should be 2 or 4, but now is {}.",
+					data.at("Sequence").at(obj_name).at("Save turns")[Nset].size());
+				std::exit(EXIT_FAILURE);
+			}
+		}
+	}
+	catch (json::exception e)
+	{
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+	print();
+}
+
+
+void PhaseMonitor::execute(int turn) {
+
+	if (!is_enablePhaseMonitor)
+	{
+		return;
+	}
+
+	bool is_in_ranges = false;
+	int index = 0;
+
+	is_in_ranges = is_value_in_turn_ranges(turn, saveTurn, index);
+
+	if (is_in_ranges)
+	{
+		callCuda(cudaEventRecord(simTime.start, 0));
+		float time_tmp = 0;
+
+		int Np_sur = bunchRef.Np_sur;
+
+		int startTurn = saveTurn[index].start;
+		int endTurn = saveTurn[index].end;
+
+		if (turn == startTurn)
+		{
+			callKernel(record_init_value << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur));
+		}
+		else
+		{
+			double sqrtBetax = sqrt(betax);
+			double sqrtBetay = sqrt(betay);
+
+			callKernel(cal_accumulatePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, sqrtBetax, sqrtBetay, alfx, alfy));
+
+			if (turn == endTurn)
+			{
+				int totalTurn = endTurn - startTurn;
+
+				callKernel(cal_averagePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, totalTurn));
+
+				std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(startTurn) + "_" + std::to_string(endTurn) + ".csv");
+
+				save_phase(dev_bunch, bunchRef.Np, saveName_full);
+			}
+		}
+
+		callCuda(cudaEventRecord(simTime.stop, 0));
+		callCuda(cudaEventSynchronize(simTime.stop));
+		callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+		simTime.calPhase += time_tmp;
+	}
+}
+
 
 __device__ void warpReduce(volatile double* data, int tid) {
 
@@ -1023,4 +1170,167 @@ __global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_pa
 
 		tid += stride;
 	}
+}
+
+
+__device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX) {
+
+	// Transformation from physical coordinates to the normalized coordinates.
+
+	double x1 = x / sqrtBetaX;
+	double px1 = alphaX / sqrtBetaX * x + sqrtBetaX * px;
+
+	x = x1;
+	px = px1;
+}
+
+
+__device__ void normalize2physical(double& x, double& px, double sqrtBetaX, double alphaX) {
+
+	// Transformation from normalized coordinates to the physical coordinates.
+
+	double x1 = x * sqrtBetaX;
+	double px1 = -1 * alphaX / sqrtBetaX * x + px / sqrtBetaX;
+
+	x = x1;
+	px = px1;
+}
+
+
+__device__ double phaseChange(double& x0, double& px0, double& x1, double& px1) {
+
+	double angle0 = atan2(px0, x0);	// angle = [-pi,pi]
+	int mask0 = (angle0 < 0);
+	angle0 += (mask0 * 2 * PassConstant::PI);	// convert angle to [0, 2pi]
+
+	double angle1 = atan2(px1, x1);
+	int mask1 = (angle1 < 0);
+	angle1 += (mask1 * 2 * PassConstant::PI);
+
+	double phase = angle0 - angle1;
+	int mask_phase = (phase < 0);
+	phase += (mask_phase * 2 * PassConstant::PI);
+
+	return phase;
+}
+
+
+__global__ void record_init_value(Particle* dev_bunch, int Np_sur) {
+
+	// Recording coordinates for the next turn calculation.
+
+#ifdef PASS_CAL_PHASE
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur)
+	{
+		Particle* p = &dev_bunch[tid];
+
+		p->last_x = p->x;
+		p->last_px = p->px;
+		p->last_y = p->y;
+		p->last_py = p->py;
+
+		p->phase_x = 0;
+		p->phase_y = 0;
+
+		tid += stride;
+	}
+
+#endif
+}
+
+
+__global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, double sqrtBetaX, double sqrtBetaY, double alphaX, double alphaY) {
+
+#ifdef PASS_CAL_PHASE
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur)
+	{
+		Particle* p = &dev_bunch[tid];
+
+		double x0 = p->last_x;
+		double px0 = p->last_px;
+		double y0 = p->last_y;
+		double py0 = p->last_py;
+
+		double x1 = p->x;
+		double px1 = p->px;
+		double y1 = p->y;
+		double py1 = p->py;
+
+		physical2normalize(x0, px0, sqrtBetaX, alphaX);
+		physical2normalize(y0, py0, sqrtBetaY, alphaY);
+		physical2normalize(x1, px1, sqrtBetaX, alphaX);
+		physical2normalize(y1, py1, sqrtBetaY, alphaY);
+
+		double delta_phase_x = phaseChange(x0, px0, x1, px1);
+		double delta_phase_y = phaseChange(y0, py0, y1, py1);
+
+		p->phase_x += delta_phase_x;
+		p->phase_y += delta_phase_y;
+
+		p->last_x = p->x;
+		p->last_px = p->px;
+		p->last_y = p->y;
+		p->last_py = p->py;
+
+		tid += stride;
+	}
+#endif
+}
+
+
+__global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int totalTurn) {
+
+#ifdef PASS_CAL_PHASE
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur)
+	{
+		Particle* p = &dev_bunch[tid];
+
+		p->phase_x = p->phase_x / totalTurn;
+		p->phase_y = p->phase_y / totalTurn;
+
+		tid += stride;
+	}
+#endif
+}
+
+
+void save_phase(const Particle* dev_bunch, int Np, std::filesystem::path saveName) {
+
+#ifdef PASS_CAL_PHASE
+
+	Particle* host_bunch = new Particle[Np];
+
+	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+
+	std::ofstream file(saveName);
+
+	file << "phaseX" << "," << "phaseY" << "," << "nuX" << "," << "nuY" << "," << "tag" << std::endl;
+
+	for (int i = 0; i < Np; i++)
+	{
+		file << std::setprecision(10)
+			<< (host_bunch + i)->phase_x << ","
+			<< (host_bunch + i)->phase_y << ","
+			<< (host_bunch + i)->phase_x / (2 * PassConstant::PI) << ","
+			<< (host_bunch + i)->phase_y / (2 * PassConstant::PI) << ","
+			<< (host_bunch + i)->tag << "\n";
+	}
+
+	file.close();
+
+	delete[] host_bunch;
+
+#endif
 }

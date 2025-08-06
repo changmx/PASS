@@ -239,6 +239,44 @@ private:
 };
 
 
+class PhaseMonitor : public Monitor
+{
+public:
+	PhaseMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~PhaseMonitor() = default;
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Phase Monitor] s = {}, name = {}, isEnable = {}", s, name, is_enablePhaseMonitor);
+
+		print_cycleRange(saveTurn);
+	}
+
+private:
+
+	int bunchId = 0;
+	std::filesystem::path saveDir;
+	std::string saveName_part;
+
+	TimeEvent& simTime;
+
+	bool is_enablePhaseMonitor = false;
+	double betax = 0, betay = 0;
+	double alfx = 0, alfy = 0;
+
+	std::vector<CycleRange> saveTurn;
+
+	Particle* dev_bunch = nullptr;
+	const Bunch& bunchRef;
+
+	int thread_x = 0;
+	int block_x = 0;
+};
+
+
 __global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statistic, size_t pitch_statistic, int NpPerBunch);
 
 __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
@@ -247,3 +285,17 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 
 __global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_particleMonitor, int Np, int Np_PM,
 	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);
+
+__device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX);
+
+__device__ void normalize2physical(double& x, double& px, double sqrtBetaX, double alphaX);
+
+__device__ double phaseChange(double& x0, double& px0, double& x1, double& px1);
+
+__global__ void record_init_value(Particle* dev_bunch, int Np_sur);
+
+__global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, double sqrtBetaX, double sqrtBetaY, double alphaX, double alphaY);
+
+__global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int totalTurn);
+
+void save_phase(const Particle* dev_bunch, int Np, std::filesystem::path saveName);
