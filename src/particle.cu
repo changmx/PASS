@@ -59,35 +59,6 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 
 		gammat = data.at("GammaT");
 
-		//emitx = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance x (m'rad)");
-		//emity = data.at("Sequence").at("Injection").at(key_bunch).at("Emittance y (m'rad)");
-		//emitx_norm = emitx * gamma * beta;
-		//emity_norm = emity * gamma * beta;
-
-		//alphax = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha x");
-		//alphay = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha y");
-
-		//betax = data.at("Sequence").at("Injection").at(key_bunch).at("Beta x (m)");
-		//betay = data.at("Sequence").at("Injection").at(key_bunch).at("Beta y (m)");
-
-		//gammax = (1 + alphax * alphax) / betax;
-		//gammay = (1 + alphay * alphay) / betay;
-
-		//sigmax = sqrt(betax * emitx);
-		//sigmay = sqrt(betay * emity);
-
-		//sigmapx = sqrt(gammax * emitx);
-		//sigmapy = sqrt(gammay * emity);
-
-		//sigmaz = data.at("Sequence").at("Injection").at(key_bunch).at("Sigma z (m)");
-		//dp = data.at("Sequence").at("Injection").at(key_bunch).at("DeltaP/P");
-
-		//Qx = data.at("Qx");
-		//Qy = data.at("Qy");
-		//Qz = data.at("Qz");
-		//chromx = data.at("Chromaticity x");
-		//chromy = data.at("Chromaticity y");
-
 		if (data.contains("Space-charge simulation parameters"))
 		{
 			is_slice_for_sc = true;
