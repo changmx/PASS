@@ -209,9 +209,9 @@ void FieldSolverCUDSS::solve_x_values() {
 	callCudss(cudssExecute(cudss_handle, CUDSS_PHASE_SOLVE, cudss_config, cudss_data, cudss_A, cudss_x, cudss_b));
 
 	// Output x value and check it
-	double* host_potential = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
-	callCuda(cudaMemcpy(host_potential, dev_potential, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
-	cudaDeviceSynchronize();
+	//double* host_potential = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
+	//callCuda(cudaMemcpy(host_potential, dev_potential, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
+	//cudaDeviceSynchronize();
 
 	//std::filesystem::path matrix_savepath = "D:/PASS/test/potential.csv";
 	//std::ofstream file(matrix_savepath);
@@ -233,32 +233,32 @@ void FieldSolverCUDSS::solve_x_values() {
 
 	//spdlog::get("logger")->info("[FieldSolver] func(solve_x_values): potential matrix data has been writted to {}", matrix_savepath.string());
 
-	static int count = 1;
-	for (int k = 0; k < Nslice; k++)
-	{
-		std::filesystem::path matrix_savepath = "D:/PASS/test/potential_slice_" + std::to_string(k) + "_turn_" + std::to_string(count) + "_.csv";
-		std::ofstream file(matrix_savepath);
+	//static int count = 1;
+	//for (int k = 0; k < Nslice; k++)
+	//{
+	//	std::filesystem::path matrix_savepath = "D:/PASS/test/potential_slice_" + std::to_string(k) + "_turn_" + std::to_string(count) + "_.csv";
+	//	std::ofstream file(matrix_savepath);
 
-		for (int i = 0; i < Ny; i++)
-		{
-			for (int j = 0; j < Nx; j++)
-			{
-				file << std::setprecision(15)
-					<< host_potential[j + i * Nx + k * Nx * Ny];
-				if (j < (Nx - 1))
-				{
-					file << ",";
-				}
-			}
-			file << "\n";
-		}
-		file.close();
+	//	for (int i = 0; i < Ny; i++)
+	//	{
+	//		for (int j = 0; j < Nx; j++)
+	//		{
+	//			file << std::setprecision(15)
+	//				<< host_potential[j + i * Nx + k * Nx * Ny];
+	//			if (j < (Nx - 1))
+	//			{
+	//				file << ",";
+	//			}
+	//		}
+	//		file << "\n";
+	//	}
+	//	file.close();
 
-		spdlog::get("logger")->info("[FieldSolver] func(solve_x_values): potential data has been writted to {}", matrix_savepath.string());
-	}
-	count++;
+	//	spdlog::get("logger")->info("[FieldSolver] func(solve_x_values): potential data has been writted to {}", matrix_savepath.string());
+	//}
+	//count++;
 
-	free(host_potential);
+	//free(host_potential);
 }
 
 
@@ -286,35 +286,36 @@ void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_sli
 	}
 
 	// Output b value and check it
-	double* host_charDensity = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
-	callCuda(cudaMemcpy(host_charDensity, dev_charDensity, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
-	cudaDeviceSynchronize();
+	//double* host_charDensity = (double*)malloc(Nx * Ny * Nslice * sizeof(double));
+	//callCuda(cudaMemcpy(host_charDensity, dev_charDensity, Nx * Ny * Nslice * sizeof(double), cudaMemcpyDeviceToHost));
+	//cudaDeviceSynchronize();
 
-	static int count = 1;
-	for (int k = 0; k < Nslice; k++)
-	{
-		std::filesystem::path matrix_savepath = "D:/PASS/test/charDensity_slice_" + std::to_string(k) + "_turn_" + std::to_string(count) + "_.csv";
-		std::ofstream file(matrix_savepath);
+	//static int count = 1;
+	//for (int k = 0; k < Nslice; k++)
+	//{
+	//	std::filesystem::path matrix_savepath = "D:/PASS/test/charDensity_slice_" + std::to_string(k) + "_turn_" + std::to_string(count) + "_.csv";
+	//	std::ofstream file(matrix_savepath);
 
-		for (int i = 0; i < Ny; i++)
-		{
-			for (int j = 0; j < Nx; j++)
-			{
-				file << std::setprecision(15)
-					<< host_charDensity[j + i * Nx + k * Nx * Ny];
-				if (j < (Nx - 1))
-				{
-					file << ",";
-				}
-			}
-			file << "\n";
-		}
-		file.close();
+	//	for (int i = 0; i < Ny; i++)
+	//	{
+	//		for (int j = 0; j < Nx; j++)
+	//		{
+	//			file << std::setprecision(15)
+	//				<< host_charDensity[j + i * Nx + k * Nx * Ny];
+	//			if (j < (Nx - 1))
+	//			{
+	//				file << ",";
+	//			}
+	//		}
+	//		file << "\n";
+	//	}
+	//	file.close();
 
-		spdlog::get("logger")->info("[FieldSolver] func(update_b_values): charge density matrix data has been writted to {}", matrix_savepath.string());
-	}
-	count++;
-	free(host_charDensity);
+	//	spdlog::get("logger")->info("[FieldSolver] func(update_b_values): charge density matrix data has been writted to {}", matrix_savepath.string());
+	//}
+	//count++;
+
+	//free(host_charDensity);
 }
 
 
@@ -334,48 +335,48 @@ void FieldSolverCUDSS::calculate_electricField() {
 
 	callKernel(cal_electricField << <grid, block, 0, 0 >> > (dev_potential, dev_electicField, dev_meshMask, Nx, Ny, Nslice));
 
-	double2* host_electricField = (double2*)malloc(Nx * Ny * Nslice * sizeof(double2));
-	callCuda(cudaMemcpy(host_electricField, dev_electicField, Nx * Ny * Nslice * sizeof(double2), cudaMemcpyDeviceToHost));
-	cudaDeviceSynchronize();
+	//double2* host_electricField = (double2*)malloc(Nx * Ny * Nslice * sizeof(double2));
+	//callCuda(cudaMemcpy(host_electricField, dev_electicField, Nx * Ny * Nslice * sizeof(double2), cudaMemcpyDeviceToHost));
+	//cudaDeviceSynchronize();
 
-	static int count = 1;
-	std::filesystem::path savepath1 = "D:/PASS/test/electricField_x_slice0_turn_" + std::to_string(count) + "_.csv";
-	std::filesystem::path savepath2 = "D:/PASS/test/electricField_y_slice0_turn_" + std::to_string(count) + "_.csv";
-	std::filesystem::path savepath3 = "D:/PASS/test/electricField_r_slice0_turn_" + std::to_string(count) + "_.csv";
-	std::ofstream file1(savepath1);
-	std::ofstream file2(savepath2);
-	std::ofstream file3(savepath3);
+	//static int count = 1;
+	//std::filesystem::path savepath1 = "D:/PASS/test/electricField_x_slice0_turn_" + std::to_string(count) + "_.csv";
+	//std::filesystem::path savepath2 = "D:/PASS/test/electricField_y_slice0_turn_" + std::to_string(count) + "_.csv";
+	//std::filesystem::path savepath3 = "D:/PASS/test/electricField_r_slice0_turn_" + std::to_string(count) + "_.csv";
+	//std::ofstream file1(savepath1);
+	//std::ofstream file2(savepath2);
+	//std::ofstream file3(savepath3);
 
-	for (int i = 0; i < Ny; i++)
-	{
-		for (int j = 0; j < Nx; j++)
-		{
-			file1 << std::setprecision(15)
-				<< host_electricField[j + i * Nx].x;
-			file2 << std::setprecision(15)
-				<< host_electricField[j + i * Nx].y;
-			file3 << std::setprecision(15)
-				<< sqrt(host_electricField[j + i * Nx].x * host_electricField[j + i * Nx].x + host_electricField[j + i * Nx].y * host_electricField[j + i * Nx].y);
-			if (j < (Nx - 1))
-			{
-				file1 << ",";
-				file2 << ",";
-				file3 << ",";
-			}
-		}
-		file1 << "\n";
-		file2 << "\n";
-		file3 << "\n";
-	}
-	file1.close();
-	file2.close();
-	file3.close();
+	//for (int i = 0; i < Ny; i++)
+	//{
+	//	for (int j = 0; j < Nx; j++)
+	//	{
+	//		file1 << std::setprecision(15)
+	//			<< host_electricField[j + i * Nx].x;
+	//		file2 << std::setprecision(15)
+	//			<< host_electricField[j + i * Nx].y;
+	//		file3 << std::setprecision(15)
+	//			<< sqrt(host_electricField[j + i * Nx].x * host_electricField[j + i * Nx].x + host_electricField[j + i * Nx].y * host_electricField[j + i * Nx].y);
+	//		if (j < (Nx - 1))
+	//		{
+	//			file1 << ",";
+	//			file2 << ",";
+	//			file3 << ",";
+	//		}
+	//	}
+	//	file1 << "\n";
+	//	file2 << "\n";
+	//	file3 << "\n";
+	//}
+	//file1.close();
+	//file2.close();
+	//file3.close();
 
-	count++;
-	spdlog::get("logger")->info("[FieldSolver] func(calculate_electricField): electric field data has been writted to {}, {} and {}.",
-		savepath1.string(), savepath2.string(), savepath3.string());
+	//count++;
+	//spdlog::get("logger")->info("[FieldSolver] func(calculate_electricField): electric field data has been writted to {}, {} and {}.",
+	//	savepath1.string(), savepath2.string(), savepath3.string());
 
-	free(host_electricField);
+	//free(host_electricField);
 }
 
 
