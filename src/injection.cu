@@ -781,6 +781,12 @@ void Injection::save_initial_distribution() {
 }
 
 void Injection::add_Dx() {
+
+	if (abs(Dx) < 1e-10 && abs(Dpx) < 1e-10)
+	{
+		return;
+	}
+
 	spdlog::get("logger")->info("[Injection] Dx = {}, Dpx = {} of {} beam-{} bunch-{} is begin added ...",
 		Dx, Dpx, beam_name, beamId, bunchId);
 
