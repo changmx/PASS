@@ -641,11 +641,20 @@ bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>&
 }
 
 
-
-
 void print_cycleRange(const std::vector<CycleRange>& ranges) {
 	for (const auto& range : ranges) {
 
 		spdlog::get("logger")->info("[CycleRange] Start = {}, end = {}, step = {}, totalPoints = {}", range.start, range.end, range.step, range.totalPoints);
 	}
+}
+
+
+std::string ms_to_timeString(double ms) {
+
+	int second = static_cast<int>(std::round(ms / 1000.0));
+	int eta_hour = div(second, 3600).quot;
+	int eta_minute = div(div(second, 3600).rem, 60).quot;
+	int eta_second = div(div(second, 3600).rem, 60).rem;
+
+	return std::to_string(eta_hour) + "h " + std::to_string(eta_minute) + "m " + std::to_string(eta_second) + "s";
 }

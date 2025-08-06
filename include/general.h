@@ -79,7 +79,7 @@ public:
 	float saveLuminosity = 0;
 
 	float twiss = 0;
-	float transferElement;
+	float transferElement = 0;
 	float calElectricKick = 0;
 
 	float total = 0;
@@ -114,3 +114,5 @@ bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>
 bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
 void print_cycleRange(const std::vector<CycleRange>& ranges);
+
+std::string ms_to_timeString(double ms);
