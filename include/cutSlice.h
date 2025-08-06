@@ -44,7 +44,6 @@ private:
 	Bunch& bunchRef;
 
 	int Np = 0;
-	int Np_sur = 0;
 
 	double* dev_sort_z = nullptr;	// particle z position
 	int* dev_sort_index = nullptr;	// particle index

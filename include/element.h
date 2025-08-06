@@ -44,7 +44,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	double drift_length = 0;
@@ -78,7 +77,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -123,7 +121,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -168,7 +165,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -210,7 +206,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -255,7 +250,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -300,7 +294,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -341,7 +334,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -381,7 +373,6 @@ private:
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -428,7 +419,6 @@ private:
 	TimeEvent& simTime;
 	Bunch& bunchRef;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
@@ -479,7 +469,6 @@ private:
 	int Np = 0;
 	int Nturn = 0;
 	int bunchId = 0;
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;

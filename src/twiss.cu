@@ -15,7 +15,6 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 	block_x = plan1d.get_blocks_x();
 
 	Np = Bunch.Np;
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	gamma = Bunch.gamma;
@@ -131,7 +130,7 @@ void Twiss::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Twiss] turn = {}, start running of : {}, s = {}, 6D (logi = {})", turn, name, s, longitudinal_transfer);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 
 	callKernel(
 		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, circumference,

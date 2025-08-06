@@ -8,7 +8,6 @@ SpaceCharge::SpaceCharge(const Parameter& para, int input_beamId, Bunch& Bunch, 
 	name = obj_name;
 	dev_bunch = Bunch.dev_bunch;
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	thread_x = plan1d.get_threads_per_block();
@@ -199,7 +198,7 @@ void SpaceCharge::execute(int turn) {
 	{
 		// Solve Ax=b for space charge
 
-		Np_sur = bunchRef.Np_sur;
+		int Np_sur = bunchRef.Np_sur;
 		if (Np_sur <= 0) {
 			spdlog::get("logger")->warn("[SpaceCharge] No particles in the bunch, skipping space charge calculation.");
 			return;

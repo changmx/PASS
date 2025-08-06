@@ -41,7 +41,6 @@ SortBunch::SortBunch(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	block_x = plan1d.get_blocks_x();
 
 	Np = Bunch.Np;
-	Np_sur = Bunch.Np_sur;
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -106,6 +105,8 @@ void SortBunch::execute(int turn) {
 
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
+
+	int Np_sur = bunchRef.Np_sur;
 
 	if (Np_sur < Nslice) {
 		spdlog::get("logger")->warn("[SortBunch] Np_sur = {} is less than number of slices {}, ignore the sorting process.", Np_sur, Nslice);

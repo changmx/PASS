@@ -21,7 +21,6 @@ MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunc
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	using json = nlohmann::json;
@@ -50,7 +49,7 @@ void MarkerElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->info("[Marker Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -75,7 +74,6 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -118,7 +116,7 @@ void SBendElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[SBend Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -202,7 +200,6 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -243,7 +240,7 @@ void RBendElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[RBend Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -328,7 +325,6 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -366,7 +362,7 @@ void QuadrupoleElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Quadrupole Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -444,7 +440,6 @@ SextupoleNormElement::SextupoleNormElement(const Parameter& para, int input_beam
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -493,7 +488,7 @@ void SextupoleNormElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Sextupole Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -549,7 +544,6 @@ SextupoleSkewElement::SextupoleSkewElement(const Parameter& para, int input_beam
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -598,7 +592,7 @@ void SextupoleSkewElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Sextupole Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -654,7 +648,6 @@ OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const 
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -690,7 +683,7 @@ void OctupoleElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[Octupole Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -745,7 +738,6 @@ HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bu
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -780,7 +772,7 @@ void HKickerElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[HKicker Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -815,7 +807,6 @@ VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bu
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
@@ -850,7 +841,7 @@ void VKickerElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[VKicker Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
@@ -885,7 +876,6 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	Np_sur = Bunch.Np_sur;
 	circumference = para.circumference;
 
 	qm_ratio = Bunch.qm_ratio;
@@ -942,7 +932,7 @@ void RFElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[RF Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	int Np_sur = bunchRef.Np_sur;
 
 	double m0 = bunchRef.m0;
 	double gammat = bunchRef.gammat;
@@ -1007,7 +997,6 @@ ElSeparatorElement::ElSeparatorElement(const Parameter& para, int input_beamId, 
 	circumference = para.circumference;
 
 	bunchId = Bunch.bunchId;
-	Np_sur = Bunch.Np_sur;
 
 	saveDir = para.dir_output_slowExt_particle;
 	saveName_part = para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + para.beam_name[input_beamId] + "_bunch" + std::to_string(bunchId);
@@ -1051,7 +1040,7 @@ void ElSeparatorElement::execute(int turn) {
 	//auto logger = spdlog::get("logger");
 	//logger->debug("[VKicker Element] run: " + name);
 
-	Np_sur = bunchRef.Np_sur;
+	//int Np_sur = bunchRef.Np_sur;
 	//double gamma = bunchRef.gamma;
 	//double beta = bunchRef.beta;
 

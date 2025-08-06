@@ -36,7 +36,6 @@ private:
 	double dp = 0;
 
 	int Np = 0;
-	int Np_sur = 0;
 	double circumference = 0;
 
 	// Twiss parameters of current position

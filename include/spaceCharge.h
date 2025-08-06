@@ -30,7 +30,6 @@ private:
 	Bunch& bunchRef;
 	Slice* dev_slice = nullptr;
 
-	int Np_sur = 0;
 	double circumference = 0;
 
 	int thread_x = 0;
