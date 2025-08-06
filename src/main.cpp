@@ -60,15 +60,13 @@ int main(int argc, char** argv)
 	read_command_sequence(Para, Beam1, 1, command_beam1, simTime);
 
 	logger->info("Command vector size of beam0: {}", command_beam0.size());
-	logger->info("Command vector size of beam1: {}", command_beam1.size());
+	logger->info("Command vector size of beam1: {}\n", command_beam1.size());
 
 	logger->info("*********************************** Simulation Start ***********************************\n");
 
 	for (int turn = 1; turn < Para.Nturn + 1; turn++)
 	{
 		callCuda(cudaEventRecord(simTime.startPerTurn, 0));
-
-		logger->info("Turn: {}/{}", turn, Para.Nturn);
 
 		int icb0 = 0;	// i-th command of beam0
 		int icb1 = 0;	// i-th command of beam1
@@ -120,6 +118,11 @@ int main(int argc, char** argv)
 		float time_perTurn_tmp;
 		callCuda(cudaEventElapsedTime(&time_perTurn_tmp, simTime.startPerTurn, simTime.stopPerTurn));
 		simTime.turn += time_perTurn_tmp;
+
+		double time_perturn = simTime.turn / turn;
+		double time_estimated = time_perturn * (Para.Nturn - turn);
+
+		logger->info("Turn: {}/{}, used: {:.2f} ms, estimate: {}", turn, Para.Nturn, time_perTurn_tmp, ms_to_timeString(time_estimated));
 
 	}
 
