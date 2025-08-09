@@ -72,14 +72,14 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # ------------------------------------------------------------ Config global parameters ------------------------------------------------------------ #
 
     BeamPara = {
-        "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
-        "Number of protons per particle": 1,
-        "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
-        "Number of charges per particle": 1,
+        "Name": "78Kr19+",  # [particle name]: arbitrary, just to let the user distinguish the beam
+        "Number of protons per particle": 36,
+        "Number of neutrons per particle": 42,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
+        "Number of charges per particle": 19,
         "Number of bunches per beam": 1,
         "Circumference (m)": 569.1,
         "GammaT": 1,
-        "Number of turns": 2,
+        "Number of turns": 100,
         "Number of GPU devices": 1,
         "Device Id": [0],
         "Output directory": "D:\\PassSimulation",
@@ -91,7 +91,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     SpaceChargePara = {
         "Space-charge simulation parameters": {
             "Is enable space charge": True,
-            "Number of slices": 2,
+            "Number of slices": 1,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
             "Field solver": "PIC_FD_CUDSS",  # [PIC_FD_CUDSS/PIC_Conv/PIC_FD_AMGX/PIC_FD_FFT/Eq_Quasi_Static/Eq_Frozen]
         }
@@ -120,7 +120,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "Observer position S (m)": [0, 26.84],
         }
     }
-    
+
     # -------------------------------------------------------------- Start create sequence ------------------------------------------------------------- #
 
     Sequence = {}
@@ -132,17 +132,17 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per nucleon (eV/u)": 2000e9,
-                "Number of real particles per bunch": 1e11,
-                "Number of macro particles per bunch": 1e5,
+                "Kinetic energy per nucleon (eV/u)": 30e6,
+                "Number of real particles per bunch": 3e11,
+                "Number of macro particles per bunch": 1e6,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
                 "Alpha x": 0,
                 "Alpha y": 0,
                 "Beta x (m)": 9.564422187285917,
                 "Beta y (m)": 9.604992376839624,
-                "Emittance x (m'rad)": 100e-6,
-                "Emittance y (m'rad)": 50e-6,
+                "Emittance x (m'rad)": 50e-6,
+                "Emittance y (m'rad)": 25e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
                 "Sigma z (m)": 569.1,
@@ -164,7 +164,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         }
     }
     Sequence.update(Injection)
-    
+
     # -------------------------------------------------------------- Get twiss  from madx -------------------------------------------------------------- #
 
     # twiss_list_from_madx, circumference_twissFile = generate_twiss_json(
@@ -183,7 +183,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     Sequence.update(twiss)
 
     # ------------------------------------------------------- Space charge according to madx twiss ----------------------------------------------------- #
-    
+
     # spacecharge_list = []
     # for ielem in twiss_list_from_madx:
     #     first_key = next(iter(ielem))
@@ -213,7 +213,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             mux=9.47,
             muy=9.43,
             numPoints=100,
-            logi_transfer="drift",
+            logi_transfer="off",
             muz=0.0123,
         )
     )
@@ -224,9 +224,9 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         sys.exit(1)
     for twiss in twiss_list_smooth_approx:
         Sequence.update(twiss)
-    
+
     # ----------------------------------------------- Space charge according to smooth approximate twiss ----------------------------------------------- #
-    
+
     spacecharge_list = []
     for ielem in twiss_list_smooth_approx:
         first_key = next(iter(ielem))
@@ -242,11 +242,11 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Length (m)": s_sc - s_pre_sc,
                 "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
                 "Aperture value": [
-                    0.1,
-                    0.1,
-                ],  # [Circle: radius/Rectangel:half width, half height/Ellipse:a,b]
-                "Number of PIC grid x": 100,
-                "Number of PIC grid y": 100,
+                    0.2,
+                    0.2
+                ],  # [Circle: radius/Rectangle:half width, half height/Ellipse:a,b]
+                "Number of PIC grid x": 200,
+                "Number of PIC grid y": 200,
                 "Grid x length": 0.002,
                 "Grid y length": 0.002,
             }
@@ -256,9 +256,9 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     for dict_sc in spacecharge_list:
         Sequence.update(dict_sc)
     print(f"Number of space charge points: {len(spacecharge_list)}")
-    
+
     # ----------------------------------------------------------- Input single Space charge ------------------------------------------------------------ #
-    
+
     # SC1 = {
     #     "SpaceCharge_0.1": {
     #         "S (m)": 0.1,
@@ -306,7 +306,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # Sequence.update(SC3)
 
     # -------------------------------------------------------------- Input single element -------------------------------------------------------------- #
-    
+
     # SF1_ARC1_1 = {
     #     "sf1_arc1_1": {
     #         "S (m)": 8.37,
@@ -460,7 +460,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # for element in element_list_from_madx:
     #     # print(element)
     #     Sequence.update(element)
-    
+
     # ----------------------------------------------------- Space charge according to madx element ----------------------------------------------------- #
 
     # spacecharge_list = []
@@ -562,7 +562,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     },
     # }
     # Sequence.update(lattice_oneturn_map)
-    
+
     # -------------------------------------------------------------- Distribution Monitor -------------------------------------------------------------- #
 
     # Monitor to save bunch distribution
@@ -589,13 +589,29 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # Sequence.update(Monitor_Dist_ES)
 
     # --------------------------------------------------------------- Statistic Monitor ---------------------------------------------------------------- #
-    
+
     # Monitor to save bunch statistics
     Monitor_Stat_oneturn = {
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
     }
     Sequence.update(Monitor_Stat_oneturn)
-    
+
+    # ----------------------------------------------------------------- Phase Monitor ------------------------------------------------------------------ #
+
+    PhaseMonitor = {
+        "PhaseMonitor_0": {
+            "S (m)": 0,
+            "Command": "PhaseMonitor",
+            "Is enable phase monitor": True,
+            "Beta x (m)": Injection["Injection"]["bunch0"]["Beta x (m)"],
+            "Beta y (m)": Injection["Injection"]["bunch0"]["Beta y (m)"],
+            "Alpha x": Injection["Injection"]["bunch0"]["Alpha x"],
+            "Alpha y": Injection["Injection"]["bunch0"]["Alpha y"],
+            "Save turns": [[1, 100], [1000, 10000, 1000, 50]],
+        }
+    }
+    Sequence.update(PhaseMonitor)
+
     # ------------------------------------------------------------------- RF Cavity -------------------------------------------------------------------- #
 
     # # RF cavity, length is 0, no drift
@@ -624,7 +640,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         Sequence.update(sortPoint)
 
     # --------------------------------------------------------------- Particle Monitor ----------------------------------------------------------------- #
-    
+
     # ParticleMonitor at position s to save specified particles
     # PM_para = ParticleMonitorPara["Particle Monitor parameters"]
     # s_PM = PM_para["Observer position S (m)"]
@@ -640,12 +656,12 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     Sequence.update(partMoni)
 
     # --------------------------------------------------------------- Sort sequence by s --------------------------------------------------------------- #
-    
+
     Sequence = sort_sequence(Sequence)
     SequencePara = {"Sequence": Sequence}
 
     # ---------------------------------------------------------- Write sequence to json file ----------------------------------------------------------- #
-    
+
     merged_dict = {
         **BeamPara,
         **SpaceChargePara,
@@ -658,7 +674,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         json.dump(merged_dict, jsonfile, indent=4)
 
     # ------------------------------------------------------------------- Finished --------------------------------------------------------------------- #
-    
+
     print("Success")
 
 
