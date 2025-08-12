@@ -25,7 +25,7 @@ public:
 	void print();
 
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	Bunch& bunchRef;
 	Slice* dev_slice = nullptr;
@@ -46,5 +46,5 @@ private:
 };
 
 
-__global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, const Slice* dev_slice,
+__global__ void cal_spaceCharge_kick(Particle dev_particle, const double2* __restrict__ dev_E, const Slice* __restrict__ dev_slice,
 	int Np_sur, int Nx, int Ny, double Lx, double Ly, int Nslice, double sc_factor);

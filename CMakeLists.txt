@@ -22,26 +22,26 @@ message(STATUS "CUDSS include dir: ${cudss_INCLUDE_DIR}")
 message(STATUS "CUDSS library dir: ${cudss_LIBRARY_DIR}")
 
 # set AMGX installation path
-set(AMGX_ROOT ${PROJECT_SOURCE_DIR}/libs/amgx CACHE PATH "AMGX installation directory")
-message(STATUS "Using AMGX from: ${AMGX_ROOT}")
+# set(AMGX_ROOT ${PROJECT_SOURCE_DIR}/libs/amgx CACHE PATH "AMGX installation directory")
+# message(STATUS "Using AMGX from: ${AMGX_ROOT}")
 
-find_path(AMGX_INCLUDE_DIR
-    NAMES amgx_c.h
-    PATHS "${AMGX_ROOT}/include"
-    REQUIRED
-)
-find_library(AMGX_LIBRARY
-    NAMES amgxsh
-    PATHS "${AMGX_ROOT}/lib"
-    NO_DEFAULT_PATH
-    REQUIRED
-)
+# find_path(AMGX_INCLUDE_DIR
+#     NAMES amgx_c.h
+#     PATHS "${AMGX_ROOT}/include"
+#     REQUIRED
+# )
+# find_library(AMGX_LIBRARY
+#     NAMES amgxsh
+#     PATHS "${AMGX_ROOT}/lib"
+#     NO_DEFAULT_PATH
+#     REQUIRED
+# )
 
-set(AMGX_LIBRARIES ${AMGX_LIBRARY}) 
+# set(AMGX_LIBRARIES ${AMGX_LIBRARY}) 
 
-# Display the found AMGX information
-message(STATUS "AMGX include dir: ${AMGX_INCLUDE_DIR}")
-message(STATUS "AMGX library: ${AMGX_LIBRARIES}")
+# # Display the found AMGX information
+# message(STATUS "AMGX include dir: ${AMGX_INCLUDE_DIR}")
+# message(STATUS "AMGX library: ${AMGX_LIBRARIES}")
 
 # set source files
 set(SOURCES
@@ -110,7 +110,7 @@ target_link_libraries(${PROJECT_NAME}
     CUDA::cufft
     CUDA::curand
     CUDA::cusparse
-    ${AMGX_LIBRARIES}
+    # ${AMGX_LIBRARIES}
     cudss
 )
 

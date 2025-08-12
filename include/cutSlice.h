@@ -38,8 +38,8 @@ public:
 
 
 private:
-	Particle* dev_bunch = nullptr;
-	Particle* dev_bunch_tmp = nullptr;	// temporary particle array for sorting
+	Particle dev_particle;
+	Particle dev_particle_tmp;	// Temporary buffer for sorting particles
 	TimeEvent& simTime;
 	Bunch& bunchRef;
 
@@ -64,24 +64,28 @@ private:
 };
 
 
-__global__ void reduction_z_avg(const Particle* dev_bunch, Slice* dev_slice, int Nslice);
+__global__ void reduction_z_avg(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Nslice);
 
-__global__ void find_slice_indices(const double* sorted_z, int Np_sur, Slice* slices, int Nslice);
+__global__ void find_slice_indices(const double* __restrict__ dev_z, int Np_sur, Slice* slices, int Nslice);
 
-__global__ void mark_survive_particles(Particle* dev_bunch, int* flags, int Np);
+__global__ void mark_survive_particles(const int* __restrict__ dev_tag, int* __restrict__ flags, int Np);
 
-__global__ void stable_partition(Particle* src, Particle* dst, int* valid_prefix, int Np, int Np_sur);
+__global__ void stable_partition(Particle src, Particle dst, int* valid_prefix, int Np, int Np_sur);
 
-__global__ void setup_slice_euqal_particle(const Particle* dev_bunch, Slice* dev_slice, int Np_sur, int Nslice);
+__global__ void gather_survive_particles(Particle src, Particle dst, const int* __restrict__ sorted_index, int Np_sur);
 
-__global__ void setup_slice_euqal_length(const Particle* dev_bunch, Slice* dev_slice, int Np_sur, int Nslice);
+__global__ void copy_lost_particles(Particle src, Particle dst, int Np, int Np_sur);
 
-__global__ void test_change_particle_tag(Particle* dev_bunch, int Np, int turn);
+__global__ void setup_slice_euqal_particle(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Np_sur, int Nslice);
+
+__global__ void setup_slice_euqal_length(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Np_sur, int Nslice);
+
+__global__ void test_change_particle_tag(Particle* dev_particle, int Np, int turn);
 
 __global__ void show_slice_info(const Slice* dev_slice, int Nslice);
 
-__device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle_index);
+__device__ int find_slice_index(const Slice* __restrict__ dev_slice, int Nslice, int particle_index);
 
-__global__ void setup_sliceId_small_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, int Nslice);
+__global__ void setup_sliceId_small_Nslice(int* __restrict__ dev_sliceId, const Slice* __restrict__ dev_slice, int Np_sur, int Nslice);
 
-__global__ void setup_sliceId_large_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Nslice);
+__global__ void setup_sliceId_large_Nslice(int* __restrict__ dev_sliceId, const Slice* __restrict__ dev_slice, int Nslice);

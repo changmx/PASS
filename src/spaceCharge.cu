@@ -6,7 +6,7 @@ SpaceCharge::SpaceCharge(const Parameter& para, int input_beamId, Bunch& Bunch, 
 	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
 
 	name = obj_name;
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 
 	circumference = para.circumference;
 
@@ -211,7 +211,7 @@ void SpaceCharge::execute(int turn) {
 		callCuda(cudaEventRecord(simTime.start, 0));
 		float time_tmp1 = 0;
 
-		solver->update_b_values(dev_bunch, dev_slice, Np_sur, charge_per_mp, thread_x, block_x, turn, s);
+		solver->update_b_values(dev_particle, dev_slice, Np_sur, charge_per_mp, thread_x, block_x, turn, s);
 
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
@@ -252,7 +252,7 @@ void SpaceCharge::execute(int turn) {
 		int Ny = solver->get_Ny();
 		int Nslice = solver->get_Nslice();
 
-		callKernel(cal_spaceCharge_kick << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_E, dev_slice, Np_sur, Nx, Ny, Lx, Ly, Nslice, sc_factor));
+		callKernel(cal_spaceCharge_kick << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_E, dev_slice, Np_sur, Nx, Ny, Lx, Ly, Nslice, sc_factor));
 
 		callCuda(cudaEventRecord(simTime.stop, 0));
 		callCuda(cudaEventSynchronize(simTime.stop));
@@ -265,7 +265,7 @@ void SpaceCharge::execute(int turn) {
 }
 
 
-__global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, const Slice* dev_slice,
+__global__ void cal_spaceCharge_kick(Particle dev_particle, const double2* __restrict__ dev_E, const Slice* __restrict__ dev_slice,
 	int Np_sur, int Nx, int Ny, double Lx, double Ly, int Nslice, double sc_factor) {
 
 	const double xmin = -(Nx - 1) / 2.0 * Lx;
@@ -279,11 +279,10 @@ __global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, 
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
 
-		double x = p->x;
-		double y = p->y;
-		int alive = (p->tag > 0);
+		double x = dev_particle.x[tid];
+		double y = dev_particle.y[tid];
+		int alive = (dev_particle.tag[tid] > 0);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -304,7 +303,7 @@ __global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, 
 		double RT = dx_ratio * dy_ratio;
 
 		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
-		int slice_index = p->sliceId;
+		int slice_index = dev_particle.sliceId[tid];
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
@@ -328,9 +327,9 @@ __global__ void cal_spaceCharge_kick(Particle* dev_bunch, const double2* dev_E, 
 
 		double delta_px = 1 / slice_length * Ex * sc_factor;
 		double delta_py = 1 / slice_length * Ey * sc_factor;
-		
-		p->px += delta_px * alive;
-		p->py += delta_py * alive;
+
+		dev_particle.px[tid] += delta_px * alive;
+		dev_particle.py[tid] += delta_py * alive;
 
 		tid += stride;
 

@@ -91,7 +91,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     SpaceChargePara = {
         "Space-charge simulation parameters": {
             "Is enable space charge": True,
-            "Number of slices": 1,
+            "Number of slices": 100,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
             "Field solver": "PIC_FD_CUDSS",  # [PIC_FD_CUDSS/PIC_Conv/PIC_FD_AMGX/PIC_FD_FFT/Eq_Quasi_Static/Eq_Frozen]
         }

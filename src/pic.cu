@@ -3,7 +3,7 @@
 #include "cutSlice.h"
 #include "aperture.h"
 
-#include "amgx_c.h"
+//#include "amgx_c.h"
 
 #include <fstream>
 #include <cudss.h>
@@ -262,26 +262,26 @@ void FieldSolverCUDSS::solve_x_values() {
 }
 
 
-void FieldSolverCUDSS::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) {
+void FieldSolverCUDSS::update_b_values(Particle dev_particle, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) {
 
 	callCuda(cudaMemset(dev_charDensity, 0, Nx * Ny * Nslice * sizeof(double)));
 
 	if (aperture->type == Aperture::CIRCLE)
 	{
 		CircleAperture* a = static_cast<CircleAperture*>(aperture.get());
-		callKernel(allocate2grid_circle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
+		callKernel(allocate2grid_circle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_charDensity, dev_slice, dev_meshMask,
 			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->radius_square, turn, s));
 	}
 	else if (aperture->type == Aperture::RECTANGLE)
 	{
 		RectangleAperture* a = static_cast<RectangleAperture*>(aperture.get());
-		callKernel(allocate2grid_rectangle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
+		callKernel(allocate2grid_rectangle_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_charDensity, dev_slice, dev_meshMask,
 			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->half_width, a->half_height, turn, s));
 	}
 	else if (aperture->type == Aperture::ELLIPSE)
 	{
 		EllipseAperture* a = static_cast<EllipseAperture*>(aperture.get());
-		callKernel(allocate2grid_ellipse_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_charDensity, dev_slice, dev_meshMask,
+		callKernel(allocate2grid_ellipse_multi_slice << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_charDensity, dev_slice, dev_meshMask,
 			Np_sur, Nslice, Nx, Ny, Lx, Ly, charge, a->hor_semi_axis, a->ver_semi_axis, turn, s));
 	}
 
@@ -412,7 +412,7 @@ void FieldSolverAMGX::solve_x_values() {
 }
 
 
-void FieldSolverAMGX::update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) {
+void FieldSolverAMGX::update_b_values(Particle dev_particle, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) {
 
 
 }
@@ -424,7 +424,7 @@ void FieldSolverAMGX::calculate_electricField() {
 }
 
 
-__global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+__global__ void allocate2grid_circle_multi_slice(Particle dev_particle, double* __restrict__ dev_charDensity, const Slice* __restrict__ dev_slice, const MeshMask* __restrict__ dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square, int turn, double s) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
@@ -444,11 +444,10 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
 
-		double x = p->x;
-		double y = p->y;
-		int tag = p->tag;
+		double x = dev_particle.x[tid];
+		double y = dev_particle.y[tid];
+		int tag = dev_particle.tag[tid];
 
 		const double epsilon = 1.0e-10;
 
@@ -462,9 +461,9 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 		int flip_factor = 1 - 2 * loss_now;
 		int skip = (tag < 0) | (loss_now);
 		int alive = 1 - skip;
-		p->tag *= flip_factor;
-		p->lostTurn = (p->lostTurn * (1 - loss_now) + turn * loss_now);
-		p->lostPos = (p->lostPos * (1 - loss_now) + s * loss_now);
+		dev_particle.tag[tid] *= flip_factor;
+		dev_particle.lostTurn[tid] = (dev_particle.lostTurn[tid] * (1 - loss_now) + turn * loss_now);
+		dev_particle.lostPos[tid] = (dev_particle.lostPos[tid] * (1 - loss_now) + s * loss_now);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -485,7 +484,7 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 		double RT = dx_ratio * dy_ratio * factor;
 
 		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
-		int slice_index = p->sliceId;
+		int slice_index = dev_particle.sliceId[tid];
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
@@ -508,7 +507,7 @@ __global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* de
 }
 
 
-__global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+__global__ void allocate2grid_rectangle_multi_slice(Particle dev_particle, double* __restrict__ dev_charDensity, const Slice* __restrict__ dev_slice, const MeshMask* __restrict__ dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height, int turn, double s) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
@@ -528,11 +527,9 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
-
-		double x = p->x;
-		double y = p->y;
-		int tag = p->tag;
+		double x = dev_particle.x[tid];
+		double y = dev_particle.y[tid];
+		int tag = dev_particle.tag[tid];
 
 		const double epsilon = 1.0e-10;
 
@@ -548,9 +545,9 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 		int flip_factor = 1 - 2 * loss_now;
 		int skip = (tag < 0) | (loss_now);
 		int alive = 1 - skip;
-		p->tag *= flip_factor;
-		p->lostTurn = (p->lostTurn * (1 - loss_now) + turn * loss_now);
-		p->lostPos = (p->lostPos * (1 - loss_now) + s * loss_now);
+		dev_particle.tag[tid] *= flip_factor;
+		dev_particle.lostTurn[tid] = (dev_particle.lostTurn[tid] * (1 - loss_now) + turn * loss_now);
+		dev_particle.lostPos[tid] = (dev_particle.lostPos[tid] * (1 - loss_now) + s * loss_now);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -571,7 +568,7 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 		double RT = dx_ratio * dy_ratio * factor;
 
 		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
-		int slice_index = p->sliceId;
+		int slice_index = dev_particle.sliceId[tid];
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
@@ -594,7 +591,7 @@ __global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double*
 }
 
 
-__global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+__global__ void allocate2grid_ellipse_multi_slice(Particle dev_particle, double* __restrict__ dev_charDensity, const Slice* __restrict__ dev_slice, const MeshMask* __restrict__ dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis, int turn, double s) {
 
 	// Allocate charges to grid and calculate the rho/epsilon
@@ -614,11 +611,9 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
-
-		double x = p->x;
-		double y = p->y;
-		int tag = p->tag;
+		double x = dev_particle.x[tid];
+		double y = dev_particle.y[tid];
+		int tag = dev_particle.tag[tid];
 
 		const double epsilon = 1.0e-10;
 
@@ -634,9 +629,9 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 		int flip_factor = 1 - 2 * loss_now;
 		int skip = (tag < 0) | (loss_now);
 		int alive = 1 - skip;
-		p->tag *= flip_factor;
-		p->lostTurn = (p->lostTurn * (1 - loss_now) + turn * loss_now);
-		p->lostPos = (p->lostPos * (1 - loss_now) + s * loss_now);
+		dev_particle.tag[tid] *= flip_factor;
+		dev_particle.lostTurn[tid] = (dev_particle.lostTurn[tid] * (1 - loss_now) + turn * loss_now);
+		dev_particle.lostPos[tid] = (dev_particle.lostPos[tid] * (1 - loss_now) + s * loss_now);
 
 		int x_index = floor((x - xmin) / Lx);	// x index of the left bottom grid point
 		int y_index = floor((y - ymin) / Ly);	// y index of the left bottom grid point
@@ -657,7 +652,7 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 		double RT = dx_ratio * dy_ratio * factor;
 
 		//int slice_index = find_slice_index(dev_slice, Nslice, tid);
-		int slice_index = p->sliceId;
+		int slice_index = dev_particle.sliceId[tid];
 		int base = slice_index * Nx * Ny;
 
 		int LB_index = y_index * Nx + x_index;
@@ -680,7 +675,7 @@ __global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* d
 }
 
 
-__global__ void cal_electricField(double* dev_potential, double2* dev_electricField, const MeshMask* dev_meshMask,
+__global__ void cal_electricField(double* __restrict__ dev_potential, double2* __restrict__ dev_electricField, const MeshMask* __restrict__ dev_meshMask,
 	int Nx, int Ny, int Nslice) {
 
 	// Calculate the electric field from the potential using finite difference method

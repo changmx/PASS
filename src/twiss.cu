@@ -9,7 +9,7 @@ Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::s
 	:simTime(timeevent), bunchRef(Bunch) {
 
 	name = obj_name;
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
@@ -133,7 +133,7 @@ void Twiss::execute(int turn) {
 	int Np_sur = bunchRef.Np_sur;
 
 	callKernel(
-		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, circumference,
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference,
 			betax, betax_previous, alphax, alphax_previous,
 			betay, betay_previous, alphay, alphay_previous,
 			phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
@@ -149,7 +149,7 @@ void Twiss::execute(int turn) {
 }
 
 
-__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circumference,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference,
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
@@ -159,94 +159,71 @@ __global__ void transfer_matrix_6D(Particle* dev_bunch, int Np_sur, double circu
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double m11_x = 0, m12_x = 0, m21_x = 0, m22_x = 0;	// transfer matrix elements;
-	double m11_y = 0, m12_y = 0, m21_y = 0, m22_y = 0;
+	const double c_half = circumference * 0.5;
 
-	double x1 = 0, px1 = 0, y1 = 0, py1 = 0, z1 = 0, pz1 = 0;
-	double x2 = 0, px2 = 0, y2 = 0, py2 = 0, z2 = 0, pz2 = 0;
+	const double sqrt_betax_betaxprev = sqrt(betax * betax_previous);
+	const double sqrt_betax_de_betaxprev = sqrt(betax / betax_previous);
+	const double sqrt_betaxprev_de_betax = sqrt(betax_previous / betax);
 
-	double phi_x = 0, phi_y = 0;
-
-	double c_half = 0;
-	int over = 0, under = 0;
-
-	double sqrt_betax_betaxprev = sqrt(betax * betax_previous);
-	double sqrt_betax_de_betaxprev = sqrt(betax / betax_previous);
-	double sqrt_betaxprev_de_betax = sqrt(betax_previous / betax);
-
-	double sqrt_betay_betayprev = sqrt(betay * betay_previous);
-	double sqrt_betay_de_betayprev = sqrt(betay / betay_previous);
-	double sqrt_betayprev_de_betay = sqrt(betay_previous / betay);
-
-	double cx = 0, sx = 0, cy = 0, sy = 0;
+	const double sqrt_betay_betayprev = sqrt(betay * betay_previous);
+	const double sqrt_betay_de_betayprev = sqrt(betay / betay_previous);
+	const double sqrt_betayprev_de_betay = sqrt(betay_previous / betay);
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
+		int tag = dev_particle.tag[tid];
 
-		z1 = p->z;
-		pz1 = p->pz;
+		if (tag > 0)
+		{
+			double z1 = dev_particle.z[tid];
+			double pz1 = dev_particle.pz[tid];
 
-		x1 = p->x - Dx_previous * pz1;
-		px1 = p->px - Dpx_previous * pz1;
+			double x1 = dev_particle.x[tid] - Dx_previous * pz1;
+			double px1 = dev_particle.px[tid] - Dpx_previous * pz1;
 
-		y1 = p->y;
-		py1 = p->py;
+			double y1 = dev_particle.y[tid];
+			double py1 = dev_particle.py[tid];
 
-		phi_x = phix + pz1 * DQx;
-		phi_y = phiy + pz1 * DQy;
+			double phi_x = phix + pz1 * DQx;
+			double phi_y = phiy + pz1 * DQy;
 
-		sincos(phi_x, &sx, &cx);	// calculate sin(phix) and cos(phix) simultaneously
-		sincos(phi_y, &sy, &cy);
+			double cx = 0, sx = 0, cy = 0, sy = 0;
 
-		m11_x = sqrt_betax_de_betaxprev * (cx + alphax_previous * sx);
-		m12_x = sqrt_betax_betaxprev * sx;
-		m21_x = -1 * (1 + alphax * alphax_previous) / sqrt_betax_betaxprev * sx + (alphax_previous - alphax) / sqrt_betax_betaxprev * cx;
-		m22_x = sqrt_betaxprev_de_betax * (cx - alphax * sx);
+			sincos(phi_x, &sx, &cx);	// calculate sin(phix) and cos(phix) simultaneously
+			sincos(phi_y, &sy, &cy);
 
-		m11_y = sqrt_betay_de_betayprev * (cy + alphay_previous * sy);
-		m12_y = sqrt_betay_betayprev * sy;
-		m21_y = -1 * (1 + alphay * alphay_previous) / sqrt_betay_betayprev * sy + (alphay_previous - alphay) / sqrt_betay_betayprev * cy;
-		m22_y = sqrt_betayprev_de_betay * (cy - alphay * sy);
+			double m11_x = sqrt_betax_de_betaxprev * (cx + alphax_previous * sx);
+			double m12_x = sqrt_betax_betaxprev * sx;
+			double m21_x = -1 * (1 + alphax * alphax_previous) / sqrt_betax_betaxprev * sx + (alphax_previous - alphax) / sqrt_betax_betaxprev * cx;
+			double m22_x = sqrt_betaxprev_de_betax * (cx - alphax * sx);
 
-		z2 = z1 * m11_z + pz1 * m12_z;
-		pz2 = z1 * m21_z + pz1 * m22_z;
+			double m11_y = sqrt_betay_de_betayprev * (cy + alphay_previous * sy);
+			double m12_y = sqrt_betay_betayprev * sy;
+			double m21_y = -1 * (1 + alphay * alphay_previous) / sqrt_betay_betayprev * sy + (alphay_previous - alphay) / sqrt_betay_betayprev * cy;
+			double m22_y = sqrt_betayprev_de_betay * (cy - alphay * sy);
 
-		x2 = x1 * m11_x + px1 * m12_x + Dx * pz2;
-		px2 = x1 * m21_x + px1 * m22_x + Dpx * pz2;
+			double z2 = z1 * m11_z + pz1 * m12_z;
+			double pz2 = z1 * m21_z + pz1 * m22_z;
 
-		y2 = y1 * m11_y + py1 * m12_y;
-		py2 = y1 * m21_y + py1 * m22_y;
+			double x2 = x1 * m11_x + px1 * m12_x + Dx * pz2;
+			double px2 = x1 * m21_x + px1 * m22_x + Dpx * pz2;
 
-		// 对于判定已损失的粒子，不再改变其坐标
-		// 使用位掩码方法，避免条件分支
-		const bool cond = (p->tag > 0);
-		const long long mask = -static_cast<long long>(cond);
+			double y2 = y1 * m11_y + py1 * m12_y;
+			double py2 = y1 * m21_y + py1 * m22_y;
 
-		double* z_ptr = &p->z;
-		double* pz_ptr = &p->pz;
-		double* x_ptr = &p->x;
-		double* px_ptr = &p->px;
-		double* y_ptr = &p->y;
-		double* py_ptr = &p->py;
+			int over = (z2 > c_half);
+			int under = (z2 < -c_half);
+			z2 += (under - over) * circumference;
 
-		*z_ptr = __longlong_as_double((__double_as_longlong(z2) & mask) | (__double_as_longlong(*z_ptr) & ~mask));
-		*pz_ptr = __longlong_as_double((__double_as_longlong(pz2) & mask) | (__double_as_longlong(*pz_ptr) & ~mask));
-		*x_ptr = __longlong_as_double((__double_as_longlong(x2) & mask) | (__double_as_longlong(*x_ptr) & ~mask));
-		*px_ptr = __longlong_as_double((__double_as_longlong(px2) & mask) | (__double_as_longlong(*px_ptr) & ~mask));
-		*y_ptr = __longlong_as_double((__double_as_longlong(y2) & mask) | (__double_as_longlong(*y_ptr) & ~mask));
-		*py_ptr = __longlong_as_double((__double_as_longlong(py2) & mask) | (__double_as_longlong(*py_ptr) & ~mask));
+			dev_particle.z[tid] = z2;
+			dev_particle.pz[tid] = pz2;
+			dev_particle.x[tid] = x2;
+			dev_particle.px[tid] = px2;
+			dev_particle.y[tid] = y2;
+			dev_particle.py[tid] = py2;
 
-		c_half = circumference * 0.5;
-		over = (p->z > c_half);
-		under = (p->z < -c_half);
-		p->z += (under - over) * circumference;
+			tid += stride;
+		}
 
-		//if (tid == 0)
-		//{
-		//	printf("dev_bunch[%d]: z1 = %.10f, z2 = %.10f, m11_z = %.5f, m12_z = %.5f\n", tid, z1, dev_bunch[tid].z, m11_z, m12_z);
-		//}
-
-		tid += stride;
 	}
 }

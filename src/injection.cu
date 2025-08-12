@@ -15,7 +15,7 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	//std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
 	//std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
 	name = obj_name;
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 	//std::cout << "pointer 4 " << std::hex << dev_bunch << std::endl;
 
 	Np = Bunch.Np;
@@ -222,7 +222,8 @@ void Injection::load_distribution() {
 
 		spdlog::get("logger")->info("[Injection] Loading distribution file: {}", dist_path.string());
 
-		Particle* host_bunch = new Particle[Np];
+		Particle host_particle;
+		host_particle.mem_allocate_cpu(Np);
 
 		std::ifstream input(dist_path);
 
@@ -275,16 +276,16 @@ void Injection::load_distribution() {
 				int offset = j;
 				if (offset < Np)
 				{
-					host_bunch[offset].x = a[0];
-					host_bunch[offset].px = a[1];
-					host_bunch[offset].y = a[2];
-					host_bunch[offset].py = a[3];
-					host_bunch[offset].z = a[4];
-					host_bunch[offset].pz = a[5];
-					host_bunch[offset].tag = a_tag;
-					host_bunch[offset].sliceId = a_sliceId;
-					host_bunch[offset].lostTurn = a_lostTurn;
-					host_bunch[offset].lostPos = a_lostPos;
+					host_particle.x[offset] = a[0];
+					host_particle.px[offset] = a[1];
+					host_particle.y[offset] = a[2];
+					host_particle.py[offset] = a[3];
+					host_particle.z[offset] = a[4];
+					host_particle.pz[offset] = a[5];
+					host_particle.tag[offset] = a_tag;
+					host_particle.sliceId[offset] = a_sliceId;
+					host_particle.lostTurn[offset] = a_lostTurn;
+					host_particle.lostPos[offset] = a_lostPos;
 
 					j++;
 				}
@@ -300,12 +301,9 @@ void Injection::load_distribution() {
 
 		input.close();
 
-		//Particle* dev_bunch2;
-		//callCuda(cudaMalloc(&dev_bunch2, Np * sizeof(double)));
-		callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-		delete[] host_bunch;
-		//callCuda(cudaFree(dev_bunch2));
+		host_particle.mem_free_cpu();
 
 		spdlog::get("logger")->info("[Injection] Distribution file {} has been loadded successfully to {} beam-{} bunch-{}.",
 			dist_path.string(), beam_name, beamId, bunchId);
@@ -358,7 +356,8 @@ void Injection::generate_transverse_KV_distribution() {
 	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u2(0, 1);
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
 	for (int j = 0; j < Np; ++j)
 	{
@@ -418,11 +417,11 @@ void Injection::generate_transverse_KV_distribution() {
 
 		if (x > x_min && x < x_max && y > y_min && y < y_max)
 		{
-			host_bunch[j].x = x;
-			host_bunch[j].px = px;
-			host_bunch[j].y = y;
-			host_bunch[j].py = py;
-			host_bunch[j].tag = j + 1;
+			host_particle.x[j] = x;
+			host_particle.px[j] = px;
+			host_particle.y[j] = y;
+			host_particle.py[j] = py;
+			host_particle.tag[j] = j + 1;
 		}
 		else
 		{
@@ -430,9 +429,10 @@ void Injection::generate_transverse_KV_distribution() {
 		}
 	}
 
-	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 	//std::cout << "initial KV distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
 	spdlog::get("logger")->info("[Injection] The initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
@@ -471,7 +471,8 @@ void Injection::generate_transverse_Gaussian_distribution() {
 	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 	//Particle* host_bunch;
 	//cudaHostAlloc((void**)&host_bunch, Np * sizeof(Particle), cudaHostAllocDefault);
 
@@ -512,11 +513,11 @@ void Injection::generate_transverse_Gaussian_distribution() {
 
 		if (x > x_min && x < x_max && y > y_min && y < y_max)
 		{
-			host_bunch[j].x = x;
-			host_bunch[j].px = px;
-			host_bunch[j].y = y;
-			host_bunch[j].py = py;
-			host_bunch[j].tag = j + 1;
+			host_particle.x[j] = x;
+			host_particle.px[j] = px;
+			host_particle.y[j] = y;
+			host_particle.py[j] = py;
+			host_particle.tag[j] = j + 1;
 		}
 		else
 		{
@@ -526,9 +527,10 @@ void Injection::generate_transverse_Gaussian_distribution() {
 		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
 	}
 
-	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 	//cudaFreeHost(host_bunch);
 	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
 	spdlog::get("logger")->info("[Injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
@@ -568,7 +570,8 @@ void Injection::generate_transverse_uniform_distribution() {
 	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
 	for (int j = 0; j < Np; ++j)
 	{
@@ -615,11 +618,11 @@ void Injection::generate_transverse_uniform_distribution() {
 
 		if (x > x_min && x < x_max && y > y_min && y < y_max)
 		{
-			host_bunch[j].x = x;
-			host_bunch[j].px = px;
-			host_bunch[j].y = y;
-			host_bunch[j].py = py;
-			host_bunch[j].tag = j + 1;
+			host_particle.x[j] = x;
+			host_particle.px[j] = px;
+			host_particle.y[j] = y;
+			host_particle.py[j] = py;
+			host_particle.tag[j] = j + 1;
 		}
 		else
 		{
@@ -629,9 +632,10 @@ void Injection::generate_transverse_uniform_distribution() {
 		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
 	}
 
-	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 	//std::cout << "initial Uniform distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
 	spdlog::get("logger")->info("[Injection] The initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
@@ -662,9 +666,11 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n2(0, sigma_pz);
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
-	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 	for (int j = 0; j < Np; ++j)
 	{
@@ -673,8 +679,8 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 
 		if (tmp_z >= (-4 * sigma_z) && tmp_z <= (4 * sigma_z))
 		{
-			host_bunch[j].z = tmp_z;
-			host_bunch[j].pz = tmp_pz;
+			host_particle.z[j] = tmp_z;
+			host_particle.pz[j] = tmp_pz;
 		}
 		else
 		{
@@ -682,9 +688,10 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 		}
 	}
 
-	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 	spdlog::get("logger")->info("[Injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
@@ -716,9 +723,11 @@ void Injection::generate_longitudinal_uniform_distribution() {
 	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n2(0, sigma_pz);
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
-	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 	for (int j = 0; j < Np; ++j)
 	{
@@ -727,8 +736,8 @@ void Injection::generate_longitudinal_uniform_distribution() {
 
 		if (tmp_z >= (-0.5 * sigma_z) && tmp_z <= (0.5 * sigma_z))
 		{
-			host_bunch[j].z = tmp_z;
-			host_bunch[j].pz = tmp_pz;
+			host_particle.z[j] = tmp_z;
+			host_particle.pz[j] = tmp_pz;
 		}
 		else
 		{
@@ -736,9 +745,10 @@ void Injection::generate_longitudinal_uniform_distribution() {
 		}
 	}
 
-	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
@@ -747,9 +757,11 @@ void Injection::generate_longitudinal_uniform_distribution() {
 
 void Injection::save_initial_distribution() {
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
-	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_beam" + std::to_string(beamId) + "_" + beam_name + "_bunch" + std::to_string(bunchId)
 		+ "_" + std::to_string(Np) + "_hor_" + dist_transverse + "_longi_" + dist_longitudinal
@@ -761,19 +773,19 @@ void Injection::save_initial_distribution() {
 
 	for (int j = 0; j < Np; j++) {
 		file << std::setprecision(10)
-			<< (host_bunch + j)->x << ","
-			<< (host_bunch + j)->px << ","
-			<< (host_bunch + j)->y << ","
-			<< (host_bunch + j)->py << ","
-			<< (host_bunch + j)->z << ","
-			<< (host_bunch + j)->pz << ","
-			<< (host_bunch + j)->tag << ","
-			<< (host_bunch + j)->sliceId << ","
-			<< (host_bunch + j)->lostTurn << ","
-			<< (host_bunch + j)->lostPos << "\n";
+			<< host_particle.x[j] << ","
+			<< host_particle.px[j] << ","
+			<< host_particle.y[j] << ","
+			<< host_particle.py[j] << ","
+			<< host_particle.z[j] << ","
+			<< host_particle.pz[j] << ","
+			<< host_particle.tag[j] << ","
+			<< host_particle.sliceId[j] << ","
+			<< host_particle.lostTurn[j] << ","
+			<< host_particle.lostPos[j] << "\n";
 	}
 	file.close();
-	delete[]host_bunch;
+	host_particle.mem_free_cpu();
 
 	spdlog::get("logger")->info("[Injection] Initial {} distribution of {} beam-{} bunch-{} has been saved to {}.",
 		dist_transverse, beam_name, beamId, bunchId, path_tmp.string());
@@ -790,19 +802,22 @@ void Injection::add_Dx() {
 	spdlog::get("logger")->info("[Injection] Dx = {}, Dpx = {} of {} beam-{} bunch-{} is begin added ...",
 		Dx, Dpx, beam_name, beamId, bunchId);
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
-	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 	for (int j = 0; j < Np; ++j)
 	{
-		host_bunch[j].x += Dx * host_bunch[j].pz;
-		host_bunch[j].px += Dpx * host_bunch[j].pz;
+		host_particle.x[j] += Dx * host_particle.pz[j];
+		host_particle.px[j] += Dpx * host_particle.pz[j];
 	}
 
-	callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 	spdlog::get("logger")->info("[Injection] Dispersion = {} of {} beam-{} bunch-{} has been genetated successfully.",
 		Dx, beam_name, beamId, bunchId);
 }

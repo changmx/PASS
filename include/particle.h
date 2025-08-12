@@ -9,63 +9,44 @@
 
 #include "config.h"
 #include "parameter.h"
-
-
-//// Align the memory to 64 bytes or 128 bytes
-//#ifdef PASS_CAL_PHASE
-//class alignas(128) Particle
-//#else
-//class alignas(64) Particle
-//#endif
+#include "command.h"
 
 
 class Particle
 {
-
 public:
-	Particle() = default;
-	__host__ __device__ ~Particle() {};
-
-	__host__ __device__ bool operator>(const Particle& other) const
-	{
-		return this->z > other.z;
-	}
-
-	double x = 0;
-	double px = 0;
-	double y = 0;
-	double py = 0;
-	double z = 0;
-	double pz = 0;
-
-	double lostPos = -1;	// lost position, -1 means not lost
-
-	int tag = 0;		// lost flag, >0 means not lost, <0 means lost
-	int lostTurn = -1;	// lost turn, -1 means not lost
-	int sliceId = 0;		// Index of the slice to which the particle belongs, used in sorting and slicing
+	// Particle attributes
+	double* __restrict__ x = nullptr;
+	double* __restrict__ px = nullptr;
+	double* __restrict__ y = nullptr;
+	double* __restrict__ py = nullptr;
+	double* __restrict__ z = nullptr;
+	double* __restrict__ pz = nullptr;
+	double* __restrict__ lostPos = nullptr;
+	int* __restrict__ tag = nullptr;
+	int* __restrict__ lostTurn = nullptr;
+	int* __restrict__ sliceId = nullptr;
 
 #ifdef PASS_CAL_PHASE
+	double* __restrict__ last_x = nullptr;
+	double* __restrict__ last_y = nullptr;
+	double* __restrict__ last_px = nullptr;
+	double* __restrict__ last_py = nullptr;
+	double* __restrict__ phase_x = nullptr;
+	double* __restrict__ phase_y = nullptr;
+#endif
 
-	double last_x = 0;
-	double last_y = 0;
-	double last_px = 0;
-	double last_py = 0;
-	double phase_x = 0;
-	double phase_y = 0;
+	~Particle() {};
 
-#endif // PASS_CAL_PHASE
+	// Memory manegement
+	__host__ void mem_allocate_gpu(size_t n);
+	__host__ void mem_allocate_cpu(size_t n);
+	__host__ void mem_free_gpu();
+	__host__ void mem_free_cpu();
 
 private:
 
 };
-
-//// ¾²Ì¬¶ÏÑÔÑéÖ¤
-//#ifdef PASS_CAL_PHASE
-//static_assert(sizeof(Particle) == 128, "Size mismatch");
-//#else
-//static_assert(sizeof(Particle) == 64, "Size mismatch");
-//#endif
-
 
 struct Slice;	// Forward declaration of Slice struct (in cutSlice.h)
 class FieldSolver;	// Forward declaration of FieldSolver class (in pic.h)
@@ -129,6 +110,9 @@ public:
 	Bunch(const Parameter& para, int input_beamId, int input_bunchId);
 	~Bunch();
 
+	Particle dev_particle;
+	Particle dev_particle_tmp;
+
 	int bunchId = 0;
 
 	double Nrp = 0;	// Number of real particles
@@ -137,10 +121,12 @@ public:
 	double ratio = 0;	// Value of Nrp/Np
 	double qm_ratio = 0;	// Charge/mass ratio of a particle (e/m)
 
-	// e.g. for electron beam: Nproton = 0, Nneutron = 0, Ncharge = -1
-	//		for positron beam, Nproton = 0, Nneutron = 0, Ncharge = +1
-	//		for proton   beam: Nproton = 1, Nneutron = 0, Ncharge = +1
-	//      for 238U35+  beam: Nproton = 92, Nneutron = 146, Ncharge = +35
+	/* Example of Nproton, Nneutron, Ncharge:
+	*		for electron beam: Nproton = 0, Nneutron = 0, Ncharge = -1
+	*		for positron beam: Nproton = 0, Nneutron = 0, Ncharge = +1
+	*		for proton   beam: Nproton = 1, Nneutron = 0, Ncharge = +1
+	*		for 238U35+  beam: Nproton = 92, Nneutron = 146, Ncharge = +35
+	*/
 	int Nproton = 0;	// Number of protons per real particle
 	int Nneutron = 0;	// Number of neutrons per real particle
 	int Ncharge = 0;	// Number of charges per real particle. charge of a macro particle is Ncharge*ratio, charge of a nucluon is Ncharge*qm_ration*ratio
@@ -153,20 +139,6 @@ public:
 
 	double Brho = 0;
 
-	//double emitx = 0, emity = 0;	// Geometric emittance (rad'm)
-	//double emitx_norm = 0, emity_norm = 0;	// Normalized emittance (rad'm)
-	////double emitx_equi = 0, emity_equi = 0;	// Equilibrium emittance, used in synchrotron radiation (rad'm)
-
-	//double alphax = 0, alphay = 0;	// Twiss parameters
-	//double betax = 0, betay = 0;	// Twiss parameters
-	//double gammax = 0, gammay = 0;	// Twiss parameters
-
-	//double sigmax = 0, sigmay = 0, sigmaz = 0;	// RMS value of horizontal, vertical bunch size and bunch length (m)
-	//double sigmapx = 0, sigmapy = 0, dp = 0;	// RMS value of horizontal, vertical divergence (rad) and deltap/p
-
-	//double Qx = 0, Qy = 0, Qz = 0;	// Tunes
-	//double chromx = 0, chromy = 0;	// Chromaticity
-
 	double gammat = 0;
 
 	// sigmaz and dp will be set in Injection initialize function
@@ -174,9 +146,6 @@ public:
 	double dp = 0;
 
 	//int dampTurn = 0;	// Transverse damping turns
-
-	Particle* dev_bunch = nullptr;
-	Particle* dev_bunch_tmp = nullptr;	// Temporary buffer for sorting particles
 
 	std::string dist_transverse;
 	std::string dist_longitudinal;
@@ -209,7 +178,7 @@ public:
 	int Nobs_PM = 0;	// Number of observe points
 	int Nturn_PM = 0;	// Number of turns to save particles
 
-	Particle* dev_PM = nullptr;
+	Particle dev_PM;
 
 
 	/********************** Parameters for space charge (sc) **********************/
@@ -220,3 +189,6 @@ public:
 private:
 
 };
+
+
+void particle_copy(Particle dst, Particle src, size_t n, cudaMemcpyKind kink, std::string type);

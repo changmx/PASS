@@ -8,10 +8,10 @@ DistMonitor::DistMonitor(const Parameter& para, int input_beamId, const Bunch& B
 	commandType = "DistMonitor";
 	name = obj_name;
 
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 	Np = Bunch.Np;
 
-	host_bunch = new Particle[Np];
+	host_particle.mem_allocate_cpu(Np);
 
 	bunchId = Bunch.bunchId;
 
@@ -72,7 +72,7 @@ void DistMonitor::execute(int turn) {
 
 		//spdlog::getlogger->debug("[DistMonitor] run: " + name);
 
-		callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+		particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 		std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(turn) + ".csv");
 		std::ofstream file(saveName_full);
@@ -82,16 +82,16 @@ void DistMonitor::execute(int turn) {
 
 		for (int j = 0; j < Np; j++) {
 			file << std::setprecision(10)
-				<< (host_bunch + j)->x << ","
-				<< (host_bunch + j)->px << ","
-				<< (host_bunch + j)->y << ","
-				<< (host_bunch + j)->py << ","
-				<< (host_bunch + j)->z << ","
-				<< (host_bunch + j)->pz << ","
-				<< (host_bunch + j)->tag << ","
-				<< (host_bunch + j)->sliceId << ","
-				<< (host_bunch + j)->lostTurn << ","
-				<< (host_bunch + j)->lostPos << "\n";
+				<< host_particle.x[j] << ","
+				<< host_particle.px[j] << ","
+				<< host_particle.y[j] << ","
+				<< host_particle.py[j] << ","
+				<< host_particle.z[j] << ","
+				<< host_particle.pz[j] << ","
+				<< host_particle.tag[j] << ","
+				<< host_particle.sliceId[j] << ","
+				<< host_particle.lostTurn[j] << ","
+				<< host_particle.lostPos[j] << "\n";
 		}
 		file.close();
 
@@ -138,7 +138,7 @@ StatMonitor::StatMonitor(const Parameter& para, int input_beamId, const Bunch& B
 	commandType = "StatMonitor";
 	name = obj_name;
 
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 	Np = Bunch.Np;
 
 	thread_x = plan1d.get_threads_per_block();
@@ -189,7 +189,7 @@ void StatMonitor::execute(int turn) {
 
 	callCuda(cudaMemset2D(dev_statistic, pitch_statistic, 0, block_x * sizeof(double), Nstat));
 
-	callKernel(cal_statistic_perblock << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_statistic, pitch_statistic, Np));
+	callKernel(cal_statistic_perblock << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_statistic, pitch_statistic, Np));
 
 	// 使用统一虚拟寻址 (UVA) 和固定内存（Mapped Pinned Memory）
 	// 通过 cudaHostAlloc 分配固定且映射到设备地址空间的主机内存，使得设备可以直接修改主机内存，省去显式的 cudaMemcpy
@@ -227,7 +227,7 @@ ParticleMonitor::ParticleMonitor(const Parameter& para, int input_beamId, const 
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
 
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 	Np = Bunch.Np;
 
 	bunchId = Bunch.bunchId;
@@ -273,14 +273,14 @@ void ParticleMonitor::execute(int turn) {
 		callCuda(cudaEventRecord(simTime.start, 0));
 		float time_tmp = 0;
 
-		callKernel(get_particle_specified_tag << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_particleMonitor, Np, Np_PM, obsId, Nobs_PM, Nturn_PM, turn, saveTurn_step));
+		callKernel(get_particle_specified_tag << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_particleMonitor, Np, Np_PM, obsId, Nobs_PM, Nturn_PM, turn, saveTurn_step));
 
 		if (saveTurn[0].isLastPoint(turn))
 		{
-			Particle* host_particleMonitor = nullptr;
-			host_particleMonitor = new Particle[Np_PM * Nobs_PM * Nturn_PM];
+			Particle host_particleMonitor;
+			host_particleMonitor.mem_allocate_cpu(Np_PM * Nobs_PM * Nturn_PM);
 
-			callCuda(cudaMemcpy(host_particleMonitor, dev_particleMonitor, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle), cudaMemcpyDeviceToHost));
+			particle_copy(host_particleMonitor, dev_particleMonitor, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle), cudaMemcpyDeviceToHost, "dist");
 
 			for (size_t i = 0; i < Np_PM; i++)
 			{
@@ -299,22 +299,22 @@ void ParticleMonitor::execute(int turn) {
 						+ k;
 					file << std::setprecision(10)
 						<< saveTurn_step * k + 1 << ","
-						<< (host_particleMonitor + index)->x << ","
-						<< (host_particleMonitor + index)->px << ","
-						<< (host_particleMonitor + index)->y << ","
-						<< (host_particleMonitor + index)->py << ","
-						<< (host_particleMonitor + index)->z << ","
-						<< (host_particleMonitor + index)->pz << ","
-						<< (host_particleMonitor + index)->tag << ","
-						<< (host_particleMonitor + index)->sliceId << ","
-						<< (host_particleMonitor + index)->lostTurn << ","
-						<< (host_particleMonitor + index)->lostPos << "\n";
+						<< host_particleMonitor.x[index] << ","
+						<< host_particleMonitor.px[index] << ","
+						<< host_particleMonitor.y[index] << ","
+						<< host_particleMonitor.py[index] << ","
+						<< host_particleMonitor.z[index] << ","
+						<< host_particleMonitor.pz[index] << ","
+						<< host_particleMonitor.tag[index] << ","
+						<< host_particleMonitor.sliceId[index] << ","
+						<< host_particleMonitor.lostTurn[index] << ","
+						<< host_particleMonitor.lostPos[index] << "\n";
 				}
 				file.close();
 
 			}
 
-			delete[] host_particleMonitor;
+			host_particleMonitor.mem_free_cpu();
 		}
 
 		callCuda(cudaEventRecord(simTime.stop, 0));
@@ -330,7 +330,7 @@ PhaseMonitor::PhaseMonitor(const Parameter& para, int input_beamId, const Bunch&
 
 	commandType = "PhaseMonitor";
 	name = obj_name;
-	dev_bunch = Bunch.dev_bunch;
+	dev_particle = Bunch.dev_particle;
 
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
@@ -441,19 +441,19 @@ void PhaseMonitor::execute(int turn) {
 
 		if (turn == startTurn)
 		{
-			callKernel(record_init_value << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur));
+			callKernel(record_init_value << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur));
 		}
 		else
 		{
 			double sqrtBetax = sqrt(betax);
 			double sqrtBetay = sqrt(betay);
 
-			callKernel(cal_accumulatePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, sqrtBetax, sqrtBetay, alfx, alfy));
+			callKernel(cal_accumulatePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, sqrtBetax, sqrtBetay, alfx, alfy));
 
 			if (turn == endTurn)
 			{
 				int totalTurn = endTurn - startTurn;
-				callKernel(cal_averagePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_bunch, Np_sur, totalTurn));
+				callKernel(cal_averagePhaseChange << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, totalTurn));
 			}
 		}
 
@@ -468,7 +468,7 @@ void PhaseMonitor::execute(int turn) {
 			start_tmp = clock();
 
 			std::filesystem::path saveName_full = saveDir / (saveName_part + "_turn_" + std::to_string(startTurn) + "_" + std::to_string(endTurn) + ".csv");
-			save_phase(dev_bunch, bunchRef.Np, saveName_full);
+			save_phase(dev_particle, bunchRef.Np, saveName_full);
 
 			end_tmp = clock();
 			simTime.savePhase += (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC * 1000;
@@ -488,7 +488,7 @@ __device__ void warpReduce(volatile double* data, int tid) {
 }
 
 
-__global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statistic, size_t pitch_statistic, int NpPerBunch) {
+__global__ void cal_statistic_perblock(Particle dev_particle, double* __restrict__ dev_statistic, size_t pitch_statistic, int NpPerBunch) {
 
 	// Count the information about the particles in each block
 
@@ -601,35 +601,42 @@ __global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statisti
 
 	for (; tid < NpPerBunch; tid += blockDim.x * gridDim.x)
 	{
-		if (dev_bunch[tid].tag > 0)
+		if (dev_particle.tag[tid] > 0)
 		{
-			x_cache[cacheIdx] += dev_bunch[tid].x;
-			xSquare_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].x;
-			xpx_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].px;
-			pxSquare_cache[cacheIdx] += dev_bunch[tid].px * dev_bunch[tid].px;
+			double x = dev_particle.x[tid];
+			double px = dev_particle.px[tid];
+			double y = dev_particle.y[tid];
+			double py = dev_particle.py[tid];
+			double z = dev_particle.z[tid];
+			double pz = dev_particle.pz[tid];
 
-			y_cache[cacheIdx] += dev_bunch[tid].y;
-			ySquare_cache[cacheIdx] += dev_bunch[tid].y * dev_bunch[tid].y;
-			ypy_cache[cacheIdx] += dev_bunch[tid].y * dev_bunch[tid].py;
-			pySquare_cache[cacheIdx] += dev_bunch[tid].py * dev_bunch[tid].py;
+			x_cache[cacheIdx] += x;
+			xSquare_cache[cacheIdx] += x * x;
+			xpx_cache[cacheIdx] += x * px;
+			pxSquare_cache[cacheIdx] += px * px;
+
+			y_cache[cacheIdx] += y;
+			ySquare_cache[cacheIdx] += y * y;
+			ypy_cache[cacheIdx] += y * py;
+			pySquare_cache[cacheIdx] += py * py;
 			//beamLoss_cache[cacheIdx] += 0;
 
-			zSquare_cache[cacheIdx] += dev_bunch[tid].z * dev_bunch[tid].z;
-			pzSquare_cache[cacheIdx] += dev_bunch[tid].pz * dev_bunch[tid].pz;
-			z_cache[cacheIdx] += dev_bunch[tid].z;
-			pz_cache[cacheIdx] += dev_bunch[tid].pz;
+			zSquare_cache[cacheIdx] += z * z;
+			pzSquare_cache[cacheIdx] += pz * pz;
+			z_cache[cacheIdx] += z;
+			pz_cache[cacheIdx] += pz;
 
-			px_cache[cacheIdx] += dev_bunch[tid].px;
-			py_cache[cacheIdx] += dev_bunch[tid].py;
+			px_cache[cacheIdx] += px;
+			py_cache[cacheIdx] += py;
 
-			xz_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].z;
-			xy_cache[cacheIdx] += dev_bunch[tid].x * dev_bunch[tid].y;
-			yz_cache[cacheIdx] += dev_bunch[tid].y * dev_bunch[tid].z;
+			xz_cache[cacheIdx] += x * z;
+			xy_cache[cacheIdx] += x * y;
+			yz_cache[cacheIdx] += y * z;
 
-			x_cube_cache[cacheIdx] += pow(dev_bunch[tid].x, 3);
-			x_quad_cache[cacheIdx] += pow(dev_bunch[tid].x, 4);
-			y_cube_cache[cacheIdx] += pow(dev_bunch[tid].y, 3);
-			y_quad_cache[cacheIdx] += pow(dev_bunch[tid].y, 4);
+			x_cube_cache[cacheIdx] += pow(x, 3);
+			x_quad_cache[cacheIdx] += pow(x, 4);
+			y_cube_cache[cacheIdx] += pow(y, 3);
+			y_quad_cache[cacheIdx] += pow(y, 4);
 
 		}
 		else
@@ -742,7 +749,7 @@ __global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statisti
 }
 
 
-__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit) {
+__global__ void cal_statistic_allblock_2(double* __restrict__ dev_statistic, size_t pitch_statistic, double* __restrict__ host_dev_statistic, int gridDimX, int NpInit) {
 
 	// Summarize data in all grids.
 
@@ -1048,7 +1055,7 @@ __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_sta
 }
 
 
-void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
+void save_bunchInfo_statistic(double* __restrict__ host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
 
 	int stat_turn = turn;
 	double stat_beamloss = host_statistic[8];
@@ -1153,7 +1160,7 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 }
 
 
-__global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_particleMonitor, int Np, int Np_PM,
+__global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM,
 	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveTurn_step) {
 
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -1165,14 +1172,33 @@ __global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_pa
 
 	while (tid < Np)
 	{
-		tag = abs(dev_bunch[tid].tag);
+		tag = abs(dev_particle.tag[tid]);
 		if (tag >= 1 && tag <= Np_PM)
 		{
 			particleId = tag - 1;	// tag ranges from 1 not 0
 			index = particleId * Nobs_PM * Nturn_PM
 				+ obsId * Nturn_PM
 				+ (current_turn - 1) / saveTurn_step;	// turn ranges from 1 not 0, and turn may have a step
-			dev_particleMonitor[index] = dev_bunch[tid];
+
+			dev_particleMonitor.x[index] = dev_particle.x[tid];
+			dev_particleMonitor.px[index] = dev_particle.px[tid];
+			dev_particleMonitor.y[index] = dev_particle.y[tid];
+			dev_particleMonitor.py[index] = dev_particle.py[tid];
+			dev_particleMonitor.z[index] = dev_particle.z[tid];
+			dev_particleMonitor.pz[index] = dev_particle.pz[tid];
+			dev_particleMonitor.lostPos[index] = dev_particle.lostPos[tid];
+			dev_particleMonitor.tag[index] = dev_particle.tag[tid];
+			dev_particleMonitor.lostTurn[index] = dev_particle.lostTurn[tid];
+			dev_particleMonitor.sliceId[index] = dev_particle.sliceId[tid];
+
+#ifdef PASS_CAL_PHASE
+			dev_particleMonitor.last_x[index] = dev_particle.last_x[tid];
+			dev_particleMonitor.last_y[index] = dev_particle.last_y[tid];
+			dev_particleMonitor.last_px[index] = dev_particle.last_px[tid];
+			dev_particleMonitor.last_py[index] = dev_particle.last_py[tid];
+			dev_particleMonitor.phase_x[index] = dev_particle.phase_x[tid];
+			dev_particleMonitor.phase_y[index] = dev_particle.phase_y[tid];
+#endif
 		}
 
 		tid += stride;
@@ -1222,7 +1248,7 @@ __device__ double phaseChange(double& x0, double& px0, double& x1, double& px1) 
 }
 
 
-__global__ void record_init_value(Particle* dev_bunch, int Np_sur) {
+__global__ void record_init_value(Particle dev_particle, int Np_sur) {
 
 	// Recording coordinates for the next turn calculation.
 
@@ -1233,15 +1259,13 @@ __global__ void record_init_value(Particle* dev_bunch, int Np_sur) {
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
+		dev_particle.last_x[tid] = dev_particle.x[tid];
+		dev_particle.last_px[tid] = dev_particle.px[tid];
+		dev_particle.last_y[tid] = dev_particle.y[tid];
+		dev_particle.last_py[tid] = dev_particle.py[tid];
 
-		p->last_x = p->x;
-		p->last_px = p->px;
-		p->last_y = p->y;
-		p->last_py = p->py;
-
-		p->phase_x = 0;
-		p->phase_y = 0;
+		dev_particle.phase_x[tid] = 0;
+		dev_particle.phase_y[tid] = 0;
 
 		tid += stride;
 	}
@@ -1250,7 +1274,7 @@ __global__ void record_init_value(Particle* dev_bunch, int Np_sur) {
 }
 
 
-__global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, double sqrtBetaX, double sqrtBetaY, double alphaX, double alphaY) {
+__global__ void cal_accumulatePhaseChange(Particle dev_particle, int Np_sur, double sqrtBetaX, double sqrtBetaY, double alphaX, double alphaY) {
 
 #ifdef PASS_CAL_PHASE
 
@@ -1259,17 +1283,15 @@ __global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, doubl
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
+		double x0 = dev_particle.last_x[tid];
+		double px0 = dev_particle.last_px[tid];
+		double y0 = dev_particle.last_y[tid];
+		double py0 = dev_particle.last_py[tid];
 
-		double x0 = p->last_x;
-		double px0 = p->last_px;
-		double y0 = p->last_y;
-		double py0 = p->last_py;
-
-		double x1 = p->x;
-		double px1 = p->px;
-		double y1 = p->y;
-		double py1 = p->py;
+		double x1 = dev_particle.x[tid];
+		double px1 = dev_particle.px[tid];
+		double y1 = dev_particle.y[tid];
+		double py1 = dev_particle.py[tid];
 
 		physical2normalize(x0, px0, sqrtBetaX, alphaX);
 		physical2normalize(y0, py0, sqrtBetaY, alphaY);
@@ -1279,13 +1301,13 @@ __global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, doubl
 		double delta_phase_x = phaseChange(x0, px0, x1, px1);
 		double delta_phase_y = phaseChange(y0, py0, y1, py1);
 
-		p->phase_x += delta_phase_x;
-		p->phase_y += delta_phase_y;
+		dev_particle.phase_x[tid] += delta_phase_x;
+		dev_particle.phase_y[tid] += delta_phase_y;
 
-		p->last_x = p->x;
-		p->last_px = p->px;
-		p->last_y = p->y;
-		p->last_py = p->py;
+		dev_particle.last_x[tid] = dev_particle.x[tid];
+		dev_particle.last_px[tid] = dev_particle.px[tid];
+		dev_particle.last_y[tid] = dev_particle.y[tid];
+		dev_particle.last_py[tid] = dev_particle.py[tid];
 
 		tid += stride;
 	}
@@ -1293,7 +1315,7 @@ __global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, doubl
 }
 
 
-__global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int totalTurn) {
+__global__ void cal_averagePhaseChange(Particle dev_particle, int Np_sur, int totalTurn) {
 
 #ifdef PASS_CAL_PHASE
 
@@ -1302,11 +1324,10 @@ __global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int tota
 
 	while (tid < Np_sur)
 	{
-		Particle* p = &dev_bunch[tid];
-		int alive = (p->tag > 0);
+		int alive = (dev_particle.tag[tid] > 0);
 
-		p->phase_x = p->phase_x / totalTurn * alive;
-		p->phase_y = p->phase_y / totalTurn * alive;
+		dev_particle.phase_x[tid] /= (totalTurn * alive);
+		dev_particle.phase_y[tid] /= (totalTurn * alive);
 
 		tid += stride;
 	}
@@ -1314,13 +1335,14 @@ __global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int tota
 }
 
 
-void save_phase(const Particle* dev_bunch, int Np, std::filesystem::path saveName) {
+void save_phase(Particle dev_particle, int Np, std::filesystem::path saveName) {
 
 #ifdef PASS_CAL_PHASE
 
-	Particle* host_bunch = new Particle[Np];
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
 
-	callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "phase");
 
 	std::ofstream file(saveName);
 
@@ -1329,16 +1351,16 @@ void save_phase(const Particle* dev_bunch, int Np, std::filesystem::path saveNam
 	for (int i = 0; i < Np; i++)
 	{
 		file << std::setprecision(10)
-			<< (host_bunch + i)->tag << ","
-			<< (host_bunch + i)->phase_x << ","
-			<< (host_bunch + i)->phase_y << ","
-			<< (host_bunch + i)->phase_x / (2 * PassConstant::PI) << ","
-			<< (host_bunch + i)->phase_y / (2 * PassConstant::PI) << "\n";
+			<< host_particle.tag[i] << ","
+			<< host_particle.phase_x[i] << ","
+			<< host_particle.phase_y[i] << ","
+			<< host_particle.phase_x[i] / (2 * PassConstant::PI) << ","
+			<< host_particle.phase_y[i] / (2 * PassConstant::PI) << "\n";
 	}
 
 	file.close();
 
-	delete[] host_bunch;
+	host_particle.mem_free_cpu();
 
 #endif
 }

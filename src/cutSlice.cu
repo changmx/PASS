@@ -34,8 +34,8 @@ struct isSurvived {
 SortBunch::SortBunch(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
 
 	name = obj_name;
-	dev_bunch = Bunch.dev_bunch;
-	dev_bunch_tmp = Bunch.dev_bunch_tmp;
+	dev_particle = Bunch.dev_particle;
+	dev_particle_tmp = Bunch.dev_particle_tmp;
 
 	thread_x = plan1d.get_threads_per_block();
 	block_x = plan1d.get_blocks_x();
@@ -114,11 +114,10 @@ void SortBunch::execute(int turn) {
 	}
 
 	// 1: Survived particle is marked with 1, not survived with 0
-	callKernel(mark_survive_particles << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_survive_flags, Np));
+	callKernel(mark_survive_particles << <block_x, thread_x, 0, 0 >> > (dev_particle.tag, dev_survive_flags, Np));
 
 	// 2：Calculate prefix sum of survived particles by exclusive method
-	cub::DeviceScan::ExclusiveSum(dev_cub_temp, cub_temp_bytes,
-		dev_survive_flags, dev_survive_prefix, Np);
+	cub::DeviceScan::ExclusiveSum(dev_cub_temp, cub_temp_bytes, dev_survive_flags, dev_survive_prefix, Np);
 
 	// 3. Get the number of survived particles (Np_sur)
 	int last_flag, last_prefix;
@@ -130,27 +129,19 @@ void SortBunch::execute(int turn) {
 	bunchRef.Np_sur = Np_sur;	// Update Np_sur
 
 	// 4. Maintain the original order, the surviving particles move to [0,Np_sur), and the non-surviving particles move to [Np_sur, Np).
-	callKernel(stable_partition << <block_x, thread_x, 0, 0 >> > (dev_bunch, dev_bunch_tmp, dev_survive_prefix, Np, Np_sur));
-	//callCuda(cudaMemcpy(dev_bunch, dev_bunch_tmp, Np * sizeof(Particle), cudaMemcpyDeviceToDevice));
+	callKernel(stable_partition << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_particle_tmp, dev_survive_prefix, Np, Np_sur));
 
 	// 5. Sort the bunch by z value in descending order
-	// Method 1: Sort the array directly. Although it is very convenient, the speed is relatively slow because the Particle class is large (64 or 128 bytes) 
-	//thrust::device_ptr<Particle>dev_bunch_prt(dev_bunch);
-	//thrust::sort(thrust::device, dev_bunch_prt, dev_bunch_prt + Np_sur, thrust::greater<Particle>());	// Sort by z from largest to smallest
-
-	// Method 2: Only extract the z value of each object to sort its index, and then rearrange the array according to the index. This method is relatively fast
-	thrust::device_ptr<Particle> dev_bunch_ptr(dev_bunch);
-	thrust::device_ptr<Particle> dev_bunch_tmp_ptr(dev_bunch_tmp);
+	callCuda(cudaMemcpy(dev_sort_z, dev_particle_tmp.z, Np_sur * sizeof(double), cudaMemcpyDeviceToDevice));
 	thrust::device_ptr<double> z_ptr(dev_sort_z);
 	thrust::device_ptr<int>index_ptr(dev_sort_index);
 
-	thrust::transform(thrust::device, dev_bunch_tmp_ptr, dev_bunch_tmp_ptr + Np_sur, z_ptr, [] __device__(const Particle & p) { return p.z; });	// Extract z from particles
-	thrust::sequence(thrust::device, index_ptr, index_ptr + Np_sur);	// Create index array
+	thrust::sequence(thrust::device, index_ptr, index_ptr + Np_sur);	// Create index array [0, 1, 2, ..., Np_sur-1]
 	thrust::sort_by_key(thrust::device, z_ptr, z_ptr + Np_sur, index_ptr, thrust::greater<double>());	// Sort by z from largest to smallest
-	thrust::gather(thrust::device, index_ptr, index_ptr + Np_sur, dev_bunch_tmp_ptr, dev_bunch_ptr);	// Gather particles according to the sorted index
+	callKernel(gather_survive_particles << <block_x, thread_x, 0, 0 >> > (dev_particle_tmp, dev_particle, dev_sort_index, Np_sur));	// Gather particles according to the sorted index
 	if ((Np - Np_sur) > 0)
 	{
-		callCuda(cudaMemcpy(dev_bunch + Np_sur, dev_bunch_tmp + Np_sur, (Np - Np_sur) * sizeof(Particle), cudaMemcpyDeviceToDevice));	// Copy sorted particles back to dev_bunch
+		callKernel(copy_lost_particles << <block_x, thread_x, 0, 0 >> > (dev_particle_tmp, dev_particle, Np, Np_sur));	// Copy lost particles back to dev_bunch
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -168,14 +159,14 @@ void SortBunch::execute(int turn) {
 
 	if ("Equal particle" == slice_model) {
 		// 6. Set z_start, z_end, index_start and index_end for each slice
-		callKernel(setup_slice_euqal_particle << <gridSize_s, blockSize_s, 0, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice));
+		callKernel(setup_slice_euqal_particle << <gridSize_s, blockSize_s, 0, 0 >> > (dev_particle.z, dev_slice, Np_sur, Nslice));
 	}
 	else if ("Equal length" == slice_model) {
 		// 6. Set z_start and z_end for each slice
-		callKernel(setup_slice_euqal_length << <gridSize_s, blockSize_s, 0, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice));
+		callKernel(setup_slice_euqal_length << <gridSize_s, blockSize_s, 0, 0 >> > (dev_particle.z, dev_slice, Np_sur, Nslice));
 
 		// 6. Set index_start and index_end for each slice
-		callKernel(find_slice_indices << <gridSize_s, blockSize_s, 0, 0 >> > (dev_sort_z, Np_sur, dev_slice, Nslice));
+		callKernel(find_slice_indices << <gridSize_s, blockSize_s, 0, 0 >> > (dev_particle.z, Np_sur, dev_slice, Nslice));
 	}
 	else {
 		spdlog::get("logger")->error("[SortBunch] Error: Slice model must be 'Equal particle' or 'Equal length', but now is {}", slice_model);
@@ -191,14 +182,14 @@ void SortBunch::execute(int turn) {
 		const int totalThreads_sid = (Np_sur + particlesPerThread_sid - 1) / particlesPerThread_sid;
 		const int gridSize_sid = (totalThreads_sid + blockSize_sid - 1) / blockSize_sid;
 
-		callKernel(setup_sliceId_small_Nslice << <gridSize_sid, blockSize_sid, sharedMemSize, 0 >> > (dev_bunch, dev_slice, Np_sur, Nslice));
+		callKernel(setup_sliceId_small_Nslice << <gridSize_sid, blockSize_sid, sharedMemSize, 0 >> > (dev_particle.sliceId, dev_slice, Np_sur, Nslice));
 	}
 	else
 	{
-		callKernel(setup_sliceId_large_Nslice << <Nslice, 1024, 0, 0 >> > (dev_bunch, dev_slice, Nslice));
+		callKernel(setup_sliceId_large_Nslice << <Nslice, 1024, 0, 0 >> > (dev_particle.sliceId, dev_slice, Nslice));
 	}
 
-	callKernel(reduction_z_avg << <Nslice, 256, 0, 0 >> > (dev_bunch, dev_slice, Nslice));
+	callKernel(reduction_z_avg << <Nslice, 256, 0, 0 >> > (dev_particle.z, dev_slice, Nslice));
 
 	//show_slice_info << <1, 1, 0, 0 >> > (dev_slice, Nslice);
 	//cudaDeviceSynchronize();
@@ -212,7 +203,7 @@ void SortBunch::execute(int turn) {
 }
 
 
-__global__ void reduction_z_avg(const Particle* dev_bunch, Slice* dev_slice, int Nslice) {
+__global__ void reduction_z_avg(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Nslice) {
 
 	const int ThreadsPerBlock = 256;
 
@@ -234,7 +225,7 @@ __global__ void reduction_z_avg(const Particle* dev_bunch, Slice* dev_slice, int
 	// 每个线程计算局部和
 	double thread_sum = 0.0;
 	for (int i = start + tid; i < end; i += stride) {
-		thread_sum += dev_bunch[i].z;
+		thread_sum += dev_z[i];
 	}
 
 	// 使用CUB库进行高效规约
@@ -250,35 +241,68 @@ __global__ void reduction_z_avg(const Particle* dev_bunch, Slice* dev_slice, int
 }
 
 
-__global__ void mark_survive_particles(Particle* dev_bunch, int* flags, int Np) {
+__global__ void mark_survive_particles(const int* __restrict__ dev_tag, int* __restrict__ flags, int Np) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
 	while (tid < Np) {
-		flags[tid] = (dev_bunch[tid].tag > 0); // 1 for survived, 0 for not survived
+		flags[tid] = (dev_tag[tid] > 0); // 1 for survived, 0 for not survived
 		//printf("flag [%d] = %d\n", tid, flags[tid]);
 
 		tid += stride;
 	}
 }
 
-__global__ void stable_partition(Particle* src, Particle* dst, int* valid_prefix, int Np, int Np_sur) {
+__global__ void stable_partition(Particle src, Particle dst, int* valid_prefix, int Np, int Np_sur) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	const bool valid = (src[tid].tag > 0);
-	const int prefix_val = valid_prefix[tid];
-
 	while (tid < Np)
 	{
+		const bool valid = (src.tag[tid] > 0);
+		const int prefix_val = valid_prefix[tid];
+
 		if (valid) {
-			dst[prefix_val] = src[tid];
+			//dst[prefix_val] = src[tid];
+			dst.x[prefix_val] = src.x[tid];
+			dst.px[prefix_val] = src.px[tid];
+			dst.y[prefix_val] = src.y[tid];
+			dst.py[prefix_val] = src.py[tid];
+			dst.z[prefix_val] = src.z[tid];
+			dst.pz[prefix_val] = src.pz[tid];
+			dst.lostPos[prefix_val] = src.lostPos[tid];
+			dst.tag[prefix_val] = src.tag[tid];
+			dst.lostTurn[prefix_val] = src.lostTurn[tid];
+			dst.sliceId[prefix_val] = src.sliceId[tid];
+#ifdef PASS_CAL_PHASE
+			dst.last_x[prefix_val] = src.last_x[tid];
+			dst.last_y[prefix_val] = src.last_y[tid];
+			dst.last_px[prefix_val] = src.last_px[tid];
+			dst.last_py[prefix_val] = src.last_py[tid];
+			dst.phase_x[prefix_val] = src.phase_x[tid];
+			dst.phase_y[prefix_val] = src.phase_y[tid];
+#endif
 		}
 		else {
 			const int invalid_idx = tid - prefix_val;
-			dst[Np_sur + invalid_idx] = src[tid];
+			//dst[Np_sur + invalid_idx] = src[tid];
+			dst.x[Np_sur + invalid_idx] = src.x[tid]; dst.px[Np_sur + invalid_idx] = src.px[tid];
+			dst.y[Np_sur + invalid_idx] = src.y[tid]; dst.py[Np_sur + invalid_idx] = src.py[tid];
+			dst.z[Np_sur + invalid_idx] = src.z[tid]; dst.pz[Np_sur + invalid_idx] = src.pz[tid];
+			dst.lostPos[Np_sur + invalid_idx] = src.lostPos[tid];
+			dst.tag[Np_sur + invalid_idx] = src.tag[tid];
+			dst.lostTurn[Np_sur + invalid_idx] = src.lostTurn[tid];
+			dst.sliceId[Np_sur + invalid_idx] = src.sliceId[tid];
+#ifdef PASS_CAL_PHASE
+			dst.last_x[Np_sur + invalid_idx] = src.last_x[tid];
+			dst.last_y[Np_sur + invalid_idx] = src.last_y[tid];
+			dst.last_px[Np_sur + invalid_idx] = src.last_px[tid];
+			dst.last_py[Np_sur + invalid_idx] = src.last_py[tid];
+			dst.phase_x[Np_sur + invalid_idx] = src.phase_x[tid];
+			dst.phase_y[Np_sur + invalid_idx] = src.phase_y[tid];
+#endif
 		}
 
 		tid += stride;
@@ -287,7 +311,68 @@ __global__ void stable_partition(Particle* src, Particle* dst, int* valid_prefix
 }
 
 
-__global__ void setup_slice_euqal_particle(const Particle* dev_bunch, Slice* dev_slice, int Np_sur, int Nslice) {
+__global__ void gather_survive_particles(Particle src, Particle dst, const int* __restrict__ sorted_index, int Np_sur) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur)
+	{
+		int index = sorted_index[tid];
+
+		dst.x[tid] = src.x[index]; dst.px[tid] = src.px[index];
+		dst.y[tid] = src.y[index]; dst.py[tid] = src.py[index];
+		dst.z[tid] = src.z[index]; dst.pz[tid] = src.pz[index];
+		dst.lostPos[tid] = src.lostPos[index];
+		dst.tag[tid] = src.tag[index];
+		dst.lostTurn[tid] = src.lostTurn[index];
+		dst.sliceId[tid] = src.sliceId[index];
+#ifdef PASS_CAL_PHASE
+		dst.last_x[tid] = src.last_x[index];
+		dst.last_y[tid] = src.last_y[index];
+		dst.last_px[tid] = src.last_px[index];
+		dst.last_py[tid] = src.last_py[index];
+		dst.phase_x[tid] = src.phase_x[index];
+		dst.phase_y[tid] = src.phase_y[index];
+#endif
+
+		tid += stride;
+	}
+
+}
+
+
+__global__ void copy_lost_particles(Particle src, Particle dst, int Np, int Np_sur) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < (Np - Np_sur))
+	{
+		int index = tid + Np_sur;
+
+		dst.x[index] = src.x[index]; dst.px[tid] = src.px[index];
+		dst.y[index] = src.y[index]; dst.py[tid] = src.py[index];
+		dst.z[index] = src.z[index]; dst.pz[tid] = src.pz[index];
+		dst.lostPos[index] = src.lostPos[index];
+		dst.tag[index] = src.tag[index];
+		dst.lostTurn[index] = src.lostTurn[index];
+		dst.sliceId[index] = src.sliceId[index];
+#ifdef PASS_CAL_PHASE
+		dst.last_x[index] = src.last_x[index];
+		dst.last_y[index] = src.last_y[index];
+		dst.last_px[index] = src.last_px[index];
+		dst.last_py[index] = src.last_py[index];
+		dst.phase_x[index] = src.phase_x[index];
+		dst.phase_y[index] = src.phase_y[index];
+#endif
+
+		tid += stride;
+	}
+}
+
+
+__global__ void setup_slice_euqal_particle(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Np_sur, int Nslice) {
 
 	int particles_per_slice = Np_sur / Nslice;
 	int remainder = Np_sur % Nslice;
@@ -312,8 +397,8 @@ __global__ void setup_slice_euqal_particle(const Particle* dev_bunch, Slice* dev
 		// for (int i = start; i < end; ++i) { ... } // Access particles in this slice
 		dev_slice[i].index_start = start;
 		dev_slice[i].index_end = end;
-		dev_slice[i].z_start = dev_bunch[start].z;	// z_start is the z of the first particle in this slice
-		dev_slice[i].z_end = dev_bunch[end - 1].z;		// z_end is the z of the last particle in this slice
+		dev_slice[i].z_start = dev_z[start];	// z_start is the z of the first particle in this slice
+		dev_slice[i].z_end = dev_z[end - 1];	// z_end is the z of the last particle in this slice
 
 		i += stride;
 	}
@@ -321,10 +406,10 @@ __global__ void setup_slice_euqal_particle(const Particle* dev_bunch, Slice* dev
 }
 
 
-__global__ void setup_slice_euqal_length(const Particle* dev_bunch, Slice* dev_slice, int Np_sur, int Nslice) {
+__global__ void setup_slice_euqal_length(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Np_sur, int Nslice) {
 
-	double z_max = dev_bunch[0].z;	// Particles are sorted in descending order of z
-	double z_min = dev_bunch[Np_sur - 1].z;	// Last particle has the smallest z
+	double z_max = dev_z[0];	// Particles are sorted in descending order of z
+	double z_min = dev_z[Np_sur - 1];	// Last particle has the smallest z
 	double delta_z = (z_max - z_min) / Nslice;	// Length of each slice
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -341,7 +426,7 @@ __global__ void setup_slice_euqal_length(const Particle* dev_bunch, Slice* dev_s
 }
 
 
-__global__ void find_slice_indices(const double* sorted_z, int Np_sur, Slice* dev_slice, int Nslice) {
+__global__ void find_slice_indices(const double* __restrict__ dev_z, int Np_sur, Slice* dev_slice, int Nslice) {
 
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -358,7 +443,7 @@ __global__ void find_slice_indices(const double* sorted_z, int Np_sur, Slice* de
 
 		while (low <= high) {
 			mid = low + (high - low) / 2;
-			if (sorted_z[mid] > z_start) {
+			if (dev_z[mid] > z_start) {
 				low = mid + 1;
 			}
 			else {
@@ -374,7 +459,7 @@ __global__ void find_slice_indices(const double* sorted_z, int Np_sur, Slice* de
 
 		while (low <= high) {
 			mid = low + (high - low) / 2;
-			if (sorted_z[mid] >= z_end) {
+			if (dev_z[mid] >= z_end) {
 				low = mid + 1;
 			}
 			else {
@@ -401,7 +486,7 @@ __global__ void find_slice_indices(const double* sorted_z, int Np_sur, Slice* de
 }
 
 
-__global__ void test_change_particle_tag(Particle* dev_bunch, int Np, int turn) {
+__global__ void test_change_particle_tag(Particle* dev_particle, int Np, int turn) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -409,7 +494,7 @@ __global__ void test_change_particle_tag(Particle* dev_bunch, int Np, int turn) 
 	while (tid < Np) {
 		if (tid % (turn + 100) == 0)
 		{
-			dev_bunch[tid].tag = abs(dev_bunch[tid].tag) * -1;
+			dev_particle->tag[tid] = abs(dev_particle->tag[tid]) * -1;
 		}
 
 		tid += stride;
@@ -437,7 +522,7 @@ __global__ void show_slice_info(const Slice* dev_slice, int Nslice) {
 }
 
 
-__device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle_index) {
+__device__ int find_slice_index(const Slice* __restrict__ dev_slice, int Nslice, int particle_index) {
 
 	int left = 0;
 	int right = Nslice - 1;
@@ -460,7 +545,7 @@ __device__ int find_slice_index(const Slice* dev_slice, int Nslice, int particle
 }
 
 
-__global__ void setup_sliceId_small_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, int Nslice) {
+__global__ void setup_sliceId_small_Nslice(int* __restrict__ dev_sliceId, const Slice* __restrict__ dev_slice, int Np_sur, int Nslice) {
 
 	extern __shared__ Slice sharedSlices[];
 
@@ -480,12 +565,12 @@ __global__ void setup_sliceId_small_Nslice(Particle* dev_bunch, const Slice* dev
 		while (currentSlice < (Nslice - 1) && i >= sharedSlices[currentSlice + 1].index_start) {
 			currentSlice++;
 		}
-		dev_bunch[i].sliceId = currentSlice;
+		dev_sliceId[i] = currentSlice;
 	}
 }
 
 
-__global__ void setup_sliceId_large_Nslice(Particle* dev_bunch, const Slice* dev_slice, int Nslice) {
+__global__ void setup_sliceId_large_Nslice(int* __restrict__ dev_sliceId, const Slice* __restrict__ dev_slice, int Nslice) {
 
 	int sliceId = blockIdx.x;
 
@@ -504,7 +589,7 @@ __global__ void setup_sliceId_large_Nslice(Particle* dev_bunch, const Slice* dev
 	while (tid < numParticlesInSlice)
 	{
 		int particleIndex = start + tid;
-		dev_bunch[particleIndex].sliceId = sliceId;
+		dev_sliceId[particleIndex] = sliceId;
 
 		tid += stride;
 	}

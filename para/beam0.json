@@ -15,7 +15,7 @@
     "Is plot figure": false,
     "Space-charge simulation parameters": {
         "Is enable space charge": true,
-        "Number of slices": 1,
+        "Number of slices": 100,
         "Slice model": "Equal particle",
         "Field solver": "PIC_FD_CUDSS"
     },

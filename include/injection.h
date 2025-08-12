@@ -31,7 +31,7 @@ public:
 	void print_config();
 
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 
 	int Np = 0;
 

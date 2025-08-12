@@ -36,10 +36,8 @@ public:
 	DistMonitor(DistMonitor&& other)noexcept
 		:Np(other.Np), bunchId(other.bunchId), saveDir(other.saveDir), saveName_part(other.saveName_part), simTime(other.simTime),
 		saveTurn(other.saveTurn),
-		dev_bunch(other.dev_bunch), host_bunch(other.host_bunch)
+		dev_particle(other.dev_particle), host_particle(other.host_particle)
 	{
-		other.host_bunch = nullptr;
-		other.dev_bunch = nullptr;
 		spdlog::get("logger")->debug("[DistMonitor] class move constructor: {}.", name);
 	}
 
@@ -55,12 +53,9 @@ public:
 			simTime = other.simTime;
 			saveTurn = other.saveTurn;
 
-			delete[] host_bunch; // 释放原有的内存
-			host_bunch = other.host_bunch;
-			other.host_bunch = nullptr;
+			host_particle = other.host_particle;
 
-			dev_bunch = other.dev_bunch;
-			other.dev_bunch = nullptr;
+			dev_particle = other.dev_particle;
 
 			spdlog::get("logger")->debug("[DistMonitor] class move assignment operator: {}.", name);
 		}
@@ -68,7 +63,7 @@ public:
 	}
 
 	~DistMonitor() override {
-		delete[] host_bunch;
+		host_particle.mem_free_cpu();
 		spdlog::get("logger")->debug("[DistMonitor] class destructor: {}.", name);
 	};
 
@@ -92,8 +87,8 @@ private:
 
 	std::vector<CycleRange> saveTurn;
 
-	Particle* dev_bunch = nullptr;
-	Particle* host_bunch = nullptr;
+	Particle dev_particle;
+	Particle host_particle;
 };
 
 
@@ -110,9 +105,8 @@ public:
 	StatMonitor(StatMonitor&& other)noexcept
 		:Nstat(other.Nstat), pitch_statistic(other.pitch_statistic), Np(other.Np), thread_x(other.thread_x), block_x(other.block_x), bunchId(other.bunchId),
 		saveDir(other.saveDir), saveName_part(other.saveName_part), simTime(other.simTime),
-		dev_bunch(other.dev_bunch), dev_statistic(other.dev_statistic), host_statistic(other.host_statistic)
+		dev_particle(other.dev_particle), dev_statistic(other.dev_statistic), host_statistic(other.host_statistic)
 	{
-		other.dev_bunch = nullptr;
 		other.dev_statistic = nullptr;
 		other.host_statistic = nullptr;
 		spdlog::get("logger")->debug("[StatMonitor] class move constructor: {}.", name);
@@ -141,8 +135,7 @@ public:
 			dev_statistic = other.dev_statistic;
 			other.dev_statistic = nullptr;
 
-			dev_bunch = other.dev_bunch;
-			other.dev_bunch = nullptr;
+			dev_particle = other.dev_particle;
 
 			spdlog::get("logger")->debug("[StatMonitor] class move assignment operator: {}.", name);
 		}
@@ -187,7 +180,7 @@ private:
 
 	TimeEvent& simTime;
 
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	double* dev_statistic = nullptr;
 	double* host_statistic = nullptr;
 };
@@ -231,8 +224,8 @@ private:
 
 	int obsId = 0;	// Observation Id, used to distinguish different observation points
 
-	Particle* dev_bunch = nullptr;
-	Particle* dev_particleMonitor = nullptr;
+	Particle dev_particle;
+	Particle dev_particleMonitor;
 
 	int thread_x = 0;
 	int block_x = 0;
@@ -269,7 +262,7 @@ private:
 
 	std::vector<CycleRange> saveTurn;
 
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	const Bunch& bunchRef;
 
 	int thread_x = 0;
@@ -277,13 +270,13 @@ private:
 };
 
 
-__global__ void cal_statistic_perblock(Particle* dev_bunch, double* dev_statistic, size_t pitch_statistic, int NpPerBunch);
+__global__ void cal_statistic_perblock(Particle dev_particle, double* __restrict__ dev_statistic, size_t pitch_statistic, int NpPerBunch);
 
-__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
+__global__ void cal_statistic_allblock_2(double* __restrict__ dev_statistic, size_t pitch_statistic, double* __restrict__ host_dev_statistic, int gridDimX, int NpInit);
 
-void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
+void save_bunchInfo_statistic(double* __restrict__ host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
 
-__global__ void get_particle_specified_tag(Particle* dev_bunch, Particle* dev_particleMonitor, int Np, int Np_PM,
+__global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM,
 	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);
 
 __device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX);
@@ -292,10 +285,10 @@ __device__ void normalize2physical(double& x, double& px, double sqrtBetaX, doub
 
 __device__ double phaseChange(double& x0, double& px0, double& x1, double& px1);
 
-__global__ void record_init_value(Particle* dev_bunch, int Np_sur);
+__global__ void record_init_value(Particle dev_particle, int Np_sur);
 
-__global__ void cal_accumulatePhaseChange(Particle* dev_bunch, int Np_sur, double sqrtBetaX, double sqrtBetaY, double alphaX, double alphaY);
+__global__ void cal_accumulatePhaseChange(Particle dev_particle, int Np_sur, double sqrtBetaX, double sqrtBetaY, double alphaX, double alphaY);
 
-__global__ void cal_averagePhaseChange(Particle* dev_bunch, int Np_sur, int totalTurn);
+__global__ void cal_averagePhaseChange(Particle dev_particle, int Np_sur, int totalTurn);
 
-void save_phase(const Particle* dev_bunch, int Np, std::filesystem::path saveName);
+void save_phase(Particle dev_particle, int Np, std::filesystem::path saveName);

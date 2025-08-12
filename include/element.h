@@ -40,7 +40,7 @@ public:
 		logger->info("[Makrer Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -73,7 +73,7 @@ public:
 		logger->info("[SBend Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -117,7 +117,7 @@ public:
 		logger->info("[RBend Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -161,7 +161,7 @@ public:
 		logger->info("[Quadrupole Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -202,7 +202,7 @@ public:
 		logger->info("[Sextupole Normal Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -246,7 +246,7 @@ public:
 		logger->info("[Sextupole Skew Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -290,7 +290,7 @@ public:
 		logger->info("[Octupole Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -330,7 +330,7 @@ public:
 		logger->info("[Hor. Kicker Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -369,7 +369,7 @@ public:
 		logger->info("[Ver. Kicker Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -415,7 +415,7 @@ public:
 		logger->info("[RF Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	Bunch& bunchRef;
 
@@ -452,7 +452,7 @@ public:
 
 	~ElSeparatorElement() {
 		callCuda(cudaFree(dev_counter));
-		callCuda(cudaFree(dev_particle_Es));
+		dev_particle_Es.mem_free_gpu();
 	}
 
 	void execute(int turn) override;
@@ -462,7 +462,7 @@ public:
 		logger->info("[Electrostatic Separator Element] print");
 	}
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -483,56 +483,56 @@ private:
 
 	double ES_hor_position = 0;	// The horizontal position of the separator relative to the center of the beam pipe, in unit of m
 
-	Particle* dev_particle_Es = nullptr;	// Device memory for the particles transfered into the electrostatic separator
-	
+	Particle dev_particle_Es;	// Device memory for the particles transfered into the electrostatic separator
+
 	std::filesystem::path saveDir;
 	std::string saveName_part;
 };
 
 
-__global__ void transfer_drift(Particle* dev_bunch, int Np_sur, double beta, double circumference,
+__global__ void transfer_drift(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length);
 
-__global__ void transfer_dipole_full(Particle* dev_bunch, int Np_sur, double beta, double circumference,
+__global__ void transfer_dipole_full(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_dipole_half_left(Particle* dev_bunch, int Np_sur, double beta, double circumference,
+__global__ void transfer_dipole_half_left(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_dipole_half_right(Particle* dev_bunch, int Np_sur, double beta, double circumference,
+__global__ void transfer_dipole_half_right(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double r11, double r12, double r16, double r21, double r22, double r26,
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_quadrupole_norm(Particle* dev_bunch, int Np_sur, double beta, double circumference,
+__global__ void transfer_quadrupole_norm(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double k1, double l);
 
-__global__ void transfer_quadrupole_skew(Particle* dev_bunch, int Np_sur, double beta, double circumference,
+__global__ void transfer_quadrupole_skew(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double k1s, double l);
 
-__global__ void transfer_sextupole_norm(Particle* dev_bunch, int Np_sur, double beta,
+__global__ void transfer_sextupole_norm(Particle dev_particle, int Np_sur, double beta,
 	double k2, double l);
 
-__global__ void transfer_sextupole_skew(Particle* dev_bunch, int Np_sur, double beta,
+__global__ void transfer_sextupole_skew(Particle dev_particle, int Np_sur, double beta,
 	double k2s, double l);
 
-__global__ void transfer_octupole_norm(Particle* dev_bunch, int Np_sur, double beta,
+__global__ void transfer_octupole_norm(Particle dev_particle, int Np_sur, double beta,
 	double k2, double l);
 
-__global__ void transfer_octupole_skew(Particle* dev_bunch, int Np_sur, double beta,
+__global__ void transfer_octupole_skew(Particle dev_particle, int Np_sur, double beta,
 	double k2s, double l);
 
-__global__ void transfer_hkicker(Particle* dev_bunch, int Np_sur, double beta,
+__global__ void transfer_hkicker(Particle dev_particle, int Np_sur, double beta,
 	double kick);
 
-__global__ void transfer_vkicker(Particle* dev_bunch, int Np_sur, double beta,
+__global__ void transfer_vkicker(Particle dev_particle, int Np_sur, double beta,
 	double kick);
 
-__global__ void transfer_rf(Particle* dev_bunch, int Np_sur, int turn, double beta0, double beta1, double gamma0, double gamma1,
+__global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double beta0, double beta1, double gamma0, double gamma1,
 	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
 	double radius, double ratio, double dE_syn, double eta1, double E_total1);
 
@@ -540,10 +540,10 @@ __device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, dou
 
 __device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta);
 
-__global__ void transfer_multipole_kicker(Particle* dev_bunch, int Np_sur, int order, const double* dev_kn, const double* dev_ks, double l);
+__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_kn, const double* dev_ks, double l);
 
 std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 
 std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename);
 
-__global__ void check_particle_in_ElSeparator(Particle* dev_bunch, int Np_sur, Particle* dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);
+__global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur, Particle dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);

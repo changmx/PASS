@@ -12,7 +12,7 @@
 #include "general.h"
 #include "cutSlice.h"
 
-#include "amgx_c.h"
+//#include "amgx_c.h"
 
 class Particle;	// Forward declaration of Particle class
 class Bunch;	// Forward declaration of Bunch class
@@ -50,10 +50,10 @@ public:
 	virtual ~FieldSolver();
 
 	virtual void initialize() = 0;	// Initialize the field solver, allocate memory, etc.
-	virtual void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) = 0;
+	virtual void update_b_values(Particle dev_particle, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) = 0;
 	virtual void solve_x_values() = 0;
 	virtual void calculate_electricField() = 0;
-	
+
 	const double2* get_electricField() const { return dev_electicField; }
 	int get_Nx() const { return Nx; }
 	int get_Ny() const { return Ny; }
@@ -110,7 +110,7 @@ public:
 	~FieldSolverCUDSS() override;
 
 	void initialize() override;
-	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) override;
+	void update_b_values(Particle dev_particle, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
 
@@ -153,31 +153,31 @@ public:
 	~FieldSolverAMGX() override;
 
 	void initialize() override;
-	void update_b_values(Particle* dev_bunch, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) override;
+	void update_b_values(Particle dev_particle, const Slice* dev_slice, int Np_sur, double charge, int thread_x, int block_x, int turn, double s) override;
 	void solve_x_values() override;
 	void calculate_electricField() override;
 
 private:
-	AMGX_config_handle amgx_config = nullptr;	// AMGX configuration handle
-	AMGX_resources_handle amgx_resources = nullptr;	// AMGX resources handle
-	AMGX_matrix_handle amgx_matrix = nullptr;	// AMGX matrix handle
-	AMGX_vector_handle amgx_vector_x = nullptr;	// AMGX left vector handle
-	AMGX_vector_handle amgx_vector_y = nullptr;	// AMGX right vector handle
-	AMGX_solver_handle amgx_solver = nullptr;	// AMGX solver handle
+	//AMGX_config_handle amgx_config = nullptr;	// AMGX configuration handle
+	//AMGX_resources_handle amgx_resources = nullptr;	// AMGX resources handle
+	//AMGX_matrix_handle amgx_matrix = nullptr;	// AMGX matrix handle
+	//AMGX_vector_handle amgx_vector_x = nullptr;	// AMGX left vector handle
+	//AMGX_vector_handle amgx_vector_y = nullptr;	// AMGX right vector handle
+	//AMGX_solver_handle amgx_solver = nullptr;	// AMGX solver handle
 
 };
 
 
-__global__ void allocate2grid_circle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+__global__ void allocate2grid_circle_multi_slice(Particle dev_particle, double* __restrict__ dev_charDensity, const Slice* __restrict__ dev_slice, const MeshMask* __restrict__ dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double radius_square, int turn, double s);
 
-__global__ void allocate2grid_rectangle_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+__global__ void allocate2grid_rectangle_multi_slice(Particle dev_particle, double* __restrict__ dev_charDensity, const Slice* __restrict__ dev_slice, const MeshMask* __restrict__ dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double half_width, double half_height, int turn, double s);
 
-__global__ void allocate2grid_ellipse_multi_slice(Particle* dev_bunch, double* dev_charDensity, const Slice* dev_slice, const MeshMask* dev_meshMask,
+__global__ void allocate2grid_ellipse_multi_slice(Particle dev_particle, double* __restrict__ dev_charDensity, const Slice* __restrict__ dev_slice, const MeshMask* __restrict__ dev_meshMask,
 	int Np_sur, int Nslice, int Nx, int Ny, double Lx, double Ly, double charge, double hor_semi_axis, double ver_semi_axis, int turn, double s);
 
-__global__ void cal_electricField(double* dev_potential, double2* dev_electricField, const MeshMask* dev_meshMask,
+__global__ void cal_electricField(double* __restrict__ dev_potential, double2* __restrict__ dev_electricField, const MeshMask* __restrict__ dev_meshMask,
 	int Nx, int Ny, int Nslice);
 
 void generate_5points_FD_matrix_exclude_boundary(int Nx, int Ny, double Lx, double Ly, double* host_matrix);

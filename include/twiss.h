@@ -21,7 +21,7 @@ public:
 	void print();
 
 private:
-	Particle* dev_bunch = nullptr;
+	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
@@ -80,7 +80,7 @@ private:
 };
 
 
-__global__ void transfer_matrix_6D(Particle* dev_bunch, int Np, double circumference,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference,
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
