@@ -91,7 +91,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     SpaceChargePara = {
         "Space-charge simulation parameters": {
             "Is enable space charge": True,
-            "Number of slices": 100,
+            "Number of slices": 10,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
             "Field solver": "PIC_FD_CUDSS",  # [PIC_FD_CUDSS/PIC_Conv/PIC_FD_AMGX/PIC_FD_FFT/Eq_Quasi_Static/Eq_Frozen]
         }
@@ -134,7 +134,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "bunch0": {
                 "Kinetic energy per nucleon (eV/u)": 30e6,
                 "Number of real particles per bunch": 3e11,
-                "Number of macro particles per bunch": 1e6,
+                "Number of macro particles per bunch": 1e5,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
                 "Alpha x": 0,
@@ -157,9 +157,9 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": False,
-                "Name of loaded file": "1511_49_beam0_proton_bunch0_10000_hor_kv_longi_gaussian_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
-                "Is save initial distribution": False,
+                "Is load distribution": True,
+                "Name of loaded file": "1004_00_beam0_78Kr19+_bunch0_100000_hor_kv_longi_uniform_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is save initial distribution": True,
             },
         }
     }
