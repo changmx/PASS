@@ -270,11 +270,11 @@ private:
 };
 
 
-__global__ void cal_statistic_perblock(Particle dev_particle, double* __restrict__ dev_statistic, size_t pitch_statistic, int NpPerBunch);
+__global__ void cal_statistic_perblock(Particle dev_particle, double* dev_statistic, size_t pitch_statistic, int NpPerBunch);
 
-__global__ void cal_statistic_allblock_2(double* __restrict__ dev_statistic, size_t pitch_statistic, double* __restrict__ host_dev_statistic, int gridDimX, int NpInit);
+__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
 
-void save_bunchInfo_statistic(double* __restrict__ host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
+void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
 
 __global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM,
 	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);

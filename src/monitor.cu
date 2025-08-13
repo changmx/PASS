@@ -488,7 +488,7 @@ __device__ void warpReduce(volatile double* data, int tid) {
 }
 
 
-__global__ void cal_statistic_perblock(Particle dev_particle, double* __restrict__ dev_statistic, size_t pitch_statistic, int NpPerBunch) {
+__global__ void cal_statistic_perblock(Particle dev_particle, double* dev_statistic, size_t pitch_statistic, int NpPerBunch) {
 
 	// Count the information about the particles in each block
 
@@ -749,7 +749,7 @@ __global__ void cal_statistic_perblock(Particle dev_particle, double* __restrict
 }
 
 
-__global__ void cal_statistic_allblock_2(double* __restrict__ dev_statistic, size_t pitch_statistic, double* __restrict__ host_dev_statistic, int gridDimX, int NpInit) {
+__global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit) {
 
 	// Summarize data in all grids.
 
@@ -1055,7 +1055,7 @@ __global__ void cal_statistic_allblock_2(double* __restrict__ dev_statistic, siz
 }
 
 
-void save_bunchInfo_statistic(double* __restrict__ host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
+void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
 
 	int stat_turn = turn;
 	double stat_beamloss = host_statistic[8];
