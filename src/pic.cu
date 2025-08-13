@@ -3,7 +3,7 @@
 #include "cutSlice.h"
 #include "aperture.h"
 
-#include "amgx_c.h"
+//#include "amgx_c.h"
 
 #include <fstream>
 #include <cudss.h>

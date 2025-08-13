@@ -9,7 +9,7 @@
 #include "constant.h"
 #include "command.h"
 
-#include "amgx_c.h"
+//#include "amgx_c.h"
 
 Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 	using json = nlohmann::json;

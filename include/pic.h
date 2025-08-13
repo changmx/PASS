@@ -12,7 +12,7 @@
 #include "general.h"
 #include "cutSlice.h"
 
-#include "amgx_c.h"
+//#include "amgx_c.h"
 
 class Particle;	// Forward declaration of Particle class
 class Bunch;	// Forward declaration of Bunch class
@@ -158,12 +158,12 @@ public:
 	void calculate_electricField() override;
 
 private:
-	AMGX_config_handle amgx_config = nullptr;	// AMGX configuration handle
-	AMGX_resources_handle amgx_resources = nullptr;	// AMGX resources handle
-	AMGX_matrix_handle amgx_matrix = nullptr;	// AMGX matrix handle
-	AMGX_vector_handle amgx_vector_x = nullptr;	// AMGX left vector handle
-	AMGX_vector_handle amgx_vector_y = nullptr;	// AMGX right vector handle
-	AMGX_solver_handle amgx_solver = nullptr;	// AMGX solver handle
+	//AMGX_config_handle amgx_config = nullptr;	// AMGX configuration handle
+	//AMGX_resources_handle amgx_resources = nullptr;	// AMGX resources handle
+	//AMGX_matrix_handle amgx_matrix = nullptr;	// AMGX matrix handle
+	//AMGX_vector_handle amgx_vector_x = nullptr;	// AMGX left vector handle
+	//AMGX_vector_handle amgx_vector_y = nullptr;	// AMGX right vector handle
+	//AMGX_solver_handle amgx_solver = nullptr;	// AMGX solver handle
 
 };
 
