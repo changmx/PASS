@@ -155,9 +155,9 @@ inline void checkCudss(cudssStatus_t err, const char* file, int line)
 #define callKernel(...) LAUNCH_KERNEL_RELEASE(__VA_ARGS__)
 #endif
 
-#define LAUNCH_KERNEL_DEBUG(kernel_call) \
+#define LAUNCH_KERNEL_DEBUG(...) \
     do { \
-        kernel_call; \
+        { __VA_ARGS__; } \
         cudaError_t __err = cudaGetLastError(); \
         if (__err != cudaSuccess) { \
 			spdlog::get("logger")->error("[CUDA kernel launch error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
@@ -170,9 +170,9 @@ inline void checkCudss(cudssStatus_t err, const char* file, int line)
         } \
     } while(0)
 
-#define LAUNCH_KERNEL_RELEASE(kernel_call) \
+#define LAUNCH_KERNEL_RELEASE(...) \
     do { \
-        kernel_call; \
+        { __VA_ARGS__; } \
         cudaError_t __err = cudaGetLastError(); \
         if (__err != cudaSuccess) { \
 			spdlog::get("logger")->error("[CUDA kernel error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
