@@ -15,7 +15,7 @@
     "Is plot figure": false,
     "Space-charge simulation parameters": {
         "Is enable space charge": true,
-        "Number of slices": 1,
+        "Number of slices": 100,
         "Slice model": "Equal particle",
         "Field solver": "PIC_FD_CUDSS"
     },
@@ -51,7 +51,7 @@
             "bunch0": {
                 "Kinetic energy per nucleon (eV/u)": 30000000.0,
                 "Number of real particles per bunch": 300000000000.0,
-                "Number of macro particles per bunch": 1000000.0,
+                "Number of macro particles per bunch": 10000000.0,
                 "Mode": "1turn1time",
                 "Inject turns": [
                     1
