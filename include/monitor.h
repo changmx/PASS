@@ -279,11 +279,11 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 __global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM,
 	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);
 
-__device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX);
+__forceinline__ __device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX);
 
-__device__ void normalize2physical(double& x, double& px, double sqrtBetaX, double alphaX);
+__forceinline__ __device__ void normalize2physical(double& x, double& px, double sqrtBetaX, double alphaX);
 
-__device__ double phaseChange(double& x0, double& px0, double& x1, double& px1);
+__forceinline__ __device__ double phaseChange(double& x0, double& px0, double& x1, double& px1);
 
 __global__ void record_init_value(Particle dev_particle, int Np_sur);
 

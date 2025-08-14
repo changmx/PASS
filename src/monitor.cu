@@ -1206,7 +1206,7 @@ __global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_p
 }
 
 
-__device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX) {
+__forceinline__ __device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX) {
 
 	// Transformation from physical coordinates to the normalized coordinates.
 
@@ -1218,7 +1218,7 @@ __device__ void physical2normalize(double& x, double& px, double sqrtBetaX, doub
 }
 
 
-__device__ void normalize2physical(double& x, double& px, double sqrtBetaX, double alphaX) {
+__forceinline__ __device__ void normalize2physical(double& x, double& px, double sqrtBetaX, double alphaX) {
 
 	// Transformation from normalized coordinates to the physical coordinates.
 
@@ -1230,7 +1230,7 @@ __device__ void normalize2physical(double& x, double& px, double sqrtBetaX, doub
 }
 
 
-__device__ double phaseChange(double& x0, double& px0, double& x1, double& px1) {
+__forceinline__ __device__ double phaseChange(double& x0, double& px0, double& x1, double& px1) {
 
 	double angle0 = atan2(px0, x0);	// angle = [-pi,pi]
 	int mask0 = (angle0 < 0);
