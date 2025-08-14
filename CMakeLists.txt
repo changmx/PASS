@@ -122,6 +122,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>
+    # --ptxas-options=-v
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
