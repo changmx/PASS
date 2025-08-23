@@ -108,6 +108,22 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		{
 			inject_turns.push_back(data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[i]);
 		}
+
+		if (data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate").size() > 0) {
+			is_set_specified_coordinate = true;
+
+			for (size_t i = 0; i < data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate").size(); i++)
+			{
+				double x_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate")[i][0];
+				double px_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate")[i][1];
+				double y_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate")[i][2];
+				double py_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate")[i][3];
+				double z_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate")[i][4];
+				double dp_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Particle coordinate")[i][5];
+
+				specified_coordinate.push_back({ x_tmp, px_tmp, y_tmp, py_tmp, z_tmp, dp_tmp });
+			}
+		}
 	}
 	catch (json::exception e)
 	{
@@ -301,6 +317,19 @@ void Injection::load_distribution() {
 
 		input.close();
 
+		if (is_set_specified_coordinate) {
+
+			for (size_t i = 0; i < specified_coordinate.size(); i++)
+			{
+				host_particle.x[i] = specified_coordinate[i][0];
+				host_particle.px[i] = specified_coordinate[i][1];
+				host_particle.y[i] = specified_coordinate[i][2];
+				host_particle.py[i] = specified_coordinate[i][3];
+				host_particle.z[i] = specified_coordinate[i][4];
+				host_particle.pz[i] = specified_coordinate[i][5];
+			}
+		}
+
 		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
 		host_particle.mem_free_cpu();
@@ -429,6 +458,17 @@ void Injection::generate_transverse_KV_distribution() {
 		}
 	}
 
+	if (is_set_specified_coordinate) {
+
+		for (size_t i = 0; i < specified_coordinate.size(); i++)
+		{
+			host_particle.x[i] = specified_coordinate[i][0];
+			host_particle.px[i] = specified_coordinate[i][1];
+			host_particle.y[i] = specified_coordinate[i][2];
+			host_particle.py[i] = specified_coordinate[i][3];
+		}
+	}
+
 	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
@@ -525,6 +565,17 @@ void Injection::generate_transverse_Gaussian_distribution() {
 		}
 		/*std::cout << "tag: " << beam.tag(i) << std::endl;
 		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
+	}
+
+	if (is_set_specified_coordinate) {
+
+		for (size_t i = 0; i < specified_coordinate.size(); i++)
+		{
+			host_particle.x[i] = specified_coordinate[i][0];
+			host_particle.px[i] = specified_coordinate[i][1];
+			host_particle.y[i] = specified_coordinate[i][2];
+			host_particle.py[i] = specified_coordinate[i][3];
+		}
 	}
 
 	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
@@ -632,6 +683,17 @@ void Injection::generate_transverse_uniform_distribution() {
 		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
 	}
 
+	if (is_set_specified_coordinate) {
+
+		for (size_t i = 0; i < specified_coordinate.size(); i++)
+		{
+			host_particle.x[i] = specified_coordinate[i][0];
+			host_particle.px[i] = specified_coordinate[i][1];
+			host_particle.y[i] = specified_coordinate[i][2];
+			host_particle.py[i] = specified_coordinate[i][3];
+		}
+	}
+
 	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
@@ -685,6 +747,15 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 		else
 		{
 			--j;
+		}
+	}
+
+	if (is_set_specified_coordinate) {
+
+		for (size_t i = 0; i < specified_coordinate.size(); i++)
+		{
+			host_particle.z[i] = specified_coordinate[i][4];
+			host_particle.pz[i] = specified_coordinate[i][5];
 		}
 	}
 
@@ -745,6 +816,15 @@ void Injection::generate_longitudinal_uniform_distribution() {
 		}
 	}
 
+	if (is_set_specified_coordinate) {
+
+		for (size_t i = 0; i < specified_coordinate.size(); i++)
+		{
+			host_particle.z[i] = specified_coordinate[i][4];
+			host_particle.pz[i] = specified_coordinate[i][5];
+		}
+	}
+
 	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
@@ -794,7 +874,7 @@ void Injection::save_initial_distribution() {
 
 void Injection::add_Dx() {
 
-	if (abs(Dx) < 1e-10 && abs(Dpx) < 1e-10)
+	if (fabs(Dx) < 1e-10 && fabs(Dpx) < 1e-10)
 	{
 		return;
 	}

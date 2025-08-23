@@ -82,5 +82,8 @@ private:
 
 	int callTime = 0;
 	time_t curTime = time(NULL);
+
+	bool is_set_specified_coordinate = false;
+	std::vector<std::vector<double>> specified_coordinate;	// Each row is a particle, columns are x, px, y, py, z, dp/p
 };
 
