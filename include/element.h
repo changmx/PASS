@@ -62,8 +62,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~SBendElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -84,8 +84,9 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
@@ -106,8 +107,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~RBendElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -128,8 +129,9 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
@@ -150,8 +152,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~QuadrupoleElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -172,8 +174,9 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
@@ -191,8 +194,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~SextupoleNormElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -213,14 +216,15 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
 	double k2 = 0;	// in unit of (m^-3)
 
-	bool is_ignore_length = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
+	bool is_thin_lens = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
 
 	bool is_ramping = false;
 	std::vector<std::pair<double, double>> ramping_data;	// (turn, k2) pairs for ramping, ramping_data[i].first = turn, ramping_data[i].second = k2
@@ -235,8 +239,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~SextupoleSkewElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -257,14 +261,15 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
 	double k2s = 0;	// in unit of (m^-3)
 
-	bool is_ignore_length = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
+	bool is_thin_lens = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
 
 	bool is_ramping = false;
 	std::vector<std::pair<double, double>> ramping_data;	// (turn, k2s) pairs for ramping, ramping_data[i].first = turn, ramping_data[i].second = k2s
@@ -279,8 +284,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~OctupoleElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -301,13 +306,16 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
 	double k3 = 0;	// in unit of (m^-4)
 	double k3s = 0;	// in unit of (m^-4)
+
+	bool is_thin_lens = false;	// If true, the length of the octupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
 
 };
 
@@ -319,8 +327,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~HKickerElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -341,11 +349,14 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
+	bool is_thin_lens = false;
+
 	double kick = 0;
 
 };
@@ -358,8 +369,8 @@ public:
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~VKickerElement() {
-		callCuda(cudaFree(dev_kn));
-		callCuda(cudaFree(dev_ks));
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
@@ -380,13 +391,54 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	double* dev_kn = nullptr;
-	double* dev_ks = nullptr;
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
 
 	double l = 0;
 	double drift_length = 0;
+	bool is_thin_lens = false;
+
 	double kick = 0;
 
+};
+
+
+class MultipoleElement :public Element
+{
+public:
+	MultipoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~MultipoleElement() {
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
+	}
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Multipole Element] print");
+	}
+private:
+	Particle dev_particle;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	const int max_error_order = 20;	// k0, k1 ... k20
+	int cur_error_order = 0;
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
+
+	double l = 0;
+	double drift_length = 0;
+	bool is_thin_lens = false;
 };
 
 
@@ -540,7 +592,7 @@ __device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, dou
 
 __device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta);
 
-__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_kn, const double* dev_ks, double l);
+__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl);
 
 std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 

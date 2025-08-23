@@ -76,8 +76,8 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -96,6 +96,22 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 		fintx = data.at("Sequence").at(obj_name).at("fintx");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[SBend Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		spdlog::get("logger")->debug("[SBend Element] run: {}, s = {}, l = {}, drift_length = {}, angle = {}, e1 = {}, e2 = {}, hgap = {}, fint = {}, fintx = {}, isFieldError = {}",
 			name, s, l, drift_length, angle, e1, e2, hgap, fint, fintx, isFieldError);
@@ -172,7 +188,7 @@ void SBendElement::execute(int turn) {
 		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 
 		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
@@ -202,8 +218,8 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -222,6 +238,23 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 		fintx = data.at("Sequence").at(obj_name).at("fintx");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[RBend Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
 	}
 	catch (json::exception e)
 	{
@@ -296,7 +329,7 @@ void RBendElement::execute(int turn) {
 		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 
 		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
@@ -327,8 +360,8 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -343,6 +376,22 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 		k1s = data.at("Sequence").at(obj_name).at("k1s (m^-2)");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[Quadrupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		spdlog::get("logger")->debug("[Quadrupole Element] run: {}, s = {}, l = {}, drift_length = {}, k1 = {}, k1s = {}, isFieldError = {}",
 			name, s, l, drift_length, k1, k1s, isFieldError);
@@ -368,7 +417,7 @@ void QuadrupoleElement::execute(int turn) {
 
 	double drift = drift_length;
 
-	double EPSILON = 1e-9;
+	double EPSILON = 1e-10;
 
 	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 
@@ -378,19 +427,19 @@ void QuadrupoleElement::execute(int turn) {
 		if (fabs(k1) > EPSILON && fabs(k1s) < EPSILON)	// k1 != 0 && k1s == 0
 		{
 			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1, l / 2));
-			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			callKernel(transfer_quadrupole_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1, l / 2));
 		}
 		else if (fabs(k1) < EPSILON && fabs(k1s) > EPSILON)	// k1 == 0 && k1s != 0
 		{
 			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1s, l / 2));
-			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			callKernel(transfer_quadrupole_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1s, l / 2));
 		}
 		else if (fabs(k1) < EPSILON && fabs(k1s) < EPSILON)	// k1 == 0 && k1s == 0
 		{
 			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
-			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+			callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 		}
 		else
@@ -442,8 +491,8 @@ SextupoleNormElement::SextupoleNormElement(const Parameter& para, int input_beam
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -457,11 +506,24 @@ SextupoleNormElement::SextupoleNormElement(const Parameter& para, int input_beam
 		k2 = data.at("Sequence").at(obj_name).at("k2 (m^-3)");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-
-		if (data.at("Sequence").at(obj_name).contains("isIgnoreLength"))
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
 		{
-			is_ignore_length = data.at("Sequence").at(obj_name).at("isIgnoreLength");
+			spdlog::get("logger")->error("[Sextupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
 		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 
 		if (data.at("Sequence").at(obj_name).contains("isRamping"))
 		{
@@ -492,11 +554,10 @@ void SextupoleNormElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
-	if (!is_ignore_length)
+	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
+	if (drift > 1e-10)
 	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 	}
 
 	double k2_current = k2;
@@ -518,11 +579,10 @@ void SextupoleNormElement::execute(int turn) {
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 	}
 
-	if (!is_ignore_length)
-	{
+	if (!is_thin_lens) {
 		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 	}
 
@@ -546,8 +606,8 @@ SextupoleSkewElement::SextupoleSkewElement(const Parameter& para, int input_beam
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -561,11 +621,24 @@ SextupoleSkewElement::SextupoleSkewElement(const Parameter& para, int input_beam
 		k2s = data.at("Sequence").at(obj_name).at("k2s (m^-3)");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-
-		if (data.at("Sequence").at(obj_name).contains("isIgnoreLength"))
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
 		{
-			is_ignore_length = data.at("Sequence").at(obj_name).at("isIgnoreLength");
+			spdlog::get("logger")->error("[Sextupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
 		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 
 		if (data.at("Sequence").at(obj_name).contains("isRamping"))
 		{
@@ -596,11 +669,10 @@ void SextupoleSkewElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
-	if (!is_ignore_length)
+	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
+	if (drift > 1e-10)
 	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 	}
 
 	double k2s_current = k2s;
@@ -622,11 +694,10 @@ void SextupoleSkewElement::execute(int turn) {
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 	}
 
-	if (!is_ignore_length)
-	{
+	if (!is_thin_lens) {
 		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 	}
 
@@ -650,8 +721,8 @@ OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const 
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -666,6 +737,24 @@ OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const 
 		k3s = data.at("Sequence").at(obj_name).at("k3s (m^-4)");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[Octupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 	}
 	catch (json::exception e)
 	{
@@ -687,11 +776,13 @@ void OctupoleElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
+	double EPSILON = 1e-10;
 
-	double EPSILON = 1e-9;
-
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
+	if (drift > 1e-10)
+	{
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
+	}
 
 	if (fabs(k3) > EPSILON && fabs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
 	{
@@ -715,10 +806,12 @@ void OctupoleElement::execute(int turn) {
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 	}
 
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	if (!is_thin_lens) {
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -740,8 +833,8 @@ HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bu
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -755,6 +848,24 @@ HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bu
 		kick = data.at("Sequence").at(obj_name).at("kick");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[HKicker Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 	}
 	catch (json::exception e)
 	{
@@ -776,18 +887,22 @@ void HKickerElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
+	if (drift > 1e-10)
+	{
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
+	}
 
 	callKernel(transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, kick));
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 	}
 
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	if (!is_thin_lens) {
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -809,8 +924,8 @@ VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bu
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_kn, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ks, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -824,6 +939,24 @@ VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bu
 		kick = data.at("Sequence").at(obj_name).at("kick");
 
 		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[VKicker Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 	}
 	catch (json::exception e)
 	{
@@ -845,18 +978,108 @@ void VKickerElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
+	if (drift > 1e-10)
+	{
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
+	}
 
 	callKernel(transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, kick));
 
 	if (isFieldError)
 	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, max_error_order, dev_kn, dev_ks, l));
+		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 	}
 
-	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	if (!is_thin_lens) {
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	}
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
+}
+
+
+MultipoleElement::MultipoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "MultipoleElement";
+	name = obj_name;
+	dev_particle = Bunch.dev_particle;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
+		if (cur_error_order > max_error_order)
+		{
+			spdlog::get("logger")->error("[Multipole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
+				name, cur_error_order, max_error_order);
+			std::exit(EXIT_FAILURE);
+		}
+
+		std::vector<double>knl, ksl;
+		for (int i = 0; i < (cur_error_order + 1); i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+		}
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
+
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+
+void MultipoleElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->debug("[Multipole Element] run: " + name);
+
+	int Np_sur = bunchRef.Np_sur;
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
+	if (drift > 1e-10)
+	{
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
+	}
+
+	callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+
+
+	if (!is_thin_lens) {
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+	}
+
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -1724,7 +1947,7 @@ __device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, do
 }
 
 
-__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_kn, const double* dev_ks, double l) {
+__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -1758,8 +1981,8 @@ __global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int
 
 		if (order >= 0)
 		{
-			double kn0l = dev_kn[0] * l;
-			double ks0l = dev_ks[0] * l;
+			double kn0l = dev_knl[0];
+			double ks0l = dev_ksl[0];
 			dpx += -kn0l * real;
 			dpy += ks0l * real;
 		}
@@ -1773,8 +1996,8 @@ __global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int
 
 			inv_factorial = 1.0 / factorial_table[iorder];
 
-			double knl = dev_kn[iorder] * l;
-			double ksl = dev_ks[iorder] * l;
+			double knl = dev_knl[iorder];
+			double ksl = dev_ksl[iorder];
 
 			dpx += -knl * (inv_factorial * real) + ksl * (inv_factorial * imag);
 			dpy += knl * (inv_factorial * imag) + ksl * (inv_factorial * real);
