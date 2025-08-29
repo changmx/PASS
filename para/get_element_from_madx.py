@@ -1,408 +1,289 @@
-import re
-from copy import deepcopy
-import sys
 import numpy as np
+import sys
 
-
-class Element:
-    def __init__(self, name):
-        self.name = name
-        self.S = 0.0  # S值只在sequence中设置
-
-
-class SBendElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.angle = 0.0
-        self.e1 = 0.0
-        self.e2 = 0.0
-        self.hgap = 0.0
-        self.fint = 0.0
-        self.fintx = 0.0
-        self.isFieldError = False
-
-
-class RBendElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.angle = 0.0
-        self.e1 = 0.0
-        self.e2 = 0.0
-        self.hgap = 0.0
-        self.fint = 0.0
-        self.fintx = 0.0
-        self.isFieldError = False
-
-
-class QuadrupoleElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.k1 = 0.0
-        self.k1s = 0.0
-        self.isFieldError = False
-
-
-class Sextupole(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.k2 = 0.0
-        self.k2s = 0.0
-        self.isFieldError = False
-
-
-class OctupoleElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.k3 = 0.0
-        self.k3s = 0.0
-        self.isFieldError = False
-
-
-class HKickerElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.kick = 0.0
-        self.sinkick = 0
-        self.sinpeak = 0
-        self.sintune = 0
-        self.sinphase = 0
-        self.isFieldError = False
-
-
-class VKickerElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-        self.kick = 0.0
-        self.sinkick = 0
-        self.sinpeak = 0
-        self.sintune = 0
-        self.sinphase = 0
-        self.isFieldError = False
-
-
-class MarkerElement(Element):
-    def __init__(self, name):
-        super().__init__(name)
-        self.l = 0.0
-
+from cpymad.madx import Madx
+from get_error_from_madx import get_error
+from get_error_from_madx import convert_string
 
 class_map = {
-    "sbend": SBendElement,
-    "rbend": RBendElement,
-    "quadrupole": QuadrupoleElement,
-    "sextupole": Sextupole,
-    "octupole": OctupoleElement,
-    "hkicker": HKickerElement,
-    "vkicker": VKickerElement,
-    "marker": MarkerElement,
+    "marker": "MarkerElement",
+    "sbend": "SBendElement",
+    "rbend": "RBendElement",
+    "quadrupole": "QuadrupoleElement",
+    "sextupole norm": "SextupoleNormElement",
+    "sextupole skew": "SextupoleSkewElement",
+    "octupole": "OctupoleElement",
+    "hkicker": "HKickerElement",
+    "vkicker": "VKickerElement",
+    # "multipole": "MultipoleElement",
 }
 
 
-def parse_file(filepath):
-    elements = {}
-    sequence = []
-    processing_sequence = False
+def get_element_from_madx(
+    seq_file,
+    error_file=None,
+    seq_name="ring",
+    is_beam_in_seq=False,
+    particle="proton",
+    energy=1000,
+):
+    """
+    Read madx sequence file and generate element list.
+    If input error file, add field error to corresponding element.
 
-    circumference = 0
+    Args:
+        seq_file (str):
+            - abspath of sequence file.
+        error_file (str, optional. Defaults to None.):
+            - abspath of error file. If it is not None, the error data will be read.
+        seq_name (str, optional. Defaults to 'ring'.):
+            - sequence name to be used in sequence file.
+        is_beam_in_seq (bool, optional. Defaults to false):
+            - Whether there is beam data in sequence file.
+        particle (str, optional. Defaults to 'proton'):
+            - Beam type for madx beam command.
+        energy (float, optional. Defaults to 1000 GeV):
+            - Beam energy for madx beam command.
+    """
 
-    with open(filepath, "r") as file:
-        for line in file:
-            line = line.strip()
-            if not line:
-                continue
+    # ------------------------- Read madx sequence ------------------------- #
 
-            if processing_sequence:
-                if line.lower() == "endsequence;":
-                    processing_sequence = False
-                    continue
+    madx = Madx()
+    madx.option(echo=False)
 
-                line = re.sub(r"\s*=\s*", "=", line.rstrip(";"))  # 清理空格
-                parts = line.split(",", 1)
-                if len(parts) < 2:
-                    print(f"Warning: Invalid sequence line '{line}'")
-                    continue
+    madx.call(file=seq_file)
+    if not is_beam_in_seq:
+        madx.command.beam(sequence=seq_name, particle=particle, energy=energy)
+    madx.use(sequence=seq_name)
 
-                elem_name = parts[0].strip()
-                at_part = parts[1].strip()
-                if not at_part.startswith("at="):
-                    print(f"Warning: Invalid at-part in '{line}'")
-                    continue
+    seq = madx.sequence[seq_name].elements
+    num_elem = len(seq)
+    # print(madx.sequence[seq_name])
+    # print(madx.sequence[seq_name].elements)
+    print(f"Size of sequence file '{seq_file}' = {num_elem}")
+    # print(seq["rb"])
 
-                try:
-                    s_value = float(at_part.split("=")[1])
-                except:
-                    print(f"Warning: Invalid S value in '{line}'")
-                    continue
+    # ------------------ Generate PASS required element data ---------------- #
 
-                if elem_name not in elements:
-                    print(f"Warning: Undefined element '{elem_name}' at S = {s_value}")
-                    continue
+    elem_dict = {}
 
-                elem_copy = deepcopy(elements[elem_name])
-                elem_copy.S = s_value
-                sequence.append(elem_copy)
+    for i in range(num_elem):
+        # print(seq[i]._attr)   # show all elements attributes
+        node_name = seq[i].node_name
+        name = convert_string(node_name)
+        if name in elem_dict:
+            print(f"Error: element '{name}' is already exists in element dict")
+            sys.exit(1)
 
-            else:
-                if ":sequence" in line.lower().replace(" ", ""):
-                    processing_sequence = True
+        s = seq[i].at
+        l = seq[i].length
+        elem_type = seq[i].base_name
 
-                    match_circum = re.search(r"=\s*([+-]?\d+\.?\d*)", line.lower())
-                    if match_circum:
-                        circumference = float(match_circum.group(1))
-                        print(f"Circumference (m) = {circumference}")
-                    else:
-                        print(f"Error: can't match sequence, l = circumference")
-                        sys.exit(1)
-                    continue
-
-                if not re.match(r"^\w+:", line):
-                    continue  # 忽略非定义行
-
-                name_part, rest = line.split(":", 1)
-                name = name_part.strip()
-                rest = rest.strip().rstrip(";")
-
-                type_part, *params_part = rest.split(",", 1)
-                elem_type = type_part.strip().lower()  # 类型名称大小写不敏感
-                params_str = params_part[0].strip() if params_part else ""
-
-                if elem_type not in class_map:
-                    print(f"Warning: Unknown element type '{elem_type}' of '{name}'")
-                    continue
-
-                elem_class = class_map[elem_type]
-                elem = elem_class(name)
-
-                if params_str:
-                    for param in params_str.split(","):
-                        param = param.strip()
-                        if not param:
-                            continue
-
-                        param = param.replace(":=", "=")  # 统一处理:=和=
-                        if "=" not in param:
-                            continue
-
-                        key, value = param.split("=", 1)
-                        key = key.strip()
-                        value = value.strip()
-
-                        try:
-                            value = float(value)
-                        except ValueError:
-                            print(f"Error: Invalid value '{value}' for '{key}'")
-                            sys.exit(1)
-
-                        if not hasattr(elem, key):
-                            print(f"Error: Attribute '{key}' not found in {elem_type}")
-                            sys.exit(1)
-
-                        setattr(elem, key, value)
-
-                elements[name] = elem
-
-    # Check and delete duplicate element data with the same name and the same position
-    # This process is mainly aimed at addressing the issue where multiple MARKERs with the same name repeatedly occur at the same position
-    seen = set()
-    data_remove_duplication = []
-    for elem in sequence:
-        identifier = (elem.S, elem.name, type(elem).__name__)
-        if identifier not in seen:
-            seen.add(identifier)
-            data_remove_duplication.append(elem)
-        else:
-            print(
-                f"Delete duplication data: S = {elem.S}, name = {elem.name}, type = {type(elem).__name__}"
-            )
-
-    data_array = np.array(data_remove_duplication)
-
-    return data_array, circumference
-
-
-def generate_element_json(filepath):
-
-    sequence, circumference = parse_file(filepath)
-
-    element_json = []
-
-    for i in np.arange(len(sequence)):
-        elem = sequence[i]
-        element_dict = {}
-
-        s = elem.S
-        s_previous = 0 if i == 0 else sequence[i - 1].S
-        l = elem.l
-        l_previous = 0 if i == 0 else sequence[i - 1].l
-        drift_length = s - l / 2 - (s_previous + l_previous / 2)
-
-        if isinstance(elem, MarkerElement):
-            element_dict = {
-                str(elem.name)
-                + "_"
-                + str(elem.S): {
-                    "S (m)": elem.S,
-                    "Command": type(elem).__name__,
-                    "L (m)": elem.l,
-                    "Drift length (m)": drift_length,
-                }
+        if elem_type == "marker":
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["marker"],
+                "L (m)": l,
+                "Drift length (m)": 0,
             }
-        elif isinstance(elem, SBendElement):
-            element_dict = {
-                str(elem.name)
-                + "_"
-                + str(elem.S): {
-                    "S (m)": elem.S,
-                    "Command": type(elem).__name__,
-                    "L (m)": elem.l,
-                    "Drift length (m)": drift_length,
-                    "angle (rad)": elem.angle,
-                    "e1 (rad)": elem.e1,
-                    "e2 (rad)": elem.e2,
-                    "hgap (m)": elem.hgap,
-                    "fint": elem.fint,
-                    "fintx": elem.fintx,
-                    "isFieldError": elem.isFieldError,
-                }
+        elif elem_type == "sbend":
+            fint = seq[i].fint
+            fintx = seq[i].fintx
+            if fintx <= 0:
+                fintx = fint
+
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["sbend"],
+                "L (m)": l,
+                "Drift length (m)": 0,
+                "angle (rad)": seq[i].angle,
+                "e1 (rad)": seq[i].e1,
+                "e2 (rad)": seq[i].e2,
+                "hgap (m)": seq[i].hgap,
+                "fint": fint,
+                "fintx": fintx,
+                "isFieldError": False,
+                "Error order": 0,
+                "KNL": [],
+                "KSL": [],
             }
-        elif isinstance(elem, RBendElement):
-            element_dict = {
-                str(elem.name)
-                + "_"
-                + str(elem.S): {
-                    "S (m)": elem.S,
-                    "Command": type(elem).__name__,
-                    "L (m)": elem.l,
-                    "Drift length (m)": drift_length,
-                    "angle (rad)": elem.angle,
-                    "e1 (rad)": elem.e1,
-                    "e2 (rad)": elem.e2,
-                    "hgap (m)": elem.hgap,
-                    "fint": elem.fint,
-                    "fintx": elem.fintx,
-                    "isFieldError": elem.isFieldError,
-                }
+        elif elem_type == "rbend":
+            fint = seq[i].fint
+            fintx = seq[i].fintx
+            if fintx <= 0:
+                fintx = fint
+
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["rbend"],
+                "L (m)": l,
+                "Drift length (m)": 0,
+                "angle (rad)": seq[i].angle,
+                "e1 (rad)": seq[i].e1,
+                "e2 (rad)": seq[i].e2,
+                "hgap (m)": seq[i].hgap,
+                "fint": fint,
+                "fintx": fintx,
+                "isFieldError": False,
+                "Error order": 0,
+                "KNL": [],
+                "KSL": [],
             }
-        elif isinstance(elem, QuadrupoleElement):
-            element_dict = {
-                str(elem.name)
-                + "_"
-                + str(elem.S): {
-                    "S (m)": elem.S,
-                    "Command": type(elem).__name__,
-                    "L (m)": elem.l,
-                    "Drift length (m)": drift_length,
-                    "k1 (m^-2)": elem.k1,
-                    "k1s (m^-2)": elem.k1s,
-                    "isFieldError": elem.isFieldError,
-                }
+        elif elem_type == "quadrupole":
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["quadrupole"],
+                "L (m)": l,
+                "Drift length (m)": 0,
+                "k1 (m^-2)": seq[i].k1,
+                "k1s (m^-2)": seq[i].k1s,
+                "isFieldError": False,
+                "Error order": 0,
+                "KNL": [],
+                "KSL": [],
             }
-        elif isinstance(elem, Sextupole):
-            if (np.abs(elem.k2 > 1e-9) and np.abs(elem.k2s) < 1e-9):
-                element_dict = {
-                    str(elem.name)
-                    + "_"
-                    + str(elem.S): {
-                        "S (m)": elem.S,
-                        "Command": type(elem).__name__ + "NormElement",
-                        "L (m)": elem.l,
-                        "Drift length (m)": drift_length,
-                        "k2 (m^-3)": elem.k2,
-                        "isFieldError": elem.isFieldError,
-                    }
+        elif elem_type == "sextupole":
+            if np.abs(seq[i].k2) > 1e-10 and np.abs(seq[i].k2s) < 1e-10:
+                elem_dict[name] = {
+                    "S (m)": s,
+                    "Command": class_map["sextupole norm"],
+                    "L (m)": l,
+                    "Drift length (m)": 0,
+                    "k2 (m^-3)": seq[i].k2,
+                    "isFieldError": False,
+                    "Error order": 0,
+                    "KNL": [],
+                    "KSL": [],
+                    "Is thin lens": False,
                 }
-            elif (np.abs(elem.k2 < 1e-9) and np.abs(elem.k2s) > 1e-9):
-                element_dict = {
-                    str(elem.name)
-                    + "_"
-                    + str(elem.S): {
-                        "S (m)": elem.S,
-                        "Command": type(elem).__name__ + "SkewElement",
-                        "L (m)": elem.l,
-                        "Drift length (m)": drift_length,
-                        "k2s (m^-3)": elem.k2s,
-                        "isFieldError": elem.isFieldError,
-                    }
+            elif np.abs(seq[i].k2) < 1e-10 and np.abs(seq[i].k2s) > 1e-10:
+                elem_dict[name] = {
+                    "S (m)": s,
+                    "Command": class_map["sextupole skew"],
+                    "L (m)": l,
+                    "Drift length (m)": 0,
+                    "k2s (m^-3)": seq[i].k2s,
+                    "isFieldError": False,
+                    "Error order": 0,
+                    "KNL": [],
+                    "KSL": [],
+                    "Is thin lens": False,
                 }
-            elif (np.abs(elem.k2 < 1e-9) and np.abs(elem.k2s) < 1e-9):
-                element_dict = {
-                    str(elem.name)
-                    + "_"
-                    + str(elem.S): {
-                        "S (m)": elem.S,
-                        "Command": type(elem).__name__ + "NorwElement",
-                        "L (m)": elem.l,
-                        "Drift length (m)": drift_length,
-                        "k2 (m^-3)": elem.k2,
-                        "isFieldError": elem.isFieldError,
-                    }
+            elif np.abs(seq[i].k2) < 1e-10 and np.abs(seq[i].k2s) < 1e-10:
+                elem_dict[name] = {
+                    "S (m)": s,
+                    "Command": class_map["sextupole norm"],
+                    "L (m)": l,
+                    "Drift length (m)": 0,
+                    "k2 (m^-3)": seq[i].k2,
+                    "isFieldError": False,
+                    "Error order": 0,
+                    "KNL": [],
+                    "KSL": [],
+                    "Is thin lens": False,
                 }
             else:
                 print(
-                    f"Error: Sextupole: k2 = {elem.k2}, k2s = {elem.k2s}, there should be and only 1 variable equal to 0"
+                    f"Error: Sextupole: k2 = {seq[i].k2}, k2s = {seq[i].k2s}, there should be and only 1 variable equal to 0"
                 )
                 sys.exit(1)
-        elif isinstance(elem, OctupoleElement):
-            element_dict = {
-                str(elem.name)
-                + "_"
-                + str(elem.S): {
-                    "S (m)": elem.S,
-                    "Command": type(elem).__name__,
-                    "L (m)": elem.l,
-                    "Drift length (m)": drift_length,
-                    "k3 (m^-4)": elem.k3,
-                    "k3s (m^-4)": elem.k3s,
-                    "isFieldError": elem.isFieldError,
-                }
+        elif elem_type == "octupole":
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["octupole"],
+                "L (m)": l,
+                "Drift length (m)": 0,
+                "k3 (m^-4)": seq[i].k3,
+                "k3s (m^-4)": seq[i].k3s,
+                "isFieldError": False,
+                "Error order": 0,
+                "KNL": [],
+                "KSL": [],
+                "Is thin lens": False,
             }
+        elif elem_type == "hkicker":
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["hkicker"],
+                "L (m)": l,
+                "Drift length (m)": 0,
+                "kick": seq[i].kick,
+                "isFieldError": False,
+                "Error order": 0,
+                "KNL": [],
+                "KSL": [],
+                "Is thin lens": False,
+            }
+        elif elem_type == "vkicker":
+            elem_dict[name] = {
+                "S (m)": s,
+                "Command": class_map["vkicker"],
+                "L (m)": l,
+                "Drift length (m)": 0,
+                "kick": seq[i].kick,
+                "isFieldError": False,
+                "Error order": 0,
+                "KNL": [],
+                "KSL": [],
+                "Is thin lens": False,
+            }
+        elif elem_type == "drift":
+            pass
+        elif elem_type == "monitor":
+            pass
         else:
-            print(
-                f"Warning: we don't support {elem.name} ({type(elem).__name__}) @ S={elem.S} now."
-            )
+            print(f"Warning: we don't support {elem_type} ({name}) @ S={s} now.")
             continue
 
-        # print(str(elem.name) + "_" + str(elem.S))
-        element_json.append(element_dict)
+    keys = list(elem_dict.keys())
+    for i in range(1, len(keys)):
+        s = elem_dict[keys[i]]["S (m)"]
+        s_previous = elem_dict[keys[i - 1]]["S (m)"]
+        l = elem_dict[keys[i]]["L (m)"]
+        l_previous = elem_dict[keys[i - 1]]["L (m)"]
+        drift_length = s - l / 2 - (s_previous + l_previous / 2)
+        elem_dict[keys[i]]["Drift length (m)"] = drift_length
 
-    if (circumference - sequence[-1].S - sequence[-1].l / 2) > 1e-9:
-        # 如果sequence最后一个元素的S不等于环周长，则人为补一个maker，使其位于环尾端
-        elem = class_map["marker"]("ring_end")
-        element_dict = {
-            str(elem.name)
-            + "_"
-            + str(circumference): {
-                "S (m)": circumference,
-                "Command": type(elem).__name__,
-                "L (m)": elem.l,
-                "Drift length (m)": circumference - sequence[-1].S - sequence[-1].l / 2,
-            }
-        }
-        element_json.append(element_dict)
+    circumference = seq[-1].at + seq[-1].length / 2
+
+    # ------------------ Generate PASS required error data ------------------ #
+
+    if error_file != None:
+        error_dict = get_error(
+            seq_file, error_file, seq_name, is_beam_in_seq, particle, energy
+        )
+        print(f"Error data has beed read to dict, size = {len(error_dict)}")
+
+        error_count = 0
+        for key, sub_dict in error_dict.items():
+            elem_dict[key]["isFieldError"] = True
+            elem_dict[key]["Error order"] = sub_dict["errorOrder"]
+            elem_dict[key]["KNL"] = sub_dict["knl"]
+            elem_dict[key]["KSL"] = sub_dict["ksl"]
+            error_count += 1
+
+        print(f"{error_count} error point has been set to corresponding element")
+
+    madx.quit()
+
+    # ------------------ Generate JSON format data ------------------ #
+
+    element_json = []
+    for key, sub_dict in elem_dict.items():
+        elem_tmp = {key + "_" + str(sub_dict["S (m)"]): sub_dict}
+        # error_json.append(thin_error_multipole)
+        element_json.append(elem_tmp)
+
+    print(element_json[0])
+    print(element_json[-1])
 
     return element_json, circumference
 
 
-def test_parse_file(filepath):
-    sequence = parse_file(filepath)
-    # for elem in sequence[:3]:
-    for elem in sequence:
-        print(f"{elem.name} ({type(elem).__name__}) @ S={elem.S}")
-        if isinstance(elem, QuadrupoleElement):
-            print(f"  l={elem.l}, k1={elem.k1}")
-        elif isinstance(elem, SBendElement):
-            print(
-                f"  l={elem.l}, angle={elem.angle}, e1={elem.e1}, e2={elem.e2}, fint={elem.fint}, fintx={elem.fintx}"
-            )
-
-
 if __name__ == "__main__":
-    # test_parse_file(r"D:\AthenaLattice\SZA\v13\sza.seq")
-    generate_element_json(r"D:\AthenaLattice\SZA\v13\sza.seq")
+    get_element_from_madx(
+        seq_file=r"D:\PASS\para\BRING2021_03_02.seq",
+        error_file=r"D:\PASS\para\error.madx",
+        seq_name="ring",
+    )
