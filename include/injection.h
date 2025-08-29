@@ -27,6 +27,7 @@ public:
 	void save_initial_distribution();
 
 	void add_Dx();
+	void add_offset();
 
 	void print_config();
 
