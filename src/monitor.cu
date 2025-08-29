@@ -280,7 +280,7 @@ void ParticleMonitor::execute(int turn) {
 			Particle host_particleMonitor;
 			host_particleMonitor.mem_allocate_cpu(Np_PM * Nobs_PM * Nturn_PM);
 
-			particle_copy(host_particleMonitor, dev_particleMonitor, Np_PM * Nobs_PM * Nturn_PM * sizeof(Particle), cudaMemcpyDeviceToHost, "dist");
+			particle_copy(host_particleMonitor, dev_particleMonitor, Np_PM * Nobs_PM * Nturn_PM, cudaMemcpyDeviceToHost, "dist");
 
 			for (size_t i = 0; i < Np_PM; i++)
 			{
