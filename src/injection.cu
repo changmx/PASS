@@ -194,6 +194,7 @@ void Injection::execute(int turn) {
 				}
 
 				add_Dx();
+				add_offset();
 
 			}
 
@@ -415,8 +416,8 @@ void Injection::generate_transverse_KV_distribution() {
 		sigma12_y = -emittence_y * alpha_y_twiss;
 		sigma22_y = emittence_y * gamma_y_twiss;
 
-		phi_x = 0.5 * atan2(2 * sigma12_x, sigma22_x - sigma11_x);
-		phi_y = 0.5 * atan2(2 * sigma12_y, sigma22_y - sigma11_y);
+		phi_x = 0.5 * atan2(2 * alpha_x_twiss, gamma_x_twiss - beta_x_twiss);	// https://agenda.linearcollider.org/event/6258/contributions/29168/attachments/24202/37474/linear_dynamics.pdf
+		phi_y = 0.5 * atan2(2 * alpha_y_twiss, gamma_y_twiss - beta_y_twiss);
 
 		X1 = sqrt(2) * emittence_x / sqrt((sigma11_x + sigma22_x) + sqrt(pow((sigma22_x - sigma11_x), 2) + 4 * pow(sigma12_x, 2)));
 		X2 = sqrt(2) * emittence_x / sqrt((sigma11_x + sigma22_x) - sqrt(pow((sigma22_x - sigma11_x), 2) + 4 * pow(sigma12_x, 2)));
@@ -451,6 +452,9 @@ void Injection::generate_transverse_KV_distribution() {
 			host_particle.y[j] = y;
 			host_particle.py[j] = py;
 			host_particle.tag[j] = j + 1;
+			host_particle.sliceId[j] = 0;
+			host_particle.lostTurn[j] = -1;
+			host_particle.lostPos[j] = -1.0;
 		}
 		else
 		{
@@ -558,6 +562,9 @@ void Injection::generate_transverse_Gaussian_distribution() {
 			host_particle.y[j] = y;
 			host_particle.py[j] = py;
 			host_particle.tag[j] = j + 1;
+			host_particle.sliceId[j] = 0;
+			host_particle.lostTurn[j] = -1;
+			host_particle.lostPos[j] = -1.0;
 		}
 		else
 		{
@@ -674,6 +681,9 @@ void Injection::generate_transverse_uniform_distribution() {
 			host_particle.y[j] = y;
 			host_particle.py[j] = py;
 			host_particle.tag[j] = j + 1;
+			host_particle.sliceId[j] = 0;
+			host_particle.lostTurn[j] = -1;
+			host_particle.lostPos[j] = -1.0;
 		}
 		else
 		{
@@ -902,6 +912,57 @@ void Injection::add_Dx() {
 		Dx, beam_name, beamId, bunchId);
 }
 
+
+void Injection::add_offset() {
+
+	if (is_offset_x)
+	{
+		spdlog::get("logger")->info("[Injection] Offset x = {} of {} beam-{} bunch-{} is begin added ...",
+			offset_x, beam_name, beamId, bunchId);
+
+		Particle host_particle;
+		host_particle.mem_allocate_cpu(Np);
+
+		//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+		particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
+
+		for (int j = 0; j < Np; ++j)
+		{
+			host_particle.x[j] += offset_x;
+		}
+
+		//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+
+		host_particle.mem_free_cpu();
+		spdlog::get("logger")->info("[Injection] Offset x = {} of {} beam-{} bunch-{} has been genetated successfully.",
+			offset_x, beam_name, beamId, bunchId);
+	}
+
+	if (is_offset_y)
+	{
+		spdlog::get("logger")->info("[Injection] Offset y = {} of {} beam-{} bunch-{} is begin added ...",
+			offset_y, beam_name, beamId, bunchId);
+
+		Particle host_particle;
+		host_particle.mem_allocate_cpu(Np);
+
+		//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
+		particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
+
+		for (int j = 0; j < Np; ++j)
+		{
+			host_particle.y[j] += offset_y;
+		}
+
+		//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
+		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+
+		host_particle.mem_free_cpu();
+		spdlog::get("logger")->info("[Injection] Offset y = {} of {} beam-{} bunch-{} has been genetated successfully.",
+			offset_y, beam_name, beamId, bunchId);
+	}
+}
 
 void Injection::print_config() {
 
