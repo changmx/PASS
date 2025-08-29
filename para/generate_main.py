@@ -3,8 +3,10 @@ import os
 import json
 import sys
 from collections import OrderedDict
-from get_twiss_from_madx import generate_twiss_json
-from get_element_from_madx import generate_element_json
+
+from get_twiss_from_madx import gen_twiss_from_madx
+
+from get_element_from_madx import get_element_from_madx
 from generate_smooth_approx_twiss import generate_twiss_smooth_approximate
 
 
@@ -26,7 +28,8 @@ def sort_sequence(sequence):
         "SBendElement": 300,
         "RBendElement": 300,
         "QuadrupoleElement": 300,
-        "SextupoleElement": 300,
+        "SextupoleNormElement": 300,
+        "SextupoleSkewElement": 300,
         "OctupoleElement": 300,
         "HKickerElement": 300,
         "VKickerElement": 300,
@@ -79,7 +82,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         "Number of bunches per beam": 1,
         "Circumference (m)": 569.1,
         "GammaT": 1,
-        "Number of turns": 100,
+        "Number of turns": 1000,
         "Number of GPU devices": 1,
         "Device Id": [0],
         "Output directory": "D:\\PassSimulation",
@@ -115,9 +118,10 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     ParticleMonitorPara = {
         "Particle Monitor parameters": {
             "Is enable particle monitor": True,
-            "Number of particles to save": 21,
-            "Save turn range": [1, 100000, 1],
-            "Observer position S (m)": [0, 26.84],
+            "Number of particles to save": 3,
+            "Save turn range": [1, 1000, 1],
+            # "Observer position S (m)": [0, 26.84],
+            "Observer position S (m)": [0],
         }
     }
 
@@ -132,34 +136,35 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per nucleon (eV/u)": 30e6,
+                "Kinetic energy per nucleon (eV/u)": 1e6,
                 "Number of real particles per bunch": 3e11,
-                "Number of macro particles per bunch": 1e5,
+                "Number of macro particles per bunch": 1e3,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
-                "Alpha x": 0,
-                "Alpha y": 0,
-                "Beta x (m)": 9.564422187285917,
-                "Beta y (m)": 9.604992376839624,
-                "Emittance x (m'rad)": 50e-6,
-                "Emittance y (m'rad)": 25e-6,
+                "Alpha x": -2.6143039521482168,
+                "Alpha y": 1.5744234799406003,
+                "Beta x (m)": 17.563417831999914,
+                "Beta y (m)": 8.624482364741164,
+                "Emittance x (m'rad)": 12.5e-6,
+                "Emittance y (m'rad)": 6.25e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
                 "Sigma z (m)": 569.1,
-                "DeltaP/P": 5e-3,
+                "DeltaP/P": 4e-4,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
-                    "Is offset": False,
-                    "Offset (m)": 0,
+                    "Is offset": True,
+                    "Offset (m)": 5e-3,
                 },
                 "Offset y": {
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
-                "Name of loaded file": "1004_00_beam0_78Kr19+_bunch0_100000_hor_kv_longi_uniform_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is load distribution": False,
+                "Name of loaded file": "wangl.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
+                "Particle coordinate": [],
             },
         }
     }
@@ -167,20 +172,27 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     # -------------------------------------------------------------- Get twiss  from madx -------------------------------------------------------------- #
 
-    # twiss_list_from_madx, circumference_twissFile = generate_twiss_json(
-    #     r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\ring.dat",
-    #     logi_transfer="off",
-    #     muz=0.0123,
-    #     DQx=-0,
-    #     DQy=-0,
-    # )
-    # if (abs(circumference - circumference_twissFile)) > 1e-9:
-    #     print(
-    #         f"Error: Circumference from BeamPara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}. Check it!"
-    #     )
-    #     sys.exit(1)
-    # for twiss in twiss_list_from_madx:
-    #     Sequence.update(twiss)
+    twiss_list_from_madx, circumference_twissFile = gen_twiss_from_madx(
+        seq_file=r"D:\PASS\para\BRingOptics.seq",
+        # error_file=r"D:\PASS\para\error.madx",
+        seq_name="ring",
+        logi_transfer_method="off",
+        muz=0,
+        DQx=-11.4761346,
+        DQy=-11.59756808,
+        centre=True,
+        is_add_sextupole=True,
+    )
+    if (abs(circumference - circumference_twissFile)) > 1e-10:
+        print(
+            f"Warning: Circumference from BeamPara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}."
+        )
+        BeamPara["Circumference (m)"] = circumference_twissFile
+        circumference = BeamPara["Circumference (m)"]
+        print(f"Circumference from BeamPara dict has been changed to {circumference}")
+
+    for twiss in twiss_list_from_madx:
+        Sequence.update(twiss)
 
     # ------------------------------------------------------- Space charge according to madx twiss ----------------------------------------------------- #
 
@@ -188,275 +200,49 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # for ielem in twiss_list_from_madx:
     #     first_key = next(iter(ielem))
     #     name_sc = first_key
-    #     s_sc = ielem[first_key]["S (m)"]
-    #     s_pre_sc = ielem[first_key]["S previous (m)"]
+    #     command_elem = ielem[first_key]["Command"]
 
-    #     dict_sc = {
-    #         name_sc
-    #         + "_sc": {
-    #             "S (m)": s_sc,
-    #             "Command": "SpaceCharge",
-    #             "Length (m)": s_sc - s_pre_sc,
+    #     if command_elem == "Twiss":
+    #         s_sc = ielem[first_key]["S (m)"]
+    #         s_pre_sc = ielem[first_key]["S previous (m)"]
+
+    #         dict_sc = {
+    #             name_sc
+    #             + "_sc": {
+    #                 "S (m)": s_sc,
+    #                 "Command": "SpaceCharge",
+    #                 "Length (m)": s_sc - s_pre_sc,
+    #                 "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+    #                 "Aperture value": [
+    #                     0.2,
+    #                     0.2,
+    #                 ],  # [Circle: radius/Rectangle:half width, half height/Ellipse:a,b]
+    #                 "Number of PIC grid x": 200,
+    #                 "Number of PIC grid y": 200,
+    #                 "Grid x length": 0.002,
+    #                 "Grid y length": 0.002,
+    #             }
     #         }
-    #     }
-    #     spacecharge_list.append(dict_sc)
+    #         spacecharge_list.append(dict_sc)
 
     # for dict_sc in spacecharge_list:
     #     Sequence.update(dict_sc)
     # print(f"Number of space charge points: {len(spacecharge_list)}")
 
-    # ------------------------------------------------------- Get twiss from smooth approximation ------------------------------------------------------ #
-
-    twiss_list_smooth_approx, circumference_smooth_approx = (
-        generate_twiss_smooth_approximate(
-            circum=569.1,
-            mux=9.47,
-            muy=9.43,
-            numPoints=100,
-            logi_transfer="off",
-            muz=0.0123,
-        )
-    )
-    if (abs(circumference - circumference_smooth_approx)) > 1e-9:
-        print(
-            f"Error: Circumference from BeamPara dict is = {circumference}, circumference from smooth approximate file is {circumference_smooth_approx}. Check it!"
-        )
-        sys.exit(1)
-    for twiss in twiss_list_smooth_approx:
-        Sequence.update(twiss)
-
-    # ----------------------------------------------- Space charge according to smooth approximate twiss ----------------------------------------------- #
-
-    spacecharge_list = []
-    for ielem in twiss_list_smooth_approx:
-        first_key = next(iter(ielem))
-        name_sc = first_key
-        s_sc = ielem[first_key]["S (m)"]
-        s_pre_sc = ielem[first_key]["S previous (m)"]
-
-        dict_sc = {
-            name_sc
-            + "_sc": {
-                "S (m)": s_sc,
-                "Command": "SpaceCharge",
-                "Length (m)": s_sc - s_pre_sc,
-                "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
-                "Aperture value": [
-                    0.2,
-                    0.2
-                ],  # [Circle: radius/Rectangle:half width, half height/Ellipse:a,b]
-                "Number of PIC grid x": 200,
-                "Number of PIC grid y": 200,
-                "Grid x length": 0.002,
-                "Grid y length": 0.002,
-            }
-        }
-        spacecharge_list.append(dict_sc)
-
-    for dict_sc in spacecharge_list:
-        Sequence.update(dict_sc)
-    print(f"Number of space charge points: {len(spacecharge_list)}")
-
-    # ----------------------------------------------------------- Input single Space charge ------------------------------------------------------------ #
-
-    # SC1 = {
-    #     "SpaceCharge_0.1": {
-    #         "S (m)": 0.1,
-    #         "Command": "SpaceCharge",
-    #         "Length (m)": 0.5,
-    #         "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
-    #         "Aperture value": [
-    #             0.1,
-    #             0.1,
-    #         ],  # [Circle: radius/Rectangel:half width, half height/Ellipse:a,b]
-    #         "Number of PIC grid x": 100,
-    #         "Number of PIC grid y": 100,
-    #         "Grid x length": 0.002,
-    #         "Grid y length": 0.002,
-    #     }
-    # }
-    # SC2 = {
-    #     "SpaceCharge_0.2": {
-    #         "S (m)": 0.2,
-    #         "Command": "SpaceCharge",
-    #         "Length (m)": 0.5,
-    #         "Aperture type": "Circle",  # [Circle/Rectangle/Ellipse]
-    #         "Aperture value": [0.1],
-    #         "Number of PIC grid x": 100,
-    #         "Number of PIC grid y": 100,
-    #         "Grid x length": 0.002,
-    #         "Grid y length": 0.002,
-    #     }
-    # }
-    # SC3 = {
-    #     "SpaceCharge_0.3": {
-    #         "S (m)": 0.3,
-    #         "Command": "SpaceCharge",
-    #         "Length (m)": 0.5,
-    #         "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
-    #         "Aperture value": [0.1, 0.05],
-    #         "Number of PIC grid x": 64,
-    #         "Number of PIC grid y": 64,
-    #         "Grid x length": 0.004,
-    #         "Grid y length": 0.002,
-    #     }
-    # }
-    # Sequence.update(SC1)
-    # Sequence.update(SC2)
-    # Sequence.update(SC3)
-
-    # -------------------------------------------------------------- Input single element -------------------------------------------------------------- #
-
-    # SF1_ARC1_1 = {
-    #     "sf1_arc1_1": {
-    #         "S (m)": 8.37,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": 2.768917952,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-    # SF1_ARC1_2 = {
-    #     "sf1_arc1_2": {
-    #         "S (m)": 59.93,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": 2.768917952,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-    # SF1_ARC1_3 = {
-    #     "sf1_arc1_3": {
-    #         "S (m)": 76.67,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": 2.768917952,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-    # SF1_ARC1_4 = {
-    #     "sf1_arc1_4": {
-    #         "S (m)": 128.23,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": 2.768917952,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-
-    # SD1_ARC1_1 = {
-    #     "sd1_arc1_1": {
-    #         "S (m)": 10.82,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": -3.493098505,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-    # SD1_ARC1_2 = {
-    #     "sd1_arc1_2": {
-    #         "S (m)": 57.48,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": -3.493098505,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-    # SD1_ARC1_3 = {
-    #     "sd1_arc1_3": {
-    #         "S (m)": 79.12,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": -3.493098505,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-    # SD1_ARC1_4 = {
-    #     "sd1_arc1_4": {
-    #         "S (m)": 125.78,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": -3.493098505,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #     },
-    # }
-
-    # SF1_STA1_1 = {
-    #     "sf1_sta1_1": {
-    #         "S (m)": 31.55,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": 3,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #         "isRamping": True,
-    #         "Ramping file path": r"D:\PASS\para\sf1_sta1_ramping.csv",
-    #     },
-    # }
-    # SF1_STA1_2 = {
-    #     "sf1_sta1_2": {
-    #         "S (m)": 41.96,
-    #         "Command": "SextupoleNormElement",
-    #         "L (m)": 0.2,
-    #         "Drift length (m)": 0,
-    #         "k2 (m^-3)": 3,
-    #         "isFieldError": False,
-    #         "isIgnoreLength": True,
-    #         "isRamping": True,
-    #         "Ramping file path": r"D:\PASS\para\sf1_sta1_ramping.csv",
-    #     },
-    # }
-
-    # ElSeparatorElement_entrance = {
-    #     "ES_26.84": {
-    #         "Command": "ElSeparatorElement",
-    #         "S (m)": 26.84,
-    #         "ES Horizontal position (m)": 0.04,
-    #     }
-    # }
-
-    # Sequence.update(SF1_ARC1_1)
-    # Sequence.update(SF1_ARC1_2)
-    # Sequence.update(SF1_ARC1_3)
-    # Sequence.update(SF1_ARC1_4)
-
-    # Sequence.update(SD1_ARC1_1)
-    # Sequence.update(SD1_ARC1_2)
-    # Sequence.update(SD1_ARC1_3)
-    # Sequence.update(SD1_ARC1_4)
-
-    # Sequence.update(SF1_STA1_1)
-    # Sequence.update(SF1_STA1_2)
-
-    # Sequence.update(ElSeparatorElement_entrance)
-
     # -------------------------------------------------------------- Get element from madx ------------------------------------------------------------- #
 
-    # element_list_from_madx, circumference_seqFile = generate_element_json(
-    #     r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\itm.seq",
+    # element_list_from_madx, circumference_seqFile = get_element_from_madx(
+    #     seq_file=r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\itm.seq",
+    #     # error_file=r"D:\PASS\para\error.madx",
+    #     seq_name="ring",
     # )
-    # if (abs(circumference - circumference_seqFile)) > 1e-9:
+    # if (abs(circumference - circumference_seqFile)) > 1e-10:
     #     print(
-    #         f"Error: Circumference from BeamPara dict is = {circumference}, circumference from madx sequence file is {circumference_seqFile}. Check it!"
+    #         f"Warning: Circumference from BeamPara dict is = {circumference}, circumference from madx twiss file is {circumference_seqFile}."
     #     )
-    #     sys.exit(1)
+    #     BeamPara["Circumference (m)"] = circumference_seqFile
+    #     circumference = BeamPara["Circumference (m)"]
+    #     print(f"Circumference from BeamPara dict has been changed to {circumference}")
     # for element in element_list_from_madx:
     #     # print(element)
     #     Sequence.update(element)
@@ -535,6 +321,119 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # #     Sequence.update(dict_sc)
     # print(f"Number of space charge points: {len(spacecharge_list)}")
 
+    # ------------------------------------------------------- Get twiss from smooth approximation ------------------------------------------------------ #
+
+    # twiss_list_smooth_approx, circumference_smooth_approx = (
+    #     generate_twiss_smooth_approximate(
+    #         circum=569.1,
+    #         mux=9.47,
+    #         muy=9.43,
+    #         numPoints=100,
+    #         logi_transfer="off",
+    #         muz=0.0123,
+    #     )
+    # )
+    # if (abs(circumference - circumference_smooth_approx)) > 1e-9:
+    #     print(
+    #         f"Error: Circumference from BeamPara dict is = {circumference}, circumference from smooth approximate file is {circumference_smooth_approx}. Check it!"
+    #     )
+    #     sys.exit(1)
+    # for twiss in twiss_list_smooth_approx:
+    #     Sequence.update(twiss)
+
+    # ----------------------------------------------- Space charge according to smooth approximate twiss ----------------------------------------------- #
+
+    # spacecharge_list = []
+    # for ielem in twiss_list_smooth_approx:
+    #     first_key = next(iter(ielem))
+    #     name_sc = first_key
+    #     s_sc = ielem[first_key]["S (m)"]
+    #     s_pre_sc = ielem[first_key]["S previous (m)"]
+
+    #     dict_sc = {
+    #         name_sc
+    #         + "_sc": {
+    #             "S (m)": s_sc,
+    #             "Command": "SpaceCharge",
+    #             "Length (m)": s_sc - s_pre_sc,
+    #             "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+    #             "Aperture value": [
+    #                 0.2,
+    #                 0.2
+    #             ],  # [Circle: radius/Rectangle:half width, half height/Ellipse:a,b]
+    #             "Number of PIC grid x": 200,
+    #             "Number of PIC grid y": 200,
+    #             "Grid x length": 0.002,
+    #             "Grid y length": 0.002,
+    #         }
+    #     }
+    #     spacecharge_list.append(dict_sc)
+
+    # for dict_sc in spacecharge_list:
+    #     Sequence.update(dict_sc)
+    # print(f"Number of space charge points: {len(spacecharge_list)}")
+
+    # ----------------------------------------------------------- Input single Space charge ------------------------------------------------------------ #
+
+    sh_list = []
+    sv_list = []
+    # sh_list.append(elem_dict[name] = {
+    #                 "S (m)": s,
+    #                 "Command": class_map["sextupole norm"],
+    #                 "L (m)": l,
+    #                 "Drift length (m)": 0,
+    #                 "k2 (m^-3)": seq[i].k2,
+    #                 "isFieldError": False,
+    #                 "Error order": 0,
+    #                 "KNL": [],
+    #                 "KSL": [],
+    #                 "Is thin lens": False,
+    #             })
+    # SC1 = {
+    #     "SpaceCharge_0.1": {
+    #         "S (m)": 0.1,
+    #         "Command": "SpaceCharge",
+    #         "Length (m)": 0.5,
+    #         "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+    #         "Aperture value": [
+    #             0.1,
+    #             0.1,
+    #         ],  # [Circle: radius/Rectangel:half width, half height/Ellipse:a,b]
+    #         "Number of PIC grid x": 100,
+    #         "Number of PIC grid y": 100,
+    #         "Grid x length": 0.002,
+    #         "Grid y length": 0.002,
+    #     }
+    # }
+
+    # Sequence.update(SC1)
+
+    # -------------------------------------------------------------- Input single element -------------------------------------------------------------- #
+
+    # SF1_ARC1_1 = {
+    #     "sf1_arc1_1": {
+    #         "S (m)": 8.37,
+    #         "Command": "SextupoleNormElement",
+    #         "L (m)": 0.2,
+    #         "Drift length (m)": 0,
+    #         "k2 (m^-3)": 2.768917952,
+    #         "isFieldError": False,
+    #         "isIgnoreLength": True,
+    #     },
+    # }
+
+    # ElSeparatorElement_entrance = {
+    #     "ES_26.84": {
+    #         "Command": "ElSeparatorElement",
+    #         "S (m)": 26.84,
+    #         "ES Horizontal position (m)": 0.04,
+    #     }
+    # }
+
+    # Sequence.update(SF1_ARC1_1)
+
+    # Sequence.update(ElSeparatorElement_entrance)
+
     # ------------------------------------------------------------------ Oneturn map ------------------------------------------------------------------- #
 
     # lattice_oneturn_map = {
@@ -575,6 +474,15 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     }
     Sequence.update(Monitor_Dist_oneturn)
 
+    # DistMonitor2 = {
+    #     "DistMonitor_end": {
+    #         "S (m)": 569.0984841048011,
+    #         "Command": "DistMonitor",
+    #         "Save turns": [[1], [2]],
+    #     },
+    # }
+    # Sequence.update(DistMonitor2)
+
     # Monitor_Dist_ES = {
     #     "DistMonitor_ES": {
     #         "S (m)": 26.84,
@@ -598,6 +506,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     # ----------------------------------------------------------------- Phase Monitor ------------------------------------------------------------------ #
 
+    # Monitor to save phase advance
     PhaseMonitor = {
         "PhaseMonitor_0": {
             "S (m)": 0,
@@ -642,18 +551,18 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # --------------------------------------------------------------- Particle Monitor ----------------------------------------------------------------- #
 
     # ParticleMonitor at position s to save specified particles
-    # PM_para = ParticleMonitorPara["Particle Monitor parameters"]
-    # s_PM = PM_para["Observer position S (m)"]
-    # for i in np.arange(len(s_PM)):
-    #     partMoni = {
-    #         "ParticleMonitor_"
-    #         + str(s_PM[i]): {
-    #             "S (m)": s_PM[i],
-    #             "Command": "ParticleMonitor",
-    #             "Observer Id": int(i),
-    #         }
-    #     }
-    #     Sequence.update(partMoni)
+    PM_para = ParticleMonitorPara["Particle Monitor parameters"]
+    s_PM = PM_para["Observer position S (m)"]
+    for i in np.arange(len(s_PM)):
+        partMoni = {
+            "ParticleMonitor_"
+            + str(s_PM[i]): {
+                "S (m)": s_PM[i],
+                "Command": "ParticleMonitor",
+                "Observer Id": int(i),
+            }
+        }
+        Sequence.update(partMoni)
 
     # --------------------------------------------------------------- Sort sequence by s --------------------------------------------------------------- #
 
