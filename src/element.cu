@@ -105,13 +105,16 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		spdlog::get("logger")->debug("[SBend Element] run: {}, s = {}, l = {}, drift_length = {}, angle = {}, e1 = {}, e2 = {}, hgap = {}, fint = {}, fintx = {}, isFieldError = {}",
 			name, s, l, drift_length, angle, e1, e2, hgap, fint, fintx, isFieldError);
@@ -247,13 +250,16 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 	}
 	catch (json::exception e)
@@ -385,13 +391,16 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		spdlog::get("logger")->debug("[Quadrupole Element] run: {}, s = {}, l = {}, drift_length = {}, k1 = {}, k1s = {}, isFieldError = {}",
 			name, s, l, drift_length, k1, k1s, isFieldError);
@@ -515,13 +524,16 @@ SextupoleNormElement::SextupoleNormElement(const Parameter& para, int input_beam
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 
@@ -630,13 +642,16 @@ SextupoleSkewElement::SextupoleSkewElement(const Parameter& para, int input_beam
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 
@@ -746,13 +761,16 @@ OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const 
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 	}
@@ -857,13 +875,16 @@ HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bu
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 	}
@@ -948,13 +969,16 @@ VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bu
 		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
+		if (isFieldError)
 		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			for (int i = 0; i < (cur_error_order + 1); i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
+				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+			}
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
 		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
 	}
@@ -1965,9 +1989,28 @@ __global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int
 	double real_temp = 0.0, imag_temp = 0.0;
 
 	double inv_factorial = 0;
-	constexpr double factorial_table[max_order + 1] = { 1.0, 1.0, 2.0, 6.0, 24.0, 120.0, 720.0, 5040.0, 40320.0, 362880.0,
-		3628800.0, 39916800.0, 479001600.0, 6227020800.0, 87178291200.0, 1307674368000.0,20922789888000.0,
-		355687428096000.0, 6402373705728000.0, 121645100408832000.0 ,2432902008176640000.0 };
+	constexpr double factorial_table[max_order + 1] = {
+		1.0,
+		1.0,
+		2.0,
+		6.0,
+		24.0,
+		120.0,
+		720.0,
+		5040.0,
+		40320.0,
+		362880.0,
+		3628800.0,
+		39916800.0,
+		479001600.0,
+		6227020800.0,
+		87178291200.0,
+		1307674368000.0,
+		20922789888000.0,
+		355687428096000.0,
+		6402373705728000.0,
+		121645100408832000.0 ,
+		2432902008176640000.0 };
 
 	while (tid < Np_sur)
 	{

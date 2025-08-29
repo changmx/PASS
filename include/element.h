@@ -84,7 +84,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -129,7 +129,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -174,7 +174,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -216,7 +216,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -261,7 +261,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -306,7 +306,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -349,7 +349,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -391,7 +391,7 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -432,7 +432,7 @@ private:
 	int block_x = 0;
 
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = 0;
+	int cur_error_order = -1;	// -1 means no multipole filed. 0 refers to dipole field, 1 refers to quad. field, etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
