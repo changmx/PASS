@@ -108,11 +108,6 @@ void SortBunch::execute(int turn) {
 
 	int Np_sur = bunchRef.Np_sur;
 
-	if (Np_sur < Nslice) {
-		spdlog::get("logger")->warn("[SortBunch] Np_sur = {} is less than number of slices {}, ignore the sorting process.", Np_sur, Nslice);
-		return;
-	}
-
 	// 1: Survived particle is marked with 1, not survived with 0
 	callKernel(mark_survive_particles << <block_x, thread_x, 0, 0 >> > (dev_particle.tag, dev_survive_flags, Np));
 
@@ -127,6 +122,15 @@ void SortBunch::execute(int turn) {
 	Np_sur = last_prefix + last_flag; // 最后元素前缀和+标志值
 
 	bunchRef.Np_sur = Np_sur;	// Update Np_sur
+
+	if (Np_sur == 0) {
+		spdlog::get("logger")->info("[SortBunch] Np_sur = {}, at turn = {}", Np_sur, turn);
+		std::exit(EXIT_FAILURE);
+	}
+	if (Np_sur < Nslice) {
+		spdlog::get("logger")->warn("[SortBunch] Np_sur = {} is less than number of slices {}, ignore the sorting process.", Np_sur, Nslice);
+		return;
+	}
 
 	// 4. Maintain the original order, the surviving particles move to [0,Np_sur), and the non-surviving particles move to [Np_sur, Np).
 	callKernel(stable_partition << <block_x, thread_x, 0, 0 >> > (dev_particle, dev_particle_tmp, dev_survive_prefix, Np, Np_sur));
@@ -288,9 +292,12 @@ __global__ void stable_partition(Particle src, Particle dst, int* valid_prefix, 
 		else {
 			const int invalid_idx = tid - prefix_val;
 			//dst[Np_sur + invalid_idx] = src[tid];
-			dst.x[Np_sur + invalid_idx] = src.x[tid]; dst.px[Np_sur + invalid_idx] = src.px[tid];
-			dst.y[Np_sur + invalid_idx] = src.y[tid]; dst.py[Np_sur + invalid_idx] = src.py[tid];
-			dst.z[Np_sur + invalid_idx] = src.z[tid]; dst.pz[Np_sur + invalid_idx] = src.pz[tid];
+			dst.x[Np_sur + invalid_idx] = src.x[tid]; 
+			dst.px[Np_sur + invalid_idx] = src.px[tid];
+			dst.y[Np_sur + invalid_idx] = src.y[tid]; 
+			dst.py[Np_sur + invalid_idx] = src.py[tid];
+			dst.z[Np_sur + invalid_idx] = src.z[tid]; 
+			dst.pz[Np_sur + invalid_idx] = src.pz[tid];
 			dst.lostPos[Np_sur + invalid_idx] = src.lostPos[tid];
 			dst.tag[Np_sur + invalid_idx] = src.tag[tid];
 			dst.lostTurn[Np_sur + invalid_idx] = src.lostTurn[tid];
@@ -311,7 +318,7 @@ __global__ void stable_partition(Particle src, Particle dst, int* valid_prefix, 
 }
 
 
-__global__ void gather_survive_particles(Particle src, Particle dst, const int* __restrict__ sorted_index, int Np_sur) {
+__global__ void gather_survive_particles(Particle src, Particle dst, const int*  sorted_index, int Np_sur) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -320,9 +327,12 @@ __global__ void gather_survive_particles(Particle src, Particle dst, const int* 
 	{
 		int index = sorted_index[tid];
 
-		dst.x[tid] = src.x[index]; dst.px[tid] = src.px[index];
-		dst.y[tid] = src.y[index]; dst.py[tid] = src.py[index];
-		dst.z[tid] = src.z[index]; dst.pz[tid] = src.pz[index];
+		dst.x[tid] = src.x[index]; 
+		dst.px[tid] = src.px[index];
+		dst.y[tid] = src.y[index]; 
+		dst.py[tid] = src.py[index];
+		dst.z[tid] = src.z[index]; 
+		dst.pz[tid] = src.pz[index];
 		dst.lostPos[tid] = src.lostPos[index];
 		dst.tag[tid] = src.tag[index];
 		dst.lostTurn[tid] = src.lostTurn[index];
@@ -351,9 +361,12 @@ __global__ void copy_lost_particles(Particle src, Particle dst, int Np, int Np_s
 	{
 		int index = tid + Np_sur;
 
-		dst.x[index] = src.x[index]; dst.px[tid] = src.px[index];
-		dst.y[index] = src.y[index]; dst.py[tid] = src.py[index];
-		dst.z[index] = src.z[index]; dst.pz[tid] = src.pz[index];
+		dst.x[index] = src.x[index]; 
+		dst.px[index] = src.px[index];
+		dst.y[index] = src.y[index]; 
+		dst.py[index] = src.py[index];
+		dst.z[index] = src.z[index]; 
+		dst.pz[index] = src.pz[index];
 		dst.lostPos[index] = src.lostPos[index];
 		dst.tag[index] = src.tag[index];
 		dst.lostTurn[index] = src.lostTurn[index];
