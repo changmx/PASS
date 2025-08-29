@@ -28,6 +28,7 @@ public:
 
 	void add_Dx();
 	void add_offset();
+	void insert_particle();
 
 	void print_config();
 
