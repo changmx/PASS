@@ -133,7 +133,7 @@ void Twiss::execute(int turn) {
 	int Np_sur = bunchRef.Np_sur;
 
 	callKernel(
-		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference,
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference, turn, s,
 			betax, betax_previous, alphax, alphax_previous,
 			betay, betay_previous, alphay, alphay_previous,
 			phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
@@ -149,7 +149,7 @@ void Twiss::execute(int turn) {
 }
 
 
-__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference, int turn, double s,
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
@@ -222,8 +222,21 @@ __global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double cir
 			dev_particle.y[tid] = y2;
 			dev_particle.py[tid] = py2;
 
-			tid += stride;
+			if (fabs(x2) > 1 || fabs(y2) > 1)
+			{
+				dev_particle.tag[tid] *= -1;
+				dev_particle.lostTurn[tid] = turn;
+				dev_particle.lostPos[tid] = s;
+			}
+
+			/*if (dev_particle.tag[tid] == 1 || dev_particle.tag[tid] == -1)
+			{
+				printf("x1 = %f, px1 = %f, x2 =%f, px2 = %f, dpx = %f, y = %f, py = %f, dpy = %f\n", x1, px1, x2, px2, px2 - px1, y1, py1, py2 - py1);
+			}*/
+
 		}
+
+		tid += stride;
 
 	}
 }
