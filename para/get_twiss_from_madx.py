@@ -229,8 +229,10 @@ def gen_twiss_from_madx(
                     "Mu z previous": s[i - 1] / circumference * (muz - 0),
                     "Dx (m) previous": Dx[i - 1],
                     "Dpx previous": Dpx[i - 1],
-                    "DQx": DQx * (mux[i] - mux[i - 1]) / mux_ring,
-                    "DQy": DQy * (muy[i] - muy[i - 1]) / muy_ring,
+                    # "DQx": DQx * (mux[i] - mux[i - 1]) / mux_ring,
+                    # "DQy": DQy * (muy[i] - muy[i - 1]) / muy_ring,
+                    "DQx": DQx * (s[i] - s[i - 1]) / circumference,
+                    "DQy": DQy * (s[i] - s[i - 1]) / circumference,
                     "Longitudinal transfer": logi_transfer_method,
                 },
             }
