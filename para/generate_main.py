@@ -75,14 +75,14 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # ------------------------------------------------------------ Config global parameters ------------------------------------------------------------ #
 
     BeamPara = {
-        "Name": "78Kr19+",  # [particle name]: arbitrary, just to let the user distinguish the beam
-        "Number of protons per particle": 36,
-        "Number of neutrons per particle": 42,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
-        "Number of charges per particle": 19,
+        "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
+        "Number of protons per particle": 1,
+        "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
+        "Number of charges per particle": 1,
         "Number of bunches per beam": 1,
         "Circumference (m)": 569.1,
-        "GammaT": 1,
-        "Number of turns": 1000,
+        "GammaT": 7.635074035,
+        "Number of turns": 48500,
         "Number of GPU devices": 1,
         "Device Id": [0],
         "Output directory": "D:\\PassSimulation",
@@ -136,9 +136,9 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per nucleon (eV/u)": 1e6,
+                "Kinetic energy per nucleon (eV/u)": 48e6,
                 "Number of real particles per bunch": 3e11,
-                "Number of macro particles per bunch": 1e3,
+                "Number of macro particles per bunch": 1e5,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
                 "Alpha x": -2.6143039521482168,
@@ -150,11 +150,11 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
                 "Sigma z (m)": 569.1,
-                "DeltaP/P": 4e-4,
+                "DeltaP/P": 6.6e-4,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
-                    "Is offset": True,
+                    "Is offset": False,
                     "Offset (m)": 5e-3,
                 },
                 "Offset y": {
@@ -164,7 +164,10 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Is load distribution": False,
                 "Name of loaded file": "wangl.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
-                "Particle coordinate": [],
+                "Insert particle coordinate": [
+                    [0.001, 0, 0.001, 0, 0, 0],
+                    [0.001, 0, 0.001, 0, 0, 0.001],
+                ],
             },
         }
     }
@@ -172,27 +175,27 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     # -------------------------------------------------------------- Get twiss  from madx -------------------------------------------------------------- #
 
-    twiss_list_from_madx, circumference_twissFile = gen_twiss_from_madx(
-        seq_file=r"D:\PASS\para\BRingOptics.seq",
-        # error_file=r"D:\PASS\para\error.madx",
-        seq_name="ring",
-        logi_transfer_method="off",
-        muz=0,
-        DQx=-11.4761346,
-        DQy=-11.59756808,
-        centre=True,
-        is_add_sextupole=True,
-    )
-    if (abs(circumference - circumference_twissFile)) > 1e-10:
-        print(
-            f"Warning: Circumference from BeamPara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}."
-        )
-        BeamPara["Circumference (m)"] = circumference_twissFile
-        circumference = BeamPara["Circumference (m)"]
-        print(f"Circumference from BeamPara dict has been changed to {circumference}")
+    # twiss_list_from_madx, circumference_twissFile = gen_twiss_from_madx(
+    #     seq_file=r"D:\PASS\para\BRingOptics.seq",
+    #     # error_file=r"D:\PASS\para\error.madx",
+    #     seq_name="ring",
+    #     logi_transfer_method="drift",
+    #     muz=0,
+    #     DQx=-11.62259943,
+    #     DQy=-11.35280561,
+    #     centre=True,
+    #     is_add_sextupole=True,
+    # )
+    # if (abs(circumference - circumference_twissFile)) > 1e-10:
+    #     print(
+    #         f"Warning: Circumference from BeamPara dict is = {circumference}, circumference from madx twiss file is {circumference_twissFile}."
+    #     )
+    #     BeamPara["Circumference (m)"] = circumference_twissFile
+    #     circumference = BeamPara["Circumference (m)"]
+    #     print(f"Circumference from BeamPara dict has been changed to {circumference}")
 
-    for twiss in twiss_list_from_madx:
-        Sequence.update(twiss)
+    # for twiss in twiss_list_from_madx:
+    #     Sequence.update(twiss)
 
     # ------------------------------------------------------- Space charge according to madx twiss ----------------------------------------------------- #
 
@@ -232,7 +235,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # -------------------------------------------------------------- Get element from madx ------------------------------------------------------------- #
 
     # element_list_from_madx, circumference_seqFile = get_element_from_madx(
-    #     seq_file=r"D:\AthenaLattice\Ion-Track-etched-Membrane\v9-3\itm.seq",
+    #     seq_file=r"D:\PASS\para\BRingOptics.seq",
     #     # error_file=r"D:\PASS\para\error.madx",
     #     seq_name="ring",
     # )
@@ -375,8 +378,8 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     # ----------------------------------------------------------- Input single Space charge ------------------------------------------------------------ #
 
-    sh_list = []
-    sv_list = []
+    # sh_list = []
+    # sv_list = []
     # sh_list.append(elem_dict[name] = {
     #                 "S (m)": s,
     #                 "Command": class_map["sextupole norm"],
@@ -461,6 +464,35 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     #     },
     # }
     # Sequence.update(lattice_oneturn_map)
+    lattice_oneturn_map = {
+        "ring$end:1_569.0984841047994": {
+            "S (m)": 569.0984841047994,
+            "Command": "Twiss",
+            "S previous (m)": 0,
+            "Alpha x": -2.6143039521481892,
+            "Alpha y": 1.5744234799406198,
+            "Beta x (m)": 17.563417831999786,
+            "Beta y (m)": 8.624482364741272,
+            "Mu x": 0,
+            "Mu y": 0,
+            "Mu z": 0.0,
+            "Dx (m)": -7.906159725352051e-10,
+            "Dpx": 2.433671012036641e-10,
+            "Alpha x previous": -2.6143039521481892,
+            "Alpha y previous": 1.5744234799406198,
+            "Beta x previous (m)": 17.563417831999786,
+            "Beta y previous (m)": 8.624482364741272,
+            "Mu x previous": 0.47,
+            "Mu y previous": 0.43,
+            "Mu z previous": 0.0,
+            "Dx (m) previous": 0,
+            "Dpx previous": 0,
+            "DQx": 0,
+            "DQy": 0,
+            "Longitudinal transfer": "drift",
+        }
+    }
+    Sequence.update(lattice_oneturn_map)
 
     # -------------------------------------------------------------- Distribution Monitor -------------------------------------------------------------- #
 
@@ -523,16 +555,16 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     # ------------------------------------------------------------------- RF Cavity -------------------------------------------------------------------- #
 
-    # # RF cavity, length is 0, no drift
-    # RF1 = {
-    #     "RF_cavity1_"
-    #     + str(circumference): {
-    #         "S (m)": circumference,
-    #         "Command": "RFElement",
-    #         "RF Data files": ["D:path"],
-    #     }
-    # }
-    # Sequence.update(RF1)
+    # RF cavity, length is 0, no drift
+    RF1 = {
+        "RF_cavity1_"
+        + str(0): {
+            "S (m)": 0,
+            "Command": "RFElement",
+            "RF Data files": [r"D:\PASS\para\rf_data.csv"],
+        }
+    }
+    Sequence.update(RF1)
 
     # --------------------------------------------------------------- Sort and cut slice --------------------------------------------------------------- #
 
