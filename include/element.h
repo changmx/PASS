@@ -588,9 +588,9 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
 	double radius, double ratio, double dE_syn, double eta1, double E_total1);
 
-__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta);
+__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta, double Es);
 
-__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta);
+__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta, double Es);
 
 __global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl);
 

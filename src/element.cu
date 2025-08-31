@@ -1196,7 +1196,7 @@ void RFElement::execute(int turn) {
 
 	for (int i = 0; i < Nrf; i++)
 	{
-		dE_syn += qm_ratio * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
+		dE_syn += qm_ratio * 1e6 * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
 	}
 
 	double Ek1 = Ek0 + dE_syn;
@@ -1906,29 +1906,33 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double z0 = 0, pz0 = 0, theta0 = 0, dE0 = 0;
-	double z1 = 0, pz1 = 0, theta1 = 0, dE1 = 0;
-
-	double dE_non_syn = 0;
-
-	double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
-
 	const double pi = PassConstant::PI;
 	const double circumference = 2 * pi * radius;
 	const double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
 
+	const double E_total0 = E_total1 - dE_syn;
+
+	//printf("trans_scale = %f, beta0 = %f, beta1 = %f, gamma0 = %f, gamma1 = %f\n", trans_scale, beta0, beta1, gamma0, gamma1);
 	while (tid < Np_sur) {
+
+		double z0 = 0, pz0 = 0, theta0 = 0, dE0 = 0;
+		double z1 = 0, pz1 = 0, theta1 = 0, dE1 = 0;
+
+		double dE_non_syn = 0;
+
+		double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
+
 
 		z0 = dev_particle.z[tid];
 		pz0 = dev_particle.pz[tid];
 
-		convert_z_dp_to_theta_dE(z0, pz0, theta0, dE0, radius, beta0);
+		convert_z_dp_to_theta_dE(z0, pz0, theta0, dE0, radius, beta0, E_total0);
 
 		for (int i = 0; i < Nrf; i++)
 		{
 			RFData* dev_rf_data_row = (RFData*)((char*)dev_rf_data + i * pitch_rf);
 
-			voltage = dev_rf_data_row[turn - 1].voltage;
+			voltage = dev_rf_data_row[turn - 1].voltage * 1e6;
 			harmonic = dev_rf_data_row[turn - 1].harmonic;
 			phis = dev_rf_data_row[turn - 1].phis;
 			phi_offset = dev_rf_data_row[turn - 1].phi_offset;
@@ -1936,15 +1940,17 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 			dE_non_syn += ratio * voltage * sin(phis - harmonic * theta0 + phi_offset);
 		}
 
-		dE1 = (beta1 / beta0) * (dE0 + dE_non_syn - dE_syn);
+		//dE1 = (beta1 / beta0) * (dE0 + dE_non_syn - dE_syn);
+		dE1 = (beta1 / beta0) * (dE0 + dE_non_syn);
 		theta1 = fmod((theta0 - 2 * pi * eta1 * dE1 / (E_total1 * beta1 * beta1) + pi), (2 * pi)) - pi;
 
-		convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1);
+		convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1, E_total1);
 
 		int mask = (dev_particle.tag[tid] > 0);
 
 		dev_particle.z[tid] = z1 * mask + z0 * (1 - mask);
 		dev_particle.pz[tid] = pz1 * mask + pz0 * (1 - mask);
+		//printf("z0 = %f, z1 = %f, pz0 = %f, pz1 = %f\n", z0, z1, pz0, pz1);
 
 		dev_particle.px[tid] = dev_particle.px[tid] * trans_scale * mask + dev_particle.px[tid] * (1 - mask);
 		dev_particle.py[tid] = dev_particle.py[tid] * trans_scale * mask + dev_particle.py[tid] * (1 - mask);
@@ -1959,15 +1965,15 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 }
 
 
-__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta) {
+__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta, double Es) {
 	theta = z / radius;
-	dE = dp * beta * beta;
+	dE = dp * beta * beta * Es;
 }
 
 
-__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta) {
+__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta, double Es) {
 	z = theta * radius;
-	dp = dE / (beta * beta);
+	dp = dE / (beta * beta * Es);
 }
 
 
@@ -2118,7 +2124,7 @@ std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
 	std::string line;
 
 	// Skip the first line
-	std::getline(file, line);
+	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
 	while (std::getline(file, line)) {
 		std::stringstream ss(line);
@@ -2145,6 +2151,12 @@ std::vector<RFData> readRFDataFromCSV(const std::string& filename) {
 			std::exit(EXIT_FAILURE);
 		}
 	}
+
+	//logger->debug("Number of RF data: {}", data.size());
+	//for (size_t i = 0; i < data.size(); i++)
+	//{
+	//	logger->debug("{} {} {} {}", data[i].harmonic, data[i].voltage, data[i].phis, data[i].phi_offset);
+	//}
 
 	return data;
 }
