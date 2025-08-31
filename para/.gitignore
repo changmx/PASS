@@ -1,1 +1,5 @@
 *.csv
+*.seq
+*.dat
+*.madx
+\rf
