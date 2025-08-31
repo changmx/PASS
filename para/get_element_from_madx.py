@@ -233,7 +233,7 @@ def get_element_from_madx(
         elif elem_type == "monitor":
             pass
         else:
-            print(f"Warning: we don't support {elem_type} ({name}) @ S={s} now.")
+            print(f"Warning: we don't support {elem_type} ({name}) @ S={s} now. This element is treated as drift now.")
             continue
 
     keys = list(elem_dict.keys())
