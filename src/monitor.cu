@@ -134,7 +134,7 @@ void DistMonitor::print_saveTurn() {
 }
 
 
-StatMonitor::StatMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent) {
+StatMonitor::StatMonitor(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
 	commandType = "StatMonitor";
 	name = obj_name;
 
@@ -211,7 +211,7 @@ void StatMonitor::execute(int turn) {
 	clock_t start_tmp, end_tmp;
 	start_tmp = clock();
 
-	save_bunchInfo_statistic(host_statistic, Np, saveDir, saveName_part, turn);
+	save_bunchInfo_statistic(host_statistic, bunchRef.Ek, Np, saveDir, saveName_part, turn);
 
 	end_tmp = clock();
 	simTime.saveStatistic += (float)(end_tmp - start_tmp) / CLOCKS_PER_SEC * 1000;
@@ -1055,7 +1055,7 @@ __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_sta
 }
 
 
-void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
+void save_bunchInfo_statistic(double* host_statistic, double Ek, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn) {
 
 	int stat_turn = turn;
 	double stat_beamloss = host_statistic[8];
@@ -1084,6 +1084,8 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 	double xquadAverage = host_statistic[19];
 	double ycubeAverage = host_statistic[20];
 	double yquadAverage = host_statistic[21];
+
+	double Ek_current = Ek;
 
 	double stat_sigmaX = sqrt(xsquareAverage - stat_xAverage * stat_xAverage);
 	double stat_sigmaY = sqrt(ysquareAverage - stat_yAverage * stat_yAverage);
@@ -1138,7 +1140,8 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 			<< "invariantx twiss" << "," << "invarianty twiss" << ","
 			<< "xzAverage" << "," << "xyAverage" << "," << "yzAverage" << "," << "xzDevideSigmaxSigmaz" << ","
 			<< "beamLossTotal" << "," << "lossPercent" << ","
-			<< "xSkewness" << "," << "xKurtosis" << "," << "ySkewness" << "," << "yKurtosis"
+			<< "xSkewness" << "," << "xKurtosis" << "," << "ySkewness" << "," << "yKurtosis" << ","
+			<< "Ek (eV)"
 			<< std::endl;
 	}
 	file << stat_turn << ","
@@ -1150,7 +1153,8 @@ void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::p
 		<< stat_invariantx << "," << stat_invarianty << ","
 		<< stat_xzAverage << "," << stat_xyAverage << "," << stat_yzAverage << "," << stat_xzDevideSigmaxSigmaz << ","
 		<< stat_beamloss << "," << stat_lossPercent << ","
-		<< stat_xSkewness << "," << stat_xKurtosis << "," << stat_ySkewness << "," << stat_yKurtosis
+		<< stat_xSkewness << "," << stat_xKurtosis << "," << stat_ySkewness << "," << stat_yKurtosis << ","
+		<< Ek_current
 		<< std::endl;
 
 	file.close();

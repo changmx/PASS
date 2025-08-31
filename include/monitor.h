@@ -95,7 +95,7 @@ private:
 class StatMonitor :public Monitor
 {
 public:
-	StatMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+	StatMonitor(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	// 禁用拷贝构造函数与拷贝赋值运算符
 	StatMonitor(const StatMonitor&) = delete;
@@ -103,7 +103,7 @@ public:
 
 	// 添加移动构造函数
 	StatMonitor(StatMonitor&& other)noexcept
-		:Nstat(other.Nstat), pitch_statistic(other.pitch_statistic), Np(other.Np), thread_x(other.thread_x), block_x(other.block_x), bunchId(other.bunchId),
+		:Nstat(other.Nstat), bunchRef(other.bunchRef), pitch_statistic(other.pitch_statistic), Np(other.Np), thread_x(other.thread_x), block_x(other.block_x), bunchId(other.bunchId),
 		saveDir(other.saveDir), saveName_part(other.saveName_part), simTime(other.simTime),
 		dev_particle(other.dev_particle), dev_statistic(other.dev_statistic), host_statistic(other.host_statistic)
 	{
@@ -118,6 +118,7 @@ public:
 		if (this != &other)
 		{
 			Nstat = other.Nstat;
+			bunchRef = other.bunchRef;
 			pitch_statistic = other.pitch_statistic;
 			Np = other.Np;
 			thread_x = other.thread_x;
@@ -166,6 +167,8 @@ private:
 	// 13:x', 14:y'
 	// 15:xz, 16:xy, 17:yz
 	// 18:x^3, 19:x^4, 20:y^3, 21:y^4
+
+	Bunch& bunchRef;
 
 	size_t pitch_statistic;
 
@@ -274,7 +277,7 @@ __global__ void cal_statistic_perblock(Particle dev_particle, double* dev_statis
 
 __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
 
-void save_bunchInfo_statistic(double* host_statistic, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
+void save_bunchInfo_statistic(double* host_statistic, double Ek, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
 
 __global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM,
 	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);
