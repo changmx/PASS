@@ -132,6 +132,14 @@ void Twiss::execute(int turn) {
 
 	int Np_sur = bunchRef.Np_sur;
 
+	if ("drift" == longitudinal_transfer)
+	{
+		m11_z = 1;
+		m12_z = -1 * (1 / (gammat * gammat) - 1 / (bunchRef.gamma * bunchRef.gamma)) * (s - s_previous);
+		m21_z = 0;
+		m22_z = 1;
+	}
+
 	callKernel(
 		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference, turn, s,
 			betax, betax_previous, alphax, alphax_previous,
