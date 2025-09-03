@@ -138,7 +138,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "bunch0": {
                 "Kinetic energy per nucleon (eV/u)": 48e6,
                 "Number of real particles per bunch": 3e11,
-                "Number of macro particles per bunch": 1e5,
+                "Number of macro particles per bunch": 1e4,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
                 "Alpha x": -2.6143039521482168,
@@ -150,7 +150,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
                 "Sigma z (m)": 569.1,
-                "DeltaP/P": 6.6e-4,
+                "DeltaP/P": 6.66667e-4,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
@@ -161,13 +161,10 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": False,
-                "Name of loaded file": "wangl.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is load distribution": True,
+                "Name of loaded file": "wangl_logi.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
-                "Insert particle coordinate": [
-                    [0.001, 0, 0.001, 0, 0, 0],
-                    [0.001, 0, 0.001, 0, 0, 0.001],
-                ],
+                "Insert particle coordinate": [],
             },
         }
     }
@@ -501,7 +498,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
             "Command": "DistMonitor",
-            "Save turns": [[1], [2], [5000], [20000, 30000, 5000]],
+            "Save turns": [[1], [2], [5000], [6000], [8000], [20000, 30000, 5000]],
         },
     }
     Sequence.update(Monitor_Dist_oneturn)
@@ -561,6 +558,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         + str(0): {
             "S (m)": 0,
             "Command": "RFElement",
+            "DeltaP/P aperture": [-0.005, 0.005],
             "RF Data files": [r"D:\PASS\para\rf_data.csv"],
         }
     }
