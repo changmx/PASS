@@ -492,6 +492,8 @@ private:
 	size_t pitch_rf = 0;
 	size_t Nturn_rf = 0;
 
+	double pz_aperture_lower = -1.0;
+	double pz_aperture_upper = +1.0;
 
 };
 
@@ -584,9 +586,10 @@ __global__ void transfer_hkicker(Particle dev_particle, int Np_sur, double beta,
 __global__ void transfer_vkicker(Particle dev_particle, int Np_sur, double beta,
 	double kick);
 
-__global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double beta0, double beta1, double gamma0, double gamma1,
+__global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double s, double beta0, double beta1, double gamma0, double gamma1,
 	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
-	double radius, double ratio, double dE_syn, double eta1, double E_total1);
+	double radius, double ratio, double dE_syn, double eta1, double E_total1,
+	double pz_min, double pz_max);
 
 __device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta, double Es);
 
