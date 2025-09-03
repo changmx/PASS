@@ -1136,8 +1136,8 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		//l = data.at("Sequence").at(obj_name).at("L (m)");
 		//drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		pz_aperture_lower = data.at("Sequence").at(obj_name).at("Delta p aperture")[0];
-		pz_aperture_upper = data.at("Sequence").at(obj_name).at("Delta p aperture")[1];
+		pz_aperture_lower = data.at("Sequence").at(obj_name).at("DeltaP/P aperture")[0];
+		pz_aperture_upper = data.at("Sequence").at(obj_name).at("DeltaP/P aperture")[1];
 		//z_aperture_lower = data.at("Sequence").at(obj_name).at("Z aperture")[0];
 		//z_aperture_upper = data.at("Sequence").at(obj_name).at("Z aperture")[1];
 
