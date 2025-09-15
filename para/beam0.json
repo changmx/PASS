@@ -1,5 +1,5 @@
 {
-    "Name": "78Kr19+",
+    "Name": "proton",
     "Number of protons per particle": 1,
     "Number of neutrons per particle": 0,
     "Number of charges per particle": 1,
@@ -50,7 +50,7 @@
             "bunch0": {
                 "Kinetic energy per nucleon (eV/u)": 48000000.0,
                 "Number of real particles per bunch": 300000000000.0,
-                "Number of macro particles per bunch": 100000.0,
+                "Number of macro particles per bunch": 10000.0,
                 "Mode": "1turn1time",
                 "Inject turns": [
                     1
@@ -63,8 +63,8 @@
                 "Emittance y (m'rad)": 6.25e-06,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 569.1,
-                "DeltaP/P": 0.00066,
+                "Sigma z (m)": 569.0984841047994,
+                "DeltaP/P": 0.000666667,
                 "Transverse dist": "kv",
                 "Longitudinal dist": "uniform",
                 "Offset x": {
@@ -75,25 +75,17 @@
                     "Is offset": false,
                     "Offset (m)": 0
                 },
-                "Is load distribution": false,
-                "Name of loaded file": "wangl.csv",
+                "Is load distribution": true,
+                "Name of loaded file": "wangl_logi.csv",
                 "Is save initial distribution": true,
                 "Insert particle coordinate": [
                     [
-                        0.001,
-                        0,
-                        0.001,
                         0,
                         0,
-                        0
-                    ],
-                    [
-                        0.001,
-                        0,
-                        0.001,
                         0,
                         0,
-                        0.001
+                        50.2023089662953,
+                        0.000400381857834703
                     ]
                 ]
             }
@@ -106,6 +98,10 @@
         "RF_cavity1_0": {
             "S (m)": 0,
             "Command": "RFElement",
+            "DeltaP/P aperture": [
+                -0.005,
+                0.005
+            ],
             "RF Data files": [
                 "D:\\PASS\\para\\rf_data.csv"
             ]
@@ -122,6 +118,12 @@
                 ],
                 [
                     5000
+                ],
+                [
+                    6000
+                ],
+                [
+                    8000
                 ],
                 [
                     20000,
