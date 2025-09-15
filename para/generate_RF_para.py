@@ -12,7 +12,7 @@ def merge_txt_to_csv(file_a, file_b, file_c, file_d, output_csv):
         data_d = pd.read_csv(file_d, header=None, names=["phi_offset"])
 
         # 合并数据
-        merged_data = pd.concat([data_a, data_b, data_c, data_d], axis=1)
+        merged_data = pd.concat([data_a, data_b * 1e6, data_c, data_d], axis=1)
 
         # 保存为CSV文件
         merged_data.to_csv(output_csv, index=False)
