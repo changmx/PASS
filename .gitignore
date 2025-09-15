@@ -9,3 +9,4 @@ build/
 __pycache__/
 libs/amgx/include
 libs/amgx/lib
+test/*.opju
