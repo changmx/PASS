@@ -149,7 +149,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Emittance y (m'rad)": 6.25e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 569.1,
+                "Sigma z (m)": 569.0984841047994,
                 "DeltaP/P": 6.66667e-4,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "uniform",  # [gaussian/uniform]
@@ -164,7 +164,9 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Is load distribution": True,
                 "Name of loaded file": "wangl_logi.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
-                "Insert particle coordinate": [],
+                "Insert particle coordinate": [
+                    [0, 0, 0, 0, 50.2023089662953, 0.000400381857834703]
+                ],
             },
         }
     }
@@ -532,6 +534,10 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         "StatMonitor_oneturn_0": {"S (m)": 0, "Command": "StatMonitor"},
     }
     Sequence.update(Monitor_Stat_oneturn)
+    # Monitor_2 = {
+    #     "Monitor2": {"S (m)": 24.580000000000013, "Command": "StatMonitor"},
+    # }
+    # Sequence.update(Monitor_2)
 
     # ----------------------------------------------------------------- Phase Monitor ------------------------------------------------------------------ #
 
