@@ -10,9 +10,29 @@
 
 # 使用方法
 
+## 环境配置
 
+1. 安装Visual Studio (Windows) / GCC (Linux)
+2. 安装CUDA (推荐安装12.2及以上版本)
+3. 安装CUDSS ([cuDSS 0.6.0 Downloads | NVIDIA Developer](https://developer.nvidia.com/cudss-downloads))
+4. 安装Python (推荐安装3.12及以上版本)
+5. 安装CMake软件 (推荐安装3.29及以上版本)
+6. 根据个人软件安装路径，修改CMakeLists.txt文件中文件路径
 
+### 编译流程
 
+1. 进入PASS文件夹，新建build文件夹
+2. 进入build文件夹，执行命令来构建项目：cmake ..
+3. 执行命令进行项目编译：cmake --build . --config Release -j16
+
+### 输入文件
+
+1. 进入para文件夹，修改generate_main.py文件中参数配置，运行并生成输入文件，例如beam.json
+
+### 软件运行
+
+1. Windows环境下程序位于build/Release文件夹下，执行命令：.\build\Release\PASS.exe --beam0=..\para\beam.json
+2. Linux环境下程序位于build文件夹下，执行命令：./build/PASS --beam0=../para/beam.json
 
 # 物理模型
 
