@@ -1197,7 +1197,7 @@ void RFElement::execute(int turn) {
 	double gamma0 = bunchRef.gamma;
 	double beta0 = bunchRef.beta;
 
-	double eta0 = 1 / (gammat * gammat) - 1 / (gamma0 * gamma0);
+	//double eta0 = 1 / (gammat * gammat) - 1 / (gamma0 * gamma0);
 
 	//double drift = drift_length;
 
@@ -1205,7 +1205,7 @@ void RFElement::execute(int turn) {
 
 	for (int i = 0; i < Nrf; i++)
 	{
-		dE_syn += qm_ratio * 1e6 * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
+		dE_syn += qm_ratio * host_rf_data[i][turn - 1].voltage * sin(host_rf_data[i][turn - 1].phis);
 	}
 
 	double Ek1 = Ek0 + dE_syn;
@@ -1933,7 +1933,6 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 
 			double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
 
-
 			z0 = dev_particle.z[tid];
 			pz0 = dev_particle.pz[tid];
 
@@ -1943,7 +1942,7 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 			{
 				RFData* dev_rf_data_row = (RFData*)((char*)dev_rf_data + i * pitch_rf);
 
-				voltage = dev_rf_data_row[turn - 1].voltage * 1e6;
+				voltage = dev_rf_data_row[turn - 1].voltage;
 				harmonic = dev_rf_data_row[turn - 1].harmonic;
 				phis = dev_rf_data_row[turn - 1].phis;
 				phi_offset = dev_rf_data_row[turn - 1].phi_offset;
@@ -1952,16 +1951,10 @@ __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double 
 			}
 
 			dE1 = (beta1 / beta0) * (dE0 + dE_non_syn - dE_syn);
-			theta1 = fmod((theta0 - 2 * pi * eta1 * dE1 / (E_total1 * beta1 * beta1) + pi), (2 * pi)) - pi;
+			theta1 = theta0;
 
 			convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1, E_total1);
 
-			double c_half = circumference * 0.5;
-			int over = (dev_particle.z[tid] > c_half);
-			int under = (dev_particle.z[tid] < -c_half);
-			z1 += (under - over) * circumference;
-
-			dev_particle.z[tid] = z1;
 			dev_particle.pz[tid] = pz1;
 
 			dev_particle.px[tid] = dev_particle.px[tid] * trans_scale;
