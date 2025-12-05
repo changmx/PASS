@@ -1346,6 +1346,96 @@ void ElSeparatorElement::execute(int turn) {
 }
 
 
+TuneExciterElement::TuneExciterElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "TuneExciterElement";
+	name = obj_name;
+	dev_particle = Bunch.dev_particle;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	circumference = para.circumference;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		exciter_length = data.at("Sequence").at(obj_name).at("Exciter length (m)");
+		exciter_gap = data.at("Sequence").at(obj_name).at("Exciter gap (m)");
+		filename = data.at("Sequence").at(obj_name).at("TuneExciter Data files");
+		std::string x_status = data.at("Sequence").at(obj_name).at("Horizontal status");
+		std::string y_status = data.at("Sequence").at(obj_name).at("Verticle status");
+		if (x_status == "ON" || x_status == "on")
+		{
+			exciter_status_x = 1;
+		}
+		if (y_status == "ON" || y_status == "on")
+		{
+			exciter_status_y = 1;
+		}
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+	host_tuneExciter_data = readTuneExciterDataFromCSV(filename);
+	Nturn_tuneExciter = host_tuneExciter_data.size();
+
+	//callCuda(cudaMalloc((void**)&dev_tuneExciter_data, Nturn_tuneExciter * sizeof(TuneExciterData)));
+	//callCuda(cudaMemset(dev_tuneExciter_data, 0, Nturn_tuneExciter * sizeof(TuneExciterData)));
+
+	//callCuda(cudaMemcpy(dev_tuneExciter_data, host_tuneExciter_data.data(), Nturn_tuneExciter * sizeof(TuneExciterData), cudaMemcpyHostToDevice));
+}
+
+
+void TuneExciterElement::execute(int turn) {
+
+	if (turn > host_tuneExciter_data.size())
+	{
+		return;
+	}
+
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->debug("[TuneExciter Element] run: " + name);
+
+	int Np_sur = bunchRef.Np_sur;
+
+	double Brho = bunchRef.Brho;
+	double beta = bunchRef.beta;
+	double c = PassConstant::c;
+
+	//voltage_scan = brho_value_new * beta * kick * exciter_gap * c / exciter_length
+	double v0 = host_tuneExciter_data[turn - 1].voltage;
+	double ft = host_tuneExciter_data[turn - 1].frequency;
+	double vt = v0 * sin(2 * PassConstant::PI * ft);
+	double kick = vt / (Brho * beta * c * exciter_gap / exciter_length);
+	double kick_x = kick * exciter_status_x;
+	double kick_y = kick * exciter_status_y;
+
+	//spdlog::get("logger")->info("[TuneExciter Element] {}: turn = {}, v0 = {} V, ft = {} Hz, kick_x = {} urad, kick_y = {} urad",
+	//	name, turn, v0, ft, kick_x * 1e6, kick_y * 1e6);
+
+	callKernel(transfer_tuneExciter << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, turn, s, kick_x, kick_y));
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
+}
+
+
 __global__ void transfer_drift(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length) {
 
@@ -2216,4 +2306,69 @@ std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::str
 
 	return data;
 
+}
+
+std::vector<TuneExciterData> readTuneExciterDataFromCSV(const std::string& filename) {
+
+	// Read TuneExciter data from file
+
+	auto logger = spdlog::get("logger");
+
+	std::vector<TuneExciterData> data;
+	std::ifstream file(filename);
+
+	if (!file.is_open()) {
+		logger->error("[Read TuneExciter Data] Open file failed: {}", filename);
+		std::exit(EXIT_FAILURE);
+	}
+
+	std::string line;
+
+	// Skip the first line
+	file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+	while (std::getline(file, line)) {
+		std::stringstream ss(line);
+		std::string cell;
+		std::vector<double> values;
+
+		// split data
+		while (std::getline(ss, cell, ',')) {
+			try {
+				values.push_back(std::stod(cell));
+			}
+			catch (const std::exception& e) {
+				logger->error("[Read TuneExciter Data] Error parsing value in line: {}", line);
+				values.clear();
+				break;
+			}
+		}
+
+		if (values.size() == 3) {
+			data.push_back({ values[1], values[2] });	// values[0] is turn number, not needed here
+		}
+		else {
+			logger->error("[Read TuneExciter Data] Invalid data format in line: {}", line);
+			std::exit(EXIT_FAILURE);
+		}
+	}
+
+	return data;
+}
+
+
+__global__ void transfer_tuneExciter(Particle dev_particle, int Np_sur, int turn, double s, double kick_x, double kick_y) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur) {
+
+		if (dev_particle.tag[tid] > 0)
+		{
+			dev_particle.px[tid] += kick_x;
+			dev_particle.py[tid] += kick_y;
+		}
+		tid += stride;
+	}
 }

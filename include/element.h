@@ -544,6 +544,56 @@ private:
 };
 
 
+struct TuneExciterData {
+	double frequency;
+	double voltage;
+};
+
+
+class TuneExciterElement :public Element
+{
+public:
+	TuneExciterElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~TuneExciterElement() {
+		//callCuda(cudaFree(dev_tuneExciter_data));
+	}
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[TuneExciter Element] print");
+	}
+private:
+	Particle dev_particle;
+	TimeEvent& simTime;
+	Bunch& bunchRef;
+
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	//double l = 0;
+	//double drift_length = 0;
+
+	double exciter_length = 0;
+	double exciter_gap = 0;
+	int exciter_status_x = 0;	// 0 means off, 1 means on
+	int exciter_status_y = 0;	// 0 means off, 1 means on
+
+	std::string filename;
+	size_t Nturn_tuneExciter = 0;
+
+	std::vector<TuneExciterData> host_tuneExciter_data;
+
+	//TuneExciterData* dev_tuneExciter_data = nullptr;
+
+};
+
+
 __global__ void transfer_drift(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double gamma, double drift_length);
 
@@ -602,3 +652,7 @@ std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename);
 
 __global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur, Particle dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);
+
+std::vector<TuneExciterData> readTuneExciterDataFromCSV(const std::string& filename);
+
+__global__ void transfer_tuneExciter(Particle dev_particle, int Np_sur, int turn, double s, double kick_x, double kick_y);
