@@ -10,7 +10,7 @@
 class Twiss
 {
 public:
-	Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+	Twiss(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	double s = -1;
 	std::string commandType = "Twiss";
@@ -23,7 +23,7 @@ public:
 private:
 	Particle dev_particle;
 	TimeEvent& simTime;
-	const Bunch& bunchRef;
+	Bunch& bunchRef;
 
 	double s_previous = -1;
 
@@ -80,7 +80,7 @@ private:
 };
 
 
-__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference, int turn, double s,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference, int turn, double s, double t0,
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
