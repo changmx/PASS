@@ -35,6 +35,7 @@ def sort_sequence(sequence):
         "VKickerElement": 300,
         "RFElement": 300,
         "ElSeparatorElement": 300,
+        "TuneExciterElement": 300,
         "SpaceCharge": 400,
         "WakeField": 500,
         "BeamBeam": 600,
@@ -76,13 +77,13 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     BeamPara = {
         "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
-        "Number of protons per particle": 1,
-        "Number of neutrons per particle": 0,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
-        "Number of charges per particle": 1,
+        "Number of protons per particle": 8,
+        "Number of neutrons per particle": 10,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
+        "Number of charges per particle": 6,
         "Number of bunches per beam": 1,
         "Circumference (m)": 569.1,
         "GammaT": 7.635074035,
-        "Number of turns": 48500,
+        "Number of turns": 5000,
         "Number of GPU devices": 1,
         "Device Id": [0],
         "Output directory": "D:\\PassSimulation",
@@ -93,7 +94,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     SpaceChargePara = {
         "Space-charge simulation parameters": {
-            "Is enable space charge": True,
+            "Is enable space charge": False,
             "Number of slices": 10,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
             "Field solver": "PIC_FD_CUDSS",  # [PIC_FD_CUDSS/PIC_Conv/PIC_FD_AMGX/PIC_FD_FFT/Eq_Quasi_Static/Eq_Frozen]
@@ -117,7 +118,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
 
     ParticleMonitorPara = {
         "Particle Monitor parameters": {
-            "Is enable particle monitor": True,
+            "Is enable particle monitor": False,
             "Number of particles to save": 3,
             "Save turn range": [1, 1000, 1],
             # "Observer position S (m)": [0, 26.84],
@@ -136,21 +137,21 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per nucleon (eV/u)": 48e6,
+                "Kinetic energy per nucleon (eV/u)": 33.2e6,
                 "Number of real particles per bunch": 3e11,
-                "Number of macro particles per bunch": 1e4,
+                "Number of macro particles per bunch": 1e6,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
-                "Alpha x": -2.6143039521482168,
-                "Alpha y": 1.5744234799406003,
-                "Beta x (m)": 17.563417831999914,
-                "Beta y (m)": 8.624482364741164,
-                "Emittance x (m'rad)": 12.5e-6,
-                "Emittance y (m'rad)": 6.25e-6,
+                "Alpha x": 0,
+                "Alpha y": 0,
+                "Beta x (m)": 9.57,
+                "Beta y (m)": 9.6,
+                "Emittance x (m'rad)": 200e-6,
+                "Emittance y (m'rad)": 100e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 569.0984841047994,
-                "DeltaP/P": 6.66667e-4,
+                "Sigma z (m)": 280,
+                "DeltaP/P": 0.8e-3,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
@@ -161,11 +162,11 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                     "Is offset": False,
                     "Offset (m)": 0,
                 },
-                "Is load distribution": True,
-                "Name of loaded file": "wangl_logi.csv",  # file must be put in "Output directory/distribution/fixed/"
+                "Is load distribution": False,
+                "Name of loaded file": "1455_56_beam0_proton_bunch0_1000000_hor_kv_longi_uniform_Dx_0.000000_injection.csv",  # file must be put in "Output directory/distribution/fixed/"
                 "Is save initial distribution": True,
                 "Insert particle coordinate": [
-                    [0, 0, 0, 0, 50.2023089662953, 0.000400381857834703]
+                    [0, 0, 0, 0, 0, 0]
                 ],
             },
         }
@@ -468,26 +469,26 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
             "S (m)": 569.0984841047994,
             "Command": "Twiss",
             "S previous (m)": 0,
-            "Alpha x": -2.6143039521481892,
-            "Alpha y": 1.5744234799406198,
-            "Beta x (m)": 17.563417831999786,
-            "Beta y (m)": 8.624482364741272,
-            "Mu x": 0,
-            "Mu y": 0,
-            "Mu z": 0.0,
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 9.57,
+            "Beta y (m)": 9.6,
+            "Mu x": 0.47,
+            "Mu y": 0.43,
+            "Mu z": 0.01,
             "Dx (m)": -7.906159725352051e-10,
             "Dpx": 2.433671012036641e-10,
-            "Alpha x previous": -2.6143039521481892,
-            "Alpha y previous": 1.5744234799406198,
-            "Beta x previous (m)": 17.563417831999786,
-            "Beta y previous (m)": 8.624482364741272,
-            "Mu x previous": 0.47,
-            "Mu y previous": 0.43,
+            "Alpha x previous": 0,
+            "Alpha y previous": 0,
+            "Beta x previous (m)": 9.57,
+            "Beta y previous (m)": 9.6,
+            "Mu x previous": 0.0,
+            "Mu y previous": 0.0,
             "Mu z previous": 0.0,
             "Dx (m) previous": 0,
             "Dpx previous": 0,
-            "DQx": 0,
-            "DQy": 0,
+            "DQx": -0,
+            "DQy": -0,
             "Longitudinal transfer": "drift",
         }
     }
@@ -500,7 +501,14 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
         "DistMonitor_oneturn_0": {
             "S (m)": 0,
             "Command": "DistMonitor",
-            "Save turns": [[1], [2], [5000], [6000], [8000], [20000, 30000, 5000]],
+            "Save turns": [
+                [1],
+                [2],
+                [1000, 5000, 1000],
+                [6000],
+                [8000],
+                [20000, 30000, 5000],
+            ],
         },
     }
     Sequence.update(Monitor_Dist_oneturn)
@@ -542,33 +550,50 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
     # ----------------------------------------------------------------- Phase Monitor ------------------------------------------------------------------ #
 
     # Monitor to save phase advance
-    PhaseMonitor = {
-        "PhaseMonitor_0": {
-            "S (m)": 0,
-            "Command": "PhaseMonitor",
-            "Is enable phase monitor": True,
-            "Beta x (m)": Injection["Injection"]["bunch0"]["Beta x (m)"],
-            "Beta y (m)": Injection["Injection"]["bunch0"]["Beta y (m)"],
-            "Alpha x": Injection["Injection"]["bunch0"]["Alpha x"],
-            "Alpha y": Injection["Injection"]["bunch0"]["Alpha y"],
-            "Save turns": [[1, 100], [1000, 10000, 1000, 50]],
-        }
-    }
-    Sequence.update(PhaseMonitor)
+    # PhaseMonitor = {
+    #     "PhaseMonitor_0": {
+    #         "S (m)": 0,
+    #         "Command": "PhaseMonitor",
+    #         "Is enable phase monitor": True,
+    #         "Beta x (m)": Injection["Injection"]["bunch0"]["Beta x (m)"],
+    #         "Beta y (m)": Injection["Injection"]["bunch0"]["Beta y (m)"],
+    #         "Alpha x": Injection["Injection"]["bunch0"]["Alpha x"],
+    #         "Alpha y": Injection["Injection"]["bunch0"]["Alpha y"],
+    #         "Save turns": [[1, 100], [1000, 10000, 1000, 50]],
+    #     }
+    # }
+    # Sequence.update(PhaseMonitor)
 
     # ------------------------------------------------------------------- RF Cavity -------------------------------------------------------------------- #
 
     # RF cavity, length is 0, no drift
-    RF1 = {
-        "RF_cavity1_"
-        + str(0): {
+    # RF1 = {
+    #     "RF_cavity1_"
+    #     + str(0): {
+    #         "S (m)": 0,
+    #         "Command": "RFElement",
+    #         "DeltaP/P aperture": [-0.005, 0.005],
+    #         "RF Data files": [r"D:\PASS\para\rf_data.csv"],
+    #     }
+    # }
+    # Sequence.update(RF1)
+
+    # ----------------------------------------------------------------- Tune Exciter ------------------------------------------------------------------- #
+
+    # Horizontal tune exciter, length is 0, no drift
+    TuneExciter1 = {
+        "TuneExciter1": {
             "S (m)": 0,
-            "Command": "RFElement",
-            "DeltaP/P aperture": [-0.005, 0.005],
-            "RF Data files": [r"D:\PASS\para\rf_data.csv"],
+            "Command": "TuneExciterElement",
+            "Kick angle (rad)": 100e-6,
+            "Frequency center (Hz)": 64394.87000039443,
+            "Scan period (s)": 5e-3,
+            "Scan frequency range (Hz)": 100,
+            "Kick direction": "x",
+            "Turns": [1000, 4000],
         }
     }
-    Sequence.update(RF1)
+    Sequence.update(TuneExciter1)
 
     # --------------------------------------------------------------- Sort and cut slice --------------------------------------------------------------- #
 
@@ -582,7 +607,7 @@ def generate_simulation_config_beam0(fileName="beam0.json"):
                 "Sort purpose": "Space-charge",  # [Space-charge/Beam-beam]
             }
         }
-        Sequence.update(sortPoint)
+        # Sequence.update(sortPoint)
 
     # --------------------------------------------------------------- Particle Monitor ----------------------------------------------------------------- #
 

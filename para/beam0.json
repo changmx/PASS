@@ -1,12 +1,12 @@
 {
     "Name": "proton",
-    "Number of protons per particle": 1,
-    "Number of neutrons per particle": 0,
-    "Number of charges per particle": 1,
+    "Number of protons per particle": 8,
+    "Number of neutrons per particle": 10,
+    "Number of charges per particle": 6,
     "Number of bunches per beam": 1,
     "Circumference (m)": 569.1,
     "GammaT": 7.635074035,
-    "Number of turns": 48500,
+    "Number of turns": 5000,
     "Number of GPU devices": 1,
     "Device Id": [
         0
@@ -14,7 +14,7 @@
     "Output directory": "D:\\PassSimulation",
     "Is plot figure": false,
     "Space-charge simulation parameters": {
-        "Is enable space charge": true,
+        "Is enable space charge": false,
         "Number of slices": 10,
         "Slice model": "Equal particle",
         "Field solver": "PIC_FD_CUDSS"
@@ -32,7 +32,7 @@
         }
     },
     "Particle Monitor parameters": {
-        "Is enable particle monitor": true,
+        "Is enable particle monitor": false,
         "Number of particles to save": 3,
         "Save turn range": [
             1,
@@ -48,23 +48,23 @@
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per nucleon (eV/u)": 48000000.0,
+                "Kinetic energy per nucleon (eV/u)": 33200000.0,
                 "Number of real particles per bunch": 300000000000.0,
-                "Number of macro particles per bunch": 10000.0,
+                "Number of macro particles per bunch": 1000000.0,
                 "Mode": "1turn1time",
                 "Inject turns": [
                     1
                 ],
-                "Alpha x": -2.6143039521482168,
-                "Alpha y": 1.5744234799406003,
-                "Beta x (m)": 17.563417831999914,
-                "Beta y (m)": 8.624482364741164,
-                "Emittance x (m'rad)": 1.25e-05,
-                "Emittance y (m'rad)": 6.25e-06,
+                "Alpha x": 0,
+                "Alpha y": 0,
+                "Beta x (m)": 9.57,
+                "Beta y (m)": 9.6,
+                "Emittance x (m'rad)": 0.0002,
+                "Emittance y (m'rad)": 0.0001,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 569.0984841047994,
-                "DeltaP/P": 0.000666667,
+                "Sigma z (m)": 280,
+                "DeltaP/P": 0.001,
                 "Transverse dist": "kv",
                 "Longitudinal dist": "uniform",
                 "Offset x": {
@@ -75,8 +75,8 @@
                     "Is offset": false,
                     "Offset (m)": 0
                 },
-                "Is load distribution": true,
-                "Name of loaded file": "wangl_logi.csv",
+                "Is load distribution": false,
+                "Name of loaded file": "1455_56_beam0_proton_bunch0_1000000_hor_kv_longi_uniform_Dx_0.000000_injection.csv",
                 "Is save initial distribution": true,
                 "Insert particle coordinate": [
                     [
@@ -84,26 +84,23 @@
                         0,
                         0,
                         0,
-                        50.2023089662953,
-                        0.000400381857834703
+                        0,
+                        0
                     ]
                 ]
             }
         },
-        "SortBunch_0.0": {
-            "S (m)": 0.0,
-            "Command": "SortBunch",
-            "Sort purpose": "Space-charge"
-        },
-        "RF_cavity1_0": {
+        "TuneExciter1": {
             "S (m)": 0,
-            "Command": "RFElement",
-            "DeltaP/P aperture": [
-                -0.005,
-                0.005
-            ],
-            "RF Data files": [
-                "D:\\PASS\\para\\rf_data.csv"
+            "Command": "TuneExciterElement",
+            "Kick angle (rad)": 0.0001,
+            "Frequency center (Hz)": 64394.87000039443,
+            "Scan period (s)": 0.005,
+            "Scan frequency range (Hz)": 100,
+            "Kick direction": "x",
+            "Turns": [
+                1000,
+                4000
             ]
         },
         "DistMonitor_oneturn_0": {
@@ -117,7 +114,9 @@
                     2
                 ],
                 [
-                    5000
+                    1000,
+                    5000,
+                    1000
                 ],
                 [
                     6000
@@ -136,27 +135,6 @@
             "S (m)": 0,
             "Command": "StatMonitor"
         },
-        "PhaseMonitor_0": {
-            "S (m)": 0,
-            "Command": "PhaseMonitor",
-            "Is enable phase monitor": true,
-            "Beta x (m)": 17.563417831999914,
-            "Beta y (m)": 8.624482364741164,
-            "Alpha x": -2.6143039521482168,
-            "Alpha y": 1.5744234799406003,
-            "Save turns": [
-                [
-                    1,
-                    100
-                ],
-                [
-                    1000,
-                    10000,
-                    1000,
-                    50
-                ]
-            ]
-        },
         "ParticleMonitor_0": {
             "S (m)": 0,
             "Command": "ParticleMonitor",
@@ -166,21 +144,21 @@
             "S (m)": 569.0984841047994,
             "Command": "Twiss",
             "S previous (m)": 0,
-            "Alpha x": -2.6143039521481892,
-            "Alpha y": 1.5744234799406198,
-            "Beta x (m)": 17.563417831999786,
-            "Beta y (m)": 8.624482364741272,
-            "Mu x": 0,
-            "Mu y": 0,
-            "Mu z": 0.0,
+            "Alpha x": 0,
+            "Alpha y": 0,
+            "Beta x (m)": 9.57,
+            "Beta y (m)": 9.6,
+            "Mu x": 0.47,
+            "Mu y": 0.43,
+            "Mu z": 0.01,
             "Dx (m)": -7.906159725352051e-10,
             "Dpx": 2.433671012036641e-10,
-            "Alpha x previous": -2.6143039521481892,
-            "Alpha y previous": 1.5744234799406198,
-            "Beta x previous (m)": 17.563417831999786,
-            "Beta y previous (m)": 8.624482364741272,
-            "Mu x previous": 0.47,
-            "Mu y previous": 0.43,
+            "Alpha x previous": 0,
+            "Alpha y previous": 0,
+            "Beta x previous (m)": 9.57,
+            "Beta y previous (m)": 9.6,
+            "Mu x previous": 0.0,
+            "Mu y previous": 0.0,
             "Mu z previous": 0.0,
             "Dx (m) previous": 0,
             "Dpx previous": 0,
