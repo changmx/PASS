@@ -136,6 +136,7 @@ public:
 	double p0 = 0;	// Momentum of a nucleon (eV/c/u)
 	double p0_kg = 0;	// Momentum of a nucleon (kg*m/s/u)
 	double beta = 0, gamma = 0;	// Relativistic velocity and Lorentz factor
+	double t0 = 0;	// Ideal particle longitudinal coordinate (s)
 
 	double Brho = 0;
 
