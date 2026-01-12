@@ -5,7 +5,7 @@
 #include <fstream>
 #include <cuda_runtime.h>
 
-Twiss::Twiss(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent)
+Twiss::Twiss(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent)
 	:simTime(timeevent), bunchRef(Bunch) {
 
 	name = obj_name;
@@ -132,6 +132,9 @@ void Twiss::execute(int turn) {
 
 	int Np_sur = bunchRef.Np_sur;
 
+	double t0 = (s - s_previous) / (bunchRef.beta * PassConstant::c);
+	bunchRef.t0 += t0;
+
 	if ("drift" == longitudinal_transfer)
 	{
 		m11_z = 1;
@@ -141,7 +144,7 @@ void Twiss::execute(int turn) {
 	}
 
 	callKernel(
-		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference, turn, s,
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference, turn, s, bunchRef.t0,
 			betax, betax_previous, alphax, alphax_previous,
 			betay, betay_previous, alphay, alphay_previous,
 			phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
@@ -157,7 +160,7 @@ void Twiss::execute(int turn) {
 }
 
 
-__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference, int turn, double s,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference, int turn, double s, double t0,
 	double betax, double betax_previous, double alphax, double alphax_previous,
 	double betay, double betay_previous, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
