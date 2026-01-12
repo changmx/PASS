@@ -1365,19 +1365,22 @@ TuneExciterElement::TuneExciterElement(const Parameter& para, int input_beamId, 
 	try
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		exciter_length = data.at("Sequence").at(obj_name).at("Exciter length (m)");
-		exciter_gap = data.at("Sequence").at(obj_name).at("Exciter gap (m)");
-		filename = data.at("Sequence").at(obj_name).at("TuneExciter Data files");
-		std::string x_status = data.at("Sequence").at(obj_name).at("Horizontal status");
-		std::string y_status = data.at("Sequence").at(obj_name).at("Verticle status");
-		if (x_status == "ON" || x_status == "on")
+		kick_angle = data.at("Sequence").at(obj_name).at("Kick angle (rad)");
+		freq_center = data.at("Sequence").at(obj_name).at("Frequency center (Hz)");
+		scan_period = data.at("Sequence").at(obj_name).at("Scan period (s)");
+		scan_freq_range = data.at("Sequence").at(obj_name).at("Scan frequency range (Hz)");
+		kick_direction = data.at("Sequence").at(obj_name).at("Kick direction");
+		turn_start = data.at("Sequence").at(obj_name).at("Turns")[0];
+		turn_end = data.at("Sequence").at(obj_name).at("Turns")[1];
+
+		if (kick_direction != "x" || kick_direction != "X" || kick_direction != "y" || kick_direction != "Y")
 		{
-			exciter_status_x = 1;
+			spdlog::get("logger")->warn("[TuneExciter Element] {}: Kick direction = {}, which should be x/X or y/Y", name, kick_direction);
 		}
-		if (y_status == "ON" || y_status == "on")
-		{
-			exciter_status_y = 1;
-		}
+
+		/*spdlog::get("logger")->info("[TuneExciter Element] {}: kick_angle = {} rad, freq_center = {} Hz, scan_period = {} s, scan_freq_range = {} Hz, kick_direction = {}, turn_start = {}, turn_end = {}",
+			name, kick_angle, freq_center, scan_period, scan_freq_range, kick_direction, turn_start, turn_end);*/
+
 	}
 	catch (json::exception e)
 	{
@@ -1386,19 +1389,12 @@ TuneExciterElement::TuneExciterElement(const Parameter& para, int input_beamId, 
 		std::exit(EXIT_FAILURE);
 	}
 
-	host_tuneExciter_data = readTuneExciterDataFromCSV(filename);
-	Nturn_tuneExciter = host_tuneExciter_data.size();
-
-	//callCuda(cudaMalloc((void**)&dev_tuneExciter_data, Nturn_tuneExciter * sizeof(TuneExciterData)));
-	//callCuda(cudaMemset(dev_tuneExciter_data, 0, Nturn_tuneExciter * sizeof(TuneExciterData)));
-
-	//callCuda(cudaMemcpy(dev_tuneExciter_data, host_tuneExciter_data.data(), Nturn_tuneExciter * sizeof(TuneExciterData), cudaMemcpyHostToDevice));
 }
 
 
 void TuneExciterElement::execute(int turn) {
 
-	if (turn > host_tuneExciter_data.size())
+	if (turn < turn_start || turn > turn_end)
 	{
 		return;
 	}
@@ -1410,23 +1406,21 @@ void TuneExciterElement::execute(int turn) {
 	//logger->debug("[TuneExciter Element] run: " + name);
 
 	int Np_sur = bunchRef.Np_sur;
-
-	double Brho = bunchRef.Brho;
+	double t0 = bunchRef.t0;
 	double beta = bunchRef.beta;
-	double c = PassConstant::c;
 
-	//voltage_scan = brho_value_new * beta * kick * exciter_gap * c / exciter_length
-	double v0 = host_tuneExciter_data[turn - 1].voltage;
-	double ft = host_tuneExciter_data[turn - 1].frequency;
-	double vt = v0 * sin(2 * PassConstant::PI * ft);
-	double kick = vt / (Brho * beta * c * exciter_gap / exciter_length);
-	double kick_x = kick * exciter_status_x;
-	double kick_y = kick * exciter_status_y;
+	spdlog::get("logger")->debug("[TuneExciter Element] {}: turn = {}, t0 = {}, beta = {}", name, turn, t0, beta);
 
-	//spdlog::get("logger")->info("[TuneExciter Element] {}: turn = {}, v0 = {} V, ft = {} Hz, kick_x = {} urad, kick_y = {} urad",
-	//	name, turn, v0, ft, kick_x * 1e6, kick_y * 1e6);
-
-	callKernel(transfer_tuneExciter << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, turn, s, kick_x, kick_y));
+	if (kick_direction == "x" || kick_direction == "X")
+	{
+		callKernel(transfer_tuneExciter_x << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, kick_angle, t0, beta,
+			freq_center, scan_period, scan_freq_range));
+	}
+	if (kick_direction == "y" || kick_direction == "Y")
+	{
+		callKernel(transfer_tuneExciter_y << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, kick_angle, t0, beta,
+			freq_center, scan_period, scan_freq_range));
+	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -2357,17 +2351,41 @@ std::vector<TuneExciterData> readTuneExciterDataFromCSV(const std::string& filen
 }
 
 
-__global__ void transfer_tuneExciter(Particle dev_particle, int Np_sur, int turn, double s, double kick_x, double kick_y) {
+__global__ void transfer_tuneExciter_x(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta,
+	double freq_center, double scan_period, double scan_freq_range) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
 	while (tid < Np_sur) {
-
 		if (dev_particle.tag[tid] > 0)
 		{
-			dev_particle.px[tid] += kick_x;
-			dev_particle.py[tid] += kick_y;
+			double t = -1 * dev_particle.z[tid] / (beta * PassConstant::c) + t0; // time in seconds
+			double f = freq_center + (t / scan_period - floor(t / scan_period) - 0.5) * scan_freq_range;
+			double kick = kick_angle * sin(2 * PassConstant::PI * f * t);
+			dev_particle.px[tid] += kick;
+			if (tid == 0 || tid == 1 || tid == 2) {
+				printf("z = %e, t = %e, f = %e, kick = %e\n", dev_particle.z[tid], t, f, kick);
+			}
+		}
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_tuneExciter_y(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta,
+	double freq_center, double scan_period, double scan_freq_range) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	while (tid < Np_sur) {
+		if (dev_particle.tag[tid] > 0)
+		{
+			double t = -1 * dev_particle.z[tid] / (beta * PassConstant::c) + t0; // time in seconds
+			double f = freq_center + (t / scan_period - floor(t / scan_period) - 0.5) * scan_freq_range;
+			double kick = kick_angle * sin(2 * PassConstant::PI * f * t);
+			dev_particle.py[tid] += kick;
 		}
 		tid += stride;
 	}

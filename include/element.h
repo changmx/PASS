@@ -576,18 +576,26 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
+	double kick_angle = 0;
+	double freq_center = 0;
+	double scan_period = 0;
+	double scan_freq_range = 0;
+	int turn_start = 0;
+	int turn_end = 0;
+	std::string kick_direction = "empty";	// "x" means horizontal, "y" means vertical
+
 	//double l = 0;
 	//double drift_length = 0;
 
-	double exciter_length = 0;
-	double exciter_gap = 0;
-	int exciter_status_x = 0;	// 0 means off, 1 means on
-	int exciter_status_y = 0;	// 0 means off, 1 means on
+	//double exciter_length = 0;
+	//double exciter_gap = 0;
+	//int exciter_status_x = 0;	// 0 means off, 1 means on
+	//int exciter_status_y = 0;	// 0 means off, 1 means on
 
-	std::string filename;
-	size_t Nturn_tuneExciter = 0;
+	//std::string filename;
+	//size_t Nturn_tuneExciter = 0;
 
-	std::vector<TuneExciterData> host_tuneExciter_data;
+	//std::vector<TuneExciterData> host_tuneExciter_data;
 
 	//TuneExciterData* dev_tuneExciter_data = nullptr;
 
@@ -655,4 +663,8 @@ __global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur,
 
 std::vector<TuneExciterData> readTuneExciterDataFromCSV(const std::string& filename);
 
-__global__ void transfer_tuneExciter(Particle dev_particle, int Np_sur, int turn, double s, double kick_x, double kick_y);
+__global__ void transfer_tuneExciter_x(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta,
+	double freq_center, double scan_period, double scan_freq_range);
+
+__global__ void transfer_tuneExciter_y(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta,
+	double freq_center, double scan_period, double scan_freq_range);
