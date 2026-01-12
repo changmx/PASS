@@ -54,6 +54,8 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					--> MarkerElement: marker, used to mark the position of an element in the sequence
 					--> RFElement: RF cavity, perform acceleration or logituninal phase space manipulation
 					--> MultipoleElement: multipole
+					--> ElSeparatorElement: electrostatic separator
+					--> TuneExciterElement: tune exciter
 				Monitor: save information
 					--> DistMonitor: save the distribution of all particles in a bunch
 					--> PhaseMonitor: save the phase advance of all particles in a bunch
@@ -243,6 +245,18 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
+			else if ("TuneExciterElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<TuneExciterElement>>(
+							std::make_unique<TuneExciterElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
 			else if ("DistMonitor" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
@@ -359,6 +373,7 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "VKickerElement") return 300;
 	else if (commandType == "RFElement") return 300;
 	else if (commandType == "ElSeparatorElement") return 300;
+	else if (commandType == "TuneExciterElement") return 300;
 
 	else if (commandType == "SpaceCharge") return 400;
 	else if (commandType == "Wakefield") return 500;
