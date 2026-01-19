@@ -17,7 +17,7 @@ configure_file(${PROJECT_SOURCE_DIR}/config/config.h.in ${PROJECT_SOURCE_DIR}/co
 
 # set cuDSS installation path
 #set(CUDSS_ROOT "C:/Program Files/NVIDIA cuDSS/v0.6")
-find_package(cudss REQUIRED PATHS "C:/Program Files/NVIDIA cuDSS/v0.6/lib/12/cmake/cudss")
+find_package(cudss REQUIRED PATHS "C:/Program Files/NVIDIA cuDSS/v0.7/lib/13/cmake/cudss")
 message(STATUS "CUDSS include dir: ${cudss_INCLUDE_DIR}")
 message(STATUS "CUDSS library dir: ${cudss_LIBRARY_DIR}")
 
@@ -115,7 +115,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # set CUDA ARCHITECTURE. (https://developer.nvidia.com/cuda-gpus)
-# 70 for V100, 75 for RTX2060~2080Ti, 80 for A100, 86 for RTX3050~RTX3090Ti, 89 for RTX4050~RTX4090, 120 for RTX5060-5090
+# 70 for V100, 75 for RTX2060~2080Ti, 80 for A100, 86 for RTX3050~RTX3090Ti, 89 for RTX4050~RTX4090, 120 for RTX5050-5090
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CUDA_ARCHITECTURES "80;86;89;120"
     CUDA_SEPARABLE_COMPILATION ON)

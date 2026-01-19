@@ -13,10 +13,18 @@
 ## 环境配置
 
 1. 安装Visual Studio (Windows) / GCC (Linux)
+
 2. 安装CUDA (推荐安装12.2及以上版本)
-3. 安装CUDSS ([cuDSS 0.6.0 Downloads | NVIDIA Developer](https://developer.nvidia.com/cudss-downloads))
+
+3. 安装CUDSS ([cuDSS 0.7.1 Downloads | NVIDIA Developer](https://developer.nvidia.com/cudss-downloads))，安装完成后将其添加到系统环境变量，例如：
+   - Windows：C:\Program Files\NVIDIA cuDSS\v0.7\bin\13
+
+   同时在CMakelists.txt中参考已有路径，修改cuDSS的目录
+   
 4. 安装Python (推荐安装3.12及以上版本)
+
 5. 安装CMake软件 (推荐安装3.29及以上版本)
+
 6. 根据个人软件安装路径，修改CMakeLists.txt文件中文件路径
 
 ### 编译流程
