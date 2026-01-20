@@ -46,7 +46,7 @@ private:
 
 	double circumference = 0;
 
-	double drift_length = 0;
+	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
 
 	int thread_x = 0;
 	int block_x = 0;
@@ -89,14 +89,18 @@ private:
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;
-	double angle = 0;	// in unit of rad
+	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
+	double angle = 0;	// in unit of rad, 1/rho=k0, k0l=l/rho=angle
 	double e1 = 0;
 	double e2 = 0;
 	double hgap = 0;	// in unit of m
 	double fint = 0;
 	double fintx = 0;
 
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<double> ramping_k0l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
 
@@ -134,14 +138,18 @@ private:
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;
-	double angle = 0;	// in unit of rad
+	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
+	double angle = 0;	// in unit of rad, 1/rho=k0, k0l=l/rho=angle
 	double e1 = 0;
 	double e2 = 0;
 	double hgap = 0;	// in unit of m
 	double fint = 0;
 	double fintx = 0;
 
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<double> ramping_k0l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
 
@@ -174,16 +182,23 @@ private:
 
 	bool isFieldError = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error, etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;
+	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
 
-	double k1 = 0;	// in unit of (m^-2)
-	double k1s = 0;	// in unit of (m^-2)
+	std::string quad_type = "drift";	// normal or skew or drift
 
+	double k1l = 0;	// in unit of (m^-1)
+	double k1sl = 0;	// in unit of (m^-1)
+
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<double> ramping_k1l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k1sl;	// for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
 };
 
 
@@ -221,14 +236,15 @@ private:
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;
-	double k2 = 0;	// in unit of (m^-3)
+	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
+	double k2l = 0;	// in unit of (m^-2)
 
 	bool is_thin_lens = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
 
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<std::pair<double, double>> ramping_data;	// (turn, k2) pairs for ramping, ramping_data[i].first = turn, ramping_data[i].second = k2
-
+	std::vector<double> ramping_k2l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
 
@@ -271,9 +287,10 @@ private:
 
 	bool is_thin_lens = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
 
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<std::pair<double, double>> ramping_data;	// (turn, k2s) pairs for ramping, ramping_data[i].first = turn, ramping_data[i].second = k2s
-
+	std::vector<double> ramping_k2sl;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
 
@@ -620,11 +637,15 @@ __global__ void transfer_dipole_half_right(Particle dev_particle, int Np_sur, do
 	double r34, double r51, double r52, double r56,
 	double fl21i, double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_quadrupole_norm(Particle dev_particle, int Np_sur, double beta, double circumference,
+__global__ void transfer_quadrupole_thicklens_norm(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double k1, double l);
 
-__global__ void transfer_quadrupole_skew(Particle dev_particle, int Np_sur, double beta, double circumference,
+__global__ void transfer_quadrupole_thicklens_skew(Particle dev_particle, int Np_sur, double beta, double circumference,
 	double k1s, double l);
+
+__global__ void transfer_quadrupole_thinlens_norm(Particle dev_particle, int Np_sur, double k1l);
+
+__global__ void transfer_quadrupole_thinlens_skew(Particle dev_particle, int Np_sur, double k1sl);
 
 __global__ void transfer_sextupole_norm(Particle dev_particle, int Np_sur, double beta,
 	double k2, double l);
@@ -658,6 +679,8 @@ __global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int
 std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 
 std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename);
+
+std::vector<double> readRampingDataFromCSV(const std::string& filename);
 
 __global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur, Particle dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);
 
