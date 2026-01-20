@@ -202,13 +202,13 @@ private:
 };
 
 
-class SextupoleNormElement :public Element
+class SextupoleElement :public Element
 {
 public:
-	SextupoleNormElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
 		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
-	~SextupoleNormElement() {
+	~SextupoleElement() {
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
@@ -217,7 +217,7 @@ public:
 
 	void print() override {
 		auto logger = spdlog::get("logger");
-		logger->info("[Sextupole Normal Element] print");
+		logger->info("[Sextupole Element] print");
 	}
 private:
 	Particle dev_particle;
@@ -237,59 +237,16 @@ private:
 
 	double l = 0;
 	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
-	double k2l = 0;	// in unit of (m^-2)
 
-	bool is_thin_lens = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
+	std::string sext_type = "drift";	// normal or skew or drift
+
+	double k2l = 0;	// in unit of (m^-2)
+	double k2sl = 0;	// in unit of (m^-2)
 
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
 	std::vector<double> ramping_k2l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
-};
-
-
-class SextupoleSkewElement :public Element
-{
-public:
-	SextupoleSkewElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
-
-	~SextupoleSkewElement() {
-		callCuda(cudaFree(dev_knl));
-		callCuda(cudaFree(dev_ksl));
-	}
-
-	void execute(int turn) override;
-
-	void print() override {
-		auto logger = spdlog::get("logger");
-		logger->info("[Sextupole Skew Element] print");
-	}
-private:
-	Particle dev_particle;
-	TimeEvent& simTime;
-	const Bunch& bunchRef;
-
-	double circumference = 0;
-
-	int thread_x = 0;
-	int block_x = 0;
-
-	bool isFieldError = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
-	double* dev_knl = nullptr;
-	double* dev_ksl = nullptr;
-
-	double l = 0;
-	double drift_length = 0;
-	double k2s = 0;	// in unit of (m^-3)
-
-	bool is_thin_lens = false;	// If true, the length of the sextupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
-
-	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
-	// Therefore, please make sure the ramping data cover all the simulation turns.
-	bool is_ramping = false;
 	std::vector<double> ramping_k2sl;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
@@ -647,11 +604,9 @@ __global__ void transfer_quadrupole_thinlens_norm(Particle dev_particle, int Np_
 
 __global__ void transfer_quadrupole_thinlens_skew(Particle dev_particle, int Np_sur, double k1sl);
 
-__global__ void transfer_sextupole_norm(Particle dev_particle, int Np_sur, double beta,
-	double k2, double l);
+__global__ void transfer_sextupole_thinlens_norm(Particle dev_particle, int Np_sur, double k2l);
 
-__global__ void transfer_sextupole_skew(Particle dev_particle, int Np_sur, double beta,
-	double k2s, double l);
+__global__ void transfer_sextupole_thinlens_skew(Particle dev_particle, int Np_sur, double k2sl);
 
 __global__ void transfer_octupole_norm(Particle dev_particle, int Np_sur, double beta,
 	double k2, double l);
