@@ -16,24 +16,24 @@ class Particle
 {
 public:
 	// Particle attributes
-	double* __restrict__ x = nullptr;
-	double* __restrict__ px = nullptr;
-	double* __restrict__ y = nullptr;
-	double* __restrict__ py = nullptr;
-	double* __restrict__ z = nullptr;
-	double* __restrict__ pz = nullptr;
-	double* __restrict__ lostPos = nullptr;
-	int* __restrict__ tag = nullptr;
-	int* __restrict__ lostTurn = nullptr;
-	int* __restrict__ sliceId = nullptr;
+	double* __restrict__ x = nullptr;			// horizontal position (m)
+	double* __restrict__ px = nullptr;			// horizontal normalized momentum (rad, px/p0)
+	double* __restrict__ y = nullptr;			// vertical position (m)
+	double* __restrict__ py = nullptr;			// vertical normalized momentum (rad, py/p0)
+	double* __restrict__ z = nullptr;			// longitudinal position relative to the ideal particle (m)
+	double* __restrict__ pz = nullptr;			// relative momentum deviation (dp/p0)
+	double* __restrict__ lostPos = nullptr;		// position where the particle is lost (m)
+	int* __restrict__ tag = nullptr;			// particle tag, start from 1, each particle has a unique tag
+	int* __restrict__ lostTurn = nullptr;		// turn when the particle is lost
+	int* __restrict__ sliceId = nullptr;		// slice ID of the particle in longitudinal direction
 
 #ifdef PASS_CAL_PHASE
-	double* __restrict__ last_x = nullptr;
-	double* __restrict__ last_y = nullptr;
-	double* __restrict__ last_px = nullptr;
-	double* __restrict__ last_py = nullptr;
-	double* __restrict__ phase_x = nullptr;
-	double* __restrict__ phase_y = nullptr;
+	double* __restrict__ last_x = nullptr;		// horizontal position at the phase advance monitor at the previous turn (m)
+	double* __restrict__ last_px = nullptr;		// horizontal normalized momentum at the phase advance monitor at the previous turn (rad, px/p0)
+	double* __restrict__ last_y = nullptr;		// vertical position at the phase advance monitor at the previous turn (m)
+	double* __restrict__ last_py = nullptr;		// vertical normalized momentum at the phase advance monitor at the previous turn (rad, py/p0)
+	double* __restrict__ phase_x = nullptr;		// accumulated horizontal phase advance
+	double* __restrict__ phase_y = nullptr;		// accumulated vertical phase advance
 #endif
 
 	~Particle() {};
