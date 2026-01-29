@@ -143,10 +143,18 @@ void Twiss::execute(int turn) {
 		m22_z = 1;
 	}
 
+	double sqrt_betax_betaxprev = sqrt(betax * betax_previous);
+	double sqrt_betax_de_betaxprev = sqrt(betax / betax_previous);
+	double sqrt_betaxprev_de_betax = sqrt(betax_previous / betax);
+
+	double sqrt_betay_betayprev = sqrt(betay * betay_previous);
+	double sqrt_betay_de_betayprev = sqrt(betay / betay_previous);
+	double sqrt_betayprev_de_betay = sqrt(betay_previous / betay);
+
 	callKernel(
-		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference, turn, s, bunchRef.t0,
-			betax, betax_previous, alphax, alphax_previous,
-			betay, betay_previous, alphay, alphay_previous,
+		transfer_matrix_6D << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, circumference, turn, s,
+			sqrt_betax_betaxprev, sqrt_betax_de_betaxprev, sqrt_betaxprev_de_betax, alphax, alphax_previous,
+			sqrt_betay_betayprev, sqrt_betay_de_betayprev, sqrt_betayprev_de_betay, alphay, alphay_previous,
 			phi_x, phi_y, DQx * 2 * PassConstant::PI, DQy * 2 * PassConstant::PI,
 			Dx, Dx_previous, Dpx, Dpx_previous,
 			m11_z, m12_z, m21_z, m22_z)
@@ -160,9 +168,9 @@ void Twiss::execute(int turn) {
 }
 
 
-__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference, int turn, double s, double t0,
-	double betax, double betax_previous, double alphax, double alphax_previous,
-	double betay, double betay_previous, double alphay, double alphay_previous,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double circumference, int turn, double s,
+	double sqrt_betax_betaxprev, double sqrt_betax_de_betaxprev, double sqrt_betaxprev_de_betax, double alphax, double alphax_previous,
+	double sqrt_betay_betayprev, double sqrt_betay_de_betayprev, double sqrt_betayprev_de_betay, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
 	double Dx, double Dx_previous, double Dpx, double Dpx_previous,
 	double m11_z, double m12_z, double m21_z, double m22_z) {
@@ -171,14 +179,6 @@ __global__ void transfer_matrix_6D(Particle dev_particle, int Np_sur, double cir
 	int stride = blockDim.x * gridDim.x;
 
 	const double c_half = circumference * 0.5;
-
-	const double sqrt_betax_betaxprev = sqrt(betax * betax_previous);
-	const double sqrt_betax_de_betaxprev = sqrt(betax / betax_previous);
-	const double sqrt_betaxprev_de_betax = sqrt(betax_previous / betax);
-
-	const double sqrt_betay_betayprev = sqrt(betay * betay_previous);
-	const double sqrt_betay_de_betayprev = sqrt(betay / betay_previous);
-	const double sqrt_betayprev_de_betay = sqrt(betay_previous / betay);
 
 	while (tid < Np_sur)
 	{

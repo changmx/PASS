@@ -80,9 +80,9 @@ private:
 };
 
 
-__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference, int turn, double s, double t0,
-	double betax, double betax_previous, double alphax, double alphax_previous,
-	double betay, double betay_previous, double alphay, double alphay_previous,
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference, int turn, double s,
+	double sqrt_betax_betaxprev, double sqrt_betax_de_betaxprev, double sqrt_betaxprev_de_betax, double alphax, double alphax_previous,
+	double sqrt_betay_betayprev, double sqrt_betay_de_betayprev, double sqrt_betayprev_de_betay, double alphay, double alphay_previous,
 	double phix, double phiy, double DQx, double DQy,
 	double Dx, double Dx_previous, double Dpx, double Dpx_previous,
 	double m11_z, double m12_z, double m21_z, double m22_z);
