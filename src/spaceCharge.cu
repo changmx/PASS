@@ -39,7 +39,7 @@ SpaceCharge::SpaceCharge(const Parameter& para, int input_beamId, Bunch& Bunch, 
 		solverType = string2Enum(data.at("Space-charge simulation parameters").at("Field solver"));
 
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		sc_length = data.at("Sequence").at(obj_name).at("Length (m)");
+		sc_length = data.at("Sequence").at(obj_name).at("L (m)");
 
 		apertureType = data.at("Sequence").at(obj_name).at("Aperture type");
 		apertureValueSize = data.at("Sequence").at(obj_name).at("Aperture value").size();
