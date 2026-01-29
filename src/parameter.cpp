@@ -71,6 +71,7 @@ Parameter::Parameter(int argc, char** argv)
 	}
 
 	dir_output_statistic = dir_output / "statistic" / yearMonDay / hourMinSec;
+	dir_output_parameter = dir_output / "parameter" / yearMonDay / hourMinSec;
 	dir_output_distribution = dir_output / "distribution" / yearMonDay / hourMinSec;
 	dir_output_tuneSpread = dir_output / "tuneSpread" / yearMonDay / hourMinSec;
 	dir_output_chargeDensity = dir_output / "chargeDensity" / yearMonDay / hourMinSec;
@@ -86,6 +87,7 @@ Parameter::Parameter(int argc, char** argv)
 	{
 		fs::create_directories(dir_output);
 		fs::create_directories(dir_output_statistic);
+		fs::create_directories(dir_output_parameter);
 		fs::create_directories(dir_output_distribution);
 		fs::create_directories(dir_output_tuneSpread);
 		fs::create_directories(dir_output_chargeDensity);
@@ -109,11 +111,14 @@ Parameter::Parameter(int argc, char** argv)
 		if (1 == Nbeam)
 		{
 			fs::copy(path_input_para[0], dir_output_statistic / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
+			fs::copy(path_input_para[0], dir_output_parameter / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
 		}
 		else
 		{
 			fs::copy(path_input_para[0], dir_output_statistic / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
 			fs::copy(path_input_para[1], dir_output_statistic / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
+			fs::copy(path_input_para[0], dir_output_parameter / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
+			fs::copy(path_input_para[1], dir_output_parameter / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
 		}
 	}
 	catch (const fs::filesystem_error& e)

@@ -36,6 +36,7 @@ public:
 
 	std::filesystem::path dir_output;
 	std::filesystem::path dir_output_statistic;
+	std::filesystem::path dir_output_parameter;
 	std::filesystem::path dir_output_distribution;
 	std::filesystem::path dir_output_tuneSpread;
 	std::filesystem::path dir_output_chargeDensity;
