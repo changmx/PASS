@@ -44,16 +44,16 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 				Injection: generate particles of a bunch in one turn or multi turns
 				Twiss: Point-to-point linear transfer according to the input twiss parameters
 				Element: Element-to-element transfer according to the input element parameters
+					--> MarkerElement: marker, used to mark the position of an element in the sequence
+					--> DriftElement: drift
 					--> SBendElement: Sector dipole
 					--> RBendElement: rectangular dipole
 					--> QuadrupoleElement: quadrupole
 					--> SextupoleElement: sextupole
 					--> OctupoleElement: octupole
-					--> HKickerElement: horizontal kicker
-					--> VKickerElement: vertical kicker
-					--> MarkerElement: marker, used to mark the position of an element in the sequence
-					--> RFElement: RF cavity, perform acceleration or logituninal phase space manipulation
 					--> MultipoleElement: multipole
+					--> KickerElement: horizontal and vertical kicker
+					--> RFElement: RF cavity, perform acceleration or logituninal phase space manipulation
 					--> ElSeparatorElement: electrostatic separator
 					--> TuneExciterElement: tune exciter
 				Monitor: save information
@@ -113,6 +113,18 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
+			else if ("DriftElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<DriftElement>>(
+							std::make_unique<DriftElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
 			else if ("SBendElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
@@ -149,27 +161,15 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
-			else if ("SextupoleNormElement" == data.at("Sequence").at(ikey).at("Command"))
+			else if ("SextupoleElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
 				{
 					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
 
 					command_vec.emplace_back(
-						std::make_unique<ConcreteCommand<SextupoleNormElement>>(
-							std::make_unique<SextupoleNormElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
-					);
-				}
-			}
-			else if ("SextupoleSkewElement" == data.at("Sequence").at(ikey).at("Command"))
-			{
-				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
-				{
-					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
-
-					command_vec.emplace_back(
-						std::make_unique<ConcreteCommand<SextupoleSkewElement>>(
-							std::make_unique<SextupoleSkewElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+						std::make_unique<ConcreteCommand<SextupoleElement>>(
+							std::make_unique<SextupoleElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
@@ -185,30 +185,6 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					);
 				}
 			}
-			else if ("HKickerElement" == data.at("Sequence").at(ikey).at("Command"))
-			{
-				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
-				{
-					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
-
-					command_vec.emplace_back(
-						std::make_unique<ConcreteCommand<HKickerElement>>(
-							std::make_unique<HKickerElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
-					);
-				}
-			}
-			else if ("VKickerElement" == data.at("Sequence").at(ikey).at("Command"))
-			{
-				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
-				{
-					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
-
-					command_vec.emplace_back(
-						std::make_unique<ConcreteCommand<VKickerElement>>(
-							std::make_unique<VKickerElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
-					);
-				}
-			}
 			else if ("MultipoleElement" == data.at("Sequence").at(ikey).at("Command"))
 			{
 				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
@@ -218,6 +194,18 @@ void read_command_sequence(const Parameter& Para, std::vector<Bunch>& bunch, int
 					command_vec.emplace_back(
 						std::make_unique<ConcreteCommand<MultipoleElement>>(
 							std::make_unique<MultipoleElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
+					);
+				}
+			}
+			else if ("KickerElement" == data.at("Sequence").at(ikey).at("Command"))
+			{
+				for (size_t i = 0; i < Para.Nbunch[input_beamId]; i++)
+				{
+					ParallelPlan1d plan1d(512, 2, bunch[i].Np);
+
+					command_vec.emplace_back(
+						std::make_unique<ConcreteCommand<KickerElement>>(
+							std::make_unique<KickerElement>(Para, input_beamId, bunch[i], ikey, plan1d, simTime))
 					);
 				}
 			}
@@ -363,14 +351,14 @@ int get_priority(const std::string& commandType) {
 	else if (commandType == "Twiss") return 200;
 
 	else if (commandType == "MarkerElement") return 300;
+	else if (commandType == "DriftElement") return 300;
 	else if (commandType == "SBendElement") return 300;
 	else if (commandType == "RBendElement") return 300;
 	else if (commandType == "QuadrupoleElement") return 300;
-	else if (commandType == "SextupoleNormElement") return 300;
-	else if (commandType == "SextupoleSkewElement") return 300;
+	else if (commandType == "SextupoleElement") return 300;
 	else if (commandType == "OctupoleElement") return 300;
-	else if (commandType == "HKickerElement") return 300;
-	else if (commandType == "VKickerElement") return 300;
+	else if (commandType == "MultipoleElement") return 300;
+	else if (commandType == "KickerElement") return 300;
 	else if (commandType == "RFElement") return 300;
 	else if (commandType == "ElSeparatorElement") return 300;
 	else if (commandType == "TuneExciterElement") return 300;
@@ -407,7 +395,7 @@ void sort_commands(std::vector<std::unique_ptr<Command>>& command_vec) {
 	std::sort(command_vec.begin(), command_vec.end(),
 		[](const std::unique_ptr<Command>& a, const std::unique_ptr<Command>& b) {
 			// 分步比较指针指向的对象的成员
-			if (a->get_s() != b->get_s()) {
+			if (fabs(a->get_s() - b->get_s()) > 1e-10) {
 				return a->get_s() < b->get_s();  // 按 s 升序
 			}
 			else {
