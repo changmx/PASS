@@ -647,3 +647,137 @@ std::string ms_to_timeString(double ms) {
 
 	return std::to_string(eta_hour) + "h " + std::to_string(eta_minute) + "m " + std::to_string(eta_second) + "s";
 }
+
+
+std::vector<std::vector<double>> loadtxt(const std::string& filename, char delimiter, int skiprows, const std::vector<int>& usecols) {
+
+	auto logger = spdlog::get("logger");
+
+	std::ifstream file(filename);
+	if (!file.is_open()) {
+		logger->error("[Read Ramping Data] Open file failed: {}", filename);
+		std::exit(EXIT_FAILURE);
+	}
+
+	std::vector<std::vector<double>> result;
+	std::string line;
+
+	// 跳过指定行数
+	for (int i = 0; i < skiprows; ++i) {
+		if (!std::getline(file, line)) {
+			// 文件行数不足，直接返回空结果
+			logger->error("[Read Ramping Data] For file: {}, after skip {} rows, the file is empty", filename, skiprows);
+			std::exit(EXIT_FAILURE);
+		}
+	}
+
+	// 是否指定了要读取的列
+	bool use_specific_cols = !usecols.empty();
+	int expected_cols = -1;  // 期望的列数
+	int row_num = 0;  // 当前处理的行号
+
+	while (std::getline(file, line)) {
+		// 跳过空行和全空白行
+		if (line.empty() || std::all_of(line.begin(), line.end(), ::isspace)) {
+			continue;
+		}
+
+		std::stringstream ss(line);
+		std::string cell;
+		std::vector<double> row_values;
+
+		// 解析当前行
+		while (std::getline(ss, cell, delimiter)) {
+			// 去除空白字符
+			cell.erase(0, cell.find_first_not_of(" \t\r\n"));
+			cell.erase(cell.find_last_not_of(" \t\r\n") + 1);
+
+			if (cell.empty()) {
+				logger->error("[Read Ramping Data] For file: {}, line {} has empty value", filename, row_num + skiprows + 1);
+				std::exit(EXIT_FAILURE);
+			}
+
+			try {
+				row_values.push_back(std::stod(cell));
+			}
+			catch (const std::exception& e) {
+				logger->error("[Read Ramping Data] For file: {}, can't convert value {} to double type", filename, cell);
+				std::exit(EXIT_FAILURE);
+			}
+		}
+
+		// 检查列数一致性
+		int current_cols = row_values.size();
+
+		if (expected_cols == -1) {
+			// 第一行，确定期望的列数
+			if (use_specific_cols) {
+				expected_cols = usecols.size();
+			}
+			else {
+				expected_cols = current_cols;
+			}
+
+			if (expected_cols == 0) {
+				logger->error("[Read Ramping Data] For file: {}, the first line has no valid data", filename);
+				std::exit(EXIT_FAILURE);
+			}
+
+			// 初始化结果向量
+			result.resize(expected_cols);
+		}
+
+		// 检查当前行的列数是否与期望一致
+		if (current_cols != expected_cols) {
+			logger->error("[Read Ramping Data] For file: {}, line: {}, current column is {}, expect column is {}",
+				filename, row_num + skiprows + 1, current_cols, expected_cols);
+			std::exit(EXIT_FAILURE);
+		}
+
+		// 将数据添加到对应列
+		if (use_specific_cols) {
+			// 只读取指定列
+
+			// 检查当前行的列数是否与期望一致
+			int max_col_index = *std::max_element(usecols.begin(), usecols.end());
+			if (current_cols <= max_col_index) {
+				logger->error("[Read Ramping Data] For file: {}, line: {}, we need at least {} columns, but currently there is only {} columns",
+					filename, row_num + skiprows + 1, max_col_index, current_cols);
+				std::exit(EXIT_FAILURE);
+			}
+
+			for (size_t i = 0; i < usecols.size(); ++i) {
+				int col_idx = usecols[i];
+				if (col_idx < 0 || col_idx >= current_cols) {
+					logger->error("[Read Ramping Data] For file: {}, column {} is out of range", filename, col_idx);
+					std::exit(EXIT_FAILURE);
+				}
+				result[i].push_back(row_values[col_idx]);
+			}
+		}
+		else {
+			// 读取所有列
+
+			// 检查当前行的列数是否与期望一致
+			if (current_cols != expected_cols) {
+				logger->error("[Read Ramping Data] For file: {}, line: {}, we need at least {} columns, but currently there is only {} columns",
+					filename, row_num + skiprows + 1, expected_cols, current_cols);
+				std::exit(EXIT_FAILURE);
+			}
+
+			for (int i = 0; i < current_cols; ++i) {
+				result[i].push_back(row_values[i]);
+			}
+		}
+
+		row_num++;
+	}
+
+	// 检查是否读取到数据
+	if (result.empty() || result[0].empty()) {
+		logger->error("[Read Ramping Data] For file: {}, the file is empty of there is no valid data", filename);
+		std::exit(EXIT_FAILURE);
+	}
+
+	return result;
+}

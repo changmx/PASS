@@ -2,7 +2,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <vector>
 #include <string>
+#include <algorithm>
+#include <stdexcept>
 #include <stdlib.h>
 #include <filesystem>
 
@@ -122,3 +126,5 @@ bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>&
 void print_cycleRange(const std::vector<CycleRange>& ranges);
 
 std::string ms_to_timeString(double ms);
+
+std::vector<std::vector<double>> loadtxt(const std::string& filename, char delimiter = ',', int skiprows = 0, const std::vector<int>& usecols = {});
