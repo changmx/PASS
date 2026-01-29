@@ -182,6 +182,7 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 		{
 			is_slice_for_sc = true;
 			Nslice_sc = data.at("Space-charge simulation parameters").at("Number of slices");
+			is_enable_spaceCharge = data.at("Space-charge simulation parameters").at("Is enable space charge");
 		}
 		else
 		{
@@ -219,10 +220,6 @@ Bunch::Bunch(const Parameter& para, int input_beamId, int input_bunchId) {
 			Nobs_PM = data.at("Particle Monitor parameters").at("Observer position S (m)").size();
 		}
 
-		if (data.contains("Space-charge simulation parameters"))
-		{
-			is_enable_spaceCharge = data.at("Space-charge simulation parameters").at("Is enable space charge");
-		}
 	}
 	catch (json::exception e)
 	{
