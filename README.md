@@ -12,7 +12,7 @@
 
 ## 环境配置
 
-1. 安装Visual Studio (Windows) / GCC (Linux)
+1. 安装Visual Studio (Windows) / GCC (Linux)，C++最低版本为C++ 17
 
 2. 安装CUDA (推荐安装12.2及以上版本)
 
@@ -20,24 +20,62 @@
    - Windows：C:\Program Files\NVIDIA cuDSS\v0.7\bin\13
 
    同时在CMakelists.txt中参考已有路径，修改cuDSS的目录
-   
-4. 安装Python (推荐安装3.12及以上版本)
+
+4. 安装Python (推荐安装3.12及以上版本)，以及tfs-pandas库
 
 5. 安装CMake软件 (推荐安装3.29及以上版本)
 
 6. 根据个人软件安装路径，修改CMakeLists.txt文件中文件路径
 
-### 编译流程
+## 编译流程
 
 1. 进入PASS文件夹，新建build文件夹
 2. 进入build文件夹，执行命令来构建项目：cmake ..
 3. 执行命令进行项目编译：cmake --build . --config Release -j16
 
-### 输入文件
+## 输入文件
 
 1. 进入para文件夹，修改generate_main.py文件中参数配置，运行并生成输入文件，例如beam.json
 
-### 软件运行
+2. 光学文件可以手动输入，也可以输入MADX生成的TFS格式的Twiss文件，Error文件等，如果是读取MADX文件，在MADX文件中建议包含下列column，同时设置光学计算在元件中心：
+
+   ```
+   FLAG=TWISS,COLUMN=NAME,KEYWORD,S,L,BETX,ALFX,MUX,BETY,ALFY,MUY,X,Y,DX,DPX,K0L,K1L,K2L,K3L,E1,E2,H1,H2,HGAP,FINT,FINTX;
+   TWISS, CENTRE, FILE=twiss.tfs;
+   ```
+   
+   MADX的Twiss命令可输出的所有所有column如下：
+   
+   | MADX Twiss output |         |          |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | ----------------- | ------- | -------- | -------- | ------- | ----------- | -------- | ------- | -------- | ------- | ------- | ------- | ------- | ------- | ------- | ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ---- | ----- | ---- | ----- | ---- | :---- |
+   | NAME              | KEYWORD | S        |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | BETX              | ALFX    | MUX      | BETY     | ALFY    | MUY         |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | X                 | PX      | Y        | PY       | T       | PT          |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | DX                | DPX     | DY       | DPY      |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | WX                | PHIX    | DMUX     | WY       | PHIY    | DMUY        | DDX      | DDPX    | DDY      | DDPY    |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | R11               | R12     | R21      | R22      |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | ENERGY            | L       | ANGLE    |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | K0L               | K0SL    | K1L      | K1SL     | K2L     | K2SL        | K3L      | K3SL    | K4L      | K4SL    | K5L     | K5SL    | K6L     | K6SL    | K7L     | K7SL    | K8L   | K8SL  | K9L   | K9SL  | K10L  | K10SL | K11L  | K11SL | K12L  | K12SL | K13L  | K13SL | K14L  | K14SL | K15L  | K15SL | K16L  | K16SL | K17L  | K17SL | K18L | K18SL | K19L | K19SL | K20L | K20SL |
+   | KSI               |         |          |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | HKICK             | VKICK   | TILT     |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | E1                | E2      | H1       | H2       | HGAP    | FINT        | FINTX    |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | VOLT              | LAG     | FREQ     | HARMON   | SLOT_ID | ASSEMBLY_ID | MECH_SEP | V_POS   | BBCHARGE |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | XMA               | YMA     | SIGX     | SIGY     |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | LRAD              | PARENT  | COMMENTS |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | RE11              | RE12    | RE13     | RE14     | RE15    | RE16        | RE21     | RE22    | RE23     | RE24    | RE25    | RE26    | RE31    | RE32    | RE33    | RE34    | RE35  | RE36  | RE41  | RE42  | RE43  | RE44  | RE45  | RE46  | RE51  | RE52  | RE53  | RE54  | RE55  | RE56  | RE61  | RE62  | RE63  | RE64  | RE65  | RE66  |      |       |      |       |      |       |
+   | KMAX              | KMIN    | CALIB    | POLARITY | ALFA    |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | BETA11            | BETA12  | BETA13   | BETA21   | BETA22  | BETA23      | BETA31   | BETA32  | BETA33   |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | ALFA11            | ALFA12  | ALFA13   | ALFA21   | ALFA22  | ALFA23      | ALFA31   | ALFA32  | ALFA33   |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | GAMA11            | GAMA12  | GAMA13   | GAMA21   | GAMA22  | GAMA23      | GAMA31   | GAMA32  | GAMA33   |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | ALFA11P           | ALFA12P | ALFA13P  | ALFA21P  | ALFA22P | ALFA23P     | ALFA31P  | ALFA32P | ALFA33P  |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | GAMA11P           | GAMA12P | GAMA13P  | GAMA21P  | GAMA22P | GAMA23P     | GAMA31P  | GAMA32P | GAMA33P  |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | BETA11P           | BETA12P | BETA13P  | BETA21P  | BETA22P | BETA23P     | BETA31P  | BETA32P | BETA33P  |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | DISP1             | DISP2   | DISP3    | DISP4    | DISP1P  | DISP2P      | DISP3P   | DISP4P  | DISP1P2  | DISP2P2 | DISP3P2 | DISP4P2 | DISP1P3 | DISP2P3 | DISP3P3 | DISP4P3 |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | MU1               | MU2     | MU3      |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+   | SIG11             | SIG12   | SIG13    | SIG14    | SIG15   | SIG16       | SIG21    | SIG22   | SIG23    | SIG24   | SIG25   | SIG26   | SIG31   | SIG32   | SIG33   | SIG34   | SIG35 | SIG36 | SIG41 | SIG42 | SIG43 | SIG44 | SIG45 | SIG46 | SIG51 | SIG52 | SIG53 | SIG54 | SIG55 | SIG56 | SIG61 | SIG62 | SIG63 | SIG64 | SIG65 | SIG66 |      |       |      |       |      |       |
+   | N1                |         |          |          |         |             |          |         |          |         |         |         |         |         |         |         |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |       |      |       |      |       |      |       |
+
+## 软件运行
 
 1. Windows环境下程序位于build/Release文件夹下，执行命令：.\build\Release\PASS.exe --beam0=..\para\beam.json
 2. Linux环境下程序位于build文件夹下，执行命令：./build/PASS --beam0=../para/beam.json
