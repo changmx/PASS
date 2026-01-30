@@ -10,6 +10,7 @@
 
 #include <cuda_runtime.h>
 
+namespace fs = std::filesystem;
 
 MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
 	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
@@ -30,8 +31,6 @@ MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunc
 	try
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-
 	}
 	catch (json::exception e)
 	{
@@ -43,19 +42,54 @@ MarkerElement::MarkerElement(const Parameter& para, int input_beamId, const Bunc
 
 void MarkerElement::execute(int turn) {
 
-	if (drift_length < 1e-10) return;
+	// do nothing
+}
+
+
+DriftElement::DriftElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "DriftElement";
+	name = obj_name;
+	dev_particle = Bunch.dev_particle;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	circumference = para.circumference;
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+	}
+	catch (json::exception e)
+	{
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+
+}
+
+void DriftElement::execute(int turn) {
+
+	double drift = l;
+
+	if (drift < 1e-10) return;
 
 	callCuda(cudaEventRecord(simTime.start, 0));
 	float time_tmp = 0;
 
 	//auto logger = spdlog::get("logger");
-	//logger->info("[Marker Element] run: " + name);
+	//logger->debug("[Drift Element] run: " + name);
 
 	int Np_sur = bunchRef.Np_sur;
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
-
-	double drift = drift_length;
 
 	callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 
@@ -63,6 +97,7 @@ void MarkerElement::execute(int turn) {
 	callCuda(cudaEventSynchronize(simTime.stop));
 	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
 	simTime.transferElement += time_tmp;
+
 }
 
 
@@ -89,37 +124,77 @@ SBendElement::SBendElement(const Parameter& para, int input_beamId, const Bunch&
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		angle = data.at("Sequence").at(obj_name).at("angle (rad)");
-		e1 = data.at("Sequence").at(obj_name).at("e1 (rad)");
-		e2 = data.at("Sequence").at(obj_name).at("e2 (rad)");
-		hgap = data.at("Sequence").at(obj_name).at("hgap (m)");
-		fint = data.at("Sequence").at(obj_name).at("fint");
-		fintx = data.at("Sequence").at(obj_name).at("fintx");
+		angle = data.at("Sequence").at(obj_name).at("Angle (rad)");
+		e1 = data.at("Sequence").at(obj_name).at("E1 (rad)");
+		e2 = data.at("Sequence").at(obj_name).at("E2 (rad)");
+		hgap = data.at("Sequence").at(obj_name).at("Hgap (m)");
+		fint = data.at("Sequence").at(obj_name).at("Fint");
+		fintx = data.at("Sequence").at(obj_name).at("Fintx");
 
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[SBend Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
+		is_field_error = data.at("Sequence").at(obj_name).at("Is field error");
 		std::vector<double>knl, ksl;
-		if (isFieldError)
+		if (is_field_error)
 		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			int size_knl = data.at("Sequence").at(obj_name).at("Field error KNL").size();
+			int size_ksl = data.at("Sequence").at(obj_name).at("Field error KSL").size();
+
+			for (int i = 0; i < size_knl; i++)
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				knl.push_back(data.at("Sequence").at(obj_name).at("Field error KNL")[i]);
 			}
+			for (int i = 0; i < size_ksl; i++)
+			{
+				ksl.push_back(data.at("Sequence").at(obj_name).at("Field error KSL")[i]);
+			}
+
+			cur_error_order = std::max(size_knl, size_ksl) - 1;
+			if (cur_error_order > max_error_order)
+			{
+				spdlog::get("logger")->warn("[SBend Element] {}: current error_order = {}, since it exceeds the max_error_order = {}, the excess values will be ignored.",
+					name, cur_error_order, max_error_order);
+				cur_error_order = max_error_order;
+			}
+
+			knl.resize(cur_error_order + 1, 0.0);
+			ksl.resize(cur_error_order + 1, 0.0);
+
+
 			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
 
-		spdlog::get("logger")->debug("[SBend Element] run: {}, s = {}, l = {}, drift_length = {}, angle = {}, e1 = {}, e2 = {}, hgap = {}, fint = {}, fintx = {}, isFieldError = {}",
-			name, s, l, drift_length, angle, e1, e2, hgap, fint, fintx, isFieldError);
+		if (data.at("Sequence").at(obj_name).contains("Is ramping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
+
+			if (data.at("Sequence").at(obj_name).contains("K0L ramping file") && is_ramping)
+			{
+				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K0L ramping file");
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k0l = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[SBend Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
+			}
+		}
+
+		spdlog::get("logger")->debug("[SBend Element] run: {}, s = {}, l = {}, angle = {}, e1 = {}, e2 = {}, hgap = {}, fint = {}, fintx = {}, is_field_error = {}",
+			name, s, l, angle, e1, e2, hgap, fint, fintx, is_field_error);
 	}
 	catch (json::exception e)
 	{
@@ -141,12 +216,10 @@ void SBendElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
 	double l_used = 0;
 	double angle_used = 0;
 
-	if (isFieldError)
+	if (is_field_error)
 	{
 		l_used = l / 2;
 		angle_used = angle / 2;
@@ -186,17 +259,12 @@ void SBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	if (drift > 1e-10)
-	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
-	}
-
-	if (isFieldError)
+	if (is_field_error)
 	{
 		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+		callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 
 		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
@@ -237,34 +305,77 @@ RBendElement::RBendElement(const Parameter& para, int input_beamId, const Bunch&
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		angle = data.at("Sequence").at(obj_name).at("angle (rad)");
-		e1 = data.at("Sequence").at(obj_name).at("e1 (rad)");
-		e2 = data.at("Sequence").at(obj_name).at("e2 (rad)");
-		hgap = data.at("Sequence").at(obj_name).at("hgap (m)");
-		fint = data.at("Sequence").at(obj_name).at("fint");
-		fintx = data.at("Sequence").at(obj_name).at("fintx");
+		angle = data.at("Sequence").at(obj_name).at("Angle (rad)");
+		e1 = data.at("Sequence").at(obj_name).at("E1 (rad)");
+		e2 = data.at("Sequence").at(obj_name).at("E2 (rad)");
+		hgap = data.at("Sequence").at(obj_name).at("Hgap (m)");
+		fint = data.at("Sequence").at(obj_name).at("Fint");
+		fintx = data.at("Sequence").at(obj_name).at("Fintx");
 
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[RBend Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
+		is_field_error = data.at("Sequence").at(obj_name).at("Is field error");
 		std::vector<double>knl, ksl;
-		if (isFieldError)
+		if (is_field_error)
 		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			int size_knl = data.at("Sequence").at(obj_name).at("Field error KNL").size();
+			int size_ksl = data.at("Sequence").at(obj_name).at("Field error KSL").size();
+
+			for (int i = 0; i < size_knl; i++)
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				knl.push_back(data.at("Sequence").at(obj_name).at("Field error KNL")[i]);
 			}
+			for (int i = 0; i < size_ksl; i++)
+			{
+				ksl.push_back(data.at("Sequence").at(obj_name).at("Field error KSL")[i]);
+			}
+
+			cur_error_order = std::max(size_knl, size_ksl) - 1;
+			if (cur_error_order > max_error_order)
+			{
+				spdlog::get("logger")->warn("[RBend Element] {}: current error_order = {}, since it exceeds the max_error_order = {}, the excess values will be ignored.",
+					name, cur_error_order, max_error_order);
+				cur_error_order = max_error_order;
+			}
+
+			knl.resize(cur_error_order + 1, 0.0);
+			ksl.resize(cur_error_order + 1, 0.0);
+
+
 			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
+
+		if (data.at("Sequence").at(obj_name).contains("Is ramping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
+
+			if (data.at("Sequence").at(obj_name).contains("K0L ramping file") && is_ramping)
+			{
+				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K0L ramping file");
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k0l = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[RBend Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
+			}
+		}
+
+		spdlog::get("logger")->debug("[RBend Element] run: {}, s = {}, l = {}, angle = {}, e1 = {}, e2 = {}, hgap = {}, fint = {}, fintx = {}, is_field_error = {}",
+			name, s, l, angle, e1, e2, hgap, fint, fintx, is_field_error);
 
 	}
 	catch (json::exception e)
@@ -288,12 +399,10 @@ void RBendElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
 	double l_used = 0;
 	double angle_used = 0;
 
-	if (isFieldError)
+	if (is_field_error)
 	{
 		l_used = l / 2;
 		angle_used = angle / 2;
@@ -333,17 +442,12 @@ void RBendElement::execute(int turn) {
 	double fr21i = h * tan(psi2);
 	double fr43i = -h * tan(psip2);
 
-	if (drift > 1e-10)
-	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
-	}
-
-	if (isFieldError)
+	if (is_field_error)
 	{
 		callKernel(transfer_dipole_half_left << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
 
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+		callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 
 		callKernel(transfer_dipole_half_right << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference,
 			r11, r12, r16, r21, r22, r26, r34, r51, r52, r56, fl21i, fl43i, fr21i, fr43i));
@@ -385,27 +489,37 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
 		k1l = data.at("Sequence").at(obj_name).at("K1L (m^-1)");
 		k1sl = data.at("Sequence").at(obj_name).at("K1SL (m^-1)");
 
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[Quadrupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
+		is_field_error = data.at("Sequence").at(obj_name).at("Is field error");
 		std::vector<double>knl, ksl;
-		if (isFieldError)
+		if (is_field_error)
 		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			int size_knl = data.at("Sequence").at(obj_name).at("Field error KNL").size();
+			int size_ksl = data.at("Sequence").at(obj_name).at("Field error KSL").size();
+
+			for (int i = 0; i < size_knl; i++)
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				knl.push_back(data.at("Sequence").at(obj_name).at("Field error KNL")[i]);
 			}
+			for (int i = 0; i < size_ksl; i++)
+			{
+				ksl.push_back(data.at("Sequence").at(obj_name).at("Field error KSL")[i]);
+			}
+
+			cur_error_order = std::max(size_knl, size_ksl) - 1;
+			if (cur_error_order > max_error_order)
+			{
+				spdlog::get("logger")->warn("[Quadrupole Element] {}: current error_order = {}, since it exceeds the max_error_order = {}, the excess values will be ignored.",
+					name, cur_error_order, max_error_order);
+				cur_error_order = max_error_order;
+			}
+
+			knl.resize(cur_error_order + 1, 0.0);
+			ksl.resize(cur_error_order + 1, 0.0);
+
+
 			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
@@ -414,18 +528,60 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 		{
 			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
 
-			if (data.at("Sequence").at(obj_name).contains("K1L ramping file")) {
+			if (data.at("Sequence").at(obj_name).contains("K1L ramping file") && is_ramping)
+			{
 				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K1L ramping file");
-				ramping_k1l = readRampingDataFromCSV(ramping_file_path);
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k1l = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Quadrupole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
 			}
-			if (data.at("Sequence").at(obj_name).contains("K1SL ramping file")) {
+
+			if (data.at("Sequence").at(obj_name).contains("K1SL ramping file") && is_ramping)
+			{
 				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K1SL ramping file");
-				ramping_k1sl = readRampingDataFromCSV(ramping_file_path);
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k1sl = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Quadrupole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
 			}
 		}
 
 		if (is_ramping)
 		{
+			std::cout << __FILE__ << ": " << __LINE__ << std::endl;
 			if (ramping_k1l.size() > 0 && ramping_k1sl.size() == 0)
 			{
 				quad_type = "normal";
@@ -446,6 +602,7 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 		}
 		else
 		{
+			std::cout << __FILE__ << ": " << __LINE__ << std::endl;
 			if (fabs(k1l) > 1e-10 && fabs(k1sl) < 1e-10)
 			{
 				quad_type = "normal";
@@ -465,9 +622,9 @@ QuadrupoleElement::QuadrupoleElement(const Parameter& para, int input_beamId, co
 				std::exit(EXIT_FAILURE);
 			}
 		}
-
-		spdlog::get("logger")->debug("[Quadrupole Element] run: {}, s = {}, l = {}, quad_type = {}, drift_length = {}, k1l = {}, k1sl = {}, isFieldError = {}, isRamping = {}",
-			name, s, l, quad_type, drift_length, k1l, k1sl, isFieldError, is_ramping);
+		std::cout << __FILE__ << ": " << __LINE__ << std::endl;
+		spdlog::get("logger")->debug("[Quadrupole Element] run: {}, s = {}, l = {}, quad_type = {}, k1l = {}, k1sl = {}, is_field_error = {}, isRamping = {}",
+			name, s, l, quad_type, k1l, k1sl, is_field_error, is_ramping);
 	}
 	catch (json::exception e)
 	{
@@ -488,11 +645,7 @@ void QuadrupoleElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
-
 	double EPSILON = 1e-10;
-
-	if (drift > EPSILON) callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 
 	if (quad_type == "normal")
 	{
@@ -502,7 +655,7 @@ void QuadrupoleElement::execute(int turn) {
 		{
 			if (turn > ramping_k1l.size())
 			{
-				spdlog::get("logger")->warn("[Sextupole] {}, ramping data size ({}) is less than turn ({}), so k1l is set to the last value ({})", name, ramping_k1l.size(), turn, ramping_k1l.back());
+				spdlog::get("logger")->warn("[Quadrupole Element] {}, ramping data size ({}) is less than turn ({}), so k1l is set to the last value ({})", name, ramping_k1l.size(), turn, ramping_k1l.back());
 				k1l_current = ramping_k1l.back();
 			}
 			else
@@ -517,10 +670,10 @@ void QuadrupoleElement::execute(int turn) {
 
 		if (fabs(l) > EPSILON)
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
 				callKernel(transfer_quadrupole_thicklens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1l_current / l, l / 2));
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 				callKernel(transfer_quadrupole_thicklens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1l_current / l, l / 2));
 			}
 			else
@@ -530,9 +683,9 @@ void QuadrupoleElement::execute(int turn) {
 		}
 		else
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			}
 			callKernel(transfer_quadrupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k1l_current));
 		}
@@ -546,7 +699,7 @@ void QuadrupoleElement::execute(int turn) {
 		{
 			if (turn > ramping_k1sl.size())
 			{
-				spdlog::get("logger")->warn("[Sextupole] {}, ramping data size ({}) is less than turn ({}), so k1sl is set to the last value ({})", name, ramping_k1sl.size(), turn, ramping_k1sl.back());
+				spdlog::get("logger")->warn("[Quadrupole Element] {}, ramping data size ({}) is less than turn ({}), so k1sl is set to the last value ({})", name, ramping_k1sl.size(), turn, ramping_k1sl.back());
 				k1sl_current = ramping_k1sl.back();
 			}
 			else
@@ -561,10 +714,10 @@ void QuadrupoleElement::execute(int turn) {
 
 		if (fabs(l) > EPSILON)
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
 				callKernel(transfer_quadrupole_thicklens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1sl_current / l, l / 2));
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 				callKernel(transfer_quadrupole_thicklens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, k1sl_current / l, l / 2));
 			}
 			else
@@ -574,9 +727,9 @@ void QuadrupoleElement::execute(int turn) {
 		}
 		else
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			}
 			callKernel(transfer_quadrupole_thinlens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k1sl_current));
 		}
@@ -586,10 +739,10 @@ void QuadrupoleElement::execute(int turn) {
 	{
 		if (fabs(l) > EPSILON)
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 			}
 			else
@@ -633,27 +786,37 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
 		k2l = data.at("Sequence").at(obj_name).at("K2L (m^-2)");
 		k2sl = data.at("Sequence").at(obj_name).at("K2SL (m^-2)");
 
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[Sextupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
+		is_field_error = data.at("Sequence").at(obj_name).at("Is field error");
 		std::vector<double>knl, ksl;
-		if (isFieldError)
+		if (is_field_error)
 		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			int size_knl = data.at("Sequence").at(obj_name).at("Field error KNL").size();
+			int size_ksl = data.at("Sequence").at(obj_name).at("Field error KSL").size();
+
+			for (int i = 0; i < size_knl; i++)
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				knl.push_back(data.at("Sequence").at(obj_name).at("Field error KNL")[i]);
 			}
+			for (int i = 0; i < size_ksl; i++)
+			{
+				ksl.push_back(data.at("Sequence").at(obj_name).at("Field error KSL")[i]);
+			}
+
+			cur_error_order = std::max(size_knl, size_ksl) - 1;
+			if (cur_error_order > max_error_order)
+			{
+				spdlog::get("logger")->warn("[Sextupole Element] {}: current error_order = {}, since it exceeds the max_error_order = {}, the excess values will be ignored.",
+					name, cur_error_order, max_error_order);
+				cur_error_order = max_error_order;
+			}
+
+			knl.resize(cur_error_order + 1, 0.0);
+			ksl.resize(cur_error_order + 1, 0.0);
+
+
 			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
@@ -662,13 +825,54 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 		{
 			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
 
-			if (data.at("Sequence").at(obj_name).contains("K2L ramping file")) {
+			if (data.at("Sequence").at(obj_name).contains("K2L ramping file") && is_ramping)
+			{
 				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K2L ramping file");
-				ramping_k2l = readRampingDataFromCSV(ramping_file_path);
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k2l = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Sextupole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
 			}
-			if (data.at("Sequence").at(obj_name).contains("K2SL ramping file")) {
+
+			if (data.at("Sequence").at(obj_name).contains("K2SL ramping file") && is_ramping)
+			{
 				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K2SL ramping file");
-				ramping_k2sl = readRampingDataFromCSV(ramping_file_path);
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k2sl = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Sextupole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
 			}
 		}
 
@@ -714,8 +918,8 @@ SextupoleElement::SextupoleElement(const Parameter& para, int input_beamId, cons
 			}
 		}
 
-		spdlog::get("logger")->debug("[Sextupole Element] run: {}, s = {}, l = {}, sext_type = {}, drift_length = {}, k2l = {}, k2sl = {}, isFieldError = {}, isRamping = {}",
-			name, s, l, sext_type, drift_length, k2l, k2sl, isFieldError, is_ramping);
+		spdlog::get("logger")->debug("[Sextupole Element] run: {}, s = {}, l = {}, sext_type = {}, k2l = {}, k2sl = {}, is_field_error = {}, isRamping = {}",
+			name, s, l, sext_type, k2l, k2sl, is_field_error, is_ramping);
 	}
 	catch (json::exception e)
 	{
@@ -736,7 +940,6 @@ void SextupoleElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = drift_length;
 	double EPSILON = 1e-10;
 
 	if (sext_type == "normal")
@@ -747,7 +950,7 @@ void SextupoleElement::execute(int turn) {
 		{
 			if (turn > ramping_k2l.size())
 			{
-				spdlog::get("logger")->warn("[Sextupole] {}, ramping data size ({}) is less than turn ({}), so k2l is set to the last value ({})", name, ramping_k2l.size(), turn, ramping_k2l.back());
+				spdlog::get("logger")->warn("[Sextupole Element] {}, ramping data size ({}) is less than turn ({}), so k2l is set to the last value ({})", name, ramping_k2l.size(), turn, ramping_k2l.back());
 				k2l_current = ramping_k2l.back();
 			}
 			else
@@ -762,28 +965,27 @@ void SextupoleElement::execute(int turn) {
 
 		if (fabs(l) > EPSILON)
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 				callKernel(transfer_sextupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k2l_current));
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 			}
 			else
 			{
-				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 				callKernel(transfer_sextupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k2l_current));
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 			}
 		}
 		else
 		{
-			if (drift > EPSILON) callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 			callKernel(transfer_sextupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k2l_current));
 
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			}
 		}
 	}
@@ -796,7 +998,7 @@ void SextupoleElement::execute(int turn) {
 		{
 			if (turn > ramping_k2sl.size())
 			{
-				spdlog::get("logger")->warn("[Sextupole] {}, ramping data size ({}) is less than turn ({}), so k2sl is set to the last value ({})", name, ramping_k2sl.size(), turn, ramping_k2sl.back());
+				spdlog::get("logger")->warn("[Sextupole Element] {}, ramping data size ({}) is less than turn ({}), so k2sl is set to the last value ({})", name, ramping_k2sl.size(), turn, ramping_k2sl.back());
 				k2sl_current = ramping_k2sl.back();
 			}
 			else
@@ -811,28 +1013,27 @@ void SextupoleElement::execute(int turn) {
 
 		if (fabs(l) > EPSILON)
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 				callKernel(transfer_sextupole_thinlens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k2sl_current));
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 			}
 			else
 			{
-				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 				callKernel(transfer_sextupole_thinlens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k2sl_current));
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 			}
 		}
 		else
 		{
-			if (drift > EPSILON) callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
 			callKernel(transfer_sextupole_thinlens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k2sl_current));
 
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 			}
 		}
 	}
@@ -841,20 +1042,20 @@ void SextupoleElement::execute(int turn) {
 	{
 		if (fabs(l) > EPSILON)
 		{
-			if (isFieldError)
+			if (is_field_error)
 			{
-				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l / 2));
-				callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 			}
 			else
 			{
-				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift + l));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l));
 			}
 		}
 		else
 		{
-			if (drift > EPSILON) callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
+			;
 		}
 	}
 
@@ -889,32 +1090,139 @@ OctupoleElement::OctupoleElement(const Parameter& para, int input_beamId, const 
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		k3 = data.at("Sequence").at(obj_name).at("k3 (m^-4)");
-		k3s = data.at("Sequence").at(obj_name).at("k3s (m^-4)");
+		k3l = data.at("Sequence").at(obj_name).at("K3L (m^-3)");
+		k3sl = data.at("Sequence").at(obj_name).at("K3SL (m^-3)");
 
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[Octupole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
+		is_field_error = data.at("Sequence").at(obj_name).at("Is field error");
 		std::vector<double>knl, ksl;
-		if (isFieldError)
+		if (is_field_error)
 		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			int size_knl = data.at("Sequence").at(obj_name).at("Field error KNL").size();
+			int size_ksl = data.at("Sequence").at(obj_name).at("Field error KSL").size();
+
+			for (int i = 0; i < size_knl; i++)
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				knl.push_back(data.at("Sequence").at(obj_name).at("Field error KNL")[i]);
 			}
+			for (int i = 0; i < size_ksl; i++)
+			{
+				ksl.push_back(data.at("Sequence").at(obj_name).at("Field error KSL")[i]);
+			}
+
+			cur_error_order = std::max(size_knl, size_ksl) - 1;
+			if (cur_error_order > max_error_order)
+			{
+				spdlog::get("logger")->warn("[Octupole Element] {}: current error_order = {}, since it exceeds the max_error_order = {}, the excess values will be ignored.",
+					name, cur_error_order, max_error_order);
+				cur_error_order = max_error_order;
+			}
+
+			knl.resize(cur_error_order + 1, 0.0);
+			ksl.resize(cur_error_order + 1, 0.0);
+
 			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 		}
 
-		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
+		if (data.at("Sequence").at(obj_name).contains("Is ramping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
+
+			if (data.at("Sequence").at(obj_name).contains("K3L ramping file") && is_ramping)
+			{
+				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K3L ramping file");
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k3l = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Octupole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
+			}
+
+			if (data.at("Sequence").at(obj_name).contains("K3SL ramping file") && is_ramping)
+			{
+				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("K3SL ramping file");
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0,1 });
+						ramping_k3sl = ramping_data[1];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Octupole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
+			}
+		}
+
+		if (is_ramping)
+		{
+			if (ramping_k3l.size() > 0 && ramping_k3sl.size() == 0)
+			{
+				oct_type = "normal";
+			}
+			else if (ramping_k3l.size() == 0 && ramping_k3sl.size() > 0)
+			{
+				oct_type = "skew";
+			}
+			else if (ramping_k3l.size() == 0 && ramping_k3sl.size() == 0)
+			{
+				oct_type = "drift";
+			}
+			else
+			{
+				spdlog::get("logger")->error("[Octupole Element] {}: both the normal and skew files have been provided. But only 1 file is needed", name);
+				std::exit(EXIT_FAILURE);
+			}
+		}
+		else
+		{
+			if (fabs(k3l) > 1e-10 && fabs(k3sl) < 1e-10)
+			{
+				oct_type = "normal";
+			}
+			else if (fabs(k3l) < 1e-10 && fabs(k3sl) > 1e-10)
+			{
+				oct_type = "skew";
+			}
+			else if (fabs(k3l) < 1e-10 && fabs(k3sl) < 1e-10)
+			{
+				oct_type = "drift";
+			}
+			else
+			{
+				spdlog::get("logger")->error("[Octupole Element] {}: k3l = {}, k3sl = {}, there should be and only 1 variable not equal to 0",
+					name, k3l, k3sl);
+				std::exit(EXIT_FAILURE);
+			}
+		}
+
+		spdlog::get("logger")->debug("[Octupole Element] run: {}, s = {}, l = {}, oct_type = {}, k3l = {}, k3sl = {}, is_field_error = {}, isRamping = {}",
+			name, s, l, oct_type, k3l, k3sl, is_field_error, is_ramping);
 	}
 	catch (json::exception e)
 	{
@@ -938,227 +1246,121 @@ void OctupoleElement::execute(int turn) {
 
 	double EPSILON = 1e-10;
 
-	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
-	if (drift > 1e-10)
+	if (oct_type == "normal")
 	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
-	}
+		double k3l_current = 0;
 
-	if (fabs(k3) > EPSILON && fabs(k3s) < EPSILON)	// k3 != 0 && k3s == 0
-	{
-		callKernel(transfer_octupole_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, k3, l));
-
-	}
-	else if (fabs(k3) < EPSILON && fabs(k3s) > EPSILON)	// k3 == 0 && k3s != 0
-	{
-		callKernel(transfer_octupole_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, k3s, l));
-	}
-	else if (fabs(k3) < EPSILON && fabs(k3s) < EPSILON)	// k3 == 0 && k3s == 0
-	{
-		// do nothing
-	}
-	else
-	{
-		spdlog::get("logger")->error("[Octupole Element] {}: k3 = {}, k3s = {}, there should be and only 1 variable equal to 0",
-			name, k3, k3s);
-		std::exit(EXIT_FAILURE);
-	}
-
-	if (isFieldError)
-	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
-	}
-
-	if (!is_thin_lens) {
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
-	}
-
-	callCuda(cudaEventRecord(simTime.stop, 0));
-	callCuda(cudaEventSynchronize(simTime.stop));
-	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
-	simTime.transferElement += time_tmp;
-
-}
-
-
-HKickerElement::HKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
-
-	commandType = "HKickerElement";
-	name = obj_name;
-	dev_particle = Bunch.dev_particle;
-
-	thread_x = plan1d.get_threads_per_block();
-	block_x = plan1d.get_blocks_x();
-
-	circumference = para.circumference;
-
-	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
-
-	using json = nlohmann::json;
-	std::ifstream jsonFile(para.path_input_para[input_beamId]);
-	json data = json::parse(jsonFile);
-
-	try
-	{
-		s = data.at("Sequence").at(obj_name).at("S (m)");
-		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		kick = data.at("Sequence").at(obj_name).at("kick");
-
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
+		if (is_ramping)
 		{
-			spdlog::get("logger")->error("[HKicker Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
-		std::vector<double>knl, ksl;
-		if (isFieldError)
-		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			if (turn > ramping_k3l.size())
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				spdlog::get("logger")->warn("[Octupole Element] {}, ramping data size ({}) is less than turn ({}), so k2l is set to the last value ({})", name, ramping_k3l.size(), turn, ramping_k3l.back());
+				k3l_current = ramping_k3l.back();
 			}
-			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		}
-
-		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
-	}
-	catch (json::exception e)
-	{
-		//std::cout << e.what() << std::endl;
-		spdlog::get("logger")->error(e.what());
-		std::exit(EXIT_FAILURE);
-	}
-}
-
-
-void HKickerElement::execute(int turn) {
-	callCuda(cudaEventRecord(simTime.start, 0));
-	float time_tmp = 0;
-
-	//auto logger = spdlog::get("logger");
-	//logger->debug("[HKicker Element] run: " + name);
-
-	int Np_sur = bunchRef.Np_sur;
-	double gamma = bunchRef.gamma;
-	double beta = bunchRef.beta;
-
-	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
-	if (drift > 1e-10)
-	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
-	}
-
-	callKernel(transfer_hkicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, kick));
-
-	if (isFieldError)
-	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
-	}
-
-	if (!is_thin_lens) {
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
-	}
-
-	callCuda(cudaEventRecord(simTime.stop, 0));
-	callCuda(cudaEventSynchronize(simTime.stop));
-	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
-	simTime.transferElement += time_tmp;
-
-}
-
-
-VKickerElement::VKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
-
-	commandType = "VKickerElement";
-	name = obj_name;
-	dev_particle = Bunch.dev_particle;
-
-	thread_x = plan1d.get_threads_per_block();
-	block_x = plan1d.get_blocks_x();
-
-	circumference = para.circumference;
-
-	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
-
-	using json = nlohmann::json;
-	std::ifstream jsonFile(para.path_input_para[input_beamId]);
-	json data = json::parse(jsonFile);
-
-	try
-	{
-		s = data.at("Sequence").at(obj_name).at("S (m)");
-		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		kick = data.at("Sequence").at(obj_name).at("kick");
-
-		isFieldError = data.at("Sequence").at(obj_name).at("isFieldError");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[VKicker Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
-
-		std::vector<double>knl, ksl;
-		if (isFieldError)
-		{
-			for (int i = 0; i < (cur_error_order + 1); i++)
+			else
 			{
-				knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-				ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
+				k3l_current = ramping_k3l[turn - 1];
 			}
-			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		}
+		else
+		{
+			k3l_current = k3l;
 		}
 
-		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
+		if (fabs(l) > EPSILON)
+		{
+			if (is_field_error)
+			{
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+				callKernel(transfer_octupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k3l_current));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			}
+			else
+			{
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+				callKernel(transfer_octupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k3l_current));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			}
+		}
+		else
+		{
+			callKernel(transfer_octupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k3l_current));
+
+			if (is_field_error)
+			{
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+			}
+		}
 	}
-	catch (json::exception e)
+
+	else if (oct_type == "skew")
 	{
-		//std::cout << e.what() << std::endl;
-		spdlog::get("logger")->error(e.what());
-		std::exit(EXIT_FAILURE);
+		double k3sl_current = 0;
+
+		if (is_ramping)
+		{
+			if (turn > ramping_k3sl.size())
+			{
+				spdlog::get("logger")->warn("[Octupole Element] {}, ramping data size ({}) is less than turn ({}), so k2l is set to the last value ({})", name, ramping_k3sl.size(), turn, ramping_k3sl.back());
+				k3sl_current = ramping_k3sl.back();
+			}
+			else
+			{
+				k3sl_current = ramping_k3sl[turn - 1];
+			}
+		}
+		else
+		{
+			k3sl_current = k3sl;
+		}
+
+		if (fabs(l) > EPSILON)
+		{
+			if (is_field_error)
+			{
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+				callKernel(transfer_octupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k3sl_current));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			}
+			else
+			{
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+				callKernel(transfer_octupole_thinlens_skew << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k3sl_current));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			}
+		}
+		else
+		{
+			callKernel(transfer_octupole_thinlens_norm << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, k3sl_current));
+
+			if (is_field_error)
+			{
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+			}
+		}
 	}
-}
 
-
-void VKickerElement::execute(int turn) {
-	callCuda(cudaEventRecord(simTime.start, 0));
-	float time_tmp = 0;
-
-	//auto logger = spdlog::get("logger");
-	//logger->debug("[VKicker Element] run: " + name);
-
-	int Np_sur = bunchRef.Np_sur;
-	double gamma = bunchRef.gamma;
-	double beta = bunchRef.beta;
-
-	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
-	if (drift > 1e-10)
+	else if (oct_type == "drift")
 	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
-	}
-
-	callKernel(transfer_vkicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, kick));
-
-	if (isFieldError)
-	{
-		callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
-	}
-
-	if (!is_thin_lens) {
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+		if (fabs(l) > EPSILON)
+		{
+			if (is_field_error)
+			{
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+				callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			}
+			else
+			{
+				callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l));
+			}
+		}
+		else
+		{
+			;
+		}
 	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
@@ -1181,8 +1383,8 @@ MultipoleElement::MultipoleElement(const Parameter& para, int input_beamId, cons
 
 	circumference = para.circumference;
 
-	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
-	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_knl, max_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_order * sizeof(double)));
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -1192,25 +1394,84 @@ MultipoleElement::MultipoleElement(const Parameter& para, int input_beamId, cons
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
 		l = data.at("Sequence").at(obj_name).at("L (m)");
-		drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
-		cur_error_order = data.at("Sequence").at(obj_name).at("Error order");
-		if (cur_error_order > max_error_order)
-		{
-			spdlog::get("logger")->error("[Multipole Element] {}: current error_order = {}, it should be less than or equal to max_error_order = {}",
-				name, cur_error_order, max_error_order);
-			std::exit(EXIT_FAILURE);
-		}
 
 		std::vector<double>knl, ksl;
-		for (int i = 0; i < (cur_error_order + 1); i++)
-		{
-			knl.push_back(data.at("Sequence").at(obj_name).at("KNL")[i]);
-			ksl.push_back(data.at("Sequence").at(obj_name).at("KSL")[i]);
-		}
-		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
-		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
 
-		is_thin_lens = data.at("Sequence").at(obj_name).at("Is thin lens");
+		int size_knl = data.at("Sequence").at(obj_name).at("KiL").size();
+		int size_ksl = data.at("Sequence").at(obj_name).at("KiSL").size();
+
+		for (int i = 0; i < size_knl; i++)
+		{
+			knl.push_back(data.at("Sequence").at(obj_name).at("KiL")[i]);
+		}
+		for (int i = 0; i < size_ksl; i++)
+		{
+			ksl.push_back(data.at("Sequence").at(obj_name).at("KiSL")[i]);
+		}
+
+		cur_order = std::max(size_knl, size_ksl) - 1;
+		if (cur_order > max_order)
+		{
+			spdlog::get("logger")->warn("[Multipole Element] {}: current order = {}, since it exceeds the max_order = {}, the excess values will be ignored.",
+				name, cur_order, max_order);
+			cur_order = max_order;
+		}
+
+		knl.resize(cur_order + 1, 0.0);
+		ksl.resize(cur_order + 1, 0.0);
+
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+
+
+		if (data.at("Sequence").at(obj_name).contains("Is ramping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
+
+			if (data.at("Sequence").at(obj_name).contains("KL ramping file") && is_ramping)
+			{
+				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("KL ramping file");
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1);
+
+						cur_order = (ramping_data.size() - 1) / 2 - 1;
+						if (cur_order > max_order)
+						{
+							spdlog::get("logger")->warn("[Multipole Element] {}: current order = {}, since it exceeds the max_order = {}, the excess values will be ignored.",
+								name, cur_order, max_order);
+							cur_order = max_order;
+						}
+
+						for (size_t icolumn = 1; icolumn < ramping_data.size(); icolumn += 2)	// icolumn = 0 corresponding to turn
+						{
+							ramping_knl.push_back(ramping_data[icolumn]);
+						}
+						for (size_t icolumn = 2; icolumn < ramping_data.size(); icolumn += 2)
+						{
+							ramping_ksl.push_back(ramping_data[icolumn]);
+						}
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Multipole Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
+			}
+		}
+
+		spdlog::get("logger")->debug("[Multipole Element] run: {}, s = {}, l = {}, isRamping = {}",
+			name, s, l, is_ramping);
 
 	}
 	catch (json::exception e)
@@ -1233,19 +1494,233 @@ void MultipoleElement::execute(int turn) {
 	double gamma = bunchRef.gamma;
 	double beta = bunchRef.beta;
 
-	double drift = (drift_length > 1e-10 ? drift_length : 0) + (is_thin_lens ? 0 : l / 2);
-	if (drift > 1e-10)
+	if (is_ramping)
 	{
-		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, drift));
+		std::vector<double>knl(cur_order + 1);
+		std::vector<double>ksl(cur_order + 1);
+
+		if (turn > ramping_knl[0].size())
+		{
+			spdlog::get("logger")->warn("[Multipole Element] {}, ramping data size ({}) is less than turn ({}), so kl is set to the last value", name, ramping_knl[0].size(), turn);
+
+			for (size_t i = 0; i < ramping_knl.size(); i++)
+			{
+				knl.push_back(ramping_knl[i].back());
+			}
+			for (size_t i = 0; i < ramping_ksl.size(); i++)
+			{
+				ksl.push_back(ramping_ksl[i].back());
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < ramping_knl.size(); i++)
+			{
+				knl.push_back(ramping_knl[turn - 1].back());
+			}
+			for (size_t i = 0; i < ramping_ksl.size(); i++)
+			{
+				ksl.push_back(ramping_ksl[turn - 1].back());
+			}
+		}
+
+		callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+	}
+	else
+	{
+		// use original dev_knl and dev_ksl
 	}
 
-	callKernel(transfer_multipole_kicker << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
 
-
-	if (!is_thin_lens) {
+	if (fabs(l) > 1e-10)
+	{
+		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+		callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_order, dev_knl, dev_ksl));
 		callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
 	}
+	else
+	{
+		callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_order, dev_knl, dev_ksl));
+	}
 
+
+	callCuda(cudaEventRecord(simTime.stop, 0));
+	callCuda(cudaEventSynchronize(simTime.stop));
+	callCuda(cudaEventElapsedTime(&time_tmp, simTime.start, simTime.stop));
+	simTime.transferElement += time_tmp;
+
+}
+
+
+KickerElement::KickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+	const ParallelPlan1d& plan1d, TimeEvent& timeevent) :simTime(timeevent), bunchRef(Bunch) {
+
+	commandType = "KickerElement";
+	name = obj_name;
+	dev_particle = Bunch.dev_particle;
+
+	thread_x = plan1d.get_threads_per_block();
+	block_x = plan1d.get_blocks_x();
+
+	circumference = para.circumference;
+
+	callCuda(cudaMalloc(&dev_knl, max_error_order * sizeof(double)));
+	callCuda(cudaMalloc(&dev_ksl, max_error_order * sizeof(double)));
+
+	using json = nlohmann::json;
+	std::ifstream jsonFile(para.path_input_para[input_beamId]);
+	json data = json::parse(jsonFile);
+
+	try
+	{
+		s = data.at("Sequence").at(obj_name).at("S (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
+		hkick = data.at("Sequence").at(obj_name).at("Hkick (rad)");
+		vkick = data.at("Sequence").at(obj_name).at("Vkick (rad)");
+
+		is_field_error = data.at("Sequence").at(obj_name).at("Is field error");
+		std::vector<double>knl, ksl;
+		if (is_field_error)
+		{
+			int size_knl = data.at("Sequence").at(obj_name).at("Field error KNL").size();
+			int size_ksl = data.at("Sequence").at(obj_name).at("Field error KSL").size();
+
+			for (int i = 0; i < size_knl; i++)
+			{
+				knl.push_back(data.at("Sequence").at(obj_name).at("Field error KNL")[i]);
+			}
+			for (int i = 0; i < size_ksl; i++)
+			{
+				ksl.push_back(data.at("Sequence").at(obj_name).at("Field error KSL")[i]);
+			}
+
+			cur_error_order = std::max(size_knl, size_ksl) - 1;
+			if (cur_error_order > max_error_order)
+			{
+				spdlog::get("logger")->warn("[Kicker Element] {}: current error_order = {}, since it exceeds the max_error_order = {}, the excess values will be ignored.",
+					name, cur_error_order, max_error_order);
+				cur_error_order = max_error_order;
+			}
+
+			knl.resize(cur_error_order + 1, 0.0);
+			ksl.resize(cur_error_order + 1, 0.0);
+
+			callCuda(cudaMemcpy(dev_knl, knl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+			callCuda(cudaMemcpy(dev_ksl, ksl.data(), (cur_error_order + 1) * sizeof(double), cudaMemcpyHostToDevice));
+		}
+
+		if (data.at("Sequence").at(obj_name).contains("Is ramping"))
+		{
+			is_ramping = data.at("Sequence").at(obj_name).at("Is ramping");
+
+			if (data.at("Sequence").at(obj_name).contains("Kick ramping file") && is_ramping)
+			{
+				std::string ramping_file_path = data.at("Sequence").at(obj_name).at("Kick ramping file");
+				if (!ramping_file_path.empty() && ramping_file_path.find_first_not_of(" \t\r\n") != std::string::npos)
+				{
+					ramping_file_path.erase(0, ramping_file_path.find_first_not_of(" \t\r\n"));
+					ramping_file_path.erase(ramping_file_path.find_last_not_of(" \t\r\n") + 1);
+					fs::path fs_path(ramping_file_path);
+
+					if (fs::is_regular_file(fs_path))
+					{
+						std::string fs_filename = fs_path.filename().string();
+						fs::copy(ramping_file_path, para.dir_output_parameter / (para.hourMinSec + "_beam" + std::to_string(input_beamId) + "_" + name + "_" + fs_filename), std::filesystem::copy_options::overwrite_existing);
+
+						std::vector<std::vector<double>> ramping_data = loadtxt(ramping_file_path, ',', 1, { 0, 1, 2 });
+						ramping_hkick = ramping_data[1];
+						ramping_vkick = ramping_data[2];
+					}
+					else
+					{
+						spdlog::get("logger")->error("[Kicker Element] {}: path: {} is not regular file", name, ramping_file_path);
+						std::exit(EXIT_FAILURE);
+					}
+				}
+			}
+		}
+
+		spdlog::get("logger")->debug("[Kicker Element] run: {}, s = {}, l = {}, hkick = {}, Vkick = {}, is_field_error = {}, isRamping = {}",
+			name, s, l, hkick, vkick, is_field_error, is_ramping);
+
+	}
+	catch (json::exception e)
+	{
+		//std::cout << e.what() << std::endl;
+		spdlog::get("logger")->error(e.what());
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+
+void KickerElement::execute(int turn) {
+	callCuda(cudaEventRecord(simTime.start, 0));
+	float time_tmp = 0;
+
+	//auto logger = spdlog::get("logger");
+	//logger->debug("[Kicker Element] run: " + name);
+
+	int Np_sur = bunchRef.Np_sur;
+	double gamma = bunchRef.gamma;
+	double beta = bunchRef.beta;
+
+	double hkick_current = 0;
+	double vkick_current = 0;
+
+	if (is_ramping)
+	{
+		if (turn > ramping_hkick.size())
+		{
+			spdlog::get("logger")->warn("[Kicker Element] {}, ramping data size {} is less than turn {}, so hkick is set to the last value {}", name, ramping_hkick.size(), turn, ramping_hkick.back());
+			hkick_current = ramping_hkick.back();
+		}
+		else
+		{
+			hkick_current = ramping_hkick[turn - 1];
+		}
+
+		if (turn > ramping_vkick.size())
+		{
+			spdlog::get("logger")->warn("[Kicker Element] {}, ramping data size {} is less than turn {}, so vkick is set to the last value {}", name, ramping_vkick.size(), turn, ramping_vkick.back());
+			vkick_current = ramping_vkick.back();
+		}
+		else
+		{
+			vkick_current = ramping_vkick[turn - 1];
+		}
+	}
+	else
+	{
+		hkick_current = hkick;
+		vkick_current = vkick;
+	}
+
+	if (fabs(l) > 1e-10)
+	{
+		if (is_field_error)
+		{
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			callKernel(transfer_kicker_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, hkick_current, vkick_current));
+			callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+		}
+		else
+		{
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+			callKernel(transfer_kicker_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, hkick_current, vkick_current));
+			callKernel(transfer_drift << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, beta, circumference, gamma, l / 2));
+		}
+	}
+	else
+	{
+		callKernel(transfer_kicker_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, hkick_current, vkick_current));
+
+		if (is_field_error)
+		{
+			callKernel(transfer_multipole_thinlens << <block_x, thread_x, 0, 0 >> > (dev_particle, Np_sur, cur_error_order, dev_knl, dev_ksl));
+		}
+	}
 
 	callCuda(cudaEventRecord(simTime.stop, 0));
 	callCuda(cudaEventSynchronize(simTime.stop));
@@ -1276,8 +1751,7 @@ RFElement::RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	try
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		//l = data.at("Sequence").at(obj_name).at("L (m)");
-		//drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
 		pz_aperture_lower = data.at("Sequence").at(obj_name).at("DeltaP/P aperture")[0];
 		pz_aperture_upper = data.at("Sequence").at(obj_name).at("DeltaP/P aperture")[1];
 		//z_aperture_lower = data.at("Sequence").at(obj_name).at("Z aperture")[0];
@@ -1406,7 +1880,7 @@ ElSeparatorElement::ElSeparatorElement(const Parameter& para, int input_beamId, 
 	try
 	{
 		s = data.at("Sequence").at(obj_name).at("S (m)");
-		//l = data.at("Sequence").at(obj_name).at("L (m)");
+		l = data.at("Sequence").at(obj_name).at("L (m)");
 		//drift_length = data.at("Sequence").at(obj_name).at("Drift length (m)");
 
 		// Todo
@@ -2103,178 +2577,57 @@ __global__ void transfer_sextupole_thinlens_skew(Particle dev_particle, int Np_s
 }
 
 
-__global__ void transfer_octupole_norm(Particle dev_particle, int Np_sur, double beta,
-	double k3, double l) {
+__global__ void transfer_octupole_thinlens_norm(Particle dev_particle, int Np_sur, double k3l) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
 	double x0 = 0, y0 = 0;
-	double k3_chrom = 0;
+	double k3l_chrom = 0;
 
 	while (tid < Np_sur) {
 
 		x0 = dev_particle.x[tid];
 		y0 = dev_particle.y[tid];
 
-		k3_chrom = k3 / (1 + dev_particle.pz[tid]);
+		k3l_chrom = k3l / (1 + dev_particle.pz[tid]);
 
 		int mask = (dev_particle.tag[tid] > 0);
 
-		dev_particle.px[tid] += (-1.0 / 6 * k3_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2))) * mask;
-		dev_particle.py[tid] += (1.0 / 6 * k3_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3))) * mask;
+		dev_particle.px[tid] += (-1.0 / 6 * k3l_chrom * (pow(x0, 3) - 3 * x0 * pow(y0, 2))) * mask;
+		dev_particle.py[tid] += (1.0 / 6 * k3l_chrom * (3 * pow(x0, 2) * y0 - pow(y0, 3))) * mask;
 
 		tid += stride;
 	}
 }
 
 
-__global__ void transfer_octupole_skew(Particle dev_particle, int Np_sur, double beta,
-	double k3s, double l) {
+__global__ void transfer_octupole_thinlens_skew(Particle dev_particle, int Np_sur, double k3sl) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
 	double x0 = 0, y0 = 0;
-	double k3s_chrom = 0;
+	double k3sl_chrom = 0;
 
 	while (tid < Np_sur) {
 
 		x0 = dev_particle.x[tid];
 		y0 = dev_particle.y[tid];
 
-		k3s_chrom = k3s / (1 + dev_particle.pz[tid]);
+		k3sl_chrom = k3sl / (1 + dev_particle.pz[tid]);
 
 		int mask = (dev_particle.tag[tid] > 0);
 
-		dev_particle.px[tid] += (1.0 / 6 * k3s_chrom * l * (3 * pow(x0, 2) * y0 - pow(y0, 3))) * mask;
-		dev_particle.py[tid] += (1.0 / 6 * k3s_chrom * l * (pow(x0, 3) - 3 * x0 * pow(y0, 2))) * mask;
+		dev_particle.px[tid] += (1.0 / 6 * k3sl_chrom * (3 * pow(x0, 2) * y0 - pow(y0, 3))) * mask;
+		dev_particle.py[tid] += (1.0 / 6 * k3sl_chrom * (pow(x0, 3) - 3 * x0 * pow(y0, 2))) * mask;
 
 		tid += stride;
 	}
 }
 
 
-__global__ void transfer_hkicker(Particle dev_particle, int Np_sur, double beta,
-	double kick) {
-
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
-
-	double kick_chrom = 0;
-
-	while (tid < Np_sur) {
-
-		kick_chrom = kick / (1 + dev_particle.pz[tid]);
-
-		int mask = (dev_particle.tag[tid] > 0);
-
-		dev_particle.px[tid] += kick_chrom * mask;
-
-		tid += stride;
-	}
-}
-
-
-__global__ void transfer_vkicker(Particle dev_particle, int Np_sur, double beta,
-	double kick) {
-
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
-
-	double kick_chrom = 0;
-
-	while (tid < Np_sur) {
-
-		kick_chrom = kick / (1 + dev_particle.pz[tid]);
-
-		int mask = (dev_particle.tag[tid] > 0);
-
-		dev_particle.py[tid] += kick_chrom * mask;
-
-		tid += stride;
-	}
-}
-
-
-__global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double s, double beta0, double beta1, double gamma0, double gamma1,
-	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
-	double radius, double ratio, double dE_syn, double eta1, double E_total1,
-	double pz_min, double pz_max) {
-
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
-
-	const double pi = PassConstant::PI;
-	const double circumference = 2 * pi * radius;
-	const double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
-
-	const double E_total0 = E_total1 - dE_syn;
-	while (tid < Np_sur) {
-
-		if (dev_particle.tag[tid] > 0)
-		{
-
-			double z0 = 0, pz0 = 0, theta0 = 0, dE0 = 0;
-			double z1 = 0, pz1 = 0, theta1 = 0, dE1 = 0;
-
-			double dE_non_syn = 0;
-
-			double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
-
-			z0 = dev_particle.z[tid];
-			pz0 = dev_particle.pz[tid];
-
-			convert_z_dp_to_theta_dE(z0, pz0, theta0, dE0, radius, beta0, E_total0);
-
-			for (int i = 0; i < Nrf; i++)
-			{
-				RFData* dev_rf_data_row = (RFData*)((char*)dev_rf_data + i * pitch_rf);
-
-				voltage = dev_rf_data_row[turn - 1].voltage;
-				harmonic = dev_rf_data_row[turn - 1].harmonic;
-				phis = dev_rf_data_row[turn - 1].phis;
-				phi_offset = dev_rf_data_row[turn - 1].phi_offset;
-
-				dE_non_syn += ratio * voltage * sin(phis - harmonic * theta0 + phi_offset);
-			}
-
-			dE1 = (beta1 / beta0) * (dE0 + dE_non_syn - dE_syn);
-			theta1 = theta0;
-
-			convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1, E_total1);
-
-			dev_particle.pz[tid] = pz1;
-
-			dev_particle.px[tid] = dev_particle.px[tid] * trans_scale;
-			dev_particle.py[tid] = dev_particle.py[tid] * trans_scale;
-
-			if (pz1 < pz_min || pz1 > pz_max)
-			{
-				dev_particle.tag[tid] *= -1;
-				dev_particle.lostTurn[tid] = turn;
-				dev_particle.lostPos[tid] = s;
-			}
-
-		}
-		tid += stride;
-	}
-}
-
-
-__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta, double Es) {
-	theta = z / radius;
-	dE = dp * beta * beta * Es;
-}
-
-
-__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta, double Es) {
-	z = theta * radius;
-	dp = dE / (beta * beta * Es);
-}
-
-
-__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl) {
+__global__ void transfer_multipole_thinlens(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl) {
 
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -2356,6 +2709,105 @@ __global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int
 
 		tid += stride;
 	}
+}
+
+
+__global__ void transfer_kicker_thinlens(Particle dev_particle, int Np_sur, double hkick, double vkick) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double hkick_chrom = 0;
+	double vkick_chrom = 0;
+
+	while (tid < Np_sur) {
+
+		hkick_chrom = hkick / (1 + dev_particle.pz[tid]);
+		vkick_chrom = vkick / (1 + dev_particle.pz[tid]);
+
+		int mask = (dev_particle.tag[tid] > 0);
+
+		dev_particle.px[tid] += hkick_chrom * mask;
+		dev_particle.py[tid] += vkick_chrom * mask;
+
+		tid += stride;
+	}
+}
+
+
+__global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double s, double beta0, double beta1, double gamma0, double gamma1,
+	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
+	double radius, double ratio, double dE_syn, double eta1, double E_total1,
+	double pz_min, double pz_max) {
+
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	//const double circumference = 2 * PassConstant::PI * radius;
+	const double trans_scale = beta0 * gamma0 / (beta1 * gamma1);	// px0*beta0*gamma0 = px1*beta1*gamma1
+
+	const double E_total0 = E_total1 - dE_syn;
+	while (tid < Np_sur) {
+
+		if (dev_particle.tag[tid] > 0)
+		{
+
+			double z0 = 0, pz0 = 0, theta0 = 0, dE0 = 0;
+			double z1 = 0, pz1 = 0, theta1 = 0, dE1 = 0;
+
+			double dE_non_syn = 0;
+
+			double voltage = 0, harmonic = 0, phis = 0, phi_offset = 0;
+
+			z0 = dev_particle.z[tid];
+			pz0 = dev_particle.pz[tid];
+
+			convert_z_dp_to_theta_dE(z0, pz0, theta0, dE0, radius, beta0, E_total0);
+
+			for (int i = 0; i < Nrf; i++)
+			{
+				RFData* dev_rf_data_row = (RFData*)((char*)dev_rf_data + i * pitch_rf);
+
+				voltage = dev_rf_data_row[turn - 1].voltage;
+				harmonic = dev_rf_data_row[turn - 1].harmonic;
+				phis = dev_rf_data_row[turn - 1].phis;
+				phi_offset = dev_rf_data_row[turn - 1].phi_offset;
+
+				dE_non_syn += ratio * voltage * sin(phis - harmonic * theta0 + phi_offset);
+			}
+
+			dE1 = (beta1 / beta0) * (dE0 + dE_non_syn - dE_syn);
+			theta1 = theta0;
+
+			convert_theta_dE_to_z_dp(z1, pz1, theta1, dE1, radius, beta1, E_total1);
+
+			dev_particle.pz[tid] = pz1;
+
+			dev_particle.px[tid] = dev_particle.px[tid] * trans_scale;
+			dev_particle.py[tid] = dev_particle.py[tid] * trans_scale;
+
+			if (pz1 < pz_min || pz1 > pz_max)
+			{
+				dev_particle.tag[tid] *= -1;
+				dev_particle.lostTurn[tid] = turn;
+				dev_particle.lostPos[tid] = s;
+			}
+
+		}
+		tid += stride;
+	}
+}
+
+
+__device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta, double Es) {
+	theta = z / radius;
+	dE = dp * beta * beta * Es;
+}
+
+
+__device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta, double Es) {
+	z = theta * radius;
+	dp = dE / (beta * beta * Es);
 }
 
 
@@ -2499,55 +2951,6 @@ std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::str
 		}
 		else {
 			logger->error("[Read Sextupole Ramping Data] Invalid data format in line: {}", line);
-			std::exit(EXIT_FAILURE);
-		}
-	}
-
-	return data;
-
-}
-
-
-std::vector<double> readRampingDataFromCSV(const std::string& filename) {
-	// Read ramping data from file
-
-	auto logger = spdlog::get("logger");
-
-	std::vector<double> data;
-	std::ifstream file(filename);
-
-	if (!file.is_open()) {
-		logger->error("[Read Ramping Data] Open file failed: {}", filename);
-		std::exit(EXIT_FAILURE);
-	}
-
-	std::string line;
-
-	// Skip the first line
-	//std::getline(file, line);
-
-	while (std::getline(file, line)) {
-		std::stringstream ss(line);
-		std::string cell;
-		std::vector<double> values;
-
-		// split data
-		while (std::getline(ss, cell, ',')) {
-			try {
-				values.push_back(std::stod(cell));
-			}
-			catch (const std::exception& e) {
-				logger->error("[Read Sextupole Ramping Data] Error parsing value in line: {}", line);
-				values.clear();
-				break;
-			}
-		}
-
-		if (!values.empty()) {
-			data.push_back(values[0]);
-		}
-		else {
-			logger->error("[Read Ramping Data] No valid data found in line: {}", line);
 			std::exit(EXIT_FAILURE);
 		}
 	}

@@ -46,12 +46,41 @@ private:
 
 	double circumference = 0;
 
-	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool isAperture = 0;	// Whether to calculate the particle loss caused by the aperture
+};
+
+
+class DriftElement :public Element
+{
+public:
+	DriftElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~DriftElement() = default;
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Drift Element] print");
+	}
+private:
+	Particle dev_particle;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	double circumference = 0;
+
+	double l = 0;	// Drift length
 
 	int thread_x = 0;
 	int block_x = 0;
 
 	bool isAperture = 0;	// Whether to calculate the particle loss caused by the aperture
+
 };
 
 
@@ -82,14 +111,13 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isFieldError = false;
+	bool is_field_error = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
 	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
 	double angle = 0;	// in unit of rad, 1/rho=k0, k0l=l/rho=angle
 	double e1 = 0;
 	double e2 = 0;
@@ -131,14 +159,13 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isFieldError = false;
+	bool is_field_error = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
 	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
 	double angle = 0;	// in unit of rad, 1/rho=k0, k0l=l/rho=angle
 	double e1 = 0;
 	double e2 = 0;
@@ -180,16 +207,15 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isFieldError = false;
+	bool is_field_error = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
 	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error, etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
 
-	std::string quad_type = "drift";	// normal or skew or drift
+	std::string quad_type = "drift";	// normal or skew or drift(KL=0)
 
 	double k1l = 0;	// in unit of (m^-1)
 	double k1sl = 0;	// in unit of (m^-1)
@@ -229,16 +255,15 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isFieldError = false;
+	bool is_field_error = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
 	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;	// Drift length between the head of the current element and the tail of the previous element
 
-	std::string sext_type = "drift";	// normal or skew or drift
+	std::string sext_type = "drift";	// normal or skew or drift(KL=0)
 
 	double k2l = 0;	// in unit of (m^-2)
 	double k2sl = 0;	// in unit of (m^-2)
@@ -278,103 +303,24 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isFieldError = false;
+	bool is_field_error = false;
 	const int max_error_order = 20;	// k0, k1 ... k20
 	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;
-	double k3 = 0;	// in unit of (m^-4)
-	double k3s = 0;	// in unit of (m^-4)
 
-	bool is_thin_lens = false;	// If true, the length of the octupole is ignored in the transfer map calculation. Mainly used for Twiss transfer and the sextupole is regarded as a thin lens.
+	std::string oct_type = "drift";	// normal or skew or drift(KL=0)
 
-};
+	double k3l = 0;	// in unit of (m^-3)
+	double k3sl = 0;	// in unit of (m^-3)
 
-
-class HKickerElement :public Element
-{
-public:
-	HKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
-
-	~HKickerElement() {
-		callCuda(cudaFree(dev_knl));
-		callCuda(cudaFree(dev_ksl));
-	}
-
-	void execute(int turn) override;
-
-	void print() override {
-		auto logger = spdlog::get("logger");
-		logger->info("[Hor. Kicker Element] print");
-	}
-private:
-	Particle dev_particle;
-	TimeEvent& simTime;
-	const Bunch& bunchRef;
-
-	double circumference = 0;
-
-	int thread_x = 0;
-	int block_x = 0;
-
-	bool isFieldError = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
-	double* dev_knl = nullptr;
-	double* dev_ksl = nullptr;
-
-	double l = 0;
-	double drift_length = 0;
-	bool is_thin_lens = false;
-
-	double kick = 0;
-
-};
-
-
-class VKickerElement :public Element
-{
-public:
-	VKickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
-
-	~VKickerElement() {
-		callCuda(cudaFree(dev_knl));
-		callCuda(cudaFree(dev_ksl));
-	}
-
-	void execute(int turn) override;
-
-	void print() override {
-		auto logger = spdlog::get("logger");
-		logger->info("[Ver. Kicker Element] print");
-	}
-private:
-	Particle dev_particle;
-	TimeEvent& simTime;
-	const Bunch& bunchRef;
-
-	double circumference = 0;
-
-	int thread_x = 0;
-	int block_x = 0;
-
-	bool isFieldError = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
-	double* dev_knl = nullptr;
-	double* dev_ksl = nullptr;
-
-	double l = 0;
-	double drift_length = 0;
-	bool is_thin_lens = false;
-
-	double kick = 0;
-
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<double> ramping_k3l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k3sl;	// for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
 };
 
 
@@ -405,14 +351,64 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no multipole filed. 0 refers to dipole field, 1 refers to quad. field, etc.
+	const int max_order = 20;	// k0, k1 ... k20
+	int cur_order = -1;	// -1 means no multipole filed. 0 refers to dipole field, 1 refers to quad. field, etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double drift_length = 0;
-	bool is_thin_lens = false;
+
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<std::vector<double>> ramping_knl;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<std::vector<double>> ramping_ksl;	// for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
+};
+
+
+class KickerElement :public Element
+{
+public:
+	KickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
+		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+
+	~KickerElement() {
+		callCuda(cudaFree(dev_knl));
+		callCuda(cudaFree(dev_ksl));
+	}
+
+	void execute(int turn) override;
+
+	void print() override {
+		auto logger = spdlog::get("logger");
+		logger->info("[Ver. Kicker Element] print");
+	}
+private:
+	Particle dev_particle;
+	TimeEvent& simTime;
+	const Bunch& bunchRef;
+
+	double circumference = 0;
+
+	int thread_x = 0;
+	int block_x = 0;
+
+	bool is_field_error = false;
+	const int max_error_order = 20;	// k0, k1 ... k20
+	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	double* dev_knl = nullptr;
+	double* dev_ksl = nullptr;
+
+	double l = 0;
+
+	double hkick = 0;
+	double vkick = 0;
+
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<double> ramping_hkick;	// for the i-th turn (turn start from 1, not 0), kick = ramping_kick[turn-1]
+	std::vector<double> ramping_vkick;	// for the i-th turn (turn start from 1, not 0), kick = ramping_kick[turn-1]
 };
 
 
@@ -450,8 +446,7 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	//double l = 0;
-	//double drift_length = 0;
+	double l = 0;
 
 	double qm_ratio = 0;	// q/m
 
@@ -505,7 +500,6 @@ private:
 	double Ex = 0, Ey = 0;
 
 	double l = 0;
-	double drift_length = 0;
 
 	int* dev_counter = 0;
 
@@ -515,6 +509,12 @@ private:
 
 	std::filesystem::path saveDir;
 	std::string saveName_part;
+
+	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
+	// Therefore, please make sure the ramping data cover all the simulation turns.
+	bool is_ramping = false;
+	std::vector<double> ramping_Ex;	// for the i-th turn (turn start from 1, not 0), Ex = ramping_Ex[turn-1]
+	std::vector<double> ramping_Ey;	// for the i-th turn (turn start from 1, not 0), Ey = ramping_Ey[turn-1]
 };
 
 
@@ -608,17 +608,13 @@ __global__ void transfer_sextupole_thinlens_norm(Particle dev_particle, int Np_s
 
 __global__ void transfer_sextupole_thinlens_skew(Particle dev_particle, int Np_sur, double k2sl);
 
-__global__ void transfer_octupole_norm(Particle dev_particle, int Np_sur, double beta,
-	double k2, double l);
+__global__ void transfer_octupole_thinlens_norm(Particle dev_particle, int Np_sur, double k3l);
 
-__global__ void transfer_octupole_skew(Particle dev_particle, int Np_sur, double beta,
-	double k2s, double l);
+__global__ void transfer_octupole_thinlens_skew(Particle dev_particle, int Np_sur, double k3sl);
 
-__global__ void transfer_hkicker(Particle dev_particle, int Np_sur, double beta,
-	double kick);
+__global__ void transfer_multipole_thinlens(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl);
 
-__global__ void transfer_vkicker(Particle dev_particle, int Np_sur, double beta,
-	double kick);
+__global__ void transfer_kicker_thinlens(Particle dev_particle, int Np_sur, double hkick, double vkick);
 
 __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double s, double beta0, double beta1, double gamma0, double gamma1,
 	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
@@ -629,13 +625,9 @@ __device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, dou
 
 __device__ void convert_theta_dE_to_z_dp(double& z, double& dp, double theta, double dE, double radius, double beta, double Es);
 
-__global__ void transfer_multipole_kicker(Particle dev_particle, int Np_sur, int order, const double* dev_knl, const double* dev_ksl);
-
 std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 
 std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename);
-
-std::vector<double> readRampingDataFromCSV(const std::string& filename);
 
 __global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur, Particle dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);
 
