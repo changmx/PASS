@@ -5,177 +5,66 @@ import re
 import os
 import sys
 import pandas as pd
+from collections import Counter
 
-from cpymad.madx import Madx
-
-
-def convert_string(s):
-    """
-    将字符串转换为指定格式：
-    - "rb" → "rb:1"
-    - "rb[2]" → "rb:2"
-    - 处理复杂情况如 "abc123[99]", "x.y_z[3]"
-
-    参数:
-    s -- 输入字符串
-
-    返回:
-    转换后的字符串
-    """
-    # 匹配以数字结尾的方括号模式
-    pattern = r"\[(\d+)\]$"
-    match = re.search(pattern, s)
-
-    if match:
-        # 提取数字部分
-        num = match.group(1)
-        # 移除方括号部分
-        base = re.sub(pattern, "", s)
-        return f"{base}:{num}"
-    else:
-        # 没有方括号，直接添加 :1
-        return f"{s}:1"
+import tfs  # tfs_pandas, https://pylhc.github.io/tfs/
 
 
-def get_element_from_seq(
-    seq_file,
-    seq_name,
-    is_beam_in_seq=False,
-    particle="proton",
-    energy=1000,
-):
-    madx = Madx()
-    madx.option(echo=False)
+def get_field_error_from_madx_errorfile(error_file_path):
 
-    madx.call(file=seq_file)
-    if not is_beam_in_seq:
-        madx.command.beam(sequence=seq_name, particle=particle, energy=energy)
-    madx.use(sequence=seq_name)
+    # ------------------------- Read madx error output ------------------------- #
+    error_table = tfs.read(error_file_path)  # TFSDataFrame, which is DataFrame + headers
 
-    seq = madx.sequence[seq_name].elements
-    num_elem = len(seq)
-    # print(madx.sequence[seq_name])
-    # print(madx.sequence[seq_name].elements)
-    print(f"Size of sequence file '{seq_file}' = {num_elem}")
-    # print(seq["rb"])
+    headers = error_table.headers
+    column_names = error_table.columns  # get column names such as NAME, S, BETX, etc.
+    shape = error_table.shape  # get data shape (rows, columns)
 
-    elem_dict = {}
+    num_elem = shape[0]
+    print(
+        f"[Get \033[32mError\033[0m From Madx] There are '{num_elem}' error elements in error file, the first and last element names are '{error_table.iloc[0]['NAME']}' and '{error_table.iloc[-1]['NAME']}' respectively."
+    )
+    # print(error_table)
+
+    # ------------------------- Add error data to elem_dict ------------------------- #
+
+    error_dict = {}
+    elem_name_list = []
 
     for i in range(num_elem):
-        # print(seq[i]._attr)   # show all elements attributes
-        node_name = seq[i].node_name
-        name = convert_string(node_name)
+        elem_name = error_table.iloc[i]["NAME"]
 
-        if name in elem_dict:
-            print(f"Error: element '{name}' is already exists in element dict")
-            sys.exit(1)
+        elem_name_list.append(elem_name)
+        elem_count_result = Counter(elem_name_list)
+        elem_appear_times = elem_count_result[elem_name]
+        specific_name = f"{elem_name}[{elem_appear_times}]"
 
-        elem_dict[name] = {
-            "s": seq[i].at,
-            "length": seq[i].length,
-            "type": seq[i].base_name,
-        }
+        max_order = -1  # -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 
-    # print(elem_dict)
-    
-    madx.quit()
-    return elem_dict
+        for iorder in range(0, 21):
+            kil = error_table.iloc[i][f"K{iorder}L"]
+            if abs(kil) > 1e-10:
+                max_order = max(max_order, iorder)
+        for iorder in range(0, 21):
+            kisl = error_table.iloc[i][f"K{iorder}SL"]
+            if abs(kisl) > 1e-10:
+                max_order = max(max_order, iorder)
 
-
-def get_error(
-    seq_file,
-    error_file,
-    seq_name="ring",
-    is_beam_in_seq=False,
-    particle="proton",
-    energy=1000,
-):
-    madx = Madx()
-    madx.option(echo=False)
-
-    madx.call(file=seq_file)
-    if not is_beam_in_seq:
-        madx.command.beam(sequence=seq_name, particle=particle, energy=energy)
-    madx.use(sequence=seq_name)
-
-    madx.call(file=error_file)
-
-    madx.command.select(flag="error", full=True)
-    madx.command.etable(table="myerrortable")
-    error = madx.table["myerrortable"]
-    error_df = error.dframe()
-    # error_df.to_csv(r"D:\PASS\para\error_df.csv", index=False)
-    # print(error_df)
-    nrow_error, ncol_error = error_df.shape
-    # print(f"Size of error file '{error_file}' = {nrow_error}")
-
-    elem_dict = get_element_from_seq(seq_file, seq_name)
-    error_dict = {}
-
-    epsilon = 1e-10
-
-    for index, row in error_df.iterrows():
-        max_order = -1 # -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
-
-        name = row["name"]
-        for i in range(0, 21):
-            col_name = f"k{i}l"
-            kil = row[col_name]
-            if abs(kil) > epsilon:
-                max_order = max(max_order, i)
-                # print(name, kil)
-        for i in range(0, 21):
-            col_name = f"k{i}sl"
-            kisl = row[col_name]
-            if abs(kisl) > epsilon:
-                max_order = max(max_order, i)
-                # print(name, kil)
         if max_order > -1:
-            knl_list = []
+            kl_list = []
             ksl_list = []
 
-            for i in range(0, max_order + 1):
-                col_name_knl = f"k{i}l"
-                col_name_ksl = f"k{i}sl"
-                knl_list.append(row[col_name_knl])
-                ksl_list.append(row[col_name_ksl])
+            for iorder in range(0, max_order + 1):
+                kl_list.append(error_table.iloc[i][f"K{iorder}L"])
+                ksl_list.append(error_table.iloc[i][f"K{iorder}SL"])
 
-            s = elem_dict[name]["s"]
-            length = elem_dict[name]["length"]
-            elem_type = elem_dict[name]["type"]
-
-            if name in error_dict:
-                print(f"Error: error '{name}' is already exists in element dict")
-                sys.exit(1)
-
-            error_dict[name] = {
-                "s": s,
-                "length": length,
-                "type": elem_type,
-                "errorOrder": max_order,
-                "knl": knl_list,
-                "ksl": ksl_list,
+            error_dict[specific_name] = {
+                "Is field error": True,
+                "Field error KNL": kl_list,
+                "Field error KSL": ksl_list,
             }
 
-        # print(f"name = {name}, k0l = {k0l}, k1l = {k1l}, k2l = {k2l}")
-        # print(f"name = {name}, s = {s}, length = {length}")
-
-    # for key, sub_dict in error_dict.items():
-    #     print(f"\n{key}:")
-    #     print(sub_dict)
-    madx.quit()
     return error_dict
 
 
 if __name__ == "__main__":
-
-    # get_element_info_from_seq(
-    #     seq_file=r"D:\PASS\para\BRING2021_03_02.seq",
-    #     seq_name="RING",
-    # )
-
-    get_error(
-        seq_file=r"D:\PASS\para\BRING2021_03_02.seq",
-        error_file=r"D:\PASS\para\error.madx",
-        seq_name="RING",
-    )
+    pass
