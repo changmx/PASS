@@ -455,10 +455,9 @@ def get_twiss_interpolate_from_madx_twissfile(
 
         for key, value in error_dict.items():
             if key in elem_dict.keys():
-                elem_dict[key]["isFieldError"] = value["isFieldError"]
-                elem_dict[key]["Error order"] = value["Error order"]
-                elem_dict[key]["KNL"] = value["KNL"]
-                elem_dict[key]["KSL"] = value["KSL"]
+                elem_dict[key]["Is field error"] = value["isFieldError"]
+                elem_dict[key]["Field error KNL"] = value["Field error KNL"]
+                elem_dict[key]["Field error KSL"] = value["Field error KSL"]
                 error_record.append(f"{key}")
             else:
                 print(f"[Get \033[31mTwiss\033[0m From Madx] We don't find {key}[in error file] in provided elem_dict")
