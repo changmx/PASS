@@ -7,9 +7,23 @@ set(CMAKE_BUILD_TYPE Release)
 
 option (PASS_CAL_PHASE "Record the coordinates of the particle at the previous position/turn to calculate the phase shift" ON)
 
+# find required package
 find_package(CUDAToolkit REQUIRED)
+message(STATUS "CUDAToolkit_FOUND: ${CUDAToolkit_FOUND}")
+message(STATUS "CUDAToolkit_VERSION: ${CUDAToolkit_VERSION}")
+message(STATUS "CUDA Toolkit Include Dirs: ${CUDAToolkit_INCLUDE_DIRS}")
+message(STATUS "CUDA NVCC PATH: ${CUDAToolkit_NVCC_EXECUTABLE}")
+
 find_package(OpenMP REQUIRED)
-find_package(Python COMPONENTS Interpreter Development)
+message(STATUS "OpenMP_FOUND: ${OpenMP_FOUND}")
+message(STATUS "OpenMP_CXX_FLAGS: ${OpenMP_CXX_FLAGS}")
+
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+message(STATUS "Python_FOUND: ${Python_FOUND}")
+message(STATUS "Python_VERSION: ${Python_VERSION}")
+message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
+message(STATUS "Python_INCLUDE_DIRS: ${Python_INCLUDE_DIRS}")
+message(STATUS "Python_LIBRARIES: ${Python_LIBRARIES}")
 
 # get build time and define it in config.h
 string(TIMESTAMP CMAKE_BUILD_TIME "%Y-%m-%d %H:%M:%S")
@@ -110,6 +124,7 @@ target_link_libraries(${PROJECT_NAME}
     CUDA::cufft
     CUDA::curand
     CUDA::cusparse
+    Python::Python
     # ${AMGX_LIBRARIES}
     cudss
 )
@@ -124,6 +139,18 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>
     # --ptxas-options=-v
 )
+
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        # C++
+        $<$<COMPILE_LANGUAGE:CXX>:/wd4819>           # Disable warning 4819
+        #$<$<COMPILE_LANGUAGE:CXX>:/Zc:preprocessor>  # Use the standard preprocessor
+        
+        # CUDA
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4819>
+        #$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/Zc:preprocessor>
+    )
+endif()
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
