@@ -1,355 +1,647 @@
 import numpy as np
 import sys
 import os
+import re
+from collections import Counter
+from scipy import interpolate
+import matplotlib.pyplot as plt
 
-from cpymad.madx import Madx
-from get_error_from_madx import get_error
+import tfs  # tfs_pandas, https://pylhc.github.io/tfs/
+from get_error_from_madx import get_field_error_from_madx_errorfile
+from toolkit import class_map
 
 
-def gen_twiss_from_madx(
-    seq_file,
-    error_file=None,
-    seq_name="ring",
+def get_twiss_from_madx_twissfile(
+    twiss_file_path,
+    error_file_path="",
     logi_transfer_method="off",
-    muz=0,
-    DQx=0,
-    DQy=0,
-    centre=False,
-    is_beam_in_seq=False,
-    particle="proton",
-    energy=1000,
-    is_add_sextupole=False,
+    muz=0.0,
+    DQx="from_file",
+    DQy="from_file",
+    is_field_error=False,
+    insert_element_name_pattern=[],
 ):
     """
-    Read madx sequence file and generate twiss parameters.
-    If input error file, generate thin multipole elements with field error.
-
-    Args:
-        seq_file (str):
-            - abspath of sequence file.
-        error_file (str, optional. Defaults to None.):
-            - abspath of error file. If it is not None, the error data will be read.
-        seq_name (str, optional. Defaults to 'ring'.):
-            - sequence name to be used in sequence file.
-        logi_transfer_method (str: 'drift/matrix/off', optional. Defaults to 'off'.):
-            - 'drift': particles are transfered longitudinally by the drift method
-            - 'matrix': particles are transfered longitudinally by linear matrix (required muz input)
-            - 'off': no longitudinally transfer.
-        muz (float, optional. Defaults to 0):
-            - only takes effect in the 'matrix' mode, longitudinal tune.
-        DQx (float, optional. Defaults to 0):
-            - Hor. chromaticity. It is allocated to each transmission point according to the proportion of phase advance.
-        DQy (float, optional. Defaults to 0):
-            - Ver. chromaticity. It is allocated to each transmission point according to the proportion of phase advance.
-        centre (bool, optional. Defaults to false):
-            - calculation of the linear lattice functions at the center of the element instead of the end of the element.
-        is_beam_in_seq (bool, optional. Defaults to false):
-            - Whether there is beam data in sequence file.
-        particle (str, optional. Defaults to 'proton'):
-            - Beam type for madx beam command.
-        energy (float, optional. Defaults to 1000 GeV):
-            - Beam energy for madx beam command.
-        is_add_sextupole (bool, optional. Defaults to false):
-            - Wheter extract sextupole element from twiss data and add it to tracking. Mainly used as thin lens.
+    twiss_file_path: str, path of madx generated twiss file
+    error_file_path: str, path of madx generated error file
+    logi_transfer_method: str, "off"/"drift"/"matrix"
+    muz: float, longitudinal tune
+    DQx: str or float, if DQx is str("from_file"), DQx is equal to the value in twiss file;
+                       if DQx is float, DQx is equal to the setting value.
+    DQy: str or float, if DQy is str("from_file"), DQy is equal to the value in twiss file;
+                       if DQy is float, DQy is equal to the setting value.is_field_error: 说明
+    is_field_error: bool, whether add field error from error file to elem_dict as multipole style
+    insert_element_name_pattern: list of str, save the regular expression used for element specific_name matching.
+                                 if matching successfully, the element will be inserted as thin-lens to elem_dict.
+                                 only support thin-lens quad. setx. oct. multi.
     """
 
-    # ------------------ Read sequence and generate twiss ------------------ #
+    # ------------------------- Read madx twiss file ------------------------- #
 
-    madx = Madx()
-    madx.option(echo=False)
+    twiss_table = tfs.read(twiss_file_path)  # TFSDataFrame, which is DataFrame + headers
 
-    madx.call(file=seq_file)
-    if not is_beam_in_seq:
-        madx.command.beam(sequence=seq_name, particle=particle, energy=energy)
+    headers = twiss_table.headers  # get header information such as particle, energy, etc.
+    column_names = twiss_table.columns  # get column names such as NAME, S, BETX, etc.
+    shape = twiss_table.shape  # get data shape (rows, columns)
 
-    madx.use(sequence=seq_name)
+    num_elem = shape[0]
+    print(
+        f"[Get \033[31mTwiss\033[0m From Madx] There are '{num_elem}' elements in twiss file, the first and last element names are '{twiss_table.iloc[0]['NAME']}' and '{twiss_table.iloc[-1]['NAME']}' respectively."
+    )
+    circumference = headers["LENGTH"]
+    Qx = headers["Q1"]
+    Qy = headers["Q2"]
+    DQx_file = headers["DQ1"]
+    DQy_file = headers["DQ2"]
 
-    dir_path = os.path.dirname(seq_file)
-    full_name = os.path.basename(seq_file)
-    file_name, file_ext = os.path.splitext(full_name)
-    output_twiss = os.sep.join([dir_path, file_name + "_twiss.dat"])
+    if DQx == "from_file":
+        DQx = DQx_file
+    if DQy == "from_file":
+        DQy = DQy_file
 
-    twiss = madx.twiss(sequence=seq_name, file=output_twiss, centre=centre)
+    if abs(DQx - DQx_file) > 1e-10:
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Warning: DQx in twiss file is {DQx_file}, but the current setting is {DQx}")
+    if abs(DQy - DQy_file) > 1e-10:
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Warning: DQy in twiss file is {DQy_file}, but the current setting is {DQy}")
 
-    # twiss_pd = twiss.dframe()
-    # twiss_pd.to_csv(r"D:\PASS\para\twiss_pd.csv", index=False)
+    print(f"[Get \033[31mTwiss\033[0m From Madx] Circumference = {circumference}, Qx = {Qx}, Qy ={Qy}, DQx = {DQx}, DQy = {DQy}")
 
-    print(f"Sequence file has been successfully read: {seq_file}")
-    print(f"Twiss data has been writed to: {output_twiss}")
+    # ------------------ Generate PASS required twiss data ---------------- #
 
-    # ------------------ Generate PASS required twiss data ------------------ #
+    elem_dict = {}
+    elem_name_list = []
+    re_match_record = []
 
-    s = twiss.s
-    name = twiss.name
-    betx = twiss.betx
-    bety = twiss.bety
-    alfx = twiss.alfx
-    alfy = twiss.alfy
-    Dx = twiss.dx
-    Dpx = twiss.dpx
-    mux = twiss.mux
-    muy = twiss.muy
-    keyword = twiss.keyword
-    k2l = twiss.k2l
-    k2sl = twiss.k2sl
-    l = twiss.l
+    betx = twiss_table["BETX"]
+    bety = twiss_table["BETY"]
+    alfx = twiss_table["ALFX"]
+    alfy = twiss_table["ALFY"]
+    Dx = twiss_table["DX"]
+    Dpx = twiss_table["DPX"]
+    mux = twiss_table["MUX"]
+    muy = twiss_table["MUY"]
 
-    # print(len(twiss.keyword), twiss.keyword)
-    # print(len(twiss.k2l), twiss.k2l)
+    s = twiss_table["S"]
+    l = twiss_table["L"]
 
-    if s[0] != 0:
-        print("The start position of twiss data must be 0, but now is {}".format(s[0]))
-        sys.exit()
+    for i in np.arange(num_elem):
+        elem_name = twiss_table.iloc[i]["NAME"]
+        elem_type = twiss_table.iloc[i]["KEYWORD"]
 
-    circumference = s[-1]
-    print("Circumference (m): {}".format(circumference))
+        elem_name_list.append(elem_name)
+        elem_count_result = Counter(elem_name_list)
+        elem_appear_times = elem_count_result[elem_name]
+        specific_name = f"{elem_name}[{elem_appear_times}]"
 
-    mux_ring = mux[-1]
-    muy_ring = muy[-1]
-    print(f"Mux = {mux_ring}, Muy = {muy_ring}")
-    print(f"DQx = {DQx}, DQy = {DQy}")
-
-    Lattice_json = []
-    sextupole_json = []
-
-    for i in np.arange(len(s)):
         if i == 0:
-            lattice = {
-                name[i]
-                + "_"
-                + str(s[i]): {
-                    "S (m)": s[i],
-                    "Command": "Twiss",
-                    "S previous (m)": s[i],
-                    "Alpha x": alfx[i],
-                    "Alpha y": alfy[i],
-                    "Beta x (m)": betx[i],
-                    "Beta y (m)": bety[i],
-                    "Mu x": mux[i],
-                    "Mu y": muy[i],
-                    "Mu z": 0.0,
-                    "Dx (m)": Dx[i],
-                    "Dpx": Dpx[i],
-                    "Alpha x previous": alfx[i],
-                    "Alpha y previous": alfy[i],
-                    "Beta x previous (m)": betx[i],
-                    "Beta y previous (m)": bety[i],
-                    "Mu x previous": mux[i],
-                    "Mu y previous": muy[i],
-                    "Mu z previous": 0.0,
-                    "Dx (m) previous": Dx[i],
-                    "Dpx previous": Dpx[i],
-                    "DQx": 0.0,
-                    "DQy": 0.0,
-                    "Longitudinal transfer": logi_transfer_method,
-                },
+            elem_dict[specific_name] = {
+                "S (m)": s[i],
+                "Command": "Twiss",
+                "S previous (m)": s[i],
+                "Alpha x": alfx[i],
+                "Alpha y": alfy[i],
+                "Beta x (m)": betx[i],
+                "Beta y (m)": bety[i],
+                "Mu x": mux[i],
+                "Mu y": muy[i],
+                "Mu z": 0.0,
+                "Dx (m)": Dx[i],
+                "Dpx": Dpx[i],
+                "Alpha x previous": alfx[i],
+                "Alpha y previous": alfy[i],
+                "Beta x previous (m)": betx[i],
+                "Beta y previous (m)": bety[i],
+                "Mu x previous": mux[i],
+                "Mu y previous": muy[i],
+                "Mu z previous": 0.0,
+                "Dx (m) previous": Dx[i],
+                "Dpx previous": Dpx[i],
+                "DQx": 0.0,
+                "DQy": 0.0,
+                "Longitudinal transfer": logi_transfer_method,
             }
-            if is_add_sextupole:
-                if keyword[i] == "sextupole":
-                    if np.abs(k2l[i]) > 1e-10 and np.abs(k2sl[i]) < 1e-10:
-                        sext_dict = {
-                            name[i]
-                            + "_elem_"
-                            + str(s[i]): {
-                                "S (m)": s[i],
-                                "Command": "SextupoleNormElement",
-                                "L (m)": l[i],
-                                "Drift length (m)": 0,
-                                "k2 (m^-3)": k2l[i] / l[i],
-                                "isFieldError": False,
-                                "Error order": 0,
-                                "KNL": [],
-                                "KSL": [],
-                                "Is thin lens": True,
-                            }
-                        }
-                    elif np.abs(k2l[i]) < 1e-10 and np.abs(k2sl[i]) > 1e-10:
-                        sext_dict = {
-                            name[i]
-                            + "_elem_"
-                            + str(s[i]): {
-                                "S (m)": s[i],
-                                "Command": "SextupoleSkewElement",
-                                "L (m)": l[i],
-                                "Drift length (m)": 0,
-                                "k2s (m^-3)": k2sl[i] / l[i],
-                                "isFieldError": False,
-                                "Error order": 0,
-                                "KNL": [],
-                                "KSL": [],
-                                "Is thin lens": True,
-                            },
-                        }
-                    elif np.abs(k2l[i]) < 1e-10 and np.abs(k2sl[i]) < 1e-10:
-                        sext_dict = {
-                            name[i]
-                            + "_elem_"
-                            + str(s[i]): {
-                                "S (m)": s[i],
-                                "Command": "SextupoleNormElement",
-                                "L (m)": l[i],
-                                "Drift length (m)": 0,
-                                "k2 (m^-3)": k2l[i] / l[i],
-                                "isFieldError": False,
-                                "Error order": 0,
-                                "KNL": [],
-                                "KSL": [],
-                                "Is thin lens": True,
-                            }
-                        }
-                    else:
-                        print(
-                            f"Error: Sextupole: k2 = {k2l[i]/l[i]}, k2s = {k2sl[i]/l[i]}, there should be and only 1 variable equal to 0"
-                        )
-                        sys.exit(1)
-
         else:
-            lattice = {
-                name[i]
-                + "_"
-                + str(s[i]): {
-                    "S (m)": s[i],
-                    "Command": "Twiss",
-                    "S previous (m)": s[i - 1],
-                    "Alpha x": alfx[i],
-                    "Alpha y": alfy[i],
-                    "Beta x (m)": betx[i],
-                    "Beta y (m)": bety[i],
-                    "Mu x": mux[i],
-                    "Mu y": muy[i],
-                    "Mu z": s[i] / circumference * (muz - 0),
-                    "Dx (m)": Dx[i],
-                    "Dpx": Dpx[i],
-                    "Alpha x previous": alfx[i - 1],
-                    "Alpha y previous": alfy[i - 1],
-                    "Beta x previous (m)": betx[i - 1],
-                    "Beta y previous (m)": bety[i - 1],
-                    "Mu x previous": mux[i - 1],
-                    "Mu y previous": muy[i - 1],
-                    "Mu z previous": s[i - 1] / circumference * (muz - 0),
-                    "Dx (m) previous": Dx[i - 1],
-                    "Dpx previous": Dpx[i - 1],
-                    # "DQx": DQx * (mux[i] - mux[i - 1]) / mux_ring,
-                    # "DQy": DQy * (muy[i] - muy[i - 1]) / muy_ring,
-                    "DQx": DQx * (s[i] - s[i - 1]) / circumference,
-                    "DQy": DQy * (s[i] - s[i - 1]) / circumference,
-                    "Longitudinal transfer": logi_transfer_method,
-                },
+            elem_dict[specific_name] = {
+                "S (m)": s[i],
+                "Command": "Twiss",
+                "S previous (m)": s[i - 1],
+                "Alpha x": alfx[i],
+                "Alpha y": alfy[i],
+                "Beta x (m)": betx[i],
+                "Beta y (m)": bety[i],
+                "Mu x": mux[i],
+                "Mu y": muy[i],
+                "Mu z": s[i] / circumference * (muz - 0),
+                "Dx (m)": Dx[i],
+                "Dpx": Dpx[i],
+                "Alpha x previous": alfx[i - 1],
+                "Alpha y previous": alfy[i - 1],
+                "Beta x previous (m)": betx[i - 1],
+                "Beta y previous (m)": bety[i - 1],
+                "Mu x previous": mux[i - 1],
+                "Mu y previous": muy[i - 1],
+                "Mu z previous": s[i - 1] / circumference * (muz - 0),
+                "Dx (m) previous": Dx[i - 1],
+                "Dpx previous": Dpx[i - 1],
+                "DQx": DQx * (mux[i] - mux[i - 1]) / Qx,
+                "DQy": DQy * (muy[i] - muy[i - 1]) / Qy,
+                # "DQx": DQx * (s[i] - s[i - 1]) / circumference,
+                # "DQy": DQy * (s[i] - s[i - 1]) / circumference,
+                "Longitudinal transfer": logi_transfer_method,
             }
-            if is_add_sextupole:
-                if keyword[i] == "sextupole":
-                    if np.abs(k2l[i]) > 1e-10 and np.abs(k2sl[i]) < 1e-10:
-                        sext_dict = {
-                            name[i]
-                            + "_elem_"
-                            + str(s[i]): {
-                                "S (m)": s[i],
-                                "Command": "SextupoleNormElement",
-                                "L (m)": l[i],
-                                "Drift length (m)": 0,
-                                "k2 (m^-3)": k2l[i] / l[i],
-                                "isFieldError": False,
-                                "Error order": 0,
-                                "KNL": [],
-                                "KSL": [],
-                                "Is thin lens": True,
-                            }
-                        }
-                    elif np.abs(k2l[i]) < 1e-10 and np.abs(k2sl[i]) > 1e-10:
-                        sext_dict = {
-                            name[i]
-                            + "_elem_"
-                            + str(s[i]): {
-                                "S (m)": s[i],
-                                "Command": "SextupoleSkewElement",
-                                "L (m)": l[i],
-                                "Drift length (m)": 0,
-                                "k2s (m^-3)": k2sl[i] / l[i],
-                                "isFieldError": False,
-                                "Error order": 0,
-                                "KNL": [],
-                                "KSL": [],
-                                "Is thin lens": True,
-                            }
-                        }
-                    elif np.abs(k2l[i]) < 1e-10 and np.abs(k2sl[i]) < 1e-10:
-                        sext_dict = {
-                            name[i]
-                            + "_elem_"
-                            + str(s[i]): {
-                                "S (m)": s[i],
-                                "Command": "SextupoleNormElement",
-                                "L (m)": l[i],
-                                "Drift length (m)": 0,
-                                "k2 (m^-3)": k2l[i] / l[i],
-                                "isFieldError": False,
-                                "Error order": 0,
-                                "KNL": [],
-                                "KSL": [],
-                                "Is thin lens": True,
-                            }
-                        }
-                    else:
-                        print(
-                            f"Error: Sextupole: k2 = {k2l[i]/l[i]}, k2s = {k2sl[i]/l[i]}, there should be and only 1 variable equal to 0"
-                        )
-                        sys.exit(1)
 
-        # print(name[i] + "_" + str(s[i]))
-        Lattice_json.append(lattice)
-        if is_add_sextupole:
-            if keyword[i] == "sextupole":
-                sextupole_json.append(sext_dict)
-    madx.quit()
-    print(f"Twiss points: {len(Lattice_json)}")
-    print(f"Sextupole points: {len(sextupole_json)}")
+    print(f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(elem_dict)} twiss elements have been read from twiss file")
 
-    # ------------------ Generate PASS required error data ------------------ #
+    # ------------------ Insert element ------------------ #
 
-    error_json = []
+    if len(insert_element_name_pattern) > 0:
+        combined_pattern = re.compile('|'.join(f'({pattern})' for pattern in insert_element_name_pattern))
 
-    if error_file != None:
-        if not centre:
-            print(f"Error: When introducing errors, centre must be true")
-            sys.exit(1)
+        for i in np.arange(num_elem):
+            elem_name = twiss_table.iloc[i]["NAME"]
+            elem_type = twiss_table.iloc[i]["KEYWORD"]
 
-        error_dict = get_error(
-            seq_file, error_file, seq_name, is_beam_in_seq, particle, energy
-        )
-        print(f"Field error data has beed read to dict, size = {len(error_dict)}")
+            elem_name_list.append(elem_name)
+            elem_count_result = Counter(elem_name_list)
+            elem_appear_times = elem_count_result[elem_name]
+            specific_name = f"{elem_name}[{elem_appear_times}]"
 
-        for key, sub_dict in error_dict.items():
-            idx = np.where(name == key)
-            s_error = s[idx][0]
-            # print(
-            #     f"s(twiss) = {s_error}, s(error) = {sub_dict["s"]}, diff = {s_error-sub_dict["s"]}"
-            # )
-            thin_error_multipole = {
-                key
-                + "_error_"
-                + str(s_error): {
-                    "S (m)": s_error,
-                    "Command": "MultipoleElement",
-                    "L (m)": sub_dict["length"],
-                    "Drift length (m)": 0,
-                    "Error order": sub_dict["errorOrder"],
-                    "KNL": sub_dict["knl"],
-                    "KSL": sub_dict["ksl"],
-                    "Is thin lens": True,
+            is_match = combined_pattern.search(specific_name)
+
+            if is_match:
+                specific_name_insert = f"{specific_name}_insert"
+                re_match_record.append(specific_name_insert)
+
+                if elem_type.lower() == "quadrupole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["quadrupole"],
+                        "L (m)": 0,
+                        "K1L (m^-1)": twiss_table.iloc[i]["K1L"],
+                        "K1SL (m^-1)": twiss_table.iloc[i]["K1SL"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "K1L ramping file": "",
+                        "K1SL ramping file": "",
+                    }
+                elif elem_type.lower() == "sextupole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["sextupole"],
+                        "L (m)": 0,
+                        "K2L (m^-2)": twiss_table.iloc[i]["K2L"],
+                        "K2SL (m^-2)": twiss_table.iloc[i]["K2SL"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "K2L ramping file": "",
+                        "K2SL ramping file": "",
+                    }
+                elif elem_type.lower() == "octupole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["Octupole"],
+                        "L (m)": 0,
+                        "K3L (m^-3)": twiss_table.iloc[i]["K3L"],
+                        "K3SL (m^-3)": twiss_table.iloc[i]["K3SL"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "K3L ramping file": "",
+                        "K3SL ramping file": "",
+                    }
+                elif elem_type.lower() == "multipole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["multipole"],
+                        "L (m)": 0,
+                        "KiL": [],
+                        "KiSL": [],
+                        "Is ramping": False,
+                        "KL ramping file": "",
+                    }
+                elif elem_type.lower() == "hkicker" or elem_type.lower() == "vkicker" or elem_type.lower() == "kicker" or elem_type.lower(
+                ) == "tkicker":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["kicker"],
+                        "L (m)": 0,
+                        "Hkick (rad)": twiss_table.iloc[i]["HKICK"],
+                        "Vkick (rad)": twiss_table.iloc[i]["VKICK"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "kick ramping file": "",
+                    }
+                else:
+                    print(f"[Get \033[31mTwiss\033[0m From Madx] Warning: we don't support insert {elem_type} type element of {specific_name}")
+                    re_match_record = re_match_record.pop()  # delete the last element
+
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(re_match_record)} elements have been inserted as thin-lens into elem_dict:")
+        print(f"[Get \033[31mTwiss\033[0m From Madx] \t{re_match_record}")
+
+    # ------------------ Read field error ------------------ #
+
+    error_record = []
+    if is_field_error:
+        error_dict = get_field_error_from_madx_errorfile(error_file_path)
+
+        for key, value in error_dict.items():
+            if key in elem_dict.keys():
+                elem_dict[f"{key}_error"] = {
+                    "S (m)": elem_dict[key]["S (m)"],
+                    "Command": class_map["multipole"],
+                    "L (m)": 0,
+                    "KiL": value["KiL"],
+                    "KiSL": value["KiSL"],
                 }
+                error_record.append(f"{key}_error")
+            else:
+                print(f"[Get \033[31mTwiss\033[0m From Madx] We don't find {key}[in error file] in provided elem_dict")
+
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(error_record)} field errors have been inserted into elem_dict as thin multipole:")
+        print(f"[Get \033[31mTwiss\033[0m From Madx] \t{error_record}")
+
+    # ------------------ Check data ------------------ #
+
+    length_count = 0
+    for key, value in elem_dict.items():
+        if "L (m)" in value.keys():
+            l_tmp = value["L (m)"]
+            length_count += l_tmp
+        else:
+            s_tmp = value["S (m)"]
+            s_previous_tmp = value["S previous (m)"]
+            l_tmp = s_tmp - s_previous_tmp
+            length_count += l_tmp
+    length_diff = length_count - circumference
+    if abs(length_diff) < 1e-6:
+        print(
+            f"[Get \033[31mTwiss\033[0m From Madx] Pass the circumference test: theory = {circumference} m, current = {length_count} m, diff = {length_diff:.15e} m"
+        )
+    else:
+        print(
+            f"[Get \033[31mTwiss\033[0m From Madx] Failed the circumference test: theory = {circumference} m, current = {length_count} m, diff = {length_diff:.15e} m"
+        )
+        sys.exit(1)
+
+    # ------------------ Finished ------------------ #
+
+    # for key, value in elem_dict.items():
+    #     print(f"key: {key}, value: {value}")
+
+    print(
+        f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(elem_dict)} elements ({num_elem} twiss + {len(re_match_record)} insert + {len(error_record)} error multipole) have been read from madx twiss file"
+    )
+
+    return elem_dict, circumference
+
+
+def get_twiss_interpolate_from_madx_twissfile(
+    twiss_file_path,
+    num_interp_slice,
+    error_file_path="",
+    logi_transfer_method="off",
+    muz=0.001,
+    DQx=0.0,
+    DQy=0.0,
+    is_field_error=False,
+    insert_element_name_pattern=["BRMG41Q22"],
+    interp_kind="cubic",
+):
+    # ------------------------- Read madx twiss file ------------------------- #
+
+    twiss_table = tfs.read(twiss_file_path)  # TFSDataFrame, which is DataFrame + headers
+
+    headers = twiss_table.headers  # get header information such as particle, energy, etc.
+    column_names = twiss_table.columns  # get column names such as NAME, S, BETX, etc.
+    shape = twiss_table.shape  # get data shape (rows, columns)
+
+    num_elem = shape[0]
+    print(
+        f"[Get \033[31mTwiss\033[0m From Madx] There are '{num_elem}' elements in twiss file, the first and last element names are '{twiss_table.iloc[0]['NAME']}' and '{twiss_table.iloc[-1]['NAME']}' respectively."
+    )
+    circumference = headers["LENGTH"]
+    Qx = headers["Q1"]
+    Qy = headers["Q2"]
+    DQx_file = headers["DQ1"]
+    DQy_file = headers["DQ2"]
+
+    if DQx == "from_file":
+        DQx = DQx_file
+    if DQy == "from_file":
+        DQy = DQy_file
+
+    if abs(DQx - DQx_file) > 1e-10:
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Warning: DQx in twiss file is {DQx_file}, but the current setting is {DQx}")
+    if abs(DQy - DQy_file) > 1e-10:
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Warning: DQy in twiss file is {DQy_file}, but the current setting is {DQy}")
+
+    print(f"[Get \033[31mTwiss\033[0m From Madx] Circumference = {circumference}, Qx = {Qx}, Qy ={Qy}, DQx = {DQx}, DQy = {DQy}")
+
+    # ------------------ Generate PASS required twiss data ---------------- #
+
+    elem_dict = {}
+    elem_name_list = []
+    re_match_record = []
+    s_uniform = np.linspace(0, circumference, num_interp_slice, endpoint=True)
+    s_insert = []
+
+    # ------------------ Insert element ------------------ #
+
+    if len(insert_element_name_pattern) > 0:
+        combined_pattern = re.compile('|'.join(f'({pattern})' for pattern in insert_element_name_pattern))
+
+        for i in np.arange(num_elem):
+            elem_name = twiss_table.iloc[i]["NAME"]
+            elem_type = twiss_table.iloc[i]["KEYWORD"]
+
+            elem_name_list.append(elem_name)
+            elem_count_result = Counter(elem_name_list)
+            elem_appear_times = elem_count_result[elem_name]
+            specific_name = f"{elem_name}[{elem_appear_times}]"
+
+            is_match = combined_pattern.search(specific_name)
+
+            if is_match:
+                specific_name_insert = f"{specific_name}"
+                re_match_record.append(specific_name_insert)
+                s_insert.append(twiss_table.iloc[i]["S"])
+
+                if elem_type.lower() == "quadrupole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["quadrupole"],
+                        "L (m)": 0,
+                        "K1L (m^-1)": twiss_table.iloc[i]["K1L"],
+                        "K1SL (m^-1)": twiss_table.iloc[i]["K1SL"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "K1L ramping file": "",
+                        "K1SL ramping file": "",
+                    }
+                elif elem_type.lower() == "sextupole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["sextupole"],
+                        "L (m)": 0,
+                        "K2L (m^-2)": twiss_table.iloc[i]["K2L"],
+                        "K2SL (m^-2)": twiss_table.iloc[i]["K2SL"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "K2L ramping file": "",
+                        "K2SL ramping file": "",
+                    }
+                elif elem_type.lower() == "octupole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["Octupole"],
+                        "L (m)": 0,
+                        "K3L (m^-3)": twiss_table.iloc[i]["K3L"],
+                        "K3SL (m^-3)": twiss_table.iloc[i]["K3SL"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "K3L ramping file": "",
+                        "K3SL ramping file": "",
+                    }
+                elif elem_type.lower() == "multipole":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["multipole"],
+                        "L (m)": 0,
+                        "KiL": [],
+                        "KiSL": [],
+                        "Is ramping": False,
+                        "KL ramping file": "",
+                    }
+                elif elem_type.lower() == "hkicker" or elem_type.lower() == "vkicker" or elem_type.lower() == "kicker" or elem_type.lower(
+                ) == "tkicker":
+                    elem_dict[specific_name_insert] = {
+                        "S (m)": twiss_table.iloc[i]["S"],
+                        "Command": class_map["kicker"],
+                        "L (m)": 0,
+                        "Hkick (rad)": twiss_table.iloc[i]["HKICK"],
+                        "Vkick (rad)": twiss_table.iloc[i]["VKICK"],
+                        "Is field error": False,
+                        "Field error KNL": [],
+                        "Field error KSL": [],
+                        "Is ramping": False,
+                        "kick ramping file": "",
+                    }
+                else:
+                    print(f"[Get \033[31mTwiss\033[0m From Madx] Warning: we don't support insert {elem_type} type element of {specific_name}")
+                    re_match_record = re_match_record.pop()  # delete the last element
+                    s_insert = s_insert.pop()
+
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(re_match_record)} elements have been inserted as thin-lens into elem_dict:")
+        print(f"[Get \033[31mTwiss\033[0m From Madx] \t{re_match_record}")
+
+    # ------------------ Read field error ------------------ #
+
+    error_record = []
+    if is_field_error:
+        error_dict = get_field_error_from_madx_errorfile(error_file_path)
+
+        for key, value in error_dict.items():
+            if key in elem_dict.keys():
+                elem_dict[key]["isFieldError"] = value["isFieldError"]
+                elem_dict[key]["Error order"] = value["Error order"]
+                elem_dict[key]["KNL"] = value["KNL"]
+                elem_dict[key]["KSL"] = value["KSL"]
+                error_record.append(f"{key}")
+            else:
+                print(f"[Get \033[31mTwiss\033[0m From Madx] We don't find {key}[in error file] in provided elem_dict")
+
+        print(f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(error_record)} field errors have been read to existing elements:")
+        print(f"[Get \033[31mTwiss\033[0m From Madx] \t{error_record}")
+
+    # ------------------ Interpolate S ------------------ #
+
+    s = twiss_table["S"].to_numpy()
+    betx = twiss_table["BETX"].to_numpy()
+    bety = twiss_table["BETY"].to_numpy()
+    alfx = twiss_table["ALFX"].to_numpy()
+    alfy = twiss_table["ALFY"].to_numpy()
+    Dx = twiss_table["DX"].to_numpy()
+    Dpx = twiss_table["DPX"].to_numpy()
+    mux = twiss_table["MUX"].to_numpy()
+    muy = twiss_table["MUY"].to_numpy()
+
+    keep_mask = np.ones(len(s), dtype=bool)
+    for i in range(1, len(s)):
+        if np.abs(s[i] - s[i - 1]) <= 1e-10:
+            keep_mask[i] = False
+
+    s = s[keep_mask]  # delete duplicates
+    betx = betx[keep_mask]
+    bety = bety[keep_mask]
+    alfx = alfx[keep_mask]
+    alfy = alfy[keep_mask]
+    Dx = Dx[keep_mask]
+    Dpx = Dpx[keep_mask]
+    mux = mux[keep_mask]
+    muy = muy[keep_mask]
+
+    interp_func_betx = interpolate.interp1d(s, betx, kind=interp_kind, fill_value="extrapolate")
+    interp_func_bety = interpolate.interp1d(s, bety, kind=interp_kind, fill_value="extrapolate")
+    interp_func_alfx = interpolate.interp1d(s, alfx, kind=interp_kind, fill_value="extrapolate")
+    interp_func_alfy = interpolate.interp1d(s, alfy, kind=interp_kind, fill_value="extrapolate")
+    interp_func_Dx = interpolate.interp1d(s, Dx, kind=interp_kind, fill_value="extrapolate")
+    interp_func_Dpx = interpolate.interp1d(s, Dpx, kind=interp_kind, fill_value="extrapolate")
+    interp_func_mux = interpolate.interp1d(s, mux, kind=interp_kind, fill_value="extrapolate")
+    interp_func_muy = interpolate.interp1d(s, muy, kind=interp_kind, fill_value="extrapolate")
+
+    if len(s_insert) == 0:
+        s_interp = s_uniform
+    else:
+        s_insert = np.array(s_insert)
+        s_interp = np.concatenate([s_uniform, s_insert])
+        s_interp = np.unique(s_interp)  # remove duplicateds and sort
+
+    betx_interp = interp_func_betx(s_interp)
+    bety_interp = interp_func_bety(s_interp)
+    alfx_interp = interp_func_alfx(s_interp)
+    alfy_interp = interp_func_alfy(s_interp)
+    Dx_interp = interp_func_Dx(s_interp)
+    Dpx_interp = interp_func_Dpx(s_interp)
+    mux_interp = interp_func_mux(s_interp)
+    muy_interp = interp_func_muy(s_interp)
+
+    # fig, ax = plt.subplots()
+    # ax.plot(s, mux)
+    # ax.scatter(s_interp, mux_interp)
+    # plt.show()
+
+    for i in np.arange(len(s_interp)):
+        specific_name = f"Twiss_interp[{i+1}]"
+
+        if i == 0:
+            elem_dict[specific_name] = {
+                "S (m)": s_interp[i],
+                "Command": "Twiss",
+                "S previous (m)": s_interp[i],
+                "Alpha x": alfx_interp[i],
+                "Alpha y": alfy_interp[i],
+                "Beta x (m)": betx_interp[i],
+                "Beta y (m)": bety_interp[i],
+                "Mu x": mux_interp[i],
+                "Mu y": muy_interp[i],
+                "Mu z": 0.0,
+                "Dx (m)": Dx_interp[i],
+                "Dpx": Dpx_interp[i],
+                "Alpha x previous": alfx_interp[i],
+                "Alpha y previous": alfy_interp[i],
+                "Beta x previous (m)": betx_interp[i],
+                "Beta y previous (m)": bety_interp[i],
+                "Mu x previous": mux_interp[i],
+                "Mu y previous": muy_interp[i],
+                "Mu z previous": 0.0,
+                "Dx (m) previous": Dx_interp[i],
+                "Dpx previous": Dpx_interp[i],
+                "DQx": 0.0,
+                "DQy": 0.0,
+                "Longitudinal transfer": logi_transfer_method,
             }
-            error_json.append(thin_error_multipole)
+        else:
+            elem_dict[specific_name] = {
+                "S (m)": s_interp[i],
+                "Command": "Twiss",
+                "S previous (m)": s_interp[i - 1],
+                "Alpha x": alfx_interp[i],
+                "Alpha y": alfy_interp[i],
+                "Beta x (m)": betx_interp[i],
+                "Beta y (m)": bety_interp[i],
+                "Mu x": mux_interp[i],
+                "Mu y": muy_interp[i],
+                "Mu z": s_interp[i] / circumference * (muz - 0),
+                "Dx (m)": Dx_interp[i],
+                "Dpx": Dpx_interp[i],
+                "Alpha x previous": alfx_interp[i - 1],
+                "Alpha y previous": alfy_interp[i - 1],
+                "Beta x previous (m)": betx_interp[i - 1],
+                "Beta y previous (m)": bety_interp[i - 1],
+                "Mu x previous": mux_interp[i - 1],
+                "Mu y previous": muy_interp[i - 1],
+                "Mu z previous": s_interp[i - 1] / circumference * (muz - 0),
+                "Dx (m) previous": Dx_interp[i - 1],
+                "Dpx previous": Dpx_interp[i - 1],
+                "DQx": DQx * (mux_interp[i] - mux_interp[i - 1]) / Qx,
+                "DQy": DQy * (muy_interp[i] - muy_interp[i - 1]) / Qy,
+                # "DQx": DQx * (s[i] - s[i - 1]) / circumference,
+                # "DQy": DQy * (s[i] - s[i - 1]) / circumference,
+                "Longitudinal transfer": logi_transfer_method,
+            }
 
-    print(f"Number of error points: {len(error_json)}")
+    print(f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(s_interp)} twiss elements have been interpolated")
 
-    # ------------------------------ Finished ------------------------------ #
+    # ------------------ Check data ------------------ #
 
-    return Lattice_json + sextupole_json + error_json, circumference
+    length_count = 0
+    for key, value in elem_dict.items():
+        if "L (m)" in value.keys():
+            l_tmp = value["L (m)"]
+            length_count += l_tmp
+        else:
+            s_tmp = value["S (m)"]
+            s_previous_tmp = value["S previous (m)"]
+            l_tmp = s_tmp - s_previous_tmp
+            length_count += l_tmp
+    length_diff = length_count - circumference
+    if abs(length_diff) < 1e-6:
+        print(
+            f"[Get \033[31mTwiss\033[0m From Madx] Pass the circumference test: theory = {circumference} m, current = {length_count} m, diff = {length_diff:.15e} m"
+        )
+    else:
+        print(
+            f"[Get \033[31mTwiss\033[0m From Madx] Failed the circumference test: theory = {circumference} m, current = {length_count} m, diff = {length_diff:.15e} m"
+        )
+        sys.exit(1)
+
+    # ------------------ Finished ------------------ #
+
+    # for key, value in elem_dict.items():
+    #     print(f"key: {key}, value: {value}")
+
+    print(
+        f"[Get \033[31mTwiss\033[0m From Madx] Success: {len(elem_dict)} ({len(s_interp)} interp + {len(re_match_record)} insert) elements have been read from madx twiss file"
+    )
+
+    return elem_dict, circumference
 
 
 if __name__ == "__main__":
-    gen_twiss_from_madx(
-        seq_file=r"D:\PASS\para\BRING2021_03_02.seq",
-        error_file=r"D:\PASS\para\error.madx",
-        centre=True,
+    # elem_dict, circum = get_twiss_from_madx_twissfile(
+    #     twiss_file_path=r"C:\Users\changmx\Documents\PASS\para\bring.tfs",
+    #     error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
+    #     logi_transfer_method="off",
+    #     muz=0.001,
+    #     DQx=0.0,
+    #     DQy=0.0,
+    #     is_field_error=False,
+    #     insert_element_name_pattern=["BRMG41Q22"],
+    # )
+
+    elem_dict, circum = get_twiss_interpolate_from_madx_twissfile(
+        twiss_file_path=r"C:\Users\changmx\Documents\PASS\para\bring.tfs",
+        num_interp_slice=100,
+        error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
+        logi_transfer_method="off",
+        muz=0.001,
+        DQx=0.0,
+        DQy=0.0,
+        is_field_error=False,
+        insert_element_name_pattern=["BRMG41Q22"],
+        interp_kind="cubic",
     )
+    # print(elem_dict)
