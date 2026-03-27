@@ -92,16 +92,16 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
                 "Number of macro particles per bunch": 1e6,
                 "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
                 "Inject turns": [1],
-                "Alpha x": 0,
-                "Alpha y": 0,
-                "Beta x (m)": 9.57,
-                "Beta y (m)": 9.6,
+                "Alpha x": -2.614303952,
+                "Alpha y": 1.57442348,
+                "Beta x (m)": 17.56341783,
+                "Beta y (m)": 8.624482365,
                 "Emittance x (m'rad)": 200e-6,
                 "Emittance y (m'rad)": 100e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 280,
-                "DeltaP/P": 0.8e-3,
+                "Sigma z (m)": 0,
+                "DeltaP/P": 0,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "uniform",  # [gaussian/uniform]
                 "Offset x": {
@@ -147,10 +147,10 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     #     error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
     #     logi_transfer_method="off",
     #     muz=0.001,
-    #     DQx=2.0,
-    #     DQy=3.0,
-    #     is_field_error=True,
-    #     insert_element_name_pattern=["BRMG41Q22"],
+    #     DQx=0,
+    #     DQy=0,
+    #     is_field_error=False,
+    #     insert_element_name_pattern=["BRMG41Q2222"],
     # )
     # BeamPara["Circumference (m)"] = circumference_twissFile
 
@@ -158,15 +158,15 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     # ------------------------------------------------------------ Step 3: Get element from madx ------------------------------------------------------------ #
 
-    # element_dict_from_madx, circumference_from_madx = get_element_from_madx_twissfile(
-    #     twiss_file_path=r"C:\Users\changmx\Documents\PASS\para\bring.tfs",
-    #     error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
-    #     is_merge_drift=True,
-    #     is_field_error=True,
-    # )
-    # BeamPara["Circumference (m)"] = circumference_from_madx
+    element_dict_from_madx, circumference_from_madx = get_element_from_madx_twissfile(
+        twiss_file_path=r"C:\Users\changmx\Documents\PASS\para\bring.tfs",
+        error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
+        is_merge_drift=True,
+        is_field_error=False,
+    )
+    BeamPara["Circumference (m)"] = circumference_from_madx
 
-    # Sequence.update(element_dict_from_madx)
+    Sequence.update(element_dict_from_madx)
 
     # add_ramping_file(
     #     Sequence,
@@ -335,19 +335,19 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     # ------------------------------------------------------------ Step 5: Tune Exciter ------------------------------------------------------------ #
 
-    TuneExciter1 = {
-        "TuneExciter1": {
-            "S (m)": 0,
-            "Command": "TuneExciterElement",
-            "Kick angle (rad)": 100e-6,
-            "Frequency center (Hz)": 64394.87000039443,
-            "Scan period (s)": 5e-3,
-            "Scan frequency range (Hz)": 100,
-            "Kick direction": "x",
-            "Turns": [1000, 4000],
-        }
-    }
-    Sequence.update(TuneExciter1)
+    # TuneExciter1 = {
+    #     "TuneExciter1": {
+    #         "S (m)": 0,
+    #         "Command": "TuneExciterElement",
+    #         "Kick angle (rad)": 100e-6,
+    #         "Frequency center (Hz)": 64394.87000039443,
+    #         "Scan period (s)": 5e-3,
+    #         "Scan frequency range (Hz)": 100,
+    #         "Kick direction": "x",
+    #         "Turns": [1000, 4000],
+    #     }
+    # }
+    # Sequence.update(TuneExciter1)
 
     # ------------------------------------------------------------ Step 6: Distribution Monitor ------------------------------------------------------------ #
     # Monitor to save bunch distribution at specific position
@@ -378,6 +378,14 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
         },
     }
     Sequence.update(Monitor_Stat1)
+
+    Monitor_Stat2 = {
+        "StatMonitor_2": {
+            "S (m)": 83.57124735,
+            "Command": "StatMonitor"
+        },
+    }
+    Sequence.update(Monitor_Stat2)
 
     # ------------------------------------------------------------ Step 6: Phase Monitor ------------------------------------------------------------ #
     # Monitor to save phase advance
@@ -436,22 +444,22 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     # ------------------------------------------------------------ Step 7: User's customized section ------------------------------------------------------------ #
 
     # Do whateve you want.
-    test_element = {
-        "test_quad": {
-            "S (m)": 1,
-            "Command": "QuadrupoleElement",
-            "L (m)": 0,
-            "K1L (m^-1)": 0.2,
-            "K1SL (m^-1)": 0.0,
-            "Is field error": False,
-            "Field error KNL": [],
-            "Field error KSL": [],
-            "Is ramping": True,
-            "K1L ramping file": r"C:\Users\changmx\Documents\PASS\para\k1l.csv",
-            "K1SL ramping file": "",
-        }
-    }
-    Sequence.update(test_element)
+    # test_element = {
+    #     "test_quad": {
+    #         "S (m)": 1,
+    #         "Command": "QuadrupoleElement",
+    #         "L (m)": 0,
+    #         "K1L (m^-1)": 0.2,
+    #         "K1SL (m^-1)": 0.0,
+    #         "Is field error": False,
+    #         "Field error KNL": [],
+    #         "Field error KSL": [],
+    #         "Is ramping": True,
+    #         "K1L ramping file": r"C:\Users\changmx\Documents\PASS\para\k1l.csv",
+    #         "K1SL ramping file": "",
+    #     }
+    # }
+    # Sequence.update(test_element)
 
     # ------------------------------------------------------------ Finally (Do not change): Sort sequence by s ------------------------------------------------------------ #
 
