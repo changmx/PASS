@@ -5,7 +5,11 @@
 #include <iomanip>
 #include <sstream>
 #include <fstream>
-
+#include <vector>
+#include <algorithm>
+#include <stdexcept>
+#include <cmath>
+#include <type_traits>
 
 void print_logo(const Parameter& Para) {
 
@@ -779,5 +783,97 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		std::exit(EXIT_FAILURE);
 	}
 
+	return result;
+}
+
+
+std::vector<std::string> split_line(const std::string& line) {
+	// 使用逗号、空格和制表符作为分隔符来分割字符串,如果分隔后的第一个字段无法转换为数字，则说明该行不是有效的数据行，返回空结果
+	std::vector<std::string> fields;
+	std::string field;
+	for (char ch : line) {
+		if (ch == ',' || ch == ' ' || ch == '\t') {
+			if (!field.empty()) {
+				fields.push_back(field);
+				field.clear();
+			}
+		}
+		else {
+			field.push_back(ch);
+		}
+	}
+	if (!field.empty()) fields.push_back(field);
+
+	if (fields.empty()) return {};
+	try {
+		std::stod(fields[0]);	// 尝试将第一个字段转换为数字，如果失败则说明该行不是有效的数据行，返回空结果
+	}
+	catch (...) {
+		return {};
+	}
+	return fields;
+}
+
+
+std::vector<std::vector<double>> read_file_data(const std::string& file_path)
+{
+	std::ifstream file(file_path);
+	if (!file.is_open()) {
+		throw std::runtime_error("read_file_data: failed to open file: " + file_path);
+	}
+
+	std::vector<std::vector<double>> result;
+
+	std::string line;
+	size_t line_number = 0;
+
+	while (std::getline(file, line)) {
+		++line_number;
+
+		auto fields = split_line(line);
+		if (fields.empty()) {
+			continue;   // 跳过空行、注释行、表头等无效行
+		}
+
+		for (size_t i = 0; i < fields.size(); ++i) {
+			if (result.size() <= i) {
+				result.emplace_back();
+			}
+
+			try {
+				result[i].push_back(std::stod(fields[i]));
+			}
+			catch (const std::exception& e) {
+				std::ostringstream oss;
+				oss << "read_file_data: failed to parse number"
+					<< " in file: " << file_path
+					<< ", line: " << line_number
+					<< ", column: " << (i + 1)
+					<< ", value: \"" << fields[i] << "\""
+					<< ", reason: " << e.what();
+
+				throw std::runtime_error(oss.str());
+			}
+		}
+	}
+
+	return result;
+}
+
+
+std::string to_lower(const std::string& str) {
+	std::string result = str;  // 创建一个副本
+	for (char& c : result) {
+		c = std::tolower(static_cast<unsigned char>(c));  // 转换字符为小写
+	}
+	return result;
+}
+
+
+std::string to_upper(const std::string& str) {
+	std::string result = str;  // 创建一个副本
+	for (char& c : result) {
+		c = std::toupper(static_cast<unsigned char>(c));  // 转换字符为大写
+	}
 	return result;
 }

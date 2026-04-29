@@ -9,6 +9,10 @@
 #include <stdexcept>
 #include <stdlib.h>
 #include <filesystem>
+#include <cmath>
+#include <type_traits>
+#include <cassert>
+#include <cctype>
 
 #include <cmdline/cmdline.h>
 #include <tabulate/tabulate.hpp>
@@ -128,3 +132,104 @@ void print_cycleRange(const std::vector<CycleRange>& ranges);
 std::string ms_to_timeString(double ms);
 
 std::vector<std::vector<double>> loadtxt(const std::string& filename, char delimiter = ',', int skiprows = 0, const std::vector<int>& usecols = {});
+
+std::vector<std::string> split_line(const std::string& line);
+
+std::vector<std::vector<double>> read_file_data(const std::string& file_path);
+
+// 判断是否相等（对于浮点数，使用相对误差进行比较；对于其他类型，直接比较）。eps是相对误差的容忍度，默认为1e-10。
+template<typename T1, typename T2>
+inline bool approx_equal(T1 a, T2 b, std::common_type_t<T1, T2> eps = 1e-10)
+{
+	using Float = std::common_type_t<T1, T2, double>;
+	if constexpr (std::is_floating_point_v<Float>) {
+		Float fa = static_cast<Float>(a);
+		Float fb = static_cast<Float>(b);
+		return std::fabs(fa - fb) <= eps * std::max({ Float(1), std::fabs(fa), std::fabs(fb) });
+	}
+	else {
+		return a == b;
+	}
+}
+
+// 线性插值函数，输入为x和y的向量，以及需要插值的x0，输出为对应的y0。y可以是多维的，即每个x对应一个y向量，输出的y0也是一个向量。例如x为时间，y为多个参数。
+template<typename XType, typename YType, typename XQueryType>
+std::vector<YType> linearInterpolate(
+	const std::vector<XType>& xs,
+	const std::vector<std::vector<YType>>& ys,
+	XQueryType x0)
+{
+	if (xs.size() < 2)
+		throw std::invalid_argument("linearInterpolate: need at least two points");
+
+	if (xs.size() != ys.size())
+		throw std::invalid_argument("linearInterpolate: xs and ys size mismatch");
+
+	if (ys.empty() || ys[0].empty())
+		return {};
+
+	const size_t dim = ys[0].size();
+	for (const auto& yv : ys) {
+		if (yv.size() != dim)
+			throw std::invalid_argument("linearInterpolate: inconsistent y dimensions");
+	}
+
+	assert(std::is_sorted(xs.begin(), xs.end()));
+
+	using Float = std::common_type_t<XType, XQueryType, double>;
+
+	const Float x = static_cast<Float>(x0);
+	const Float xMin = static_cast<Float>(xs.front());
+	const Float xMax = static_cast<Float>(xs.back());
+
+	if (x < xMin || x > xMax)
+		throw std::out_of_range("linearInterpolate: x0 out of range");
+
+	if (approx_equal(x, xMin))
+		return ys.front();
+
+	if (approx_equal(x, xMax))
+		return ys.back();
+
+	auto it = std::lower_bound(
+		xs.begin(), xs.end(), x0,
+		[](const XType& lhs, const XQueryType& rhs) {
+			return lhs < rhs;
+		});
+
+	size_t idx = static_cast<size_t>(it - xs.begin());
+
+	if (idx < xs.size() && approx_equal(static_cast<Float>(xs[idx]), x))
+		return ys[idx];
+
+	if (idx == 0 || idx >= xs.size())
+		throw std::logic_error("linearInterpolate: invalid lower_bound result");
+
+	size_t left = idx - 1;
+	size_t right = idx;
+
+	const Float xL = static_cast<Float>(xs[left]);
+	const Float xR = static_cast<Float>(xs[right]);
+
+	if (approx_equal(xL, xR))
+		return ys[left];
+
+	const Float t = (x - xL) / (xR - xL);
+
+	const auto& yL = ys[left];
+	const auto& yR = ys[right];
+
+	std::vector<YType> result(dim);
+	for (size_t i = 0; i < dim; ++i) {
+		result[i] = static_cast<YType>(
+			yL[i] + t * (yR[i] - yL[i])
+			);
+	}
+
+	return result;
+}
+
+
+std::string to_lower(const std::string& str);
+
+std::string to_upper(const std::string& str);
