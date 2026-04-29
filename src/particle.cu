@@ -58,24 +58,23 @@ __host__ void Particle::mem_allocate_gpu(size_t n)
 __host__ void Particle::mem_allocate_cpu(size_t n)
 {
 	// 分配设备内存
-	x = new double[n];
-	px = new double[n];
-	y = new double[n];
-	py = new double[n];
-	z = new double[n];
-	pz = new double[n];
-	lostPos = new double[n];
-	tag = new int[n];
-	lostTurn = new int[n];
-	sliceId = new int[n];
-
+	x = new double[n] {};
+	px = new double[n] {};
+	y = new double[n] {};
+	py = new double[n] {};
+	z = new double[n] {};
+	pz = new double[n] {};
+	lostPos = new double[n] {};
+	tag = new int[n] {};
+	lostTurn = new int[n] {};
+	sliceId = new int[n] {};
 #ifdef PASS_CAL_PHASE
-	last_x = new double[n];
-	last_y = new double[n];
-	last_px = new double[n];
-	last_py = new double[n];
-	phase_x = new double[n];
-	phase_y = new double[n];
+	last_x = new double[n] {};
+	last_y = new double[n] {};
+	last_px = new double[n] {};
+	last_py = new double[n] {};
+	phase_x = new double[n] {};
+	phase_y = new double[n] {};
 #endif
 }
 
@@ -292,48 +291,48 @@ Bunch::~Bunch() {
 }
 
 
-void particle_copy(Particle dst, Particle src, size_t n, cudaMemcpyKind kind, std::string type) {
+void particle_copy(Particle dst, Particle src, size_t n, cudaMemcpyKind kind, std::string type, int dst_offset, int src_offset) {
 
 	if ("all" == type)
 	{
-		callCuda(cudaMemcpy(dst.x, src.x, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.px, src.px, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.y, src.y, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.py, src.py, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.z, src.z, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.pz, src.pz, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.lostPos, src.lostPos, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.tag, src.tag, n * sizeof(int), kind));
-		callCuda(cudaMemcpy(dst.lostTurn, src.lostTurn, n * sizeof(int), kind));
-		callCuda(cudaMemcpy(dst.sliceId, src.sliceId, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.x + dst_offset, src.x + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.px + dst_offset, src.px + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.y + dst_offset, src.y + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.py + dst_offset, src.py + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.z + dst_offset, src.z + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.pz + dst_offset, src.pz + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.lostPos + dst_offset, src.lostPos + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.tag + dst_offset, src.tag + src_offset, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.lostTurn + dst_offset, src.lostTurn + src_offset, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.sliceId + dst_offset, src.sliceId + src_offset, n * sizeof(int), kind));
 #ifdef PASS_CAL_PHASE
-		callCuda(cudaMemcpy(dst.last_x, src.last_x, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.last_y, src.last_y, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.last_px, src.last_px, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.last_py, src.last_py, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.phase_x, src.phase_x, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.phase_y, src.phase_y, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.last_x + dst_offset, src.last_x + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.last_y + dst_offset, src.last_y + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.last_px + dst_offset, src.last_px + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.last_py + dst_offset, src.last_py + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.phase_x + dst_offset, src.phase_x + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.phase_y + dst_offset, src.phase_y + src_offset, n * sizeof(double), kind));
 #endif
 	}
 	else if ("dist" == type)
 	{
-		callCuda(cudaMemcpy(dst.x, src.x, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.px, src.px, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.y, src.y, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.py, src.py, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.z, src.z, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.pz, src.pz, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.lostPos, src.lostPos, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.tag, src.tag, n * sizeof(int), kind));
-		callCuda(cudaMemcpy(dst.lostTurn, src.lostTurn, n * sizeof(int), kind));
-		callCuda(cudaMemcpy(dst.sliceId, src.sliceId, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.x + dst_offset, src.x + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.px + dst_offset, src.px + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.y + dst_offset, src.y + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.py + dst_offset, src.py + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.z + dst_offset, src.z + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.pz + dst_offset, src.pz + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.lostPos + dst_offset, src.lostPos + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.tag + dst_offset, src.tag + src_offset, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.lostTurn + dst_offset, src.lostTurn + src_offset, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.sliceId + dst_offset, src.sliceId + src_offset, n * sizeof(int), kind));
 	}
 	else if ("phase" == type)
 	{
-		callCuda(cudaMemcpy(dst.tag, src.tag, n * sizeof(int), kind));
+		callCuda(cudaMemcpy(dst.tag + dst_offset, src.tag + src_offset, n * sizeof(int), kind));
 #ifdef PASS_CAL_PHASE
-		callCuda(cudaMemcpy(dst.phase_x, src.phase_x, n * sizeof(double), kind));
-		callCuda(cudaMemcpy(dst.phase_y, src.phase_y, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.phase_x + dst_offset, src.phase_x + src_offset, n * sizeof(double), kind));
+		callCuda(cudaMemcpy(dst.phase_y + dst_offset, src.phase_y + src_offset, n * sizeof(double), kind));
 #endif
 	}
 	else
