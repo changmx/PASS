@@ -4,6 +4,8 @@
 #include "particle.h"
 #include "parameter.h"
 
+#include <random>
+
 class Injection
 {
 public:
@@ -22,23 +24,28 @@ public:
 	void generate_transverse_uniform_distribution();
 
 	void generate_longitudinal_Gaussian_distribution();
-	void generate_longitudinal_uniform_distribution();
+	void generate_longitudinal_coasting_distribution();
 
 	void save_initial_distribution();
 
 	void add_Dx();
-	void add_offset();
+	void add_offset(int turn, double t0);
 	void insert_particle();
 
 	void print_config();
 
 private:
 	Particle dev_particle;
+	const Bunch& bunchRef;
 
 	int Np = 0;
+	int Np_inj_curTurn = 0;
+	int Np_inj_total = 0;
 
 	int startTurn = 0;
 	int endTurn = 0;
+	int intervalTurn = 0;
+	std::vector<int> inject_turns;
 
 	double alphax = 0;
 	double alphay = 0;
@@ -63,7 +70,6 @@ private:
 
 	std::string beam_name;
 
-	std::string injection_mode;
 	std::string dist_transverse;
 	std::string dist_longitudinal;
 
@@ -72,18 +78,26 @@ private:
 
 	bool is_offset_x = false;
 	bool is_offset_y = false;
-	double offset_x = 0;
-	double offset_y = 0;
+	bool is_offset_x_fromFile = false;
+	bool is_offset_y_fromFile = false;
+	std::vector<double> offset_time_x = {};
+	std::vector<double> offset_time_y = {};
+	std::vector<double> offset_x = {};
+	std::vector<double> offset_y = {};
+	std::vector<double> offset_px = {};
+	std::vector<double> offset_py = {};
+	std::string offset_x_filepath;
+	std::string offset_y_filepath;
+	std::string offset_x_timekind;
+	std::string offset_y_timekind;
 
 	bool is_save_initial_dist = false;
 
-	std::vector<int> inject_turns;
 	std::filesystem::path dir_load_distribution;
 	std::filesystem::path dir_save_distribution;
 	std::string hourMinSec;
 
-	int callTime = 0;
-	time_t curTime = time(NULL);
+	std::default_random_engine e1;
 
 	bool is_set_specified_coordinate = false;
 	std::vector<std::vector<double>> specified_coordinate;	// Each row is a particle, columns are x, px, y, py, z, dp/p

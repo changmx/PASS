@@ -1,5 +1,6 @@
 #include "injection.h"
 #include "constant.h"
+#include "general.h"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -8,10 +9,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include <random>
 
-Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name) {
+Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name) : bunchRef(Bunch) {
 	//std::cout << "pointer 2 " << std::hex << Bunch.dev_bunch << std::endl;
 	//std::cout << "pointer 3 " << std::hex << dev_bunch << std::endl;
 	name = obj_name;
@@ -41,25 +43,16 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		//name = data.at("Sequence").at("Injection").at("Command");
 		if (fabs(s) > 1e-10)
 		{
-			spdlog::get("logger")->error("[Injection] The position of injection point (simulation start point) should be 0, but now is : {}.", s);
-			std::exit(EXIT_FAILURE);
+			std::string error_msg = "[Injection] The position of injection point (simulation start point) should be 0, but now is : " + std::to_string(s);
+			throw std::invalid_argument(error_msg);
 		}
 
-		if (1 == data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size())
+		startTurn = 1;	// The first turn start from 1 not 0.
+		endTurn = 1 + data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns");
+		intervalTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject interval");
+		for (int t = startTurn; t < endTurn; t += intervalTurn)
 		{
-			startTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[0];
-			endTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[0];
-		}
-		else if (2 == data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size())
-		{
-			startTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[0];
-			endTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[1];
-		}
-		else
-		{
-			spdlog::get("logger")->error("[Injection] The number of parameters of 'Inject turns' should be 1 or 2, but now is: {}.",
-				data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size());
-			std::exit(EXIT_FAILURE);
+			inject_turns.push_back(t);
 		}
 
 		alphax = data.at("Sequence").at("Injection").at(key_bunch).at("Alpha x");
@@ -89,25 +82,58 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		sigmapx = sqrt(gammax * emitx);
 		sigmapy = sqrt(gammay * emity);
 
-		injection_mode = data.at("Sequence").at("Injection").at(key_bunch).at("Mode");
 		dist_transverse = data.at("Sequence").at("Injection").at(key_bunch).at("Transverse dist");
 		dist_longitudinal = data.at("Sequence").at("Injection").at(key_bunch).at("Longitudinal dist");
 
 		is_offset_x = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("Is offset");
 		is_offset_y = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("Is offset");
-
-		offset_x = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("Offset (m)");
-		offset_y = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("Offset (m)");
+		if (is_offset_x)
+		{
+			if (to_lower(offset_x_filepath) == "empty")
+			{
+				is_offset_x_fromFile = false;
+				double offset_x_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("Offset position(m)");
+				double offset_px_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("Offset momentum (rad)");
+				offset_x.push_back(offset_x_tmp);
+				offset_px.push_back(offset_px_tmp);
+			}
+			else
+			{
+				is_offset_x_fromFile = true;
+				offset_x_timekind = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("File time kind");
+				offset_x_filepath = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("File path");
+				std::vector<std::vector<double>> offset_data = read_file_data(offset_x_filepath);
+				offset_time_x = offset_data[0];
+				offset_x = offset_data[1];
+				offset_px = offset_data[2];
+			}
+		}
+		if (is_offset_y)
+		{
+			if (to_lower(offset_y_filepath) == "empty")
+			{
+				is_offset_y_fromFile = false;
+				double offset_y_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("Offset position(m)");
+				double offset_py_tmp = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("Offset momentum (rad)");
+				offset_y.push_back(offset_y_tmp);
+				offset_py.push_back(offset_py_tmp);
+			}
+			else
+			{
+				is_offset_y_fromFile = true;
+				offset_y_timekind = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("File time kind");
+				offset_y_filepath = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("File path");
+				std::vector<std::vector<double>> offset_data = read_file_data(offset_y_filepath);
+				offset_time_y = offset_data[0];
+				offset_y = offset_data[1];
+				offset_py = offset_data[2];
+			}
+		}
 
 		is_load_dist = data.at("Sequence").at("Injection").at(key_bunch).at("Is load distribution");
 		filename_load_dist = data.at("Sequence").at("Injection").at(key_bunch).at("Name of loaded file");
 
 		is_save_initial_dist = data.at("Sequence").at("Injection").at(key_bunch).at("Is save initial distribution");
-
-		for (size_t i = 0; i < data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns").size(); i++)
-		{
-			inject_turns.push_back(data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns")[i]);
-		}
 
 		if (data.at("Sequence").at("Injection").at(key_bunch).at("Insert particle coordinate").size() > 0) {
 			is_set_specified_coordinate = true;
@@ -127,9 +153,8 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	}
 	catch (json::exception e)
 	{
-		//std::cout << e.what() << std::endl;
-		spdlog::get("logger")->error(e.what());
-		std::exit(EXIT_FAILURE);
+		std::string error_msg = "[Injection] Error when parsing injection parameters: " + std::string(e.what());
+		throw std::runtime_error(error_msg);
 	}
 
 	Bunch.sigmaz = sigmaz;
@@ -137,6 +162,9 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 
 	Bunch.dist_transverse = dist_transverse;
 	Bunch.dist_longitudinal = dist_longitudinal;
+
+	std::random_device rd; // get system real random
+	e1.seed(rd());
 }
 
 void Injection::execute(int turn) {
@@ -144,89 +172,95 @@ void Injection::execute(int turn) {
 
 	//logger->debug("Injection action");
 
-	if ("1turn1time" == injection_mode)
+	auto it = std::find(inject_turns.begin(), inject_turns.end(), turn);
+	if (it == inject_turns.end())
 	{
-		//logger->debug("Start: 1-turn and 1-time injection");
-		if (startTurn != endTurn)
-		{
-			logger->warn("[Injection] In the 1-turn 1-time injection mode, we only inject 1 turn, but input parameters is from turn {} to turn {}. We will only inject at turn {}.",
-				startTurn, endTurn, startTurn);
-		}
-
-		if (turn == startTurn)
-		{
-			if (is_load_dist)
-			{
-				load_distribution();
-			}
-			else
-			{
-				if ("kv" == dist_transverse)
-				{
-					generate_transverse_KV_distribution();
-				}
-				else if ("gaussian" == dist_transverse)
-				{
-					generate_transverse_Gaussian_distribution();
-				}
-				else if ("uniform" == dist_transverse)
-				{
-					generate_transverse_uniform_distribution();
-				}
-				else
-				{
-					logger->error("[Injection] Sorry, we don't support transverse distribution type {}.", dist_transverse);
-					std::exit(EXIT_FAILURE);
-				}
-
-				if ("gaussian" == dist_longitudinal)
-				{
-					generate_longitudinal_Gaussian_distribution();
-				}
-				else if ("uniform" == dist_longitudinal)
-				{
-					generate_longitudinal_uniform_distribution();
-				}
-				else
-				{
-					logger->error("[Injection] Sorry, we don't support longitudinal distribution type {}.", dist_longitudinal);
-					std::exit(EXIT_FAILURE);
-				}
-
-				add_Dx();
-
-			}
-
-			add_offset();
-			insert_particle();
-
-			if (is_save_initial_dist)
-			{
-				save_initial_distribution();
-			}
-		}
+		return;
 	}
 
-	else if ("1turnxtime" == injection_mode)
+	double t0 = bunchRef.t0;
+
+	Np_inj_curTurn = int(Np / inject_turns.size());
+	if (turn == 1 && Np_inj_curTurn * inject_turns.size() != Np)
 	{
-		logger->error("[Injection] Sorry, we don't support: 1-turn and multi-time injection.");
-		std::exit(EXIT_FAILURE);
+		Np_inj_curTurn += (Np - Np_inj_curTurn * inject_turns.size());
+		logger->info("[Injection] Since the total number of particles {} cannot be divided exactly by the number of injection turns {}, we will inject {} particles in the first turn and {} particles in the rest turns.",
+			Np, inject_turns.size(), Np_inj_curTurn, int(Np / inject_turns.size()));
 	}
 
-	else if ("xturnxtime" == injection_mode)
+	if (is_load_dist)
 	{
-		logger->error("[Injection] Sorry, we don't support: multi-turn and multi-time injection.");
-		std::exit(EXIT_FAILURE);
+		load_distribution();
 	}
-
 	else
 	{
-		logger->error("[Injection] Input wrong injection mode value: {}.", injection_mode);
-		std::exit(EXIT_FAILURE);
+		if ("kv" == to_lower(dist_transverse))
+		{
+			generate_transverse_KV_distribution();
+		}
+		else if ("gaussian" == to_lower(dist_transverse))
+		{
+			generate_transverse_Gaussian_distribution();
+		}
+		else if ("uniform" == to_lower(dist_transverse))
+		{
+			generate_transverse_uniform_distribution();
+		}
+		else
+		{
+			std::string error_msg = "[Injection] Sorry, we don't support transverse distribution type " + dist_transverse;
+			throw std::invalid_argument(error_msg);
+		}
+
+		if ("gaussian" == to_lower(dist_longitudinal))
+		{
+			generate_longitudinal_Gaussian_distribution();
+		}
+		else if ("coasting" == to_lower(dist_longitudinal))
+		{
+			generate_longitudinal_coasting_distribution();
+		}
+		else
+		{
+			std::string error_msg = "[Injection] Sorry, we don't support longitudinal distribution type " + dist_longitudinal;
+			throw std::invalid_argument(error_msg);
+		}
+
+		add_Dx();
+
 	}
+
+	add_offset(turn, t0);
+
+	Np_inj_total += Np_inj_curTurn;
+
+	if (turn == inject_turns.back()) {
+
+		insert_particle();
+
+		if (is_save_initial_dist)
+		{
+			save_initial_distribution();
+		}
+	}
+
 }
 
+
 void Injection::load_distribution() {
+	/*
+	Read particle coordinate from file.
+
+	The delimeter of the file could be ",", " ", or "\t".
+
+	The order of the columns must be x, px, y, py, z, dp/p, tag, sliceId, lostTurn, lostPos. If the file only has 1 colums, the data will be assigned to x value, and the other particle coordiantes will be set to default value.
+		- The tag is an integer starting from 1 and each particle has a unique tag.
+		- The sliceId is an integer starting from 0 and indicates which slice the particle belongs to in longitudinal direction.
+		- The lostTurn is an integer indicating the turn when the particle is lost. If the particle is not lost, the value of lostTurn should be -1.
+		- The lostPos is a double indicating the position where the particle is lost. If the particle is not lost, the value of lostPos should be -1.
+
+	If there is a char or string in row, this row will be skipped.
+	*/
 
 	std::filesystem::path dist_path = dir_load_distribution / filename_load_dist;
 
@@ -242,85 +276,88 @@ void Injection::load_distribution() {
 		spdlog::get("logger")->info("[Injection] Loading distribution file: {}", dist_path.string());
 
 		Particle host_particle;
-		host_particle.mem_allocate_cpu(Np);
+		host_particle.mem_allocate_cpu(Np_inj_curTurn);
 
 		std::ifstream input(dist_path);
-
-		std::string line;
-		int j = 0;
-
-		double a[6] = { 0,0,0,0,0,0 };
-		int a_tag = 0, a_lostTurn = -1;
-		int a_sliceId = 0;
-		double a_lostPos = -1.0;
-		std::string tmp;
-		int row = 0;
-		int skiprows = 0;
-		while (std::getline(input, line))
-		{
-			std::stringstream sline(line);
-			//std::cout << line << std::endl;
-			int k = 0;
-			if (row != skiprows)
-			{
-				while (std::getline(sline, tmp, ','))
-				{
-					if (k < 6)
-					{
-						//std::cout << tmp << std::endl;
-						a[k] = std::stod(tmp);
-						//std::cout << j << a[j] << std::endl;
-					}
-					else if (k == 6)
-					{
-						a_tag = std::stoi(tmp);
-					}
-					else if (k == 7)
-					{
-						a_sliceId = std::stoi(tmp);
-					}
-					else if (k == 8)
-					{
-						a_lostTurn = std::stoi(tmp);
-					}
-					else if (k == 9)
-					{
-						a_lostPos = std::stod(tmp);
-					}
-					++k;
-				}
-				//std::cout << a[0] << "," << a[1] << std::endl;
-				//spdlog::get("logger")->debug("row [{}] a[0] = {}, a[1] = {}", row, a[0], a[1]);
-
-				int offset = j;
-				if (offset < Np)
-				{
-					host_particle.x[offset] = a[0];
-					host_particle.px[offset] = a[1];
-					host_particle.y[offset] = a[2];
-					host_particle.py[offset] = a[3];
-					host_particle.z[offset] = a[4];
-					host_particle.pz[offset] = a[5];
-					host_particle.tag[offset] = a_tag;
-					host_particle.sliceId[offset] = a_sliceId;
-					host_particle.lostTurn[offset] = a_lostTurn;
-					host_particle.lostPos[offset] = a_lostPos;
-
-					j++;
-				}
-
-			}
-			++row;
+		if (!input.is_open()) {
+			std::string error_msg = "[Injection] Cannot open file: " + dist_path.string();
+			throw std::runtime_error(error_msg);
 		}
 
-		if (j != Np)
+		std::string line;
+		int n_loaded = 0;
+		int start_index = Np_inj_total;
+		int current_index = 0;
+
+		int row = 0;
+
+		while (std::getline(input, line))
 		{
-			spdlog::get("logger")->warn("[Injection] We only load {}/{} particles from file {}.", j, Np, dist_path.string());
+			row++;
+
+			auto data_line = split_line(line);
+			if (data_line.empty())  continue;
+
+			double a[6] = { 0. };
+			int a_tag = current_index + 1, a_lostTurn = -1, a_sliceId = 0;
+			double a_lostPos = -1.0;
+			bool parse_ok = true;
+
+			try {
+				for (int k = 0; k < 6; ++k) { if (k < data_line.size()) a[k] = std::stod(data_line[k]); }
+				if (data_line.size() > 6) a_tag = std::stoi(data_line[6]);
+				if (data_line.size() > 7) a_sliceId = std::stoi(data_line[7]);
+				if (data_line.size() > 8) a_lostTurn = std::stoi(data_line[8]);
+				if (data_line.size() > 9) a_lostPos = std::stod(data_line[9]);
+			}
+			catch (const std::exception& e)
+			{
+				spdlog::get("logger")->warn("[Injection] Error parsing line {} in distribution file: {}. Error message: {}", row, dist_path.string(), e.what());
+				parse_ok = false;
+			}
+
+			if (current_index >= start_index && current_index < (start_index + Np_inj_curTurn))
+			{
+				if (parse_ok) {
+					host_particle.x[n_loaded] = a[0];
+					host_particle.px[n_loaded] = a[1];
+					host_particle.y[n_loaded] = a[2];
+					host_particle.py[n_loaded] = a[3];
+					host_particle.z[n_loaded] = a[4];
+					host_particle.pz[n_loaded] = a[5];
+					host_particle.tag[n_loaded] = a_tag;
+					host_particle.sliceId[n_loaded] = a_sliceId;
+					host_particle.lostTurn[n_loaded] = a_lostTurn;
+					host_particle.lostPos[n_loaded] = a_lostPos;
+				}
+				else {
+					host_particle.x[n_loaded] = 0.;
+					host_particle.px[n_loaded] = 0.;
+					host_particle.y[n_loaded] = 0.;
+					host_particle.py[n_loaded] = 0.;
+					host_particle.z[n_loaded] = 0.;
+					host_particle.pz[n_loaded] = 0.;
+					host_particle.tag[n_loaded] = -1 * (current_index + 1);	// load failed particle with negative tag to distinguish from normal particle
+					host_particle.sliceId[n_loaded] = 0;
+					host_particle.lostTurn[n_loaded] = -1;
+					host_particle.lostPos[n_loaded] = 0.;
+
+					spdlog::get("logger")->warn("[Injection] Since there is an error parsing line {} in distribution file {}, we set the tag of this particle to {}.", row, dist_path.string(), -1 * (current_index + 1));
+				}
+				n_loaded++;
+			}
+			current_index++;
 		}
 
 		input.close();
 
-		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+		if (n_loaded != Np_inj_curTurn)
+		{
+			std::string error_msg = "[Injection] Number of loaded particles (" + std::to_string(n_loaded) + ") does not match expected number of particles (" + std::to_string(Np_inj_curTurn) + "). Start index is (" + std::to_string(start_index) + ")";
+			throw std::runtime_error(error_msg);
+		}
+
+		particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 		host_particle.mem_free_cpu();
 
@@ -329,8 +366,8 @@ void Injection::load_distribution() {
 	}
 	else
 	{
-		spdlog::get("logger")->error("[Injection] We don't find distribution file: {}.", dist_path.string());
-		std::exit(EXIT_FAILURE);
+		std::string error_msg = "[Injection] We don't find distribution file: " + dist_path.string();
+		throw std::runtime_error(error_msg);
 	}
 }
 
@@ -367,18 +404,13 @@ void Injection::generate_transverse_KV_distribution() {
 	int i = bunchId;
 	int beam_label = beamId;
 
-	std::default_random_engine e1;
-	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
-
-	std::default_random_engine e2;
-	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u2(0, 1);
 
 	Particle host_particle;
-	host_particle.mem_allocate_cpu(Np);
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
 
-	for (int j = 0; j < Np; ++j)
+	for (int j = 0; j < Np_inj_curTurn; ++j)
 	{
 		double nu, x, px, y, py;
 		double X1, X2, Y1, Y2;
@@ -390,8 +422,8 @@ void Injection::generate_transverse_KV_distribution() {
 		double pi = PassConstant::PI;
 
 		double random_zeta = u1(e1);
-		double random_beta_x = u2(e2);
-		double random_beta_y = u2(e2);
+		double random_beta_x = u2(e1);
+		double random_beta_y = u2(e1);
 
 		double F = emittence_x;
 
@@ -451,11 +483,11 @@ void Injection::generate_transverse_KV_distribution() {
 		}
 	}
 
-	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+	int start_index = Np_inj_total;
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 	host_particle.mem_free_cpu();
-	//std::cout << "initial KV distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
+
 	spdlog::get("logger")->info("[Injection] The initial transverse KV distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 }
@@ -489,19 +521,13 @@ void Injection::generate_transverse_Gaussian_distribution() {
 	int i = bunchId;
 	int beam_label = beamId;
 
-	std::default_random_engine e1;
-	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
 	Particle host_particle;
-	host_particle.mem_allocate_cpu(Np);
-	//Particle* host_bunch;
-	//cudaHostAlloc((void**)&host_bunch, Np * sizeof(Particle), cudaHostAllocDefault);
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
 
-
-	for (int j = 0; j < Np; ++j)
+	for (int j = 0; j < Np_inj_curTurn; ++j)
 	{
-
 		double x, px, y, py;
 		double Xm, thetaXm, Ym, thetaYm;
 		double a_x, a_y, u_x, u_y, v_x, v_y;
@@ -548,16 +574,14 @@ void Injection::generate_transverse_Gaussian_distribution() {
 		{
 			--j;
 		}
-		/*std::cout << "tag: " << beam.tag(i) << std::endl;
-		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
+
 	}
 
-	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+	int start_index = Np_inj_total;
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 	host_particle.mem_free_cpu();
-	//cudaFreeHost(host_bunch);
-	//std::cout << "initial Gaussian distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
+
 	spdlog::get("logger")->info("[Injection] The initial transverse Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
@@ -591,16 +615,13 @@ void Injection::generate_transverse_uniform_distribution() {
 	int i = bunchId;
 	int beam_label = beamId;
 
-	std::default_random_engine e1;
-	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> u1(1e-15, 1.0 - 1e-15);
 
 	Particle host_particle;
-	host_particle.mem_allocate_cpu(Np);
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
 
-	for (int j = 0; j < Np; ++j)
+	for (int j = 0; j < Np_inj_curTurn; ++j)
 	{
-
 		double m = 1;
 		double x, px, y, py;
 		double Xm, thetaXm, Ym, thetaYm;
@@ -656,15 +677,14 @@ void Injection::generate_transverse_uniform_distribution() {
 		{
 			--j;
 		}
-		/*std::cout << "tag: " << beam.tag(i) << std::endl;
-		std::cout << beam.x(i) << " " << beam.px(i) << " " << beam.y(i) << " " << beam.py(i) << std::endl;*/
+
 	}
 
-	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+	int start_index = Np_inj_total;
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 	host_particle.mem_free_cpu();
-	//std::cout << "initial Uniform distribution of " << beam.beamName << " has been genetated successfully." << std::endl;
+
 	spdlog::get("logger")->info("[Injection] The initial transverse uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 }
@@ -686,24 +706,19 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 	//double rho = 0;
 	double tmp_z, tmp_pz;
 
-	std::default_random_engine e1;
-	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n1(0, sigma_z);
-
-	std::default_random_engine e2;
-	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n2(0, sigma_pz);
 
 	Particle host_particle;
-	host_particle.mem_allocate_cpu(Np);
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
 
-	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
-	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
+	int start_index = Np_inj_total;
+	particle_copy(host_particle, dev_particle, Np_inj_curTurn, cudaMemcpyDeviceToHost, "dist", 0, start_index);
 
-	for (int j = 0; j < Np; ++j)
+	for (int j = 0; j < Np_inj_curTurn; ++j)
 	{
 		tmp_z = n1(e1);
-		tmp_pz = n2(e2);
+		tmp_pz = n2(e1);
 
 		if (tmp_z >= (-4 * sigma_z) && tmp_z <= (4 * sigma_z))
 		{
@@ -716,8 +731,7 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 		}
 	}
 
-	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 	host_particle.mem_free_cpu();
 	spdlog::get("logger")->info("[Injection] The initial longitudinal Gaussian distribution of {} beam-{} bunch-{} has been genetated successfully.",
@@ -726,11 +740,11 @@ void Injection::generate_longitudinal_Gaussian_distribution() {
 }
 
 
-void Injection::generate_longitudinal_uniform_distribution() {
+void Injection::generate_longitudinal_coasting_distribution() {
 
 	//	Generate particle's z position and momentum.
 	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
-	//	The uniform distribution of z ranges from 0 to sigmaz.
+	//	The uniform distribution of z ranges from -sigmaz/2 to sigmaz/2.
 
 	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
@@ -740,27 +754,21 @@ void Injection::generate_longitudinal_uniform_distribution() {
 
 	double sigma_z = sigmaz;	// Acctually, this is the range of uniform distribution, not RMS value
 	double sigma_pz = dp;
-	//double rho = 0;
 	double tmp_z, tmp_pz;
 
-	std::default_random_engine e1;
-	e1.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::uniform_real_distribution<> n1(-0.5 * sigma_z, 0.5 * sigma_z);
-
-	std::default_random_engine e2;
-	e2.seed(curTime + beam_label * 10000019 + (callTime++) * 1000 + (i + 1) * 1);
 	std::normal_distribution<> n2(0, sigma_pz);
 
 	Particle host_particle;
-	host_particle.mem_allocate_cpu(Np);
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
 
-	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
-	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
+	int start_index = Np_inj_total;
+	particle_copy(host_particle, dev_particle, Np_inj_curTurn, cudaMemcpyDeviceToHost, "dist", 0, start_index);
 
-	for (int j = 0; j < Np; ++j)
+	for (int j = 0; j < Np_inj_curTurn; ++j)
 	{
 		tmp_z = n1(e1);
-		tmp_pz = n2(e2);
+		tmp_pz = n2(e1);
 
 		if (tmp_z >= (-0.5 * sigma_z) && tmp_z <= (0.5 * sigma_z))
 		{
@@ -773,8 +781,7 @@ void Injection::generate_longitudinal_uniform_distribution() {
 		}
 	}
 
-	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 	host_particle.mem_free_cpu();
 	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
@@ -788,7 +795,6 @@ void Injection::save_initial_distribution() {
 	Particle host_particle;
 	host_particle.mem_allocate_cpu(Np);
 
-	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 	std::filesystem::path path_tmp = dir_save_distribution / (hourMinSec + "_beam" + std::to_string(beamId) + "_" + beam_name + "_bunch" + std::to_string(bunchId)
@@ -833,7 +839,6 @@ void Injection::add_Dx() {
 	Particle host_particle;
 	host_particle.mem_allocate_cpu(Np);
 
-	//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 	for (int j = 0; j < Np; ++j)
@@ -842,7 +847,6 @@ void Injection::add_Dx() {
 		host_particle.px[j] += Dpx * host_particle.pz[j];
 	}
 
-	//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
 	host_particle.mem_free_cpu();
@@ -851,55 +855,94 @@ void Injection::add_Dx() {
 }
 
 
-void Injection::add_offset() {
+void Injection::add_offset(int turn, double t0) {
 
-	if (is_offset_x)
+	if (!is_offset_x && !is_offset_y)
 	{
-		spdlog::get("logger")->info("[Injection] Offset x = {} of {} beam-{} bunch-{} is begin added ...",
-			offset_x, beam_name, beamId, bunchId);
-
-		Particle host_particle;
-		host_particle.mem_allocate_cpu(Np);
-
-		//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
-		particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
-
-		for (int j = 0; j < Np; ++j)
-		{
-			host_particle.x[j] += offset_x;
-		}
-
-		//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
-
-		host_particle.mem_free_cpu();
-		spdlog::get("logger")->info("[Injection] Offset x = {} of {} beam-{} bunch-{} has been genetated successfully.",
-			offset_x, beam_name, beamId, bunchId);
+		return;
 	}
 
-	if (is_offset_y)
+	spdlog::get("logger")->info("[Injection] Offset of {} beam-{} bunch-{} is begin added ...", beam_name, beamId, bunchId);
+
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np);
+
+	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
+
+	double cur_offset_x = 0.0, cur_offset_px = 0.0;
+	double cur_offset_y = 0.0, cur_offset_py = 0.0;
+
+	if (is_offset_x && is_offset_x_fromFile)
 	{
-		spdlog::get("logger")->info("[Injection] Offset y = {} of {} beam-{} bunch-{} is begin added ...",
-			offset_y, beam_name, beamId, bunchId);
+		std::vector<std::vector<double>> var_y = { offset_x,offset_px };
 
-		Particle host_particle;
-		host_particle.mem_allocate_cpu(Np);
-
-		//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
-		particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
-
-		for (int j = 0; j < Np; ++j)
+		if (to_lower(offset_x_timekind) == "turn")
 		{
-			host_particle.y[j] += offset_y;
+			auto result = linearInterpolate(offset_time_x, var_y, turn);
+			cur_offset_x = result[0];
+			cur_offset_px = result[1];
+		}
+		else if (to_lower(offset_x_timekind) == "time")
+		{
+			auto result = linearInterpolate(offset_time_x, var_y, t0);
+			cur_offset_x = result[0];
+			cur_offset_px = result[1];
+		}
+		else
+		{
+			std::string error_msg = "[Injection] The time kind of offset x is " + offset_x_timekind + ", which is invalid. It should be 'turn' or 'time'.";
+			throw std::invalid_argument(error_msg);
 		}
 
-		//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
-		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
-
-		host_particle.mem_free_cpu();
-		spdlog::get("logger")->info("[Injection] Offset y = {} of {} beam-{} bunch-{} has been genetated successfully.",
-			offset_y, beam_name, beamId, bunchId);
 	}
+	else if (is_offset_x && !is_offset_x_fromFile)
+	{
+		cur_offset_x = offset_x[0];
+		cur_offset_px = offset_px[0];
+	}
+
+	if (is_offset_y && is_offset_y_fromFile)
+	{
+		std::vector<std::vector<double>> var_y = { offset_y,offset_py };
+
+		if (offset_y_timekind == "turn")
+		{
+			auto result = linearInterpolate(offset_time_y, var_y, turn);
+			cur_offset_y = result[0];
+			cur_offset_py = result[1];
+		}
+		else if (offset_y_timekind == "time")
+		{
+			auto result = linearInterpolate(offset_time_y, var_y, t0);
+			cur_offset_y = result[0];
+			cur_offset_py = result[1];
+		}
+		else
+		{
+			std::string error_msg = "[Injection] The time kind of offset y is " + offset_y_timekind + ", which is invalid. It should be 'turn' or 'time'.";
+			throw std::invalid_argument(error_msg);
+		}
+
+	}
+	else if (is_offset_y && !is_offset_y_fromFile)
+	{
+		cur_offset_y = offset_y[0];
+		cur_offset_py = offset_py[0];
+	}
+
+	for (int j = 0; j < Np; ++j)
+	{
+		host_particle.x[j] += cur_offset_x;
+		host_particle.px[j] += cur_offset_px;
+		host_particle.y[j] += cur_offset_y;
+		host_particle.py[j] += cur_offset_py;
+	}
+
+	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
+
+	host_particle.mem_free_cpu();
+	spdlog::get("logger")->info("[Injection] Offset of {} beam-{} bunch-{} has been added successfully.", beam_name, beamId, bunchId);
+
 }
 
 
@@ -911,14 +954,13 @@ void::Injection::insert_particle() {
 			specified_coordinate.size(), beam_name, beamId, bunchId);
 
 		if (specified_coordinate.size() > Np) {
-			spdlog::get("error")->info("[Injection] Number of inserted particles is {}, but the number of macro particles is {}.", specified_coordinate.size(), Np);
-			std::exit(EXIT_FAILURE);
+			spdlog::get("logger")->warn("[Injection] The number of specified coordinates is {} larger than the number of particles, so we only use the first '{}' specified coordinates.", specified_coordinate.size(), Np, Np);
+			specified_coordinate.resize(Np);
 		}
 
 		Particle host_particle;
 		host_particle.mem_allocate_cpu(Np);
 
-		//callCuda(cudaMemcpy(host_bunch, dev_bunch, Np * sizeof(Particle), cudaMemcpyDeviceToHost));
 		particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
 
 		for (size_t i = 0; i < specified_coordinate.size(); i++)
@@ -931,7 +973,6 @@ void::Injection::insert_particle() {
 			host_particle.pz[i] = specified_coordinate[i][5];
 		}
 
-		//callCuda(cudaMemcpy(dev_bunch, host_bunch, Np * sizeof(Particle), cudaMemcpyHostToDevice));
 		particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
 
 		host_particle.mem_free_cpu();
@@ -945,3 +986,5 @@ void Injection::print_config() {
 
 
 }
+
+
