@@ -90,8 +90,8 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
                 "Kinetic energy per nucleon (eV/u)": 33.2e6,
                 "Number of real particles per bunch": 3e11,
                 "Number of macro particles per bunch": 1e6,
-                "Mode": "1turn1time",  # [1turn1time/1turnxtime/xturnxtime]
-                "Inject turns": [1],
+                "Inject turns": 1,
+                "Inject interval": 1,
                 "Alpha x": -2.614303952,
                 "Alpha y": 1.57442348,
                 "Beta x (m)": 17.56341783,
@@ -103,14 +103,20 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
                 "Sigma z (m)": 0,
                 "DeltaP/P": 0,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
-                "Longitudinal dist": "uniform",  # [gaussian/uniform]
+                "Longitudinal dist": "coasting",  # [gaussian/coasting/matchZ/matchDp]
                 "Offset x": {
                     "Is offset": False,
-                    "Offset (m)": 5e-3,
+                    "Offset position(m)": 5e-3,
+                    "Offset momentum (rad)": 0,
+                    "File path": "empty",  # must be "empty" if not use, or the full file path
+                    "File time kind": "turn",  # [turn/time], the file is turn-based or time-based
                 },
                 "Offset y": {
                     "Is offset": False,
-                    "Offset (m)": 0,
+                    "Offset position(m)": 0,
+                    "Offset momentum (rad)": 0,
+                    "File path": "empty",  # must be "empty" if not use, or the full file path
+                    "File time kind": "turn",  # [turn/time], the file is turn-based or time-based
                 },
                 "Is load distribution": False,
                 "Name of loaded file":
