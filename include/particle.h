@@ -192,4 +192,4 @@ private:
 };
 
 
-void particle_copy(Particle dst, Particle src, size_t n, cudaMemcpyKind kink, std::string type);
+void particle_copy(Particle dst, Particle src, size_t n, cudaMemcpyKind kink, std::string type, int dst_offset = 0, int src_offset = 0);
