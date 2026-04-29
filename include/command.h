@@ -60,20 +60,16 @@ inline void checkCudaError(cudaError_t err, const char* file, int line)
 {
 	if (err != cudaSuccess)
 	{
-		//std::cerr << "\nError: cuda error: " << cudaGetErrorString(cudaGetLastError()) << ", in " << file << ", at line " << line << "\n";
-		spdlog::get("logger")->error("cuda error: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
-		cudaDeviceReset();
-		exit(EXIT_FAILURE);
+		std::string error_msg = "CUDA error at " + std::string(file) + ": line " + std::to_string(line) + ": " + cudaGetErrorString(cudaGetLastError());
+		throw std::runtime_error(error_msg);
 	}
 }
 inline void checkCufftError(cufftResult err, const char* file, int line)
 {
 	if (err != CUFFT_SUCCESS)
 	{
-		//std::cerr << "\nError: cufft error number: " << err << ", in " << file << ", at line " << line << "\n";
-		spdlog::get("logger")->error("cufft error: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
-		cudaDeviceReset();
-		exit(EXIT_FAILURE);
+		std::string error_msg = "CUFFT error at " + std::string(file) + ": line " + std::to_string(line) + ": " + std::to_string(err);
+		throw std::runtime_error(error_msg);
 	}
 }
 
@@ -81,10 +77,8 @@ inline void checkCusparse(cusparseStatus_t err, const char* file, int line)
 {
 	if (err != CUSPARSE_STATUS_SUCCESS)
 	{
-		//std::cerr << "\nError: cusparse error number: " << err << ", in " << file << ", at line " << line << "\n";
-		spdlog::get("logger")->error("cufft cusparse: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
-		cudaDeviceReset();
-		exit(EXIT_FAILURE);
+		std::string error_msg = "CUSPARSE error at " + std::string(file) + ": line " + std::to_string(line) + ": " + std::to_string(err);
+		throw std::runtime_error(error_msg);
 	}
 }
 
@@ -92,10 +86,8 @@ inline void checkCusolver(cusolverStatus_t err, const char* file, int line)
 {
 	if (err != CUSOLVER_STATUS_SUCCESS)
 	{
-		//std::cerr << "\nError: cusolver error number: " << err << ", in " << file << ", at line " << line << "\n";
-		spdlog::get("logger")->error("cusolver cusparse: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
-		cudaDeviceReset();
-		exit(EXIT_FAILURE);
+		std::string error_msg = "CUSOLVER error at " + std::string(file) + ": line " + std::to_string(line) + ": " + std::to_string(err);
+		throw std::runtime_error(error_msg);
 	}
 }
 
@@ -103,10 +95,8 @@ inline void checkCublas(cublasStatus_t err, const char* file, int line)
 {
 	if (err != CUBLAS_STATUS_SUCCESS)
 	{
-		//std::cerr << "\nError: cublas error number: " << err << ", in " << file << ", at line " << line << "\n";
-		spdlog::get("logger")->error("cublas cusparse: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
-		cudaDeviceReset();
-		exit(EXIT_FAILURE);
+		std::string error_msg = "CUBLAS error at " + std::string(file) + ": line " + std::to_string(line) + ": " + std::to_string(err);
+		throw std::runtime_error(error_msg);
 	}
 }
 
@@ -114,10 +104,8 @@ inline void checkCudss(cudssStatus_t err, const char* file, int line)
 {
 	if (err != CUDSS_STATUS_SUCCESS)
 	{
-		//std::cerr << "\nError: cudss error number: " << err << ", in " << file << ", at line " << line << "\n";
-		spdlog::get("logger")->error("cudss error: {}, in {}, at line {}", cudaGetErrorString(cudaGetLastError()), file, line);
-		cudaDeviceReset();
-		exit(EXIT_FAILURE);
+		std::string error_msg = "CUDSS error at " + std::string(file) + ": line " + std::to_string(line) + ": " + std::to_string(err);
+		throw std::runtime_error(error_msg);
 	}
 }
 
