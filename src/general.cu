@@ -877,3 +877,113 @@ std::string to_upper(const std::string& str) {
 	}
 	return result;
 }
+
+
+const double brent(const std::function<double(double)>& func, const double x1, const double x2, const double tol, const int iter_max)
+{
+	//	Find the solutions of a function (func) in domain [x1, x2]
+	auto logger = spdlog::get("logger");
+
+	double x1_temp, x2_temp, fx1, fx2, f_temp, x_temp, interval, interval_temp, tol_scale, x_mid, coef1, coef2, coef4, coef3, coef5;
+	int direction, iter;
+	x1_temp = x1;
+	x2_temp = x2;
+	fx1 = func(x1_temp);
+	fx2 = func(x2_temp);
+	if (approx_equal(fx1, 0))
+		return x1_temp;
+	else if (approx_equal(fx2, 0))
+		return x2_temp;
+	if ((fx2 * fx1) > 0.0)
+	{
+		std::string error_msg = "[General] brent: Cannot find the root while f(x1) * f(x2) > 0";
+		throw std::runtime_error(error_msg);
+	}
+	f_temp = fx2;
+	for (iter = 1; iter <= iter_max; iter++)
+	{
+		if ((fx2 * f_temp) > 0.0)
+		{
+			x_temp = x1_temp;
+			f_temp = fx1;
+			interval = x2_temp - x1_temp;
+			interval_temp = interval;
+		}
+		if (fabs(f_temp) < fabs(fx2))
+		{
+			x1_temp = x2_temp;
+			x2_temp = x_temp;
+			x_temp = x1_temp;
+			fx1 = fx2;
+			fx2 = f_temp;
+			f_temp = fx1;
+		}
+		tol_scale = 2.0 * tol * fabs(x2_temp) + 0.5 * tol;
+		x_mid = 0.5 * (x_temp - x2_temp);
+		if ((fabs(x_mid) <= tol_scale) || (fx2 == 0.0))
+		{
+			return x2_temp;
+		}
+		if ((fabs(interval_temp) >= tol_scale) && (fabs(fx1) > fabs(fx2)))
+		{
+			coef3 = fx2 / fx1;
+			if (x1_temp == x_temp)
+			{
+				coef4 = 2.0 * x_mid * coef3;
+				coef1 = 1 - coef3;
+			}
+			else
+			{
+				coef1 = fx1 / f_temp;
+				coef2 = fx2 / f_temp;
+				coef4 = coef3 * (2.0 * x_mid * coef1 * (coef1 - coef2) - (x2_temp - x1_temp) * (coef2 - 1.0));
+				coef1 = (coef1 - 1.0) * (coef2 - 1.0) * (coef3 - 1.0);
+			}
+			if (coef4 > 0.0) coef1 = -coef1;
+			coef4 = fabs(coef4);
+			if ((3.0 * x_mid * coef1 - fabs(tol_scale * coef1)) < fabs(interval_temp * coef1))
+			{
+				coef5 = 3.0 * x_mid * coef1 - fabs(tol_scale * coef1);
+			}
+			else
+			{
+				coef5 = fabs(interval_temp * coef1);
+			}
+			if ((2.0 * coef4) < coef5)
+			{
+				interval_temp = interval;
+				interval = coef4 / coef1;
+			}
+			else
+			{
+				interval = x_mid;
+				interval_temp = interval;
+			}
+		}
+		else
+		{
+			interval = x_mid;
+			interval_temp = interval;
+		}
+		x1_temp = x2_temp;
+		fx1 = fx2;
+		if (fabs(interval) > tol_scale)
+			x2_temp = x2_temp + interval;
+		else
+		{
+			if (x_mid > 0)
+				direction = 1;
+			if (x_mid == 0)
+				direction = 0;
+			if (x_mid < 0)
+				direction = -1;
+			x2_temp = x2_temp + fabs(tol_scale) * direction;
+		}
+		fx2 = func(x2_temp);
+	}
+	if (iter == iter_max)
+	{
+		logger->info("Reach the maximal iteration!");
+	}
+	return x2_temp;
+}

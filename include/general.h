@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <cassert>
 #include <cctype>
+#include <functional>
 
 #include <cmdline/cmdline.h>
 #include <tabulate/tabulate.hpp>
@@ -139,7 +140,7 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path);
 
 // 判断是否相等（对于浮点数，使用相对误差进行比较；对于其他类型，直接比较）。eps是相对误差的容忍度，默认为1e-10。
 template<typename T1, typename T2>
-inline bool approx_equal(T1 a, T2 b, std::common_type_t<T1, T2> eps = 1e-10)
+inline bool approx_equal(T1 a, T2 b, std::common_type_t<T1, T2> eps = 1e-12)
 {
 	using Float = std::common_type_t<T1, T2, double>;
 	if constexpr (std::is_floating_point_v<Float>) {
@@ -233,3 +234,5 @@ std::vector<YType> linearInterpolate(
 std::string to_lower(const std::string& str);
 
 std::string to_upper(const std::string& str);
+
+const double brent(const std::function<double(double)>& func, const double x1, const double x2, const double tol = 1e-10, const int iter_max = 1000);
