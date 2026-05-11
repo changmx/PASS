@@ -15,7 +15,7 @@ from generate_smooth_approx_twiss import generate_twiss_smooth_approximate
 def generate_simulation_config_beam0(output_fileName="beam0.json"):
     """
     Generate a PASS simulation input file requires the following steps:
-    1. set the global parameters: BeamPara (required), SpaceChargePara (optional), BeamBeamPara (optional)
+    1. set the global parameters: MainPara (required), SpaceChargePara (optional), BeamBeamPara (optional)
     2. set the parameters of beam: Injection (required)
     3. set the ring sequence (at least include 1 of the following parts)
         (1) get full twiss from madx
@@ -41,7 +41,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     # ------------------------------------------------------------ Step 1: Config global parameters ------------------------------------------------------------ #
 
-    BeamPara = {
+    MainPara = {
         "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
         "Number of protons per particle": 8,
         "Number of neutrons per particle": 10,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
@@ -49,7 +49,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
         "Number of bunches per beam": 1,
         "Circumference (m)": 569.1,
         "GammaT": 7.635074035,
-        "Number of turns": 200,  # number of simulate turns, start from 1 in program
+        "Number of turns": 100,  # number of simulate turns, start from 1 in program
         "Number of GPU devices": 1,
         "Device Id": [0],  # Nvidia GPU ID, if you have only 1 gpu, this value must be [0]
         "Output directory": "C:\\Users\\changmx\\Documents\\PassSimulation",
@@ -58,8 +58,8 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     SpaceChargePara = {
         "Space-charge simulation parameters": {
-            "Is enable space charge": False,
-            "Number of slices": 10,
+            "Is enable space charge": True,
+            "Number of slices": 100,
             "Slice model": "Equal particle",  # [Equal particle/Equal length]
             "Field solver": "PIC_FD_CUDSS",  # [PIC_FD_CUDSS/PIC_Conv/PIC_FD_AMGX/PIC_FD_FFT/Eq_Quasi_Static/Eq_Frozen]
         }
@@ -87,9 +87,9 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
             "S (m)": 0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic energy per nucleon (eV/u)": 33.2e6,
-                "Number of real particles per bunch": 3e11,
-                "Number of macro particles per bunch": 1e6,
+                "Kinetic energy per nucleon (eV/u)": 33.2e9,
+                "Number of real particles per bunch": 1e11,
+                "Number of macro particles per bunch": 1e7,
                 "Inject turns": 1,
                 "Inject interval": 1,
                 "Alpha x": -2.614303952,
@@ -100,10 +100,10 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
                 "Emittance y (m'rad)": 100e-6,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 0,
-                "DeltaP/P": 0,
+                "Sigma z (m)": 1.0,
+                "DeltaP/P": 0.001,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
-                "Longitudinal dist": "coasting",  # [gaussian/coasting/matchZ/matchDp]
+                "Longitudinal dist": "gaussian",  # [gaussian/coasting/matchZ/matchDp]
                 "Offset x": {
                     "Is offset": False,
                     "Offset position(m)": 5e-3,
@@ -142,7 +142,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     #     insert_element_name_pattern=[],
     #     interp_kind="cubic",
     # )
-    # BeamPara["Circumference (m)"] = circumference_interp
+    # MainPara["Circumference (m)"] = circumference_interp
 
     # Sequence.update(twiss_dict_interp)
 
@@ -158,21 +158,21 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     #     is_field_error=False,
     #     insert_element_name_pattern=["BRMG41Q2222"],
     # )
-    # BeamPara["Circumference (m)"] = circumference_twissFile
+    # MainPara["Circumference (m)"] = circumference_twissFile
 
     # Sequence.update(twiss_dict_from_madx)
 
     # ------------------------------------------------------------ Step 3: Get element from madx ------------------------------------------------------------ #
 
-    element_dict_from_madx, circumference_from_madx = get_element_from_madx_twissfile(
-        twiss_file_path=r"C:\Users\changmx\Documents\PASS\para\bring.tfs",
-        error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
-        is_merge_drift=True,
-        is_field_error=False,
-    )
-    BeamPara["Circumference (m)"] = circumference_from_madx
+    # element_dict_from_madx, circumference_from_madx = get_element_from_madx_twissfile(
+    #     twiss_file_path=r"C:\Users\changmx\Documents\PASS\para\bring.tfs",
+    #     error_file_path=r"C:\Users\changmx\Documents\PASS\para\error_sextupoleerror.tfs",
+    #     is_merge_drift=True,
+    #     is_field_error=False,
+    # )
+    # MainPara["Circumference (m)"] = circumference_from_madx
 
-    Sequence.update(element_dict_from_madx)
+    # Sequence.update(element_dict_from_madx)
 
     # add_ramping_file(
     #     Sequence,
@@ -184,7 +184,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     # ------------------------------------------------------------ Step 3: Get twiss from smooth approximation ------------------------------------------------------------ #
 
     # twiss_dict_smooth_approx, circumference_smooth_approx = generate_twiss_smooth_approximate(
-    #     circum=BeamPara["Circumference (m)"],
+    #     circum=MainPara["Circumference (m)"],
     #     Qx=9.47,
     #     Qy=9.43,
     #     numPoints=100,
@@ -196,34 +196,38 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     # ------------------------------------------------------------ Step 3: Oneturn map ------------------------------------------------------------ #
 
-    # lattice_oneturn_map = {
-    #     "oneturn_map": {
-    #         "S (m)": 0,
-    #         "Command": "Twiss",
-    #         "S previous (m)": 0,
-    #         "Alpha x": 0,
-    #         "Alpha y": 0,
-    #         "Beta x (m)": 0.05,
-    #         "Beta y (m)": 0.012,
-    #         "Mu x": 0.3152,
-    #         "Mu y": 0.3016,
-    #         "Mu z": 0.0102,
-    #         "Alpha x previous": 0,
-    #         "Alpha y previous": 0,
-    #         "Beta x previous (m)": 0.05,
-    #         "Beta y previous (m)": 0.012,
-    #         "Mu x previous": 0,
-    #         "Mu y previous": 0,
-    #         "Mu z previous": 0,
-    #         # "Dx (m)": Dx[i],
-    #         # "Dpx": Dpx[i],
-    #         "longitudinal transfer": "matrix",
-    #     },
-    # }
+    lattice_oneturn_map = {
+        "oneturn_map": {
+            "S (m)": 569.1,
+            "Command": "Twiss",
+            "S previous (m)": 0,
+            "Alpha x": -2.614303952,
+            "Alpha y": 1.57442348,
+            "Beta x (m)": 17.56341783,
+            "Beta y (m)": 8.624482365,
+            "Mu x": 0.47,
+            "Mu y": 0.43,
+            "Mu z": 0.0102,
+            "Dx (m)": 0.0,
+            "Dpx": 0.0,
+            "Alpha x previous": -2.614303952,
+            "Alpha y previous": 1.57442348,
+            "Beta x previous (m)": 17.56341783,
+            "Beta y previous (m)": 8.624482365,
+            "Mu x previous": 0.0,
+            "Mu y previous": 0.0,
+            "Mu z previous": 0.0,
+            "Dx (m) previous": 0.0,
+            "Dpx previous": 0.0,
+            "DQx": 0.0,
+            "DQy": 0.0,
+            "Longitudinal transfer": "matrix",
+        },
+    }
 
-    # Sequence.update(lattice_oneturn_map)
+    Sequence.update(lattice_oneturn_map)
 
-    # ------------------------------------------------------------ Step 4: Space charge ------------------------------------------------------------ #
+    # ------------------------------------------------------------ Step 4: Space charge type 1 ------------------------------------------------------------ #
 
     # Aperture option:
     #   Circle   : value = [radius] (in unit of m)
@@ -270,7 +274,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     # sc_keys = list(sc_dict.keys())
     # for i in range(len(sc_keys)):
     #     if i == 0:
-    #         sc_dict[sc_keys[0]]["L (m)"] = sc_dict[sc_keys[0]]["S (m)"] + (BeamPara["Circumference (m)"] - sc_dict[sc_keys[-1]]["S (m)"])
+    #         sc_dict[sc_keys[0]]["L (m)"] = sc_dict[sc_keys[0]]["S (m)"] + (MainPara["Circumference (m)"] - sc_dict[sc_keys[-1]]["S (m)"])
     #     else:
     #         sc_dict[sc_keys[i]]["L (m)"] = sc_dict[sc_keys[i]]["S (m)"] - sc_dict[sc_keys[i - 1]]["S (m)"]
 
@@ -286,19 +290,50 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     #         sc_dict.pop(sc_del_key)
     #     print(f"[Space Charge] The length of these sc point is 0, we have delete them: {sc_delete_keys}")
 
-    # if abs(sc_length_counts - BeamPara["Circumference (m)"]) < 1e-6:
+    # if abs(sc_length_counts - MainPara["Circumference (m)"]) < 1e-6:
     #     print(
-    #         f"[Space Charge] Pass the circumference test: theory = {BeamPara['Circumference (m)']} m, current = {sc_length_counts} m, diff = {sc_length_counts - BeamPara['Circumference (m)']:.15e} m"
+    #         f"[Space Charge] Pass the circumference test: theory = {MainPara['Circumference (m)']} m, current = {sc_length_counts} m, diff = {sc_length_counts - MainPara['Circumference (m)']:.15e} m"
     #     )
     # else:
     #     print(
-    #         f"[Space Charge] Failed the circumference test: theory = {BeamPara['Circumference (m)']} m, current = {sc_length_counts} m, diff = {sc_length_counts - BeamPara['Circumference (m)']:.15e} m"
+    #         f"[Space Charge] Failed the circumference test: theory = {MainPara['Circumference (m)']} m, current = {sc_length_counts} m, diff = {sc_length_counts - MainPara['Circumference (m)']:.15e} m"
     #     )
     #     sys.exit(1)
 
     # print(f"[Space Charge] success: {len(sc_dict)} space charge points has been generated.")
 
     # Sequence.update(sc_dict)
+
+    # ------------------------------------------------------------ Step 4: Space charge type 2 ------------------------------------------------------------ #
+
+    # Aperture option:
+    #   Circle   : value = [radius] (in unit of m)
+    #   Rectangle: value = [half width, half height] (in unit of m)
+    #   Ellipse  : value = [horizontal semi axis, verticle semi axis] (in unit of m)
+    #   PIC mesh (refer to Rectangle): value = [] (empty, the aperture coincides with the PIC mesh)
+
+    #   Note1: if PIC mesh size is smaller than aperture, the PIC grid length will be increased to be able to cover the aperture
+    #   Note2: if the number of values in the value list is greater than the number required by the aperture, the redundant values will be ignored
+    #   Note3: for rectangle aperture, it is recommanded to align the PIC mesh with the aperture so as not to perform unnecessary calculations
+
+    sc_dict = {}
+
+    sc_dict["SC1"] = {
+        "S (m)": 10,
+        "Command": "SpaceCharge",
+        "L (m)": 0.1,
+        "Aperture type": "Rectangle",  # [Circle/Rectangle/Ellipse]
+        "Aperture value": [
+            0.2,
+            0.2,
+        ],  # [Circle: radius/Rectangle:half width, half height/Ellipse:a,b]
+        "Number of PIC grid x": 200,
+        "Number of PIC grid y": 200,
+        "Grid x length": 0.002,
+        "Grid y length": 0.002,
+    }
+
+    Sequence.update(sc_dict)
 
     # ------------------------------------------------------------ Step 5: Input single element ------------------------------------------------------------ #
 
@@ -385,13 +420,13 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     }
     Sequence.update(Monitor_Stat1)
 
-    Monitor_Stat2 = {
-        "StatMonitor_2": {
-            "S (m)": 83.57124735,
-            "Command": "StatMonitor"
-        },
-    }
-    Sequence.update(Monitor_Stat2)
+    # Monitor_Stat2 = {
+    #     "StatMonitor_2": {
+    #         "S (m)": 83.57124735,
+    #         "Command": "StatMonitor"
+    #     },
+    # }
+    # Sequence.update(Monitor_Stat2)
 
     # ------------------------------------------------------------ Step 6: Phase Monitor ------------------------------------------------------------ #
     # Monitor to save phase advance
@@ -436,16 +471,16 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     # ------------------------------------------------------------ Step 6: Sort and cut slice ------------------------------------------------------------ #
     # Sort bunch at position s to realize bunch slicing
 
-    # sortPoint_dict = {}
-    # num_sort = 1
-    # s_sort = np.linspace(0, BeamPara["Circumference (m)"], num_sort, endpoint=False)
-    # for i in range(len(s_sort)):
-    #     sortPoint_dict[f"SortBunch[{i+1}]"] = {
-    #         "S (m)": s_sort[i],
-    #         "Command": "SortBunch",
-    #         "Sort purpose": "Space-charge",  # [Space-charge/Beam-beam]
-    #     }
-    # Sequence.update(sortPoint_dict)
+    sortPoint_dict = {}
+    num_sort = 1
+    s_sort = np.linspace(0, MainPara["Circumference (m)"], num_sort, endpoint=False)
+    for i in range(len(s_sort)):
+        sortPoint_dict[f"SortBunch[{i+1}]"] = {
+            "S (m)": s_sort[i],
+            "Command": "SortBunch",
+            "Sort purpose": "Space-charge",  # [Space-charge/Beam-beam]
+        }
+    Sequence.update(sortPoint_dict)
 
     # ------------------------------------------------------------ Step 7: User's customized section ------------------------------------------------------------ #
 
@@ -476,7 +511,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     try:
         merged_dict = {
-            **BeamPara,
+            **MainPara,
             **SpaceChargePara,
             **BeamBeamPara,
             **ParticleMonitorPara,
@@ -484,7 +519,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
         }
     except:
         merged_dict = {
-            **BeamPara,
+            **MainPara,
             **SpaceChargePara,
             **BeamBeamPara,
             **SequencePara,
