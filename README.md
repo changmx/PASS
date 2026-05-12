@@ -1,3 +1,6 @@
+## 🌐 Language
+[**中文**](README-zh.md) | [English](README.md)
+
 # PASS (Particle Accelerator Simulation Studio)
 
 
