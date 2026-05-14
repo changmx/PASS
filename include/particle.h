@@ -145,6 +145,7 @@ public:
 	// sigmaz and dp will be set in Injection initialize function
 	double sigmaz = 0;
 	double dp = 0;
+	double z_shift = 0; // The offset of the longitudinal center of the bunch relative to the injection point
 
 	//int dampTurn = 0;	// Transverse damping turns
 
