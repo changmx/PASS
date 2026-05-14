@@ -236,3 +236,9 @@ std::string to_lower(const std::string& str);
 std::string to_upper(const std::string& str);
 
 const double brent(const std::function<double(double)>& func, const double x1, const double x2, const double tol = 1e-10, const int iter_max = 1000);
+
+// Use trapezoidal method to calculate the integral of 1D numerical function. The arguments are the function, lower limit, upper limit, and the intervals' number.
+const double trapz(const std::function<double(double)>& func, const double a, const double b, const int n = 1000);
+
+// Use trapezoidal method to calculate the integral of 2D numerical function. The arguments are the function, lower limit, upper limit, and the intervals' number.
+const double trapz2d(const std::function<double(double, double)>& func, const std::function<double(double)>& funcy1, const std::function<double(double)>& funcy2, const double a, const double b, const int n = 1000);

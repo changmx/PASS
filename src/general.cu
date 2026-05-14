@@ -983,7 +983,41 @@ const double brent(const std::function<double(double)>& func, const double x1, c
 	}
 	if (iter == iter_max)
 	{
-		logger->info("Reach the maximal iteration!");
+		logger->info("[brent] Reach the maximal iteration!");
 	}
 	return x2_temp;
+}
+
+
+const double trapz(const std::function<double(double)>& func, const double a, const double b, const int n)
+{
+	double sum = 0.0;
+	if ((b - a) < 1E-9)
+		return 0;
+	double gaps = (b - a) / double(n);  //ÿ������ĳ���
+	int n_thread = 8;
+#pragma omp parallel for num_threads(n_thread) reduction(+:sum)
+	for (int i = 0; i < n; i++)
+	{
+		sum += (gaps / 2.0) * (func(a + i * gaps) + func(a + (i + 1) * gaps));
+	}
+	return sum;
+}
+
+
+const double trapz2d(const std::function<double(double, double)>& func, const std::function<double(double)>& funcy1, const std::function<double(double)>& funcy2, const double a, const double b, const int n)
+{
+	double sum = 0.0;
+	if ((b - a) < 1e-9)
+		return 0;
+	double gaps = (b - a) / double(n);  //ÿ������ĳ���
+	int n_thread = 8;
+#pragma omp parallel for num_threads(n_thread) reduction(+:sum)
+	for (int i = 0; i < n; i++)
+	{
+		auto funca = [=](double y) -> double { return func(a + i * gaps, y); };
+		auto funcb = [=](double y) -> double { return func(a + (i + 1) * gaps, y); };
+		sum += (gaps / 2.0) * (trapz(funca, funcy1(a + i * gaps), funcy2(a + i * gaps), n) + trapz(funcb, funcy1(a + (i + 1) * gaps), funcy2(a + (i + 1) * gaps), n));
+	}
+	return sum;
 }
