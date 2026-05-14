@@ -25,14 +25,35 @@ public:
 
 	void generate_longitudinal_Gaussian_distribution();
 	void generate_longitudinal_coasting_distribution();
+	void generate_longitudinal_matchZ_distribution();
+	void generate_longitudinal_matchDp_distribution();
 
 	void save_initial_distribution();
 
-	void add_Dx();
 	void add_offset(int turn, double t0);
 	void insert_particle();
 
 	void print_config();
+
+	const double phiFromZ(const double z);
+	const double zFromPhi(const double phi);
+	const double getInitEta();
+	const double getPhiSeparatrix(const double phi);
+	const double getZSeparatrix(const double z);
+	const double getUFPPhi();
+	const double getDeltaPMax();
+	const double getPhiMax();
+	const double getPhiMin();
+	const double getZMax();
+	const double getZMin();
+	const double getQs();
+	const double H0FromZ(const double z);
+	const double H0FromDeltaP(const double dp_c);
+	const double getHamiltonianPhi(const double phi, const double deltap);
+	const double getHamiltonianZ(const double z, const double deltap);
+	const double psi(const double z, const double dp, const double H0, const double Hmax);
+	const double getSigmaZ(const double z_c);
+	const double getSigmaDp(const double dp_c);
 
 private:
 	Particle dev_particle;
@@ -90,6 +111,25 @@ private:
 	std::string offset_y_filepath;
 	std::string offset_x_timekind;
 	std::string offset_y_timekind;
+
+	bool is_offset_z = false;
+	double offset_pz = 0.0;
+
+	double rf_voltage = 0.0;
+	double rf_phi = 0.0;
+	int harmonic_num = 0;
+	int harmonic_id = 0;
+	double rf_delta_dist = 0.0;
+	double rho = 0.0;
+	double gammat = 0.0;
+	double gamma = 0.0;
+	double beta = 0.0;
+	double t0 = 0.0;
+	double Ek = 0.0;
+	double m0 = 0.0;
+	int qm_ratio = 0;
+	double circum = 0.0;
+	double z_shift = 0.0;
 
 	bool is_save_initial_dist = false;
 

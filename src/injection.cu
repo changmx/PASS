@@ -30,6 +30,15 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 	hourMinSec = para.hourMinSec;
 
 	beam_name = para.beam_name[input_beamId];
+	rho = para.circumference / (2 * PassConstant::PI);
+	gammat = Bunch.gammat;
+	gamma = Bunch.gamma;
+	beta = Bunch.beta;
+	t0 = Bunch.t0;
+	Ek = Bunch.Ek;
+	m0 = Bunch.m0;
+	qm_ratio = Bunch.qm_ratio;
+	circum = para.circumference;
 
 	using json = nlohmann::json;
 	std::ifstream jsonFile(para.path_input_para[input_beamId]);
@@ -48,7 +57,8 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 		}
 
 		startTurn = 1;	// The first turn start from 1 not 0.
-		endTurn = 1 + data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns");
+		endTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject turns");
+		endTurn += 1;
 		intervalTurn = data.at("Sequence").at("Injection").at(key_bunch).at("Inject interval");
 		for (int t = startTurn; t < endTurn; t += intervalTurn)
 		{
@@ -84,6 +94,14 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 
 		dist_transverse = data.at("Sequence").at("Injection").at(key_bunch).at("Transverse dist");
 		dist_longitudinal = data.at("Sequence").at("Injection").at(key_bunch).at("Longitudinal dist");
+
+		rf_voltage = data.at("Sequence").at("Injection").at(key_bunch).at("RF voltage (V)");
+		rf_phi = data.at("Sequence").at("Injection").at(key_bunch).at("RF phi (rad)");
+		harmonic_num = data.at("Sequence").at("Injection").at(key_bunch).at("Total RF harmonic number");
+		harmonic_id = data.at("Sequence").at("Injection").at(key_bunch).at("Harmonic id of this bunch");
+		rf_delta_dist = data.at("Sequence").at("Injection").at(key_bunch).at("RF s position refer to inj. point");
+
+		z_shift = circum / harmonic_num * harmonic_id;
 
 		is_offset_x = data.at("Sequence").at("Injection").at(key_bunch).at("Offset x").at("Is offset");
 		is_offset_y = data.at("Sequence").at("Injection").at(key_bunch).at("Offset y").at("Is offset");
@@ -159,6 +177,7 @@ Injection::Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std:
 
 	Bunch.sigmaz = sigmaz;
 	Bunch.dp = dp;
+	Bunch.z_shift = z_shift;
 
 	Bunch.dist_transverse = dist_transverse;
 	Bunch.dist_longitudinal = dist_longitudinal;
@@ -178,7 +197,10 @@ void Injection::execute(int turn) {
 		return;
 	}
 
-	double t0 = bunchRef.t0;
+	Ek = bunchRef.Ek;
+	t0 = bunchRef.t0;
+	beta = bunchRef.beta;
+	gamma = bunchRef.gamma;
 
 	Np_inj_curTurn = int(Np / inject_turns.size());
 	if (turn == 1 && Np_inj_curTurn * inject_turns.size() != Np)
@@ -220,13 +242,19 @@ void Injection::execute(int turn) {
 		{
 			generate_longitudinal_coasting_distribution();
 		}
+		else if ("matchZ" == to_lower(dist_longitudinal))
+		{
+			generate_longitudinal_matchZ_distribution();
+		}
+		else if ("matchDp" == to_lower(dist_longitudinal))
+		{
+			generate_longitudinal_matchDp_distribution();
+		}
 		else
 		{
 			std::string error_msg = "[Injection] Sorry, we don't support longitudinal distribution type " + dist_longitudinal;
 			throw std::invalid_argument(error_msg);
 		}
-
-		add_Dx();
 
 	}
 
@@ -746,7 +774,7 @@ void Injection::generate_longitudinal_coasting_distribution() {
 	//	Here we think z follows a uniform distribution and pz follows a Gaussian distribution.
 	//	The uniform distribution of z ranges from -sigmaz/2 to sigmaz/2.
 
-	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} is begin generated ...",
+	spdlog::get("logger")->info("[Injection] The initial longitudinal coasting distribution of {} beam-{} bunch-{} is begin generated ...",
 		beam_name, beamId, bunchId);
 
 	int i = bunchId;
@@ -784,9 +812,183 @@ void Injection::generate_longitudinal_coasting_distribution() {
 	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
 
 	host_particle.mem_free_cpu();
-	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+	spdlog::get("logger")->info("[Injection] The initial longitudinal coasting distribution of {} beam-{} bunch-{} has been genetated successfully.",
 		beam_name, beamId, bunchId);
 
+}
+
+
+void Injection::generate_longitudinal_matchZ_distribution() {
+
+	//	Generate particle's z position and momentum.
+	//	Use the method in PyHEADTAIL.
+
+	spdlog::get("logger")->info("[Injection] The initial longitudinal z-matched distribution of {} beam-{} bunch-{} is begin generated ...",
+		beam_name, beamId, bunchId);
+
+	int i = bunchId;
+	int beam_label = beamId;
+
+	double sigma_z = sigmaz;
+	double sigma_pz = dp;
+	double tmp_z, tmp_pz;
+
+	double zmax = getZMax();
+	double zmin = getZMin();
+	double dp = getDeltaPMax();
+	double Hmax = getHamiltonianPhi(getUFPPhi(), 0);
+	double H0 = 0.0;
+
+	// Check the sigmaz whether the sigmaz > sigma_max
+	spdlog::get("logger")->info("Match sigma z, waiting ...");
+	double sigma_max = getSigmaZ(zmax);
+	double sig = sigma_z;
+	if (sig > sigma_max)
+	{
+		spdlog::get("logger")->warn("Sigma z is larger than the maximal!");
+		spdlog::get("logger")->warn("Use the 0.99*sigma_max = {}!", 0.99 * sigma_max);
+		sig = 0.99 * sigma_max; // if sigmaz > sigma_max, use sigmaz = 0.99 * sigma_max
+	}
+
+	// Solve the matched H0
+	auto func = [=](double x) -> double { return getSigmaZ(x) - sig; };
+	double x2 = sig;
+	double x1;
+	if (func(x2) < 0)
+		x1 = sig * 10.0;
+	else
+		x1 = sig / 10.0;
+	double root = brent(func, x1, x2);
+	H0 = H0FromZ(root);
+	spdlog::get("logger")->info("Match sigma z, finished!");
+
+	std::uniform_real_distribution<> n1(0, 1);
+
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
+
+	int start_index = Np_inj_total;
+	particle_copy(host_particle, dev_particle, Np_inj_curTurn, cudaMemcpyDeviceToHost, "dist", 0, start_index);
+
+	for (int j = 0; j < Np_inj_curTurn; ++j)
+	{
+		double u = 0.0;
+		double v = 0.0;
+		double s = 0.0;
+
+		do
+		{
+			u = n1(e1) * (zmax - zmin) + zmin;
+			v = n1(e1) * 2.0 * dp - dp;
+			s = n1(e1);
+		} while (s > psi(u, v, H0, Hmax) || fabs(getHamiltonianZ(u, v)) > 0.9 * fabs(Hmax)); // for stability, limit particles in the 0.9 times bucket
+
+		tmp_z = u;
+		tmp_pz = v;
+
+		if (tmp_z >= (-0.5 * -4 * sigma_z) && tmp_z <= (0.5 * 4 * sigma_z))
+		{
+			host_particle.z[j] = tmp_z;
+			host_particle.pz[j] = tmp_pz;
+		}
+		else
+		{
+			--j;
+		}
+	}
+
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
+
+	host_particle.mem_free_cpu();
+	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
+}
+
+
+void Injection::generate_longitudinal_matchDp_distribution() {
+
+	//	Generate particle's z position and momentum.
+	//	Use the method in PyHEADTAIL.
+
+	spdlog::get("logger")->info("[Injection] The initial longitudinal Dp-matched distribution of {} beam-{} bunch-{} is begin generated ...",
+		beam_name, beamId, bunchId);
+
+	int i = bunchId;
+	int beam_label = beamId;
+
+	double sigma_z = sigmaz;
+	double sigma_pz = dp;
+	double tmp_z, tmp_pz;
+
+	double zmax = getZMax();
+	double zmin = getZMin();
+	double dp = getDeltaPMax();
+	double Hmax = getHamiltonianPhi(getUFPPhi(), 0);
+	double H0 = 0.0;
+
+	// Check the sigmaz whether the sigmadp > sigma_max
+	spdlog::get("logger")->info("Match sigma dp, waiting ...");
+	double sigma_max = getSigmaDp(dp);
+	double sig = sigma_pz;
+	if (sig > sigma_max)
+	{
+		spdlog::get("logger")->warn("Sigma dp is larger than the maximal!");
+		spdlog::get("logger")->warn("Use the 0.99*sigma_max = {}!", 0.99 * sigma_max);
+		sig = 0.99 * sigma_max; // if sigmaz > sigma_max, use sigmaz = 0.99 * sigma_max
+	}
+
+	// Solve the matched H0
+	auto func = [=](double x) -> double { return getSigmaDp(x) - sig; };
+	double x2 = sig;
+	double x1;
+	if (func(x2) < 0)
+		x1 = sig * 10.0;
+	else
+		x1 = sig / 10.0;
+	double root = brent(func, x1, x2);
+	H0 = H0FromDeltaP(root);
+	spdlog::get("logger")->info("Match dp, finished!");
+
+	std::uniform_real_distribution<> n1(0, 1);
+
+	Particle host_particle;
+	host_particle.mem_allocate_cpu(Np_inj_curTurn);
+
+	int start_index = Np_inj_total;
+	particle_copy(host_particle, dev_particle, Np_inj_curTurn, cudaMemcpyDeviceToHost, "dist", 0, start_index);
+
+	for (int j = 0; j < Np_inj_curTurn; ++j)
+	{
+		double u = 0.0;
+		double v = 0.0;
+		double s = 0.0;
+
+		do
+		{
+			u = n1(e1) * (zmax - zmin) + zmin;
+			v = n1(e1) * 2.0 * dp - dp;
+			s = n1(e1);
+		} while (s > psi(u, v, H0, Hmax) || fabs(getHamiltonianZ(u, v)) > 0.9 * fabs(Hmax)); // for stability, limit particles in the 0.9 times bucket
+
+		tmp_z = u;
+		tmp_pz = v;
+
+		if (tmp_z >= (-0.5 * -4 * sigma_z) && tmp_z <= (0.5 * 4 * sigma_z))
+		{
+			host_particle.z[j] = tmp_z;
+			host_particle.pz[j] = tmp_pz;
+		}
+		else
+		{
+			--j;
+		}
+	}
+
+	particle_copy(dev_particle, host_particle, Np_inj_curTurn, cudaMemcpyHostToDevice, "dist", start_index, 0);
+
+	host_particle.mem_free_cpu();
+	spdlog::get("logger")->info("[Injection] The initial longitudinal uniform distribution of {} beam-{} bunch-{} has been genetated successfully.",
+		beam_name, beamId, bunchId);
 }
 
 
@@ -826,38 +1028,10 @@ void Injection::save_initial_distribution() {
 
 }
 
-void Injection::add_Dx() {
-
-	if (fabs(Dx) < 1e-10 && fabs(Dpx) < 1e-10)
-	{
-		return;
-	}
-
-	spdlog::get("logger")->info("[Injection] Dx = {}, Dpx = {} of {} beam-{} bunch-{} is begin added ...",
-		Dx, Dpx, beam_name, beamId, bunchId);
-
-	Particle host_particle;
-	host_particle.mem_allocate_cpu(Np);
-
-	particle_copy(host_particle, dev_particle, Np, cudaMemcpyDeviceToHost, "dist");
-
-	for (int j = 0; j < Np; ++j)
-	{
-		host_particle.x[j] += Dx * host_particle.pz[j];
-		host_particle.px[j] += Dpx * host_particle.pz[j];
-	}
-
-	particle_copy(dev_particle, host_particle, Np, cudaMemcpyHostToDevice, "dist");
-
-	host_particle.mem_free_cpu();
-	spdlog::get("logger")->info("[Injection] Dispersion = {} of {} beam-{} bunch-{} has been genetated successfully.",
-		Dx, beam_name, beamId, bunchId);
-}
-
 
 void Injection::add_offset(int turn, double t0) {
 
-	if (!is_offset_x && !is_offset_y)
+	if (!is_offset_x && !is_offset_y && !is_offset_z)
 	{
 		return;
 	}
@@ -871,6 +1045,7 @@ void Injection::add_offset(int turn, double t0) {
 
 	double cur_offset_x = 0.0, cur_offset_px = 0.0;
 	double cur_offset_y = 0.0, cur_offset_py = 0.0;
+	double cur_offset_pz = 0.0;
 
 	if (is_offset_x && is_offset_x_fromFile)
 	{
@@ -932,8 +1107,12 @@ void Injection::add_offset(int turn, double t0) {
 
 	for (int j = 0; j < Np; ++j)
 	{
-		host_particle.x[j] += cur_offset_x;
-		host_particle.px[j] += cur_offset_px;
+		double cur_pz = host_particle.pz[j] + cur_offset_pz;
+		host_particle.pz[j] = cur_pz;
+		host_particle.z[j] -= (1 / gammat / gammat - 1 / gamma / gamma) * (circum - rf_delta_dist) * cur_pz;
+
+		host_particle.x[j] += (cur_offset_x + cur_pz * Dx);
+		host_particle.px[j] += (cur_offset_px + cur_pz * Dpx);
 		host_particle.y[j] += cur_offset_y;
 		host_particle.py[j] += cur_offset_py;
 	}
@@ -982,9 +1161,191 @@ void::Injection::insert_particle() {
 }
 
 
-void Injection::print_config() {
+void Injection::print_config() {}
 
 
+const double Injection::phiFromZ(const double z)
+{
+	return rf_phi - harmonic_num * z / rho;
 }
 
+const double Injection::zFromPhi(const double phi)
+{
+	return rho * (rf_phi - phi) / harmonic_num;
+}
 
+const double Injection::getInitEta()
+{
+	return 1.0 / gammat / gammat - 1.0 / gamma / gamma; // eta = 1/gamma_t^2 - 1/gamma^2
+}
+
+const double Injection::getPhiSeparatrix(const double phi)
+{
+	double E = Ek + m0;
+	double eta = getInitEta();
+	double PI = PassConstant::PI;
+	double temp = -1 * qm_ratio * rf_voltage / PI / beta / beta / E / harmonic_num / eta * (cos(phi) + cos(rf_phi) - (PI - phi - rf_phi) * sin(rf_phi));
+	if (temp < 0)
+		temp = 0;
+	return sqrt(temp); // dp_sp = sqrt(-q/m*V/pi/beta^2/E/h/eta*(cos(phi)+cos(phi_s)-(pi-phi-phi_s)*sin(phi_s)))
+}
+
+const double Injection::getZSeparatrix(const double z)
+{
+	return getPhiSeparatrix(phiFromZ(z));
+}
+
+const double Injection::getUFPPhi()
+{
+	return PassConstant::PI - rf_phi;
+}
+
+const double Injection::getDeltaPMax()
+{
+	return getPhiSeparatrix(rf_phi);
+}
+
+const double Injection::getPhiMax()
+{
+	double PI = PassConstant::PI;
+	if (getInitEta() < 0)
+	{
+		return PI - rf_phi;
+	}
+	else
+	{
+		double phi_syn = rf_phi;
+		auto f = [phi_syn, PI](double x) -> double { return cos(x) + x * sin(phi_syn) + cos(phi_syn) - (PI - phi_syn) * sin(phi_syn); };
+		double root = brent(f, phi_syn, 2 * PI);
+		return root;
+	}
+}
+
+const double Injection::getPhiMin()
+{
+	double PI = PassConstant::PI;
+	if (getInitEta() > 0)
+	{
+		return PI - rf_phi;
+	}
+	else
+	{
+		double phi_syn = rf_phi;
+		auto f = [phi_syn, PI](double x) -> double { return cos(x) + x * sin(phi_syn) + cos(phi_syn) - (PI - phi_syn) * sin(phi_syn); };
+		double root = brent(f, -1 * PI, phi_syn);
+		return root;
+	}
+}
+
+const double Injection::getZMax()
+{
+	return zFromPhi(getPhiMin());
+}
+
+const double Injection::getZMin()
+{
+	return zFromPhi(getPhiMax());
+}
+
+const double Injection::getQs()
+{
+	double E = Ek + m0;
+	double eta = getInitEta();
+	double PI = PassConstant::PI;
+	return sqrt(-1 * qm_ratio * harmonic_num * rf_voltage * eta * cos(rf_phi) / 2.0 / PI / beta / beta / E); // vs = sqrt(-h*q/m*V*eta*cos(phi_s)/2/pi/beta^2/E)
+}
+
+const double Injection::H0FromZ(const double z)
+{
+	double E = Ek + m0;
+	double eta = getInitEta();
+	double Qs = getQs();
+	double f0_now = beta * PassConstant::c / circum;
+	double PI = PassConstant::PI;
+	return -harmonic_num * 2.0 * PI * f0_now * eta * (Qs * z / eta / rho) * (Qs * z / eta / rho); // H0 = -h*2*pi*f0*eta*(vs*z/eta/rho)^2
+}
+
+const double Injection::H0FromDeltaP(const double dp_c)
+{
+	double E = Ek + m0;
+	double eta = getInitEta();
+	double Qs = getQs();
+	double f0_now = beta * PassConstant::c / circum;
+	double PI = PassConstant::PI;
+	return -harmonic_num * 2.0 * PI * f0_now * eta * dp_c * dp_c; // H0 = -h*2*pi*f0*eta*dp^2
+}
+
+// H = 1/2*h*omega_0*eta*dp^2+omega_0*q*V/2/pi/beta^2/E*(cos(phi)-cos(phi_s)+(phi-phi_s)*sin(phi_s))
+const double Injection::getHamiltonianPhi(const double phi, const double deltap)
+{
+	double E = Ek + m0;
+	double eta = getInitEta();
+	double f0_now = beta * PassConstant::c / circum;
+	double PI = PassConstant::PI;
+	return (1.0 / 2.0 * harmonic_num * 2.0 * PI * f0_now * eta * deltap * deltap) + (2.0 * PI * f0_now * qm_ratio * rf_voltage / 2.0 / PI / beta / beta / E * (cos(phi) - cos(rf_phi) + (phi - rf_phi) * sin(rf_phi)));
+}
+
+const double Injection::getHamiltonianZ(const double z, const double deltap)
+{
+	return getHamiltonianPhi(phiFromZ(z), deltap);
+}
+
+const double Injection::psi(const double z, const double dp, const double H0, const double Hmax)
+{
+	// Use the generating function: 1-(exp(H/H0)-1)/(exp(Hmax/H0)-1).
+	return 1 - (exp(getHamiltonianZ(z, dp) / H0) - 1) / (exp(Hmax / H0) - 1);
+}
+
+const double Injection::getSigmaZ(const double z_c)
+{
+	double zmax = getZMax();
+	double zmin = getZMin();
+
+	// Get the separatrix of the buncket
+	auto dp1 = [=](double z) -> double { return -getZSeparatrix(z); };
+	auto dp2 = [=](double z) -> double { return getZSeparatrix(z); };
+
+	//Get the H0 and Hmax used in generating function.
+	double H0 = H0FromZ(z_c);
+	double Hmax = getHamiltonianPhi(getUFPPhi(), 0.0);
+
+	// Get the integral of generating function in the bucket.
+	auto psi_q = [=](double z, double dp) -> double {return psi(z, dp, H0, Hmax); };
+	double Q = trapz2d(psi_q, dp1, dp2, zmin, zmax);
+
+	// Get the mean value of generating function in the bucket.
+	auto psi_m = [=](double z, double dp) -> double {return z * psi(z, dp, H0, Hmax); };
+	double M = trapz2d(psi_m, dp1, dp2, zmin, zmax) / Q;
+
+	// Get the standard deviation of generating function in the bucket.
+	auto psi_v = [=](double z, double dp) -> double {return (z - M) * (z - M) * psi(z, dp, H0, Hmax); };
+	double V = trapz2d(psi_v, dp1, dp2, zmin, zmax) / Q;
+	return sqrt(V);
+}
+
+const double Injection::getSigmaDp(const double dp_c)
+{
+	double zmax = getZMax();
+	double zmin = getZMin();
+
+	// Get the separatrix of the buncket
+	auto dp1 = [=](double z) -> double { return -getZSeparatrix(z); };
+	auto dp2 = [=](double z) -> double { return getZSeparatrix(z); };
+
+	//Get the H0 and Hmax used in generating function.
+	double H0 = H0FromDeltaP(dp_c);
+	double Hmax = getHamiltonianPhi(getUFPPhi(), 0.0);
+
+	// Get the integral of generating function in the bucket.
+	auto psi_q = [=](double z, double dp) -> double {return psi(z, dp, H0, Hmax); };
+	double Q = trapz2d(psi_q, dp1, dp2, zmin, zmax);
+
+	// Get the mean value of generating function in the bucket.
+	auto psi_m = [=](double z, double dp) -> double {return dp * psi(z, dp, H0, Hmax); };
+	double M = trapz2d(psi_m, dp1, dp2, zmin, zmax) / Q;
+
+	// Get the standard deviation of generating function in the bucket.
+	auto psi_v = [=](double z, double dp) -> double {return (dp - M) * (dp - M) * psi(z, dp, H0, Hmax); };
+	double V = trapz2d(psi_v, dp1, dp2, zmin, zmax) / Q;
+	return sqrt(V);
+}
