@@ -104,6 +104,12 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
                 "DeltaP/P": 0.001,
                 "Transverse dist": "kv",  # [kv/gaussian/uniform]
                 "Longitudinal dist": "gaussian",  # [gaussian/coasting/matchZ/matchDp]
+                "RF voltage (V)": 0,
+                "RF phi (rad)": 0,
+                "Total RF harmonic number": 1,
+                "Harmonic id of this bunch":
+                0,  # start from 0 to (total harmonic number - 1), 0-th harmonic is at the injection point, and the rest harmonic is evenly distributed after the injection point
+                "RF s position refer to inj. point": 0,
                 "Offset x": {
                     "Is offset": False,
                     "Offset position(m)": 5e-3,
