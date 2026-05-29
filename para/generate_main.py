@@ -4,15 +4,15 @@ import json
 import sys
 import re
 
-from toolkit import sort_sequence
-from get_twiss_from_madx import get_twiss_from_madx_twissfile
-from get_twiss_from_madx import get_twiss_interpolate_from_madx_twissfile
-from get_element_from_madx import get_element_from_madx_twissfile
-from get_element_from_madx import add_ramping_file
-from generate_smooth_approx_twiss import generate_twiss_smooth_approximate
+from para.toolkit import sort_sequence
+from para.get_twiss_from_madx import get_twiss_from_madx_twissfile
+from para.get_twiss_from_madx import get_twiss_interpolate_from_madx_twissfile
+from para.get_element_from_madx import get_element_from_madx_twissfile
+from para.get_element_from_madx import add_ramping_file
+from para.generate_smooth_approx_twiss import generate_twiss_smooth_approximate
 
 
-def generate_simulation_config_beam0(output_fileName="beam0.json"):
+def generate_simulation_config_beam0(name="proton", output_path="beam0.json"):
     """
     Generate a PASS simulation input file requires the following steps:
     1. set the global parameters: MainPara (required), SpaceChargePara (optional), BeamBeamPara (optional)
@@ -34,7 +34,8 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
 
     current_path, _ = os.path.split(__file__)
     parent_path = os.path.dirname(current_path)
-    config_path = os.sep.join([parent_path, "para", output_fileName])
+    # config_path = os.sep.join([parent_path, "para", output_path])
+    config_path = output_path
     print("The simulation configuration will be written to file: ", config_path)
 
     Sequence = {}
@@ -42,7 +43,7 @@ def generate_simulation_config_beam0(output_fileName="beam0.json"):
     # ------------------------------------------------------------ Step 1: Config global parameters ------------------------------------------------------------ #
 
     MainPara = {
-        "Name": "proton",  # [particle name]: arbitrary, just to let the user distinguish the beam
+        "Name": name,  # [particle name]: arbitrary, just to let the user distinguish the beam
         "Number of protons per particle": 8,
         "Number of neutrons per particle": 10,  # if #neutrons is > 0, the mass of the particle is calculated based on nucleon mass
         "Number of charges per particle": 6,

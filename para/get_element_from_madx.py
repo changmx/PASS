@@ -4,8 +4,8 @@ from collections import Counter
 import re
 
 import tfs  # tfs_pandas, https://pylhc.github.io/tfs/
-from get_error_from_madx import get_field_error_from_madx_errorfile
-from toolkit import class_map
+from para.get_error_from_madx import get_field_error_from_madx_errorfile
+from para.toolkit import class_map
 
 
 def merge_drift_element(elem_dict):
