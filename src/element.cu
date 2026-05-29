@@ -2824,7 +2824,8 @@ __global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur,
 			dev_particle.lostPos[tid] = s;
 			dev_particle.lostTurn[tid] = turn;
 
-			// 每次排序后粒子坐标会变，这里通过原子加法，确保在不同圈数中，如果多个粒子下标对应同一个tid值时，数据不会被覆盖
+			// The particle coordinates change after each sort. 
+			// Here, atomic addition is used to ensure that if multiple particle indices correspond to the same tid value in different rounds, the data will not be overwritten.
 			int write_index = atomicAdd(global_counter, 1);
 
 			//dev_particle_ES[write_index] = dev_particle[tid]; // Copy the particle to the ElSeparator array
@@ -2849,7 +2850,7 @@ __global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur,
 #endif
 		}
 
-		// 同步块内线程
+		// To synchronize threads within a block
 		__syncthreads();
 
 		tid += stride;
