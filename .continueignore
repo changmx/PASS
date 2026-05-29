@@ -1,0 +1,7 @@
+# Third party
+include/cmdline
+include/nlohmann
+include/spdlog
+include/tabulate
+
+libs/amgx
