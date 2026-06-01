@@ -4,7 +4,7 @@ class MainBuilder:
     def build(model):
         
         return {
-            "Name": model.name.value,
+            "Name": model.particle_name.value,
             "Number of Protons": model.num_proton.value,
             "Number of Neutrons": model.num_neutron.value,
             "Number of Electrons": model.num_electron.value,

@@ -6,7 +6,7 @@ class MainPara:
 
     def __init__(self):
         logger.info("Initializing main parameters...")
-        self.name = Parameter(
+        self.particle_name = Parameter(
             value="proton",
             description="Particle Name",
         )
