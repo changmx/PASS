@@ -1,4 +1,5 @@
 #include "parameter.h"
+
 #include "general.h"
 
 Parameter::Parameter(int argc, char** argv)
@@ -13,58 +14,48 @@ Parameter::Parameter(int argc, char** argv)
 		Nbeam = path_input_para.size();
 		for (size_t i = 0; i < path_input_para.size(); i++)
 		{
-			if (fs::exists(path_input_para[i])) {
-
+			if (fs::exists(path_input_para[i]))
+			{
 				beamId.push_back(i);
 
 				std::ifstream jsonFile(path_input_para[i]);
 				json data = json::parse(jsonFile);
 
-				try {
-					beam_name.push_back(data.at("Name"));
-					Nbunch.push_back(data.at("Number of bunches per beam"));
+				beam_name.push_back(data.at("Name"));
+				Nbunch.push_back(data.at("Number of bunches per beam"));
 
-					if (0 == i)
+				if (0 == i)
+				{
+					Nturn = data.at("Number of turns");
+					circumference = data.at("Circumference (m)");
+
+					Ngpu = data.at("Number of GPU devices");
+					for (size_t idevice = 0; idevice < data.at("Device Id").size(); idevice++)
 					{
-						Nturn = data.at("Number of turns");
-						circumference = data.at("Circumference (m)");
-
-						Ngpu = data.at("Number of GPU devices");
-						for (size_t idevice = 0; idevice < data.at("Device Id").size(); idevice++)
-						{
-							gpuId.push_back(data.at("Device Id")[idevice]);
-						}
-
-						fs::path dir_output_tmp = data.at("Output directory");
-						dir_output = dir_output_tmp;
-
-						is_plot = data.at("Is plot figure");
+						gpuId.push_back(data.at("Device Id")[idevice]);
 					}
-				}
-				catch (json::exception e) {
-					std::cout << e.what() << std::endl;
-					std::exit(EXIT_FAILURE);
-				}
 
+					fs::path dir_output_tmp = data.at("Output directory");
+					dir_output = dir_output_tmp;
 
+					is_plot = data.at("Is plot figure");
+				}
 			}
-			else {
-				std::cerr << "Error: File \"" << path_input_para[i] << "\" is not exist." << std::endl;
-				std::exit(EXIT_FAILURE);
+			else
+			{
+				std::string error_msg = "[Parameter] Input file path is not exist: " + path_input_para[i];
+				throw std::runtime_error(error_msg);
 			}
 		}
 	}
 	else
 	{
-		std::cerr << "Number of input file path should be 1 or 2, but now is " << path_input_para.size() << std::endl;
-		for (auto i : path_input_para)
-		{
-			std::cerr << "\t" << i << std::endl;
-		}
-		std::exit(EXIT_FAILURE);
+		std::string error_msg = "[Parameter] Number of input file path should be 1 or 2, but now is " + std::to_string(path_input_para.size());
+		throw std::runtime_error(error_msg);
 	}
 
-	if (1 == path_input_para.size()) {
+	if (1 == path_input_para.size())
+	{
 		beam_name.push_back("empty");
 		beamId.push_back(-1);
 		Nbunch.push_back(0);
@@ -83,47 +74,31 @@ Parameter::Parameter(int argc, char** argv)
 
 	path_logfile = dir_output_statistic / (hourMinSec + ".log");
 
-	try
-	{
-		fs::create_directories(dir_output);
-		fs::create_directories(dir_output_statistic);
-		fs::create_directories(dir_output_parameter);
-		fs::create_directories(dir_output_distribution);
-		fs::create_directories(dir_output_tuneSpread);
-		fs::create_directories(dir_output_chargeDensity);
-		fs::create_directories(dir_output_plot);
-		fs::create_directories(dir_output_particle);
-		fs::create_directories(dir_output_slowExt_particle);
+	fs::create_directories(dir_output);
+	fs::create_directories(dir_output_statistic);
+	fs::create_directories(dir_output_parameter);
+	fs::create_directories(dir_output_distribution);
+	fs::create_directories(dir_output_tuneSpread);
+	fs::create_directories(dir_output_chargeDensity);
+	fs::create_directories(dir_output_plot);
+	fs::create_directories(dir_output_particle);
+	fs::create_directories(dir_output_slowExt_particle);
 
-		fs::create_directories(dir_load_distribution);
-	}
-	catch (const fs::filesystem_error& e)
-	{
-		std::cerr << "Can not create directory: " << e.what() << std::endl;
-		std::exit(EXIT_FAILURE);
-	}
+	fs::create_directories(dir_load_distribution);
 
 	std::ofstream outputFile_tmp(path_logfile, std::ios::out | std::ios::trunc);
 	outputFile_tmp.close();
 
-	try
+	if (1 == Nbeam)
 	{
-		if (1 == Nbeam)
-		{
-			fs::copy(path_input_para[0], dir_output_statistic / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
-			fs::copy(path_input_para[0], dir_output_parameter / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
-		}
-		else
-		{
-			fs::copy(path_input_para[0], dir_output_statistic / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
-			fs::copy(path_input_para[1], dir_output_statistic / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
-			fs::copy(path_input_para[0], dir_output_parameter / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
-			fs::copy(path_input_para[1], dir_output_parameter / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
-		}
+		fs::copy(path_input_para[0], dir_output_statistic / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
+		fs::copy(path_input_para[0], dir_output_parameter / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
 	}
-	catch (const fs::filesystem_error& e)
+	else
 	{
-		std::cerr << "Can not copy file: " << e.what() << std::endl;
-		std::exit(EXIT_FAILURE);
+		fs::copy(path_input_para[0], dir_output_statistic / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
+		fs::copy(path_input_para[1], dir_output_statistic / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
+		fs::copy(path_input_para[0], dir_output_parameter / (hourMinSec + "_beam0.json"), fs::copy_options::overwrite_existing);
+		fs::copy(path_input_para[1], dir_output_parameter / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
 	}
 }
