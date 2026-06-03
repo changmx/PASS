@@ -21,8 +21,12 @@ Parameter::Parameter(int argc, char** argv)
 				std::ifstream jsonFile(path_input_para[i]);
 				json data = json::parse(jsonFile);
 
-				beam_name.push_back(data.at("Name"));
-				Nbunch.push_back(data.at("Number of bunches per beam"));
+				beam_name.push_back(data.at("Beam Name"));
+
+				auto& injection = data.at("Sequence").at("Injection");
+				int nbunches = static_cast<int>(injection.size()) - 2;
+
+				Nbunch.push_back(nbunches);
 
 				if (0 == i)
 				{
@@ -43,7 +47,7 @@ Parameter::Parameter(int argc, char** argv)
 			}
 			else
 			{
-				std::string error_msg = "[Parameter] Input file path is not exist: " + path_input_para[i];
+				std::string error_msg = "[Parameter] Input file path is not exist: " + path_input_para[i].string();
 				throw std::runtime_error(error_msg);
 			}
 		}
