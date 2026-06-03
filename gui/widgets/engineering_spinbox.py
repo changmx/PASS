@@ -63,7 +63,7 @@ class EngineeringSpinBox(QWidget):
 
         self.exponents = []
 
-        for i in range(0, 16):
+        for i in [-15, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15]:
 
             text = f"1e{i}"
 
