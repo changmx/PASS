@@ -10,6 +10,8 @@ class SimulationBuilder:
 
         self.modules = {}
 
+        self.sequence = {"Sequence": {}}
+
     def set_main_para(self, data):
 
         self.main_para = data
@@ -17,6 +19,10 @@ class SimulationBuilder:
     def add_module(self, name, data):
 
         self.modules[name] = data
+
+    def add_sequence(self, data):
+
+        self.sequence["Sequence"].update(data)
 
     def build(self):
 
@@ -28,5 +34,6 @@ class SimulationBuilder:
 
             result.update(module)
 
-        return result
+        result.update(self.sequence)
 
+        return result
