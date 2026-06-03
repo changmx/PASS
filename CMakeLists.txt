@@ -61,6 +61,7 @@ message(STATUS "CUDSS library dir: ${cudss_LIBRARY_DIR}")
 set(SOURCES
     src/main.cpp
     src/particle.cu
+    src/bunch.cu
     src/general.cu
     src/parameter.cpp
     src/readCommand.cu
@@ -78,6 +79,7 @@ set(SOURCES
 set(HEADERS
     include/constant.h
     include/particle.h
+    include/bunch.h
     include/general.h
     include/parameter.h
     include/command.h
