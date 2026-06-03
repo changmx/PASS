@@ -1,18 +1,18 @@
-#include "general.h"
-#include "command.h"
-
+#include <algorithm>
+#include <cmath>
 #include <ctime>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <fstream>
-#include <vector>
-#include <algorithm>
 #include <stdexcept>
-#include <cmath>
 #include <type_traits>
+#include <vector>
 
-void print_logo(const Parameter& Para) {
+#include "command.h"
+#include "general.h"
 
+void print_logo()
+{
 	auto logger = spdlog::get("logger");
 	logger->set_pattern("%v");
 
@@ -36,19 +36,19 @@ void print_logo(const Parameter& Para) {
 	logger->info("                                                                                 ");
 
 	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
-
 }
 
-void print_copyright(const Parameter& Para) {};
+void print_copyright() {};
 
-std::string to_scientific_string(const double value, const int precision) {
+std::string to_scientific_string(const double value, const int precision)
+{
 	std::ostringstream out;
 	out << std::scientific << std::setprecision(precision) << value;
 	return out.str();
 }
 
-void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec) {
-
+void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec)
+{
 	// create a parser
 	cmdline::parser a;
 
@@ -66,7 +66,8 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 
 	a.parse_check(argc, argv);
 
-	if (a.exist("beam0")) {
+	if (a.exist("beam0"))
+	{
 		std::filesystem::path path_tmp = a.get<std::string>("beam0");
 		if (std::filesystem::exists(path_tmp))
 		{
@@ -84,7 +85,8 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		std::exit(EXIT_FAILURE);
 	}
 
-	if (a.exist("beam1")) {
+	if (a.exist("beam1"))
+	{
 		std::filesystem::path path_tmp = a.get<std::string>("beam1");
 		if (std::filesystem::exists(path_tmp))
 		{
@@ -98,7 +100,7 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 	}
 	else
 	{
-		//do nothing
+		// do nothing
 	}
 
 	std::time_t currentTime = std::time(nullptr);
@@ -142,7 +144,8 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 	std::string yearMonDay_tmp = syear + "_" + smonth + sday;
 	std::string hourMinSec_tmp = shour + sminute + "_" + ssecond;
 
-	if (a.exist("ymd")) {
+	if (a.exist("ymd"))
+	{
 		yearMonDay = a.get<std::string>("ymd");
 	}
 	else
@@ -150,7 +153,8 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		yearMonDay = yearMonDay_tmp;
 	}
 
-	if (a.exist("hms")) {
+	if (a.exist("hms"))
+	{
 		hourMinSec = a.get<std::string>("hms");
 	}
 	else
@@ -158,168 +162,172 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		hourMinSec = hourMinSec_tmp;
 	}
 
-	//for (auto i : path_input_para)
+	// for (auto i : path_input_para)
 	//{
 	//	std::cout << i << std::endl;
-	//}
-	//std::cout << yearMonDay << std::endl;
-	//std::cout << hourMinSec << std::endl;
+	// }
+	// std::cout << yearMonDay << std::endl;
+	// std::cout << hourMinSec << std::endl;
 }
 
-void print_config_parameter(const Parameter& Para) {
+// void print_config_parameter(const Parameter& Para) {
 
-	using namespace tabulate;
+// 	using namespace tabulate;
 
-	Table Para_table;
+// 	Table Para_table;
 
-	Para_table.add_row({ "Parameter", "Beam0", (1 != Para.Nbeam) ? "Beam1" : "^_^" });
-	Para_table.add_row({ "Beam name", Para.beam_name[0], (1 != Para.Nbeam) ? Para.beam_name[1] : "^_^" });
-	Para_table.add_row({ "Beam Id", std::to_string(Para.beamId[0]), (1 != Para.Nbeam) ? std::to_string(Para.beamId[1]) : "^_^" });
-	Para_table.add_row({ "Number of bunches", std::to_string(Para.Nbunch[0]), (1 != Para.Nbeam) ? std::to_string(Para.Nbunch[1]) : "^_^" });
-	Para_table.add_row({ "Number of turns", std::to_string(Para.Nturn), (1 != Para.Nbeam) ? "<--" : "^_^" });
-	Para_table.add_row({ "Number of GPU devices", std::to_string(Para.Ngpu), (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	Para_table.add_row({ "Parameter", "Beam0", (1 != Para.Nbeam) ? "Beam1" : "^_^" });
+// 	Para_table.add_row({ "Beam name", Para.beam_name[0], (1 != Para.Nbeam) ? Para.beam_name[1] : "^_^" });
+// 	Para_table.add_row({ "Beam Id", std::to_string(Para.beamId[0]), (1 != Para.Nbeam) ? std::to_string(Para.beamId[1]) : "^_^" });
+// 	Para_table.add_row({ "Number of bunches", std::to_string(Para.Nbunch[0]), (1 != Para.Nbeam) ? std::to_string(Para.Nbunch[1]) : "^_^" });
+// 	Para_table.add_row({ "Number of turns", std::to_string(Para.Nturn), (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	Para_table.add_row({ "Number of GPU devices", std::to_string(Para.Ngpu), (1 != Para.Nbeam) ? "<--" : "^_^" });
 
-	std::string tmp_gpuId;
-	for (auto i : Para.gpuId)
-	{
-		tmp_gpuId += std::to_string(i);
-		tmp_gpuId += ", ";
-	}
-	Para_table.add_row({ "GPU device Id", tmp_gpuId, (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	std::string tmp_gpuId;
+// 	for (auto i : Para.gpuId)
+// 	{
+// 		tmp_gpuId += std::to_string(i);
+// 		tmp_gpuId += ", ";
+// 	}
+// 	Para_table.add_row({ "GPU device Id", tmp_gpuId, (1 != Para.Nbeam) ? "<--" : "^_^" });
 
-	//tables.add_row({ "Beam-beam effect", Para.is_beambeam ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
-	//tables.add_row({ "Space charge effect", Para.is_spacecharge ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	//tables.add_row({ "Beam-beam effect", Para.is_beambeam ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	//tables.add_row({ "Space charge effect", Para.is_spacecharge ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
 
-	Para_table.add_row({ "Input path", Para.path_input_para[0].string(), (1 != Para.Nbeam) ? Para.path_input_para[1].string() : "^_^" });
-	Para_table.add_row({ "Output directory", Para.dir_output.string(), (1 != Para.Nbeam) ? "<--" : "^_^" });
-	Para_table.add_row({ "Starting time", Para.yearMonDay + ", " + Para.hourMinSec, (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	Para_table.add_row({ "Input path", Para.path_input_para[0].string(), (1 != Para.Nbeam) ? Para.path_input_para[1].string() : "^_^" });
+// 	Para_table.add_row({ "Output directory", Para.dir_output.string(), (1 != Para.Nbeam) ? "<--" : "^_^" });
+// 	Para_table.add_row({ "Starting time", Para.yearMonDay + ", " + Para.hourMinSec, (1 != Para.Nbeam) ? "<--" : "^_^" });
 
-	/////////////////////////////////////////// configure table start ///////////////////////////////////////////
+// 	/////////////////////////////////////////// configure table start ///////////////////////////////////////////
 
-	Para_table[0][0].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
-	Para_table[0][1].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
-	if (2 == Para.Nbeam)
-		Para_table[0][2].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
+// 	Para_table[0][0].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
+// 	Para_table[0][1].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
+// 	if (2 == Para.Nbeam)
+// 		Para_table[0][2].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
 
-	Para_table.column(0).format().font_align(FontAlign::left);
-	Para_table.column(0).format().width(25);
-	Para_table.column(1).format().font_align(FontAlign::center);
-	Para_table.column(1).format().width(30);
-	if (2 == Para.Nbeam)
-	{
-		Para_table.column(2).format().font_align(FontAlign::center);
-		Para_table.column(2).format().width(30);
-	}
+// 	Para_table.column(0).format().font_align(FontAlign::left);
+// 	Para_table.column(0).format().width(25);
+// 	Para_table.column(1).format().font_align(FontAlign::center);
+// 	Para_table.column(1).format().width(30);
+// 	if (2 == Para.Nbeam)
+// 	{
+// 		Para_table.column(2).format().font_align(FontAlign::center);
+// 		Para_table.column(2).format().width(30);
+// 	}
 
-	/////////////////////////////////////////// configure table end /////////////////////////////////////////////
+// 	/////////////////////////////////////////// configure table end /////////////////////////////////////////////
 
-	std::cout << Para_table << std::endl;
+// 	std::cout << Para_table << std::endl;
 
-	std::ofstream outputFile(Para.path_logfile, std::ios::app);
-	std::streambuf* coutbuf = std::cout.rdbuf();
-	std::cout.rdbuf(outputFile.rdbuf());
+// 	std::ofstream outputFile(Para.path_logfile, std::ios::app);
+// 	std::streambuf* coutbuf = std::cout.rdbuf();
+// 	std::cout.rdbuf(outputFile.rdbuf());
 
-	std::cout << Para_table << std::endl;
-	outputFile.flush();
-	outputFile.close();
+// 	std::cout << Para_table << std::endl;
+// 	outputFile.flush();
+// 	outputFile.close();
 
-	std::cout.rdbuf(coutbuf);
-}
+// 	std::cout.rdbuf(coutbuf);
+// }
 
-void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1) {
+// void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1) {
 
-	using namespace tabulate;
-	int Nbeam = (0 == Beam1.size()) ? 1 : 2;
+// 	using namespace tabulate;
+// 	int Nbeam = (0 == Beam1.size()) ? 1 : 2;
 
-	for (size_t i = 0; i < Beam0.size(); i++)
-	{
-		Table Beam_table;
+// 	for (size_t i = 0; i < Beam0.size(); i++)
+// 	{
+// 		Table Beam_table;
 
-		Beam_table.add_row({ "Parameter", "Bunch " + std::to_string(Beam0[i].bunchId), (1 != Nbeam) ? "Bunch " + std::to_string(Beam1[i].bunchId) : "^_^" });
-		Beam_table.add_row({ "Proton number",std::to_string(Beam0[i].Nproton),(1 != Nbeam) ? std::to_string(Beam1[i].Nproton) : "^_^" });
-		Beam_table.add_row({ "Neutron number",std::to_string(Beam0[i].Nneutron),(1 != Nbeam) ? std::to_string(Beam1[i].Nneutron) : "^_^" });
-		Beam_table.add_row({ "Charge number",std::to_string(Beam0[i].Ncharge),(1 != Nbeam) ? std::to_string(Beam1[i].Ncharge) : "^_^" });
-		Beam_table.add_row({ "Real  particles/bunch",to_scientific_string(Beam0[i].Nrp, 11),(1 != Nbeam) ? to_scientific_string(Beam1[i].Nrp, 11) : "^_^" });
-		Beam_table.add_row({ "Macro particles/bunch",std::to_string(Beam0[i].Np),(1 != Nbeam) ? std::to_string(Beam1[i].Np) : "^_^" });
-		Beam_table.add_row({ "Ratio Nrp/Np",std::to_string(Beam0[i].ratio),(1 != Nbeam) ? std::to_string(Beam1[i].ratio) : "^_^" });
-		Beam_table.add_row({ "Kinetic energy per nucleon (GeV/u)", std::to_string(Beam0[i].Ek / 1e9), (1 != Nbeam) ? std::to_string(Beam1[i].Ek / 1e9) : "^_^" });
-		Beam_table.add_row({ "Static mass per nucleon (MeV/c2/u)", std::to_string(Beam0[i].m0 / 1e6), (1 != Nbeam) ? std::to_string(Beam1[i].m0 / 1e6) : "^_^" });
-		Beam_table.add_row({ "Momentum (kg*m/s)", to_scientific_string(Beam0[i].p0_kg, 12),(1 != Nbeam) ? to_scientific_string(Beam1[i].p0_kg, 12) : "^_^" });
-		Beam_table.add_row({ "Momentum (GeV/c)", std::to_string(Beam0[i].p0 / 1e9),(1 != Nbeam) ? std::to_string(Beam1[i].p0 / 1e9) : "^_^" });
-		Beam_table.add_row({ "Brho (T*m)",std::to_string(Beam0[i].Brho),(1 != Nbeam) ? std::to_string(Beam1[i].Brho) : "^_^" });
-		Beam_table.add_row({ "Beta",to_scientific_string(Beam0[i].beta, 12),(1 != Nbeam) ? to_scientific_string(Beam1[i].beta, 12) : "^_^" });
-		Beam_table.add_row({ "Gamma",std::to_string(Beam0[i].gamma),(1 != Nbeam) ? std::to_string(Beam1[i].gamma) : "^_^" });
-		//Beam_table.add_row({ "Geometric emittance x (m*rad)",to_scientific_string(Beam0[i].emitx, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx, 9) : "^_^" });
-		//Beam_table.add_row({ "Geometric emittance y (m*rad)",to_scientific_string(Beam0[i].emity, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity, 9) : "^_^" });
-		//Beam_table.add_row({ "Normalized emittance x (m*rad)",to_scientific_string(Beam0[i].emitx_norm, 9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emitx_norm, 9) : "^_^" });
-		//Beam_table.add_row({ "Normalized emittance y (m*rad)",to_scientific_string(Beam0[i].emity_norm,9),(1 != Nbeam) ? to_scientific_string(Beam1[i].emity_norm,9) : "^_^" });
-		//Beam_table.add_row({ "Twiss alpha x",std::to_string(Beam0[i].alphax),(1 != Nbeam) ? std::to_string(Beam1[i].alphax) : "^_^" });
-		//Beam_table.add_row({ "Twiss alpha y",std::to_string(Beam0[i].alphay),(1 != Nbeam) ? std::to_string(Beam1[i].alphay) : "^_^" });
-		//Beam_table.add_row({ "Twiss beta x (m)",std::to_string(Beam0[i].betax),(1 != Nbeam) ? std::to_string(Beam1[i].betax) : "^_^" });
-		//Beam_table.add_row({ "Twiss beta y (m)",std::to_string(Beam0[i].betay),(1 != Nbeam) ? std::to_string(Beam1[i].betay) : "^_^" });
-		//Beam_table.add_row({ "Twiss gamma x (m-1)",std::to_string(Beam0[i].gammax),(1 != Nbeam) ? std::to_string(Beam1[i].gammax) : "^_^" });
-		//Beam_table.add_row({ "Twiss gamma y (m-1)",std::to_string(Beam0[i].gammay),(1 != Nbeam) ? std::to_string(Beam1[i].gammay) : "^_^" });
-		//Beam_table.add_row({ "Sigma x (mm)",std::to_string(Beam0[i].sigmax * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmax * 1e3) : "^_^" });
-		//Beam_table.add_row({ "Sigma y (mm)",std::to_string(Beam0[i].sigmay * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmay * 1e3) : "^_^" });
-		//Beam_table.add_row({ "Sigma px (mrad)",std::to_string(Beam0[i].sigmapx * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapx * 1e3) : "^_^" });
-		//Beam_table.add_row({ "Sigma py (mrad)",std::to_string(Beam0[i].sigmapy * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapy * 1e3) : "^_^" });
-		//Beam_table.add_row({ "Sigma z (mm)",std::to_string(Beam0[i].sigmaz * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmaz * 1e3) : "^_^" });
-		//Beam_table.add_row({ "Deltap/P (1e-3)",std::to_string(Beam0[i].dp * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].dp * 1e3) : "^_^" });
-		//Beam_table.add_row({ "Qx",std::to_string(Beam0[i].Qx),(1 != Nbeam) ? std::to_string(Beam1[i].Qx) : "^_^" });
-		//Beam_table.add_row({ "Qy",std::to_string(Beam0[i].Qy),(1 != Nbeam) ? std::to_string(Beam1[i].Qy) : "^_^" });
-		//Beam_table.add_row({ "Qz",std::to_string(Beam0[i].Qz),(1 != Nbeam) ? std::to_string(Beam1[i].Qz) : "^_^" });
-		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromx),(1 != Nbeam) ? std::to_string(Beam1[i].chromx) : "^_^" });
-		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromy),(1 != Nbeam) ? std::to_string(Beam1[i].chromy) : "^_^" });
-		//Beam_table.add_row({ "Gamma T",std::to_string(Beam0[i].gammat),(1 != Nbeam) ? std::to_string(Beam1[i].gammat) : "^_^" });
+// 		Beam_table.add_row({ "Parameter", "Bunch " + std::to_string(Beam0[i].bunchId), (1 != Nbeam) ? "Bunch " + std::to_string(Beam1[i].bunchId) :
+// "^_^" }); 		Beam_table.add_row({ "Proton number",std::to_string(Beam0[i].Nproton),(1 != Nbeam) ? std::to_string(Beam1[i].Nproton) : "^_^" });
+// 		Beam_table.add_row({ "Neutron number",std::to_string(Beam0[i].Nneutron),(1 != Nbeam) ? std::to_string(Beam1[i].Nneutron) : "^_^" });
+// 		Beam_table.add_row({ "Charge number",std::to_string(Beam0[i].Ncharge),(1 != Nbeam) ? std::to_string(Beam1[i].Ncharge) : "^_^" });
+// 		Beam_table.add_row({ "Real  particles/bunch",to_scientific_string(Beam0[i].Nrp, 11),(1 != Nbeam) ? to_scientific_string(Beam1[i].Nrp, 11) :
+// "^_^" }); 		Beam_table.add_row({ "Macro particles/bunch",std::to_string(Beam0[i].Np),(1 != Nbeam) ? std::to_string(Beam1[i].Np) : "^_^" });
+// 		Beam_table.add_row({ "Ratio Nrp/Np",std::to_string(Beam0[i].ratio),(1 != Nbeam) ? std::to_string(Beam1[i].ratio) : "^_^" });
+// 		Beam_table.add_row({ "Kinetic energy per nucleon (GeV/u)", std::to_string(Beam0[i].Ek / 1e9), (1 != Nbeam) ? std::to_string(Beam1[i].Ek / 1e9)
+// : "^_^" }); 		Beam_table.add_row({ "Static mass per nucleon (MeV/c2/u)", std::to_string(Beam0[i].m0 / 1e6), (1 != Nbeam) ?
+// std::to_string(Beam1[i].m0 / 1e6) : "^_^" }); 		Beam_table.add_row({ "Momentum (kg*m/s)", to_scientific_string(Beam0[i].p0_kg, 12),(1 !=
+// Nbeam) ? to_scientific_string(Beam1[i].p0_kg, 12) : "^_^" }); 		Beam_table.add_row({ "Momentum (GeV/c)", std::to_string(Beam0[i].p0 / 1e9),(1
+// != Nbeam) ? std::to_string(Beam1[i].p0 / 1e9) : "^_^" }); 		Beam_table.add_row({ "Brho (T*m)",std::to_string(Beam0[i].Brho),(1 != Nbeam) ?
+// std::to_string(Beam1[i].Brho) : "^_^" }); 		Beam_table.add_row({ "Beta",to_scientific_string(Beam0[i].beta, 12),(1 != Nbeam) ?
+// to_scientific_string(Beam1[i].beta, 12) : "^_^" }); 		Beam_table.add_row({ "Gamma",std::to_string(Beam0[i].gamma),(1 != Nbeam) ?
+// std::to_string(Beam1[i].gamma) : "^_^" });
+// 		//Beam_table.add_row({ "Geometric emittance x (m*rad)",to_scientific_string(Beam0[i].emitx, 9),(1 != Nbeam) ?
+// to_scientific_string(Beam1[i].emitx, 9) : "^_^" });
+// 		//Beam_table.add_row({ "Geometric emittance y (m*rad)",to_scientific_string(Beam0[i].emity, 9),(1 != Nbeam) ?
+// to_scientific_string(Beam1[i].emity, 9) : "^_^" });
+// 		//Beam_table.add_row({ "Normalized emittance x (m*rad)",to_scientific_string(Beam0[i].emitx_norm, 9),(1 != Nbeam) ?
+// to_scientific_string(Beam1[i].emitx_norm, 9) : "^_^" });
+// 		//Beam_table.add_row({ "Normalized emittance y (m*rad)",to_scientific_string(Beam0[i].emity_norm,9),(1 != Nbeam) ?
+// to_scientific_string(Beam1[i].emity_norm,9) : "^_^" });
+// 		//Beam_table.add_row({ "Twiss alpha x",std::to_string(Beam0[i].alphax),(1 != Nbeam) ? std::to_string(Beam1[i].alphax) : "^_^" });
+// 		//Beam_table.add_row({ "Twiss alpha y",std::to_string(Beam0[i].alphay),(1 != Nbeam) ? std::to_string(Beam1[i].alphay) : "^_^" });
+// 		//Beam_table.add_row({ "Twiss beta x (m)",std::to_string(Beam0[i].betax),(1 != Nbeam) ? std::to_string(Beam1[i].betax) : "^_^" });
+// 		//Beam_table.add_row({ "Twiss beta y (m)",std::to_string(Beam0[i].betay),(1 != Nbeam) ? std::to_string(Beam1[i].betay) : "^_^" });
+// 		//Beam_table.add_row({ "Twiss gamma x (m-1)",std::to_string(Beam0[i].gammax),(1 != Nbeam) ? std::to_string(Beam1[i].gammax) : "^_^" });
+// 		//Beam_table.add_row({ "Twiss gamma y (m-1)",std::to_string(Beam0[i].gammay),(1 != Nbeam) ? std::to_string(Beam1[i].gammay) : "^_^" });
+// 		//Beam_table.add_row({ "Sigma x (mm)",std::to_string(Beam0[i].sigmax * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmax * 1e3) : "^_^" });
+// 		//Beam_table.add_row({ "Sigma y (mm)",std::to_string(Beam0[i].sigmay * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmay * 1e3) : "^_^" });
+// 		//Beam_table.add_row({ "Sigma px (mrad)",std::to_string(Beam0[i].sigmapx * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapx * 1e3) : "^_^"
+// });
+// 		//Beam_table.add_row({ "Sigma py (mrad)",std::to_string(Beam0[i].sigmapy * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapy * 1e3) : "^_^"
+// });
+// 		//Beam_table.add_row({ "Sigma z (mm)",std::to_string(Beam0[i].sigmaz * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmaz * 1e3) : "^_^" });
+// 		//Beam_table.add_row({ "Deltap/P (1e-3)",std::to_string(Beam0[i].dp * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].dp * 1e3) : "^_^" });
+// 		//Beam_table.add_row({ "Qx",std::to_string(Beam0[i].Qx),(1 != Nbeam) ? std::to_string(Beam1[i].Qx) : "^_^" });
+// 		//Beam_table.add_row({ "Qy",std::to_string(Beam0[i].Qy),(1 != Nbeam) ? std::to_string(Beam1[i].Qy) : "^_^" });
+// 		//Beam_table.add_row({ "Qz",std::to_string(Beam0[i].Qz),(1 != Nbeam) ? std::to_string(Beam1[i].Qz) : "^_^" });
+// 		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromx),(1 != Nbeam) ? std::to_string(Beam1[i].chromx) : "^_^" });
+// 		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromy),(1 != Nbeam) ? std::to_string(Beam1[i].chromy) : "^_^" });
+// 		//Beam_table.add_row({ "Gamma T",std::to_string(Beam0[i].gammat),(1 != Nbeam) ? std::to_string(Beam1[i].gammat) : "^_^" });
 
+// 		/////////////////////////////////////////// configure table start ///////////////////////////////////////////
 
-		/////////////////////////////////////////// configure table start ///////////////////////////////////////////
+// 		Beam_table[0][0].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
+// 		Beam_table[0][1].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
+// 		if (2 == Nbeam)
+// 			Beam_table[0][2].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
 
-		Beam_table[0][0].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
-		Beam_table[0][1].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
-		if (2 == Nbeam)
-			Beam_table[0][2].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
+// 		Beam_table.column(0).format().font_align(FontAlign::left);
+// 		Beam_table.column(0).format().width(25);
+// 		Beam_table.column(1).format().font_align(FontAlign::center);
+// 		Beam_table.column(1).format().width(30);
+// 		if (2 == Nbeam)
+// 		{
+// 			Beam_table.column(2).format().font_align(FontAlign::center);
+// 			Beam_table.column(2).format().width(30);
+// 		}
 
-		Beam_table.column(0).format().font_align(FontAlign::left);
-		Beam_table.column(0).format().width(25);
-		Beam_table.column(1).format().font_align(FontAlign::center);
-		Beam_table.column(1).format().width(30);
-		if (2 == Nbeam)
-		{
-			Beam_table.column(2).format().font_align(FontAlign::center);
-			Beam_table.column(2).format().width(30);
-		}
+// 		/////////////////////////////////////////// configure table end /////////////////////////////////////////////
 
-		/////////////////////////////////////////// configure table end /////////////////////////////////////////////
+// 		std::cout << Beam_table << std::endl;
 
-		std::cout << Beam_table << std::endl;
+// 		std::ofstream outputFile(Para.path_logfile, std::ios::app);
+// 		std::streambuf* coutbuf = std::cout.rdbuf();
+// 		std::cout.rdbuf(outputFile.rdbuf());
 
-		std::ofstream outputFile(Para.path_logfile, std::ios::app);
-		std::streambuf* coutbuf = std::cout.rdbuf();
-		std::cout.rdbuf(outputFile.rdbuf());
+// 		std::cout << Beam_table << std::endl;
+// 		outputFile.flush();
+// 		outputFile.close();
 
-		std::cout << Beam_table << std::endl;
-		outputFile.flush();
-		outputFile.close();
+// 		std::cout.rdbuf(coutbuf);
+// 	}
 
-		std::cout.rdbuf(coutbuf);
-	}
+// }
 
-}
-
-void create_logger(const Parameter& Para) {
-
-	std::string logfile = Para.path_logfile.string();
-
+void create_logger(std::string logfile)
+{
 	auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-	console_sink->set_level(spdlog::level::debug);  // Set the console log level
-	console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v"); // Set tho console log pattern
+	console_sink->set_level(spdlog::level::debug);					  // Set the console log level
+	console_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");  // Set tho console log pattern
 
 	auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logfile, true);
 	file_sink->set_level(spdlog::level::debug);
 	file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 
-	std::vector<spdlog::sink_ptr> sinks{ console_sink, file_sink };
+	std::vector<spdlog::sink_ptr> sinks{console_sink, file_sink};
 	auto logger = std::make_shared<spdlog::logger>("logger", sinks.begin(), sinks.end());
 
 	spdlog::set_default_logger(logger);
@@ -328,43 +336,41 @@ void create_logger(const Parameter& Para) {
 	spdlog::set_level(active_level);
 
 	spdlog::flush_on(active_level);
-
 }
 
-
-void show_device_info() {
-
+void show_device_info()
+{
 	auto logger = spdlog::get("logger");
 	logger->set_pattern("%v");
 
 	logger->info("\n********** Runtime environment ************\n");
 
-	cudaDeviceProp prop; //"cuda_runtime.h"
+	cudaDeviceProp prop;  //"cuda_runtime.h"
 	int count;
 	cudaGetDeviceCount(&count);
 
 	logger->info("Operation system:        {}", MY_SYSTEM);
 	logger->info("CUDA toolkit version:    {}.{}", CUDART_VERSION / 1000, CUDART_VERSION / 10 % 100);
-	//printf("CPU threads available:   %d\n", omp_get_num_procs());
+	// printf("CPU threads available:   %d\n", omp_get_num_procs());
 	logger->info("GPU available:           {}", count);
-	//printf("GPU used number:         %d\n", numtask);
+	// printf("GPU used number:         %d\n", numtask);
 #ifdef _MSC_VER
 	logger->info("MSVC version:            {}", _MSC_VER);
 #endif
 #ifdef __GNUC__
 	logger->info("GCC version:             {}.{}.{}", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#endif //
+#endif	//
 
-	//if (omp_get_num_procs() < numtask)
+	// if (omp_get_num_procs() < numtask)
 	//{
 	//	printf("\nUser warning: cpu threads is less than gpu devices, this may cause unknown error. Please change gpu device number.\n");
-	//}
+	// }
 
-	//printf("\n%-9s %-9s\n", "rank", "device");
-	//for (size_t i = 0; i < device.size(); i++)
+	// printf("\n%-9s %-9s\n", "rank", "device");
+	// for (size_t i = 0; i < device.size(); i++)
 	//{
 	//	printf("%-9d %-9d\n", device[i].rank, device[i].deviceId);
-	//}
+	// }
 
 	for (int i = 0; i < count; ++i)
 	{
@@ -384,15 +390,15 @@ void show_device_info() {
 	}
 
 	////Check peer-to-peer connectivity
-	//printf("\nP2P Connectivity Matrix\n");
-	//printf("     D\\D");
+	// printf("\nP2P Connectivity Matrix\n");
+	// printf("     D\\D");
 
-	//for (int j = 0; j < numtask; j++) {
+	// for (int j = 0; j < numtask; j++) {
 	//	printf("%6d", device[j].deviceId);
-	//}
-	//printf("\n");
+	// }
+	// printf("\n");
 
-	//for (int i = 0; i < numtask; i++) {
+	// for (int i = 0; i < numtask; i++) {
 	//	printf("%6d\t", device[i].deviceId);
 	//	for (int j = 0; j < numtask; j++) {
 	//		if (i != j) {
@@ -405,16 +411,14 @@ void show_device_info() {
 	//		}
 	//	}
 	//	printf("\n");
-	//}
+	// }
 	logger->info("\n*******************************************\n");
 
 	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 }
 
-
 std::string timeStamp()
 {
-
 	time_t now = time(0);
 	tm* ltm = localtime(&now);
 
@@ -434,15 +438,14 @@ std::string timeStamp()
 	sminute = minute < 10 ? "0" + std::to_string(minute) : std::to_string(minute);
 	ssecond = second < 10 ? "0" + std::to_string(second) : std::to_string(second);
 
-	//std::string fullTime = syear + "_" + smonth + sday + "_" + shour + sminute + "_" + ssecond;
+	// std::string fullTime = syear + "_" + smonth + sday + "_" + shour + sminute + "_" + ssecond;
 	std::string fullTime = syear + "-" + smonth + "-" + sday + "," + shour + ":" + sminute + ":" + ssecond;
 
 	return fullTime;
 }
 
-
-void TimeEvent::initial(int deviceid, bool timeOrNot) {
-
+void TimeEvent::initial(int deviceid, bool timeOrNot)
+{
 	callCuda(cudaSetDevice(deviceid));
 
 	callCuda(cudaEventCreate(&start));
@@ -461,8 +464,8 @@ void TimeEvent::initial(int deviceid, bool timeOrNot) {
 	}
 }
 
-void TimeEvent::free(int deviceid) {
-
+void TimeEvent::free(int deviceid)
+{
 	callCuda(cudaSetDevice(deviceid));
 
 	callCuda(cudaEventDestroy(start));
@@ -472,8 +475,8 @@ void TimeEvent::free(int deviceid) {
 	callCuda(cudaEventDestroy(stopPerTurn));
 }
 
-TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
-
+TimeEvent& TimeEvent::add(const TimeEvent& rhs)
+{
 	allocate2gridSC += rhs.allocate2gridSC;
 	calBoundarySC += rhs.calBoundarySC;
 	calPotentialSC += rhs.calPotentialSC;
@@ -512,15 +515,11 @@ TimeEvent& TimeEvent::add(const TimeEvent& rhs) {
 	return *this;
 }
 
-void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
-
-	total
-		= allocate2gridSC + calBoundarySC + calPotentialSC + calElectricSC + calKickSC
-		+ allocate2gridBB + calBoundaryBB + calPotentialBB + calElectricBB + calKickBB
-		+ sort + slice + hourGlass + calPhase + statistic + crossingAngle + crabCavity
-		+ floatWaist + oneTurnMap + transferFixPoint
-		+ saveStatistic + savePhase + saveBunch + saveFixpoint + saveLuminosity
-		+ twiss + transferElement;
+void TimeEvent::print(int totalTurn, double cpuTime, int deviceid)
+{
+	total = allocate2gridSC + calBoundarySC + calPotentialSC + calElectricSC + calKickSC + allocate2gridBB + calBoundaryBB + calPotentialBB +
+			calElectricBB + calKickBB + sort + slice + hourGlass + calPhase + statistic + crossingAngle + crabCavity + floatWaist + oneTurnMap +
+			transferFixPoint + saveStatistic + savePhase + saveBunch + saveFixpoint + saveLuminosity + twiss + transferElement;
 
 	std::string name = "process(device " + std::to_string(deviceid) + ")";
 
@@ -528,47 +527,70 @@ void TimeEvent::print(int totalTurn, double cpuTime, int deviceid) {
 	logger->info("{:<35} {:>10s} {:>10s} {:>10s}", name.c_str(), "GPU time", "GPU/GPU", "GPU/CPU");
 	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time sort:", sort / totalTurn, sort / turn * 100, sort / 1000 / cpuTime * 100);
 	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cut slice:", slice / totalTurn, slice / turn * 100, slice / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC allocate to grids:", allocate2gridSC / totalTurn, allocate2gridSC / turn * 100, allocate2gridSC / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate boundary:", calBoundarySC / totalTurn, calBoundarySC / turn * 100, calBoundarySC / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate potential:", calPotentialSC / totalTurn, calPotentialSC / turn * 100, calPotentialSC / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate electric field:", calElectricSC / totalTurn, calElectricSC / turn * 100, calElectricSC / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate kick:", calKickSC / totalTurn, calKickSC / turn * 100, calKickSC / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB allocate to grids:", allocate2gridBB / totalTurn, allocate2gridBB / turn * 100, allocate2gridBB / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate boundary:", calBoundaryBB / totalTurn, calBoundaryBB / turn * 100, calBoundaryBB / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate potential:", calPotentialBB / totalTurn, calPotentialBB / turn * 100, calPotentialBB / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate electric field:", calElectricBB / totalTurn, calElectricBB / turn * 100, calElectricBB / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate kick:", calKickBB / totalTurn, calKickBB / turn * 100, calKickBB / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100, hourGlass / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cal phase:", calPhase / totalTurn, calPhase / turn * 100, calPhase / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time statistic:", statistic / totalTurn, statistic / turn * 100, statistic / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crossing angle:", crossingAngle / totalTurn, crossingAngle / turn * 100, crossingAngle / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crab cavity:", crabCavity / totalTurn, crabCavity / turn * 100, crabCavity / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time floatWaist:", floatWaist / totalTurn, floatWaist / turn * 100, floatWaist / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time one turn map:", oneTurnMap / totalTurn, oneTurnMap / turn * 100, oneTurnMap / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time select fix points:", transferFixPoint / totalTurn, transferFixPoint / turn * 100, transferFixPoint / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save statistic:", saveStatistic / totalTurn, saveStatistic / turn * 100, saveStatistic / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save phase:", savePhase / totalTurn, savePhase / turn * 100, savePhase / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save bunch:", saveBunch / totalTurn, saveBunch / turn * 100, saveBunch / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save fix points:", saveFixpoint / totalTurn, saveFixpoint / turn * 100, saveFixpoint / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save luminosity:", saveLuminosity / totalTurn, saveLuminosity / turn * 100, saveLuminosity / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC allocate to grids:", allocate2gridSC / totalTurn, allocate2gridSC / turn * 100,
+				 allocate2gridSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate boundary:", calBoundarySC / totalTurn, calBoundarySC / turn * 100,
+				 calBoundarySC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate potential:", calPotentialSC / totalTurn, calPotentialSC / turn * 100,
+				 calPotentialSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate electric field:", calElectricSC / totalTurn, calElectricSC / turn * 100,
+				 calElectricSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time SC calculate kick:", calKickSC / totalTurn, calKickSC / turn * 100,
+				 calKickSC / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB allocate to grids:", allocate2gridBB / totalTurn, allocate2gridBB / turn * 100,
+				 allocate2gridBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate boundary:", calBoundaryBB / totalTurn, calBoundaryBB / turn * 100,
+				 calBoundaryBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate potential:", calPotentialBB / totalTurn, calPotentialBB / turn * 100,
+				 calPotentialBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate electric field:", calElectricBB / totalTurn, calElectricBB / turn * 100,
+				 calElectricBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time BB calculate kick:", calKickBB / totalTurn, calKickBB / turn * 100,
+				 calKickBB / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time hourglass:", hourGlass / totalTurn, hourGlass / turn * 100,
+				 hourGlass / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time cal phase:", calPhase / totalTurn, calPhase / turn * 100,
+				 calPhase / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time statistic:", statistic / totalTurn, statistic / turn * 100,
+				 statistic / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crossing angle:", crossingAngle / totalTurn, crossingAngle / turn * 100,
+				 crossingAngle / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time crab cavity:", crabCavity / totalTurn, crabCavity / turn * 100,
+				 crabCavity / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time floatWaist:", floatWaist / totalTurn, floatWaist / turn * 100,
+				 floatWaist / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time one turn map:", oneTurnMap / totalTurn, oneTurnMap / turn * 100,
+				 oneTurnMap / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time select fix points:", transferFixPoint / totalTurn, transferFixPoint / turn * 100,
+				 transferFixPoint / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save statistic:", saveStatistic / totalTurn, saveStatistic / turn * 100,
+				 saveStatistic / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save phase:", savePhase / totalTurn, savePhase / turn * 100,
+				 savePhase / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save bunch:", saveBunch / totalTurn, saveBunch / turn * 100,
+				 saveBunch / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save fix points:", saveFixpoint / totalTurn, saveFixpoint / turn * 100,
+				 saveFixpoint / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time save luminosity:", saveLuminosity / totalTurn, saveLuminosity / turn * 100,
+				 saveLuminosity / 1000 / cpuTime * 100);
 
 	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time twiss transfer:", twiss / totalTurn, twiss / turn * 100, twiss / 1000 / cpuTime * 100);
-	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time element transfer:", transferElement / totalTurn, transferElement / turn * 100, transferElement / 1000 / cpuTime * 100);
+	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "time element transfer:", transferElement / totalTurn, transferElement / turn * 100,
+				 transferElement / 1000 / cpuTime * 100);
 
 	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%", "summary:", total / totalTurn, total / turn * 100, total / 1000 / cpuTime * 100);
 	logger->info("{:<35} {:8.2f}ms, {:8.2f}%, {:8.2f}%\n", "time per turn:", turn / totalTurn, turn / turn * 100, turn / 1000 / cpuTime * 100);
-
 }
 
-
-bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
-	for (const auto& range : ranges) {
-
+bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges)
+{
+	for (const auto& range : ranges)
+	{
 		const int step = range.step;
 
 		// ���ٷ�Χ���
-		if ((step > 0 && (value < range.start || value > range.end)) ||
-			(step < 0 && (value > range.start || value < range.end))) {
+		if ((step > 0 && (value < range.start || value > range.end)) || (step < 0 && (value > range.start || value < range.end)))
+		{
 			continue;
 		}
 
@@ -577,24 +599,25 @@ bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
 		if (delta % step != 0) continue;  // �����ܱ���������
 
 		const int steps = delta / step;
-		if (steps >= 0) {  // �Ǹ�����
+		if (steps >= 0)
+		{  // �Ǹ�����
 			return true;
 		}
 	}
 	return false;
 }
 
-
-bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, int& index) {
-
-	for (int i = 0; i < ranges.size(); ++i) {
+bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, int& index)
+{
+	for (int i = 0; i < ranges.size(); ++i)
+	{
 		const auto& range = ranges[i];
 
 		const int step = range.step;
 
 		// ���ٷ�Χ���
-		if ((step > 0 && (value < range.start || value > range.end)) ||
-			(step < 0 && (value > range.start || value < range.end))) {
+		if ((step > 0 && (value < range.start || value > range.end)) || (step < 0 && (value > range.start || value < range.end)))
+		{
 			continue;  // ���������㷶Χ��������
 		}
 
@@ -604,46 +627,51 @@ bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, i
 
 		// ��֤�����Ǹ�
 		const int steps = delta / step;
-		if (steps >= 0) {	// �Ǹ�����
-			index = i;   // ����ƥ������
-			return true; // ƥ��ɹ�
+		if (steps >= 0)
+		{				  // �Ǹ�����
+			index = i;	  // ����ƥ������
+			return true;  // ƥ��ɹ�
 		}
 	}
-	index = -1; // δ�ҵ��κ�ƥ��
+	index = -1;	 // δ�ҵ��κ�ƥ��
 	return false;
 }
 
-
-bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
-	for (const auto& range : ranges) {
-		if (value == range.start) {
+bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges)
+{
+	for (const auto& range : ranges)
+	{
+		if (value == range.start)
+		{
 			return true;
 		}
 	}
 	return false;
 }
 
-
-bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges) {
-	for (const auto& range : ranges) {
-		if (value == range.end) {
+bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges)
+{
+	for (const auto& range : ranges)
+	{
+		if (value == range.end)
+		{
 			return true;
 		}
 	}
 	return false;
 }
 
-
-void print_cycleRange(const std::vector<CycleRange>& ranges) {
-	for (const auto& range : ranges) {
-
-		spdlog::get("logger")->info("[CycleRange] Start = {}, end = {}, step = {}, totalPoints = {}", range.start, range.end, range.step, range.totalPoints);
+void print_cycleRange(const std::vector<CycleRange>& ranges)
+{
+	for (const auto& range : ranges)
+	{
+		spdlog::get("logger")->info("[CycleRange] Start = {}, end = {}, step = {}, totalPoints = {}", range.start, range.end, range.step,
+									range.totalPoints);
 	}
 }
 
-
-std::string ms_to_timeString(double ms) {
-
+std::string ms_to_timeString(double ms)
+{
 	int second = static_cast<int>(std::round(ms / 1000.0));
 	int eta_hour = div(second, 3600).quot;
 	int eta_minute = div(div(second, 3600).rem, 60).quot;
@@ -652,13 +680,13 @@ std::string ms_to_timeString(double ms) {
 	return std::to_string(eta_hour) + "h " + std::to_string(eta_minute) + "m " + std::to_string(eta_second) + "s";
 }
 
-
-std::vector<std::vector<double>> loadtxt(const std::string& filename, char delimiter, int skiprows, const std::vector<int>& usecols) {
-
+std::vector<std::vector<double>> loadtxt(const std::string& filename, char delimiter, int skiprows, const std::vector<int>& usecols)
+{
 	auto logger = spdlog::get("logger");
 
 	std::ifstream file(filename);
-	if (!file.is_open()) {
+	if (!file.is_open())
+	{
 		logger->error("[Read Ramping Data] Open file failed: {}", filename);
 		std::exit(EXIT_FAILURE);
 	}
@@ -667,8 +695,10 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	std::string line;
 
 	// 跳过指定行数
-	for (int i = 0; i < skiprows; ++i) {
-		if (!std::getline(file, line)) {
+	for (int i = 0; i < skiprows; ++i)
+	{
+		if (!std::getline(file, line))
+		{
 			// 文件行数不足，直接返回空结果
 			logger->error("[Read Ramping Data] For file: {}, after skip {} rows, the file is empty", filename, skiprows);
 			std::exit(EXIT_FAILURE);
@@ -677,12 +707,14 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 	// 是否指定了要读取的列
 	bool use_specific_cols = !usecols.empty();
-	int expected_cols = -1;  // 期望的列数
-	int row_num = 0;  // 当前处理的行号
+	int expected_cols = -1;	 // 期望的列数
+	int row_num = 0;		 // 当前处理的行号
 
-	while (std::getline(file, line)) {
+	while (std::getline(file, line))
+	{
 		// 跳过空行和全空白行
-		if (line.empty() || std::all_of(line.begin(), line.end(), ::isspace)) {
+		if (line.empty() || std::all_of(line.begin(), line.end(), ::isspace))
+		{
 			continue;
 		}
 
@@ -691,20 +723,24 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		std::vector<double> row_values;
 
 		// 解析当前行
-		while (std::getline(ss, cell, delimiter)) {
+		while (std::getline(ss, cell, delimiter))
+		{
 			// 去除空白字符
 			cell.erase(0, cell.find_first_not_of(" \t\r\n"));
 			cell.erase(cell.find_last_not_of(" \t\r\n") + 1);
 
-			if (cell.empty()) {
+			if (cell.empty())
+			{
 				logger->error("[Read Ramping Data] For file: {}, line {} has empty value", filename, row_num + skiprows + 1);
 				std::exit(EXIT_FAILURE);
 			}
 
-			try {
+			try
+			{
 				row_values.push_back(std::stod(cell));
 			}
-			catch (const std::exception& e) {
+			catch (const std::exception& e)
+			{
 				logger->error("[Read Ramping Data] For file: {}, can't convert value {} to double type", filename, cell);
 				std::exit(EXIT_FAILURE);
 			}
@@ -713,16 +749,20 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		// 检查列数一致性
 		int current_cols = row_values.size();
 
-		if (expected_cols == -1) {
+		if (expected_cols == -1)
+		{
 			// 第一行，确定期望的列数
-			if (use_specific_cols) {
+			if (use_specific_cols)
+			{
 				expected_cols = usecols.size();
 			}
-			else {
+			else
+			{
 				expected_cols = current_cols;
 			}
 
-			if (expected_cols == 0) {
+			if (expected_cols == 0)
+			{
 				logger->error("[Read Ramping Data] For file: {}, the first line has no valid data", filename);
 				std::exit(EXIT_FAILURE);
 			}
@@ -732,44 +772,52 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		}
 
 		// 检查当前行的列数是否与期望一致
-		if (current_cols != expected_cols) {
-			logger->error("[Read Ramping Data] For file: {}, line: {}, current column is {}, expect column is {}",
-				filename, row_num + skiprows + 1, current_cols, expected_cols);
+		if (current_cols != expected_cols)
+		{
+			logger->error("[Read Ramping Data] For file: {}, line: {}, current column is {}, expect column is {}", filename, row_num + skiprows + 1,
+						  current_cols, expected_cols);
 			std::exit(EXIT_FAILURE);
 		}
 
 		// 将数据添加到对应列
-		if (use_specific_cols) {
+		if (use_specific_cols)
+		{
 			// 只读取指定列
 
 			// 检查当前行的列数是否与期望一致
 			int max_col_index = *std::max_element(usecols.begin(), usecols.end());
-			if (current_cols <= max_col_index) {
+			if (current_cols <= max_col_index)
+			{
 				logger->error("[Read Ramping Data] For file: {}, line: {}, we need at least {} columns, but currently there is only {} columns",
-					filename, row_num + skiprows + 1, max_col_index, current_cols);
+							  filename, row_num + skiprows + 1, max_col_index, current_cols);
 				std::exit(EXIT_FAILURE);
 			}
 
-			for (size_t i = 0; i < usecols.size(); ++i) {
+			for (size_t i = 0; i < usecols.size(); ++i)
+			{
 				int col_idx = usecols[i];
-				if (col_idx < 0 || col_idx >= current_cols) {
+				if (col_idx < 0 || col_idx >= current_cols)
+				{
 					logger->error("[Read Ramping Data] For file: {}, column {} is out of range", filename, col_idx);
 					std::exit(EXIT_FAILURE);
 				}
 				result[i].push_back(row_values[col_idx]);
 			}
 		}
-		else {
+		else
+		{
 			// 读取所有列
 
 			// 检查当前行的列数是否与期望一致
-			if (current_cols != expected_cols) {
+			if (current_cols != expected_cols)
+			{
 				logger->error("[Read Ramping Data] For file: {}, line: {}, we need at least {} columns, but currently there is only {} columns",
-					filename, row_num + skiprows + 1, expected_cols, current_cols);
+							  filename, row_num + skiprows + 1, expected_cols, current_cols);
 				std::exit(EXIT_FAILURE);
 			}
 
-			for (int i = 0; i < current_cols; ++i) {
+			for (int i = 0; i < current_cols; ++i)
+			{
 				result[i].push_back(row_values[i]);
 			}
 		}
@@ -778,7 +826,8 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	}
 
 	// 检查是否读取到数据
-	if (result.empty() || result[0].empty()) {
+	if (result.empty() || result[0].empty())
+	{
 		logger->error("[Read Ramping Data] For file: {}, the file is empty of there is no valid data", filename);
 		std::exit(EXIT_FAILURE);
 	}
@@ -786,39 +835,45 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	return result;
 }
 
-
-std::vector<std::string> split_line(const std::string& line) {
+std::vector<std::string> split_line(const std::string& line)
+{
 	// 使用逗号、空格和制表符作为分隔符来分割字符串,如果分隔后的第一个字段无法转换为数字，则说明该行不是有效的数据行，返回空结果
 	std::vector<std::string> fields;
 	std::string field;
-	for (char ch : line) {
-		if (ch == ',' || ch == ' ' || ch == '\t') {
-			if (!field.empty()) {
+	for (char ch : line)
+	{
+		if (ch == ',' || ch == ' ' || ch == '\t')
+		{
+			if (!field.empty())
+			{
 				fields.push_back(field);
 				field.clear();
 			}
 		}
-		else {
+		else
+		{
 			field.push_back(ch);
 		}
 	}
 	if (!field.empty()) fields.push_back(field);
 
 	if (fields.empty()) return {};
-	try {
-		std::stod(fields[0]);	// 尝试将第一个字段转换为数字，如果失败则说明该行不是有效的数据行，返回空结果
+	try
+	{
+		std::stod(fields[0]);  // 尝试将第一个字段转换为数字，如果失败则说明该行不是有效的数据行，返回空结果
 	}
-	catch (...) {
+	catch (...)
+	{
 		return {};
 	}
 	return fields;
 }
 
-
 std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 {
 	std::ifstream file(file_path);
-	if (!file.is_open()) {
+	if (!file.is_open())
+	{
 		throw std::runtime_error("read_file_data: failed to open file: " + file_path);
 	}
 
@@ -827,29 +882,32 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 	std::string line;
 	size_t line_number = 0;
 
-	while (std::getline(file, line)) {
+	while (std::getline(file, line))
+	{
 		++line_number;
 
 		auto fields = split_line(line);
-		if (fields.empty()) {
-			continue;   // 跳过空行、注释行、表头等无效行
+		if (fields.empty())
+		{
+			continue;  // 跳过空行、注释行、表头等无效行
 		}
 
-		for (size_t i = 0; i < fields.size(); ++i) {
-			if (result.size() <= i) {
+		for (size_t i = 0; i < fields.size(); ++i)
+		{
+			if (result.size() <= i)
+			{
 				result.emplace_back();
 			}
 
-			try {
+			try
+			{
 				result[i].push_back(std::stod(fields[i]));
 			}
-			catch (const std::exception& e) {
+			catch (const std::exception& e)
+			{
 				std::ostringstream oss;
 				oss << "read_file_data: failed to parse number"
-					<< " in file: " << file_path
-					<< ", line: " << line_number
-					<< ", column: " << (i + 1)
-					<< ", value: \"" << fields[i] << "\""
+					<< " in file: " << file_path << ", line: " << line_number << ", column: " << (i + 1) << ", value: \"" << fields[i] << "\""
 					<< ", reason: " << e.what();
 
 				throw std::runtime_error(oss.str());
@@ -860,24 +918,25 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 	return result;
 }
 
-
-std::string to_lower(const std::string& str) {
+std::string to_lower(const std::string& str)
+{
 	std::string result = str;  // 创建一个副本
-	for (char& c : result) {
+	for (char& c : result)
+	{
 		c = std::tolower(static_cast<unsigned char>(c));  // 转换字符为小写
 	}
 	return result;
 }
 
-
-std::string to_upper(const std::string& str) {
+std::string to_upper(const std::string& str)
+{
 	std::string result = str;  // 创建一个副本
-	for (char& c : result) {
+	for (char& c : result)
+	{
 		c = std::toupper(static_cast<unsigned char>(c));  // 转换字符为大写
 	}
 	return result;
 }
-
 
 const double brent(const std::function<double(double)>& func, const double x1, const double x2, const double tol, const int iter_max)
 {
@@ -971,12 +1030,9 @@ const double brent(const std::function<double(double)>& func, const double x1, c
 			x2_temp = x2_temp + interval;
 		else
 		{
-			if (x_mid > 0)
-				direction = 1;
-			if (x_mid == 0)
-				direction = 0;
-			if (x_mid < 0)
-				direction = -1;
+			if (x_mid > 0) direction = 1;
+			if (x_mid == 0) direction = 0;
+			if (x_mid < 0) direction = -1;
 			x2_temp = x2_temp + fabs(tol_scale) * direction;
 		}
 		fx2 = func(x2_temp);
@@ -988,15 +1044,13 @@ const double brent(const std::function<double(double)>& func, const double x1, c
 	return x2_temp;
 }
 
-
 const double trapz(const std::function<double(double)>& func, const double a, const double b, const int n)
 {
 	double sum = 0.0;
-	if ((b - a) < 1E-9)
-		return 0;
-	double gaps = (b - a) / double(n);  //ÿ������ĳ���
+	if ((b - a) < 1E-9) return 0;
+	double gaps = (b - a) / double(n);	// ÿ������ĳ���
 	int n_thread = 8;
-#pragma omp parallel for num_threads(n_thread) reduction(+:sum)
+#pragma omp parallel for num_threads(n_thread) reduction(+ : sum)
 	for (int i = 0; i < n; i++)
 	{
 		sum += (gaps / 2.0) * (func(a + i * gaps) + func(a + (i + 1) * gaps));
@@ -1004,20 +1058,20 @@ const double trapz(const std::function<double(double)>& func, const double a, co
 	return sum;
 }
 
-
-const double trapz2d(const std::function<double(double, double)>& func, const std::function<double(double)>& funcy1, const std::function<double(double)>& funcy2, const double a, const double b, const int n)
+const double trapz2d(const std::function<double(double, double)>& func, const std::function<double(double)>& funcy1,
+					 const std::function<double(double)>& funcy2, const double a, const double b, const int n)
 {
 	double sum = 0.0;
-	if ((b - a) < 1e-9)
-		return 0;
-	double gaps = (b - a) / double(n);  //ÿ������ĳ���
+	if ((b - a) < 1e-9) return 0;
+	double gaps = (b - a) / double(n);	// ÿ������ĳ���
 	int n_thread = 8;
-#pragma omp parallel for num_threads(n_thread) reduction(+:sum)
+#pragma omp parallel for num_threads(n_thread) reduction(+ : sum)
 	for (int i = 0; i < n; i++)
 	{
 		auto funca = [=](double y) -> double { return func(a + i * gaps, y); };
 		auto funcb = [=](double y) -> double { return func(a + (i + 1) * gaps, y); };
-		sum += (gaps / 2.0) * (trapz(funca, funcy1(a + i * gaps), funcy2(a + i * gaps), n) + trapz(funcb, funcy1(a + (i + 1) * gaps), funcy2(a + (i + 1) * gaps), n));
+		sum += (gaps / 2.0) * (trapz(funca, funcy1(a + i * gaps), funcy2(a + i * gaps), n) +
+							   trapz(funcb, funcy1(a + (i + 1) * gaps), funcy2(a + (i + 1) * gaps), n));
 	}
 	return sum;
 }

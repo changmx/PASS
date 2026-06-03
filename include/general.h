@@ -1,29 +1,27 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <stdexcept>
+#include <cmdline/cmdline.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include <stdlib.h>
-#include <filesystem>
-#include <cmath>
-#include <type_traits>
+
+#include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <functional>
-
-#include <cmdline/cmdline.h>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <tabulate/tabulate.hpp>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
-
-#include "parameter.h"
-#include "particle.h"
+#include <type_traits>
+#include <vector>
 
 #ifndef STRNCASECMP
 #define STRNCASECMP _strnicmp
@@ -44,26 +42,79 @@ printf("\nUnknown runtime system.\n");
 exit(1);
 #endif
 
-void print_logo(const Parameter& Para);
+void print_logo();
 
-void print_copyright(const Parameter& Para);
+void print_copyright();
 
 void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec);
 
-void print_config_parameter(const Parameter&);
+// void print_config_parameter(const Parameter&);
 
-void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1);
+// void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1);
 
-void create_logger(const Parameter& Para);
+void create_logger(std::string logfile_path);
 
 void show_device_info();
 
 std::string timeStamp();
 
+struct CycleRange
+{
+	int start;
+	int end;
+	int step;
+	int totalPoints;
+
+	// data validation
+	CycleRange(int s, int e, int st) : start(s), end(e), step(st)
+	{
+		if (st == 0)
+		{
+			throw std::invalid_argument("Step cannot be zero");
+		}
+		if ((st > 0 && s > e) || (st < 0 && s < e))
+		{
+			throw std::invalid_argument("Invalid range direction");
+		}
+
+		if (step > 0)
+		{
+			int diff = end - start;
+			totalPoints = diff / step + 1;
+			end = start + (totalPoints - 1) * step;	 // Ensure end is the last point in the range
+		}
+		else
+		{
+			int diff = start - end;
+			totalPoints = diff / (-step) + 1;
+			end = start + (totalPoints - 1) * step;	 // Ensure end is the last point in the range
+		}
+	}
+
+	// Check if a value is within the range and is one of the points in the range
+	bool contains(int value) const
+	{
+		if (step > 0)
+		{
+			if (value < start || value > end) return false;
+		}
+		else
+		{
+			if (value > start || value < end) return false;
+		}
+		return (value - start) % step == 0;
+	}
+
+	// Check if a value is the last point in the range
+	bool isLastPoint(int value) const { return contains(value) && (value == end); }
+
+	// Check if a value is the first point in the range
+	bool isFirstPoint(int value) const { return contains(value) && (value == start); }
+};
+
 class TimeEvent
 {
-public:
-
+   public:
 	// Save the time used in the following steps
 	// In units of ms.
 	float allocate2gridSC = 0;
@@ -111,21 +162,19 @@ public:
 	TimeEvent& add(const TimeEvent& rhs);
 	void print(int totalTurn, double cpuTime, int deviceid);
 
-private:
-
+   private:
 };
 
-
-// ÅÐ¶ÏÖµÊÇ·ñ´æÔÚÓÚÈÎÒâÒ»¸öÑ­»··¶Î§ÖÐ
+// ï¿½Ð¶ï¿½Öµï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½Î§ï¿½ï¿½
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
-// ÅÐ¶ÏÖµÊÇ·ñ´æÔÚÓÚÈÎÒâÒ»¸öÑ­»··¶Î§ÖÐ£¬²¢·µ»ØËùÔÚÑ­»·µÄË÷Òý
+// ï¿½Ð¶ï¿½Öµï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½Î§ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, int& index);
 
-// ÅÐ¶ÏÖµÊÇ·ñÎªÈÎÒâÒ»¸öÑ­»··¶Î§µÄÆðÊ¼µã
+// ï¿½Ð¶ï¿½Öµï¿½Ç·ï¿½Îªï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½Î§ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
 bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
-// ÅÐ¶ÏÖµÊÇ·ñÎªÈÎÒâÒ»¸öÑ­»··¶Î§µÄ½áÊøµã
+// ï¿½Ð¶ï¿½Öµï¿½Ç·ï¿½Îªï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½Î§ï¿½Ä½ï¿½ï¿½ï¿½ï¿½ï¿½
 bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
 void print_cycleRange(const std::vector<CycleRange>& ranges);
@@ -138,41 +187,37 @@ std::vector<std::string> split_line(const std::string& line);
 
 std::vector<std::vector<double>> read_file_data(const std::string& file_path);
 
-// ÅÐ¶ÏÊÇ·ñÏàµÈ£¨¶ÔÓÚ¸¡µãÊý£¬Ê¹ÓÃÏà¶ÔÎó²î½øÐÐ±È½Ï£»¶ÔÓÚÆäËûÀàÐÍ£¬Ö±½Ó±È½Ï£©¡£epsÊÇÏà¶ÔÎó²îµÄÈÝÈÌ¶È£¬Ä¬ÈÏÎª1e-10¡£
-template<typename T1, typename T2>
+// ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ï¿½ï¿½È£ï¿½ï¿½ï¿½ï¿½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð±È½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½Ö±ï¿½Ó±È½Ï£ï¿½ï¿½ï¿½epsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì¶È£ï¿½Ä¬ï¿½ï¿½Îª1e-10ï¿½ï¿½
+template <typename T1, typename T2>
 inline bool approx_equal(T1 a, T2 b, std::common_type_t<T1, T2> eps = 1e-12)
 {
 	using Float = std::common_type_t<T1, T2, double>;
-	if constexpr (std::is_floating_point_v<Float>) {
+	if constexpr (std::is_floating_point_v<Float>)
+	{
 		Float fa = static_cast<Float>(a);
 		Float fb = static_cast<Float>(b);
-		return std::fabs(fa - fb) <= eps * std::max({ Float(1), std::fabs(fa), std::fabs(fb) });
+		return std::fabs(fa - fb) <= eps * std::max({Float(1), std::fabs(fa), std::fabs(fb)});
 	}
-	else {
+	else
+	{
 		return a == b;
 	}
 }
 
-// ÏßÐÔ²åÖµº¯Êý£¬ÊäÈëÎªxºÍyµÄÏòÁ¿£¬ÒÔ¼°ÐèÒª²åÖµµÄx0£¬Êä³öÎª¶ÔÓ¦µÄy0¡£y¿ÉÒÔÊÇ¶àÎ¬µÄ£¬¼´Ã¿¸öx¶ÔÓ¦Ò»¸öyÏòÁ¿£¬Êä³öµÄy0Ò²ÊÇÒ»¸öÏòÁ¿¡£ÀýÈçxÎªÊ±¼ä£¬yÎª¶à¸ö²ÎÊý¡£
-template<typename XType, typename YType, typename XQueryType>
-std::vector<YType> linearInterpolate(
-	const std::vector<XType>& xs,
-	const std::vector<std::vector<YType>>& ys,
-	XQueryType x0)
+// ï¿½ï¿½ï¿½Ô²ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªxï¿½ï¿½yï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½Òªï¿½ï¿½Öµï¿½ï¿½x0ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½Ó¦ï¿½ï¿½y0ï¿½ï¿½yï¿½ï¿½ï¿½ï¿½ï¿½Ç¶ï¿½Î¬ï¿½Ä£ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½xï¿½ï¿½Ó¦Ò»ï¿½ï¿½yï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½y0Ò²ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½xÎªÊ±ï¿½ä£¬yÎªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+template <typename XType, typename YType, typename XQueryType>
+std::vector<YType> linearInterpolate(const std::vector<XType>& xs, const std::vector<std::vector<YType>>& ys, XQueryType x0)
 {
-	if (xs.size() < 2)
-		throw std::invalid_argument("linearInterpolate: need at least two points");
+	if (xs.size() < 2) throw std::invalid_argument("linearInterpolate: need at least two points");
 
-	if (xs.size() != ys.size())
-		throw std::invalid_argument("linearInterpolate: xs and ys size mismatch");
+	if (xs.size() != ys.size()) throw std::invalid_argument("linearInterpolate: xs and ys size mismatch");
 
-	if (ys.empty() || ys[0].empty())
-		return {};
+	if (ys.empty() || ys[0].empty()) return {};
 
 	const size_t dim = ys[0].size();
-	for (const auto& yv : ys) {
-		if (yv.size() != dim)
-			throw std::invalid_argument("linearInterpolate: inconsistent y dimensions");
+	for (const auto& yv : ys)
+	{
+		if (yv.size() != dim) throw std::invalid_argument("linearInterpolate: inconsistent y dimensions");
 	}
 
 	assert(std::is_sorted(xs.begin(), xs.end()));
@@ -183,28 +228,19 @@ std::vector<YType> linearInterpolate(
 	const Float xMin = static_cast<Float>(xs.front());
 	const Float xMax = static_cast<Float>(xs.back());
 
-	if (x < xMin || x > xMax)
-		throw std::out_of_range("linearInterpolate: x0 out of range");
+	if (x < xMin || x > xMax) throw std::out_of_range("linearInterpolate: x0 out of range");
 
-	if (approx_equal(x, xMin))
-		return ys.front();
+	if (approx_equal(x, xMin)) return ys.front();
 
-	if (approx_equal(x, xMax))
-		return ys.back();
+	if (approx_equal(x, xMax)) return ys.back();
 
-	auto it = std::lower_bound(
-		xs.begin(), xs.end(), x0,
-		[](const XType& lhs, const XQueryType& rhs) {
-			return lhs < rhs;
-		});
+	auto it = std::lower_bound(xs.begin(), xs.end(), x0, [](const XType& lhs, const XQueryType& rhs) { return lhs < rhs; });
 
 	size_t idx = static_cast<size_t>(it - xs.begin());
 
-	if (idx < xs.size() && approx_equal(static_cast<Float>(xs[idx]), x))
-		return ys[idx];
+	if (idx < xs.size() && approx_equal(static_cast<Float>(xs[idx]), x)) return ys[idx];
 
-	if (idx == 0 || idx >= xs.size())
-		throw std::logic_error("linearInterpolate: invalid lower_bound result");
+	if (idx == 0 || idx >= xs.size()) throw std::logic_error("linearInterpolate: invalid lower_bound result");
 
 	size_t left = idx - 1;
 	size_t right = idx;
@@ -212,8 +248,7 @@ std::vector<YType> linearInterpolate(
 	const Float xL = static_cast<Float>(xs[left]);
 	const Float xR = static_cast<Float>(xs[right]);
 
-	if (approx_equal(xL, xR))
-		return ys[left];
+	if (approx_equal(xL, xR)) return ys[left];
 
 	const Float t = (x - xL) / (xR - xL);
 
@@ -221,15 +256,13 @@ std::vector<YType> linearInterpolate(
 	const auto& yR = ys[right];
 
 	std::vector<YType> result(dim);
-	for (size_t i = 0; i < dim; ++i) {
-		result[i] = static_cast<YType>(
-			yL[i] + t * (yR[i] - yL[i])
-			);
+	for (size_t i = 0; i < dim; ++i)
+	{
+		result[i] = static_cast<YType>(yL[i] + t * (yR[i] - yL[i]));
 	}
 
 	return result;
 }
-
 
 std::string to_lower(const std::string& str);
 
@@ -237,8 +270,11 @@ std::string to_upper(const std::string& str);
 
 const double brent(const std::function<double(double)>& func, const double x1, const double x2, const double tol = 1e-10, const int iter_max = 1000);
 
-// Use trapezoidal method to calculate the integral of 1D numerical function. The arguments are the function, lower limit, upper limit, and the intervals' number.
+// Use trapezoidal method to calculate the integral of 1D numerical function. The arguments are the function, lower limit, upper limit, and the
+// intervals' number.
 const double trapz(const std::function<double(double)>& func, const double a, const double b, const int n = 1000);
 
-// Use trapezoidal method to calculate the integral of 2D numerical function. The arguments are the function, lower limit, upper limit, and the intervals' number.
-const double trapz2d(const std::function<double(double, double)>& func, const std::function<double(double)>& funcy1, const std::function<double(double)>& funcy2, const double a, const double b, const int n = 1000);
+// Use trapezoidal method to calculate the integral of 2D numerical function. The arguments are the function, lower limit, upper limit, and the
+// intervals' number.
+const double trapz2d(const std::function<double(double, double)>& func, const std::function<double(double)>& funcy1,
+					 const std::function<double(double)>& funcy2, const double a, const double b, const int n = 1000);
