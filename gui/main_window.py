@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
 
             builder.set_main_para(MainBuilder.build(self.main_para))
 
-            builder.add_module("Injection", InjectionBuilder.build(self.injection_para))
+            builder.add_sequence(InjectionBuilder.build(self.injection_para))
 
             data = builder.build()
 
