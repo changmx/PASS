@@ -1,15 +1,16 @@
 #pragma once
 
+#include "bunch.h"
 #include "command.h"
-#include "particle.h"
-#include "parameter.h"
-#include "parallelPlan.h"
-#include "general.h"
 #include "constant.h"
+#include "general.h"
+#include "parallelPlan.h"
+#include "parameter.h"
+#include "particle.h"
 
 class Twiss
 {
-public:
+   public:
 	Twiss(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	double s = -1;
@@ -20,7 +21,7 @@ public:
 
 	void print();
 
-private:
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	Bunch& bunchRef;
@@ -79,10 +80,8 @@ private:
 	int block_x = 0;
 };
 
-
-__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference, int turn, double s,
-	double sqrt_betax_betaxprev, double sqrt_betax_de_betaxprev, double sqrt_betaxprev_de_betax, double alphax, double alphax_previous,
-	double sqrt_betay_betayprev, double sqrt_betay_de_betayprev, double sqrt_betayprev_de_betay, double alphay, double alphay_previous,
-	double phix, double phiy, double DQx, double DQy,
-	double Dx, double Dx_previous, double Dpx, double Dpx_previous,
-	double m11_z, double m12_z, double m21_z, double m22_z);
+__global__ void transfer_matrix_6D(Particle dev_particle, int Np, double circumference, int turn, double s, double sqrt_betax_betaxprev,
+								   double sqrt_betax_de_betaxprev, double sqrt_betaxprev_de_betax, double alphax, double alphax_previous,
+								   double sqrt_betay_betayprev, double sqrt_betay_de_betayprev, double sqrt_betayprev_de_betay, double alphay,
+								   double alphay_previous, double phix, double phiy, double DQx, double DQy, double Dx, double Dx_previous,
+								   double Dpx, double Dpx_previous, double m11_z, double m12_z, double m21_z, double m22_z);

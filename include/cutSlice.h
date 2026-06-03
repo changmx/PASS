@@ -1,10 +1,11 @@
 #pragma once
 
+#include "bunch.h"
 #include "command.h"
-#include "parameter.h"
-#include "parallelPlan.h"
 #include "general.h"
-
+#include "parallelPlan.h"
+#include "parameter.h"
+#include "particle.h"
 
 class Particle;
 class Bunch;
@@ -13,17 +14,16 @@ struct Slice
 {
 	// Instruction for use of index_start and index_end:
 	// for (int idx = index_start; idx < index_end; ++idx) { ... } // Access particles in this slice
-	int index_start;	// start index of a slice
-	int index_end;		// end index of a slice
-	double z_start;		// start z of a slice
-	double z_end;		// end z of a slice
-	double z_avg;		// average z of all patricles in a slice
+	int index_start;  // start index of a slice
+	int index_end;	  // end index of a slice
+	double z_start;	  // start z of a slice
+	double z_end;	  // end z of a slice
+	double z_avg;	  // average z of all patricles in a slice
 };
-
 
 class SortBunch
 {
-public:
+   public:
 	SortBunch(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
 	~SortBunch() = default;
@@ -36,8 +36,7 @@ public:
 
 	void print();
 
-
-private:
+   private:
 	Particle dev_particle;
 	Particle dev_particle_tmp;	// Temporary buffer for sorting particles
 	TimeEvent& simTime;
@@ -56,13 +55,11 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	int* dev_survive_flags;   // mark survive£¨tag>=0£©
-	int* dev_survive_prefix;  // sum of prefix of survive particles
-	void* dev_cub_temp = nullptr;	// CUB tmporary memory
-	size_t cub_temp_bytes = 0;      // size of CUB temporary memory
-
+	int* dev_survive_flags;		   // mark surviveï¿½ï¿½tag>=0ï¿½ï¿½
+	int* dev_survive_prefix;	   // sum of prefix of survive particles
+	void* dev_cub_temp = nullptr;  // CUB tmporary memory
+	size_t cub_temp_bytes = 0;	   // size of CUB temporary memory
 };
-
 
 __global__ void reduction_z_avg(const double* __restrict__ dev_z, Slice* __restrict__ dev_slice, int Nslice);
 

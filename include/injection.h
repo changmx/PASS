@@ -1,14 +1,15 @@
 #pragma once
 
-#include "command.h"
-#include "particle.h"
-#include "parameter.h"
-
 #include <random>
+
+#include "bunch.h"
+#include "command.h"
+#include "parameter.h"
+#include "particle.h"
 
 class Injection
 {
-public:
+   public:
 	Injection(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name);
 
 	double s = -1;
@@ -55,7 +56,7 @@ public:
 	const double getSigmaZ(const double z_c);
 	const double getSigmaDp(const double dp_c);
 
-private:
+   private:
 	Particle dev_particle;
 	const Bunch& bunchRef;
 
@@ -95,7 +96,7 @@ private:
 	std::string dist_longitudinal;
 
 	bool is_load_dist = false;
-	std::string filename_load_dist;
+	std::string load_dist_filepath;
 
 	bool is_offset_x = false;
 	bool is_offset_y = false;
@@ -142,4 +143,3 @@ private:
 	bool is_set_specified_coordinate = false;
 	std::vector<std::vector<double>> specified_coordinate;	// Each row is a particle, columns are x, px, y, py, z, dp/p
 };
-

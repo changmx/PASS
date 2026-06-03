@@ -1,16 +1,15 @@
 #pragma once
 
+#include "bunch.h"
 #include "command.h"
-#include "particle.h"
-#include "parameter.h"
 #include "general.h"
 #include "parallelPlan.h"
-
+#include "parameter.h"
+#include "particle.h"
 
 class Monitor
 {
-public:
-
+   public:
 	virtual ~Monitor() = default;
 
 	double s = -1;
@@ -19,30 +18,30 @@ public:
 
 	virtual void execute(int turn) = 0;
 	virtual void print() = 0;
-
 };
 
-
-class DistMonitor :public Monitor
+class DistMonitor : public Monitor
 {
-public:
+   public:
 	DistMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, TimeEvent& timeevent);
 
-	// 禁用拷贝构造函数与拷贝赋值运算符
 	DistMonitor(const DistMonitor&) = delete;
 	DistMonitor& operator=(const DistMonitor&) = delete;
 
-	// 添加移动构造函数
-	DistMonitor(DistMonitor&& other)noexcept
-		:Np(other.Np), bunchId(other.bunchId), saveDir(other.saveDir), saveName_part(other.saveName_part), simTime(other.simTime),
-		saveTurn(other.saveTurn),
-		dev_particle(other.dev_particle), host_particle(other.host_particle)
+	DistMonitor(DistMonitor&& other) noexcept
+		: Np(other.Np),
+		  bunchId(other.bunchId),
+		  saveDir(other.saveDir),
+		  saveName_part(other.saveName_part),
+		  simTime(other.simTime),
+		  saveTurn(other.saveTurn),
+		  dev_particle(other.dev_particle),
+		  host_particle(other.host_particle)
 	{
 		spdlog::get("logger")->debug("[DistMonitor] class move constructor: {}.", name);
 	}
 
-	// 添加移动赋值运算符
-	DistMonitor& operator=(DistMonitor&& other)noexcept
+	DistMonitor& operator=(DistMonitor&& other) noexcept
 	{
 		if (this != &other)
 		{
@@ -62,21 +61,23 @@ public:
 		return *this;
 	}
 
-	~DistMonitor() override {
+	~DistMonitor() override
+	{
 		host_particle.mem_free_cpu();
 		spdlog::get("logger")->debug("[DistMonitor] class destructor: {}.", name);
 	};
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Distribution Monitor] print");
 	}
 
 	void print_saveTurn();
 
-private:
+   private:
 	int Np = 0;
 
 	int bunchId = 0;
@@ -91,29 +92,35 @@ private:
 	Particle host_particle;
 };
 
-
-class StatMonitor :public Monitor
+class StatMonitor : public Monitor
 {
-public:
+   public:
 	StatMonitor(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
-	// 禁用拷贝构造函数与拷贝赋值运算符
 	StatMonitor(const StatMonitor&) = delete;
 	StatMonitor& operator=(const StatMonitor&) = delete;
 
-	// 添加移动构造函数
-	StatMonitor(StatMonitor&& other)noexcept
-		:Nstat(other.Nstat), bunchRef(other.bunchRef), pitch_statistic(other.pitch_statistic), Np(other.Np), thread_x(other.thread_x), block_x(other.block_x), bunchId(other.bunchId),
-		saveDir(other.saveDir), saveName_part(other.saveName_part), simTime(other.simTime),
-		dev_particle(other.dev_particle), dev_statistic(other.dev_statistic), host_statistic(other.host_statistic)
+	StatMonitor(StatMonitor&& other) noexcept
+		: Nstat(other.Nstat),
+		  bunchRef(other.bunchRef),
+		  pitch_statistic(other.pitch_statistic),
+		  Np(other.Np),
+		  thread_x(other.thread_x),
+		  block_x(other.block_x),
+		  bunchId(other.bunchId),
+		  saveDir(other.saveDir),
+		  saveName_part(other.saveName_part),
+		  simTime(other.simTime),
+		  dev_particle(other.dev_particle),
+		  dev_statistic(other.dev_statistic),
+		  host_statistic(other.host_statistic)
 	{
 		other.dev_statistic = nullptr;
 		other.host_statistic = nullptr;
 		spdlog::get("logger")->debug("[StatMonitor] class move constructor: {}.", name);
 	}
 
-	// 添加移动赋值运算符
-	StatMonitor& operator=(StatMonitor&& other)noexcept
+	StatMonitor& operator=(StatMonitor&& other) noexcept
 	{
 		if (this != &other)
 		{
@@ -128,7 +135,7 @@ public:
 			saveName_part = other.saveName_part;
 			simTime = other.simTime;
 
-			callCuda(cudaFreeHost(host_statistic)); // 释放原有的内存（对于cpu端new的数组，使用delete[]的方法没问题，但对于gpu端声明的数组，尚不清楚使用cudaFree是否可行，存疑。不过目前还不会用到移动赋值运算符）
+			callCuda(cudaFreeHost(host_statistic));
 			host_statistic = other.host_statistic;
 			other.host_statistic = nullptr;
 
@@ -143,7 +150,8 @@ public:
 		return *this;
 	}
 
-	~StatMonitor() override {
+	~StatMonitor() override
+	{
 		callCuda(cudaFreeHost(host_statistic));
 		callCuda(cudaFree(dev_statistic));
 		spdlog::get("logger")->debug("[StatMonitor] class destructor: {}.", name);
@@ -151,12 +159,13 @@ public:
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[StatMonitor Monitor] print");
 	}
 
-private:
+   private:
 	int Nstat = 22;
 	// host_statistic[22]
 	// 0:x, 1:x^2, 2:x*px, 3:px^2
@@ -188,26 +197,26 @@ private:
 	double* host_statistic = nullptr;
 };
 
-
-class ParticleMonitor :public Monitor
+class ParticleMonitor : public Monitor
 {
-public:
-	ParticleMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	ParticleMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					TimeEvent& timeevent);
 
 	~ParticleMonitor() = default;
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
-		logger->info("[ParticleMonitor] s = {}, obsId = {}, isEnable = {}, Np_PM = {}, Nobs_PM = {}, Nturn_PM = {}, ",
-			s, obsId, is_enableParticleMonitor, Np_PM, Nobs_PM, Nturn_PM);
+		logger->info("[ParticleMonitor] s = {}, obsId = {}, isEnable = {}, Np_PM = {}, Nobs_PM = {}, Nturn_PM = {}, ", s, obsId,
+					 is_enableParticleMonitor, Np_PM, Nobs_PM, Nturn_PM);
 
 		print_cycleRange(saveTurn);
-
 	}
 
-private:
+   private:
 	int Np = 0;
 
 	int bunchId = 0;
@@ -220,9 +229,9 @@ private:
 
 	std::vector<CycleRange> saveTurn;
 
-	int Np_PM = 0;	// Number of particles to be saved
-	int Nobs_PM = 0;	// Number of observe points
-	int Nturn_PM = 0;	// Number of turns to save particles
+	int Np_PM = 0;			// Number of particles to be saved
+	int Nobs_PM = 0;		// Number of observe points
+	int Nturn_PM = 0;		// Number of turns to save particles
 	int saveTurn_step = 0;	// Save particles every saveTurn_step turns
 
 	int obsId = 0;	// Observation Id, used to distinguish different observation points
@@ -234,25 +243,25 @@ private:
 	int block_x = 0;
 };
 
-
 class PhaseMonitor : public Monitor
 {
-public:
-	PhaseMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	PhaseMonitor(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+				 TimeEvent& timeevent);
 
 	~PhaseMonitor() = default;
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Phase Monitor] s = {}, name = {}, isEnable = {}", s, name, is_enablePhaseMonitor);
 
 		print_cycleRange(saveTurn);
 	}
 
-private:
-
+   private:
 	int bunchId = 0;
 	std::filesystem::path saveDir;
 	std::string saveName_part;
@@ -272,15 +281,14 @@ private:
 	int block_x = 0;
 };
 
-
 __global__ void cal_statistic_perblock(Particle dev_particle, double* dev_statistic, size_t pitch_statistic, int NpPerBunch);
 
 __global__ void cal_statistic_allblock_2(double* dev_statistic, size_t pitch_statistic, double* host_dev_statistic, int gridDimX, int NpInit);
 
 void save_bunchInfo_statistic(double* host_statistic, double Ek, int Np, std::filesystem::path saveDir, std::string saveName_part, int turn);
 
-__global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM,
-	int obsId, int Nobs_PM, int Nturn_PM, int current_turn, int saveturn_step);
+__global__ void get_particle_specified_tag(Particle dev_particle, Particle dev_particleMonitor, int Np, int Np_PM, int obsId, int Nobs_PM,
+										   int Nturn_PM, int current_turn, int saveturn_step);
 
 __forceinline__ __device__ void physical2normalize(double& x, double& px, double sqrtBetaX, double alphaX);
 

@@ -2,17 +2,16 @@
 
 #include <typeinfo>
 
+#include "bunch.h"
 #include "command.h"
-#include "particle.h"
-#include "parameter.h"
 #include "general.h"
 #include "parallelPlan.h"
-
+#include "parameter.h"
+#include "particle.h"
 
 class Element
 {
-public:
-
+   public:
 	virtual ~Element() = default;
 
 	double s = -1;
@@ -21,25 +20,25 @@ public:
 
 	virtual void execute(int turn) = 0;
 	virtual void print() = 0;
-
 };
 
-
-class MarkerElement :public Element
+class MarkerElement : public Element
 {
-public:
-	MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	MarkerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+				  TimeEvent& timeevent);
 
 	~MarkerElement() = default;
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Makrer Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -49,59 +48,61 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isAperture = 0;	// Whether to calculate the particle loss caused by the aperture
+	bool isAperture = 0;  // Whether to calculate the particle loss caused by the aperture
 };
 
-
-class DriftElement :public Element
+class DriftElement : public Element
 {
-public:
-	DriftElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	DriftElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+				 TimeEvent& timeevent);
 
 	~DriftElement() = default;
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Drift Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
 
 	double circumference = 0;
 
-	double l = 0;	// Drift length
+	double l = 0;  // Drift length
 
 	int thread_x = 0;
 	int block_x = 0;
 
-	bool isAperture = 0;	// Whether to calculate the particle loss caused by the aperture
-
+	bool isAperture = 0;  // Whether to calculate the particle loss caused by the aperture
 };
 
-
-class SBendElement :public Element
+class SBendElement : public Element
 {
-public:
-	SBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	SBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+				 TimeEvent& timeevent);
 
-	~SBendElement() {
+	~SBendElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[SBend Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -112,44 +113,46 @@ private:
 	int block_x = 0;
 
 	bool is_field_error = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	const int max_error_order = 20;	 // k0, k1 ... k20
+	int cur_error_order = -1;		 // -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double angle = 0;	// in unit of rad, 1/rho=k0, k0l=l/rho=angle
+	double angle = 0;  // in unit of rad, 1/rho=k0, k0l=l/rho=angle
 	double e1 = 0;
 	double e2 = 0;
-	double hgap = 0;	// in unit of m
+	double hgap = 0;  // in unit of m
 	double fint = 0;
 	double fintx = 0;
 
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<double> ramping_k0l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k0l;  // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
-
-class RBendElement :public Element
+class RBendElement : public Element
 {
-public:
-	RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	RBendElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+				 TimeEvent& timeevent);
 
-	~RBendElement() {
+	~RBendElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[RBend Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -160,44 +163,46 @@ private:
 	int block_x = 0;
 
 	bool is_field_error = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	const int max_error_order = 20;	 // k0, k1 ... k20
+	int cur_error_order = -1;		 // -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
-	double angle = 0;	// in unit of rad, 1/rho=k0, k0l=l/rho=angle
+	double angle = 0;  // in unit of rad, 1/rho=k0, k0l=l/rho=angle
 	double e1 = 0;
 	double e2 = 0;
-	double hgap = 0;	// in unit of m
+	double hgap = 0;  // in unit of m
 	double fint = 0;
 	double fintx = 0;
 
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<double> ramping_k0l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k0l;  // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
-
-class QuadrupoleElement :public Element
+class QuadrupoleElement : public Element
 {
-public:
-	QuadrupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	QuadrupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					  TimeEvent& timeevent);
 
-	~QuadrupoleElement() {
+	~QuadrupoleElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Quadrupole Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -208,44 +213,46 @@ private:
 	int block_x = 0;
 
 	bool is_field_error = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error, etc.
+	const int max_error_order = 20;	 // k0, k1 ... k20
+	int cur_error_order = -1;		 // -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error, etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
 
-	std::string quad_type = "drift";	// normal or skew or drift(KL=0)
+	std::string quad_type = "drift";  // normal or skew or drift(KL=0)
 
-	double k1l = 0;	// in unit of (m^-1)
-	double k1sl = 0;	// in unit of (m^-1)
+	double k1l = 0;	  // in unit of (m^-1)
+	double k1sl = 0;  // in unit of (m^-1)
 
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<double> ramping_k1l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
-	std::vector<double> ramping_k1sl;	// for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
+	std::vector<double> ramping_k1l;   // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k1sl;  // for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
 };
 
-
-class SextupoleElement :public Element
+class SextupoleElement : public Element
 {
-public:
-	SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	SextupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					 TimeEvent& timeevent);
 
-	~SextupoleElement() {
+	~SextupoleElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Sextupole Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -256,44 +263,46 @@ private:
 	int block_x = 0;
 
 	bool is_field_error = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	const int max_error_order = 20;	 // k0, k1 ... k20
+	int cur_error_order = -1;		 // -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
 
-	std::string sext_type = "drift";	// normal or skew or drift(KL=0)
+	std::string sext_type = "drift";  // normal or skew or drift(KL=0)
 
-	double k2l = 0;	// in unit of (m^-2)
-	double k2sl = 0;	// in unit of (m^-2)
+	double k2l = 0;	  // in unit of (m^-2)
+	double k2sl = 0;  // in unit of (m^-2)
 
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<double> ramping_k2l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
-	std::vector<double> ramping_k2sl;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k2l;   // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k2sl;  // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
 };
 
-
-class OctupoleElement :public Element
+class OctupoleElement : public Element
 {
-public:
-	OctupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	OctupoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					TimeEvent& timeevent);
 
-	~OctupoleElement() {
+	~OctupoleElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Octupole Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -304,44 +313,46 @@ private:
 	int block_x = 0;
 
 	bool is_field_error = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	const int max_error_order = 20;	 // k0, k1 ... k20
+	int cur_error_order = -1;		 // -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
 	double l = 0;
 
-	std::string oct_type = "drift";	// normal or skew or drift(KL=0)
+	std::string oct_type = "drift";	 // normal or skew or drift(KL=0)
 
-	double k3l = 0;	// in unit of (m^-3)
-	double k3sl = 0;	// in unit of (m^-3)
+	double k3l = 0;	  // in unit of (m^-3)
+	double k3sl = 0;  // in unit of (m^-3)
 
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<double> ramping_k3l;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
-	std::vector<double> ramping_k3sl;	// for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
+	std::vector<double> ramping_k3l;   // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<double> ramping_k3sl;  // for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
 };
 
-
-class MultipoleElement :public Element
+class MultipoleElement : public Element
 {
-public:
-	MultipoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	MultipoleElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					 TimeEvent& timeevent);
 
-	~MultipoleElement() {
+	~MultipoleElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Multipole Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -351,8 +362,8 @@ private:
 	int thread_x = 0;
 	int block_x = 0;
 
-	const int max_order = 20;	// k0, k1 ... k20
-	int cur_order = -1;	// -1 means no multipole filed. 0 refers to dipole field, 1 refers to quad. field, etc.
+	const int max_order = 20;  // k0, k1 ... k20
+	int cur_order = -1;		   // -1 means no multipole filed. 0 refers to dipole field, 1 refers to quad. field, etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -361,29 +372,31 @@ private:
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<std::vector<double>> ramping_knl;	// for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
-	std::vector<std::vector<double>> ramping_ksl;	// for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
+	std::vector<std::vector<double>> ramping_knl;  // for the i-th turn (turn start from 1, not 0), kl = ramping_kl[turn-1]
+	std::vector<std::vector<double>> ramping_ksl;  // for the i-th turn (turn start from 1, not 0), ksl = ramping_ksl[turn-1]
 };
 
-
-class KickerElement :public Element
+class KickerElement : public Element
 {
-public:
-	KickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	KickerElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+				  TimeEvent& timeevent);
 
-	~KickerElement() {
+	~KickerElement()
+	{
 		callCuda(cudaFree(dev_knl));
 		callCuda(cudaFree(dev_ksl));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Ver. Kicker Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -394,8 +407,8 @@ private:
 	int block_x = 0;
 
 	bool is_field_error = false;
-	const int max_error_order = 20;	// k0, k1 ... k20
-	int cur_error_order = -1;	// -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
+	const int max_error_order = 20;	 // k0, k1 ... k20
+	int cur_error_order = -1;		 // -1 means no error. 0 refers to dipole field error, 1 refers to quad. field error , etc.
 	double* dev_knl = nullptr;
 	double* dev_ksl = nullptr;
 
@@ -411,32 +424,30 @@ private:
 	std::vector<double> ramping_vkick;	// for the i-th turn (turn start from 1, not 0), kick = ramping_kick[turn-1]
 };
 
-
-struct RFData {
+struct RFData
+{
 	double harmonic;
 	double voltage;
 	double phis;
 	double phi_offset;
 };
 
-
-class RFElement :public Element
+class RFElement : public Element
 {
-public:
-	RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	RFElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d, TimeEvent& timeevent);
 
-	~RFElement() {
-		callCuda(cudaFree(dev_rf_data));
-	}
+	~RFElement() { callCuda(cudaFree(dev_rf_data)); }
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[RF Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	Bunch& bunchRef;
@@ -448,7 +459,7 @@ private:
 
 	double l = 0;
 
-	double qm_ratio = 0;	// q/m
+	double qm_ratio = 0;  // q/m
 
 	double radius = 0;
 
@@ -463,28 +474,29 @@ private:
 
 	double pz_aperture_lower = -1.0;
 	double pz_aperture_upper = +1.0;
-
 };
 
-
-class ElSeparatorElement :public Element
+class ElSeparatorElement : public Element
 {
-public:
-	ElSeparatorElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	ElSeparatorElement(const Parameter& para, int input_beamId, const Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					   TimeEvent& timeevent);
 
-	~ElSeparatorElement() {
+	~ElSeparatorElement()
+	{
 		callCuda(cudaFree(dev_counter));
 		dev_particle_Es.mem_free_gpu();
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[Electrostatic Separator Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	const Bunch& bunchRef;
@@ -503,9 +515,9 @@ private:
 
 	int* dev_counter = 0;
 
-	double ES_hor_position = 0;	// The horizontal position of the separator relative to the center of the beam pipe, in unit of m
+	double ES_hor_position = 0;	 // The horizontal position of the separator relative to the center of the beam pipe, in unit of m
 
-	Particle dev_particle_Es;	// Device memory for the particles transfered into the electrostatic separator
+	Particle dev_particle_Es;  // Device memory for the particles transfered into the electrostatic separator
 
 	std::filesystem::path saveDir;
 	std::string saveName_part;
@@ -513,34 +525,36 @@ private:
 	// If the actural turn is outside the range of the turns in ramping data, kl will be set to the last value !!!
 	// Therefore, please make sure the ramping data cover all the simulation turns.
 	bool is_ramping = false;
-	std::vector<double> ramping_Ex;	// for the i-th turn (turn start from 1, not 0), Ex = ramping_Ex[turn-1]
-	std::vector<double> ramping_Ey;	// for the i-th turn (turn start from 1, not 0), Ey = ramping_Ey[turn-1]
+	std::vector<double> ramping_Ex;	 // for the i-th turn (turn start from 1, not 0), Ex = ramping_Ex[turn-1]
+	std::vector<double> ramping_Ey;	 // for the i-th turn (turn start from 1, not 0), Ey = ramping_Ey[turn-1]
 };
 
-
-struct TuneExciterData {
+struct TuneExciterData
+{
 	double frequency;
 	double voltage;
 };
 
-
-class TuneExciterElement :public Element
+class TuneExciterElement : public Element
 {
-public:
-	TuneExciterElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name,
-		const ParallelPlan1d& plan1d, TimeEvent& timeevent);
+   public:
+	TuneExciterElement(const Parameter& para, int input_beamId, Bunch& Bunch, std::string obj_name, const ParallelPlan1d& plan1d,
+					   TimeEvent& timeevent);
 
-	~TuneExciterElement() {
-		//callCuda(cudaFree(dev_tuneExciter_data));
+	~TuneExciterElement()
+	{
+		// callCuda(cudaFree(dev_tuneExciter_data));
 	}
 
 	void execute(int turn) override;
 
-	void print() override {
+	void print() override
+	{
 		auto logger = spdlog::get("logger");
 		logger->info("[TuneExciter Element] print");
 	}
-private:
+
+   private:
 	Particle dev_particle;
 	TimeEvent& simTime;
 	Bunch& bunchRef;
@@ -556,49 +570,41 @@ private:
 	double scan_freq_range = 0;
 	int turn_start = 0;
 	int turn_end = 0;
-	std::string kick_direction = "empty";	// "x" means horizontal, "y" means vertical
+	std::string kick_direction = "empty";  // "x" means horizontal, "y" means vertical
 
-	//double l = 0;
-	//double drift_length = 0;
+	// double l = 0;
+	// double drift_length = 0;
 
-	//double exciter_length = 0;
-	//double exciter_gap = 0;
-	//int exciter_status_x = 0;	// 0 means off, 1 means on
-	//int exciter_status_y = 0;	// 0 means off, 1 means on
+	// double exciter_length = 0;
+	// double exciter_gap = 0;
+	// int exciter_status_x = 0;	// 0 means off, 1 means on
+	// int exciter_status_y = 0;	// 0 means off, 1 means on
 
-	//std::string filename;
-	//size_t Nturn_tuneExciter = 0;
+	// std::string filename;
+	// size_t Nturn_tuneExciter = 0;
 
-	//std::vector<TuneExciterData> host_tuneExciter_data;
+	// std::vector<TuneExciterData> host_tuneExciter_data;
 
-	//TuneExciterData* dev_tuneExciter_data = nullptr;
-
+	// TuneExciterData* dev_tuneExciter_data = nullptr;
 };
 
+__global__ void transfer_drift(Particle dev_particle, int Np_sur, double beta, double circumference, double gamma, double drift_length);
 
-__global__ void transfer_drift(Particle dev_particle, int Np_sur, double beta, double circumference,
-	double gamma, double drift_length);
+__global__ void transfer_dipole_full(Particle dev_particle, int Np_sur, double beta, double circumference, double r11, double r12, double r16,
+									 double r21, double r22, double r26, double r34, double r51, double r52, double r56, double fl21i, double fl43i,
+									 double fr21i, double fr43i);
 
-__global__ void transfer_dipole_full(Particle dev_particle, int Np_sur, double beta, double circumference,
-	double r11, double r12, double r16, double r21, double r22, double r26,
-	double r34, double r51, double r52, double r56,
-	double fl21i, double fl43i, double fr21i, double fr43i);
+__global__ void transfer_dipole_half_left(Particle dev_particle, int Np_sur, double beta, double circumference, double r11, double r12, double r16,
+										  double r21, double r22, double r26, double r34, double r51, double r52, double r56, double fl21i,
+										  double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_dipole_half_left(Particle dev_particle, int Np_sur, double beta, double circumference,
-	double r11, double r12, double r16, double r21, double r22, double r26,
-	double r34, double r51, double r52, double r56,
-	double fl21i, double fl43i, double fr21i, double fr43i);
+__global__ void transfer_dipole_half_right(Particle dev_particle, int Np_sur, double beta, double circumference, double r11, double r12, double r16,
+										   double r21, double r22, double r26, double r34, double r51, double r52, double r56, double fl21i,
+										   double fl43i, double fr21i, double fr43i);
 
-__global__ void transfer_dipole_half_right(Particle dev_particle, int Np_sur, double beta, double circumference,
-	double r11, double r12, double r16, double r21, double r22, double r26,
-	double r34, double r51, double r52, double r56,
-	double fl21i, double fl43i, double fr21i, double fr43i);
+__global__ void transfer_quadrupole_thicklens_norm(Particle dev_particle, int Np_sur, double beta, double circumference, double k1, double l);
 
-__global__ void transfer_quadrupole_thicklens_norm(Particle dev_particle, int Np_sur, double beta, double circumference,
-	double k1, double l);
-
-__global__ void transfer_quadrupole_thicklens_skew(Particle dev_particle, int Np_sur, double beta, double circumference,
-	double k1s, double l);
+__global__ void transfer_quadrupole_thicklens_skew(Particle dev_particle, int Np_sur, double beta, double circumference, double k1s, double l);
 
 __global__ void transfer_quadrupole_thinlens_norm(Particle dev_particle, int Np_sur, double k1l);
 
@@ -617,9 +623,8 @@ __global__ void transfer_multipole_thinlens(Particle dev_particle, int Np_sur, i
 __global__ void transfer_kicker_thinlens(Particle dev_particle, int Np_sur, double hkick, double vkick);
 
 __global__ void transfer_rf(Particle dev_particle, int Np_sur, int turn, double s, double beta0, double beta1, double gamma0, double gamma1,
-	RFData* dev_rf_data, size_t  pitch_rf, int Nrf, size_t Nturn_rf,
-	double radius, double ratio, double dE_syn, double eta1, double E_total1,
-	double pz_min, double pz_max);
+							RFData* dev_rf_data, size_t pitch_rf, int Nrf, size_t Nturn_rf, double radius, double ratio, double dE_syn, double eta1,
+							double E_total1, double pz_min, double pz_max);
 
 __device__ void convert_z_dp_to_theta_dE(double z, double dp, double& theta, double& dE, double radius, double beta, double Es);
 
@@ -629,12 +634,13 @@ std::vector<RFData> readRFDataFromCSV(const std::string& filename);
 
 std::vector<std::pair<double, double>> readSextRampingDataFromCSV(const std::string& filename);
 
-__global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur, Particle dev_particle_ES, double ES_hor_position, int* global_counter, double s, int turn);
+__global__ void check_particle_in_ElSeparator(Particle dev_particle, int Np_sur, Particle dev_particle_ES, double ES_hor_position,
+											  int* global_counter, double s, int turn);
 
 std::vector<TuneExciterData> readTuneExciterDataFromCSV(const std::string& filename);
 
-__global__ void transfer_tuneExciter_x(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta,
-	double freq_center, double scan_period, double scan_freq_range);
+__global__ void transfer_tuneExciter_x(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta, double freq_center,
+									   double scan_period, double scan_freq_range);
 
-__global__ void transfer_tuneExciter_y(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta,
-	double freq_center, double scan_period, double scan_freq_range);
+__global__ void transfer_tuneExciter_y(Particle dev_particle, int Np_sur, double kick_angle, double t0, double beta, double freq_center,
+									   double scan_period, double scan_freq_range);
