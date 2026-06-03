@@ -1,14 +1,16 @@
 from para.models.parameter import Parameter
 from gui.core.logger import logger
 import os
+from pathlib import Path
+
 
 class MainPara:
 
     def __init__(self):
         logger.info("Initializing main parameters...")
-        self.particle_name = Parameter(
+        self.beam_name = Parameter(
             value="proton",
-            description="Particle Name",
+            description="Beam Name",
         )
 
         self.num_proton = Parameter(
@@ -24,11 +26,6 @@ class MainPara:
         self.num_electron = Parameter(
             value=1,
             description="Number of Electrons per particle",
-        )
-
-        self.num_bunches = Parameter(
-            value=1,
-            description="Number of Bunches per beam",
         )
 
         self.gamma_t = Parameter(
@@ -58,7 +55,7 @@ class MainPara:
             description="GPU Device ID",
         )
 
-        current_dir = os.getcwd()
+        current_dir = str(Path(__file__).resolve().parent.parent.parent)
 
         self.output_dir = Parameter(
             value=os.path.join(current_dir, "output"),
