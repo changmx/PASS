@@ -12,6 +12,8 @@ class Parameter
 		// std::cout << "Parameter class destructor: " << beam_name << std::endl;
 	};
 
+	void print() const;
+
 	int Nbeam = 0;						 // Number of beams
 	std::vector<int> beamId;			 // 0 for beam0.json and 1 for beam1.json
 	std::vector<std::string> beam_name;	 // beam name, used to distinguish beams and store data

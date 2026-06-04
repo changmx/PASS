@@ -29,6 +29,7 @@ int main(int argc, char** argv)
 		print_logo();
 		print_copyright();
 		show_device_info();
+		Para.print();
 
 		// Beam0 and Beam1 are two vectors of Bunch class
 		std::vector<Bunch> Beam0;
@@ -40,14 +41,13 @@ int main(int argc, char** argv)
 		for (size_t i = 0; i < Para.Nbunch[0]; i++)
 		{
 			Beam0.emplace_back(Para, 0, i);
+			Beam0[i].print();
 		}
 		for (size_t i = 0; i < Para.Nbunch[1]; i++)
 		{
 			Beam1.emplace_back(Para, 1, i);
+			Beam1[i].print();
 		}
-
-		// print_config_parameter(Para);
-		// print_beam_parameter(Para, Beam0, Beam1);
 
 		TimeEvent simTime;
 		simTime.initial(Para.gpuId[0], true);
@@ -59,10 +59,24 @@ int main(int argc, char** argv)
 		read_command_sequence(Para, Beam0, 0, command_beam0, simTime);
 		read_command_sequence(Para, Beam1, 1, command_beam1, simTime);
 
+		// for (const auto& cmd : command_beam0)
+		// {
+		// 	cmd->print();
+		// }
+		// for (const auto& cmd : command_beam1)
+		// {
+		// 	cmd->print();
+		// }
+
 		logger->info("Command vector size of beam0: {}", command_beam0.size());
 		logger->info("Command vector size of beam1: {}\n", command_beam1.size());
 
-		logger->info("*********************************** Simulation Start ***********************************\n");
+		logger->set_pattern("%v");
+		info_centered(logger, "Simulation Start", 100);
+		logger->info("");
+		logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+
+		/*********************************** Simulation Start ***********************************/
 
 		for (int turn = 1; turn < Para.Nturn + 1; turn++)
 		{
@@ -126,7 +140,13 @@ int main(int argc, char** argv)
 
 		logger->info("All resources have been released.\n");
 
-		logger->info("*********************************** Simulation  Time ***********************************\n");
+		logger->set_pattern("%v");
+		info_centered(logger, "Simulation Time", 100);
+		logger->info("");
+		logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+
+		/*********************************** Simulation  Time ***********************************/
+
 		std::string endTime = timeStamp();
 		std::chrono::steady_clock::time_point simulatorEnd = std::chrono::steady_clock::now();
 		double simulatorTime = std::chrono::duration<double>(simulatorEnd - simulatorStart).count();  // in second

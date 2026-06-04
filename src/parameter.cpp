@@ -106,3 +106,47 @@ Parameter::Parameter(int argc, char** argv)
 		fs::copy(path_input_para[1], dir_output_parameter / (hourMinSec + "_beam1.json"), fs::copy_options::overwrite_existing);
 	}
 }
+
+void Parameter::print() const
+{
+	auto logger = spdlog::get("logger");
+	logger->set_pattern("%v");
+
+	info_centered(logger, "Simulation Parameter");
+	spdlog::get("logger")->info("");
+
+	logger->info("Number of beams:              {}", Nbeam);
+	for (size_t i = 0; i < Nbeam; i++)
+	{
+		logger->info("Beam {}:                       name = {}, number of bunches = {}", beamId[i], beam_name[i], Nbunch[i]);
+	}
+	logger->info("Number of turns:              {}", Nturn);
+	logger->info("Number of collision points:   {}", Ncollision);
+	logger->info("Circumference (m):            {}", circumference);
+	logger->info("Number of GPU devices:        {}", Ngpu);
+	std::string gpuId_str;
+	for (size_t i = 0; i < gpuId.size(); i++)
+	{
+		gpuId_str += std::to_string(gpuId[i]);
+		if (i != gpuId.size() - 1)
+		{
+			gpuId_str += ", ";
+		}
+	}
+	logger->info("GPU device Ids:               {}", gpuId_str);
+	logger->info("Is plot figure:               {}", is_plot);
+	logger->info("Is beam-beam effect:          {}", is_beambeam);
+	logger->info("Is space charge effect:       {}", is_spacecharge);
+
+	logger->info("Input parameter file path:    ");
+	for (size_t i = 0; i < path_input_para.size(); i++)
+	{
+		logger->info("    Beam {}:                   {}", beamId[i], path_input_para[i].string());
+	}
+	logger->info("Output path:                  {}", dir_output.string());
+	logger->info("Log file path:                {}", path_logfile.string());
+
+	spdlog::get("logger")->info("");
+
+	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+}

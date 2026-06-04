@@ -16,6 +16,8 @@ class Bunch
 	Bunch(const Parameter& para, int input_beamId, int input_bunchId);
 	~Bunch();
 
+	void print() const;
+
 	Particle dev_particle;
 	Particle dev_particle_tmp;
 

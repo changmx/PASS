@@ -162,3 +162,31 @@ Bunch::~Bunch()
 		dev_PM.mem_free_gpu();
 	}
 }
+
+void Bunch::print() const
+{
+	auto logger = spdlog::get("logger");
+	logger->set_pattern("%v");
+
+	info_centered(logger, "Bunch " + std::to_string(bunchId));
+	spdlog::get("logger")->info("");
+
+	spdlog::get("logger")->info("Number of Real Particles (1e9):           {}", Nrp / 1e9);
+	spdlog::get("logger")->info("Number of Macro Particles (1e3):          {}", Np / 1e3);
+	spdlog::get("logger")->info("Charge/Mass Ratio:                        {}", qm_ratio);
+	spdlog::get("logger")->info("Number of Protons per Real Particle:      {}", Nproton);
+	spdlog::get("logger")->info("Number of Neutrons per Real Particle:     {}", Nneutron);
+	spdlog::get("logger")->info("Number of Charges per Real Particle:      {}", Ncharge);
+	spdlog::get("logger")->info("Static Mass of a Nucleon (MeV/c^2/u):     {}", m0 / 1e6);
+	spdlog::get("logger")->info("Kinetic Energy per Nucleon (MeV/u):       {}", Ek / 1e6);
+	spdlog::get("logger")->info("Momentum per Nucleon (MeV/c/u):           {}", p0 / 1e6);
+	spdlog::get("logger")->info("Momentum per Nucleon (kg*m/s/u):          {}", p0_kg);
+	spdlog::get("logger")->info("Relativistic Beta:                        {}", beta);
+	spdlog::get("logger")->info("Relativistic Gamma:                       {}", gamma);
+	spdlog::get("logger")->info("Magnetic Rigidity (T*m):                  {}", Brho);
+	spdlog::get("logger")->info("Transition Gamma:                         {}", gammat);
+
+	spdlog::get("logger")->info("");
+
+	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+}
