@@ -19,7 +19,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <tabulate/tabulate.hpp>
 #include <type_traits>
 #include <vector>
 
@@ -48,11 +47,9 @@ void print_copyright();
 
 void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& path_input_para, std::string& yearMonDay, std::string& hourMinSec);
 
-// void print_config_parameter(const Parameter&);
-
-// void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1);
-
 void create_logger(std::string logfile_path);
+
+void info_centered(std::shared_ptr<spdlog::logger> logger, const std::string& text, int total_width = 60);
 
 void show_device_info();
 
@@ -165,16 +162,16 @@ class TimeEvent
    private:
 };
 
-// �ж�ֵ�Ƿ����������һ��ѭ����Χ��
+// Decide whether the value is in any of the given turn ranges
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
-// �ж�ֵ�Ƿ����������һ��ѭ����Χ�У�����������ѭ��������
+// Decide whether the value is in any of the given turn ranges and return the index of the range
 bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, int& index);
 
-// �ж�ֵ�Ƿ�Ϊ����һ��ѭ����Χ����ʼ��
+// Decide whether the value is the first point in any of the given turn ranges
 bool is_value_firstPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
-// �ж�ֵ�Ƿ�Ϊ����һ��ѭ����Χ�Ľ�����
+// Decide whether the value is the last point in any of the given turn ranges
 bool is_value_lastPoint_in_turn_ranges(int value, const std::vector<CycleRange>& ranges);
 
 void print_cycleRange(const std::vector<CycleRange>& ranges);
@@ -187,7 +184,8 @@ std::vector<std::string> split_line(const std::string& line);
 
 std::vector<std::vector<double>> read_file_data(const std::string& file_path);
 
-// �ж��Ƿ���ȣ����ڸ�������ʹ����������бȽϣ������������ͣ�ֱ�ӱȽϣ���eps������������̶ȣ�Ĭ��Ϊ1e-10��
+// Decide whether two values are approximately equal, using relative error for floating-point numbers and direct comparison for other types. The eps
+// parameter specifies the tolerance, defaulting to 1e-12.
 template <typename T1, typename T2>
 inline bool approx_equal(T1 a, T2 b, std::common_type_t<T1, T2> eps = 1e-12)
 {
@@ -204,7 +202,8 @@ inline bool approx_equal(T1 a, T2 b, std::common_type_t<T1, T2> eps = 1e-12)
 	}
 }
 
-// ���Բ�ֵ����������Ϊx��y���������Լ���Ҫ��ֵ��x0�����Ϊ��Ӧ��y0��y�����Ƕ�ά�ģ���ÿ��x��Ӧһ��y�����������y0Ҳ��һ������������xΪʱ�䣬yΪ���������
+// Linear interpolation function, input is x, y arrays and the x0 to be interpolated, output is the corresponding y0. y is multi-dimensional, each x
+// corresponds to a y vector, so y0 is also a vector. Generally, x is time and y is particle beam parameters.
 template <typename XType, typename YType, typename XQueryType>
 std::vector<YType> linearInterpolate(const std::vector<XType>& xs, const std::vector<std::vector<YType>>& ys, XQueryType x0)
 {

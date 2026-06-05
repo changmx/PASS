@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "command.h"
+#include "config.h"
 #include "general.h"
 
 void print_logo()
@@ -16,29 +17,46 @@ void print_logo()
 	auto logger = spdlog::get("logger");
 	logger->set_pattern("%v");
 
-	logger->info("                                                                                 ");
-	logger->info(" PPPPPPPPPPPPPPPPP        AAA                 SSSSSSSSSSSSSSS    SSSSSSSSSSSSSSS ");
-	logger->info(" P::::::::::::::::P      A:::A              SS:::::::::::::::S SS:::::::::::::::S");
-	logger->info(" P::::::PPPPPP:::::P    A:::::A            S:::::SSSSSS::::::SS:::::SSSSSS::::::S");
-	logger->info(" PP:::::P     P:::::P  A:::::::A           S:::::S     SSSSSSSS:::::S     SSSSSSS");
-	logger->info("   P::::P     P:::::P A:::::::::A          S:::::S            S:::::S            ");
-	logger->info("   P::::P     P:::::PA:::::A:::::A         S:::::S            S:::::S            ");
-	logger->info("   P::::PPPPPP:::::PA:::::A A:::::A         S::::SSSS          S::::SSSS         ");
-	logger->info("   P:::::::::::::PPA:::::A   A:::::A         SS::::::SSSSS      SS::::::SSSSS    ");
-	logger->info("   P::::PPPPPPPPP A:::::A     A:::::A          SSS::::::::SS      SSS::::::::SS  ");
-	logger->info("   P::::P        A:::::AAAAAAAAA:::::A            SSSSSS::::S        SSSSSS::::S ");
-	logger->info("   P::::P       A:::::::::::::::::::::A                S:::::S            S:::::S");
-	logger->info("   P::::P      A:::::AAAAAAAAAAAAA:::::A               S:::::S            S:::::S");
-	logger->info(" PP::::::PP   A:::::A             A:::::A  SSSSSSS     S:::::SSSSSSSS     S:::::S");
-	logger->info(" P::::::::P  A:::::A               A:::::A S::::::SSSSSS:::::SS::::::SSSSSS:::::S");
-	logger->info(" P::::::::P A:::::A                 A:::::AS:::::::::::::::SS S:::::::::::::::SS ");
-	logger->info(" PPPPPPPPPPAAAAAAA                   AAAAAAASSSSSSSSSSSSSSS    SSSSSSSSSSSSSSS   ");
-	logger->info("                                                                                 ");
+	logger->info("");
+	logger->info(" PPPPPPPPPPPPPPPPP           AAA                    SSSSSSSSSSSSSSS       SSSSSSSSSSSSSSS ");
+	logger->info(" P::::::::::::::::P         A:::A                 SS:::::::::::::::S    SS:::::::::::::::S");
+	logger->info(" P::::::PPPPPP:::::P       A:::::A               S:::::SSSSSS::::::S   S:::::SSSSSS::::::S");
+	logger->info(" PP:::::P     P:::::P     A:::::::A              S:::::S     SSSSSSS   S:::::S     SSSSSSS");
+	logger->info("   P::::P     P:::::P    A:::::::::A             S:::::S               S:::::S            ");
+	logger->info("   P::::P     P:::::P   A:::::A:::::A            S:::::S               S:::::S            ");
+	logger->info("   P::::PPPPPP:::::P   A:::::A A:::::A            S::::SSSS             S::::SSSS         ");
+	logger->info("   P:::::::::::::PP   A:::::A   A:::::A            SS::::::SSSSS         SS::::::SSSSS    ");
+	logger->info("   P::::PPPPPPPPP    A:::::A     A:::::A             SSS::::::::SS         SSS::::::::SS  ");
+	logger->info("   P::::P           A:::::AAAAAAAAA:::::A               SSSSSS::::S           SSSSSS::::S ");
+	logger->info("   P::::P          A:::::::::::::::::::::A                   S:::::S               S:::::S");
+	logger->info("   P::::P         A:::::AAAAAAAAAAAAA:::::A                  S:::::S               S:::::S");
+	logger->info(" PP::::::PP      A:::::A             A:::::A     SSSSSSS     S:::::S   SSSSSSS     S:::::S");
+	logger->info(" P::::::::P     A:::::A               A:::::A    S::::::SSSSSS:::::S   S::::::SSSSSS:::::S");
+	logger->info(" P::::::::P    A:::::A                 A:::::A   S:::::::::::::::SS    S:::::::::::::::SS ");
+	logger->info(" PPPPPPPPPP   AAAAAAA                   AAAAAAA   SSSSSSSSSSSSSSS       SSSSSSSSSSSSSSS   ");
+	logger->info("");
 
 	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 }
 
-void print_copyright() {};
+void print_copyright()
+{
+	auto logger = spdlog::get("logger");
+	logger->set_pattern("%v");
+
+	constexpr auto build_time = PASS_BUILD_TIME;
+	std::string build_year(build_time, 0, 4);
+
+	info_centered(logger, "-");
+	logger->info("");
+	logger->info("PASS v{}.{}.{}", PASS_VERSION_MAJOR, PASS_VERSION_MINOR, PASS_VERSION_PATCH);
+	logger->info("Built: {}", PASS_BUILD_TIME);
+	logger->info("Website: https://github.com/changmx/PASS");
+	logger->info("Copyright (C) 2025-{} Institute of Modern Physics, Chinese Academy of Sciences", build_year);
+	logger->info("");
+
+	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+};
 
 std::string to_scientific_string(const double value, const int precision)
 {
@@ -75,14 +93,14 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		}
 		else
 		{
-			std::cerr << "Error: File \"" << path_tmp << "\" is not exist." << std::endl;
-			std::exit(EXIT_FAILURE);
+			std::string error_msg = "[General.get_cmd_input] File \"" + path_tmp.string() + "\" is not exist.";
+			throw std::runtime_error(error_msg);
 		}
 	}
 	else
 	{
-		std::cerr << "Error: need option of \"--beam0=path\"" << std::endl;
-		std::exit(EXIT_FAILURE);
+		std::string error_msg = "[General.get_cmd_input] Need option of \"--beam0=path\"";
+		throw std::runtime_error(error_msg);
 	}
 
 	if (a.exist("beam1"))
@@ -94,8 +112,8 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		}
 		else
 		{
-			std::cerr << "Error: File \"" << path_tmp << "\" is not exist." << std::endl;
-			std::exit(EXIT_FAILURE);
+			std::string error_msg = "[General.get_cmd_input] File \"" + path_tmp.string() + "\" is not exist.";
+			throw std::runtime_error(error_msg);
 		}
 	}
 	else
@@ -161,161 +179,7 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 	{
 		hourMinSec = hourMinSec_tmp;
 	}
-
-	// for (auto i : path_input_para)
-	//{
-	//	std::cout << i << std::endl;
-	// }
-	// std::cout << yearMonDay << std::endl;
-	// std::cout << hourMinSec << std::endl;
 }
-
-// void print_config_parameter(const Parameter& Para) {
-
-// 	using namespace tabulate;
-
-// 	Table Para_table;
-
-// 	Para_table.add_row({ "Parameter", "Beam0", (1 != Para.Nbeam) ? "Beam1" : "^_^" });
-// 	Para_table.add_row({ "Beam name", Para.beam_name[0], (1 != Para.Nbeam) ? Para.beam_name[1] : "^_^" });
-// 	Para_table.add_row({ "Beam Id", std::to_string(Para.beamId[0]), (1 != Para.Nbeam) ? std::to_string(Para.beamId[1]) : "^_^" });
-// 	Para_table.add_row({ "Number of bunches", std::to_string(Para.Nbunch[0]), (1 != Para.Nbeam) ? std::to_string(Para.Nbunch[1]) : "^_^" });
-// 	Para_table.add_row({ "Number of turns", std::to_string(Para.Nturn), (1 != Para.Nbeam) ? "<--" : "^_^" });
-// 	Para_table.add_row({ "Number of GPU devices", std::to_string(Para.Ngpu), (1 != Para.Nbeam) ? "<--" : "^_^" });
-
-// 	std::string tmp_gpuId;
-// 	for (auto i : Para.gpuId)
-// 	{
-// 		tmp_gpuId += std::to_string(i);
-// 		tmp_gpuId += ", ";
-// 	}
-// 	Para_table.add_row({ "GPU device Id", tmp_gpuId, (1 != Para.Nbeam) ? "<--" : "^_^" });
-
-// 	//tables.add_row({ "Beam-beam effect", Para.is_beambeam ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
-// 	//tables.add_row({ "Space charge effect", Para.is_spacecharge ? "on" : "off", (1 != Para.Nbeam) ? "<--" : "^_^" });
-
-// 	Para_table.add_row({ "Input path", Para.path_input_para[0].string(), (1 != Para.Nbeam) ? Para.path_input_para[1].string() : "^_^" });
-// 	Para_table.add_row({ "Output directory", Para.dir_output.string(), (1 != Para.Nbeam) ? "<--" : "^_^" });
-// 	Para_table.add_row({ "Starting time", Para.yearMonDay + ", " + Para.hourMinSec, (1 != Para.Nbeam) ? "<--" : "^_^" });
-
-// 	/////////////////////////////////////////// configure table start ///////////////////////////////////////////
-
-// 	Para_table[0][0].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
-// 	Para_table[0][1].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
-// 	if (2 == Para.Nbeam)
-// 		Para_table[0][2].format().font_color(Color::yellow).font_align(FontAlign::center).font_style({ FontStyle::bold });
-
-// 	Para_table.column(0).format().font_align(FontAlign::left);
-// 	Para_table.column(0).format().width(25);
-// 	Para_table.column(1).format().font_align(FontAlign::center);
-// 	Para_table.column(1).format().width(30);
-// 	if (2 == Para.Nbeam)
-// 	{
-// 		Para_table.column(2).format().font_align(FontAlign::center);
-// 		Para_table.column(2).format().width(30);
-// 	}
-
-// 	/////////////////////////////////////////// configure table end /////////////////////////////////////////////
-
-// 	std::cout << Para_table << std::endl;
-
-// 	std::ofstream outputFile(Para.path_logfile, std::ios::app);
-// 	std::streambuf* coutbuf = std::cout.rdbuf();
-// 	std::cout.rdbuf(outputFile.rdbuf());
-
-// 	std::cout << Para_table << std::endl;
-// 	outputFile.flush();
-// 	outputFile.close();
-
-// 	std::cout.rdbuf(coutbuf);
-// }
-
-// void print_beam_parameter(const Parameter& Para, const std::vector<Bunch>& Beam0, const std::vector<Bunch>& Beam1) {
-
-// 	using namespace tabulate;
-// 	int Nbeam = (0 == Beam1.size()) ? 1 : 2;
-
-// 	for (size_t i = 0; i < Beam0.size(); i++)
-// 	{
-// 		Table Beam_table;
-
-// 		Beam_table.add_row({ "Parameter", "Bunch " + std::to_string(Beam0[i].bunchId), (1 != Nbeam) ? "Bunch " + std::to_string(Beam1[i].bunchId) :
-// "^_^" }); 		Beam_table.add_row({ "Proton number",std::to_string(Beam0[i].Nproton),(1 != Nbeam) ? std::to_string(Beam1[i].Nproton) : "^_^" });
-// 		Beam_table.add_row({ "Neutron number",std::to_string(Beam0[i].Nneutron),(1 != Nbeam) ? std::to_string(Beam1[i].Nneutron) : "^_^" });
-// 		Beam_table.add_row({ "Charge number",std::to_string(Beam0[i].Ncharge),(1 != Nbeam) ? std::to_string(Beam1[i].Ncharge) : "^_^" });
-// 		Beam_table.add_row({ "Real  particles/bunch",to_scientific_string(Beam0[i].Nrp, 11),(1 != Nbeam) ? to_scientific_string(Beam1[i].Nrp, 11) :
-// "^_^" }); 		Beam_table.add_row({ "Macro particles/bunch",std::to_string(Beam0[i].Np),(1 != Nbeam) ? std::to_string(Beam1[i].Np) : "^_^" });
-// 		Beam_table.add_row({ "Ratio Nrp/Np",std::to_string(Beam0[i].ratio),(1 != Nbeam) ? std::to_string(Beam1[i].ratio) : "^_^" });
-// 		Beam_table.add_row({ "Kinetic energy per nucleon (GeV/u)", std::to_string(Beam0[i].Ek / 1e9), (1 != Nbeam) ? std::to_string(Beam1[i].Ek / 1e9)
-// : "^_^" }); 		Beam_table.add_row({ "Static mass per nucleon (MeV/c2/u)", std::to_string(Beam0[i].m0 / 1e6), (1 != Nbeam) ?
-// std::to_string(Beam1[i].m0 / 1e6) : "^_^" }); 		Beam_table.add_row({ "Momentum (kg*m/s)", to_scientific_string(Beam0[i].p0_kg, 12),(1 !=
-// Nbeam) ? to_scientific_string(Beam1[i].p0_kg, 12) : "^_^" }); 		Beam_table.add_row({ "Momentum (GeV/c)", std::to_string(Beam0[i].p0 / 1e9),(1
-// != Nbeam) ? std::to_string(Beam1[i].p0 / 1e9) : "^_^" }); 		Beam_table.add_row({ "Brho (T*m)",std::to_string(Beam0[i].Brho),(1 != Nbeam) ?
-// std::to_string(Beam1[i].Brho) : "^_^" }); 		Beam_table.add_row({ "Beta",to_scientific_string(Beam0[i].beta, 12),(1 != Nbeam) ?
-// to_scientific_string(Beam1[i].beta, 12) : "^_^" }); 		Beam_table.add_row({ "Gamma",std::to_string(Beam0[i].gamma),(1 != Nbeam) ?
-// std::to_string(Beam1[i].gamma) : "^_^" });
-// 		//Beam_table.add_row({ "Geometric emittance x (m*rad)",to_scientific_string(Beam0[i].emitx, 9),(1 != Nbeam) ?
-// to_scientific_string(Beam1[i].emitx, 9) : "^_^" });
-// 		//Beam_table.add_row({ "Geometric emittance y (m*rad)",to_scientific_string(Beam0[i].emity, 9),(1 != Nbeam) ?
-// to_scientific_string(Beam1[i].emity, 9) : "^_^" });
-// 		//Beam_table.add_row({ "Normalized emittance x (m*rad)",to_scientific_string(Beam0[i].emitx_norm, 9),(1 != Nbeam) ?
-// to_scientific_string(Beam1[i].emitx_norm, 9) : "^_^" });
-// 		//Beam_table.add_row({ "Normalized emittance y (m*rad)",to_scientific_string(Beam0[i].emity_norm,9),(1 != Nbeam) ?
-// to_scientific_string(Beam1[i].emity_norm,9) : "^_^" });
-// 		//Beam_table.add_row({ "Twiss alpha x",std::to_string(Beam0[i].alphax),(1 != Nbeam) ? std::to_string(Beam1[i].alphax) : "^_^" });
-// 		//Beam_table.add_row({ "Twiss alpha y",std::to_string(Beam0[i].alphay),(1 != Nbeam) ? std::to_string(Beam1[i].alphay) : "^_^" });
-// 		//Beam_table.add_row({ "Twiss beta x (m)",std::to_string(Beam0[i].betax),(1 != Nbeam) ? std::to_string(Beam1[i].betax) : "^_^" });
-// 		//Beam_table.add_row({ "Twiss beta y (m)",std::to_string(Beam0[i].betay),(1 != Nbeam) ? std::to_string(Beam1[i].betay) : "^_^" });
-// 		//Beam_table.add_row({ "Twiss gamma x (m-1)",std::to_string(Beam0[i].gammax),(1 != Nbeam) ? std::to_string(Beam1[i].gammax) : "^_^" });
-// 		//Beam_table.add_row({ "Twiss gamma y (m-1)",std::to_string(Beam0[i].gammay),(1 != Nbeam) ? std::to_string(Beam1[i].gammay) : "^_^" });
-// 		//Beam_table.add_row({ "Sigma x (mm)",std::to_string(Beam0[i].sigmax * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmax * 1e3) : "^_^" });
-// 		//Beam_table.add_row({ "Sigma y (mm)",std::to_string(Beam0[i].sigmay * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmay * 1e3) : "^_^" });
-// 		//Beam_table.add_row({ "Sigma px (mrad)",std::to_string(Beam0[i].sigmapx * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapx * 1e3) : "^_^"
-// });
-// 		//Beam_table.add_row({ "Sigma py (mrad)",std::to_string(Beam0[i].sigmapy * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmapy * 1e3) : "^_^"
-// });
-// 		//Beam_table.add_row({ "Sigma z (mm)",std::to_string(Beam0[i].sigmaz * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].sigmaz * 1e3) : "^_^" });
-// 		//Beam_table.add_row({ "Deltap/P (1e-3)",std::to_string(Beam0[i].dp * 1e3),(1 != Nbeam) ? std::to_string(Beam1[i].dp * 1e3) : "^_^" });
-// 		//Beam_table.add_row({ "Qx",std::to_string(Beam0[i].Qx),(1 != Nbeam) ? std::to_string(Beam1[i].Qx) : "^_^" });
-// 		//Beam_table.add_row({ "Qy",std::to_string(Beam0[i].Qy),(1 != Nbeam) ? std::to_string(Beam1[i].Qy) : "^_^" });
-// 		//Beam_table.add_row({ "Qz",std::to_string(Beam0[i].Qz),(1 != Nbeam) ? std::to_string(Beam1[i].Qz) : "^_^" });
-// 		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromx),(1 != Nbeam) ? std::to_string(Beam1[i].chromx) : "^_^" });
-// 		//Beam_table.add_row({ "Chromaticity x",std::to_string(Beam0[i].chromy),(1 != Nbeam) ? std::to_string(Beam1[i].chromy) : "^_^" });
-// 		//Beam_table.add_row({ "Gamma T",std::to_string(Beam0[i].gammat),(1 != Nbeam) ? std::to_string(Beam1[i].gammat) : "^_^" });
-
-// 		/////////////////////////////////////////// configure table start ///////////////////////////////////////////
-
-// 		Beam_table[0][0].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
-// 		Beam_table[0][1].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
-// 		if (2 == Nbeam)
-// 			Beam_table[0][2].format().font_color(Color::green).font_align(FontAlign::center).font_style({ FontStyle::bold });
-
-// 		Beam_table.column(0).format().font_align(FontAlign::left);
-// 		Beam_table.column(0).format().width(25);
-// 		Beam_table.column(1).format().font_align(FontAlign::center);
-// 		Beam_table.column(1).format().width(30);
-// 		if (2 == Nbeam)
-// 		{
-// 			Beam_table.column(2).format().font_align(FontAlign::center);
-// 			Beam_table.column(2).format().width(30);
-// 		}
-
-// 		/////////////////////////////////////////// configure table end /////////////////////////////////////////////
-
-// 		std::cout << Beam_table << std::endl;
-
-// 		std::ofstream outputFile(Para.path_logfile, std::ios::app);
-// 		std::streambuf* coutbuf = std::cout.rdbuf();
-// 		std::cout.rdbuf(outputFile.rdbuf());
-
-// 		std::cout << Beam_table << std::endl;
-// 		outputFile.flush();
-// 		outputFile.close();
-
-// 		std::cout.rdbuf(coutbuf);
-// 	}
-
-// }
 
 void create_logger(std::string logfile)
 {
@@ -338,12 +202,29 @@ void create_logger(std::string logfile)
 	spdlog::flush_on(active_level);
 }
 
+void info_centered(std::shared_ptr<spdlog::logger> logger, const std::string& text, int total_width)
+{
+	int text_len = text.size();
+	if (text_len >= total_width)
+	{
+		logger->info("{}", text);
+		return;
+	}
+
+	int stars_each_side = (total_width - text_len) / 2;
+	int extra_star = (total_width - text_len) % 2;
+
+	std::string line = std::string(stars_each_side, '-') + text + std::string(stars_each_side + extra_star, '-');
+	logger->info("{}", line);
+}
+
 void show_device_info()
 {
 	auto logger = spdlog::get("logger");
 	logger->set_pattern("%v");
 
-	logger->info("\n********** Runtime environment ************\n");
+	info_centered(logger, "Runtime environment");
+	logger->info("");
 
 	cudaDeviceProp prop;  //"cuda_runtime.h"
 	int count;
@@ -372,10 +253,15 @@ void show_device_info()
 	//	printf("%-9d %-9d\n", device[i].rank, device[i].deviceId);
 	// }
 
+	logger->info("");
+
 	for (int i = 0; i < count; ++i)
 	{
 		cudaGetDeviceProperties(&prop, i);
-		logger->info("\n--- General Information for device {} ---\n", i);
+
+		info_centered(logger, "General Information for device " + std::to_string(i));
+		logger->info("");
+
 		logger->info("Name:                     {}", prop.name);
 		logger->info("Compute capability:       {}.{}", prop.major, prop.minor);
 		// logger->info("Device copy overlap:      {}", (prop.deviceOverlap) ? "Enabled" : "Disabled");	\\ unsupported in cuda 13
@@ -387,6 +273,8 @@ void show_device_info()
 		logger->info("Max threads per block:    {}", prop.maxThreadsPerBlock);
 		logger->info("Max thread dimensions:    ({}, {}, {})", prop.maxThreadsDim[0], prop.maxThreadsDim[1], prop.maxThreadsDim[2]);
 		logger->info("Max grid dimensions:      ({}, {}, {})", prop.maxGridSize[0], prop.maxGridSize[1], prop.maxGridSize[2]);
+
+		logger->info("");
 	}
 
 	////Check peer-to-peer connectivity
@@ -412,7 +300,6 @@ void show_device_info()
 	//	}
 	//	printf("\n");
 	// }
-	logger->info("\n*******************************************\n");
 
 	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 }
@@ -588,19 +475,16 @@ bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges)
 	{
 		const int step = range.step;
 
-		// ���ٷ�Χ���
 		if ((step > 0 && (value < range.start || value > range.end)) || (step < 0 && (value > range.start || value < range.end)))
 		{
 			continue;
 		}
 
-		// ���㲽������֤
 		const int delta = value - range.start;
-		if (delta % step != 0) continue;  // �����ܱ���������
-
+		if (delta % step != 0) continue;
 		const int steps = delta / step;
 		if (steps >= 0)
-		{  // �Ǹ�����
+		{
 			return true;
 		}
 	}
@@ -615,25 +499,22 @@ bool is_value_in_turn_ranges(int value, const std::vector<CycleRange>& ranges, i
 
 		const int step = range.step;
 
-		// ���ٷ�Χ���
 		if ((step > 0 && (value < range.start || value > range.end)) || (step < 0 && (value > range.start || value < range.end)))
 		{
-			continue;  // ���������㷶Χ��������
+			continue;
 		}
 
-		// ���㲽������֤������
 		const int delta = value - range.start;
-		if (delta % step != 0) continue;  // �����ܱ���������
+		if (delta % step != 0) continue;
 
-		// ��֤�����Ǹ�
 		const int steps = delta / step;
 		if (steps >= 0)
-		{				  // �Ǹ�����
-			index = i;	  // ����ƥ������
-			return true;  // ƥ��ɹ�
+		{
+			index = i;
+			return true;
 		}
 	}
-	index = -1;	 // δ�ҵ��κ�ƥ��
+	index = -1;
 	return false;
 }
 
@@ -687,8 +568,8 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	std::ifstream file(filename);
 	if (!file.is_open())
 	{
-		logger->error("[Read Ramping Data] Open file failed: {}", filename);
-		std::exit(EXIT_FAILURE);
+		std::string error_msg = "[General.loadtxt] Open file failed:  " + filename;
+		throw std::runtime_error(error_msg);
 	}
 
 	std::vector<std::vector<double>> result;
@@ -699,20 +580,18 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	{
 		if (!std::getline(file, line))
 		{
-			// 文件行数不足，直接返回空结果
-			logger->error("[Read Ramping Data] For file: {}, after skip {} rows, the file is empty", filename, skiprows);
-			std::exit(EXIT_FAILURE);
+			std::string error_msg =
+				"[General.loadtxt] For file: " + filename + ", after skip " + std::to_string(skiprows) + "rows, the file is empty";
+			throw std::runtime_error(error_msg);
 		}
 	}
 
-	// 是否指定了要读取的列
 	bool use_specific_cols = !usecols.empty();
-	int expected_cols = -1;	 // 期望的列数
-	int row_num = 0;		 // 当前处理的行号
+	int expected_cols = -1;
+	int row_num = 0;
 
 	while (std::getline(file, line))
 	{
-		// 跳过空行和全空白行
 		if (line.empty() || std::all_of(line.begin(), line.end(), ::isspace))
 		{
 			continue;
@@ -722,17 +601,16 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		std::string cell;
 		std::vector<double> row_values;
 
-		// 解析当前行
 		while (std::getline(ss, cell, delimiter))
 		{
-			// 去除空白字符
 			cell.erase(0, cell.find_first_not_of(" \t\r\n"));
 			cell.erase(cell.find_last_not_of(" \t\r\n") + 1);
 
 			if (cell.empty())
 			{
-				logger->error("[Read Ramping Data] For file: {}, line {} has empty value", filename, row_num + skiprows + 1);
-				std::exit(EXIT_FAILURE);
+				std::string error_msg =
+					"[General.loadtxt] For file: " + filename + ", line " + std::to_string(row_num + skiprows + 1) + " has empty value";
+				throw std::runtime_error(error_msg);
 			}
 
 			try
@@ -741,17 +619,15 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 			}
 			catch (const std::exception& e)
 			{
-				logger->error("[Read Ramping Data] For file: {}, can't convert value {} to double type", filename, cell);
-				std::exit(EXIT_FAILURE);
+				std::string error_msg = "[General.loadtxt] For file: " + filename + ", can't convert value " + cell + "to double type";
+				throw std::runtime_error(error_msg);
 			}
 		}
 
-		// 检查列数一致性
 		int current_cols = row_values.size();
 
 		if (expected_cols == -1)
 		{
-			// 第一行，确定期望的列数
 			if (use_specific_cols)
 			{
 				expected_cols = usecols.size();
@@ -763,34 +639,29 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 			if (expected_cols == 0)
 			{
-				logger->error("[Read Ramping Data] For file: {}, the first line has no valid data", filename);
-				std::exit(EXIT_FAILURE);
+				std::string error_msg = "[General.loadtxt] For file: " + filename + ", the first line has no valid data";
+				throw std::runtime_error(error_msg);
 			}
 
-			// 初始化结果向量
 			result.resize(expected_cols);
 		}
 
-		// 检查当前行的列数是否与期望一致
 		if (current_cols != expected_cols)
 		{
-			logger->error("[Read Ramping Data] For file: {}, line: {}, current column is {}, expect column is {}", filename, row_num + skiprows + 1,
-						  current_cols, expected_cols);
-			std::exit(EXIT_FAILURE);
+			std::string error_msg = "[General.loadtxt] For file: " + filename + ", line: " + std::to_string(row_num + skiprows + 1) +
+									", current column is " + std::to_string(current_cols) + ", expect column is " + std::to_string(expected_cols);
+			throw std::runtime_error(error_msg);
 		}
 
-		// 将数据添加到对应列
 		if (use_specific_cols)
 		{
-			// 只读取指定列
-
-			// 检查当前行的列数是否与期望一致
 			int max_col_index = *std::max_element(usecols.begin(), usecols.end());
 			if (current_cols <= max_col_index)
 			{
-				logger->error("[Read Ramping Data] For file: {}, line: {}, we need at least {} columns, but currently there is only {} columns",
-							  filename, row_num + skiprows + 1, max_col_index, current_cols);
-				std::exit(EXIT_FAILURE);
+				std::string error_msg = "[General.loadtxt] For file: " + filename + ", line: " + std::to_string(row_num + skiprows + 1) +
+										", we need at least " + std::to_string(max_col_index) + " columns, but currently there is only " +
+										std::to_string(current_cols);
+				throw std::runtime_error(error_msg);
 			}
 
 			for (size_t i = 0; i < usecols.size(); ++i)
@@ -798,22 +669,20 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 				int col_idx = usecols[i];
 				if (col_idx < 0 || col_idx >= current_cols)
 				{
-					logger->error("[Read Ramping Data] For file: {}, column {} is out of range", filename, col_idx);
-					std::exit(EXIT_FAILURE);
+					std::string error_msg = "[General.loadtxt] For file: " + filename + ", column " + std::to_string(col_idx) + " is out of range";
+					throw std::runtime_error(error_msg);
 				}
 				result[i].push_back(row_values[col_idx]);
 			}
 		}
 		else
 		{
-			// 读取所有列
-
-			// 检查当前行的列数是否与期望一致
 			if (current_cols != expected_cols)
 			{
-				logger->error("[Read Ramping Data] For file: {}, line: {}, we need at least {} columns, but currently there is only {} columns",
-							  filename, row_num + skiprows + 1, expected_cols, current_cols);
-				std::exit(EXIT_FAILURE);
+				std::string error_msg = "[General.loadtxt] For file: " + filename + ", line: " + std::to_string(row_num + skiprows + 1) +
+										", we need at least " + std::to_string(expected_cols) + " columns, but currently there is only " +
+										std::to_string(current_cols);
+				throw std::runtime_error(error_msg);
 			}
 
 			for (int i = 0; i < current_cols; ++i)
@@ -825,11 +694,10 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		row_num++;
 	}
 
-	// 检查是否读取到数据
 	if (result.empty() || result[0].empty())
 	{
-		logger->error("[Read Ramping Data] For file: {}, the file is empty of there is no valid data", filename);
-		std::exit(EXIT_FAILURE);
+		std::string error_msg = "[General.loadtxt] For file: " + filename + ", the file is empty of there is no valid data";
+		throw std::runtime_error(error_msg);
 	}
 
 	return result;
@@ -837,7 +705,6 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 std::vector<std::string> split_line(const std::string& line)
 {
-	// 使用逗号、空格和制表符作为分隔符来分割字符串,如果分隔后的第一个字段无法转换为数字，则说明该行不是有效的数据行，返回空结果
 	std::vector<std::string> fields;
 	std::string field;
 	for (char ch : line)
@@ -860,7 +727,8 @@ std::vector<std::string> split_line(const std::string& line)
 	if (fields.empty()) return {};
 	try
 	{
-		std::stod(fields[0]);  // 尝试将第一个字段转换为数字，如果失败则说明该行不是有效的数据行，返回空结果
+		std::stod(fields[0]);  // Try to convert the first field into a number. If the conversion fails, it indicates that this row is not a valid
+							   // data row, and return an empty result.
 	}
 	catch (...)
 	{
@@ -874,7 +742,7 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 	std::ifstream file(file_path);
 	if (!file.is_open())
 	{
-		throw std::runtime_error("read_file_data: failed to open file: " + file_path);
+		throw std::runtime_error("[General.read_file_data]: Failed to open file: " + file_path);
 	}
 
 	std::vector<std::vector<double>> result;
@@ -889,7 +757,7 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 		auto fields = split_line(line);
 		if (fields.empty())
 		{
-			continue;  // 跳过空行、注释行、表头等无效行
+			continue;
 		}
 
 		for (size_t i = 0; i < fields.size(); ++i)
@@ -920,20 +788,20 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 
 std::string to_lower(const std::string& str)
 {
-	std::string result = str;  // 创建一个副本
+	std::string result = str;
 	for (char& c : result)
 	{
-		c = std::tolower(static_cast<unsigned char>(c));  // 转换字符为小写
+		c = std::tolower(static_cast<unsigned char>(c));
 	}
 	return result;
 }
 
 std::string to_upper(const std::string& str)
 {
-	std::string result = str;  // 创建一个副本
+	std::string result = str;
 	for (char& c : result)
 	{
-		c = std::toupper(static_cast<unsigned char>(c));  // 转换字符为大写
+		c = std::toupper(static_cast<unsigned char>(c));
 	}
 	return result;
 }
@@ -1048,7 +916,7 @@ const double trapz(const std::function<double(double)>& func, const double a, co
 {
 	double sum = 0.0;
 	if ((b - a) < 1E-9) return 0;
-	double gaps = (b - a) / double(n);	// ÿ������ĳ���
+	double gaps = (b - a) / double(n);
 	int n_thread = 8;
 #pragma omp parallel for num_threads(n_thread) reduction(+ : sum)
 	for (int i = 0; i < n; i++)
@@ -1063,7 +931,7 @@ const double trapz2d(const std::function<double(double, double)>& func, const st
 {
 	double sum = 0.0;
 	if ((b - a) < 1e-9) return 0;
-	double gaps = (b - a) / double(n);	// ÿ������ĳ���
+	double gaps = (b - a) / double(n);
 	int n_thread = 8;
 #pragma omp parallel for num_threads(n_thread) reduction(+ : sum)
 	for (int i = 0; i < n; i++)
