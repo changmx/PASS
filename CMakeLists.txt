@@ -108,7 +108,6 @@ target_include_directories(${PROJECT_NAME}
     ${Python_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/include/nlohmann
     ${PROJECT_SOURCE_DIR}/include/cmdline
-    ${PROJECT_SOURCE_DIR}/include/tabulate
     ${PROJECT_SOURCE_DIR}/include/spdlog
     ${AMGX_INCLUDE_DIR}
     ${cudss_INCLUDE_DIR}
