@@ -3,6 +3,7 @@
 #include <cmdline/cmdline.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>

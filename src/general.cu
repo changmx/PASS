@@ -93,7 +93,7 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		}
 		else
 		{
-			std::string error_msg = "[General.get_cmd_input] File \"" + path_tmp.string() + "\" is not exist.";
+			std::string error_msg = fmt::format("[General.get_cmd_input] File: {} is not exist.", path_tmp.string());
 			throw std::runtime_error(error_msg);
 		}
 	}
@@ -112,7 +112,7 @@ void get_cmd_input(int argc, char** argv, std::vector<std::filesystem::path>& pa
 		}
 		else
 		{
-			std::string error_msg = "[General.get_cmd_input] File \"" + path_tmp.string() + "\" is not exist.";
+			std::string error_msg = fmt::format("[General.get_cmd_input] File: {} is not exist.", path_tmp.string());
 			throw std::runtime_error(error_msg);
 		}
 	}
@@ -568,7 +568,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	std::ifstream file(filename);
 	if (!file.is_open())
 	{
-		std::string error_msg = "[General.loadtxt] Open file failed:  " + filename;
+		std::string error_msg = fmt::format("[General.loadtxt] Open file failed: {}", filename);
 		throw std::runtime_error(error_msg);
 	}
 
@@ -580,8 +580,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 	{
 		if (!std::getline(file, line))
 		{
-			std::string error_msg =
-				"[General.loadtxt] For file: " + filename + ", after skip " + std::to_string(skiprows) + "rows, the file is empty";
+			std::string error_msg = fmt::format("[General.loadtxt] For file: {}, after skip {} rows, the file is empty", filename, skiprows);
 			throw std::runtime_error(error_msg);
 		}
 	}
@@ -608,8 +607,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 			if (cell.empty())
 			{
-				std::string error_msg =
-					"[General.loadtxt] For file: " + filename + ", line " + std::to_string(row_num + skiprows + 1) + " has empty value";
+				std::string error_msg = fmt::format("[General.loadtxt] For file: {}, line {}  has empty value", filename, row_num + skiprows + 1);
 				throw std::runtime_error(error_msg);
 			}
 
@@ -619,7 +617,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 			}
 			catch (const std::exception& e)
 			{
-				std::string error_msg = "[General.loadtxt] For file: " + filename + ", can't convert value " + cell + "to double type";
+				std::string error_msg = fmt::format("[General.loadtxt] For file: {}, can't convert value {} to double type", filename, cell);
 				throw std::runtime_error(error_msg);
 			}
 		}
@@ -639,7 +637,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 			if (expected_cols == 0)
 			{
-				std::string error_msg = "[General.loadtxt] For file: " + filename + ", the first line has no valid data";
+				std::string error_msg = fmt::format("[General.loadtxt] For file: {}, the first line has no valid data", filename);
 				throw std::runtime_error(error_msg);
 			}
 
@@ -648,8 +646,8 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 		if (current_cols != expected_cols)
 		{
-			std::string error_msg = "[General.loadtxt] For file: " + filename + ", line: " + std::to_string(row_num + skiprows + 1) +
-									", current column is " + std::to_string(current_cols) + ", expect column is " + std::to_string(expected_cols);
+			std::string error_msg = fmt::format("[General.loadtxt] For file: {}, line {}, current column is {}, expect column is {}", filename,
+												row_num + skiprows + 1, current_cols, expected_cols);
 			throw std::runtime_error(error_msg);
 		}
 
@@ -658,9 +656,9 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 			int max_col_index = *std::max_element(usecols.begin(), usecols.end());
 			if (current_cols <= max_col_index)
 			{
-				std::string error_msg = "[General.loadtxt] For file: " + filename + ", line: " + std::to_string(row_num + skiprows + 1) +
-										", we need at least " + std::to_string(max_col_index) + " columns, but currently there is only " +
-										std::to_string(current_cols);
+				std::string error_msg =
+					fmt::format("[General.loadtxt] For file: {}, line {}, we need at least {} columns, but currently there is only {}", filename,
+								row_num + skiprows + 1, max_col_index, current_cols);
 				throw std::runtime_error(error_msg);
 			}
 
@@ -669,7 +667,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 				int col_idx = usecols[i];
 				if (col_idx < 0 || col_idx >= current_cols)
 				{
-					std::string error_msg = "[General.loadtxt] For file: " + filename + ", column " + std::to_string(col_idx) + " is out of range";
+					std::string error_msg = fmt::format("[General.loadtxt] For file: {}, column {}  is out of range", filename, col_idx);
 					throw std::runtime_error(error_msg);
 				}
 				result[i].push_back(row_values[col_idx]);
@@ -679,9 +677,9 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 		{
 			if (current_cols != expected_cols)
 			{
-				std::string error_msg = "[General.loadtxt] For file: " + filename + ", line: " + std::to_string(row_num + skiprows + 1) +
-										", we need at least " + std::to_string(expected_cols) + " columns, but currently there is only " +
-										std::to_string(current_cols);
+				std::string error_msg =
+					fmt::format("[General.loadtxt] For file: {}, line {}, we need at least {} columns, but currently there is only {} columns",
+								filename, row_num + skiprows + 1, expected_cols, current_cols);
 				throw std::runtime_error(error_msg);
 			}
 
@@ -696,7 +694,7 @@ std::vector<std::vector<double>> loadtxt(const std::string& filename, char delim
 
 	if (result.empty() || result[0].empty())
 	{
-		std::string error_msg = "[General.loadtxt] For file: " + filename + ", the file is empty of there is no valid data";
+		std::string error_msg = fmt::format("[General.loadtxt] For file: {}, the file is empty of there is no valid data", filename);
 		throw std::runtime_error(error_msg);
 	}
 
@@ -773,12 +771,10 @@ std::vector<std::vector<double>> read_file_data(const std::string& file_path)
 			}
 			catch (const std::exception& e)
 			{
-				std::ostringstream oss;
-				oss << "read_file_data: failed to parse number"
-					<< " in file: " << file_path << ", line: " << line_number << ", column: " << (i + 1) << ", value: \"" << fields[i] << "\""
-					<< ", reason: " << e.what();
-
-				throw std::runtime_error(oss.str());
+				std::string error_msg =
+					fmt::format("[General.read_file_data]: Failed to parse number in file: {}, line: {}, column: {}, value: {}, reason: {}",
+								file_path, line_number, i + 1, fields[i], e.what());
+				throw std::runtime_error(error_msg);
 			}
 		}
 	}
