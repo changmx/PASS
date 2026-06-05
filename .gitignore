@@ -12,3 +12,5 @@ libs/amgx/lib
 test/*.opju
 
 .vscode/
+
+*egg-info/
