@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-CONFIG_PATH = (Path(__file__).resolve().parents[2] / "config" / "config.h")
+CONFIG_PATH = (Path(__file__).resolve().parents[3] / "config" / "config.h")
 
 
 def read_pass_version():

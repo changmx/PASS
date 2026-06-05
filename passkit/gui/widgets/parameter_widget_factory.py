@@ -3,17 +3,17 @@ from PySide6.QtWidgets import (
     QCheckBox,
 )
 
-from gui.widgets.no_wheel import (
+from passkit.gui.widgets.no_wheel import (
     NoWheelSpinBox,
     NoWheelDoubleSpinBox,
     NoWheelComboBox,
 )
 
-from gui.widgets.unit_spinbox import (UnitDoubleSpinBox)
+from passkit.gui.widgets.unit_spinbox import (UnitDoubleSpinBox)
 
-from gui.widgets.engineering_spinbox import (EngineeringSpinBox)
+from passkit.gui.widgets.engineering_spinbox import (EngineeringSpinBox)
 
-from gui.widgets.list_line_edit import (ListLineEdit)
+from passkit.gui.widgets.list_line_edit import (ListLineEdit)
 
 
 class ParameterWidgetFactory:

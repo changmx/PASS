@@ -1,4 +1,4 @@
-from para.readers.madx_twiss_reader import read_twiss
+from passkit.para.readers.madx_twiss_reader import read_twiss
 
 
 class TwissBuilder:

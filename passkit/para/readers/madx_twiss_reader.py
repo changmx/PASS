@@ -1,4 +1,4 @@
-from para.get_twiss_from_madx import (
+from passkit.para.get_twiss_from_madx import (
     get_twiss_from_madx_twissfile,
     get_twiss_interpolate_from_madx_twissfile,
 )

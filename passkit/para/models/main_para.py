@@ -1,5 +1,5 @@
-from para.models.parameter import Parameter
-from gui.core.logger import logger
+from passkit.para.models.parameter import Parameter
+from passkit.gui.core.logger import logger
 import os
 from pathlib import Path
 

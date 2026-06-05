@@ -1,4 +1,4 @@
-from para.models.parameter import Parameter, DisableRule
+from passkit.para.models.parameter import Parameter, DisableRule
 
 
 class BunchPara:

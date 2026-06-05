@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
 )
 
-from gui.widgets.no_wheel import (
+from passkit.gui.widgets.no_wheel import (
     NoWheelDoubleSpinBox,
     NoWheelComboBox,
 )

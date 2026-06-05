@@ -13,9 +13,9 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import Qt
 
-from gui.widgets.parameter_widget_factory import (ParameterWidgetFactory)
+from passkit.gui.widgets.parameter_widget_factory import (ParameterWidgetFactory)
 
-from para.models.injection_para import (
+from passkit.para.models.injection_para import (
     BunchPara,
     InjectionPara,
 )

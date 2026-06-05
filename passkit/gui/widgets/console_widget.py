@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QPlainTextEdit)
 
-from gui.core.logger import logger
+from passkit.gui.core.logger import logger
 
 
 class ConsoleWidget(QPlainTextEdit):

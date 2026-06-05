@@ -1,4 +1,4 @@
-from para.models.parameter import Parameter
+from passkit.para.models.parameter import Parameter
 
 
 class SpaceChargePara:

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import Qt
 
-from gui.widgets.parameter_widget_factory import (ParameterWidgetFactory)
+from passkit.gui.widgets.parameter_widget_factory import (ParameterWidgetFactory)
 
 
 class ParameterForm(QWidget):

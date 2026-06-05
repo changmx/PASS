@@ -9,27 +9,27 @@ from PySide6.QtWidgets import (
     QFileDialog,
 )
 
-from gui.pages.main_para_page import (MainParaPage)
+from passkit.gui.pages.main_para_page import (MainParaPage)
 
-from gui.pages.injection_page import (InjectionPage)
+from passkit.gui.pages.injection_page import (InjectionPage)
 
-from gui.widgets.console_widget import (ConsoleWidget)
+from passkit.gui.widgets.console_widget import (ConsoleWidget)
 
-from gui.utils.version import (read_pass_version)
+from passkit.gui.utils.version import (read_pass_version)
 
-from para.models.main_para import (MainPara)
+from passkit.para.models.main_para import (MainPara)
 
-from para.models.injection_para import (InjectionPara)
+from passkit.para.models.injection_para import (InjectionPara)
 
-from para.builders.main_builder import (MainBuilder)
+from passkit.para.builders.main_builder import (MainBuilder)
 
-from para.builders.injection_builder import (InjectionBuilder)
+from passkit.para.builders.injection_builder import (InjectionBuilder)
 
-from para.builders.simulation_builder import (SimulationBuilder)
+from passkit.para.builders.simulation_builder import (SimulationBuilder)
 
-from para.exporters.json_exporter import (JsonExporter)
+from passkit.para.exporters.json_exporter import (JsonExporter)
 
-from gui.core.logger import logger
+from passkit.gui.core.logger import logger
 
 import os
 

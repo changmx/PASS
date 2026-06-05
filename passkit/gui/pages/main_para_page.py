@@ -1,4 +1,4 @@
-from gui.widgets.parameter_form import (
+from passkit.gui.widgets.parameter_form import (
     ParameterForm
 )
 

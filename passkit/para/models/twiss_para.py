@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from para.models.base_model import BaseModel
+from passkit.para.models.base_model import BaseModel
 
 
 @dataclass

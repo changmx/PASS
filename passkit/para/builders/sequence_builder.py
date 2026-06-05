@@ -1,4 +1,4 @@
-from para.toolkit import sort_sequence
+from passkit.para.toolkit import sort_sequence
 
 
 class SequenceBuilder:
