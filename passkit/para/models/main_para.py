@@ -55,7 +55,7 @@ class MainPara:
             description="GPU Device ID",
         )
 
-        current_dir = str(Path(__file__).resolve().parent.parent.parent)
+        current_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 
         self.output_dir = Parameter(
             value=os.path.join(current_dir, "output"),
