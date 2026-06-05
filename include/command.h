@@ -1,66 +1,53 @@
 #pragma once
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
-
+#include <cudss.h>
 #include <cufft.h>
 #include <cusolverSp.h>
 #include <cusparse.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 #include <thrust/reduce.h>
-#include <thrust/system/cuda/execution_policy.h>	//thrust::cuda::par.on(stream)
-#include <cudss.h>
-
+#include <thrust/system/cuda/execution_policy.h>  //thrust::cuda::par.on(stream)
 
 class Command
 {
-public:
+   public:
 	virtual ~Command() {};
 	virtual void execute(int turn) = 0;
 	virtual std::string get_name() const = 0;
-	virtual std::string get_commandType()const = 0;
+	virtual std::string get_commandType() const = 0;
 	virtual double get_s() const = 0;
+	// virtual void print() = 0;
 
-protected:
-
-private:
-
+   protected:
+   private:
 };
-
 
 template <typename Receiver>
-class ConcreteCommand : public Command {
-public:
-	explicit ConcreteCommand(std::unique_ptr<Receiver> receiver)
-		: receiver_(std::move(receiver)) {
-	}
+class ConcreteCommand : public Command
+{
+   public:
+	explicit ConcreteCommand(std::unique_ptr<Receiver> receiver) : receiver_(std::move(receiver)) {}
 
-	void execute(int turn) override {
-		//spdlog::get("logger")->debug("[Command] turn: {}, execute command: {} at {}.", turn, receiver_->name, receiver_->s);
-		receiver_->execute(turn);
-	}
-	std::string get_name() const override {
-		return receiver_->name;
-	}
-	std::string get_commandType() const override {
-		return receiver_->commandType;
-	}
-	double get_s() const override {
-		return receiver_->s;
-	}
+	void execute(int turn) override { receiver_->execute(turn); }
+	std::string get_name() const override { return receiver_->name; }
+	std::string get_commandType() const override { return receiver_->commandType; }
+	double get_s() const override { return receiver_->s; }
+	// void print() override { receiver_->print(); }
 
-private:
+   private:
 	std::unique_ptr<Receiver> receiver_;
 };
-
 
 inline void checkCudaError(cudaError_t err, const char* file, int line)
 {
 	if (err != cudaSuccess)
 	{
-		std::string error_msg = "CUDA error at " + std::string(file) + ": line " + std::to_string(line) + ": " + cudaGetErrorString(cudaGetLastError());
+		std::string error_msg =
+			"CUDA error at " + std::string(file) + ": line " + std::to_string(line) + ": " + cudaGetErrorString(cudaGetLastError());
 		throw std::runtime_error(error_msg);
 	}
 }
@@ -109,31 +96,29 @@ inline void checkCudss(cudssStatus_t err, const char* file, int line)
 	}
 }
 
-
 #ifndef callCuda
 #define callCuda(call) (checkCudaError(call, __FILE__, __LINE__));
-#endif // !callCuda
+#endif	// !callCuda
 
 #ifndef callCufft
 #define callCufft(call) (checkCufftError(call, __FILE__, __LINE__));
-#endif // !callCufft
+#endif	// !callCufft
 
 #ifndef callCusparse
 #define callCusparse(call) (checkCusparse(call, __FILE__, __LINE__));
-#endif // !callCusparse
+#endif	// !callCusparse
 
 #ifndef callCusolver
 #define callCusolver(call) (checkCusolver(call, __FILE__, __LINE__));
-#endif // !callCusolver
+#endif	// !callCusolver
 
 #ifndef callCublas
 #define callCublas(call) (checkCublas(call, __FILE__, __LINE__));
-#endif // !callCublas
+#endif	// !callCublas
 
 #ifndef callCudss
 #define callCudss(call) (checkCudss(call, __FILE__, __LINE__));
-#endif // !callCudss
-
+#endif	// !callCudss
 
 #define USE_CUDA_DEBUG_MODE 1
 
@@ -143,27 +128,36 @@ inline void checkCudss(cudssStatus_t err, const char* file, int line)
 #define callKernel(...) LAUNCH_KERNEL_RELEASE(__VA_ARGS__)
 #endif
 
-#define LAUNCH_KERNEL_DEBUG(...) \
-    do { \
-        { __VA_ARGS__; } \
-        cudaError_t __err = cudaGetLastError(); \
-        if (__err != cudaSuccess) { \
-			spdlog::get("logger")->error("[CUDA kernel launch error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
-            exit(EXIT_FAILURE); \
-        } \
-        __err = cudaDeviceSynchronize(); \
-        if (__err != cudaSuccess) { \
-			spdlog::get("logger")->error("[CUDA kernel execution error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
-            exit(EXIT_FAILURE); \
-        } \
-    } while(0)
+#define LAUNCH_KERNEL_DEBUG(...)                                                                                                    \
+	do                                                                                                                              \
+	{                                                                                                                               \
+		{                                                                                                                           \
+			__VA_ARGS__;                                                                                                            \
+		}                                                                                                                           \
+		cudaError_t __err = cudaGetLastError();                                                                                     \
+		if (__err != cudaSuccess)                                                                                                   \
+		{                                                                                                                           \
+			spdlog::get("logger")->error("[CUDA kernel launch error] {}:{}, {}", __FILE__, __LINE__, cudaGetErrorString(__err));    \
+			exit(EXIT_FAILURE);                                                                                                     \
+		}                                                                                                                           \
+		__err = cudaDeviceSynchronize();                                                                                            \
+		if (__err != cudaSuccess)                                                                                                   \
+		{                                                                                                                           \
+			spdlog::get("logger")->error("[CUDA kernel execution error] {}:{}, {}", __FILE__, __LINE__, cudaGetErrorString(__err)); \
+			exit(EXIT_FAILURE);                                                                                                     \
+		}                                                                                                                           \
+	} while (0)
 
-#define LAUNCH_KERNEL_RELEASE(...) \
-    do { \
-        { __VA_ARGS__; } \
-        cudaError_t __err = cudaGetLastError(); \
-        if (__err != cudaSuccess) { \
-			spdlog::get("logger")->error("[CUDA kernel error] {}:{}, {}",__FILE__, __LINE__, cudaGetErrorString(__err)); \
-            exit(EXIT_FAILURE); \
-        } \
+#define LAUNCH_KERNEL_RELEASE(...)                                                                                        \
+	do                                                                                                                    \
+	{                                                                                                                     \
+		{                                                                                                                 \
+			__VA_ARGS__;                                                                                                  \
+		}                                                                                                                 \
+		cudaError_t __err = cudaGetLastError();                                                                           \
+		if (__err != cudaSuccess)                                                                                         \
+		{                                                                                                                 \
+			spdlog::get("logger")->error("[CUDA kernel error] {}:{}, {}", __FILE__, __LINE__, cudaGetErrorString(__err)); \
+			exit(EXIT_FAILURE);                                                                                           \
+		}                                                                                                                 \
 	} while (0)
