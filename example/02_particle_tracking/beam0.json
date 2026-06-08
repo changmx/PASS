@@ -1,0 +1,23 @@
+{
+    "Name": "proton",
+    "Number of Protons": 1,
+    "Number of Neutrons": 0,
+    "Number of Electrons": 1,
+    "Number of Bunches": 1,
+    "Transition Gamma": 7.635074035,
+    "Number of turns": 100,
+    "Circumference (m)": 569.1,
+    "Number of GPUs": 1,
+    "GPU Device ID": [
+        0
+    ],
+    "Output Directory": "C:\\Users\\changmx\\Documents\\PASS\\output",
+    "Generate Plots": false,
+    "Injection": {
+        "S (m)": 0.0,
+        "Command": "Injection",
+        "Kinetic Energy": 33200000.0,
+        "Real Particles": 100000000000.0,
+        "Emit X": 0.0002
+    }
+}

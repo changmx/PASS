@@ -1,0 +1,65 @@
+{
+    "Beam Name": "12C6+",
+    "Number of Protons": 6,
+    "Number of Neutrons": 6,
+    "Number of Electrons": 6,
+    "Transition Gamma": 7.635074035,
+    "Number of turns": 1,
+    "Circumference (m)": 569.1,
+    "Number of GPU devices": 1,
+    "Device Id": [
+        0
+    ],
+    "Output directory": "C:\\Users\\changmx\\Documents\\PASS\\example\\01_generate_distribution\\output",
+    "Is plot figure": false,
+    "Sequence": {
+        "Injection": {
+            "S (m)": 0.0,
+            "Command": "Injection",
+            "bunch0": {
+                "Kinetic Energy per Nucleon (eV/u)": 10000000.0,
+                "Number of Real Particles": 100000000000.0,
+                "Number of Macro Particles": 100000.0,
+                "Is Load Distribution from File": false,
+                "Distribution File Path": "",
+                "Total Injection Turns": 1,
+                "Injection Interval": 1,
+                "Alpha x": -2.614303952,
+                "Alpha y": 1.57442348,
+                "Beta x (m)": 17.56341783,
+                "Beta y (m)": 8.624482365,
+                "Emittance x (m'rad)": 0.0002,
+                "Emittance y (m'rad)": 0.0001,
+                "Dx (m)": 0.0,
+                "Dpx": 0.0,
+                "Sigma z (m)": 0.1,
+                "Sigma dp/p": 0.001,
+                "Transverse dist": "gaussian",
+                "Longitudinal dist": "gaussian",
+                "RF Voltage (V)": 0.0,
+                "RF Phase (rad)": 0.0,
+                "Harmonic Number": 1,
+                "Harmonic ID of this bunch": 0,
+                "RF S Position Refer to Inj. Point (m)": 0.0,
+                "Offset x": {
+                    "Is Offset": false,
+                    "Is Load From File": false,
+                    "File Path": "",
+                    "File Time Kind": "turn",
+                    "Offset Position (m)": 0.0,
+                    "Offset Momentum (rad)": 0.0
+                },
+                "Offset y": {
+                    "Is Offset": false,
+                    "Is Load From File": false,
+                    "File Path": "",
+                    "File Time Kind": "turn",
+                    "Offset Position (m)": 0.0,
+                    "Offset Momentum (rad)": 0.0
+                },
+                "Is Save Initial Distribution": false,
+                "Insert Particle Coordinate": []
+            }
+        }
+    }
+}
