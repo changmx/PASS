@@ -9,3 +9,5 @@ class State:
     time: float = 0.0
 
     revolution: int = 0
+
+    Ek: float = 0
