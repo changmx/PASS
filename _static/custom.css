@@ -1,0 +1,12 @@
+/* 修改左侧 logo 区域蓝色背景 */
+.wy-side-nav-search {
+    background-color: #2980B9 !important;   /* 浅灰色 */
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* logo 本身透明 */
+.wy-side-nav-search img {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
