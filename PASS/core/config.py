@@ -138,9 +138,9 @@ class Config:
         Path(self.output_dir_para).mkdir(parents=True, exist_ok=True)
         Path(self.output_dir_dist).mkdir(parents=True, exist_ok=True)
 
-        shutil.copy(beam0_path, Path(self.output_dir_para) / f"beam0_{self.output_hms}.json")
+        shutil.copy(beam0_path, Path(self.output_dir_para) / f"{self.output_hms}_beam0.json")
         if beam1_path is not None:
-            shutil.copy(beam1_path, Path(self.output_dir_para) / f"beam1_{self.output_hms}.json")
+            shutil.copy(beam1_path, Path(self.output_dir_para) / f"{self.output_hms}_beam1.json")
 
     def get_log_path(self):
         return Path(self.output_dir_log) / f"{self.output_hms}.log"
