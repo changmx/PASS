@@ -1,9 +1,13 @@
 title: PASS
 description: Particle Accelerator Simulation Studio
 
-theme: minima
+theme: just-the-docs
 
-header_pages:
-  - index.md
-  - en/index.md
-  - zh/index.md
+url: https://changmx.github.io
+baseurl: /PASS
+
+logo: assets/logo.png
+
+nav_external_links:
+  - title: GitHub
+    url: https://github.com/changmx/PASS

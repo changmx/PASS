@@ -1,5 +1,7 @@
 ---
-title: PASS Documentation (English)
+title: English
+layout: default
+nav_order: 2
 ---
 
 # PASS Documentation

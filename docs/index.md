@@ -1,3 +1,9 @@
+---
+title: Home
+layout: default
+nav_order: 1
+---
+
 # PASS
 
 Particle Accelerator Tracking & Simulation Code
@@ -13,8 +19,7 @@ Particle Accelerator Tracking & Simulation Code
 
 ## 📘 Documentation
 
-- English: ./en/
-- 中文: ./zh/
+- 
 
 ---
 

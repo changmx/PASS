@@ -1,5 +1,7 @@
 ---
-title: PASS 文档
+title: 中文
+layout: default
+nav_order: 3
 ---
 
 # PASS 文档
