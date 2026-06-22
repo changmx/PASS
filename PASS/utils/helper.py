@@ -1,6 +1,7 @@
 import numpy as np
 import json
 import tfs
+from datetime import datetime
 
 
 def convert_keys_to_lower(obj):
@@ -11,3 +12,13 @@ def convert_keys_to_lower(obj):
         return [convert_keys_to_lower(item) for item in obj]
     else:
         return obj
+
+
+def get_current_time():
+    """
+    Get current time in specified format
+
+    Returns:
+        timestamp: str
+    """
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
