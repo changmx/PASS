@@ -245,8 +245,6 @@ class StatMonitor(Command):
             threads = 256
             blocks = min((N + threads - 1) // threads, 512)
 
-            kernel = cp.RawKernel(kernel_code, "calc_all_stats")
-
             out_gpu = cp.zeros(22, dtype=cp.float64)
 
             kernel(
@@ -258,7 +256,7 @@ class StatMonitor(Command):
             cp.cuda.runtime.deviceSynchronize()
 
             out_cpu = out_gpu.get()
-            print(out_cpu)
+            # print(out_cpu)
 
             count_alive = int(out_cpu[21])
             inv_count = 1.0 / count_alive if count_alive > 0 else 0.0
@@ -489,3 +487,4 @@ void calc_all_stats(
     }
 }
 '''
+kernel = cp.RawKernel(kernel_code, "calc_all_stats")

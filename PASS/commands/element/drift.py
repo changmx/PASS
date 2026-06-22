@@ -34,75 +34,76 @@ class Drift(Command):
         set_normal_logging()
 
     def execute_cpu(self, sim):
-        pass
+        L = self.length
+        if np.abs(L) < const.eps:
+            return
+        beam = sim.beams[self.beam_id]
+        bunches: list[BunchInfo] = beam.bunches
+
+        for i, bunch in enumerate(bunches):
+            beta = bunch.beta
+            gamma = bunch.gamma
+            circum = bunch.circum
+            start = bunch.start_idx
+            end = bunch.end_idx
+
+            p = beam.particles
+            x = p.x[start:end]
+            px = p.px[start:end]
+            y = p.y[start:end]
+            py = p.py[start:end]
+            z = p.z[start:end]
+            pz = p.pz[start:end]
+            tag = p.tag[start:end]
+
+            r56 = L / (beta**2 * gamma**2)
+
+            c_half = 0.5 * circum
+            mask = (tag > 0).astype(np.float64)
+            """
+            tau = z/beta - ct(=0) = z/beta
+            pt = DeltaE/(P0*c) = beta*DeltaP/P0
+
+            tau0 = dev_particle.z[tid] / beta;
+            pt0 = dev_particle.pz[tid] * beta;
+
+            tau1 = tau0 + (r56 * pt0) * mask;
+            dev_particle.z[tid] = tau1 * beta;
+            """
+            x += L * px * mask
+            y += L * py * mask
+            z += r56 * (pz * beta) * beta * mask
+
+            over = (z > c_half).astype(np.int64)
+            under = (z < -c_half).astype(np.int64)
+
+            z += (under - over) * circum
 
     def execute_gpu(self, sim):
-        pass
+        L = self.length
+        if np.abs(L) < const.eps:
+            return
+        beam = sim.beams[self.beam_id]
+        bunches: list[BunchInfo] = beam.bunches
 
+        for i, bunch in enumerate(bunches):
+            beta = bunch.beta
+            gamma = bunch.gamma
+            circum = bunch.circum
+            start = bunch.start_idx
+            end = bunch.end_idx
 
-def transfer_drift_cpu(sim: Simulation, L: float, beam_id: int):
-    if np.abs(L) < const.eps:
-        return
-    beam = sim.beams[beam_id]
-    bunches: list[BunchInfo] = beam.bunches
+            p = beam.particles  # slicing in the kernel
 
-    for i, bunch in enumerate(bunches):
-        beta = bunch.beta
-        gamma = bunch.gamma
-        circum = bunch.circum
-        start = bunch.start_idx
-        end = bunch.end_idx
+            N = end - start
+            threads = 256
+            blocks = (N + threads - 1) // threads
 
-        p = beam.particles[start:end]
-
-        r56 = L / (beta**2 * gamma**2)
-
-        c_half = 0.5 * circum
-        mask = (p.tag > 0).astype(np.float64)
-        """
-        tau = z/beta - ct(=0) = z/beta
-        pt = DeltaE/(P0*c) = beta*DeltaP/P0
-
-        tau0 = dev_particle.z[tid] / beta;
-		pt0 = dev_particle.pz[tid] * beta;
-
-        tau1 = tau0 + (r56 * pt0) * mask;
-		dev_particle.z[tid] = tau1 * beta;
-        """
-        p.x += L * p.px * mask
-        p.y += L * p.py * mask
-        p.z += r56 * (p.pz * beta) * beta * mask
-
-        over = (p.z > c_half).astype(np.int64)
-        under = (p.z < -c_half).astype(np.int64)
-
-        p.z += (under - over) * circum
-
-
-def transfer_drift_gpu(sim: Simulation, L: float, beam_id: int):
-    if np.abs(L) < const.eps:
-        return
-    beam = sim.beams[beam_id]
-    bunches: list[BunchInfo] = beam.bunches
-
-    for i, bunch in enumerate(bunches):
-        beta = bunch.beta
-        gamma = bunch.gamma
-        circum = bunch.circum
-        start = bunch.start_idx
-        end = bunch.end_idx
-
-        p = beam.particles  # slicing in the kernel
-
-        N = end - start
-        threads = 256
-        blocks = (N + threads - 1) // threads
-
-        transfer_drift_gpu(
-            (blocks, ),
-            (threads, ),
-            (p.x, p.y, p.z, p.px, p.py, p.pz, p.tag, start, end, beta, gamma, circum, L),
-        )
+            transfer_drift_kernel(
+                (blocks, ),
+                (threads, ),
+                (p.x, p.y, p.z, p.px, p.py, p.pz, p.tag, start, end, beta, gamma, circum, L),
+            )
 
 
 kernel_code = r'''
@@ -140,5 +141,4 @@ void transfer_drift(
     z[i] += (under - over) * circum;
 }
 '''
-
-transfer_drift_gpu = cp.RawKernel(kernel_code, "transfer_drift")
+transfer_drift_kernel = cp.RawKernel(kernel_code, "transfer_drift")
