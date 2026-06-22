@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @Command.register("drift")
 class Drift(Command):
 
-    def __init__(self, beam_id: int, **command_kwargs):
+    def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
         kwargs = {k.lower(): v for k, v in command_kwargs.items()}
 
         self.beam_id = beam_id
@@ -50,10 +50,10 @@ def transfer_drift_cpu(sim: Simulation, L: float, beam_id: int):
         beta = bunch.beta
         gamma = bunch.gamma
         circum = bunch.circum
-        start = bunch.start
-        stop = bunch.stop
+        start = bunch.start_idx
+        end = bunch.end_idx
 
-        p = beam.particles[start:stop]
+        p = beam.particles[start:end]
 
         r56 = L / (beta**2 * gamma**2)
 
@@ -89,19 +89,19 @@ def transfer_drift_gpu(sim: Simulation, L: float, beam_id: int):
         beta = bunch.beta
         gamma = bunch.gamma
         circum = bunch.circum
-        start = bunch.start
-        stop = bunch.stop
+        start = bunch.start_idx
+        end = bunch.end_idx
 
         p = beam.particles  # slicing in the kernel
 
-        N = p.x.size
+        N = end - start
         threads = 256
         blocks = (N + threads - 1) // threads
 
         transfer_drift_gpu(
             (blocks, ),
             (threads, ),
-            (p.x, p.y, p.z, p.px, p.py, p.pz, p.tag, start, stop, beta, gamma, circum, L),
+            (p.x, p.y, p.z, p.px, p.py, p.pz, p.tag, start, end, beta, gamma, circum, L),
         )
 
 
@@ -116,14 +116,14 @@ void transfer_drift(
     const double* __restrict__ pz,
     const int* __restrict__ tag,
     int start_index,
-    int stop_index,
+    int end_index,
     double beta,
     double gamma,
     double circum,
     double L)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (i >= stop_index) return;
+    if (i >= end_index) return;
 
     double r56 = L / (beta * beta * gamma * gamma);
     double c_half = 0.5 * circum;
