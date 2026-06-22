@@ -44,8 +44,8 @@ class Beam:
 
         self.Np_total = 0
         for bunch in self.bunches:
-            bunch.start = self.Np_total
-            bunch.stop = self.Np_total + bunch.Np
+            bunch.start_idx = self.Np_total
+            bunch.end_idx = self.Np_total + bunch.Np
             self.Np_total += bunch.Np
 
     def _create_particles(self):

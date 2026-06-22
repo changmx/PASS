@@ -14,8 +14,8 @@ class BunchInfo:
 
     def __init__(self, input_file: str, bunch_id: int):
 
-        self.start: int = 0
-        self.stop: int = 0
+        self.start_idx: int = 0
+        self.end_idx: int = 0
         self._load_input(input_file, bunch_id)
 
     def _load_input(self, input_file: str, bunch_id: int) -> None:
@@ -25,7 +25,7 @@ class BunchInfo:
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             data = convert_keys_to_lower(data)
-            
+
         bunch_data = data["sequence"]["injection"][f"bunch{bunch_id}"]
 
         self.bunch_id = bunch_id
