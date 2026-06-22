@@ -2,7 +2,10 @@ name: Build Sphinx Docs
 
 on:
   push:
-    branches: [master]
+    branches: [main, master]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -23,12 +26,11 @@ jobs:
 
     - name: Build HTML
       run: |
-        cd docs
-        sphinx-build source build/html
+        sphinx-build -b html docs/source docs/build/html
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: docs/build/html
+        publish_dir: docs/build/html 
         publish_branch: gh-pages
