@@ -1,10 +1,13 @@
----
-title: PASS - Particle Accelerator Simulation System
----
-
 # PASS
 
 Particle Accelerator Tracking & Simulation Code
+
+
+
+## 🌍 Language / 语言
+
+- 🇬🇧 English: ./en/
+- 🇨🇳 中文: ./zh/
 
 ---
 
