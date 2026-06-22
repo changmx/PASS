@@ -1,10 +1,13 @@
 title: PASS
 description: Particle Accelerator Simulation Studio
 
-theme: just-the-docs
-
 url: https://changmx.github.io
 baseurl: /PASS
+
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
 
 logo: assets/logo.png
 
