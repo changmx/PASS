@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import brentq
 from typing import Literal
 
-from passkit.tool.calc_bucket import resolve_kinematics, calc_bucket_width, calc_bucket_height, compute_bucket_data
+from PASS.tool.calc_bucket import resolve_kinematics, calc_bucket_width, calc_bucket_height, compute_bucket_data
 
 
 def plot_bucket_on_ax(ax, data, x_axis: Literal['z', 'phi'] = 'z', y_axis: Literal['dp', 'dE'] = 'dp', phi_unit: Literal['deg', 'rad'] = 'rad'):
@@ -99,10 +99,10 @@ def plot_example1():
     # fig.suptitle(f"Heavy Ion RF Bucket Matrix ($\\gamma_t={heavy_ion_params['gamma_t']}$)", fontsize=16, fontweight='bold')
 
     ax.set_title("[phi - dp/p]")
-    plot_bucket_on_ax(ax, bucket_data, x_axis='phi', y_axis='dp', phi_unit="rad")
+    plot_bucket_on_ax(ax, bucket_data, x_axis='z', y_axis='dp', phi_unit="rad")
 
-    ax.set_xlim(-1, np.pi)
-    ax.set_ylim(-0.02, 0.02)
+    # ax.set_xlim(-1, np.pi)
+    # ax.set_ylim(-0.02, 0.02)
     plt.show()
 
 
