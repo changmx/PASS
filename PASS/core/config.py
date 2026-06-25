@@ -96,6 +96,13 @@ class Config:
         self.is_plot = data0.get("is plot figure")
 
         output_base = data0.get("output directory")
+        if output_base is None or output_base.lower() == "default":
+            output_base = Path(__file__).resolve().parent.parent.parent / "output"
+        elif Path(output_base).is_absolute():
+            output_base = Path(output_base).resolve()
+        else:
+            output_base = (Path(beam0_path).resolve().parent / Path(output_base)).resolve()
+
         now = datetime.now()
         self.output_ymd = f"{now.year}_{now.month:02d}{now.day:02d}"
 
