@@ -1,23 +1,24 @@
 {
-    "Beam Name": "12C6+",
-    "Number of Protons": 6,
-    "Number of Neutrons": 6,
-    "Number of Electrons": 6,
-    "Transition Gamma": 7.635074035,
-    "Number of turns": 1,
-    "Circumference (m)": 569.1,
+    "Beam Name": "proton",
+    "Number of Protons": 1,
+    "Number of Neutrons": 0,
+    "Number of Charges": 1,
+    "Transition Gamma": 4.8,
+    "Number of turns": 5,
+    "Circumference (m)": 251.327,
+    "Backend (gpu/cpu)":"cpu",
     "Number of GPU devices": 1,
     "Device Id": [
         0
     ],
-    "Output directory": "C:\\Users\\changmx\\Documents\\PASS\\example\\01_generate_distribution\\output",
-    "Is plot figure": false,
+    "Output directory": "./output",
+    "Is plot figure": true,
     "Sequence": {
         "Injection": {
             "S (m)": 0.0,
             "Command": "Injection",
             "bunch0": {
-                "Kinetic Energy per Nucleon (eV/u)": 10000000.0,
+                "Kinetic Energy per Nucleon (eV/u)": 45e6,
                 "Number of Real Particles": 100000000000.0,
                 "Number of Macro Particles": 100000.0,
                 "Is Load Distribution from File": false,
@@ -26,18 +27,18 @@
                 "Injection Interval": 1,
                 "Alpha x": -2.614303952,
                 "Alpha y": 1.57442348,
-                "Beta x (m)": 17.56341783,
-                "Beta y (m)": 8.624482365,
-                "Emittance x (m'rad)": 0.0002,
-                "Emittance y (m'rad)": 0.0001,
+                "Beta x (m)": 0.5,
+                "Beta y (m)": 0.5,
+                "Emittance x (m'rad)": 0.00019999999999999998,
+                "Emittance y (m'rad)": 9.999999999999999e-05,
                 "Dx (m)": 0.0,
                 "Dpx": 0.0,
-                "Sigma z (m)": 0.1,
-                "Sigma dp/p": 0.001,
+                "Sigma z (m)": 30,
+                "Sigma dp/p": 0.005,
                 "Transverse dist": "gaussian",
-                "Longitudinal dist": "gaussian",
-                "RF Voltage (V)": 0.0,
-                "RF Phase (rad)": 0.0,
+                "Longitudinal dist": "matchz",
+                "RF Voltage (V)": 100e3,
+                "RF Phase (rad)": 0.5235987755982988,
                 "Harmonic Number": 1,
                 "Harmonic ID of this bunch": 0,
                 "RF S Position Refer to Inj. Point (m)": 0.0,
@@ -57,9 +58,13 @@
                     "Offset Position (m)": 0.0,
                     "Offset Momentum (rad)": 0.0
                 },
-                "Is Save Initial Distribution": false,
-                "Insert Particle Coordinate": []
+                "Is Save Initial Distribution": true,
+                "Insert Particle Coordinate": [[0,0,0,0,0,0]]
             }
+        },
+        "StatMonitor1":{
+            "S (m)": 0.0,
+            "Command": "StatMonitor"
         }
     }
 }
