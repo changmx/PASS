@@ -6,7 +6,15 @@ from typing import Literal
 from PASS.tool.calc_bucket import resolve_kinematics, calc_bucket_width, calc_bucket_height, compute_bucket_data
 
 
-def plot_bucket_on_ax(ax, data, x_axis: Literal['z', 'phi'] = 'z', y_axis: Literal['dp', 'dE'] = 'dp', phi_unit: Literal['deg', 'rad'] = 'rad'):
+def plot_bucket_on_ax(
+    ax,
+    data,
+    x_axis: Literal['z', 'phi'] = 'z',
+    y_axis: Literal['dp', 'dE'] = 'dp',
+    phi_unit: Literal['deg', 'rad'] = 'rad',
+    is_plot_label: bool = False,
+    is_plot_grid: bool = False,
+):
     """
     Plot bucket area on a given matplotlib axis.
     """
@@ -46,14 +54,16 @@ def plot_bucket_on_ax(ax, data, x_axis: Literal['z', 'phi'] = 'z', y_axis: Liter
     ax.contour(X_plot, Y_plot, data['H'], levels=[data['H_sep']], colors='crimson', linewidths=2.5)
     ax.plot(x_center, y_center, 'yo', markersize=8, markeredgecolor='black')
 
-    ax.set_xlabel(x_label, fontsize=10)
-    ax.set_ylabel(y_label, fontsize=10)
+    if is_plot_label:
+        ax.set_xlabel(x_label, fontsize=10)
+        ax.set_ylabel(y_label, fontsize=10)
+    if is_plot_grid:
+        ax.grid(True, linestyle='--', alpha=0.4)
     ax.axhline(y_center, color='black', linestyle=':', alpha=0.4)
     ax.axvline(x_center, color='black', linestyle=':', alpha=0.4)
-    ax.grid(True, linestyle='--', alpha=0.4)
 
 
-def plot_example1():
+def plot_bucket_example1():
     """
     Compare with the results of Accelerator Physics (Fourth edition, S.Y. Lee, P 237, Fig 3.3)
     """
@@ -99,13 +109,12 @@ def plot_example1():
     # fig.suptitle(f"Heavy Ion RF Bucket Matrix ($\\gamma_t={heavy_ion_params['gamma_t']}$)", fontsize=16, fontweight='bold')
 
     ax.set_title("[phi - dp/p]")
-    plot_bucket_on_ax(ax, bucket_data, x_axis='z', y_axis='dp', phi_unit="rad")
+    plot_bucket_on_ax(ax, bucket_data, x_axis='z', y_axis='dp', phi_unit="rad", is_plot_label=True, is_plot_grid=True)
 
     # ax.set_xlim(-1, np.pi)
     # ax.set_ylim(-0.02, 0.02)
     plt.show()
 
 
-# ==================== Test / Execution Block ====================
 if __name__ == "__main__":
-    plot_example1()
+    plot_bucket_example1()
