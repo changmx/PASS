@@ -41,6 +41,6 @@ def plot_twiss_ellipse(alpha, beta, emittance=1.0, xlim=None, ylim=None):
     plt.show()
 
 
-# --- 使用示例 ---
-# 传入 xlim 参数，例如将 X 轴限制在 [-3, 3] 范围内
-plot_twiss_ellipse(alpha=-2.6143, beta=0.5, emittance=200e-6*9, xlim=(-0.04, 0.04), ylim=(-0.2, 0.2))
+if __name__ == '__main__':
+
+    plot_twiss_ellipse(alpha=-2.6143, beta=0.5, emittance=200e-6 * 9, xlim=(-0.04, 0.04), ylim=(-0.2, 0.2))
