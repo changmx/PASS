@@ -1,4 +1,4 @@
-PASS - Particle Accelerator Simulation System
+PASS - Particle Accelerator Simulation Studio
 =============================================
 
 Welcome / 欢迎使用 PASS
@@ -7,5 +7,5 @@ Welcome / 欢迎使用 PASS
    :maxdepth: 1
    :caption: Content
 
-   en/index
    zh/index
+   en/index

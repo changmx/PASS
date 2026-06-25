@@ -10,3 +10,8 @@
     box-shadow: none !important;
     padding: 0 !important;
 }
+
+/* 让所有图片的标题（figcaption）显示为正体 */
+.caption-text {
+    font-style: normal !important;
+}
