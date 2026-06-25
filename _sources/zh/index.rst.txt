@@ -1,12 +1,11 @@
 PASS 文档（中文）
-================
+==================
 
-欢迎使用 PASS 粒子加速器模拟系统。
+欢迎使用 PASS 粒子加速器模拟平台。
+
 
 .. toctree::
-   :maxdepth: 2
-   :caption: 目录
+   :maxdepth: 3
+   :caption: 模块介绍
 
-   theory
-   tracking
-   simulation
+   injection
