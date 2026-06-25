@@ -44,6 +44,7 @@ def main(beam0_path: str, beam1_path: str | None = None, is_cal_phase: bool = Tr
             seqs.append(CommandSequence(cfg.input_path[i], i, sim))
 
         for seq in seqs:
+            seq.sort()
             seq.print()
 
         executor = Executor()
