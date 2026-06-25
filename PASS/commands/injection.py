@@ -94,6 +94,10 @@ class Injection(Command):
                     self._generate_trans_gaussian_dist(inj_bunch, bunch_info, beam, use_cpu)
                 elif inj_bunch.dist_trans.lower() == "uniform":
                     self._generate_trans_uniform_dist(inj_bunch, bunch_info, beam, use_cpu)
+                elif inj_bunch.dist_trans.lower() == "waterbag":
+                    self._generate_trans_waterbag_dist(inj_bunch, bunch_info, beam, use_cpu)
+                elif inj_bunch.dist_trans.lower() == "parabolic":
+                    self._generate_trans_parabolic_dist(inj_bunch, bunch_info, beam, use_cpu)
                 else:
                     raise ValueError(f"We don't support transverse distribution: {inj_bunch.dist_trans}")
 
@@ -366,9 +370,6 @@ class Injection(Command):
         sigma_x = inj_bunch.sigmax
         sigma_y = inj_bunch.sigmay
 
-        # [-1 sigma, 1 sigma] = 0.6826894921370859, [-4 sigma, 4 sigma] = 0.9999366575163338
-        # [-2 sigma, 2 sigma] = 0.9544997361036416, [-5 sigma, 5 sigma] = 0.9999994266968562
-        # [-3 sigma, 3 sigma] = 0.9973002039367398, [-6 sigma, 6 sigma] = 0.9999999980268246
         x_max = 4 * sigma_x
         x_min = -4 * sigma_x
         y_max = 4 * sigma_y
@@ -379,40 +380,25 @@ class Injection(Command):
         y_arr = np.zeros(Np_inj, dtype=np.float64)
         py_arr = np.zeros(Np_inj, dtype=np.float64)
 
+        chi_x = -np.arctan(alpha_x)
+        chi_y = -np.arctan(alpha_y)
+
+        Xm = 2.0 * np.sqrt(emit_x * beta_x)
+        Ym = 2.0 * np.sqrt(emit_y * beta_y)
+
+        sigma_px = np.sqrt(emit_x * (1 + alpha_x**2) / beta_x)
+        sigma_py = np.sqrt(emit_y * (1 + alpha_y**2) / beta_y)
+
         i = 0
         while i < Np_inj:
-            m = 1
 
-            random_s1_x = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_s1_y = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_s2_x = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_s2_y = self.rng.uniform(1e-15, 1.0 - 1e-15)
+            x = self.rng.uniform(-x_max, x_max)
+            y = self.rng.uniform(-y_max, y_max)
+            px_gauss = self.rng.gauss(0.0, sigma_px)
+            py_gauss = self.rng.gauss(0.0, sigma_py)
 
-            Xm = 2 * np.sqrt(emit_x * beta_x)
-            thetaXm = 2 * np.sqrt(emit_x * gamma_x)
-            Xl = np.sqrt((m + 1) / 2) * Xm
-            Xlpx = np.sqrt((m + 1) / 2) * thetaXm
-            a_x = np.sqrt(1 - np.power(random_s1_x, 1 / m))
-            alp_x = 2 * const.pi * random_s2_x
-            chi_x = -1 * np.arctan(alpha_x)
-            u_x = a_x * np.cos(alp_x)
-            v_x = a_x * np.sin(alp_x)
-
-            x = Xl * u_x
-            px = Xlpx * (u_x * np.sin(chi_x) + v_x * np.cos(chi_x))
-
-            Ym = 2 * np.sqrt(emit_y * beta_y)
-            thetaYm = 2 * np.sqrt(emit_y * gamma_y)
-            Yl = np.sqrt((m + 1) / 2) * Ym
-            Ylpy = np.sqrt((m + 1) / 2) * thetaYm
-            a_y = np.sqrt(1 - np.power(random_s1_y, 1 / m))
-            alp_y = 2 * const.pi * random_s2_y
-            chi_y = -1 * np.arctan(alpha_y)
-            u_y = a_y * np.cos(alp_y)
-            v_y = a_y * np.sin(alp_y)
-
-            y = Yl * u_y
-            py = Ylpy * (u_y * np.sin(chi_y) + v_y * np.cos(chi_y))
+            px = Xm * (px_gauss * np.cos(chi_x) + x * np.sin(chi_x))
+            py = Ym * (py_gauss * np.cos(chi_y) + y * np.sin(chi_y))
 
             if x > x_min and x < x_max and y > y_min and y < y_max:
                 x_arr[i] = x
@@ -427,6 +413,189 @@ class Injection(Command):
         p = beam.particles
         p.x[start_index:end_index] = p.xp.asarray(x_arr)
         p.px[start_index:end_index] = p.xp.asarray(px_arr)
+        p.y[start_index:end_index] = p.xp.asarray(y_arr)
+        p.py[start_index:end_index] = p.xp.asarray(py_arr)
+
+        logger.info(f"Generate successfully")
+
+    def _generate_trans_waterbag_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
+
+        logger.info(f"The initial transverse Waterbag distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
+
+        start_index = bunch_info.start_idx + inj_bunch.Np_injected
+        end_index = (bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn)
+
+        Np_inj = inj_bunch.Np_inj_curTurn
+
+        emit_x = inj_bunch.emitx
+        emit_y = inj_bunch.emity
+
+        alpha_x = inj_bunch.alphax
+        alpha_y = inj_bunch.alphay
+
+        beta_x = inj_bunch.betax
+        beta_y = inj_bunch.betay
+
+        gamma_x = inj_bunch.gammax
+        gamma_y = inj_bunch.gammay
+
+        sigma_x = inj_bunch.sigmax
+        sigma_y = inj_bunch.sigmay
+
+        x_max = 4.0 * sigma_x
+        x_min = -4.0 * sigma_x
+
+        y_max = 4.0 * sigma_y
+        y_min = -4.0 * sigma_y
+
+        x_arr = np.zeros(Np_inj, dtype=np.float64)
+        px_arr = np.zeros(Np_inj, dtype=np.float64)
+
+        y_arr = np.zeros(Np_inj, dtype=np.float64)
+        py_arr = np.zeros(Np_inj, dtype=np.float64)
+
+        Xm = 2.0 * np.sqrt(emit_x * beta_x)
+        PXm = 2.0 * np.sqrt(emit_x * gamma_x)
+
+        Ym = 2.0 * np.sqrt(emit_y * beta_y)
+        PYm = 2.0 * np.sqrt(emit_y * gamma_y)
+
+        chi_x = -np.arctan(alpha_x)
+        chi_y = -np.arctan(alpha_y)
+
+        i = 0
+
+        while i < Np_inj:
+            # ---- 4D uniform ball ----
+            while True:
+
+                ux = self.rng.uniform(-1.0, 1.0)
+                vx = self.rng.uniform(-1.0, 1.0)
+
+                uy = self.rng.uniform(-1.0, 1.0)
+                vy = self.rng.uniform(-1.0, 1.0)
+
+                r2 = (ux * ux + vx * vx + uy * uy + vy * vy)
+
+                if r2 <= 1.0:
+                    break
+
+            # ---- Twiss mapping ----
+            x = Xm * ux
+            px = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
+            y = Ym * uy
+            py = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
+
+            if (x_min < x < x_max and y_min < y < y_max):
+
+                x_arr[i] = x
+                px_arr[i] = px
+
+                y_arr[i] = y
+                py_arr[i] = py
+
+                i += 1
+
+        p = beam.particles
+
+        p.x[start_index:end_index] = p.xp.asarray(x_arr)
+        p.px[start_index:end_index] = p.xp.asarray(px_arr)
+
+        p.y[start_index:end_index] = p.xp.asarray(y_arr)
+        p.py[start_index:end_index] = p.xp.asarray(py_arr)
+
+        logger.info(f"Generate successfully")
+
+    def _generate_trans_parabolic_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
+
+        logger.info(f"The initial transverse Parabolic distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
+
+        start_index = bunch_info.start_idx + inj_bunch.Np_injected
+        end_index = (bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn)
+
+        Np_inj = inj_bunch.Np_inj_curTurn
+
+        emit_x = inj_bunch.emitx
+        emit_y = inj_bunch.emity
+
+        alpha_x = inj_bunch.alphax
+        alpha_y = inj_bunch.alphay
+
+        beta_x = inj_bunch.betax
+        beta_y = inj_bunch.betay
+
+        gamma_x = inj_bunch.gammax
+        gamma_y = inj_bunch.gammay
+
+        sigma_x = inj_bunch.sigmax
+        sigma_y = inj_bunch.sigmay
+
+        x_max = 4.0 * sigma_x
+        x_min = -4.0 * sigma_x
+
+        y_max = 4.0 * sigma_y
+        y_min = -4.0 * sigma_y
+
+        x_arr = np.zeros(Np_inj, dtype=np.float64)
+        px_arr = np.zeros(Np_inj, dtype=np.float64)
+
+        y_arr = np.zeros(Np_inj, dtype=np.float64)
+        py_arr = np.zeros(Np_inj, dtype=np.float64)
+
+        Xm = 2.0 * np.sqrt(emit_x * beta_x)
+        PXm = 2.0 * np.sqrt(emit_x * gamma_x)
+
+        Ym = 2.0 * np.sqrt(emit_y * beta_y)
+        PYm = 2.0 * np.sqrt(emit_y * gamma_y)
+
+        chi_x = -np.arctan(alpha_x)
+        chi_y = -np.arctan(alpha_y)
+
+        i = 0
+
+        while i < Np_inj:
+
+            while True:
+                # ---- 4D uniform ball ----
+                ux = self.rng.uniform(-1.0, 1.0)
+                vx = self.rng.uniform(-1.0, 1.0)
+
+                uy = self.rng.uniform(-1.0, 1.0)
+                vy = self.rng.uniform(-1.0, 1.0)
+
+                r2 = (ux * ux + vx * vx + uy * uy + vy * vy)
+
+                if r2 <= 1.0:
+                    break
+
+            r = self.rng.uniform(0, 1)**0.25  # 4D volume
+            weight = (1 - r * r)  # parabolic weighting
+
+            ux *= r * np.sqrt(weight)
+            vx *= r * np.sqrt(weight)
+            uy *= r * np.sqrt(weight)
+            vy *= r * np.sqrt(weight)
+
+            x = Xm * ux
+            px = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
+            y = Ym * uy
+            py = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
+
+            if (x_min < x < x_max and y_min < y < y_max):
+
+                x_arr[i] = x
+                px_arr[i] = px
+
+                y_arr[i] = y
+                py_arr[i] = py
+
+                i += 1
+
+        p = beam.particles
+
+        p.x[start_index:end_index] = p.xp.asarray(x_arr)
+        p.px[start_index:end_index] = p.xp.asarray(px_arr)
+
         p.y[start_index:end_index] = p.xp.asarray(y_arr)
         p.py[start_index:end_index] = p.xp.asarray(py_arr)
 
@@ -482,9 +651,6 @@ class Injection(Command):
         sigma_z = inj_bunch.sigmaz  # For costing beam, this is the total length of uniform distribution, not RMS value
         sigma_pz = inj_bunch.dp
 
-        # [-1 sigma, 1 sigma] = 0.6826894921370859, [-4 sigma, 4 sigma] = 0.9999366575163338
-        # [-2 sigma, 2 sigma] = 0.9544997361036416, [-5 sigma, 5 sigma] = 0.9999994266968562
-        # [-3 sigma, 3 sigma] = 0.9973002039367398, [-6 sigma, 6 sigma] = 0.9999999980268246
         z_max = 0.5 * sigma_z
         z_min = -0.5 * sigma_z
 
@@ -522,9 +688,6 @@ class Injection(Command):
         sigma_z = inj_bunch.sigmaz
         sigma_pz = inj_bunch.dp
 
-        # [-1 sigma, 1 sigma] = 0.6826894921370859, [-4 sigma, 4 sigma] = 0.9999366575163338
-        # [-2 sigma, 2 sigma] = 0.9544997361036416, [-5 sigma, 5 sigma] = 0.9999994266968562
-        # [-3 sigma, 3 sigma] = 0.9973002039367398, [-6 sigma, 6 sigma] = 0.9999999980268246
         zmax = inj_bunch.getZMax()
         zmin = inj_bunch.getZMin()
         dp = inj_bunch.getDeltaPMax()
@@ -600,9 +763,6 @@ class Injection(Command):
         sigma_z = inj_bunch.sigmaz
         sigma_pz = inj_bunch.dp
 
-        # [-1 sigma, 1 sigma] = 0.6826894921370859, [-4 sigma, 4 sigma] = 0.9999366575163338
-        # [-2 sigma, 2 sigma] = 0.9544997361036416, [-5 sigma, 5 sigma] = 0.9999994266968562
-        # [-3 sigma, 3 sigma] = 0.9973002039367398, [-6 sigma, 6 sigma] = 0.9999999980268246
         zmax = inj_bunch.getZMax()
         zmin = inj_bunch.getZMin()
         dp = inj_bunch.getDeltaPMax()
@@ -694,8 +854,8 @@ class Injection(Command):
 
         headers = {}
         headers["Name"] = "PASS Distribution Data"
-        headers["Transver type"] = inj_bunch.dist_trans
-        headers["Longitudinal type"] = inj_bunch.dist_longi
+        headers["Trans type"] = inj_bunch.dist_trans
+        headers["Longi type"] = inj_bunch.dist_longi
         headers["Beta x"] = inj_bunch.betax
         headers["Beta Y"] = inj_bunch.betay
         headers["Alpha x"] = inj_bunch.alphax
@@ -710,6 +870,16 @@ class Injection(Command):
         headers["Sigma py"] = inj_bunch.sigmapy
         headers["Sigma z"] = inj_bunch.sigmaz
         headers["Delta p/p"] = inj_bunch.dp
+        headers["Ek"] = inj_bunch.Ek
+        headers["m0"] = inj_bunch.m0
+        headers["Harmonic num"] = inj_bunch.harmonic_num
+        headers["Rho"] = inj_bunch.rho
+        headers["RF voltage"] = inj_bunch.rf_voltage
+        headers["RF phase"] = inj_bunch.rf_phi
+        headers["Proton num"] = inj_bunch.num_proton
+        headers["Neutron num"] = inj_bunch.num_neutron
+        headers["Charge num"] = inj_bunch.num_charge
+        headers["Gamma T"] = inj_bunch.gamma_t
         headers["Turn"] = "Injection"
         headers["Time"] = get_current_time()
 
@@ -722,7 +892,34 @@ class Injection(Command):
         pass
 
     def _insert_particles(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
-        pass
+        logger.info(f"Inserting specified particles to beam{self.beam_id} bunch{inj_bunch.bunch_id} ...")
+
+        num_insert_particles = inj_bunch.num_insert_particles
+        insert_particles = inj_bunch.insert_particles
+
+        start_index = bunch_info.start_idx
+        end_index = bunch_info.start_idx + num_insert_particles
+        Np_inj = inj_bunch.Np_inj_curTurn
+
+        insert_arr = np.asarray(insert_particles)
+
+        x_arr = insert_arr[:, 0]
+        px_arr = insert_arr[:, 1]
+        y_arr = insert_arr[:, 2]
+        py_arr = insert_arr[:, 3]
+        z_arr = insert_arr[:, 4]
+        pz_arr = insert_arr[:, 5]
+
+        p = beam.particles
+
+        p.x[start_index:end_index] = p.xp.asarray(x_arr)
+        p.px[start_index:end_index] = p.xp.asarray(px_arr)
+        p.y[start_index:end_index] = p.xp.asarray(y_arr)
+        p.py[start_index:end_index] = p.xp.asarray(py_arr)
+        p.z[start_index:end_index] = p.xp.asarray(z_arr)
+        p.pz[start_index:end_index] = p.xp.asarray(pz_arr)
+
+        logger.info(f"Insert successfully")
 
 
 class InjectionBunchInfo:
@@ -740,6 +937,9 @@ class InjectionBunchInfo:
         self.gamma_t = bunch.gamma_t
         self.circum = bunch.circum
         self.rho = self.circum / (2 * const.pi)
+        self.num_proton = bunch.num_proton
+        self.num_neutron = bunch.num_neutron
+        self.num_charge = bunch.num_charge
         self.qm_ratio = bunch.qm_ratio
         self.start_turn = 0
         self.stop_turn = int(kwargs["total injection turns"])
@@ -979,14 +1179,16 @@ class InjectionBunchInfo:
         # Get the H0 and Hmax used in generating function.
         H0 = self.H0FromZ(z_c)
         Hmax = self.getHamiltonianPhi(self.getUFPPhi(), 0.0)
-        logger.info(f"H0: {H0}, Hmax: {Hmax}")
+
+        # logger.info(f"H0: {H0}, Hmax: {Hmax}")
 
         # Get the integral of generating function in the bucket.
         def psi_q(dp, z):
             return self.psi(z, dp, H0, Hmax)
 
         Q, _ = dblquad(psi_q, zmin, zmax, dp1, dp2)
-        logger.info(f"Q: {Q}")
+
+        # logger.info(f"Q: {Q}")
 
         # Get the mean value of generating function in the bucket.
         def psi_m(dp, z):
@@ -994,7 +1196,8 @@ class InjectionBunchInfo:
 
         M, _ = dblquad(psi_m, zmin, zmax, dp1, dp2)
         M /= Q
-        logger.info(f"M: {M}")
+
+        # logger.info(f"M: {M}")
 
         # Get the standard deviation of generating function in the bucket.
         def psi_v(dp, z):
@@ -1002,7 +1205,7 @@ class InjectionBunchInfo:
 
         V, _ = dblquad(psi_v, zmin, zmax, dp1, dp2)
         V /= Q
-        logger.info(f"V: {V}")
+        # logger.info(f"V: {V}")
         return np.sqrt(V)
 
     def getSigmaDp(self, dp_c: float):
