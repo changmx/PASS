@@ -6,6 +6,13 @@ class ParticlePool:
 
     def __init__(self, n_particles: int, xp, is_cal_phase: bool = True):
 
+        """
+        px = Px/P0
+        py = Py/P0
+        z  = s-β0*c*t
+        dp = (P-P0)/P0 = δ
+        """
+
         self.xp = xp
 
         self.x = self.xp.zeros(n_particles, dtype=self.xp.float64)
@@ -13,7 +20,7 @@ class ParticlePool:
         self.y = self.xp.zeros(n_particles, dtype=self.xp.float64)
         self.py = self.xp.zeros(n_particles, dtype=self.xp.float64)
         self.z = self.xp.zeros(n_particles, dtype=self.xp.float64)
-        self.pz = self.xp.zeros(n_particles, dtype=self.xp.float64)
+        self.dp = self.xp.zeros(n_particles, dtype=self.xp.float64)
         self.tag = self.xp.arange(1, 1 + n_particles, dtype=self.xp.int32)
         self.lost_turn = self.xp.full(n_particles, -1, dtype=self.xp.int32)
         self.lost_position = self.xp.full(n_particles, -1, dtype=self.xp.float32)

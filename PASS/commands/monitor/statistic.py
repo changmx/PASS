@@ -87,7 +87,7 @@ class StatMonitor(Command):
             y = p.y[start_idx:end_idx]
             py = p.py[start_idx:end_idx]
             z = p.z[start_idx:end_idx]
-            pz = p.pz[start_idx:end_idx]
+            dp = p.dp[start_idx:end_idx]
             tag = p.tag[start_idx:end_idx]
 
             mask = tag > 0
@@ -97,7 +97,7 @@ class StatMonitor(Command):
             y = y[mask]
             py = py[mask]
             z = z[mask]
-            pz = pz[mask]
+            dp = dp[mask]
 
             N = len(x)
 
@@ -112,8 +112,8 @@ class StatMonitor(Command):
                 'py2': (py**2).mean(),
                 'z': z.mean(),
                 'z2': (z**2).mean(),
-                'pz': pz.mean(),
-                'pz2': (pz**2).mean(),
+                'dp': dp.mean(),
+                'dp2': (dp**2).mean(),
                 'px_avg': px.mean(),
                 'py_avg': py.mean(),
                 'xz': (x * z).mean(),
@@ -130,7 +130,7 @@ class StatMonitor(Command):
             sigma_y = np.sqrt(stat['y2'] - stat['y']**2)
             sigma_py = np.sqrt(stat['py2'] - stat['py_avg']**2)
             sigma_z = np.sqrt(stat['z2'] - stat['z']**2)
-            sigma_pz = np.sqrt(stat['pz2'] - stat['pz']**2)
+            sigma_dp = np.sqrt(stat['dp2'] - stat['dp']**2)
 
             sig_xpx = stat['xpx'] - stat['x'] * stat['px_avg']
             sig_ypy = stat['ypy'] - stat['y'] * stat['py_avg']
@@ -175,9 +175,9 @@ class StatMonitor(Command):
                 'sigmaY': sigma_y,
                 'sigmaPy': sigma_py,
                 'zAverage': stat['z'],
-                'pzAverage': stat['pz'],
+                'dpAverage': stat['dp'],
                 'sigmaZ': sigma_z,
-                'sigmaPz': sigma_pz,
+                'sigmadp': sigma_dp,
                 'xEmittance': emit_x,
                 'yEmittance': emit_y,
                 'betax': betax,
@@ -236,7 +236,7 @@ class StatMonitor(Command):
             y = p.y[start_idx:end_idx]
             py = p.py[start_idx:end_idx]
             z = p.z[start_idx:end_idx]
-            pz = p.pz[start_idx:end_idx]
+            dp = p.dp[start_idx:end_idx]
             tag = p.tag[start_idx:end_idx]
 
             # The maximum block is limited to 512, because there is atomicAdd in this kernel.
@@ -250,7 +250,7 @@ class StatMonitor(Command):
             kernel(
                 (blocks, ),
                 (threads, ),
-                (p.x, p.px, p.y, p.py, p.z, p.pz, p.tag, np.int32(start_idx), np.int32(end_idx), out_gpu),
+                (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(start_idx), np.int32(end_idx), out_gpu),
             )
 
             cp.cuda.runtime.deviceSynchronize()
@@ -271,8 +271,8 @@ class StatMonitor(Command):
             py2_avg = out_cpu[7] * inv_count
             z_avg = out_cpu[8] * inv_count
             z2_avg = out_cpu[9] * inv_count
-            pz_avg = out_cpu[10] * inv_count
-            pz2_avg = out_cpu[11] * inv_count
+            dp_avg = out_cpu[10] * inv_count
+            dp2_avg = out_cpu[11] * inv_count
             px_avg = out_cpu[12] * inv_count
             py_avg = out_cpu[13] * inv_count
             xz_avg = out_cpu[14] * inv_count
@@ -291,7 +291,7 @@ class StatMonitor(Command):
             sigma_y = np.sqrt(y2_avg - y_avg**2)
             sigma_py = np.sqrt(py2_avg - py_avg**2)
             sigma_z = np.sqrt(z2_avg - z_avg**2)
-            sigma_pz = np.sqrt(pz2_avg - pz_avg**2)
+            sigma_dp = np.sqrt(dp2_avg - dp_avg**2)
 
             sig_xpx = xpx_avg - x_avg * px_avg
             sig_ypy = ypy_avg - y_avg * py_avg
@@ -332,9 +332,9 @@ class StatMonitor(Command):
                 'sigmaY': sigma_y,
                 'sigmaPy': sigma_py,
                 'zAverage': z_avg,
-                'pzAverage': pz_avg,
+                'dpAverage': dp_avg,
                 'sigmaZ': sigma_z,
-                'sigmaPz': sigma_pz,
+                'sigmadp': sigma_dp,
                 'xEmittance': emit_x,
                 'yEmittance': emit_y,
                 'betax': betax,
@@ -378,7 +378,7 @@ void calc_all_stats(
     const double* __restrict__ y,
     const double* __restrict__ py,
     const double* __restrict__ z,
-    const double* __restrict__ pz,
+    const double* __restrict__ dp,
     const int* __restrict__ tag,
     int start,
     int end,
@@ -403,7 +403,7 @@ void calc_all_stats(
         double yi  = y[i];
         double pyi = py[i];
         double zi  = z[i];
-        double pzi = pz[i];
+        double dpi = dp[i];
 
         local[0]  += xi;
         local[1]  += xi * xi;
@@ -415,8 +415,8 @@ void calc_all_stats(
         local[7]  += pyi * pyi;
         local[8]  += zi;
         local[9]  += zi * zi;
-        local[10] += pzi;
-        local[11] += pzi * pzi;
+        local[10] += dpi;
+        local[11] += dpi * dpi;
         local[12] += pxi;
         local[13] += pyi;
         local[14] += xi * zi;

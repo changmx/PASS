@@ -138,7 +138,7 @@ class Injection(Command):
         y = df["y"].to_numpy()
         py = df["py"].to_numpy()
         z = df["z"].to_numpy()
-        pz = df["pz"].to_numpy()
+        dp = df["dp"].to_numpy()
 
         len_input = len(x)
 
@@ -160,7 +160,7 @@ class Injection(Command):
             p.y[copy_start:copy_end] = p.xp.asarray(y[df_start:df_end])
             p.py[copy_start:copy_end] = p.xp.asarray(py[df_start:df_end])
             p.z[copy_start:copy_end] = p.xp.asarray(z[df_start:df_end])
-            p.pz[copy_start:copy_end] = p.xp.asarray(pz[df_start:df_end])
+            p.dp[copy_start:copy_end] = p.xp.asarray(dp[df_start:df_end])
 
             if copy_end < end_index:
                 logger.warning(f"Only copy particles {copy_start}-{copy_end} from file: {path}")
@@ -610,7 +610,7 @@ class Injection(Command):
         Np_inj = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
-        sigma_pz = inj_bunch.dp
+        sigma_dp = inj_bunch.dp
 
         # [-1 sigma, 1 sigma] = 0.6826894921370859, [-4 sigma, 4 sigma] = 0.9999366575163338
         # [-2 sigma, 2 sigma] = 0.9544997361036416, [-5 sigma, 5 sigma] = 0.9999994266968562
@@ -619,16 +619,16 @@ class Injection(Command):
         z_min = -4 * sigma_z
 
         z_arr = np.zeros(Np_inj, dtype=np.float64)
-        pz_arr = np.zeros(Np_inj, dtype=np.float64)
+        dp_arr = np.zeros(Np_inj, dtype=np.float64)
 
         i = 0
         while i < Np_inj:
             z = self.rng.gauss(0, sigma_z)
-            pz = self.rng.gauss(0, sigma_pz)
+            dp = self.rng.gauss(0, sigma_dp)
 
             if z > z_min and z < z_max:
                 z_arr[i] = z
-                pz_arr[i] = pz
+                dp_arr[i] = dp
 
                 i += 1
             else:
@@ -636,7 +636,7 @@ class Injection(Command):
 
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
-        p.pz[start_index:end_index] = p.xp.asarray(pz_arr)
+        p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
 
         logger.info(f"Generate successfully")
 
@@ -649,22 +649,22 @@ class Injection(Command):
         Np_inj = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz  # For costing beam, this is the total length of uniform distribution, not RMS value
-        sigma_pz = inj_bunch.dp
+        sigma_dp = inj_bunch.dp
 
         z_max = 0.5 * sigma_z
         z_min = -0.5 * sigma_z
 
         z_arr = np.zeros(Np_inj, dtype=np.float64)
-        pz_arr = np.zeros(Np_inj, dtype=np.float64)
+        dp_arr = np.zeros(Np_inj, dtype=np.float64)
 
         i = 0
         while i < Np_inj:
             z = self.rng.uniform(-0.5 * sigma_z, 0.5 * sigma_z)
-            pz = self.rng.gauss(0, sigma_pz)
+            dp = self.rng.gauss(0, sigma_dp)
 
             if z > z_min and z < z_max:
                 z_arr[i] = z
-                pz_arr[i] = pz
+                dp_arr[i] = dp
 
                 i += 1
             else:
@@ -672,7 +672,7 @@ class Injection(Command):
 
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
-        p.pz[start_index:end_index] = p.xp.asarray(pz_arr)
+        p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
 
         logger.info(f"Generate successfully")
 
@@ -686,7 +686,7 @@ class Injection(Command):
         Np_inj = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
-        sigma_pz = inj_bunch.dp
+        sigma_dp = inj_bunch.dp
 
         zmax = inj_bunch.getZMax()
         zmin = inj_bunch.getZMin()
@@ -695,7 +695,7 @@ class Injection(Command):
         H0 = 0.0
 
         z_arr = np.zeros(Np_inj, dtype=np.float64)
-        pz_arr = np.zeros(Np_inj, dtype=np.float64)
+        dp_arr = np.zeros(Np_inj, dtype=np.float64)
 
         # Check the sigmaz whether the sigmaz > sigma_max
         sigma_max = inj_bunch.getSigmaZ(zmax)
@@ -735,11 +735,11 @@ class Injection(Command):
                     break
 
             tmp_z = u
-            tmp_pz = v
+            tmp_dp = v
 
             if (tmp_z >= (-0.5 * 4 * sigma_z) and tmp_z <= (0.5 * 4 * sigma_z)):
                 z_arr[i] = tmp_z
-                pz_arr[i] = tmp_pz
+                dp_arr[i] = tmp_dp
 
                 i += 1
             else:
@@ -747,7 +747,7 @@ class Injection(Command):
 
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
-        p.pz[start_index:end_index] = p.xp.asarray(pz_arr)
+        p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
 
         logger.info(f"Generate successfully")
 
@@ -761,7 +761,7 @@ class Injection(Command):
         Np_inj = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
-        sigma_pz = inj_bunch.dp
+        sigma_dp = inj_bunch.dp
 
         zmax = inj_bunch.getZMax()
         zmin = inj_bunch.getZMin()
@@ -770,11 +770,11 @@ class Injection(Command):
         H0 = 0.0
 
         z_arr = np.zeros(Np_inj, dtype=np.float64)
-        pz_arr = np.zeros(Np_inj, dtype=np.float64)
+        dp_arr = np.zeros(Np_inj, dtype=np.float64)
 
         # Check the sigmaz whether the sigmadp > sigma_max
         sigma_max = inj_bunch.getSigmaDp(dp)
-        sig = sigma_pz
+        sig = sigma_dp
         # if sigmaz > sigma_max, use sigmaz = 0.99 * sigma_max
         if sig > sigma_max:
             logger.info(f"Sigma dp = {sig} is larger than the maximum = {sigma_max}, use the 0.99*sigma_max = {sigma_max*0.99}")
@@ -810,11 +810,11 @@ class Injection(Command):
                     break
 
             tmp_z = u
-            tmp_pz = v
+            tmp_dp = v
 
             if (tmp_z >= (-0.5 * 4 * sigma_z) and tmp_z <= (0.5 * 4 * sigma_z)):
                 z_arr[i] = tmp_z
-                pz_arr[i] = tmp_pz
+                dp_arr[i] = tmp_dp
 
                 i += 1
             else:
@@ -822,7 +822,7 @@ class Injection(Command):
 
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
-        p.pz[start_index:end_index] = p.xp.asarray(pz_arr)
+        p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
 
         logger.info(f"Generate successfully")
 
@@ -845,7 +845,7 @@ class Injection(Command):
             "y": p_cpu.y[start_index:end_index],
             "py": p_cpu.py[start_index:end_index],
             "z": p_cpu.z[start_index:end_index],
-            "pz": p_cpu.pz[start_index:end_index],
+            "dp": p_cpu.dp[start_index:end_index],
             "tag": p_cpu.tag[start_index:end_index],
             "lost_turn": p_cpu.lost_turn[start_index:end_index],
             "lost_position": p_cpu.lost_position[start_index:end_index],
@@ -908,7 +908,7 @@ class Injection(Command):
         y_arr = insert_arr[:, 2]
         py_arr = insert_arr[:, 3]
         z_arr = insert_arr[:, 4]
-        pz_arr = insert_arr[:, 5]
+        dp_arr = insert_arr[:, 5]
 
         p = beam.particles
 
@@ -917,7 +917,7 @@ class Injection(Command):
         p.y[start_index:end_index] = p.xp.asarray(y_arr)
         p.py[start_index:end_index] = p.xp.asarray(py_arr)
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
-        p.pz[start_index:end_index] = p.xp.asarray(pz_arr)
+        p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
 
         logger.info(f"Insert successfully")
 
@@ -982,9 +982,9 @@ class InjectionBunchInfo:
                 y_tmp = kwargs["insert particle coordinate"][i_insert][2]
                 py_tmp = kwargs["insert particle coordinate"][i_insert][3]
                 z_tmp = kwargs["insert particle coordinate"][i_insert][4]
-                pz_tmp = kwargs["insert particle coordinate"][i_insert][5]
+                dp_tmp = kwargs["insert particle coordinate"][i_insert][5]
 
-                self.insert_particles.append([x_tmp, px_tmp, y_tmp, py_tmp, z_tmp, pz_tmp])
+                self.insert_particles.append([x_tmp, px_tmp, y_tmp, py_tmp, z_tmp, dp_tmp])
 
         kwargs_offset_x = kwargs["offset x"]
         self.is_offset_x = kwargs_offset_x.get("is offset", False)

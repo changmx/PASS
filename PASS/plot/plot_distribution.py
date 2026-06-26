@@ -47,7 +47,7 @@ def plot_distribution(tfs_file_path,
     y = df["y"].to_numpy()
     py = df["py"].to_numpy()
     z = df["z"].to_numpy()
-    pz = df["pz"].to_numpy()
+    dp = df["dp"].to_numpy()
 
     plot_trans_distribution(x,
                             px,
@@ -79,7 +79,7 @@ def plot_distribution(tfs_file_path,
 
     plot_longi_distribution(
         z,
-        pz,
+        dp,
         is_plot_hist=is_plot_hist,
         bins=bins,
         cmap=cmap,
@@ -94,7 +94,7 @@ def plot_distribution(tfs_file_path,
         plot_bucket_q=plot_bucket_q,
         plot_bucket_gamma_t=plot_bucket_gamma_t,
         plot_bucket_num_orbits=plot_bucket_num_orbits,
-        save_path=output_dir / f"{file_name}_z-pz.png",
+        save_path=output_dir / f"{file_name}_z-dp.png",
     )
 
 
@@ -182,7 +182,7 @@ def plot_trans_distribution(
                              f"$\\sigma_{{\\mathrm{{{legend_sigma2}}}}} = {sigma_px:.3f}$")
     else:
         raise ValueError(f"Direction must be 'x-px'/'y-py'/'x-y', but now is {direction}")
-        
+
     # 创建一个不可见的矩形，仅用于承载图例文字
     dummy_patch = Patch(visible=False)
     ax_heat.legend(
@@ -292,7 +292,7 @@ def plot_trans_distribution(
 
 def plot_longi_distribution(
     z,
-    pz,
+    dp,
     is_plot_hist: bool = False,
     bins: int = 100,
     cmap: str = "magma",
@@ -313,7 +313,7 @@ def plot_longi_distribution(
     # =========================
     # 2D histogram
     # =========================
-    H, xedges, yedges = np.histogram2d(z, pz, bins=bins)
+    H, xedges, yedges = np.histogram2d(z, dp, bins=bins)
 
     H = H.T
     H = np.ma.masked_where(H == 0, H)
@@ -330,30 +330,30 @@ def plot_longi_distribution(
     im = ax_heat.imshow(H, origin='lower', aspect='auto', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap=base_cmap)
 
     ax_heat.set_xlabel("z (m)")
-    ax_heat.set_ylabel(r"$\delta_p/p$")
+    ax_heat.set_ylabel(r"$\delta$")
 
     stat = {
         'z': z.mean(),
         'z2': (z**2).mean(),
-        'zpz': (z * pz).mean(),
-        'pz2': (pz**2).mean(),
+        'zdp': (z * dp).mean(),
+        'dp2': (dp**2).mean(),
     }
 
     sigma_z = np.sqrt(stat['z2'] - stat['z']**2)
-    sigma_pz = np.sqrt(stat['pz2'] - pz.mean()**2)
-    sig_zpz = stat['zpz'] - stat['z'] * pz.mean()
+    sigma_dp = np.sqrt(stat['dp2'] - dp.mean()**2)
+    sig_zdp = stat['zdp'] - stat['z'] * dp.mean()
 
-    emit_z = np.sqrt(sigma_z**2 * sigma_pz**2 - sig_zpz**2)
+    emit_z = np.sqrt(sigma_z**2 * sigma_dp**2 - sig_zdp**2)
 
     beta = sigma_z**2 / emit_z
-    alpha = -sig_zpz / emit_z
+    alpha = -sig_zdp / emit_z
     gamma = (1 + alpha**2) / beta
 
     param_legend_text = (f"$\\alpha = {alpha:.3f}$\n"
                          f"$\\beta  = {beta:.3f}$\n"
                          f"$\\gamma = {gamma:.3f}$\n"
                          f"$\\sigma_z = {sigma_z:.3f}$\n"
-                         f"$\\delta_p/p = {sigma_pz:.3f}$\n"
+                         f"$\\sigma_{{\\delta}} = {sigma_dp:.3f}$\n"
                          f"$\\varepsilon_{{\\mathrm{{rms}}}} = {emit_z:.3e}$")
 
     # 创建一个不可见的矩形，仅用于承载图例文字
@@ -449,7 +449,7 @@ def plot_longi_distribution(
         # =========================
         ax_right = divider.append_axes("right", size="28%", pad=0.85)
 
-        ax_right.hist(pz, bins=bins, orientation='horizontal', color="#10B981", alpha=0.85, edgecolor="white", linewidth=0.3)
+        ax_right.hist(dp, bins=bins, orientation='horizontal', color="#10B981", alpha=0.85, edgecolor="white", linewidth=0.3)
 
         ax_right.set_xlabel("Counts")
 
