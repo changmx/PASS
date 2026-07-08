@@ -32,6 +32,9 @@ class BunchInfo:
         self.Ek = bunch_data["kinetic energy per nucleon (ev/u)"]
         self.Nrp = int(bunch_data["number of real particles"])
         self.Np = int(bunch_data["number of macro particles"])
+        self.sigma_z = bunch_data["sigma z (m)"]
+        self.dp = bunch_data["sigma dp/p"]
+
         self.Np_sur = self.Np
         self.gamma_t = data.get("transition gamma")
         self.num_proton = int(data.get("number of protons"))
@@ -70,6 +73,8 @@ class BunchInfo:
         self.p0_kg = self.gamma * (self.m0 * const.e / (const.c * const.c)) * self.beta * const.c
 
         self.brho = self.p0_kg / (self.qm_ratio * const.e)
+
+        self.t0 = 0.0
 
     def print(self) -> None:
 
