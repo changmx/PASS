@@ -1,0 +1,96 @@
+{
+    "Beam Name": "proton",
+    "Number of Protons": 1,
+    "Number of Neutrons": 0,
+    "Number of Charges": 1,
+    "Transition Gamma": 4.8,
+    "Number of turns": 1000,
+    "Circumference (m)": 251.327,
+    "Backend (gpu/cpu)":"cpu",
+    "Number of GPU devices": 1,
+    "Device Id": [
+        0
+    ],
+    "Output directory": "./output",
+    "Is plot figure": true,
+    "Sequence": {
+        "Injection": {
+            "S (m)": 0.0,
+            "Command": "Injection",
+            "bunch0": {
+                "Kinetic Energy per Nucleon (eV/u)": 45e6,
+                "Number of Real Particles": 100000000000.0,
+                "Number of Macro Particles": 10000.0,
+                "Is Load Distribution from File": false,
+                "Distribution File Path": "",
+                "Total Injection Turns": 1,
+                "Injection Interval": 1,
+                "Alpha x": -2.614303952,
+                "Alpha y": 1.57442348,
+                "Beta x (m)": 0.5,
+                "Beta y (m)": 0.5,
+                "Emittance x (m'rad)": 0.00019999999999999998,
+                "Emittance y (m'rad)": 9.999999999999999e-05,
+                "Dx (m)": 0.0,
+                "Dpx": 0.0,
+                "Sigma z (m)": 90,
+                "Sigma dp/p": 0.02,
+                "Transverse dist": "kv",
+                "Longitudinal dist": "gaussian",
+                "RF Voltage (V)": 100e3,
+                "RF Phase (rad)": 0.5235987755982988,
+                "Harmonic Number": 1,
+                "Harmonic ID of this bunch": 0,
+                "RF S Position Refer to Inj. Point (m)": 0.0,
+                "Offset x": {
+                    "Is Offset": false,
+                    "Is Load From File": false,
+                    "File Path": "",
+                    "File Time Kind": "turn",
+                    "Offset Position (m)": 0.0,
+                    "Offset Momentum (rad)": 0.0
+                },
+                "Offset y": {
+                    "Is Offset": false,
+                    "Is Load From File": false,
+                    "File Path": "",
+                    "File Time Kind": "turn",
+                    "Offset Position (m)": 0.0,
+                    "Offset Momentum (rad)": 0.0
+                },
+                "Is Save Initial Distribution": true,
+                "Insert Particle Coordinate": [[0,0,0,0,0,0]]
+            }
+        },
+        "StatMonitor1":{
+            "S (m)": 0.0,
+            "Command": "StatMonitor"
+        },
+        "Twiss1": {
+            "S (m)": 251.327,
+            "Command": "Twiss",
+            "S previous (m)": 0.0,
+            "Alpha x": -2.614303952,
+            "Alpha y": 1.57442348,
+            "Alpha x previous": -2.614303952,
+            "Alpha y previous": 1.57442348,
+            "Beta x (m)": 0.5,
+            "Beta y (m)": 0.5,
+            "Beta x previous (m)": 0.5,
+            "Beta y previous (m)": 0.5,
+            "Mu x":0.47,
+            "Mu y":0.43,
+            "Mu x previous": 0.0,
+            "Mu y previous": 0.0,
+            "Dx (m)": 0.0,
+            "Dx previous (m)": 0.0,
+            "Dpx": 0.0,
+            "Dpx previous": 0.0,
+            "DQx": 0.0,
+            "DQy": 0.0,
+            "Longitudinal Transfer": "matrix",
+            "Mu z": 0.001,
+            "Mu z previous": 0.0
+        }
+    }
+}
