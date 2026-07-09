@@ -1,0 +1,708 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>激励器（Exciter） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="标记（Marker）" href="marker.html" />
+    <link rel="prev" title="元件（Element）" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">注入模块（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id3">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id4">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id5">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id6">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id2">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id5">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">激励器（Exciter）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/zh/element/exciter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="exciter">
+<h1>激励器（Exciter）<a class="headerlink" href="#exciter" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的横向激励器元件 <strong>Exciter</strong> ，用于通过时变电场对束流施加横向动量扰动。激励器在 tune 测量、束流不稳定性研究、发射度增长等场景中广泛应用。</p>
+<p>PASS 中的激励器为 <strong>薄透镜元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ），仅改变粒子横向动量（ <span class="math notranslate nohighlight">\(p_x\)</span> 或 <span class="math notranslate nohighlight">\(p_y\)</span> ），不改变位置坐标。</p>
+<section id="id1">
+<h2>物理推导<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>激励器由一对平行极板组成，极板间施加电压 <span class="math notranslate nohighlight">\(V\)</span> ，极板间距 <span class="math notranslate nohighlight">\(d\)</span> ，极板有效长度 <span class="math notranslate nohighlight">\(L\)</span> 。</p>
+<p>电场强度为：</p>
+<div class="math notranslate nohighlight">
+\[E = \frac{V}{d}\]</div>
+<p>粒子（电荷量 <span class="math notranslate nohighlight">\(Q = Z \cdot e\)</span> ，其中 <span class="math notranslate nohighlight">\(Z\)</span> 为电荷数， <span class="math notranslate nohighlight">\(e\)</span> 为元电荷）受到的力为：</p>
+<div class="math notranslate nohighlight">
+\[F = Q \cdot E = Z \cdot e \cdot \frac{V}{d}\]</div>
+<p>粒子以速度 <span class="math notranslate nohighlight">\(v = \beta c\)</span> 穿过极板，作用时间为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta t = \frac{L}{\beta c}\]</div>
+<p>因此动量增量为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}\]</div>
+<p>归一化 kick （除以参考粒子总动量 <span class="math notranslate nohighlight">\(P_0\)</span> ）为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}\]</div>
+<p>利用磁刚度 <span class="math notranslate nohighlight">\(B\rho = P_0 / Q\)</span> ，可简化为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}\]</div>
+<p>该形式对质子束 （ <span class="math notranslate nohighlight">\(Z=1, A=1\)</span> ）和离子束 （ <span class="math notranslate nohighlight">\(Z \neq A\)</span> ）统一适用，因为 <span class="math notranslate nohighlight">\(B\rho\)</span> 已包含荷质比信息。</p>
+</section>
+<section id="id2">
+<h2>粒子到达时间<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>不同粒子因纵向坐标 <span class="math notranslate nohighlight">\(z\)</span> 不同，到达激励器的时刻也不同：</p>
+<div class="math notranslate nohighlight">
+\[t_{\text{arrive}} = t_0 - \frac{z}{\beta c}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(t_0\)</span> 为参考粒子到达时刻， <span class="math notranslate nohighlight">\(z &gt; 0\)</span> 表示粒子在参考粒子前方 （更早到达）。这一时间差异使得不同粒子看到不同相位的激励信号，是纵向-横向耦合的来源。</p>
+<p>回旋频率为：</p>
+<div class="math notranslate nohighlight">
+\[f_0 = \frac{\beta c}{C}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(C\)</span> 为环周长。回旋频率用于将圈数转换为真实时间。</p>
+</section>
+<section id="id3">
+<h2>频率输入模式<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>激励器的中心频率 <span class="math notranslate nohighlight">\(f_c\)</span> 和扫频宽度 <span class="math notranslate nohighlight">\(\Delta f\)</span> 支持两种输入方式：</p>
+<p><strong>工作点模式</strong> （推荐）</p>
+<p>直接输入激励工作点 <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> 和扫频工作点 <span class="math notranslate nohighlight">\(\Delta Q\)</span> ，程序在运行时根据束流参数自动计算频率：</p>
+<div class="math notranslate nohighlight">
+\[f_c = Q_{\text{excite}} \cdot f_0\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta f = \Delta Q \cdot f_0\]</div>
+<p>此模式下无需手动计算频率，且自动适应不同能量和周长的束流。需成对提供 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> 。</p>
+<p><strong>频率模式</strong></p>
+<p>直接输入中心频率和扫频宽度 （单位 Hz），适用于需要精确控制频率的场景。需成对提供 <code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code> 。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>两种模式二选一。若提供了 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 则使用工作点模式，否则使用频率模式。工作点模式中 <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> 必须成对提供。</p>
+</div>
+</section>
+<section id="id4">
+<h2>激励模式<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>激励器有 4 种工作模式，由频率调制 （FM）方式和幅度调制 （AM）方式两个维度组合而成：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>模式</p></th>
+<th class="head"><p>FM 方式</p></th>
+<th class="head"><p>AM 方式</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm</span></code></p></td>
+<td><p>单段扫频</p></td>
+<td><p>常值幅度</p></td>
+<td><p>最基本的线性 chirp</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code></p></td>
+<td><p>单段扫频</p></td>
+<td><p>时变幅度</p></td>
+<td><p>扫频 + 幅度绝热增长</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm</span></code></p></td>
+<td><p>双段扫频</p></td>
+<td><p>常值幅度</p></td>
+<td><p>复杂频谱覆盖</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
+<td><p>双段扫频</p></td>
+<td><p>时变幅度</p></td>
+<td><p>最复杂的激励模式</p></td>
+</tr>
+</tbody>
+</table>
+<section id="fm">
+<h3>频率调制（FM）维度<a class="headerlink" href="#fm" title="Link to this heading"></a></h3>
+<p><strong>单段线性扫频（single）</strong></p>
+<p>在一个周期 <span class="math notranslate nohighlight">\(T\)</span> 内，相位为：</p>
+<div class="math notranslate nohighlight">
+\[\theta(\tau) = 2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\tau = t \bmod T\)</span> 为周期内时间， <span class="math notranslate nohighlight">\(f_c\)</span> 为中心频率， <span class="math notranslate nohighlight">\(\Delta f\)</span> 为扫频宽度。</p>
+<p>瞬时频率为：</p>
+<div class="math notranslate nohighlight">
+\[f(t) = f_c + \frac{\Delta f}{T}\left(\tau - \frac{T}{2}\right)\]</div>
+<ul class="simple">
+<li><p>当 <span class="math notranslate nohighlight">\(\tau = 0\)</span> 时， <span class="math notranslate nohighlight">\(f = f_c - \Delta f / 2\)</span> （起始频率）</p></li>
+<li><p>当 <span class="math notranslate nohighlight">\(\tau = T/2\)</span> 时， <span class="math notranslate nohighlight">\(f = f_c\)</span> （中心频率）</p></li>
+<li><p>当 <span class="math notranslate nohighlight">\(\tau = T\)</span> 时， <span class="math notranslate nohighlight">\(f = f_c + \Delta f / 2\)</span> （终止频率）</p></li>
+</ul>
+<p>频率在 <span class="math notranslate nohighlight">\([f_c - \Delta f/2,\; f_c + \Delta f/2]\)</span> 范围内线性扫描，每 <span class="math notranslate nohighlight">\(T\)</span> 秒重复一次。中心频率 <span class="math notranslate nohighlight">\(f_c\)</span> 应接近 <span class="math notranslate nohighlight">\(Q \cdot f_0\)</span> （工作点乘回旋频率），以覆盖束流的共振频率。</p>
+<p><strong>双段扫频（dual）</strong></p>
+<p>一个周期分为前后两半，各使用不同的相位公式，同时引入余弦包络 <span class="math notranslate nohighlight">\(2\cos(\frac{\pi}{2}\Delta f \cdot \tau)\)</span> ：</p>
+<p>前半周期 <span class="math notranslate nohighlight">\([0,\; T/2]\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[\theta_1(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (f_d \cdot \tau - 0.5) \cdot \tau\]</div>
+<p>后半周期 <span class="math notranslate nohighlight">\([T/2,\; T]\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[\theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(f_d\)</span> 为双频频率参数。余弦包络在 <span class="math notranslate nohighlight">\(\tau = 0\)</span> 时最大 （ <span class="math notranslate nohighlight">\(2A\)</span> ），随时间衰减，减少周期边界处的不连续性。双段相位公式产生更复杂的频谱结构，可同时覆盖多个 tune 峰。</p>
+</section>
+<section id="am">
+<h3>幅度调制（AM）维度<a class="headerlink" href="#am" title="Link to this heading"></a></h3>
+<p><strong>常值幅度</strong></p>
+<div class="math notranslate nohighlight">
+\[A(t) = A_0 = \Delta p_{x,\text{amplitude}}\]</div>
+<p>即直接使用由电压参数计算的 kick 幅度，不随时间变化。</p>
+<p><strong>时变幅度（am）</strong></p>
+<p>基于束流扩散/增长模型，激励幅度随时间增长：</p>
+<div class="math notranslate nohighlight">
+\[A(t) = A_0 \cdot \text{am\_factor}(t)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\text{am\_factor}(t)\)</span> 是无量纲的时变缩放因子：</p>
+<div class="math notranslate nohighlight">
+\[\text{am\_factor}(t) = \sqrt{\frac{\delta^2(t)}{f_0 \cdot k_{\text{const}}}}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(t = n_{\text{eff}} / f_0\)</span> 为从激励开始的真实时间 （秒）， <span class="math notranslate nohighlight">\(n_{\text{eff}}\)</span> 为有效激励圈数。</p>
+<p>初始发射度占比：</p>
+<div class="math notranslate nohighlight">
+\[\varepsilon = \exp\!\left(-\frac{r_0^2}{\delta_0^2}\right)\]</div>
+<p>时变发射度平方：</p>
+<div class="math notranslate nohighlight">
+\[\delta^2(t) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}\]</div>
+<p>其中：</p>
+<div class="math notranslate nohighlight">
+\[L = \ln\!\left(\frac{t}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)\]</div>
+<div class="math notranslate nohighlight">
+\[D = t_{\text{ext}} \cdot \varepsilon + t (1 - \varepsilon)\]</div>
+<p>物理意义：</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(r_0\)</span> ：初始束流尺寸</p></li>
+<li><p><span class="math notranslate nohighlight">\(\delta_0\)</span> ：初始束流扩散范围</p></li>
+<li><p><span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span> ：束流扩散特征时间</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_{\text{const}}\)</span> ：发射度增长系数</p></li>
+<li><p><span class="math notranslate nohighlight">\(\varepsilon\)</span> ：初始发射度占比 （ <span class="math notranslate nohighlight">\(r_0 / \delta_0\)</span> 比值的度量）</p></li>
+</ul>
+<p>激励器持续给束流注入能量，束流振荡幅度增大，发射度增长，需要更大的激励幅度维持相对驱动效果。对数项使得增长开始快 （陡峭段），后期减缓 （平缓段），符合绝热增长过程的物理特征。</p>
+</section>
+</section>
+<section id="id5">
+<h2>各模式完整公式<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>single_fm</strong> （单段扫频 + 常值幅度）</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\text{kick}(\tau) = A_0 \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>single_fm_am</strong> （单段扫频 + 时变幅度）</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\text{kick}(\tau) = A_0 \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+<ol class="arabic simple" start="3">
+<li><p><strong>dual_fm</strong> （双段扫频 + 常值幅度）</p></li>
+</ol>
+<p>前半周期 （ <span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
+<p>后半周期 （ <span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
+<ol class="arabic simple" start="4">
+<li><p><strong>dual_fm_am</strong> （双段扫频 + 时变幅度）</p></li>
+</ol>
+<p>前半周期 （ <span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
+<p>后半周期 （ <span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\tau = t \bmod T\)</span> ， <span class="math notranslate nohighlight">\(A_0 = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}\)</span> 。</p>
+</section>
+<section id="kick">
+<h2>Kick 的施加<a class="headerlink" href="#kick" title="Link to this heading"></a></h2>
+<p>激励器是薄透镜元件，kick 直接加到对应方向的归一化动量上：</p>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow p_x + \text{kick} \quad (\text{direction} = x)\]</div>
+<div class="math notranslate nohighlight">
+\[p_y \leftarrow p_y + \text{kick} \quad (\text{direction} = y)\]</div>
+<p>仅对存活粒子 （ <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ）施加 kick，已丢失粒子不受影响。</p>
+</section>
+<section id="id6">
+<h2>参数列表<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="id7">
+<h3>通用参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件在束线中的纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件长度 （必须为 0）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>元件名称</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">enable</span></code></p></td>
+<td><p>bool</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>激励器开关，可选： <code class="docutils literal notranslate"><span class="pre">true</span></code> 、 <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>激励模式，可选： <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> 、 <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> 、 <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> 、 <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>激励方向，可选： <code class="docutils literal notranslate"><span class="pre">x</span></code> 、 <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">turn</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>激励起始圈数 （含）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">end</span> <span class="pre">turn</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>激励结束圈数 （不含）</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id8">
+<h3>硬件参数<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">voltage</span> <span class="pre">(v)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>V</p></td>
+<td><p>极板峰值电压</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gap</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gap</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>极板间距</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plate_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">plate</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>极板有效长度</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id9">
+<h3>频率参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>频率参数支持两种输入模式，二选一。</p>
+<p><strong>工作点模式</strong> （推荐）：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">excite_tune</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>激励工作点 <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> ，运行时自动计算 <span class="math notranslate nohighlight">\(f_c = Q_{\text{excite}} \cdot f_0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweep_tune</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>扫频工作点 <span class="math notranslate nohighlight">\(\Delta Q\)</span> ，运行时自动计算 <span class="math notranslate nohighlight">\(\Delta f = \Delta Q \cdot f_0\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>频率模式</strong> ：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Hz</p></td>
+<td><p>中心频率 <span class="math notranslate nohighlight">\(f_c\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cfw</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Hz</p></td>
+<td><p>扫频宽度 <span class="math notranslate nohighlight">\(\Delta f\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>通用频率参数</strong> （两种模式均需提供）：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>适用模式</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">period</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">period</span> <span class="pre">(s)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>s</p></td>
+<td><p>所有模式</p></td>
+<td><p>扫频周期 <span class="math notranslate nohighlight">\(T\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fm_dual_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fm</span> <span class="pre">dual</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Hz</p></td>
+<td><p>dual_fm / dual_fm_am</p></td>
+<td><p>双频频率参数 <span class="math notranslate nohighlight">\(f_d\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id10">
+<h3>幅度调制（AM）参数<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>适用模式</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">am_t_ext</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">t</span> <span class="pre">ext</span> <span class="pre">(s)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>s</p></td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>束流扩散特征时间</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">am_r0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">r0</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>初始束流尺寸</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">am_delta0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">delta0</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>初始束流扩散范围</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">am_k_const</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">k</span> <span class="pre">const</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>发射度增长系数</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">am_r0</span></code> 与 <code class="docutils literal notranslate"><span class="pre">am_delta0</span></code> 应为同量级，否则 <span class="math notranslate nohighlight">\(\exp(-r_0^2/\delta_0^2)\)</span> 可能数值下溢。</p>
+<p>常值幅度模式 （ <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> 、 <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> ）下 AM 参数不参与计算，可填 0。</p>
+</div>
+</section>
+</section>
+<section id="id11">
+<h2>使用示例<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<section id="id12">
+<h3>输入文件示例<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<p>以下示例取自 <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code> ，使用工作点模式：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Exciter_x&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Exciter&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Enable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;single_fm&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Direction&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Start Turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;End Turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Voltage (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Gap (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Plate length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Excite tune&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.44</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Sweep tune&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Period (s)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1e-3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Fm Dual Frequency (Hz)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am t ext (s)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am r0 (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am delta0&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am k const&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>若使用频率模式，将 <code class="docutils literal notranslate"><span class="pre">Excite</span> <span class="pre">tune</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span></code> 替换为：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Central Frequency (Hz)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1743.0</span><span class="p">,</span>
+<span class="nt">&quot;Sweep Width (Hz)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">79.2</span><span class="p">,</span>
+</pre></div>
+</div>
+</section>
+<section id="id13">
+<h3>模式选择指南<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>tune 测量</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> ，简单有效，扫频覆盖工作点</p></li>
+<li><p><strong>发射度增长研究</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> ，时变幅度模拟绝热增长</p></li>
+<li><p><strong>多 tune 峰覆盖</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> ，双段扫频产生复杂频谱</p></li>
+<li><p><strong>复杂不稳定性研究</strong> ：推荐 <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code> ，最完整的激励模式</p></li>
+</ul>
+</section>
+<section id="id14">
+<h3>参数选择建议<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>激励工作点</strong> ：设为束流工作点 <span class="math notranslate nohighlight">\(Q_x\)</span> （水平）或 <span class="math notranslate nohighlight">\(Q_y\)</span> （垂直）</p></li>
+<li><p><strong>扫频工作点</strong> ：取决于色散和 tune 展宽，通常为 0.01~0.05</p></li>
+<li><p><strong>扫频周期</strong> ：应远大于回旋周期 <span class="math notranslate nohighlight">\(1/f_0\)</span> ，保证足够的频率分辨率</p></li>
+<li><p><strong>电压</strong> ：根据所需 kick 幅度反推，典型值为百伏至千伏量级</p></li>
+<li><p><strong>AM 参数</strong> ： <span class="math notranslate nohighlight">\(r_0\)</span> 与 <span class="math notranslate nohighlight">\(\delta_0\)</span> 取同量级， <span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span> 根据束流扩散时间尺度设定</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="元件（Element）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="marker.html" class="btn btn-neutral float-right" title="标记（Marker）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>注入模块（生成粒子分布） &mdash; PASS  documentation</title>
+  <title>注入模块（Injection） &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="PASS Documentation (English)" href="../en/index.html" />
+    <link rel="next" title="元件（Element）" href="element/index.html" />
     <link rel="prev" title="PASS 文档（中文）" href="index.html" /> 
 </head>
 
@@ -48,13 +48,34 @@
               <p class="caption" role="heading"><span class="caption-text">Content</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">注入模块（生成粒子分布）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id2">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">纵向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">运行命令</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">模拟结果</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">注入模块（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id5">应用场景</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -82,7 +103,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
-      <li class="breadcrumb-item active">注入模块（生成粒子分布）</li>
+      <li class="breadcrumb-item active">注入模块（Injection）</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/zh/injection.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -92,15 +113,15 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="id1">
-<h1>注入模块（生成粒子分布）<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+  <section id="injection">
+<h1>注入模块（Injection）<a class="headerlink" href="#injection" title="Link to this heading"></a></h1>
 <p>本示例演示如何构建特定粒子分布。本文件中所使用输入文件及运行代码见 <a class="reference external" href="https://github.com/changmx/PASS/tree/master/example/01_generate_distribution">GitHub 示例代码</a>。</p>
-<section id="id2">
-<h2>粒子分布类型简介<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id1">
+<h2>粒子分布类型简介<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>在PASS程序中初始粒子分布由 <strong>Injection</strong> 命令实现，在 <strong>Injection</strong> 命令中，可以单独为每个束团设置不同的分布信息。</p>
 </section>
-<section id="id3">
-<h2>横向粒子分布<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id2">
+<h2>横向粒子分布<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p>目前PASS程序支持生成的横向粒子分布有 <strong>水平垂直解耦的 2D 高斯分布</strong>、 <strong>4D KV分布</strong>、 <strong>4D 水袋分布</strong>、 <strong>4D 双曲线分布</strong> 、 <strong>2D X-Y 均匀分布</strong>。</p>
 <p>其中 4D 分布是指在 4D 相空间 <span class="math notranslate nohighlight">\((x, p_x, y, p_y)\)</span> 中定义一个广义的超椭球边界。为了简化推导且不失一般性，我们引入 <strong>归一化坐标</strong>：</p>
 <div class="math notranslate nohighlight">
@@ -194,8 +215,8 @@
 </ul>
 </div></blockquote>
 </section>
-<section id="id4">
-<h2>纵向粒子分布<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id3">
+<h2>纵向粒子分布<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
 <p>目前PASS程序支持生成的纵向粒子分布有 <strong>2D高斯分布</strong> 、 <strong>漂移束分布</strong> 、 <strong>匹配高频参数-纵向束长RMS值的分布</strong> 、 <strong>匹配高频参数-动量分散RMS值的分布</strong> ：</p>
 <blockquote>
 <div><ul>
@@ -227,8 +248,8 @@
 </ul>
 </div></blockquote>
 </section>
-<section id="id5">
-<h2>输入文件<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>输入文件<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;Beam Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;Number of Protons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
@@ -302,8 +323,8 @@
 </pre></div>
 </div>
 </section>
-<section id="id6">
-<h2>运行命令<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="id5">
+<h2>运行命令<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>PASS<span class="se">\e</span>xample<span class="se">\0</span>1_generate_distribution
 python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="o">=</span>./beam0.json
 </pre></div>
@@ -316,167 +337,167 @@ python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="
 <p>其中横向分布的value有：<code class="docutils literal notranslate"><span class="pre">gaussian</span></code>、<code class="docutils literal notranslate"><span class="pre">kv</span></code>、<code class="docutils literal notranslate"><span class="pre">waterbag</span></code>、<code class="docutils literal notranslate"><span class="pre">parabolic</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform</span></code>，纵向分布的value有：<code class="docutils literal notranslate"><span class="pre">gaussian</span></code>、<code class="docutils literal notranslate"><span class="pre">coasting</span></code>、<code class="docutils literal notranslate"><span class="pre">matchz</span></code>、<code class="docutils literal notranslate"><span class="pre">matchdp</span></code>。</p>
 <p>在生成纵向gaussian与coasting分布时，不需要高频相关参数，在生成matchz与matchdp分布时，需要提供高频参数。</p>
 </section>
-<section id="id7">
-<h2>模拟结果<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="id6">
+<h2>模拟结果<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
 <p>下面将展示保持上述输入文件中Twiss、发射度、高频等参数不变，只改变分布类型时，模拟所得粒子分布图片。</p>
 <ul class="simple">
 <li><p>横向Gaussian分布：</p></li>
 </ul>
-<figure class="align-center" id="id8">
+<figure class="align-center" id="id7">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="Gaussian x-px" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 1. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 1. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id9">
+<figure class="align-center" id="id8">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 2. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 2. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id10">
+<figure class="align-center" id="id9">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="Gaussian x-y" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 3. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 3. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向KV分布：</p></li>
 </ul>
-<figure class="align-center" id="id11">
+<figure class="align-center" id="id10">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="kv x-px" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 4. Transverse KV distribution: x-px</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 4. Transverse KV distribution: x-px</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id12">
+<figure class="align-center" id="id11">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 5. Transverse KV distribution: y-py</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 5. Transverse KV distribution: y-py</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id13">
+<figure class="align-center" id="id12">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="kv x-y" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 6. Transverse KV distribution: x-y</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 6. Transverse KV distribution: x-y</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向水袋分布：</p></li>
 </ul>
-<figure class="align-center" id="id14">
+<figure class="align-center" id="id13">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="waterbag x-px" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 7. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 7. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id15">
+<figure class="align-center" id="id14">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 8. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 8. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id16">
+<figure class="align-center" id="id15">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="waterbag x-y" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 9. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 9. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向抛物线分布：</p></li>
 </ul>
-<figure class="align-center" id="id17">
+<figure class="align-center" id="id16">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="parabolic x-px" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 10. Transverse KV distribution: x-px</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 10. Transverse KV distribution: x-px</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id18">
+<figure class="align-center" id="id17">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 11. Transverse KV distribution: y-py</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 11. Transverse KV distribution: y-py</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id19">
+<figure class="align-center" id="id18">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="parabolic x-y" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 12. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 12. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向均匀分布：</p></li>
 </ul>
-<figure class="align-center" id="id20">
+<figure class="align-center" id="id19">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="uniform x-px" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 13. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 13. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id21">
+<figure class="align-center" id="id20">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 14. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id21" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 14. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id22">
+<figure class="align-center" id="id21">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="uniform x-y" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 15. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id22" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 15. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id21" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向MatchZ分布：</p></li>
 </ul>
-<figure class="align-center" id="id23">
+<figure class="align-center" id="id22">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png"><img alt="MatchZ z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 16. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id23" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 16. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id22" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向MatchDp分布：</p></li>
 </ul>
-<figure class="align-center" id="id24">
+<figure class="align-center" id="id23">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png"><img alt="MatchDp z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 17. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id24" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 17. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id23" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向Gaussian分布：</p></li>
 </ul>
-<figure class="align-center" id="id25">
+<figure class="align-center" id="id24">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png"><img alt="Gaussian z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 18. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id25" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 18. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id24" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向Coasting分布：</p></li>
 </ul>
-<figure class="align-center" id="id26">
+<figure class="align-center" id="id25">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png"><img alt="coasting z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 19. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id26" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 19. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id25" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -487,7 +508,7 @@ python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="PASS 文档（中文）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../en/index.html" class="btn btn-neutral float-right" title="PASS Documentation (English)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="element/index.html" class="btn btn-neutral float-right" title="元件（Element）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

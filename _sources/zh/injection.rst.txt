@@ -1,4 +1,4 @@
-注入模块（生成粒子分布）
+注入模块（Injection）
 ========================
 
 本示例演示如何构建特定粒子分布。本文件中所使用输入文件及运行代码见 `GitHub 示例代码 <https://github.com/changmx/PASS/tree/master/example/01_generate_distribution>`_。
