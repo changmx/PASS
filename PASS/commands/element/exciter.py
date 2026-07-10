@@ -6,6 +6,7 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
+from PASS.utils.aperture import check_aperture_cpu
 
 import numpy as np
 import cupy as cp
@@ -50,6 +51,12 @@ class Exciter(Command):
 
         self.start_turn: int = int(kwargs["start turn"])
         self.end_turn: int = int(kwargs["end turn"])
+
+        # --- aperture ---
+        self.aperture_type: str = kwargs.get("aperture type", "off").lower()
+        self.aperture_value: list = kwargs.get("aperture value", [])
+        if not isinstance(self.aperture_value, list):
+            raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
         # --- exciter hardware parameters ---
         self.voltage: float = kwargs["voltage (v)"]  # peak voltage on the plates (V)
@@ -109,64 +116,17 @@ class Exciter(Command):
         if not self.is_enabled:
             return
 
-        beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
         turn = sim.state.turn
-
         if turn < self.start_turn or turn >= self.end_turn:
             return
 
+        beam = sim.beams[self.beam_id]
+        bunches: list[BunchInfo] = beam.bunches
         effective_turn = turn - self.start_turn
 
         for i, bunch in enumerate(bunches):
-            # normalized kick amplitude: Δpx = V·L / (d·βc·Bρ)
-            kick_amplitude = (self.voltage * self.plate_length / (self.gap * bunch.beta * const.c * bunch.brho))
-
-            v0 = bunch.beta * const.c
-            t0 = bunch.t0
-            frequency_0 = 1.0 / (bunch.circum / v0)
-
-            # compute cf and cfw: tune mode or frequency mode
-            if self.use_tune_mode:
-                cf = self.excite_tune * frequency_0
-                cfw = self.sweep_tune * frequency_0
-            else:
-                cf = self.cf
-                cfw = self.cfw
-
-            logger.debug(f"Exciter {self.cmd_name}: turn={turn}, effective_turn={effective_turn}, "
-                         f"kick_amplitude={kick_amplitude:.6e}, exciter tune={cf/frequency_0:.6f}, sweep tune={cfw/frequency_0:.6f}, "
-                         f"cf={cf:.6e}, cfw={cfw:.6e}, frequency_rev={frequency_0:.6e}")
-
-            start = bunch.start_idx
-            end = bunch.end_idx
-
-            p = beam.particles
-            z = p.z[start:end]
-            px = p.px[start:end]
-            py = p.py[start:end]
-            tag = p.tag[start:end]
-
-            alive = tag > 0
-
-            # time when each particle arrives at the exciter
-            time_temp = t0 - z / v0
-
-            if self.mode == "single_fm":
-                kick = self._kick_saw_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
-            elif self.mode == "single_fm_am":
-                kick = self._kick_saw_fm_am(effective_turn, time_temp, frequency_0, kick_amplitude, cf, cfw)
-            elif self.mode == "dual_fm":
-                kick = self._kick_dual_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
-            elif self.mode == "dual_fm_am":
-                kick = self._kick_dual_fm_am(effective_turn, time_temp, frequency_0, kick_amplitude, cf, cfw)
-            else:
-                kick = np.zeros(len(z), dtype=np.float64)
-
-            if self.is_x:
-                px[alive] += kick[alive]
-            else:
-                py[alive] += kick[alive]
+            self._exciter_kick_cpu(beam, bunch, effective_turn, turn)
+            check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
         pass
@@ -246,3 +206,63 @@ class Exciter(Command):
                        np.sin(2.0 * const.pi * cf * temp[mask2] + const.pi * cfw * (temp[mask2] - half_period) *
                               (self.fm_dual_frequency * temp[mask2] - 1.0)))
         return kick
+
+    # ------------------------------------------------------------------
+    # Exciter kick (CPU)
+    # ------------------------------------------------------------------
+
+    def _exciter_kick_cpu(self, beam: Beam, bunch: BunchInfo, effective_turn: int, turn: int):
+        """Compute and apply the exciter kick to particles (CPU).
+
+        Computes the kick amplitude from voltage/gap/plate_length, resolves the
+        frequency parameters (tune mode or frequency mode), dispatches to the
+        appropriate kick shape function, and applies the kick to px or py.
+        """
+        # normalized kick amplitude: Δpx = V·L / (d·βc·Bρ)
+        kick_amplitude = (self.voltage * self.plate_length / (self.gap * bunch.beta * const.c * bunch.brho))
+
+        v0 = bunch.beta * const.c
+        t0 = bunch.t0
+        frequency_0 = 1.0 / (bunch.circum / v0)
+
+        # compute cf and cfw: tune mode or frequency mode
+        if self.use_tune_mode:
+            cf = self.excite_tune * frequency_0
+            cfw = self.sweep_tune * frequency_0
+        else:
+            cf = self.cf
+            cfw = self.cfw
+
+        logger.debug(f"Exciter {self.cmd_name}: turn={turn}, effective_turn={effective_turn}, "
+                     f"kick_amplitude={kick_amplitude:.6e}, exciter tune={cf/frequency_0:.6f}, sweep tune={cfw/frequency_0:.6f}, "
+                     f"cf={cf:.6e}, cfw={cfw:.6e}, frequency_rev={frequency_0:.6e}")
+
+        start = bunch.start_idx
+        end = bunch.end_idx
+
+        p = beam.particles
+        z = p.z[start:end]
+        px = p.px[start:end]
+        py = p.py[start:end]
+        tag = p.tag[start:end]
+
+        alive = tag > 0
+
+        # time when each particle arrives at the exciter
+        time_temp = t0 - z / v0
+
+        if self.mode == "single_fm":
+            kick = self._kick_saw_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
+        elif self.mode == "single_fm_am":
+            kick = self._kick_saw_fm_am(effective_turn, time_temp, frequency_0, kick_amplitude, cf, cfw)
+        elif self.mode == "dual_fm":
+            kick = self._kick_dual_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
+        elif self.mode == "dual_fm_am":
+            kick = self._kick_dual_fm_am(effective_turn, time_temp, frequency_0, kick_amplitude, cf, cfw)
+        else:
+            kick = np.zeros(len(z), dtype=np.float64)
+
+        if self.is_x:
+            px[alive] += kick[alive]
+        else:
+            py[alive] += kick[alive]
