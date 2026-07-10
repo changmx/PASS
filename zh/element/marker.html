@@ -49,12 +49,21 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../injection.html">注入模块（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id3">纵向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id4">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id5">运行命令</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id6">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id13">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
@@ -71,9 +80,9 @@
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">标记（Marker）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id1">物理说明</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">参数列表</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id5">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -96,6 +105,29 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../aperture.html#id4">参数总览表</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -137,7 +169,14 @@
   <section id="marker">
 <h1>标记（Marker）<a class="headerlink" href="#marker" title="Link to this heading"></a></h1>
 <p>本模块介绍 PASS 中的标记器元件 <strong>Marker</strong> ，用于在束线中标记一个特定的纵向位置，不改变任何粒子坐标。</p>
-<p>PASS 中的标记器为 <strong>零长度元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ），其 <code class="docutils literal notranslate"><span class="pre">execute_cpu</span></code> 和 <code class="docutils literal notranslate"><span class="pre">execute_gpu</span></code> 均为空操作。标记器的主要作用包括：</p>
+<p>标记器代码位于 <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/marker.py</span></code> ，类名为 <code class="docutils literal notranslate"><span class="pre">Marker</span></code> ，注册名为 <code class="docutils literal notranslate"><span class="pre">marker</span></code> 。标记器的核心特征如下：</p>
+<ul class="simple">
+<li><p><strong>零长度元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0.0</span></code> ，不可配置），不占据束线物理空间</p></li>
+<li><p><strong>不做任何粒子坐标变换</strong> ，粒子穿过标记器时所有相空间坐标保持不变</p></li>
+<li><p><strong>支持孔径检查</strong> ，通过 <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 和 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 参数控制， <code class="docutils literal notranslate"><span class="pre">execute_cpu</span></code> 中仅调用 <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> 函数</p></li>
+<li><p><strong>GPU 追踪为空操作</strong> （ <code class="docutils literal notranslate"><span class="pre">execute_gpu</span></code> 为 <code class="docutils literal notranslate"><span class="pre">pass</span></code> ），不执行任何计算</p></li>
+</ul>
+<p>标记器的主要作用包括：</p>
 <ul class="simple">
 <li><p>在束线序列中标记关键位置 （如测量点、对撞点、注入点等），便于后续分析</p></li>
 <li><p>作为排序基准点，其他元件可参考标记器位置进行布局</p></li>
@@ -159,9 +198,11 @@
 <div class="math notranslate nohighlight">
 \[\delta \leftarrow \delta\]</div>
 <p>标记器仅记录其在束线中的纵向位置 <span class="math notranslate nohighlight">\(s\)</span> ，用于序列排序和位置标注。</p>
+<p>当配置了孔径检查 （ <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 不为 <code class="docutils literal notranslate"><span class="pre">off</span></code> ）时，标记器在 <code class="docutils literal notranslate"><span class="pre">execute_cpu</span></code> 中调用 <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> 函数，对存活粒子 （ <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ）进行横向坐标 （ <span class="math notranslate nohighlight">\((x, y)\)</span> ）的孔径边界检查。超出孔径边界的粒子将被标记为丢失 （ <code class="docutils literal notranslate"><span class="pre">tag</span></code> 取负） ，并记录丢失位置和圈数。孔径检查的详细原理与各类型定义详见 <code class="docutils literal notranslate"><span class="pre">孔径</span></code> 章节。</p>
 </section>
 <section id="id2">
-<h2>参数列表<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>标记器的所有接口参数如下表所示：</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -180,14 +221,14 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>m</p></td>
 <td><p>元件在束线中的纵向位置</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
 <td><ul class="simple">
-<li></li>
+<li><p>（固定 0.0，不可配置）</p></li>
 </ul>
 </td>
 <td><p>float</p></td>
@@ -203,19 +244,97 @@
 </td>
 <td><p>元件名称 （由序列 JSON 的键名自动填入）</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径类型，默认 <code class="docutils literal notranslate"><span class="pre">off</span></code> ，不区分大小写</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径参数值，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code> ，含义随类型而异</p></td>
+</tr>
+</tbody>
+</table>
+<section id="id3">
+<h3>孔径类型可选值<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 不区分大小写，内部统一转换为小写后匹配。可选值如下：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>类型</p></th>
+<th class="head"><p>aperture_value</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+<td><p>忽略</p></td>
+<td><p>不做孔径检查 （默认）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>忽略</p></td>
+<td><p>默认 ±1m 矩形孔径</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[r]</span></code></p></td>
+<td><p>圆形， <span class="math notranslate nohighlight">\(r\)</span> 为半径</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectangle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h]</span></code></p></td>
+<td><p>矩形， <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ellipse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>椭圆， <span class="math notranslate nohighlight">\(a\)</span> 为半长轴， <span class="math notranslate nohighlight">\(b\)</span> 为半短轴</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectcircle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code></p></td>
+<td><p>矩形与圆的交集</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rectellipse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>矩形与椭圆的交集</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">racetrack</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>跑道形 （矩形 + 椭圆端）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">octagon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code></p></td>
+<td><p>八角形 （矩形切 45° 角）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">polygon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[[x1,y1],</span> <span class="pre">...]</span></code></p></td>
+<td><p>多边形顶点列表，自动闭合</p></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>标记器无需提供 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 字段，长度在代码中固定为 0。</p>
 <p><code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">Marker</span></code> 。</p>
+<p><code class="docutils literal notranslate"><span class="pre">off</span></code> 和 <code class="docutils literal notranslate"><span class="pre">default</span></code> 类型忽略 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 。各孔径类型的详细物理说明与判定条件见 <code class="docutils literal notranslate"><span class="pre">孔径</span></code> 章节。</p>
 </div>
 </section>
-<section id="id3">
-<h2>使用示例<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+</section>
 <section id="id4">
-<h3>输入文件示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
-<p>以下示例取自 <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code> ，在 <span class="math notranslate nohighlight">\(s = 12.5\)</span> m 处放置一个标记器：</p>
+<h2>使用示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id5">
+<h3>基本用法<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 12.5\)</span> m 处放置一个标记器，标记对撞点位置，不启用孔径检查：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;IP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
@@ -225,6 +344,23 @@
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">&quot;IP&quot;</span></code> 为元件名称，由 <code class="docutils literal notranslate"><span class="pre">CommandSequence</span></code> 自动读取并赋给 <code class="docutils literal notranslate"><span class="pre">name</span></code> 属性。</p>
+</section>
+<section id="id6">
+<h3>带孔径检查的标记器<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>标记器也可配置孔径检查，用于在该位置检测超出束流管边界的粒子。以下示例在 <span class="math notranslate nohighlight">\(s = 12.5\)</span> m 处放置一个圆形孔径 （半径 0.05 m） 的标记器：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;IP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h3>多个标记器组合<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <p>多个标记器可在同一束线中重复使用，例如标记对撞点、注入点和测量点：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;IP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -237,20 +373,23 @@
 <span class="w">    </span><span class="p">},</span>
 <span class="w">    </span><span class="nt">&quot;Measurement_Point&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">105.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.03</span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </section>
 </section>
-<section id="id5">
-<h2>应用场景<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id8">
+<h2>应用场景<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><strong>对撞点标注</strong> ：在对撞机中标记束流对撞位置，便于亮度计算和束束作用元件定位</p></li>
 <li><p><strong>注入点标注</strong> ：标记注入元件的位置，便于注入器与主环的衔接</p></li>
 <li><p><strong>测量点标注</strong> ：标记监视器 （Monitor） 所在位置，便于数据分析与物理量提取</p></li>
 <li><p><strong>序列排序基准</strong> ：利用标记器的 <code class="docutils literal notranslate"><span class="pre">s</span></code> 位置作为参考，组织束线中其他元件的排列顺序</p></li>
+<li><p><strong>孔径监测</strong> ：在关键位置 （如对撞点、注入点） 配置孔径检查，监测束流损失，无需额外添加物理元件</p></li>
 </ul>
 </section>
 </section>

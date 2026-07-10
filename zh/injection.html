@@ -49,12 +49,21 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">注入模块（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">纵向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">运行命令</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
@@ -71,9 +80,9 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">参数列表</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id5">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id8">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -96,6 +105,29 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="aperture.html#id4">参数总览表</a></li>
 <li class="toctree-l3"><a class="reference internal" href="aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -135,18 +167,432 @@
              
   <section id="injection">
 <h1>注入模块（Injection）<a class="headerlink" href="#injection" title="Link to this heading"></a></h1>
-<p>本示例演示如何构建特定粒子分布。本文件中所使用输入文件及运行代码见 <a class="reference external" href="https://github.com/changmx/PASS/tree/master/example/01_generate_distribution">GitHub 示例代码</a>。</p>
+<p>本模块介绍 PASS 中的注入命令 <strong>Injection</strong> ，用于在模拟起始位置生成特定粒子分布并注入束流。注入命令支持为每个束团独立设置横向分布、纵向分布、束流参数、偏移等，是粒子模拟的入口环节。</p>
+<p>本示例演示如何构建特定粒子分布。本文件中所使用输入文件及运行代码见 <a class="reference external" href="https://github.com/changmx/PASS/tree/master/example/01_generate_distribution">GitHub 示例代码</a> 。</p>
+<p><strong>代码位置</strong></p>
+<ul class="simple">
+<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/injection.py</span></code></p></li>
+<li><p>类名： <code class="docutils literal notranslate"><span class="pre">Injection</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
+<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">injection</span></code></p></li>
+<li><p>辅助类： <code class="docutils literal notranslate"><span class="pre">InjectionBunchInfo</span></code> （同文件，负责单个束团的参数解析与分布生成）</p></li>
+</ul>
 <section id="id1">
-<h2>粒子分布类型简介<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>在PASS程序中初始粒子分布由 <strong>Injection</strong> 命令实现，在 <strong>Injection</strong> 命令中，可以单独为每个束团设置不同的分布信息。</p>
+<h2>接口参数<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Injection</span></code> 命令的参数如下表所示。其中 <code class="docutils literal notranslate"><span class="pre">s</span></code> 必须为 0 （注入点固定在序列起始位置）， <code class="docutils literal notranslate"><span class="pre">name</span></code> 由序列键名自动填入， <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> 、 <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> 、 … 为各束团的参数字典。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>注入位置 （必须为 0）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>元件名称，由序列键名自动填入</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bunch0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bunch0</span></code></p></td>
+<td><p>dict</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>第 0 个束团的参数字典</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bunch1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bunch1</span></code></p></td>
+<td><p>dict</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>第 1 个束团的参数字典</p></td>
+</tr>
+<tr class="row-even"><td><p>…</p></td>
+<td><p>…</p></td>
+<td><p>dict</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>更多数量的束团参数字典</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="id2">
-<h2>横向粒子分布<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>目前PASS程序支持生成的横向粒子分布有 <strong>水平垂直解耦的 2D 高斯分布</strong>、 <strong>4D KV分布</strong>、 <strong>4D 水袋分布</strong>、 <strong>4D 双曲线分布</strong> 、 <strong>2D X-Y 均匀分布</strong>。</p>
-<p>其中 4D 分布是指在 4D 相空间 <span class="math notranslate nohighlight">\((x, p_x, y, p_y)\)</span> 中定义一个广义的超椭球边界。为了简化推导且不失一般性，我们引入 <strong>归一化坐标</strong>：</p>
+<h2>束团参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>每个束团以 <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> 、 <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> 、 … 为键，值为包含该束团全部参数的字典。参数按横向、纵向、束流、分布、偏移五组分类说明如下。</p>
+<section id="id3">
+<h3>横向参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">x</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>水平 Twiss 参数 <span class="math notranslate nohighlight">\(\alpha_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">y</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>垂直 Twiss 参数 <span class="math notranslate nohighlight">\(\alpha_y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">betax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">x</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>水平 Twiss 参数 <span class="math notranslate nohighlight">\(\beta_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">betay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>垂直 Twiss 参数 <span class="math notranslate nohighlight">\(\beta_y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">emitx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Emittance</span> <span class="pre">x</span> <span class="pre">(m'rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m·rad</p></td>
+<td><p>水平发射度 <span class="math notranslate nohighlight">\(\varepsilon_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">emity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Emittance</span> <span class="pre">y</span> <span class="pre">(m'rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m·rad</p></td>
+<td><p>垂直发射度 <span class="math notranslate nohighlight">\(\varepsilon_y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dx</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>水平色散函数 <span class="math notranslate nohighlight">\(D_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dpx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dpx</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>水平色散导数 <span class="math notranslate nohighlight">\(D_{px}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dist_trans</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">dist</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>横向分布类型，可选： <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 、 <code class="docutils literal notranslate"><span class="pre">kv</span></code> 、 <code class="docutils literal notranslate"><span class="pre">waterbag</span></code> 、 <code class="docutils literal notranslate"><span class="pre">parabolic</span></code> 、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id4">
+<h3>纵向参数<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 45.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaz</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">z</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>纵向束长 RMS 值 <span class="math notranslate nohighlight">\(\sigma_z\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">dp/p</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>动量分散 RMS 值 <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dist_longi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">dist</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>纵向分布类型，可选： <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 、 <code class="docutils literal notranslate"><span class="pre">coasting</span></code> 、 <code class="docutils literal notranslate"><span class="pre">matchz</span></code> 、 <code class="docutils literal notranslate"><span class="pre">matchdp</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>V</p></td>
+<td><p>高频电压 （ <code class="docutils literal notranslate"><span class="pre">matchz</span></code> 和 <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> 分布需提供）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>rad</p></td>
+<td><p>高频相位 <span class="math notranslate nohighlight">\(\phi_s\)</span> （ <code class="docutils literal notranslate"><span class="pre">matchz</span></code> 和 <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> 分布需提供）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_num</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>高频谐波数 （ <code class="docutils literal notranslate"><span class="pre">matchz</span></code> 和 <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> 分布需提供）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>该束团所属的高频谐波 ID</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_position</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Inj.</span> <span class="pre">Point</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>高频腔相对于注入点的纵向位置</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id5">
+<h3>束流参数<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 45.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Ek</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">per</span> <span class="pre">Nucleon</span> <span class="pre">(eV/u)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>eV/u</p></td>
+<td><p>每核子动能</p></td>
+</tr>
+<tr class="row-odd"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Real</span> <span class="pre">Particles</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>真实粒子数</p></td>
+</tr>
+<tr class="row-even"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span> <span class="pre">Particles</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>宏粒子数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stop_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Injection</span> <span class="pre">Turns</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>总注入圈数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interval</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Injection</span> <span class="pre">Interval</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>注入间隔 （每 <code class="docutils literal notranslate"><span class="pre">interval</span></code> 圈注入一次）</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id6">
+<h3>分布参数<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 45.0%" />
+<col style="width: 10.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_load_dist</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否从文件加载粒子分布</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_filepath</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Path</span></code></p></td>
+<td><p>str</p></td>
+<td><p>分布文件路径 （ <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 格式）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_save_init_dist</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Save</span> <span class="pre">Initial</span> <span class="pre">Distribution</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否保存初始分布</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">insert_particles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code></p></td>
+<td><p>list</p></td>
+<td><p>插入指定粒子坐标，格式为 <code class="docutils literal notranslate"><span class="pre">[[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp],</span> <span class="pre">...]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id7">
+<h3>偏移参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>水平偏移 （ <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">x</span></code> ）和垂直偏移 （ <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">y</span></code> ）结构相同，各包含以下子参数：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Offset</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否启用偏移</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_offset_fromfile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">From</span> <span class="pre">File</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否从文件加载偏移数据</p></td>
+</tr>
+<tr class="row-even"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">Path</span></code></p></td>
+<td><p>str</p></td>
+<td><p>偏移数据文件路径 （ <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 格式）</p></td>
+</tr>
+<tr class="row-odd"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">Time</span> <span class="pre">Kind</span></code></p></td>
+<td><p>str</p></td>
+<td><p>时间列类型，可选： <code class="docutils literal notranslate"><span class="pre">turn</span></code> 、 <code class="docutils literal notranslate"><span class="pre">time</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset_position</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">Position</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>位置偏移量</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">offset_momentum</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">Momentum</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>动量偏移量</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="id8">
+<h2>粒子分布类型简介<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>在 PASS 程序中初始粒子分布由 <strong>Injection</strong> 命令实现，在 <strong>Injection</strong> 命令中，可以单独为每个束团设置不同的分布信息。</p>
+</section>
+<section id="id9">
+<h2>横向粒子分布<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>目前 PASS 程序支持生成的横向粒子分布有 <strong>水平垂直解耦的 2D 高斯分布</strong> 、 <strong>4D KV分布</strong> 、 <strong>4D 水袋分布</strong> 、 <strong>4D 双曲线分布</strong> 、 <strong>2D X-Y 均匀分布</strong> 。</p>
+<p>其中 4D 分布是指在 4D 相空间 <span class="math notranslate nohighlight">\((x, p_x, y, p_y)\)</span> 中定义一个广义的超椭球边界。为了简化推导且不失一般性，我们引入 <strong>归一化坐标</strong> ：</p>
 <div class="math notranslate nohighlight">
 \[X = \frac{x}{a}, \quad P_x = \frac{p_x}{b}, \quad Y = \frac{y}{c}, \quad P_y = \frac{p_y}{d}\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(a, b, c, d\)</span> 分别是束流在对应维度上的 <strong>最大物理包络边界（硬边界）</strong>。在此归一化坐标系下，4D 超椭球边界简化为单位超球：</p>
+<p>其中 <span class="math notranslate nohighlight">\(a, b, c, d\)</span> 分别是束流在对应维度上的 <strong>最大物理包络边界（硬边界）</strong> 。在此归一化坐标系下，4D 超椭球边界简化为单位超球：</p>
 <div class="math notranslate nohighlight">
 \[r^2 = X^2 + P_x^2 + Y^2 + P_y^2 \le 1\]</div>
 <p>下面详细介绍各横向粒子分布：</p>
@@ -157,7 +603,7 @@
 <div class="math notranslate nohighlight">
 \[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
 <p>的粒子。</p>
-<p>对于二维相空间高斯分布（<span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span>），不同 RMS 发射度对应的粒子包含比例如下：</p>
+<p>对于二维相空间高斯分布 （ <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> ），不同 RMS 发射度对应的粒子包含比例如下：</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p><span class="math notranslate nohighlight">\(\epsilon/\epsilon_{\mathrm{rms}}\)</span></p></th>
@@ -192,7 +638,7 @@
 </tr>
 </tbody>
 </table>
-<p>因此在 <span class="math notranslate nohighlight">\(4\sigma\)</span> 截断条件下，粒子损失比例极低（约 <span class="math notranslate nohighlight">\(3.3\times10^{-4}\)</span>），可近似认为完整覆盖高斯尾部。</p>
+<p>因此在 <span class="math notranslate nohighlight">\(4\sigma\)</span> 截断条件下，粒子损失比例极低 （约 <span class="math notranslate nohighlight">\(3.3\times10^{-4}\)</span> ），可近似认为完整覆盖高斯尾部。</p>
 <p>具体截断比例可通过下面的函数进行计算：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -207,24 +653,24 @@
 </li>
 <li><p><strong>4D KV（Kapchinskij-Vladimirskij）分布</strong></p>
 <p>在 <span class="math notranslate nohighlight">\(x-p_x-y-p_y\)</span> 四维相空间中生成 <strong>均匀分布在四维超椭球表面上</strong> 的粒子分布，是一种只存在于四维球壳上的理想化分布。这种分布下粒子产生的空间电荷场在束团内部是严格线性的，可以实现空间电荷问题的严格解析求解。</p>
-<p>积分掉两个维度后，KV分布在任意 2D 平面（如 <span class="math notranslate nohighlight">\(x-p_x\)</span> 平面）上的投影是一个均匀填充的椭圆。进一步积分掉一个维度后，KV分布在 1D 平面的投影是一个半椭圆（或半圆）分布。
-根据积分可得：在 <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> 相平面上 <strong>KV分布的全发射度为RMS发射度的4倍</strong> ，即KV分布下所有粒子均处在 <span class="math notranslate nohighlight">\(2\sigma\)</span> 截断范围内。但是在程序中依然设置为保留满足：</p>
+<p>积分掉两个维度后，KV 分布在任意 2D 平面 （如 <span class="math notranslate nohighlight">\(x-p_x\)</span> 平面） 上的投影是一个均匀填充的椭圆。进一步积分掉一个维度后，KV 分布在 1D 平面的投影是一个半椭圆 （或半圆） 分布。
+根据积分可得：在 <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> 相平面上 <strong>KV分布的全发射度为RMS发射度的4倍</strong> ，即 KV 分布下所有粒子均处在 <span class="math notranslate nohighlight">\(2\sigma\)</span> 截断范围内。但是在程序中依然设置为保留满足：</p>
 <div class="math notranslate nohighlight">
 \[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
 <p>的粒子。</p>
 </li>
 <li><p><strong>4D 水袋（Waterbag）分布</strong></p>
 <p>在 <span class="math notranslate nohighlight">\(x-p_x-y-p_y\)</span> 四维相空间中生成 <strong>均匀分布在四维超椭球内部</strong> 的粒子分布。</p>
-<p>积分掉两个维度后，水袋分布在任意 2D 平面（如 <span class="math notranslate nohighlight">\(x-p_x\)</span> 平面）上的投影呈抛物线分布。进一步积分掉一个维度后，水袋分布在 1D 平面的投影是一个3/2次幂抛物线型分布。
-根据积分可得：在 <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> 相平面上  <strong>水袋分布的全发射度为RMS发射度的6倍</strong> ，即水袋分布下所有粒子均处在 <span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span> 截断范围内。但是在程序中依然设置为保留满足：</p>
+<p>积分掉两个维度后，水袋分布在任意 2D 平面 （如 <span class="math notranslate nohighlight">\(x-p_x\)</span> 平面） 上的投影呈抛物线分布。进一步积分掉一个维度后，水袋分布在 1D 平面的投影是一个3/2次幂抛物线型分布。
+根据积分可得：在 <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> 相平面上 <strong>水袋分布的全发射度为RMS发射度的6倍</strong> ，即水袋分布下所有粒子均处在 <span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span> 截断范围内。但是在程序中依然设置为保留满足：</p>
 <div class="math notranslate nohighlight">
 \[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
 <p>的粒子。</p>
 </li>
 <li><p><strong>4D 抛物线（Parabolic）分布</strong></p>
 <p>在 <span class="math notranslate nohighlight">\(x-p_x-y-p_y\)</span> 四维相空间中生成 <strong>密度从中心向外围随着r的增加呈抛物线递减</strong> 的粒子分布，这种分布比水袋分布更贴近真实加速器中偏向中心聚集的束流。</p>
-<p>积分掉两个维度后，水袋分布在任意 2D 平面（如 <span class="math notranslate nohighlight">\(x-p_x\)</span> 平面）上的投影呈平方抛物线分布。进一步积分掉一个维度后，抛物线分布在 1D 平面的投影是一个5/2次幂抛物线型分布。
-根据积分可得：在 <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> 相平面上  <strong>抛物线分布的全发射度为RMS发射度的8倍</strong> ，即水袋分布下所有粒子均处在 <span class="math notranslate nohighlight">\(\sqrt{8}\sigma\)</span> 截断范围内。但是在程序中依然设置为保留满足：</p>
+<p>积分掉两个维度后，抛物线分布在任意 2D 平面 （如 <span class="math notranslate nohighlight">\(x-p_x\)</span> 平面） 上的投影呈平方抛物线分布。进一步积分掉一个维度后，抛物线分布在 1D 平面的投影是一个5/2次幂抛物线型分布。
+根据积分可得：在 <span class="math notranslate nohighlight">\(x-p_x\)</span> 与 <span class="math notranslate nohighlight">\(y-p_y\)</span> 相平面上 <strong>抛物线分布的全发射度为RMS发射度的8倍</strong> ，即抛物线分布下所有粒子均处在 <span class="math notranslate nohighlight">\(\sqrt{8}\sigma\)</span> 截断范围内。但是在程序中依然设置为保留满足：</p>
 <div class="math notranslate nohighlight">
 \[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
 <p>的粒子。</p>
@@ -235,9 +681,9 @@
 </ul>
 </div></blockquote>
 </section>
-<section id="id3">
-<h2>纵向粒子分布<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>目前PASS程序支持生成的纵向粒子分布有 <strong>2D高斯分布</strong> 、 <strong>漂移束分布</strong> 、 <strong>匹配高频参数-纵向束长RMS值的分布</strong> 、 <strong>匹配高频参数-动量分散RMS值的分布</strong> ：</p>
+<section id="id10">
+<h2>纵向粒子分布<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<p>目前 PASS 程序支持生成的纵向粒子分布有 <strong>2D高斯分布</strong> 、 <strong>漂移束分布</strong> 、 <strong>匹配高频参数-纵向束长RMS值的分布</strong> 、 <strong>匹配高频参数-动量分散RMS值的分布</strong> ：</p>
 <blockquote>
 <div><ul>
 <li><p><strong>2D高斯分布（Gaussian）</strong></p>
@@ -247,29 +693,25 @@
 <p>的粒子。</p>
 </li>
 <li><p><strong>漂移束分布（Coasting）</strong></p>
-<p>在 <span class="math notranslate nohighlight">\(z-p_z\)</span> 相空间中生成 <span class="math notranslate nohighlight">\(z\)</span> 服从均匀分布，<span class="math notranslate nohighlight">\(p_z\)</span> 服从高斯分布的纵向坐标。粒子在纵向相空间不做截断，纵向位置坐标最大为周长的一半，最小为负周长的一半。</p>
+<p>在 <span class="math notranslate nohighlight">\(z-p_z\)</span> 相空间中生成 <span class="math notranslate nohighlight">\(z\)</span> 服从均匀分布， <span class="math notranslate nohighlight">\(p_z\)</span> 服从高斯分布的纵向坐标。粒子在纵向相空间不做截断，纵向位置坐标最大为周长的一半，最小为负周长的一半。</p>
 </li>
 <li><p><strong>匹配高频参数-纵向束长RMS值的分布（MatchZ）</strong></p>
-<p>在 <span class="math notranslate nohighlight">\(z-p_z\)</span> 相空间中生成同时满足高频参数及纵向束长限制（ <span class="math notranslate nohighlight">\(sigma_z\)</span> ）的纵向坐标。粒子在纵向相空间中的分布采用 <span class="math notranslate nohighlight">\(2\sigma\)</span> 截断，即仅保留满足：</p>
-<blockquote>
-<div><div class="math notranslate nohighlight">
+<p>在 <span class="math notranslate nohighlight">\(z-p_z\)</span> 相空间中生成同时满足高频参数及纵向束长限制 （ <span class="math notranslate nohighlight">\(\sigma_z\)</span> ） 的纵向坐标。粒子在纵向相空间中的分布采用 <span class="math notranslate nohighlight">\(2\sigma\)</span> 截断，即仅保留满足：</p>
+<div class="math notranslate nohighlight">
 \[|z| \le 2\sigma_z\]</div>
-</div></blockquote>
 <p>的粒子。</p>
 </li>
 <li><p><strong>匹配高频参数-动量分散RMS值的分布（MatchDp）</strong></p>
-<p>在 <span class="math notranslate nohighlight">\(z-p_z\)</span> 相空间中生成同时满足高频参数及动量分散限制（ <span class="math notranslate nohighlight">\(sigma_{dp}\)</span> ）的纵向坐标。粒子在纵向相空间中的分布采用 <span class="math notranslate nohighlight">\(2\sigma\)</span> 截断，即仅保留满足：</p>
-<blockquote>
-<div><div class="math notranslate nohighlight">
+<p>在 <span class="math notranslate nohighlight">\(z-p_z\)</span> 相空间中生成同时满足高频参数及动量分散限制 （ <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span> ） 的纵向坐标。粒子在纵向相空间中的分布采用 <span class="math notranslate nohighlight">\(2\sigma\)</span> 截断，即仅保留满足：</p>
+<div class="math notranslate nohighlight">
 \[|z| \le 2\sigma_z\]</div>
-</div></blockquote>
 <p>的粒子。</p>
 </li>
 </ul>
 </div></blockquote>
 </section>
-<section id="id4">
-<h2>输入文件<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id11">
+<h2>输入文件<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;Beam Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;Number of Protons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
@@ -343,181 +785,181 @@
 </pre></div>
 </div>
 </section>
-<section id="id5">
-<h2>运行命令<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id12">
+<h2>运行命令<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>PASS<span class="se">\e</span>xample<span class="se">\0</span>1_generate_distribution
 python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="o">=</span>./beam0.json
 </pre></div>
 </div>
-<p>根据上面的输入文件，将生成在横向满足Gaussian分布，在纵向满足MatchZ分布的束团。修改下面这两行参数，可调整生成的束团分布类型：</p>
+<p>根据上面的输入文件，将生成在横向满足 Gaussian 分布，在纵向满足 MatchZ 分布的束团。修改下面这两行参数，可调整生成的束团分布类型：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Transverse dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
 <span class="nt">&quot;Longitudinal dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;matchz&quot;</span><span class="p">,</span>
 </pre></div>
 </div>
-<p>其中横向分布的value有：<code class="docutils literal notranslate"><span class="pre">gaussian</span></code>、<code class="docutils literal notranslate"><span class="pre">kv</span></code>、<code class="docutils literal notranslate"><span class="pre">waterbag</span></code>、<code class="docutils literal notranslate"><span class="pre">parabolic</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform</span></code>，纵向分布的value有：<code class="docutils literal notranslate"><span class="pre">gaussian</span></code>、<code class="docutils literal notranslate"><span class="pre">coasting</span></code>、<code class="docutils literal notranslate"><span class="pre">matchz</span></code>、<code class="docutils literal notranslate"><span class="pre">matchdp</span></code>。</p>
-<p>在生成纵向gaussian与coasting分布时，不需要高频相关参数，在生成matchz与matchdp分布时，需要提供高频参数。</p>
+<p>其中横向分布的 value 有： <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 、 <code class="docutils literal notranslate"><span class="pre">kv</span></code> 、 <code class="docutils literal notranslate"><span class="pre">waterbag</span></code> 、 <code class="docutils literal notranslate"><span class="pre">parabolic</span></code> 、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> ，纵向分布的 value 有： <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> 、 <code class="docutils literal notranslate"><span class="pre">coasting</span></code> 、 <code class="docutils literal notranslate"><span class="pre">matchz</span></code> 、 <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> 。</p>
+<p>在生成纵向 gaussian 与 coasting 分布时，不需要高频相关参数，在生成 matchz 与 matchdp 分布时，需要提供高频参数。</p>
 </section>
-<section id="id6">
-<h2>模拟结果<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<p>下面将展示保持上述输入文件中Twiss、发射度、高频等参数不变，只改变分布类型时，模拟所得粒子分布图片。</p>
+<section id="id13">
+<h2>模拟结果<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<p>下面将展示保持上述输入文件中 Twiss、发射度、高频等参数不变，只改变分布类型时，模拟所得粒子分布图片。</p>
 <ul class="simple">
-<li><p>横向Gaussian分布：</p></li>
+<li><p>横向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id7">
+<figure class="align-center" id="id14">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="Gaussian x-px" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 1. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 1. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id8">
+<figure class="align-center" id="id15">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 2. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 2. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id9">
+<figure class="align-center" id="id16">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="Gaussian x-y" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 3. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 3. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
-<li><p>横向KV分布：</p></li>
+<li><p>横向 KV 分布：</p></li>
 </ul>
-<figure class="align-center" id="id10">
+<figure class="align-center" id="id17">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="kv x-px" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 4. Transverse KV distribution: x-px</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 4. Transverse KV distribution: x-px</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id11">
+<figure class="align-center" id="id18">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 5. Transverse KV distribution: y-py</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 5. Transverse KV distribution: y-py</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id12">
+<figure class="align-center" id="id19">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="kv x-y" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 6. Transverse KV distribution: x-y</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 6. Transverse KV distribution: x-y</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向水袋分布：</p></li>
 </ul>
-<figure class="align-center" id="id13">
+<figure class="align-center" id="id20">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="waterbag x-px" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 7. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 7. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id14">
+<figure class="align-center" id="id21">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 8. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 8. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id21" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id15">
+<figure class="align-center" id="id22">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="waterbag x-y" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 9. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 9. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id22" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向抛物线分布：</p></li>
 </ul>
-<figure class="align-center" id="id16">
+<figure class="align-center" id="id23">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="parabolic x-px" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 10. Transverse KV distribution: x-px</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 10. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id23" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id17">
+<figure class="align-center" id="id24">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 11. Transverse KV distribution: y-py</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 11. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id24" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id18">
+<figure class="align-center" id="id25">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="parabolic x-y" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 12. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 12. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id25" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向均匀分布：</p></li>
 </ul>
-<figure class="align-center" id="id19">
+<figure class="align-center" id="id26">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="uniform x-px" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 13. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 13. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id26" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id20">
+<figure class="align-center" id="id27">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 14. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 14. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id27" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id21">
+<figure class="align-center" id="id28">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="uniform x-y" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 15. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id21" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 15. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id28" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
-<li><p>纵向MatchZ分布：</p></li>
+<li><p>纵向 MatchZ 分布：</p></li>
 </ul>
-<figure class="align-center" id="id22">
+<figure class="align-center" id="id29">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png"><img alt="MatchZ z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 16. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id22" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 16. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
-<li><p>纵向MatchDp分布：</p></li>
+<li><p>纵向 MatchDp 分布：</p></li>
 </ul>
-<figure class="align-center" id="id23">
+<figure class="align-center" id="id30">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png"><img alt="MatchDp z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 17. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id23" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 17. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
-<li><p>纵向Gaussian分布：</p></li>
+<li><p>纵向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id24">
+<figure class="align-center" id="id31">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png"><img alt="Gaussian z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 18. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id24" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 18. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
-<li><p>纵向Coasting分布：</p></li>
+<li><p>纵向 Coasting 分布：</p></li>
 </ul>
-<figure class="align-center" id="id25">
+<figure class="align-center" id="id32">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png"><img alt="coasting z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 19. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id25" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 19. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>

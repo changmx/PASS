@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="PASS Documentation (English)" href="../en/index.html" />
+    <link rel="next" title="Twiss 传输（Twiss）" href="twiss.html" />
     <link rel="prev" title="标记（Marker）" href="element/marker.html" /> 
 </head>
 
@@ -49,12 +49,21 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="injection.html">注入模块（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id1">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id2">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id3">纵向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id4">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id5">运行命令</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id6">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id13">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
@@ -71,9 +80,9 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">参数列表</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id5">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id8">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -96,6 +105,29 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#id4">参数总览表</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -575,7 +607,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="element/marker.html" class="btn btn-neutral float-left" title="标记（Marker）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../en/index.html" class="btn btn-neutral float-right" title="PASS Documentation (English)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="twiss.html" class="btn btn-neutral float-right" title="Twiss 传输（Twiss）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

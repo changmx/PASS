@@ -1,0 +1,684 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Twiss 传输（Twiss） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PASS Documentation (English)" href="../en/index.html" />
+    <link rel="prev" title="孔径（Aperture）" href="aperture.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="injection.html">注入模块（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id13">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
+      <li class="breadcrumb-item active">Twiss 传输（Twiss）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/zh/twiss.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="twiss-twiss">
+<h1>Twiss 传输（Twiss）<a class="headerlink" href="#twiss-twiss" title="Link to this heading"></a></h1>
+<section id="id1">
+<h2>简介<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件基于 Twiss 参数实现 6D 线性光学传输。它使用束流光学函数（beta、alpha、mu、色散）构建传输矩阵，对粒子进行线性光学追踪，是连接 lattice 设计与粒子追踪的核心元件之一。</p>
+<ul class="simple">
+<li><p><strong>代码位置</strong> ： <code class="docutils literal notranslate"><span class="pre">PASS/commands/twiss.py</span></code></p></li>
+<li><p><strong>类名</strong> ： <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> ，注册名 <code class="docutils literal notranslate"><span class="pre">&quot;twiss&quot;</span></code></p></li>
+<li><p><strong>核心特征</strong> ：</p>
+<ul>
+<li><p>基于前后两点的 Twiss 参数（beta、alpha、相位）构建横向传输矩阵；</p></li>
+<li><p>支持色散的去除与恢复，保证动量偏差粒子在色散区正确传输；</p></li>
+<li><p>支持色品修正，动量偏差引起的 tune 偏移可自动计入相位；</p></li>
+<li><p>纵向传输支持 drift、matrix 及单位矩阵三种模式；</p></li>
+<li><p>支持 z 坐标回旋折叠，保持纵向坐标在环周长范围内；</p></li>
+<li><p>支持孔径检查，与其它元件一致。</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h2>物理推导<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>纵向传输<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>纵向传输由 <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">Transfer</span></code> 参数控制，支持三种模式：</p>
+<p><strong>drift 模式</strong> ：使用 gamma transition 参数，纵向传输矩阵元为：</p>
+<div class="math notranslate nohighlight">
+\[m_{12,z} = -\left(\frac{1}{\gamma_t^2} - \frac{1}{\gamma^2}\right)(s - s_\mathrm{previous})\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\gamma_t\)</span> 为过渡 gamma， <span class="math notranslate nohighlight">\(\gamma\)</span> 为粒子相对论 gamma， <span class="math notranslate nohighlight">\(s\)</span> 为当前纵向位置， <span class="math notranslate nohighlight">\(s_\mathrm{previous}\)</span> 为前一元件纵向位置。</p>
+<p><strong>matrix 模式</strong> ：使用纵向振荡频率，传输矩阵为：</p>
+<div class="math notranslate nohighlight">
+\[m_{11,z} = \cos(\phi_z)\]</div>
+<div class="math notranslate nohighlight">
+\[m_{12,z} = \frac{\sigma_z}{\Delta p_\mathrm{bunch}} \sin(\phi_z)\]</div>
+<div class="math notranslate nohighlight">
+\[m_{21,z} = -\frac{\Delta p_\mathrm{bunch}}{\sigma_z} \sin(\phi_z)\]</div>
+<div class="math notranslate nohighlight">
+\[m_{22,z} = \cos(\phi_z)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\phi_z\)</span> 为纵向相移， <span class="math notranslate nohighlight">\(\sigma_z\)</span> 为束团纵向尺寸， <span class="math notranslate nohighlight">\(\Delta p_\mathrm{bunch}\)</span> 为束团动量展宽。</p>
+<p><strong>其他模式</strong> ：纵向传输矩阵取单位矩阵。</p>
+</section>
+<section id="id4">
+<h3>色散处理<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>由于横向传输矩阵描述的是非色散部分的运动，需要在传输前后对色散进行去除与恢复：</p>
+<ol class="arabic simple">
+<li><p><strong>去除前一点色散</strong> ：</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[x_1 = x - D_{x,\mathrm{previous}} \cdot \Delta p\]</div>
+<div class="math notranslate nohighlight">
+\[px_1 = px - D_{px,\mathrm{previous}} \cdot \Delta p\]</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>线性传输</strong> ：</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[x_\mathrm{temp} = x_1 \cdot m_{11} + px_1 \cdot m_{12}\]</div>
+<ol class="arabic simple" start="3">
+<li><p><strong>加新点色散</strong> ：</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[x_2 = x_\mathrm{temp} + D_x \cdot \Delta p_2\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(D_x\)</span> 为当前点水平色散， <span class="math notranslate nohighlight">\(D_{x,\mathrm{previous}}\)</span> 为前一点水平色散， <span class="math notranslate nohighlight">\(\Delta p\)</span> 为粒子动量偏差。</p>
+</section>
+<section id="id5">
+<h3>横向传输矩阵<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>横向传输矩阵由前后两点的 Twiss 参数及相位差表示。以水平方向为例：</p>
+<div class="math notranslate nohighlight">
+\[m_{11,x} = \sqrt{\frac{\beta_x}{\beta_{x,\mathrm{prev}}}}
+\left(\cos\phi_x + \alpha_{x,\mathrm{prev}} \sin\phi_x\right)\]</div>
+<div class="math notranslate nohighlight">
+\[m_{12,x} = \sqrt{\beta_x \, \beta_{x,\mathrm{prev}}} \sin\phi_x\]</div>
+<div class="math notranslate nohighlight">
+\[m_{21,x} = -\frac{1 + \alpha_x \, \alpha_{x,\mathrm{prev}}}
+{\sqrt{\beta_x \, \beta_{x,\mathrm{prev}}}} \sin\phi_x
++ \frac{\alpha_{x,\mathrm{prev}} - \alpha_x}
+{\sqrt{\beta_x \, \beta_{x,\mathrm{prev}}}} \cos\phi_x\]</div>
+<div class="math notranslate nohighlight">
+\[m_{22,x} = \sqrt{\frac{\beta_{x,\mathrm{prev}}}{\beta_x}}
+\left(\cos\phi_x - \alpha_x \sin\phi_x\right)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\beta_x\)</span> 、 <span class="math notranslate nohighlight">\(\alpha_x\)</span> 为当前点水平 Twiss 参数， <span class="math notranslate nohighlight">\(\beta_{x,\mathrm{prev}}\)</span> 、 <span class="math notranslate nohighlight">\(\alpha_{x,\mathrm{prev}}\)</span> 为前一点水平 Twiss 参数， <span class="math notranslate nohighlight">\(\phi_x\)</span> 为两点间的水平相移。</p>
+<p>垂直方向（y）的传输矩阵形式完全相同，只需将下标 x 替换为 y。</p>
+</section>
+<section id="id6">
+<h3>色品修正<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>动量偏差会引起 tune 偏移，通过色品参数对相位进行修正：</p>
+<div class="math notranslate nohighlight">
+\[\phi_x = \phi_x + \Delta p \cdot \Delta Q_x \cdot 2\pi\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_y = \phi_y + \Delta p \cdot \Delta Q_y \cdot 2\pi\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\Delta Q_x\)</span> 、 <span class="math notranslate nohighlight">\(\Delta Q_y\)</span> 分别为水平与垂直色品， <span class="math notranslate nohighlight">\(\Delta p\)</span> 为粒子动量偏差。</p>
+</section>
+<section id="z">
+<h3>z 坐标回旋折叠<a class="headerlink" href="#z" title="Link to this heading"></a></h3>
+<p>为保持纵向坐标在环周长范围内，传输后对 z 坐标进行回旋折叠：</p>
+<div class="math notranslate nohighlight">
+\[z_2 = z_2 + (\mathrm{under} - \mathrm{over}) \cdot C\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(C\)</span> 为环周长， <code class="docutils literal notranslate"><span class="pre">under</span></code> 与 <code class="docutils literal notranslate"><span class="pre">over</span></code> 为折叠计数。</p>
+</section>
+<section id="t0">
+<h3>t0 更新<a class="headerlink" href="#t0" title="Link to this heading"></a></h3>
+<p>参考时间 t0 根据纵向位置变化更新：</p>
+<div class="math notranslate nohighlight">
+\[\Delta t = \frac{s - s_\mathrm{previous}}{\beta \, c}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\beta\)</span> 为粒子相对论速度， <span class="math notranslate nohighlight">\(c\)</span> 为光速。</p>
+</section>
+</section>
+<section id="id7">
+<h2>接口参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="id8">
+<h3>位置参数<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>当前元件纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">Previous</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>前一元件纵向位置</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>由序列键名自动填入</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id9">
+<h3>横向参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Alpha</span> <span class="pre">X&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>当前点水平 alpha</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Alpha</span> <span class="pre">Y&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>当前点垂直 alpha</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphax_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Alpha</span> <span class="pre">X</span> <span class="pre">Previous&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>前一点水平 alpha</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphay_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Alpha</span> <span class="pre">Y</span> <span class="pre">Previous&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>前一点垂直 alpha</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">betax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Beta</span> <span class="pre">X</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>当前点水平 beta</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">betay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Beta</span> <span class="pre">Y</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>当前点垂直 beta</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">betax_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Beta</span> <span class="pre">X</span> <span class="pre">Previous</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>前一点水平 beta</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">betay_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Beta</span> <span class="pre">Y</span> <span class="pre">Previous</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>前一点垂直 beta</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mux</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">X&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>当前点水平相位</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">muy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">Y&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>当前点垂直相位</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mux_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">X</span> <span class="pre">Previous&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>前一点水平相位</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">muy_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">Y</span> <span class="pre">Previous&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>前一点垂直相位</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id10">
+<h3>纵向参数<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">longitudinal_transfer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Longitudinal</span> <span class="pre">Transfer&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>纵向传输模式（drift/matrix/其他）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">muz</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">Z&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>当前点纵向相位（可选，默认0）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">muz_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">Z</span> <span class="pre">Previous&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>前一点纵向相位（可选，默认0）</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id11">
+<h3>色散与色品<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Dx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Dx</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>当前点水平色散</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Dx_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Dx</span> <span class="pre">Previous</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>前一点水平色散</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Dpx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Dpx&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>当前点水平色散导数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Dpx_previous</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Dpx</span> <span class="pre">Previous&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>前一点水平色散导数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DQx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Dqx&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>水平色品</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DQy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Dqy&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>垂直色品</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id12">
+<h3>孔径参数<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Aperture</span> <span class="pre">Type&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径类型（默认off）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Aperture</span> <span class="pre">Value&quot;</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径参数（默认[]）</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="id13">
+<h2>使用示例<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<p>以下 JSON 片段展示了一个完整的 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件定义：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Twiss1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Twiss&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;S Previous (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Alpha X&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Alpha Y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Alpha X Previous&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Alpha Y Previous&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Beta X (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">3.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Beta Y (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Beta X Previous (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Beta Y Previous (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Mu X&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.123</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Mu Y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.456</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Mu X Previous&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Mu Y Previous&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dx (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dx Previous (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dpx&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dpx Previous&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dqx&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dqy&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Longitudinal Transfer&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>其中：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;:</span> <span class="pre">10.0</span></code> —— 当前元件纵向位置为 10.0 m；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">Previous</span> <span class="pre">(m)&quot;:</span> <span class="pre">5.0</span></code> —— 前一元件纵向位置为 5.0 m；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Alpha</span> <span class="pre">X&quot;:</span> <span class="pre">0.5</span></code> —— 当前点水平 alpha 为 0.5；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Beta</span> <span class="pre">X</span> <span class="pre">(m)&quot;:</span> <span class="pre">3.5</span></code> —— 当前点水平 beta 为 3.5 m；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Mu</span> <span class="pre">X&quot;:</span> <span class="pre">0.123</span></code> —— 当前点水平相位为 0.123（以 <span class="math notranslate nohighlight">\(2\pi\)</span> 为单位）；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Dx</span> <span class="pre">(m)&quot;:</span> <span class="pre">0.5</span></code> —— 当前点水平色散为 0.5 m；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Dqx&quot;:</span> <span class="pre">2.0</span></code> —— 水平色品为 2.0；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Longitudinal</span> <span class="pre">Transfer&quot;:</span> <span class="pre">&quot;drift&quot;</span></code> —— 纵向传输采用 drift 模式；</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;Aperture</span> <span class="pre">Type&quot;:</span> <span class="pre">&quot;off&quot;</span></code> —— 关闭孔径检查。</p></li>
+</ul>
+</section>
+<section id="id14">
+<h2>应用场景<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件适用于以下场景：</p>
+<ul class="simple">
+<li><p><strong>基于 lattice 设计的线性追踪</strong> ：当已有 MadX、AT 等光学计算程序输出的 Twiss 参数表时，可直接使用 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件进行粒子追踪，无需重新建模磁铁元件。</p></li>
+<li><p><strong>色散与色品研究</strong> ： <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件内置色散去除/恢复与色品修正，适合研究动量偏差粒子的横向动力学。</p></li>
+<li><p><strong>纵向动力学模拟</strong> ：通过选择 drift 或 matrix 纵向传输模式，可模拟不同纵向传输场景。</p></li>
+<li><p><strong>快速光学评估</strong> ：相比逐元件建模，基于 Twiss 参数的线性传输计算量更小，适合大规模参数扫描与初步评估。</p></li>
+<li><p><strong>与非线性元件混合使用</strong> ： <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件可与 sextupole、octupole 等非线性元件串联使用，在线性传输基础上叠加非线性效应。</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="aperture.html" class="btn btn-neutral float-left" title="孔径（Aperture）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../en/index.html" class="btn btn-neutral float-right" title="PASS Documentation (English)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -5,6 +5,18 @@
 
 PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变粒子横向动量（ :math:`p_x` 或 :math:`p_y` ），不改变位置坐标。
 
+**代码位置**
+
+- 源文件： ``PASS/commands/element/exciter.py``
+- 类名： ``Exciter`` （继承自 ``Command`` ）
+- 注册名： ``exciter``
+- 核心特征：
+
+  - 薄透镜元件（ ``length = 0`` ），仅改变粒子横向动量，不改变位置坐标；
+  - 支持 4 种激励模式（ ``single_fm`` 、 ``single_fm_am`` 、 ``dual_fm`` 、 ``dual_fm_am`` ）；
+  - 频率参数支持工作点模式和频率模式两种输入方式；
+  - 支持孔径检查，与其它元件一致。
+
 
 物理推导
 --------
@@ -294,6 +306,8 @@ Kick 的施加
 
 仅对存活粒子 （ ``tag > 0`` ）施加 kick，已丢失粒子不受影响。
 
+kick 施加后，激励器会根据孔径参数 （ ``aperture_type`` ）对粒子进行孔径检查：若孔径类型不为 ``off`` ，则超出孔径范围的粒子将被标记为丢失 （ ``tag`` 置为负值）；若孔径类型为 ``off`` ，则不进行孔径检查。
+
 
 参数列表
 --------
@@ -350,6 +364,16 @@ Kick 的施加
     - int
     - -
     - 激励结束圈数 （不含）
+  * - ``aperture_type``
+    - ``Aperture Type``
+    - str
+    - -
+    - 孔径类型 （默认 ``off`` ，可选值见孔径章节）
+  * - ``aperture_value``
+    - ``Aperture Value``
+    - list
+    - -
+    - 孔径参数值 （默认 ``[]`` ，含义随类型而异，详见孔径章节）
 
 硬件参数
 ~~~~~~~~~~
@@ -528,7 +552,8 @@ Kick 的施加
           "Am t ext (s)": 0.0,
           "Am r0 (m)": 0.0,
           "Am delta0": 0.0,
-          "Am k const": 0.0
+          "Am k const": 0.0,
+          "Aperture Type": "off"
       }
   }
 
