@@ -6,6 +6,7 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
+from PASS.utils.aperture import check_aperture_cpu
 
 import numpy as np
 import cupy as cp
@@ -29,20 +30,26 @@ class Drift(Command):
         if self.length < 0.0:
             raise ValueError(f"The length of Drift {self.cmd_name} is {self.length}, which should be >= 0")
 
+        self.aperture_type: str = kwargs.get("aperture type", "off").lower()
+        self.aperture_value: list = kwargs.get("aperture value", [])
+
         super().__init__()
 
     def print(self):
         set_simple_logging()
-        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}")
+        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}, "
+                    f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
         set_normal_logging()
 
     def execute_cpu(self, sim):
 
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
+        turn = sim.state.turn
 
         for i, bunch in enumerate(bunches):
             drift_exact_cpu(self.length, beam, bunch)
+            check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
         L = self.length
@@ -94,7 +101,7 @@ def drift_exact_cpu(L: float, beam: Beam, bunch: BunchInfo):
     pz_sq = (1 + dp)**2 - px**2 - py**2
     valid = (pz_sq > 0.0) & (tag > 0)
     tag[~valid] = -1
-    pz_sq_safe = np.maximum(pz_sq, 0.0)
+    pz_sq_safe = np.maximum(pz_sq, const.eps)
     pz = np.sqrt(pz_sq_safe)
 
     c_half = 0.5 * circum
