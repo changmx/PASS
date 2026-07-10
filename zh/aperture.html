@@ -1,0 +1,604 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>孔径（Aperture） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PASS Documentation (English)" href="../en/index.html" />
+    <link rel="prev" title="标记（Marker）" href="element/marker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="injection.html">注入模块（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id1">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id2">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id3">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id4">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id5">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id6">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id5">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">使用示例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
+      <li class="breadcrumb-item active">孔径（Aperture）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/zh/aperture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="aperture">
+<h1>孔径（Aperture）<a class="headerlink" href="#aperture" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的 <strong>孔径检查系统</strong> （ Aperture ），用于在粒子追踪过程中检查粒子是否超出束流管的横向孔径边界。孔径检查是束流损失模拟的核心环节，能够标识并记录因横向坐标超出物理管道限制而丢失的粒子。</p>
+<p>孔径模块位于 <code class="docutils literal notranslate"><span class="pre">PASS/utils/aperture.py</span></code> ，提供 CPU 和 GPU 两种实现 （分别通过 <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> 和 <code class="docutils literal notranslate"><span class="pre">check_aperture_gpu</span></code> 函数调用），在每次元件追踪后被自动调用。调用时传入当前元件的纵向位置 <span class="math notranslate nohighlight">\(s\)</span> 和当前圈数。</p>
+<p>孔径检查仅在粒子的横向坐标 <span class="math notranslate nohighlight">\((x, y)\)</span> 上进行，不涉及纵向坐标。每个元件可独立设置孔径类型和参数，支持 10 种孔径几何形状。</p>
+<section id="id1">
+<h2>接口参数<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>孔径系统通过两个参数控制：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
+<td><p>str</p></td>
+<td><p>孔径类型，不区分大小写，可选值见下文</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
+<td><p>list</p></td>
+<td><p>孔径参数值，含义随类型而异</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 不区分大小写，内部统一转换为小写后匹配。 <code class="docutils literal notranslate"><span class="pre">off</span></code> 和 <code class="docutils literal notranslate"><span class="pre">default</span></code> 类型忽略 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 。</p>
+</div>
+</section>
+<section id="id2">
+<h2>丢失粒子处理<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>当粒子被判定为丢失时，系统执行以下操作：</p>
+<ul class="simple">
+<li><p><strong>tag 取负</strong> ： <span class="math notranslate nohighlight">\(\text{tag} \leftarrow -|\text{tag}|\)</span> ，保留粒子 ID 信息，仅将符号取负以标记为丢失</p></li>
+<li><p><strong>lost_position</strong> ：记录丢失位置的纵向坐标 <span class="math notranslate nohighlight">\(s\)</span> ，即当前元件的纵向位置</p></li>
+<li><p><strong>lost_turn</strong> ：记录丢失时的圈数</p></li>
+</ul>
+<p>已丢失的粒子 （ <span class="math notranslate nohighlight">\(\text{tag} &lt; 0\)</span> ）在后续孔径检查中将被跳过，不再重复标记。仅对存活粒子 （ <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ）执行孔径检查。</p>
+</section>
+<section id="id3">
+<h2>各孔径类型详解<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>以下逐一介绍 10 种孔径类型的参数定义与丢失判定条件。</p>
+<section id="off">
+<h3>off（关闭）<a class="headerlink" href="#off" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ：无 （ <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 被忽略）</p>
+<p><strong>说明</strong> ：不做任何孔径检查，所有粒子均保留。</p>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <circle cx="150" cy="150" r="60" stroke="#e94560" stroke-width="3" fill="none"/>
+  <line x1="108" y1="108" x2="192" y2="192" stroke="#e94560" stroke-width="3"/>
+  <text x="132" y="248" fill="#e94560" font-size="16" font-weight="bold" font-family="monospace">OFF</text>
+</svg>
+</div></section>
+<section id="default">
+<h3>default（默认矩形）<a class="headerlink" href="#default" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ：无 （ <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 被忽略）</p>
+<p><strong>说明</strong> ：使用默认的 ±1m 矩形孔径，等价于 <code class="docutils literal notranslate"><span class="pre">rectangle</span></code> 类型且 <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[1.0,</span> <span class="pre">1.0]</span></code> 。</p>
+<p><strong>丢失条件</strong> ：</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; 1.0 \quad \text{或} \quad |y| &gt; 1.0\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="90" y="90" width="120" height="120" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <text x="125" y="84" fill="#00d2ff" font-size="11" font-family="monospace">+1m</text>
+  <text x="125" y="228" fill="#00d2ff" font-size="11" font-family="monospace">-1m</text>
+</svg>
+</div></section>
+<section id="circle">
+<h3>circle（圆形）<a class="headerlink" href="#circle" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[r]</span></code> ，其中 <span class="math notranslate nohighlight">\(r\)</span> 为圆半径。</p>
+<p><strong>丢失条件</strong> ：</p>
+<div class="math notranslate nohighlight">
+\[x^2 + y^2 &gt; r^2\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <circle cx="150" cy="150" r="108" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="258" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="195" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">r</text>
+</svg>
+</div></section>
+<section id="rectangle">
+<h3>rectangle（矩形）<a class="headerlink" href="#rectangle" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高。</p>
+<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w\]</div>
+<div class="math notranslate nohighlight">
+\[|y| &gt; h\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="30" y="66" width="240" height="168" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="200" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="66" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="156" y="112" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">h</text>
+</svg>
+</div></section>
+<section id="ellipse">
+<h3>ellipse（椭圆）<a class="headerlink" href="#ellipse" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[a,</span> <span class="pre">b]</span></code> ，其中 <span class="math notranslate nohighlight">\(a\)</span> 为半长轴 （ x 方向）， <span class="math notranslate nohighlight">\(b\)</span> 为半短轴 （ y 方向）。</p>
+<p><strong>丢失条件</strong> ：</p>
+<div class="math notranslate nohighlight">
+\[\left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 &gt; 1\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <ellipse cx="150" cy="150" rx="120" ry="84" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="200" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">a</text>
+  <line x1="150" y1="150" x2="150" y2="66" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="156" y="112" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">b</text>
+</svg>
+</div></section>
+<section id="rectcircle">
+<h3>rectcircle（矩形内切圆）<a class="headerlink" href="#rectcircle" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为矩形半宽， <span class="math notranslate nohighlight">\(h\)</span> 为矩形半高， <span class="math notranslate nohighlight">\(r\)</span> 为圆半径。</p>
+<p>孔径区域为矩形与圆的 <strong>交集</strong> （粒子需同时在矩形和圆内才存活）。</p>
+<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w \quad \text{或} \quad |y| &gt; h\]</div>
+<div class="math notranslate nohighlight">
+\[x^2 + y^2 &gt; r^2\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="90" y="60" width="120" height="180" stroke="#e94560" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+  <circle cx="150" cy="150" r="78" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="210" y2="150" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="172" y="145" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="135" y="108" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="150" y1="150" x2="205" y2="107" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="165" y="128" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">r</text>
+</svg>
+</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>红色虚线为矩形边界，蓝色实线为圆边界。孔径区域为两者的交集。</p>
+</div>
+</section>
+<section id="rectellipse">
+<h3>rectellipse（矩形内切椭圆）<a class="headerlink" href="#rectellipse" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为矩形半宽， <span class="math notranslate nohighlight">\(h\)</span> 为矩形半高， <span class="math notranslate nohighlight">\(a\)</span> 为椭圆半长轴 （ x 方向）， <span class="math notranslate nohighlight">\(b\)</span> 为椭圆半短轴 （ y 方向）。</p>
+<p>孔径区域为矩形与椭圆的 <strong>交集</strong> （粒子需同时在矩形和椭圆内才存活）。</p>
+<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w \quad \text{或} \quad |y| &gt; h\]</div>
+<div class="math notranslate nohighlight">
+\[\left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 &gt; 1\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="90" y="60" width="120" height="180" stroke="#e94560" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+  <ellipse cx="150" cy="150" rx="90" ry="78" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="210" y2="150" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="172" y="145" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="135" y="108" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="150" y1="155" x2="240" y2="155" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="188" y="170" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">a</text>
+  <line x1="155" y1="150" x2="155" y2="72" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="160" y="90" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">b</text>
+</svg>
+</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>红色虚线为矩形边界，蓝色实线为椭圆边界。孔径区域为两者的交集。</p>
+</div>
+</section>
+<section id="racetrack">
+<h3>racetrack（跑道形）<a class="headerlink" href="#racetrack" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为矩形半宽， <span class="math notranslate nohighlight">\(h\)</span> 为矩形半高， <span class="math notranslate nohighlight">\(a\)</span> 为椭圆端 x 方向半轴， <span class="math notranslate nohighlight">\(b\)</span> 为椭圆端 y 方向半轴。</p>
+<p>跑道形孔径由中间矩形和两端的半椭圆组成。椭圆端中心位于 <span class="math notranslate nohighlight">\((\pm w, 0)\)</span> 。</p>
+<p><strong>生存条件</strong> （满足任一即存活）：</p>
+<p>矩形区域内：</p>
+<div class="math notranslate nohighlight">
+\[|x| \le w \quad \text{且} \quad |y| \le h\]</div>
+<p>椭圆端区域内 （ <span class="math notranslate nohighlight">\(|x| &gt; w\)</span> 时）：</p>
+<div class="math notranslate nohighlight">
+\[\left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \le 1\]</div>
+<p><strong>丢失条件</strong> ：不在矩形内且不在椭圆端内。</p>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <path d="M 102 60 L 198 60 A 60 72 0 0 1 198 240 L 102 240 A 60 72 0 0 1 102 60 Z" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <circle cx="198" cy="150" r="3" fill="#f5a623"/>
+  <circle cx="102" cy="150" r="3" fill="#f5a623"/>
+  <line x1="150" y1="150" x2="198" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="168" y="145" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="135" y="108" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="198" y1="150" x2="258" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="220" y="165" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">a</text>
+  <line x1="198" y1="150" x2="198" y2="78" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="203" y="118" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">b</text>
+</svg>
+</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>橙色圆点标记椭圆端中心位置 <span class="math notranslate nohighlight">\((\pm w, 0)\)</span> 。</p>
+</div>
+</section>
+<section id="octagon">
+<h3>octagon（八角形）<a class="headerlink" href="#octagon" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高， <span class="math notranslate nohighlight">\(d\)</span> 为半对角间隙 （切角距离）。</p>
+<p>八角形为矩形切去 45° 角后得到的形状。 <span class="math notranslate nohighlight">\(d\)</span> 越大，切角越大； <span class="math notranslate nohighlight">\(d = 0\)</span> 时退化为矩形。</p>
+<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w \quad \text{或} \quad |y| &gt; h\]</div>
+<div class="math notranslate nohighlight">
+\[|x| + |y| &gt; w + h - d\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <polygon points="60,60 240,60 270,90 270,210 240,240 60,240 30,210 30,90" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="200" y="145" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="156" y="108" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="240" y1="60" x2="240" y2="90" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="244" y="80" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">d</text>
+</svg>
+</div></section>
+<section id="polygon">
+<h3>polygon（多边形）<a class="headerlink" href="#polygon" title="Link to this heading"></a></h3>
+<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[[x1,</span> <span class="pre">y1],</span> <span class="pre">[x2,</span> <span class="pre">y2],</span> <span class="pre">...]</span></code> ，顶点列表，自动闭合 （最后一个顶点连接回第一个顶点）。</p>
+<p><strong>丢失条件</strong> ：点在多边形外部。</p>
+<p>使用 <strong>射线法</strong> （ ray casting ）判断点是否在多边形内部：从待测点出发沿水平方向发射射线，统计与多边形边的交点数：</p>
+<ul class="simple">
+<li><p>交点数为奇数 → 点在多边形内部 （存活）</p></li>
+<li><p>交点数为偶数 → 点在多边形外部 （丢失）</p></li>
+</ul>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <polygon points="270,150 210,46 90,46 30,150 90,254 210,254" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <circle cx="270" cy="150" r="4" fill="#f5a623"/>
+  <circle cx="210" cy="46" r="4" fill="#f5a623"/>
+  <circle cx="90" cy="46" r="4" fill="#f5a623"/>
+  <circle cx="30" cy="150" r="4" fill="#f5a623"/>
+  <circle cx="90" cy="254" r="4" fill="#f5a623"/>
+  <circle cx="210" cy="254" r="4" fill="#f5a623"/>
+  <text x="248" y="170" fill="#f5a623" font-size="10" font-family="monospace">P1</text>
+  <text x="215" y="40" fill="#f5a623" font-size="10" font-family="monospace">P2</text>
+  <text x="72" y="40" fill="#f5a623" font-size="10" font-family="monospace">P3</text>
+  <text x="10" y="170" fill="#f5a623" font-size="10" font-family="monospace">P4</text>
+  <text x="72" y="270" fill="#f5a623" font-size="10" font-family="monospace">P5</text>
+  <text x="215" y="270" fill="#f5a623" font-size="10" font-family="monospace">P6</text>
+</svg>
+</div></section>
+</section>
+<section id="id4">
+<h2>参数总览表<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>类型</p></th>
+<th class="head"><p>aperture_value</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+<td><p>忽略</p></td>
+<td><p>不做孔径检查</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>忽略</p></td>
+<td><p>默认 ±1m 矩形孔径</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[r]</span></code></p></td>
+<td><p>圆形， <span class="math notranslate nohighlight">\(r\)</span> 为半径</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectangle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h]</span></code></p></td>
+<td><p>矩形， <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ellipse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>椭圆， <span class="math notranslate nohighlight">\(a\)</span> 为半长轴， <span class="math notranslate nohighlight">\(b\)</span> 为半短轴</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectcircle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code></p></td>
+<td><p>矩形与圆的交集</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rectellipse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>矩形与椭圆的交集</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">racetrack</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>跑道形 （矩形 + 椭圆端）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">octagon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code></p></td>
+<td><p>八角形 （矩形切 45° 角）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">polygon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[[x1,y1],</span> <span class="pre">...]</span></code></p></td>
+<td><p>多边形顶点列表，自动闭合</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id5">
+<h2>使用示例<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>以下 JSON 片段展示了各孔径类型的配置方式。孔径参数作为元件属性,
+与 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> 、 <code class="docutils literal notranslate"><span class="pre">Command</span></code> 、 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 等字段并列:</p>
+<p><strong>圆形孔径</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.1</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>矩形孔径</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>椭圆孔径</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">11.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ellipse&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>跑道形孔径</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">11.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;racetrack&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.03</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>八角形孔径</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift5&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;octagon&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.03</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>多边形孔径</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift6&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.043</span><span class="p">]]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>关闭孔径检查</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift7&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">13.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="element/marker.html" class="btn btn-neutral float-left" title="标记（Marker）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../en/index.html" class="btn btn-neutral float-right" title="PASS Documentation (English)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
