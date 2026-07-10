@@ -32,6 +32,8 @@ class Drift(Command):
 
         self.aperture_type: str = kwargs.get("aperture type", "off").lower()
         self.aperture_value: list = kwargs.get("aperture value", [])
+        if not isinstance(self.aperture_value, list):
+            raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
         super().__init__()
 
