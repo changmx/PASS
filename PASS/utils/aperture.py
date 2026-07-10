@@ -7,13 +7,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_VALID_TYPES = {"off", "default", "circle", "rectangle", "ellipse",
-                "rectcircle", "rectellipse", "racetrack", "octagon", "polygon"}
-
+_VALID_TYPES = {"off", "default", "circle", "rectangle", "ellipse", "rectcircle", "rectellipse", "racetrack", "octagon", "polygon"}
 
 # ------------------------------------------------------------------
 # CPU
 # ------------------------------------------------------------------
+
 
 def _mark_lost_cpu(tag, lost_position, lost_turn, mask, s_position, turn):
     """Mark particles selected by mask as lost."""
@@ -54,7 +53,7 @@ def _check_ellipse_cpu(beam, bunch, a, b, s_position, turn):
     tag, lost_position, lost_turn = p.tag[start:end], p.lost_position[start:end], p.lost_turn[start:end]
 
     alive = tag > 0
-    out = alive & (((x / a) ** 2 + (y / b) ** 2) > 1.0)
+    out = alive & (((x / a)**2 + (y / b)**2) > 1.0)
     _mark_lost_cpu(tag, lost_position, lost_turn, out, s_position, turn)
 
 
@@ -66,8 +65,7 @@ def _check_rectcircle_cpu(beam, bunch, half_width, half_height, radius, s_positi
     tag, lost_position, lost_turn = p.tag[start:end], p.lost_position[start:end], p.lost_turn[start:end]
 
     alive = tag > 0
-    out = alive & ((np.abs(x) > half_width) | (np.abs(y) > half_height) |
-                   ((x * x + y * y) > (radius * radius)))
+    out = alive & ((np.abs(x) > half_width) | (np.abs(y) > half_height) | ((x * x + y * y) > (radius * radius)))
     _mark_lost_cpu(tag, lost_position, lost_turn, out, s_position, turn)
 
 
@@ -79,8 +77,7 @@ def _check_rectellipse_cpu(beam, bunch, w, h, a, b, s_position, turn):
     tag, lost_position, lost_turn = p.tag[start:end], p.lost_position[start:end], p.lost_turn[start:end]
 
     alive = tag > 0
-    out = alive & ((np.abs(x) > w) | (np.abs(y) > h) |
-                   (((x / a) ** 2 + (y / b) ** 2) > 1.0))
+    out = alive & ((np.abs(x) > w) | (np.abs(y) > h) | (((x / a)**2 + (y / b)**2) > 1.0))
     _mark_lost_cpu(tag, lost_position, lost_turn, out, s_position, turn)
 
 
@@ -101,7 +98,7 @@ def _check_racetrack_cpu(beam, bunch, w, h, a, b, s_position, turn):
     ay = np.abs(y)
 
     in_rect = (ax <= w) & (ay <= h)
-    in_ellipse = (ax > w) & ((((ax - w) / a) ** 2 + (y / b) ** 2) <= 1.0)
+    in_ellipse = (ax > w) & ((((ax - w) / a)**2 + (y / b)**2) <= 1.0)
     out = alive & ~(in_rect | in_ellipse)
     _mark_lost_cpu(tag, lost_position, lost_turn, out, s_position, turn)
 
@@ -118,8 +115,7 @@ def _check_octagon_cpu(beam, bunch, w, h, d, s_position, turn):
     tag, lost_position, lost_turn = p.tag[start:end], p.lost_position[start:end], p.lost_turn[start:end]
 
     alive = tag > 0
-    out = alive & ((np.abs(x) > w) | (np.abs(y) > h) |
-                   ((np.abs(x) + np.abs(y)) > (w + h - d)))
+    out = alive & ((np.abs(x) > w) | (np.abs(y) > h) | ((np.abs(x) + np.abs(y)) > (w + h - d)))
     _mark_lost_cpu(tag, lost_position, lost_turn, out, s_position, turn)
 
 
@@ -398,6 +394,8 @@ void check_aperture_polygon(
 '''
 
 _kernel_cache = {}
+
+
 def _get_kernel(name):
     if name not in _kernel_cache:
         _kernel_cache[name] = cp.RawKernel(kernel_code, name)
@@ -411,7 +409,7 @@ def _launch_gpu(kernel, beam, bunch, *args):
     N = end - start
     threads = 256
     blocks = (N + threads - 1) // threads
-    kernel((blocks,), (threads,), (p.x, p.y, p.tag, p.lost_position, p.lost_turn, start, end, *args))
+    kernel((blocks, ), (threads, ), (p.x, p.y, p.tag, p.lost_position, p.lost_turn, start, end, *args))
 
 
 def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, aperture_value: list, s_position: float, turn: int):
@@ -431,9 +429,11 @@ def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
     elif aperture_type == "rectcircle":
         _launch_gpu(_get_kernel("check_aperture_rectcircle"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
     elif aperture_type == "rectellipse":
-        _launch_gpu(_get_kernel("check_aperture_rectellipse"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], aperture_value[3], s_position, turn)
+        _launch_gpu(_get_kernel("check_aperture_rectellipse"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2],
+                    aperture_value[3], s_position, turn)
     elif aperture_type == "racetrack":
-        _launch_gpu(_get_kernel("check_aperture_racetrack"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], aperture_value[3], s_position, turn)
+        _launch_gpu(_get_kernel("check_aperture_racetrack"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], aperture_value[3],
+                    s_position, turn)
     elif aperture_type == "octagon":
         _launch_gpu(_get_kernel("check_aperture_octagon"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
     elif aperture_type == "polygon":
