@@ -367,14 +367,6 @@ class Injection(Command):
         gamma_x = inj_bunch.gammax
         gamma_y = inj_bunch.gammay
 
-        sigma_x = inj_bunch.sigmax
-        sigma_y = inj_bunch.sigmay
-
-        x_max = 4 * sigma_x
-        x_min = -4 * sigma_x
-        y_max = 4 * sigma_y
-        y_min = -4 * sigma_y
-
         x_arr = np.zeros(Np_inj, dtype=np.float64)
         px_arr = np.zeros(Np_inj, dtype=np.float64)
         y_arr = np.zeros(Np_inj, dtype=np.float64)
@@ -383,32 +375,23 @@ class Injection(Command):
         chi_x = -np.arctan(alpha_x)
         chi_y = -np.arctan(alpha_y)
 
-        Xm = 2.0 * np.sqrt(emit_x * beta_x)
-        Ym = 2.0 * np.sqrt(emit_y * beta_y)
+        Xm = np.sqrt(3.0) * np.sqrt(emit_x * beta_x)
+        PXm = np.sqrt(3.0) * np.sqrt(emit_x * gamma_x)
+        Ym = np.sqrt(3.0) * np.sqrt(emit_y * beta_y)
+        PYm = np.sqrt(3.0) * np.sqrt(emit_y * gamma_y)
 
-        sigma_px = np.sqrt(emit_x * (1 + alpha_x**2) / beta_x)
-        sigma_py = np.sqrt(emit_y * (1 + alpha_y**2) / beta_y)
+        for i in range(Np_inj):
+            # ---- 2D uniform in [-1, 1] x [-1, 1] ----
+            ux = self.rng.uniform(-1.0, 1.0)
+            vx = self.rng.uniform(-1.0, 1.0)
+            uy = self.rng.uniform(-1.0, 1.0)
+            vy = self.rng.uniform(-1.0, 1.0)
 
-        i = 0
-        while i < Np_inj:
-
-            x = self.rng.uniform(-x_max, x_max)
-            y = self.rng.uniform(-y_max, y_max)
-            px_gauss = self.rng.gauss(0.0, sigma_px)
-            py_gauss = self.rng.gauss(0.0, sigma_py)
-
-            px = Xm * (px_gauss * np.cos(chi_x) + x * np.sin(chi_x))
-            py = Ym * (py_gauss * np.cos(chi_y) + y * np.sin(chi_y))
-
-            if x > x_min and x < x_max and y > y_min and y < y_max:
-                x_arr[i] = x
-                px_arr[i] = px
-                y_arr[i] = y
-                py_arr[i] = py
-
-                i += 1
-            else:
-                pass
+            # ---- Twiss mapping ----
+            x_arr[i] = Xm * ux
+            px_arr[i] = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
+            y_arr[i] = Ym * uy
+            py_arr[i] = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
 
         p = beam.particles
         p.x[start_index:end_index] = p.xp.asarray(x_arr)
@@ -454,11 +437,11 @@ class Injection(Command):
         y_arr = np.zeros(Np_inj, dtype=np.float64)
         py_arr = np.zeros(Np_inj, dtype=np.float64)
 
-        Xm = 2.0 * np.sqrt(emit_x * beta_x)
-        PXm = 2.0 * np.sqrt(emit_x * gamma_x)
+        Xm = np.sqrt(6.0) * np.sqrt(emit_x * beta_x)
+        PXm = np.sqrt(6.0) * np.sqrt(emit_x * gamma_x)
 
-        Ym = 2.0 * np.sqrt(emit_y * beta_y)
-        PYm = 2.0 * np.sqrt(emit_y * gamma_y)
+        Ym = np.sqrt(6.0) * np.sqrt(emit_y * beta_y)
+        PYm = np.sqrt(6.0) * np.sqrt(emit_y * gamma_y)
 
         chi_x = -np.arctan(alpha_x)
         chi_y = -np.arctan(alpha_y)
@@ -542,11 +525,11 @@ class Injection(Command):
         y_arr = np.zeros(Np_inj, dtype=np.float64)
         py_arr = np.zeros(Np_inj, dtype=np.float64)
 
-        Xm = 2.0 * np.sqrt(emit_x * beta_x)
-        PXm = 2.0 * np.sqrt(emit_x * gamma_x)
+        Xm = np.sqrt(8.0) * np.sqrt(emit_x * beta_x)
+        PXm = np.sqrt(8.0) * np.sqrt(emit_x * gamma_x)
 
-        Ym = 2.0 * np.sqrt(emit_y * beta_y)
-        PYm = 2.0 * np.sqrt(emit_y * gamma_y)
+        Ym = np.sqrt(8.0) * np.sqrt(emit_y * beta_y)
+        PYm = np.sqrt(8.0) * np.sqrt(emit_y * gamma_y)
 
         chi_x = -np.arctan(alpha_x)
         chi_y = -np.arctan(alpha_y)
@@ -568,28 +551,23 @@ class Injection(Command):
                 if r2 <= 1.0:
                     break
 
-            r = self.rng.uniform(0, 1)**0.25  # 4D volume
-            weight = (1 - r * r)  # parabolic weighting
+            # ---- parabolic rejection: accept with probability (1 - r2) ----
+            if self.rng.uniform(0.0, 1.0) <= (1.0 - r2):
 
-            ux *= r * np.sqrt(weight)
-            vx *= r * np.sqrt(weight)
-            uy *= r * np.sqrt(weight)
-            vy *= r * np.sqrt(weight)
+                x = Xm * ux
+                px = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
+                y = Ym * uy
+                py = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
 
-            x = Xm * ux
-            px = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
-            y = Ym * uy
-            py = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
+                if (x_min < x < x_max and y_min < y < y_max):
 
-            if (x_min < x < x_max and y_min < y < y_max):
+                    x_arr[i] = x
+                    px_arr[i] = px
 
-                x_arr[i] = x
-                px_arr[i] = px
+                    y_arr[i] = y
+                    py_arr[i] = py
 
-                y_arr[i] = y
-                py_arr[i] = py
-
-                i += 1
+                    i += 1
 
         p = beam.particles
 
