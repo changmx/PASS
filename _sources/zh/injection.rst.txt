@@ -1,5 +1,5 @@
-注入模块（Injection）
-========================
+注入\粒子生成（Injection）
+==============================
 
 本模块介绍 PASS 中的注入命令 **Injection** ，用于在模拟起始位置生成特定粒子分布并注入束流。注入命令支持为每个束团独立设置横向分布、纵向分布、束流参数、偏移等，是粒子模拟的入口环节。
 
@@ -283,7 +283,7 @@
 横向粒子分布
 ------------
 
-目前 PASS 程序支持生成的横向粒子分布有 **水平垂直解耦的 2D 高斯分布** 、 **4D KV分布** 、 **4D 水袋分布** 、 **4D 双曲线分布** 、 **2D X-Y 均匀分布** 。
+目前 PASS 程序支持生成的横向粒子分布有 **水平垂直解耦的 2D 高斯分布** 、 **4D KV分布** 、 **4D 水袋分布** 、 **4D 抛物线分布** 、 **2D 相空间均匀分布** 。
 
 其中 4D 分布是指在 4D 相空间 :math:`(x, p_x, y, p_y)` 中定义一个广义的超椭球边界。为了简化推导且不失一般性，我们引入 **归一化坐标** ：
 
@@ -296,6 +296,50 @@
 .. math::
 
   r^2 = X^2 + P_x^2 + Y^2 + P_y^2 \le 1
+
+下面详细介绍各横向粒子分布。对于 4D 分布，其在 1D 平面的投影具有统一的幂函数形式。设 4D 相空间中分布密度为 :math:`f(r^2) \propto (1-r^2)^{\alpha}` （ `\alpha \ge 0` ，定义在 4D 单位球 :math:`B^4` 内），则对任意单一归一化坐标 :math:`u` 的 1D 边缘分布为：
+
+.. math::
+
+  \rho(u) \propto (1-u^2)^{\frac{n-1}{2}+\alpha}, \quad |u| \le 1
+
+其中 :math:`n=4` 为相空间维数。对于均匀分布在 :math:`n` 维球面 :math:`S^{n-1}` 上的分布（如 KV），其 1D 投影为：
+
+.. math::
+
+  \rho(u) \propto (1-u^2)^{\frac{n-3}{2}}
+
+各分布的 1D 投影汇总如下：
+
+.. list-table::
+  :header-rows: 1
+  :widths: 25 20 15 15 25
+
+  * - 分布
+    - 4D密度
+    - :math:`\alpha`
+    - 1D投影幂次
+    - 1D投影形式
+  * - Uniform（2D方块）
+    - —
+    - —
+    - 0
+    - :math:`\rho(u) = \mathrm{const}`
+  * - KV（ :math:`S^3` 球面）
+    - :math:`\delta(r-1)`
+    - —
+    - :math:`\frac{1}{2}`
+    - :math:`\rho(u) \propto \sqrt{1-u^2}`
+  * - Waterbag（ :math:`B^4` 均匀）
+    - :math:`1`
+    - 0
+    - :math:`\frac{3}{2}`
+    - :math:`\rho(u) \propto (1-u^2)^{3/2}`
+  * - Parabolic（ :math:`B^4` , :math:`1-r^2` ）
+    - :math:`(1-r^2)^1`
+    - 1
+    - :math:`\frac{5}{2}`
+    - :math:`\rho(u) \propto (1-u^2)^{5/2}`
 
 下面详细介绍各横向粒子分布：
 
@@ -346,8 +390,19 @@
 
     在 :math:`x-p_x-y-p_y` 四维相空间中生成 **均匀分布在四维超椭球表面上** 的粒子分布，是一种只存在于四维球壳上的理想化分布。这种分布下粒子产生的空间电荷场在束团内部是严格线性的，可以实现空间电荷问题的严格解析求解。
 
-    积分掉两个维度后，KV 分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影是一个均匀填充的椭圆。进一步积分掉一个维度后，KV 分布在 1D 平面的投影是一个半椭圆 （或半圆） 分布。
-    根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上 **KV分布的全发射度为RMS发射度的4倍** ，即 KV 分布下所有粒子均处在 :math:`2\sigma` 截断范围内。但是在程序中依然设置为保留满足：
+    积分掉两个维度后，KV 分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影是一个均匀填充的椭圆。进一步积分掉一个维度后，KV 分布在 1D 平面的投影是一个半椭圆 （或半圆） 分布。具体推导如下：KV 分布均匀分布在 4D 超球面 :math:`S^3` 上（ :math:`r^2 = 1` ），对 :math:`u_x` 求 1D 边缘分布需在 :math:`S^3` 上对其余三个坐标积分：
+
+    .. math::
+
+       \rho(u_x) \propto (1-u_x^2)^{\frac{n-3}{2}} = (1-u_x^2)^{\frac{1}{2}}
+
+    即 1D 投影幂次为 :math:`\frac{1}{2}` 。
+
+    .. note::
+      
+      根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上KV分布的全发射度为RMS发射度的4倍。
+      
+    即 KV 分布下所有粒子均处在 :math:`2\sigma` 截断范围内。但是在程序中依然设置为保留满足：
 
     .. math::
 
@@ -360,8 +415,19 @@
 
     在 :math:`x-p_x-y-p_y` 四维相空间中生成 **均匀分布在四维超椭球内部** 的粒子分布。
 
-    积分掉两个维度后，水袋分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影呈抛物线分布。进一步积分掉一个维度后，水袋分布在 1D 平面的投影是一个3/2次幂抛物线型分布。
-    根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上 **水袋分布的全发射度为RMS发射度的6倍** ，即水袋分布下所有粒子均处在 :math:`\sqrt{6}\sigma` 截断范围内。但是在程序中依然设置为保留满足：
+    积分掉两个维度后，水袋分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影呈抛物线分布。进一步积分掉一个维度后，水袋分布在 1D 平面的投影是一个 :math:`\frac{3}{2}` 次幂抛物线型分布。具体推导如下：水袋分布均匀分布在 4D 超球 :math:`B^4` 内（ :math:`f(r^2) = 1` ，即 :math:`\alpha = 0` ），对 :math:`u_x` 求 1D 边缘分布需在 :math:`B^4` 上对其余三个坐标积分，剩余部分为半径 :math:`\sqrt{1-u_x^2}` 的 3D 球：
+
+    .. math::
+
+       \rho(u_x) \propto V_3\!\left(\sqrt{1-u_x^2}\right) \propto (1-u_x^2)^{\frac{3}{2}}
+
+    其中 :math:`V_3(R) \propto R^3` 为 3D 球体积。即 1D 投影幂次为 :math:`\frac{3}{2}` 。
+    
+    .. note::
+      
+      根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上水袋分布的全发射度为RMS发射度的6倍。
+      
+    即水袋分布下所有粒子均处在 :math:`\sqrt{6}\sigma` 截断范围内。但是在程序中依然设置为保留满足：
 
     .. math::
 
@@ -374,8 +440,19 @@
 
     在 :math:`x-p_x-y-p_y` 四维相空间中生成 **密度从中心向外围随着r的增加呈抛物线递减** 的粒子分布，这种分布比水袋分布更贴近真实加速器中偏向中心聚集的束流。
 
-    积分掉两个维度后，抛物线分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影呈平方抛物线分布。进一步积分掉一个维度后，抛物线分布在 1D 平面的投影是一个5/2次幂抛物线型分布。
-    根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上 **抛物线分布的全发射度为RMS发射度的8倍** ，即抛物线分布下所有粒子均处在 :math:`\sqrt{8}\sigma` 截断范围内。但是在程序中依然设置为保留满足：
+    积分掉两个维度后，抛物线分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影呈平方抛物线分布。进一步积分掉一个维度后，抛物线分布在 1D 平面的投影是一个 :math:`\frac{5}{2}` 次幂抛物线型分布。具体推导如下：抛物线分布的 4D 密度为 :math:`f(r^2) \propto (1-r^2)^1` （ :math:`\alpha = 1` ），对 :math:`u_x` 求 1D 边缘分布：
+
+    .. math::
+
+       \rho(u_x) \propto (1-u_x^2)^{\frac{n-1}{2}+\alpha} = (1-u_x^2)^{\frac{3}{2}+1} = (1-u_x^2)^{\frac{5}{2}}
+
+    即 1D 投影幂次为 :math:`\frac{5}{2}` 。
+    
+    .. note::
+      
+      根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上抛物线分布的全发射度为RMS发射度的8倍。
+      
+    即抛物线分布下所有粒子均处在 :math:`\sqrt{8}\sigma` 截断范围内。但是在程序中依然设置为保留满足：
 
     .. math::
 
@@ -386,7 +463,15 @@
 
   - **Uniform（均匀分布）**
 
-    在 :math:`x-y` 平面生成在 :math:`\pm 4\sigma` 范围内均匀的粒子，在 :math:`x-p_x` 与 :math:`y-p_y` 相空间中分别独立服从高斯分布。这种分布可以模拟电子枪等产生的初始束流。
+    在 :math:`x-p_x` 与 :math:`y-p_y` 相空间中分别独立生成 2D 均匀方块分布。对于每个横向平面，在归一化坐标 :math:`(u, v)` 中于 :math:`[-1, 1] \times [-1, 1]` 方块区域内均匀采样，再通过 Twiss 参数映射到物理坐标。该分布的 RMS 发射度严格等于输入参数 :math:`\varepsilon` ，全发射度为 RMS 发射度的 3 倍，所有粒子均处在 :math:`\sqrt{3}\sigma` 截断范围内。这种分布可以模拟电子枪等产生的初始束流。
+
+    积分掉一个维度后，均匀分布在 1D 平面的投影是一个常数（均匀）分布。由于 :math:`u_x` 和 :math:`v_x` 独立均匀分布在 :math:`[-1, 1]` 上，对 :math:`v_x` 积分后：
+
+    .. math::
+
+       \rho(u_x) = \frac{1}{2} = \mathrm{const} \propto (1-u_x^2)^{0}
+
+    即 1D 投影幂次为 :math:`0` 。
 
 
 纵向粒子分布
@@ -526,6 +611,18 @@
 在生成纵向 gaussian 与 coasting 分布时，不需要高频相关参数，在生成 matchz 与 matchdp 分布时，需要提供高频参数。
 
 
+1D 投影理论曲线
+------------------
+
+下图展示了四种横向分布（ Uniform 、 KV 、 Waterbag 、 Parabolic ）在 1D 平面的理论投影曲线。所有曲线均归一化至 :math:`\int_{-1}^{1} \rho(u) \, du = 1` ，横轴为归一化坐标 :math:`u \in [-1, 1]` 。可以清晰看到从 Uniform （平顶）到 Parabolic （尖峰）的幂次递增趋势。
+
+.. figure:: images_injection/dist_1d_projections.png
+  :alt: 1D projections of transverse distributions
+  :width: 80%
+  :align: center
+
+  Figure 1. 1D projections of transverse distributions (theory)
+
 模拟结果
 --------
 
@@ -538,21 +635,21 @@
   :width: 100%
   :align: center
 
-  Figure 1. Transverse gaussian distribution: x-px
+  Figure 2. Transverse gaussian distribution: x-px
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png
   :alt: Gaussian y-py
   :width: 100%
   :align: center
 
-  Figure 2. Transverse gaussian distribution: y-py
+  Figure 3. Transverse gaussian distribution: y-py
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png
   :alt: Gaussian x-y
   :width: 100%
   :align: center
 
-  Figure 3. Transverse gaussian distribution: x-y
+  Figure 4. Transverse gaussian distribution: x-y
 
 - 横向 KV 分布：
 
@@ -561,21 +658,21 @@
   :width: 100%
   :align: center
 
-  Figure 4. Transverse KV distribution: x-px
+  Figure 5. Transverse KV distribution: x-px
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png
   :alt: kv y-py
   :width: 100%
   :align: center
 
-  Figure 5. Transverse KV distribution: y-py
+  Figure 6. Transverse KV distribution: y-py
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png
   :alt: kv x-y
   :width: 100%
   :align: center
 
-  Figure 6. Transverse KV distribution: x-y
+  Figure 7. Transverse KV distribution: x-y
 
 - 横向水袋分布：
 
@@ -584,21 +681,21 @@
   :width: 100%
   :align: center
 
-  Figure 7. Transverse waterbag distribution: x-px
+  Figure 8. Transverse waterbag distribution: x-px
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png
   :alt: waterbag y-py
   :width: 100%
   :align: center
 
-  Figure 8. Transverse waterbag distribution: y-py
+  Figure 9. Transverse waterbag distribution: y-py
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png
   :alt: waterbag x-y
   :width: 100%
   :align: center
 
-  Figure 9. Transverse waterbag distribution: x-y
+  Figure 10. Transverse waterbag distribution: x-y
 
 - 横向抛物线分布：
 
@@ -607,21 +704,21 @@
   :width: 100%
   :align: center
 
-  Figure 10. Transverse parabolic distribution: x-px
+  Figure 11. Transverse parabolic distribution: x-px
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png
   :alt: parabolic y-py
   :width: 100%
   :align: center
 
-  Figure 11. Transverse parabolic distribution: y-py
+  Figure 12. Transverse parabolic distribution: y-py
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png
   :alt: parabolic x-y
   :width: 100%
   :align: center
 
-  Figure 12. Transverse parabolic distribution: x-y
+  Figure 13. Transverse parabolic distribution: x-y
 
 - 横向均匀分布：
 
@@ -630,21 +727,21 @@
   :width: 100%
   :align: center
 
-  Figure 13. Transverse uniform distribution: x-px
+  Figure 14. Transverse uniform distribution: x-px
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png
   :alt: uniform y-py
   :width: 100%
   :align: center
 
-  Figure 14. Transverse uniform distribution: y-py
+  Figure 15. Transverse uniform distribution: y-py
 
 .. figure:: images_injection/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png
   :alt: uniform x-y
   :width: 100%
   :align: center
 
-  Figure 15. Transverse uniform distribution: x-y
+  Figure 16. Transverse uniform distribution: x-y
 
 - 纵向 MatchZ 分布：
 
@@ -653,7 +750,7 @@
   :width: 100%
   :align: center
 
-  Figure 16. Longitudinal matchz distribution: z-pz
+  Figure 17. Longitudinal matchz distribution: z-pz
 
 - 纵向 MatchDp 分布：
 
@@ -662,7 +759,7 @@
   :width: 100%
   :align: center
 
-  Figure 17. Longitudinal matchdp distribution: z-pz
+  Figure 18. Longitudinal matchdp distribution: z-pz
 
 - 纵向 Gaussian 分布：
 
@@ -671,7 +768,7 @@
   :width: 100%
   :align: center
 
-  Figure 18. Longitudinal gaussian distribution: z-pz
+  Figure 19. Longitudinal gaussian distribution: z-pz
 
 - 纵向 Coasting 分布：
 
@@ -680,4 +777,4 @@
   :width: 100%
   :align: center
 
-  Figure 19. Longitudinal coasting distribution: z-pz
+  Figure 20. Longitudinal coasting distribution: z-pz
