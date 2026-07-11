@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>漂移节（Drift） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="二极铁（Dipole / SBend）" href="dipole.html" />
+    <link rel="prev" title="标记（Marker）" href="marker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">注入模块（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id13">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id16">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id17">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id20">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">漂移节（Drift）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/zh/element/drift.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="drift">
+<h1>漂移节（Drift）<a class="headerlink" href="#drift" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的漂移节元件 <strong>Drift</strong> ，用于模拟粒子在无场自由空间中的传输。漂移节是最基本的束线元件，粒子在其中不受任何电磁力作用，仅凭借初始动量做直线运动。</p>
+<p><strong>代码位置</strong></p>
+<ul class="simple">
+<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/drift.py</span></code></p></li>
+<li><p>类名： <code class="docutils literal notranslate"><span class="pre">Drift</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
+<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">drift</span></code></p></li>
+<li><p>核心特征：</p>
+<ul>
+<li><p>厚元件（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），改变粒子的位置和纵向坐标；</p></li>
+<li><p>使用精确的几何传输公式，考虑横向动量对纵向速度的投影；</p></li>
+<li><p>支持孔径检查，与其它元件一致。</p></li>
+</ul>
+</li>
+</ul>
+<section id="id1">
+<h2>物理推导<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>粒子在漂移节中不受力，以恒定动量做直线运动。设漂移节长度为 <span class="math notranslate nohighlight">\(L\)</span> ，粒子归一化横向动量为 <span class="math notranslate nohighlight">\(p_x\)</span> 、 <span class="math notranslate nohighlight">\(p_y\)</span> ，动量偏差为 <span class="math notranslate nohighlight">\(\delta\)</span> 。</p>
+<p><strong>粒子总动量</strong></p>
+<p>归一化总动量（以参考粒子动量 <span class="math notranslate nohighlight">\(P_0\)</span> 为单位）为：</p>
+<div class="math notranslate nohighlight">
+\[P_{\text{tot}} = 1 + \delta\]</div>
+<p>纵向动量分量（考虑横向动量的投影）为：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1 + \delta)^2 - p_x^2 - p_y^2}\]</div>
+<p>若 <span class="math notranslate nohighlight">\(p_z^2 \le 0\)</span> ，粒子物理上不可能存在 （横向动量大于总动量），标记为丢失。</p>
+<p><strong>粒子速度</strong></p>
+<p>粒子 <span class="math notranslate nohighlight">\(\beta\)</span> 值由参考粒子 <span class="math notranslate nohighlight">\(\beta_0\)</span> 、 <span class="math notranslate nohighlight">\(\gamma_0\)</span> 和动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 计算：</p>
+<div class="math notranslate nohighlight">
+\[\beta = \frac{(1 + \delta) \, \gamma_0 \, \beta_0}{\sqrt{1 + \left[(1 + \delta) \, \gamma_0 \, \beta_0\right]^2}}\]</div>
+<p><strong>坐标更新</strong></p>
+<p>漂移节中粒子坐标更新为：</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + L \cdot \frac{p_x}{p_z}\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y + L \cdot \frac{p_y}{p_z}\]</div>
+<div class="math notranslate nohighlight">
+\[z \leftarrow z + L \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1 + \delta}{p_z}\right)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(z\)</span> 的更新包含路径长度差效应：具有动量偏差的粒子速度不同，导致纵向位置发生变化。</p>
+<p><strong>z 坐标回旋折叠</strong></p>
+<p>更新后的 <span class="math notranslate nohighlight">\(z\)</span> 坐标被折叠到 <span class="math notranslate nohighlight">\([-C/2, \; C/2]\)</span> 范围内：</p>
+<div class="math notranslate nohighlight">
+\[z \leftarrow z + \left\lfloor \frac{C/2 - z}{C} \right\rfloor \cdot C\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(C\)</span> 为环周长。这保证了 <span class="math notranslate nohighlight">\(z\)</span> 始终在环周长范围内。</p>
+</section>
+<section id="id2">
+<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件在束线中的纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件长度 （必须 <span class="math notranslate nohighlight">\(\ge 0\)</span> ）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>元件名称 （由序列 JSON 的键名自动填入）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径类型 （默认 <code class="docutils literal notranslate"><span class="pre">off</span></code> ，可选值见孔径章节）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径参数值 （默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code> ，含义随类型而异，详见孔径章节）</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id3">
+<h2>使用示例<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>以下 JSON 片段展示了漂移节的配置方式：</p>
+<p><strong>基本用法</strong> ：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>带圆形孔径检查</strong> ：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>带矩形孔径检查</strong> ：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">11.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="id4">
+<h2>应用场景<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>束线连接</strong> ：在各磁铁元件之间提供自由漂移空间，是最常用的束线元件</p></li>
+<li><p><strong>色散测量</strong> ：在偏转磁铁后设置漂移段，利用色散效应测量束流动量分散</p></li>
+<li><p><strong>束流传输</strong> ：在注入线和引出线中传输束流，不施加任何场</p></li>
+<li><p><strong>孔径检查</strong> ：在关键位置设置带孔径检查的漂移节，监控束流损失</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="marker.html" class="btn btn-neutral float-left" title="标记（Marker）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dipole.html" class="btn btn-neutral float-right" title="二极铁（Dipole / SBend）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

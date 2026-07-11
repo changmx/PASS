@@ -6,5 +6,7 @@
 .. toctree::
    :maxdepth: 2
 
-   exciter
    marker
+   drift
+   dipole
+   exciter

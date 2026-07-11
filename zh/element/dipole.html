@@ -1,0 +1,1218 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>二极铁（Dipole / SBend） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="激励器（Exciter）" href="exciter.html" />
+    <link rel="prev" title="漂移节（Drift）" href="drift.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">注入模块（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id13">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id16">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id17">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id20">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">二极铁（Dipole / SBend）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/zh/element/dipole.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dipole-sbend">
+<h1>二极铁（Dipole / SBend）<a class="headerlink" href="#dipole-sbend" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的二极铁元件 <strong>SBend</strong> ，用于模拟带电粒子在扇形弯转磁铁中的运动。二极铁是加速器中最基本的弯转元件，通过均匀磁场使粒子轨道偏转。</p>
+<p>PASS 中的二极铁为 <strong>厚元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），支持完整的非线性追踪，包括边缘角效应、边缘场效应、以及多种辛积分方案。</p>
+<p><strong>代码位置</strong></p>
+<ul class="simple">
+<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/dipole.py</span></code></p></li>
+<li><p>类名： <code class="docutils literal notranslate"><span class="pre">SBend</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
+<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">sbend</span></code></p></li>
+<li><p>核心特征：</p>
+<ul>
+<li><p>支持 drift-kick-drift-exact (DKD-exact) 模型</p></li>
+<li><p>支持 uniform (2阶) 和 yoshida4 (4阶) 两种辛积分器</p></li>
+<li><p>支持非线性边缘角 (wedge) 效应</p></li>
+<li><p>支持非线性边缘场 (fringe field) 效应</p></li>
+<li><p>支持孔径检查</p></li>
+</ul>
+</li>
+</ul>
+<section id="id1">
+<h2>坐标约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 <span class="math notranslate nohighlight">\((x, p_x, y, p_y, z, \delta)\)</span> ：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>变量</p></th>
+<th class="head"><p>符号</p></th>
+<th class="head"><p>定义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(x\)</span></p></td>
+<td><p>水平偏移（相对于参考轨道）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_x\)</span></p></td>
+<td><p>归一化水平动量， <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
+<td><p>垂直偏移</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span></p></td>
+<td><p>归一化垂直动量， <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
+<td><p>纵向坐标， <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>相对动量偏差， <span class="math notranslate nohighlight">\(\delta = P / P_0 - 1\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度， <span class="math notranslate nohighlight">\(s\)</span> 为沿参考轨道的弧长， <span class="math notranslate nohighlight">\(t\)</span> 为时间。</p>
+<p>纵向动量分量定义为：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<p>其他常用物理量：</p>
+<div class="math notranslate nohighlight">
+\[h = \frac{1}{\rho} = \frac{K_0 L}{L} = \frac{K_{0L}}{L}\]</div>
+<div class="math notranslate nohighlight">
+\[K_0 = \frac{q_0 B_0}{P_0} = \frac{K_{0L}}{L}\]</div>
+<div class="math notranslate nohighlight">
+\[\chi = \frac{q}{q_0} \cdot \frac{m_0}{m}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(h\)</span> 为参考轨道曲率， <span class="math notranslate nohighlight">\(\rho\)</span> 为弯转半径， <span class="math notranslate nohighlight">\(K_0\)</span> 为归一化二极场强， <span class="math notranslate nohighlight">\(\chi\)</span> 为荷质比因子（同种粒子束 <span class="math notranslate nohighlight">\(\chi = 1\)</span> ）。对于扇形弯铁 <span class="math notranslate nohighlight">\(h = K_0\)</span> 。</p>
+</section>
+<section id="id2">
+<h2>整体追踪流程<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>一个完整的二极铁由 <strong>入口边缘</strong> 、 <strong>主体</strong> 和 <strong>出口边缘</strong> 三部分组成，追踪顺序为：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 入口边缘 (B=0 → B=B0) ======
+
+YRotation(-e1)  →  Fringe Field  →  Wedge(-e1, K0)
+[纯几何旋转]       [非线性边缘场]     [旋转+聚焦踢腿]
+[B=0]             [B: 0→B0]         [B=B0]
+
+       ↓
+
+====== 主体 Body (B=B0) ======
+
+切片1 → 切片2 → ... → 切片N
+(参考轨迹坐标系, 辛积分器)
+
+       ↓
+
+====== 出口边缘 (B=B0 → B=0) ======
+
+Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
+[旋转+聚焦踢腿]     [非线性边缘场]     [纯几何旋转]
+[B=B0]             [B: B0→0]         [B=0]
+
+入口净旋转: (-e1) + (+e1) = 0
+出口净旋转: (+e2) + (-e2) = 0
+→ Body 在参考轨迹坐标系中运行
+</pre></div>
+</div>
+<p>完整映射为：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{M}_{\text{body}} \circ \mathcal{M}_{\text{entry}}\]</div>
+<p><strong>入口边缘</strong> ：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{entry}} = \text{Wedge}(-e_1, K_0) \circ \text{Fringe}(e_1) \circ \text{YRotation}(-e_1)\]</div>
+<p><strong>出口边缘</strong> （与入口镜像对称）：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{exit}} = \text{YRotation}(-e_2) \circ \text{Fringe}(e_2) \circ \text{Wedge}(-e_2, K_0)\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>当 <span class="math notranslate nohighlight">\(e_1 = 0\)</span> 时，YRotation 和 Wedge 均跳过（无边缘角效应）</p></li>
+<li><p>当 <code class="docutils literal notranslate"><span class="pre">fint</span></code> = 0 或 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 0 时，Fringe 跳过（无边缘场效应）</p></li>
+<li><p>当 <span class="math notranslate nohighlight">\(K_0 = 0\)</span> 时，Fringe 和 Wedge 均跳过</p></li>
+<li><p>入口和出口的执行顺序互为镜像</p></li>
+<li><p><strong>出口处</strong> <span class="math notranslate nohighlight">\(K_0\)</span> <strong>部分取反</strong> ：Xsuite 在出口处将局部变量 <span class="math notranslate nohighlight">\(K_0\)</span> 取反（ <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">(is_exit)</span> <span class="pre">k0</span> <span class="pre">=</span> <span class="pre">-k0</span></code> ），但仅 <strong>DipoleFringe</strong> 使用取反后的 <span class="math notranslate nohighlight">\(-K_0\)</span> ，因为出口边缘场是磁场从 <span class="math notranslate nohighlight">\(B_0\)</span> 下降到 0（与入口的 0 上升到 <span class="math notranslate nohighlight">\(B_0\)</span> 方向相反）。 <strong>Wedge</strong> 直接使用原始 <code class="docutils literal notranslate"><span class="pre">knorm[0]</span></code> （不取反），因为 Wedge 描述的是均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> 中的旋转，磁场方向在入口和出口一致。PASS 在 <code class="docutils literal notranslate"><span class="pre">_edge_exit_cpu</span></code> 中使用 <code class="docutils literal notranslate"><span class="pre">k0_fringe</span> <span class="pre">=</span> <span class="pre">-k0</span></code> （仅 Fringe）和 <code class="docutils literal notranslate"><span class="pre">k0</span></code> （Wedge）实现此行为。</p></li>
+</ul>
+</div>
+<section id="id3">
+<h3>为什么是这个顺序<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p><strong>YRotation 的作用</strong> ：纯几何坐标旋转，将粒子坐标从参考轨迹坐标系变换到磁铁端面坐标系。不施加任何力，仅改变观察参考系。</p>
+<p><strong>Fringe Field 的作用</strong> ：在端面参考系中计算非线性边缘场效应。Fringe 公式中的粒子斜率 <span class="math notranslate nohighlight">\(x' = p_x / p_z\)</span> 必须是相对于磁铁端面的斜率，因此必须先做 YRotation。</p>
+<p><strong>Wedge 的作用</strong> ：在均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> 中旋转观测平面，同时施加边缘角聚焦踢角。Wedge 包含几何旋转（将坐标系转回参考轨迹系）和磁场踢角两部分。</p>
+<p>YRotation 和 Wedge 的几何旋转方向相反，净旋转为零：</p>
+<div class="math notranslate nohighlight">
+\[\text{YRotation}(-e_1) \text{ 的旋转} + \text{Wedge}(-e_1) \text{ 的几何旋转} = (-e_1) + (+e_1) = 0\]</div>
+<p>因此 body 在参考轨迹坐标系中运行，不需要任何额外旋转。</p>
+</section>
+</section>
+<section id="dkd-exact">
+<h2>主体：DKD-exact 模型<a class="headerlink" href="#dkd-exact" title="Link to this heading"></a></h2>
+<section id="id4">
+<h3>哈密顿量<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>在曲线坐标系中，二极铁的完整哈密顿量为：</p>
+<div class="math notranslate nohighlight">
+\[H_{\text{bend}} = \frac{p_\tau}{\beta_0} - (1+hx)\sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \chi K_0\!\left(x + \frac{h x^2}{2}\right)\]</div>
+<p>将其拆分为传播部分（精确直漂移 <span class="math notranslate nohighlight">\(H_D\)</span> ）和踢角部分（ <span class="math notranslate nohighlight">\(H_h\)</span> , <span class="math notranslate nohighlight">\(H_{K_0}\)</span> , <span class="math notranslate nohighlight">\(H_{K_0 h}\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[H_D = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[H_h = -h x (1+\delta)\]</div>
+<div class="math notranslate nohighlight">
+\[H_{K_0} = \chi K_0 x\]</div>
+<div class="math notranslate nohighlight">
+\[H_{K_0 h} = \frac{\chi K_0 h x^2}{2}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(H_D\)</span> 是精确直漂移哈密顿量（保留 <span class="math notranslate nohighlight">\(p_z\)</span> 的根号，不做小动量展开），后三项是薄透镜踢角。</p>
+</section>
+<section id="d">
+<h3>精确漂移映射 D<a class="headerlink" href="#d" title="Link to this heading"></a></h3>
+<p>传播部分的哈密顿方程给出精确直漂移：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + \frac{p_x}{p_z} \cdot L_D\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y + \frac{p_y}{p_z} \cdot L_D\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta + L_D \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1+\delta}{p_z}\right)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(L_D\)</span> 为漂移长度， <span class="math notranslate nohighlight">\(\beta\)</span> 为粒子实际归一化速度：</p>
+<div class="math notranslate nohighlight">
+\[\beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>“exact” 的含义：漂移部分保留精确根号 <span class="math notranslate nohighlight">\(p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span> ，不做 <span class="math notranslate nohighlight">\(p_x \ll 1\)</span> 的小动量展开。近似仅在于将传播部分与踢角部分分离（分裂算符法）。</p>
+</div>
+</section>
+<section id="k">
+<h3>二极踢角映射 K<a class="headerlink" href="#k" title="Link to this heading"></a></h3>
+<p>踢角部分合并为单个薄透镜 kick（位置不变，仅动量跳变）：</p>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow p_x + L_K \cdot \left[h(1+\delta) - \chi K_0 - \chi K_0 h x\right]\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta - \frac{\beta_0}{\beta} \cdot h x L_K\]</div>
+<p>各项物理含义：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 15.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>项</p></th>
+<th class="head"><p>来源</p></th>
+<th class="head"><p>物理含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(h(1+\delta) L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_h\)</span></p></td>
+<td><p>曲率踢角（参考轨道弯转）</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(-\chi K_0 L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_{K_0}\)</span></p></td>
+<td><p>主二极弯转</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(-\chi K_0 h x L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_{K_0 h}\)</span></p></td>
+<td><p>弱聚焦（曲率与二极场耦合）</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(-(\beta_0/\beta) \cdot h x L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_h\)</span></p></td>
+<td><p>路径长度效应（纵向）</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>对于扇形弯铁 <span class="math notranslate nohighlight">\(h = K_0\)</span> ，参考粒子（ <span class="math notranslate nohighlight">\(x=0, \delta=0, \chi=1\)</span> ）的净踢角为 <span class="math notranslate nohighlight">\(h L_K - K_0 L_K = 0\)</span> 。这是正确的：在曲线坐标系中，参考粒子沿参考轨道运动， <span class="math notranslate nohighlight">\(p_x\)</span> 始终为 0。弯转效应已编码在曲线坐标系本身中。</p>
+</div>
+</section>
+<section id="uniform-2">
+<h3>uniform 积分器（2阶辛）<a class="headerlink" href="#uniform-2" title="Link to this heading"></a></h3>
+<p>每个切片采用漂移-踢角-漂移（DKD）结构，即二阶蛙跳（leapfrog）：</p>
+<div class="math notranslate nohighlight">
+\[S_2(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
+<p>每个切片误差为 <span class="math notranslate nohighlight">\(O(\Delta s^3)\)</span> ，全局误差为 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> 。二阶辛积分器，每步都是正则变换。</p>
+</section>
+<section id="yoshida4-4">
+<h3>yoshida4 积分器（4阶辛）<a class="headerlink" href="#yoshida4-4" title="Link to this heading"></a></h3>
+<p>通过组合三个二阶 DKD 步构造四阶辛映射 [Yoshida 1990]：</p>
+<div class="math notranslate nohighlight">
+\[S_4(\Delta s) = S_2(z_1 \Delta s) \circ S_2(z_0 \Delta s) \circ S_2(z_1 \Delta s)\]</div>
+<p>其中 Yoshida 系数为：</p>
+<div class="math notranslate nohighlight">
+\[z_1 = \frac{1}{2 - 2^{1/3}} \approx 1.3512\]</div>
+<div class="math notranslate nohighlight">
+\[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><span class="math notranslate nohighlight">\(z_0 &lt; 0\)</span> 意味着中间一步是反向追踪（漂移和踢角的 “长度” 为负）。这是 Yoshida 组合方法的数学要求，在辛映射群中完全自洽。每个切片误差为 <span class="math notranslate nohighlight">\(O(\Delta s^5)\)</span> ，全局误差为 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
+</div>
+<p>积分器选择建议：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>场景</p></th>
+<th class="head"><p>推荐积分器</p></th>
+<th class="head"><p>原因</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>快速模拟</p></td>
+<td><p>uniform</p></td>
+<td><p>每切片 2 次漂移 + 1 次踢角，计算量小</p></td>
+</tr>
+<tr class="row-odd"><td><p>高精度模拟</p></td>
+<td><p>yoshida4</p></td>
+<td><p>4 阶精度，但每切片 6 次漂移 + 3 次踢角</p></td>
+</tr>
+<tr class="row-even"><td><p>含空间电荷</p></td>
+<td><p>uniform + 更多切片</p></td>
+<td><p>PIC 求解开销远大于漂移，4阶 Yoshida 需要 3 次 PIC 求解</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="yrotation">
+<h2>入口边缘：YRotation<a class="headerlink" href="#yrotation" title="Link to this heading"></a></h2>
+<section id="id5">
+<h3>物理目的<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>YRotation 是纯几何坐标旋转，不涉及任何磁场。其目的是将粒子坐标从参考轨迹坐标系变换到磁铁端面坐标系，使后续的边缘场计算能在正确的参考系中进行。</p>
+<p>当磁铁端面与参考轨迹法线有夹角 <span class="math notranslate nohighlight">\(e_1\)</span> 时，粒子相对于端面的入射斜率不等于 <span class="math notranslate nohighlight">\(p_x / p_z\)</span> 。YRotation 将坐标系旋转 <span class="math notranslate nohighlight">\(-e_1\)</span> ，使得旋转后的 <span class="math notranslate nohighlight">\(p_x / p_z\)</span> 成为相对于端面的斜率。</p>
+</section>
+<section id="id6">
+<h3>完整推导<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>YRotation(-e1)                    Wedge(-e1, K0)
+─────────────────                 ──────────────────
+坐标系: 轨迹系 → 端面系            坐标系: 端面系 → 轨迹系
+磁场: B = 0 (无场区)              磁场: B = B0 (有场区)
+旋转: -e1                         旋转: +e1 (与 YRotation 反向)
+踢腿: 无                          踢腿: Δpx = K0·x·sin(e1) (聚焦)
+─────────────────                 ──────────────────
+
+净旋转: (-e1) + (+e1) = 0
+净效果: 边缘场效应 + 聚焦踢腿
+</pre></div>
+</div>
+<p><strong>第一步：动量旋转</strong></p>
+<p>参考系绕 <span class="math notranslate nohighlight">\(y\)</span> 轴旋转角度 <span class="math notranslate nohighlight">\(\theta\)</span> 。这个旋转在三维空间的 <span class="math notranslate nohighlight">\((x, z)\)</span> 平面内进行， <span class="math notranslate nohighlight">\(y\)</span> 方向不受影响。因此被混合的是动量的 <span class="math notranslate nohighlight">\(x\)</span> 分量 <span class="math notranslate nohighlight">\(p_x\)</span> 和 <span class="math notranslate nohighlight">\(z\)</span> 分量 <span class="math notranslate nohighlight">\(p_z\)</span> ，而 <span class="math notranslate nohighlight">\(p_y\)</span> 不变。动量的标准旋转变换为：</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{pmatrix} p_x' \\ p_z' \end{pmatrix} = \begin{pmatrix} \cos\theta &amp; -\sin\theta \\ \sin\theta &amp; \cos\theta \end{pmatrix} \begin{pmatrix} p_x \\ p_z \end{pmatrix}\end{split}\]</div>
+<p>因此：</p>
+<div class="math notranslate nohighlight">
+\[p_x' = \cos\theta \cdot p_x - \sin\theta \cdot p_z\]</div>
+<div class="math notranslate nohighlight">
+\[p_z' = \sin\theta \cdot p_x + \cos\theta \cdot p_z\]</div>
+<p>这是纯动量旋转，不涉及力。</p>
+<p><strong>第二步：位置投影</strong></p>
+<p>关键在于曲线坐标系中 <span class="math notranslate nohighlight">\(x\)</span> 的定义： <strong>x 是在参考位置</strong> <span class="math notranslate nohighlight">\(s\)</span> <strong>处的横向平面上测量的横向偏移</strong> 。当参考系旋转 <span class="math notranslate nohighlight">\(\theta\)</span> 后，”横向平面” 的方向变了，同一物理位置在新坐标系中的 <span class="math notranslate nohighlight">\(x'\)</span> 值不同。</p>
+<p>粒子在旧参考系中的轨迹为 <span class="math notranslate nohighlight">\(\vec{r}(\lambda) = (x + \lambda p_x/p_z,\; 0,\; \lambda)\)</span> 。新参考系的 <span class="math notranslate nohighlight">\(z'\)</span> 轴方向为 <span class="math notranslate nohighlight">\(\hat{z}' = (\sin\theta, 0, \cos\theta)\)</span> ，横向方向为 <span class="math notranslate nohighlight">\(\hat{x}' = (\cos\theta, 0, -\sin\theta)\)</span> 。</p>
+<p>在新参考系中，纵向位置为零意味着：</p>
+<div class="math notranslate nohighlight">
+\[\vec{r} \cdot \hat{z}' = (x + \lambda p_x/p_z)\sin\theta + \lambda\cos\theta = 0\]</div>
+<p>解出 <span class="math notranslate nohighlight">\(\lambda\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[\lambda = -\frac{x \sin\theta \cdot p_z}{p_x \sin\theta + p_z \cos\theta} = -\frac{x \sin\theta \cdot p_z}{p_z'}\]</div>
+<p>新横向位置为：</p>
+<div class="math notranslate nohighlight">
+\[x' = \vec{r} \cdot \hat{x}' = (x + \lambda p_x/p_z)\cos\theta - \lambda\sin\theta\]</div>
+<p>代入 <span class="math notranslate nohighlight">\(\lambda\)</span> 并化简，利用旋转的正交性 <span class="math notranslate nohighlight">\(p_z'\cos\theta - p_x'\sin\theta = p_z\)</span> ，最终得到：</p>
+<div class="math notranslate nohighlight">
+\[x' = \frac{x \cdot p_z}{p_z'} = \frac{x \cdot p_z}{p_x \sin\theta + p_z \cos\theta}\]</div>
+<p><strong>验证与 Xsuite 公式的一致性</strong> ：</p>
+<p>Xsuite 写作 <code class="docutils literal notranslate"><span class="pre">x_hat</span> <span class="pre">=</span> <span class="pre">x</span> <span class="pre">/</span> <span class="pre">(cos_angle</span> <span class="pre">*</span> <span class="pre">ptt)</span></code> ，其中 <code class="docutils literal notranslate"><span class="pre">ptt</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">+</span> <span class="pre">tan_angle</span> <span class="pre">*</span> <span class="pre">px</span> <span class="pre">/</span> <span class="pre">pz</span></code> ：</p>
+<div class="math notranslate nohighlight">
+\[\cos\theta \cdot p_{tt} = \cos\theta + \sin\theta \cdot \frac{p_x}{p_z} = \frac{p_z'}{p_z}\]</div>
+<p>因此 <span class="math notranslate nohighlight">\(x' = x / (\cos\theta \cdot p_{tt}) = x \cdot p_z / p_z'\)</span> ，与推导一致。</p>
+<p><strong>第三步： y 方向</strong></p>
+<p><span class="math notranslate nohighlight">\(y\)</span> 方向不直接参与旋转，但由于横向平面倾斜，粒子在走到新横向平面期间， <span class="math notranslate nohighlight">\(y\)</span> 方向因轨迹斜率产生额外偏移：</p>
+<div class="math notranslate nohighlight">
+\[y' = y - \sin\theta \cdot \frac{x \cdot p_y}{p_z'} = y - \tan\theta \cdot \frac{x \cdot p_y}{p_z \cdot p_{tt}}\]</div>
+<p><strong>第四步：</strong> <span class="math notranslate nohighlight">\(\zeta\)</span> <strong>方向</strong></p>
+<p>纵向坐标 <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span> 。旋转参考系后， <span class="math notranslate nohighlight">\(\sin\theta \cdot x\)</span> 是横向位置在新纵向方向上的投影（因参考系旋转导致的额外路径长度），需转换为时间增量：</p>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = \beta_0 \cdot \tan\theta \cdot \frac{x \cdot \text{time\_fac}}{p_z \cdot p_{tt}}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\text{time\_fac} = 1/\beta_0 + p_\tau\)</span> 是时间-路径转换因子（见变量转换说明）。</p>
+</section>
+<section id="id7">
+<h3>最终公式<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>定义：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[p_{tt} = 1 + \tan(\theta) \cdot \frac{p_x}{p_z}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\theta\)</span> 为旋转角度（入口 <span class="math notranslate nohighlight">\(\theta = -e_1\)</span> ，出口 <span class="math notranslate nohighlight">\(\theta = -e_2\)</span> ）。</p>
+<p>时间因子：</p>
+<div class="math notranslate nohighlight">
+\[\text{time\_fac} = \frac{1}{\beta_0} + p_\tau = \sqrt{(1+\delta)^2 + \frac{1}{\beta_0^2 \gamma_0^2}}\]</div>
+<p>六维映射：</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow \frac{x}{\cos\theta \cdot p_{tt}}\]</div>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow \cos\theta \cdot p_x - \sin\theta \cdot p_z\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y - \tan\theta \cdot \frac{x \cdot p_y}{p_z \cdot p_{tt}}\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta + \beta_0 \cdot \tan\theta \cdot \frac{x \cdot \text{time\_fac}}{p_z \cdot p_{tt}}\]</div>
+<div class="math notranslate nohighlight">
+\[p_y, \delta \text{ 不变}\]</div>
+</section>
+<section id="id8">
+<h3>变量转换说明<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<p>Xsuite 中存储 <span class="math notranslate nohighlight">\(p_\tau\)</span> （归一化纵向动量偏差），而 PASS 存储 <span class="math notranslate nohighlight">\(\delta\)</span> （归一化总动量偏差）。两者的精确关系为：</p>
+<div class="math notranslate nohighlight">
+\[(1+\delta)^2 = \left(\frac{1}{\beta_0} + p_\tau\right)^2 - \frac{1}{\beta_0^2 \gamma_0^2}\]</div>
+<p>因此：</p>
+<div class="math notranslate nohighlight">
+\[\frac{1}{\beta_0} + p_\tau = \sqrt{(1+\delta)^2 + \frac{1}{\beta_0^2 \gamma_0^2}}\]</div>
+<p><strong>推导</strong> ：粒子总能量 <span class="math notranslate nohighlight">\(E = E_0(1 + p_\tau)\)</span> ，由 <span class="math notranslate nohighlight">\(E^2 - E_0^2 = (Pc)^2 - (P_0 c)^2\)</span> 得：</p>
+<div class="math notranslate nohighlight">
+\[(1+\delta)^2 = (P/P_0)^2 = \frac{(1+p_\tau)^2 - 1/\gamma_0^2}{\beta_0^2}\]</div>
+<p>展开并利用 <span class="math notranslate nohighlight">\(1 - 1/\gamma_0^2 = \beta_0^2\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[(1+\delta)^2 = 1 + \frac{2 p_\tau}{\beta_0^2} + \frac{p_\tau^2}{\beta_0^2}\]</div>
+<p>而 Xsuite 中 <span class="math notranslate nohighlight">\(p_z\)</span> 的表达式为 <code class="docutils literal notranslate"><span class="pre">sqrt(1</span> <span class="pre">+</span> <span class="pre">2*pt/beta0</span> <span class="pre">+</span> <span class="pre">pt*pt</span> <span class="pre">-</span> <span class="pre">px*px</span> <span class="pre">-</span> <span class="pre">py*py)</span></code> ，代入上述关系后恰好等于 <span class="math notranslate nohighlight">\(\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span> 。</p>
+</section>
+</section>
+<section id="fringe-field">
+<h2>入口边缘：边缘场（Fringe Field）<a class="headerlink" href="#fringe-field" title="Link to this heading"></a></h2>
+<section id="id9">
+<h3>物理目的<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>真实磁铁的磁场在端面处不是阶跃函数，而是有一个渐变区域。这个渐变区域产生额外的非线性效应，主要是垂直方向的聚焦。</p>
+</section>
+<section id="id10">
+<h3>物理推导<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>B_y                                          B_y = B0
+↑                              ┌──────────────
+│                             /
+│         Fringe             /  end face
+│         Field             /
+│       (B: 0→B0)          /
+│                        /
+│  B = 0               /
+└────────────┬────────┘──────────────────────── → s
+             ↑        ↑
+             YRotation Fringe    Wedge / Body
+             (B=0)    (0→B0)     (B=B0)
+
+hgap = 半气隙
+Δp_y = 垂直聚焦踢腿
+</pre></div>
+</div>
+<p><strong>边缘场分布</strong></p>
+<p>真实磁铁端面处的磁场渐变为：</p>
+<div class="math notranslate nohighlight">
+\[B_y(s) = B_0 \cdot b(s), \quad b(s): 0 \to 1\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(b(s)\)</span> 是归一化边缘场分布函数。这个渐变场对粒子产生非线性效应，主要是垂直方向的聚焦。</p>
+<p><strong>边缘场积分</strong></p>
+<p>Forest 定义边缘场积分：</p>
+<div class="math notranslate nohighlight">
+\[F = \int \frac{b(s)\bigl(K_0 - b(s)K_0\bigr)}{g_{\text{full}} \cdot K_0^2} \, ds\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(g_{\text{full}}\)</span> 为磁铁全气隙（ <span class="math notranslate nohighlight">\(g_{\text{full}} = 2 \times \text{hgap}\)</span> ）。 <span class="math notranslate nohighlight">\(F\)</span> 描述边缘场的”强度”： <span class="math notranslate nohighlight">\(F=0\)</span> 对应硬边缘， <span class="math notranslate nohighlight">\(F\)</span> 越大边缘场效应越强。</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>hgap 与 g 的命名关系</strong></p>
+<p>Xsuite 和 PASS 的 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> 参数是磁铁的 <strong>半气隙</strong> （half gap），即上下极板间距的一半。</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 半气隙 = <span class="math notranslate nohighlight">\(g_{\text{half}}\)</span></p></li>
+<li><p>磁铁全气隙 <span class="math notranslate nohighlight">\(g_{\text{full}} = 2 \times \text{hgap}\)</span></p></li>
+</ul>
+<p>在边缘场代码中，辅助量 <span class="math notranslate nohighlight">\(f_h\)</span> 直接使用 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> （半气隙）：</p>
+<div class="math notranslate nohighlight">
+\[f_h = \text{hgap} \times \text{fint}\]</div>
+<p>这与 Xsuite 源码 <code class="docutils literal notranslate"><span class="pre">track_dipole_fringe.h</span></code> 第 37 行 <code class="docutils literal notranslate"><span class="pre">fh</span> <span class="pre">=</span> <span class="pre">hgap</span> <span class="pre">*</span> <span class="pre">fint</span></code> 完全一致。Xsuite 的 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> 参数也是半气隙。因此 <span class="math notranslate nohighlight">\(f_h\)</span> 的物理含义是”半气隙 x 边缘场积分”，而非”全气隙 x 边缘场积分”。</p>
+<p>在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 <span class="math notranslate nohighlight">\(g\)</span> 通常指全气隙。Xsuite/MAD-NG 的实现中已将 <span class="math notranslate nohighlight">\(g\)</span> 替换为半气隙 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> ，相应的系数已做调整（如 <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 \cdot f_h)\)</span> 中的因子 72 即来自此调整）。PASS 严格遵循 Xsuite 的实现，不做额外换算。</p>
+</div>
+<p><strong>生成函数</strong></p>
+<p>边缘场映射是一个正则变换（保辛映射），由生成函数 <span class="math notranslate nohighlight">\(\Phi_0\)</span> 生成：</p>
+<div class="math notranslate nohighlight">
+\[\Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(x' = p_x/p_z\)</span> , <span class="math notranslate nohighlight">\(y' = p_y/p_z\)</span> 是粒子斜率， <span class="math notranslate nohighlight">\(c_2 = 2 K_0 \chi \cdot f_h\)</span> 是线性边缘场强度参数。</p>
+<ul class="simple">
+<li><p><strong>第一项</strong> <span class="math notranslate nohighlight">\(\arctan(x'/(1+y'^2))\)</span> ：粒子在端面处的入射角修正。 <span class="math notranslate nohighlight">\(x'\)</span> 是水平斜率， <span class="math notranslate nohighlight">\(1+y'^2\)</span> 反映垂直运动对水平入射角的几何修正（三维方向余弦）。</p></li>
+<li><p><strong>第二项</strong> <span class="math notranslate nohighlight">\(-c_2(1 + x'^2(1+y'^2))p_z\)</span> ：边缘场积分效应。 <span class="math notranslate nohighlight">\(c_2\)</span> 是边缘场强度， <span class="math notranslate nohighlight">\((1 + x'^2(1+y'^2))\)</span> 是斜率的高阶修正。</p></li>
+</ul>
+<p><strong>偏导数与力</strong></p>
+<p>从 <span class="math notranslate nohighlight">\(\Phi_0\)</span> 对斜率 <span class="math notranslate nohighlight">\((x', y', p_z)\)</span> 求偏导，再通过链式法则转换为对 <span class="math notranslate nohighlight">\((p_x, p_y, \delta)\)</span> 的偏导，得到力的分量。</p>
+<p>引入中间变量 <span class="math notranslate nohighlight">\(c_{o2} = b_0 / \cos^2\Phi_0\)</span> , <span class="math notranslate nohighlight">\(c_{o1}\)</span>, <span class="math notranslate nohighlight">\(c_{o3}\)</span> （详见公式部分），偏导数为：</p>
+<div class="math notranslate nohighlight">
+\[\phi_1 = \frac{\partial \Phi_0}{\partial x'}, \quad \phi_2 = \frac{\partial \Phi_0}{\partial y'}, \quad \phi_3 = \frac{\partial \Phi_0}{\partial p_z}\]</div>
+<p>力的分量（链式法则 <span class="math notranslate nohighlight">\(k_i = \phi_1 \partial x'/\partial p_i + \phi_2 \partial y'/\partial p_i + \phi_3 \partial p_z/\partial p_i\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x'y'}{p_z} - \phi_3 x'\]</div>
+<div class="math notranslate nohighlight">
+\[k_y = \phi_1 \frac{x'y'}{p_z} + \phi_2 \frac{1+y'^2}{p_z} - \phi_3 y'\]</div>
+<div class="math notranslate nohighlight">
+\[k_z = \phi_1 \frac{\text{tfac} \cdot x'}{p_z^2} + \phi_2 \frac{\text{tfac} \cdot y'}{p_z^2} - \phi_3 \frac{\text{tfac}}{p_z}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\text{tfac} = -(1/\beta_0 + p_\tau)\)</span> 来自 <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span> 中 <span class="math notranslate nohighlight">\(t\)</span> 对 <span class="math notranslate nohighlight">\(p_z\)</span> 的依赖。</p>
+<p><strong>隐式方程</strong></p>
+<p>边缘场映射不是简单的 kick（位置不变、动量跳变），而是一个 <strong>隐式映射</strong> 。原因是边缘场效应与粒子的 <span class="math notranslate nohighlight">\(y\)</span> 坐标非线性耦合：粒子在穿过边缘场时， <span class="math notranslate nohighlight">\(y\)</span> 坐标本身也在变化，因此力（依赖 <span class="math notranslate nohighlight">\(y\)</span> ）和位移（依赖力）相互耦合。</p>
+<p>隐式解来自生成函数展开到二阶：</p>
+<div class="math notranslate nohighlight">
+\[y_f = \frac{2y}{1 + \sqrt{1 - 2 k_y y}}\]</div>
+<p>这个形式保证了正则性（保辛）：当 <span class="math notranslate nohighlight">\(k_y y\)</span> 很小时， <span class="math notranslate nohighlight">\(y_f \approx y + k_y y^2/2\)</span> ，即二阶展开。</p>
+</section>
+<section id="id11">
+<h3>参数<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数</p></th>
+<th class="head"><p>符号</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fint</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(F\)</span></p></td>
+<td><p>边缘场积分（fringe field integral）， <span class="math notranslate nohighlight">\(F=0\)</span> 为硬边缘</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hgap</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(g_{\text{half}}\)</span></p></td>
+<td><p>磁铁 <strong>半气隙</strong> （half gap），全气隙 <span class="math notranslate nohighlight">\(g_{\text{full}} = 2 \cdot \text{hgap}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k0</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(K_0\)</span></p></td>
+<td><p>归一化二极场强</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id12">
+<h3>完整公式<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<p>定义辅助量：</p>
+<div class="math notranslate nohighlight">
+\[f_h = \text{hgap} \cdot F\]</div>
+<div class="math notranslate nohighlight">
+\[f_{\text{sad}} = \frac{1}{72 \cdot f_h} \quad (f_h &gt; 0 \text{ 时，否则为 } 0)\]</div>
+<div class="math notranslate nohighlight">
+\[b_0 = K_0 \cdot \chi\]</div>
+<div class="math notranslate nohighlight">
+\[\text{relp} = \frac{1}{\sqrt{(1+\delta)^2}}\]</div>
+<div class="math notranslate nohighlight">
+\[\text{tfac} = -\left(\frac{1}{\beta_0} + p_\tau\right) = -\sqrt{(1+\delta)^2 + \frac{1}{\beta_0^2 \gamma_0^2}}\]</div>
+<div class="math notranslate nohighlight">
+\[c_2 = b_0 \cdot f_h \cdot 2\]</div>
+<div class="math notranslate nohighlight">
+\[c_3 = b_0^2 \cdot f_{\text{sad}} \cdot \text{relp}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(c_2\)</span> 是线性边缘场强度， <span class="math notranslate nohighlight">\(c_3\)</span> 是六阶非线性修正（来自 <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 f_h)\)</span> ，称为 “sixth-order achromatic detuning” 项）。</p>
+<p>粒子斜率：</p>
+<div class="math notranslate nohighlight">
+\[x' = \frac{p_x}{p_z}, \quad y' = \frac{p_y}{p_z}\]</div>
+<p>特征函数及偏导数：</p>
+<div class="math notranslate nohighlight">
+\[\phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+<div class="math notranslate nohighlight">
+\[c_{o2} = \frac{b_0}{\cos^2\phi_0}\]</div>
+<div class="math notranslate nohighlight">
+\[c_{o1} = \frac{c_{o2}}{1 + \left(\frac{x'}{1+y'^2}\right)^2} \cdot \frac{1}{1+y'^2}\]</div>
+<div class="math notranslate nohighlight">
+\[c_{o3} = c_{o2} \cdot c_2\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_1 = c_{o1} - c_{o3} \cdot 2 x'(1+y'^2) p_z\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x' y' \cdot p_z\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_3 = -c_{o3} \left(1 + x'^2(1+y'^2)\right)\]</div>
+<p>力的分量：</p>
+<div class="math notranslate nohighlight">
+\[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x' y'}{p_z} - \phi_3 x'\]</div>
+<div class="math notranslate nohighlight">
+\[k_y = \phi_1 \frac{x' y'}{p_z} + \phi_2 \frac{1+y'^2}{p_z} - \phi_3 y'\]</div>
+<div class="math notranslate nohighlight">
+\[k_z = \phi_1 \frac{\text{tfac} \cdot x'}{p_z^2} + \phi_2 \frac{\text{tfac} \cdot y'}{p_z^2} - \phi_3 \frac{\text{tfac}}{p_z}\]</div>
+<p>六维映射：</p>
+<div class="math notranslate nohighlight">
+\[y_f = \frac{2y}{1 + \sqrt{1 - 2 k_y y}}\]</div>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + \frac{1}{2} k_x y_f^2\]</div>
+<div class="math notranslate nohighlight">
+\[p_y \leftarrow p_y - 4 c_3 y_f^3 - b_0 \tan(\phi_0) \cdot y_f\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta + \beta_0 \left(\frac{1}{2} k_z y_f^2 + c_3 y_f^4 \cdot \text{relp}^2 \cdot \text{tfac}\right)\]</div>
+<div class="math notranslate nohighlight">
+\[p_x, \delta \text{ 不变}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p_x\)</span> 和 <span class="math notranslate nohighlight">\(\delta\)</span> 不变：边缘场是静磁场，不做功</p></li>
+<li><p><span class="math notranslate nohighlight">\(p_y\)</span> 的变化中的 <span class="math notranslate nohighlight">\(-b_0 \tan(\phi_0) y_f\)</span> 项是主要的垂直聚焦</p></li>
+<li><p><span class="math notranslate nohighlight">\(-4 c_3 y_f^3\)</span> 是六阶非线性修正</p></li>
+<li><p><span class="math notranslate nohighlight">\(y_f\)</span> 通过隐式方程求解，保证了非线性效应的精确处理和保辛性</p></li>
+<li><p><span class="math notranslate nohighlight">\(x\)</span> 的变化是 <span class="math notranslate nohighlight">\(O(y^2)\)</span> 量级的水平-垂直耦合</p></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="wedge">
+<h2>入口边缘：Wedge（边缘角）<a class="headerlink" href="#wedge" title="Link to this heading"></a></h2>
+<section id="id13">
+<h3>物理目的<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<p>Wedge 描述粒子在均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> 中穿过倾斜端面时的坐标变换。它同时完成两件事：</p>
+<ol class="arabic simple">
+<li><p><strong>几何旋转</strong> ：将坐标系从端面参考系转回参考轨迹参考系（与 YRotation 的旋转方向相反，互相抵消）</p></li>
+<li><p><strong>磁场踢角</strong> ：施加边缘角聚焦效应 <span class="math notranslate nohighlight">\(\Delta p_x \propto -x\)</span></p></li>
+</ol>
+<p>当 <span class="math notranslate nohighlight">\(K_0 = 0\)</span> （无磁场）时，Wedge 退化为纯 YRotation（证明见下文）。</p>
+</section>
+<section id="id14">
+<h3>计算公式<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<p>参数： <span class="math notranslate nohighlight">\(\theta\)</span> （楔形角度，入口 <span class="math notranslate nohighlight">\(\theta = -e_1\)</span> ）， <span class="math notranslate nohighlight">\(K_0\)</span> ， <span class="math notranslate nohighlight">\(\chi\)</span></p>
+<p>定义：</p>
+<div class="math notranslate nohighlight">
+\[b_1 = K_0 \cdot \chi\]</div>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[A = \frac{1}{\sqrt{(1+\delta)^2 - p_y^2}}\]</div>
+<div class="math notranslate nohighlight">
+\[\text{rvv} = \frac{\beta}{\beta_0}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\beta\)</span> 为粒子实际归一化速度（见漂移映射中的公式）。</p>
+<p>六维映射：</p>
+<div class="math notranslate nohighlight">
+\[p_x' = p_x \cos\theta + (p_z - b_1 x) \sin\theta\]</div>
+<div class="math notranslate nohighlight">
+\[p_z' = \sqrt{(1+\delta)^2 - p_x'^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[x' = x \cos\theta + \frac{x p_x \sin(2\theta) + \sin^2\theta \cdot (2 x p_z - b_1 x^2)}{p_z' + p_z \cos\theta - p_x \sin\theta}\]</div>
+<div class="math notranslate nohighlight">
+\[D = \arcsin(A \cdot p_x) - \arcsin(A \cdot p_x')\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta y = \frac{p_y (\theta + D)}{b_1}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta \ell = \frac{(1+\delta) (\theta + D)}{b_1}\]</div>
+<p>最终更新：</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x'\]</div>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow p_x'\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y + \Delta y\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta - \frac{\Delta \ell}{\text{rvv}}\]</div>
+<div class="math notranslate nohighlight">
+\[p_y, \delta \text{ 不变}\]</div>
+</section>
+<section id="id15">
+<h3>踢角项的物理含义<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<p>将 <span class="math notranslate nohighlight">\(p_x'\)</span> 的公式展开：</p>
+<div class="math notranslate nohighlight">
+\[p_x' = \underbrace{p_x \cos\theta + p_z \sin\theta}_{\text{几何旋转}} \;\underbrace{-\; b_1 x \sin\theta}_{\text{磁场踢角}}\]</div>
+<ul class="simple">
+<li><p><strong>几何旋转部分</strong> ： <span class="math notranslate nohighlight">\(p_x \cos\theta + p_z \sin\theta\)</span> ，与 YRotation 的 <span class="math notranslate nohighlight">\(\cos\theta \cdot p_x - \sin\theta \cdot p_z\)</span> 方向相反，互相抵消</p></li>
+<li><p><strong>磁场踢角部分</strong> ： <span class="math notranslate nohighlight">\(-b_1 x \sin\theta = -K_0 \chi x \sin\theta\)</span> ，正比于 <span class="math notranslate nohighlight">\(-x\)</span> ，即边缘角聚焦</p></li>
+</ul>
+<p>对于入口（ <span class="math notranslate nohighlight">\(\theta = -e_1\)</span> ），踢角为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = -K_0 \chi x \sin(-e_1) = K_0 \chi x \sin(e_1) &gt; 0 \quad (x &gt; 0 \text{ 时})\]</div>
+<p>这使轨道外侧（ <span class="math notranslate nohighlight">\(x &gt; 0\)</span> ）的粒子获得向内的动量，即聚焦效应。等效焦距为 <span class="math notranslate nohighlight">\(f = \rho / \sin(e_1)\)</span> 。</p>
+</section>
+<section id="delta-ell-zeta">
+<h3>Delta-ell 与 zeta 的关系<a class="headerlink" href="#delta-ell-zeta" title="Link to this heading"></a></h3>
+<p>公式 Eq. 1.201 给出的是 <strong>路径长度</strong> <span class="math notranslate nohighlight">\(\Delta\ell\)</span> ，而代码更新的是 <strong>纵向坐标</strong> <span class="math notranslate nohighlight">\(\zeta\)</span> 。两者不同：</p>
+<div class="math notranslate nohighlight">
+\[\Delta\ell = \frac{(1+\delta)(\theta + D)}{b_1} \quad \text{(路径长度)}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = -\frac{\Delta\ell}{\text{rvv}} \quad (\zeta \text{ 坐标更新})\]</div>
+<p><strong>物理原因</strong> ：</p>
+<ol class="arabic simple">
+<li><p><span class="math notranslate nohighlight">\(\Delta\ell\)</span> 是粒子在 wedge 中走过的路径长度</p></li>
+<li><p><span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span> ，更新 <span class="math notranslate nohighlight">\(\zeta\)</span> 需要时间： <span class="math notranslate nohighlight">\(\Delta t = \Delta\ell / v = \Delta\ell / (\text{rvv} \cdot \beta_0 c)\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\Delta s\)</span> 已在 <span class="math notranslate nohighlight">\(x'\)</span> 和 <span class="math notranslate nohighlight">\(\Delta y\)</span> 的几何变换中处理了，所以 <span class="math notranslate nohighlight">\(\zeta\)</span> 只需要 <strong>时间修正</strong> 部分：</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = -\beta_0 c \cdot \Delta t = -\beta_0 c \cdot \frac{\Delta\ell}{\text{rvv} \cdot \beta_0 c} = -\frac{\Delta\ell}{\text{rvv}}\]</div>
+<ul class="simple">
+<li><p><strong>负号</strong> ： <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span> ，时间增加导致 <span class="math notranslate nohighlight">\(\zeta\)</span> 减小</p></li>
+<li><p><strong>除以 rvv</strong> ： <span class="math notranslate nohighlight">\(\text{rvv} = v/v_0 = \beta/\beta_0\)</span> ，将路径长度转换为时间时需要除以粒子实际速度</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta - \frac{\Delta \ell}{\text{rvv}}\]</div>
+<p>与 Xsuite 源码 <code class="docutils literal notranslate"><span class="pre">add_to_zeta(-delta_ell</span> <span class="pre">/</span> <span class="pre">rvv)</span></code> 完全一致。</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>不要将 <span class="math notranslate nohighlight">\(\Delta\ell\)</span> 直接加到 <span class="math notranslate nohighlight">\(\zeta\)</span> 上。 <span class="math notranslate nohighlight">\(\Delta\ell\)</span> 是路径长度， <span class="math notranslate nohighlight">\(\zeta\)</span> 是时间相关坐标，两者通过 <span class="math notranslate nohighlight">\(-\Delta\ell/\text{rvv}\)</span> 联系。</p>
+</div>
+</section>
+<section id="arcsin-clip">
+<h3>arcsin 的 clip 处理<a class="headerlink" href="#arcsin-clip" title="Link to this heading"></a></h3>
+<p>Wedge 中 <span class="math notranslate nohighlight">\(D\)</span> 的计算用到 <span class="math notranslate nohighlight">\(\arcsin\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[D = \arcsin(A \cdot p_x) - \arcsin(A \cdot p_x')\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(A = 1/\sqrt{(1+\delta)^2 - p_y^2}\)</span> 。理论上 <span class="math notranslate nohighlight">\(|A \cdot p_x| \leq 1\)</span> （因为 <span class="math notranslate nohighlight">\(|p_x| \leq \sqrt{(1+\delta)^2 - p_y^2}\)</span> ），但 <strong>浮点误差</strong> 可能导致 <span class="math notranslate nohighlight">\(A \cdot p_x = 1.0000000001\)</span> ，此时 Python 的 <code class="docutils literal notranslate"><span class="pre">np.arcsin</span></code> 返回 NaN 并触发 RuntimeWarning。</p>
+<p>代码中使用 <code class="docutils literal notranslate"><span class="pre">np.clip</span></code> 将参数限制在 <span class="math notranslate nohighlight">\([-1, 1]\)</span> 范围内：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arg_px</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">arg_px</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">arg_new_px</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">arg_new_px</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>这是 <strong>纯数值安全措施</strong> ，不改变物理结果。在精确算术下 <span class="math notranslate nohighlight">\(A \cdot p_x\)</span> 严格在 <span class="math notranslate nohighlight">\([-1, 1]\)</span> 内， clip 不会触发。Xsuite 是 C 代码， <code class="docutils literal notranslate"><span class="pre">asin(1.0000000001)</span></code> 在 C 中返回有限值不抛异常，但 Python 需要显式保护。</p>
+</section>
+<section id="k0-0-wedge-yrotation">
+<h3>K0=0 时 Wedge 退化为 YRotation 的证明<a class="headerlink" href="#k0-0-wedge-yrotation" title="Link to this heading"></a></h3>
+<p><strong>Wedge 的</strong> <span class="math notranslate nohighlight">\(p_x'\)</span> <strong>公式</strong> ：</p>
+<div class="math notranslate nohighlight">
+\[p_x' = p_x \cos\theta + (p_z - b_1 x) \sin\theta\]</div>
+<p>令 <span class="math notranslate nohighlight">\(b_1 = K_0 \chi \to 0\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[p_x' = p_x \cos\theta + p_z \sin\theta\]</div>
+<p>YRotation 的 <span class="math notranslate nohighlight">\(p_x'\)</span> 公式为 <span class="math notranslate nohighlight">\(p_x' = \cos\alpha \cdot p_x - \sin\alpha \cdot p_z\)</span> 。令 <span class="math notranslate nohighlight">\(\alpha = -\theta\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[p_x' = \cos\theta \cdot p_x + \sin\theta \cdot p_z\]</div>
+<p>动量公式一致。</p>
+<p><strong>位置</strong> <span class="math notranslate nohighlight">\(x'\)</span> ：</p>
+<p>令 <span class="math notranslate nohighlight">\(b_1 = 0\)</span> ， Wedge 的 <span class="math notranslate nohighlight">\(x'\)</span> 化简为：</p>
+<div class="math notranslate nohighlight">
+\[x' = x \cos\theta + \frac{2 x \sin\theta \cdot p_x'}{p_z' + p_z \cos\theta - p_x \sin\theta}\]</div>
+<p>利用旋转正交性 <span class="math notranslate nohighlight">\(p_z' = p_x \sin\theta + p_z \cos\theta\)</span> ，分母变为 <span class="math notranslate nohighlight">\(2 p_z \cos\theta\)</span> ，最终得到：</p>
+<div class="math notranslate nohighlight">
+\[x' = \frac{x \cdot p_z}{p_z'} = \frac{x \cdot p_z}{p_x \sin\theta + p_z \cos\theta}\]</div>
+<p>与 YRotation 的位置公式一致。</p>
+<p><strong>y 和</strong> <span class="math notranslate nohighlight">\(\zeta\)</span> ：</p>
+<p>当 <span class="math notranslate nohighlight">\(b_1 \to 0\)</span> 时， <span class="math notranslate nohighlight">\(D \to 0\)</span> ， <span class="math notranslate nohighlight">\(\theta + D \to \theta\)</span> ，所以 <span class="math notranslate nohighlight">\(\Delta y = p_y \theta / b_1 \to \infty\)</span> 。</p>
+<p>这意味着 <span class="math notranslate nohighlight">\(y\)</span> 和 <span class="math notranslate nohighlight">\(\zeta\)</span> 的公式在 <span class="math notranslate nohighlight">\(b_1 \to 0\)</span> 时发散。因此 Wedge 的 <span class="math notranslate nohighlight">\(b_1 = 0\)</span> 极限不是连续的——当 <span class="math notranslate nohighlight">\(|b_1| &lt; \epsilon\)</span> 时，代码直接跳转到 YRotation 分支：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">b1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">const</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+    <span class="c1"># 直接调用 YRotation，跳过含 1/b1 的计算</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_y_rotation_cpu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">dp</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">beta0</span><span class="p">)</span>
+    <span class="k">return</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Wedge 在 <span class="math notranslate nohighlight">\(b_1 = 0\)</span> 时通过 <strong>代码分支结构</strong> 退化为 YRotation。动量和位置的公式在 <span class="math notranslate nohighlight">\(b_1 \to 0\)</span> 极限下一致，但 <span class="math notranslate nohighlight">\(y\)</span> 和 <span class="math notranslate nohighlight">\(\zeta\)</span> 含有 <span class="math notranslate nohighlight">\(1/b_1\)</span> 因子，极限不连续，必须用分支处理。</p>
+</div>
+</section>
+</section>
+<section id="id16">
+<h2>边缘角正负号定义<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>e1 &gt; 0 (聚焦):
+
+                  端面法线
+                    ↗  e1
+轨迹法线  ↑        ↗
+          |      ╱  端面
+          |    ╱
+──────────┼──╱──────────→ s (参考轨迹)
+          |  ╱
+          |╱
+
+端面法线相对于轨迹法线向弯转外侧倾斜
+
+
+e1 &lt; 0 (散焦):
+
+          |╲
+          |  ╲
+──────────┼──╲──────────→ s (参考轨迹)
+          |    ╲  端面
+          |      ╲
+轨迹法线  ↓        ╲  e1
+                   ╲ 端面法线
+
+端面法线相对于轨迹法线向弯转内侧倾斜
+</pre></div>
+</div>
+<p>边缘角 <span class="math notranslate nohighlight">\(e_1\)</span> , <span class="math notranslate nohighlight">\(e_2\)</span> 的正负号采用 MAD-X / Xsuite 约定：</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(e_1 &gt; 0\)</span> ：入口端面法线相对于参考轨迹法线向弯转外侧倾斜</p></li>
+<li><p><span class="math notranslate nohighlight">\(e_2 &gt; 0\)</span> ：出口端面法线相对于参考轨迹法线向弯转外侧倾斜</p></li>
+</ul>
+<p>常见磁铁类型：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>磁铁类型</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(e_1\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(e_2\)</span></p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>扇形弯铁</p></td>
+<td><p>0</p></td>
+<td><p>0</p></td>
+<td><p>端面垂直于参考轨迹</p></td>
+</tr>
+<tr class="row-odd"><td><p>矩形弯铁</p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha/2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha/2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha\)</span> 为弯转角</p></td>
+</tr>
+<tr class="row-even"><td><p>通用</p></td>
+<td><p>任意</p></td>
+<td><p>任意</p></td>
+<td><p>用户指定</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id17">
+<h2>参数列表<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<section id="id18">
+<h3>通用参数<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件在束线中的纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件长度（ <span class="math notranslate nohighlight">\(L\)</span> ）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>元件名称</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k0l</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">k0l</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>归一化二极场积分（ <span class="math notranslate nohighlight">\(K_{0L}\)</span> ）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">e1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">e1</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>rad</p></td>
+<td><p>入口边缘角（ <span class="math notranslate nohighlight">\(e_1\)</span> ），默认 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">e2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">e2</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>rad</p></td>
+<td><p>出口边缘角（ <span class="math notranslate nohighlight">\(e_2\)</span> ），默认 0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hgap</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hgap</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>磁铁半气隙（ <span class="math notranslate nohighlight">\(g_{\text{half}}\)</span> ），默认 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fint</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fint</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>入口边缘场积分（ <span class="math notranslate nohighlight">\(F\)</span> ），默认 0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fintx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fintx</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>出口边缘场积分，默认 0（ <span class="math notranslate nohighlight">\(\leq 0\)</span> 时自动设为 <code class="docutils literal notranslate"><span class="pre">fint</span></code> ）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>切片数，默认 1</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>物理模型，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认，自动选 <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>积分器，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> 、 <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径类型，默认 <code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径参数值，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id19">
+<h3>扩展参数（预留）<a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_field_error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">field</span> <span class="pre">error</span></code></p></td>
+<td><p>bool</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>是否启用磁场误差，默认 <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">ramping</span></code></p></td>
+<td><p>bool</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>是否启用磁场斜坡，默认 <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k0l_ramping_filepath</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">k0l</span> <span class="pre">ramping</span> <span class="pre">filepath</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>磁场斜坡数据文件路径</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="id20">
+<h2>使用示例<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
+<section id="id21">
+<h3>扇形弯铁<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BEND1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SBend&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;K0L&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>扇形弯铁，端面垂直于参考轨道，无边缘效应。</p>
+</section>
+<section id="id22">
+<h3>矩形弯铁<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BEND2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SBend&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;K0L&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;E1 (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;E2 (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;HGap (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;FInt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>矩形弯铁，含边缘角和边缘场效应。弯转角 <span class="math notranslate nohighlight">\(\alpha = K_{0L} = 0.1\)</span> rad，边缘角 <span class="math notranslate nohighlight">\(e_1 = e_2 = \alpha/2 = 0.05\)</span> rad。</p>
+</section>
+<section id="id23">
+<h3>薄透镜弯转<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BEND3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SBend&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;K0L&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>零长度二极铁，仅施加 <span class="math notranslate nohighlight">\(K_{0L}\)</span> 薄透镜踢角，无 body 追踪，无边缘效应。</p>
+</section>
+</section>
+<section id="id24">
+<h2>参考文献<a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Xsuite Physics Guide, Sec 1.10.3 (精确弯铁), Sec 1.10.9 (边缘场), Sec 1.10.10 (楔形), Sec 1.10.12 (四极楔形修正)</p></li>
+<li><p>Forest, E. et al., “Edge Focusing Effects in Sector Bending Magnets”</p></li>
+<li><p>Yoshida, H., “Construction of higher order symplectic integrators”, Phys. Lett. A 150 (1990)</p></li>
+<li><p>MAD-NG fringe field implementation: <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD">https://github.com/MethodicalAcceleratorDesign/MAD</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="drift.html" class="btn btn-neutral float-left" title="漂移节（Drift）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="exciter.html" class="btn btn-neutral float-right" title="激励器（Exciter）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
