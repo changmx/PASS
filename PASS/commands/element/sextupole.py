@@ -1,0 +1,308 @@
+from PASS.commands.command import Command
+from PASS.core.simulation import Simulation
+from PASS.core.beam import Beam
+from PASS.core.bunch import BunchInfo
+from PASS.core.particle import ParticlePool
+from PASS.core.config import Config
+from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
+from PASS.utils.constants import const
+from PASS.utils.aperture import check_aperture_cpu
+
+import numpy as np
+import cupy as cp
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# ============================================================
+# Yoshida 4th-order coefficients
+# ============================================================
+_YOSHIDA_Z1 = 1.0 / (2.0 - 2.0**(1.0/3.0))   # ≈ 1.3512071919596
+_YOSHIDA_Z0 = 1.0 - 2.0 * _YOSHIDA_Z1          # ≈ -1.7024143839193
+
+
+@Command.register("sextupole")
+class Sextupole(Command):
+    """
+    Sextupole magnet with exact drift-kick-drift tracking.
+
+    Tracking sequence:
+      Thin lens (length=0):  single sextupole kick
+      Thick lens (length>0): N slices of drift-kick-drift-exact
+        - uniform:   Drift(ds/2) → Kick(ds) → Drift(ds/2)  (2nd order symplectic)
+        - yoshida4:  4th order Yoshida composition of DKD steps
+
+      If k2l=0 and k2sl=0 (no field), thick lens degenerates to a pure drift.
+
+    Sextupole kick (integrated strength k2l_eff = k2 * ds):
+      dpx = -chi * k2l_eff/2 * (x² - y²) + chi * k2sl_eff * xy
+      dpy =  chi * k2l_eff * xy + chi * k2sl_eff/2 * (x² - y²)
+
+    Drift: exact drift (Table 1.1, map D), Eq. 1.86-1.88
+
+    Coordinate convention (PASS):
+      x, px, y, py, z, dp(=δ)
+      px = Px/P0,  py = Py/P0,  dp = (P-P0)/P0
+      z  = s - β0·c·t  (ζ coordinate)
+    """
+
+    def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
+        kwargs = {k.lower(): v for k, v in command_kwargs.items()}
+
+        self.beam_id = beam_id
+        self.s = kwargs["s (m)"]
+        self.length = kwargs["length (m)"]
+        self.cmd_type = self.__class__.__name__
+        self.cmd_name = kwargs["name"]
+
+        if self.length < 0.0:
+            raise ValueError(f"The length of Sextupole {self.cmd_name} is {self.length}, which should be >= 0")
+        if self.length > const.eps:
+            self.is_thick = True
+        else:
+            self.is_thick = False
+
+        self.k2l = kwargs.get("k2l", 0.0)
+        self.k2sl = kwargs.get("k2sl", 0.0)
+        if self.is_thick:
+            self.k2 = self.k2l / self.length
+            self.k2s = self.k2sl / self.length
+        else:
+            self.k2 = 0.0
+            self.k2s = 0.0
+        if abs(self.k2l) < const.eps and abs(self.k2sl) < const.eps:
+            logger.warning(f"Sextupole {self.cmd_name} has zero integrated strength (k2l=0, k2sl=0). It will act as a pure drift.")
+        if abs(self.k2l) > const.eps and abs(self.k2sl) > const.eps:
+            logger.warning(f"Sextupole {self.cmd_name} has both normal and skew components (k2l={self.k2l}, k2sl={self.k2sl}). It will act as a combined sextupole.")
+
+        self.num_slice = kwargs.get("num slices", 1)
+        if self.num_slice < 1:
+            logger.warning(f"The number of slices of {self.cmd_name} is {self.num_slice}, which should be >= 1. It has been changed to 1 now.")
+            self.num_slice = 1
+
+        self.integrator = kwargs.get("integrator", "adaptive")
+        if self.integrator not in ["adaptive", "uniform", "yoshida4"]:
+            raise ValueError(f"The integrator of Sextupole {self.cmd_name} is {self.integrator}, which should be 'adaptive', 'uniform' or 'yoshida4'.")
+        if self.integrator == "adaptive":
+            self.integrator = "uniform"
+
+        self.aperture_type: str = kwargs.get("aperture type", "off").lower()
+        self.aperture_value: list = kwargs.get("aperture value", [])
+        if not isinstance(self.aperture_value, list):
+            raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
+
+        super().__init__()
+
+    def print(self):
+        set_simple_logging()
+        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}, "
+                    f"IsThick={self.is_thick}, K2L={self.k2l:.6f}, K2SL={self.k2sl:.6f}, "
+                    f"NumSlice={self.num_slice:d}, Integrator={self.integrator:s}, "
+                    f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        set_normal_logging()
+
+    # ============================================================
+    # Main execution
+    # ============================================================
+
+    def execute_cpu(self, sim):
+        beam = sim.beams[self.beam_id]
+        bunches: list[BunchInfo] = beam.bunches
+        turn = sim.state.turn
+
+        for i, bunch in enumerate(bunches):
+            self._track_sextupole_cpu(beam, bunch)
+            check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+
+    def execute_gpu(self, sim):
+        raise NotImplementedError("GPU implementation of Sextupole is not yet available")
+
+    # ============================================================
+    # Full sextupole tracking (CPU)
+    # ============================================================
+
+    def _track_sextupole_cpu(self, beam: Beam, bunch: BunchInfo):
+        """Track particles through the sextupole: thin lens or sliced DKD-exact."""
+
+        beta0 = bunch.beta
+        circum = bunch.circum
+        start = bunch.start_idx
+        end = bunch.end_idx
+
+        p = beam.particles
+        x = p.x[start:end]
+        px = p.px[start:end]
+        y = p.y[start:end]
+        py = p.py[start:end]
+        z = p.z[start:end]
+        dp = p.dp[start:end]
+        tag = p.tag[start:end]
+
+        # chi = q/q0 * m0/m  (for same-species beam, chi = 1)
+        chi = 1.0
+
+        # mask for alive particles
+        mask = (tag > 0).astype(np.float64)
+
+        if not self.is_thick:
+            # Thin lens: single sextupole kick
+            self._sextupole_kick_cpu(self.k2l, self.k2sl,
+                                      x, px, y, py, tag, mask, chi)
+            return
+
+        # Thick lens
+        if abs(self.k2l) < const.eps and abs(self.k2sl) < const.eps:
+            # No field: pure drift
+            self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag, mask, beta0)
+        else:
+            # Sliced DKD-exact
+            ds = self.length / self.num_slice
+            for _ in range(self.num_slice):
+                if self.integrator == "uniform":
+                    self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
+                                          ds, self.k2, self.k2s, chi, beta0)
+                elif self.integrator == "yoshida4":
+                    self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
+                                           ds, self.k2, self.k2s, chi, beta0)
+
+        # ---- Wrap z into [-C/2, C/2) ----
+        c_half = 0.5 * circum
+        over = (z > c_half).astype(np.int64)
+        under = (z < -c_half).astype(np.int64)
+        z += (under - over) * circum
+
+    # ============================================================
+    # Body: Drift-Kick-Drift exact (uniform integrator)
+    # ============================================================
+
+    def _dkd_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
+                         ds, k2, k2s, chi, beta0):
+        """
+        One DKD slice (uniform/leapfrog, 2nd order symplectic):
+
+          Drift(ds/2) → Kick(ds) → Drift(ds/2)
+        """
+        self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
+        self._sextupole_kick_cpu(k2 * ds, k2s * ds,
+                                  x, px, y, py, tag, mask, chi)
+        self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
+
+    # ============================================================
+    # Body: Drift-Kick-Drift exact (Yoshida 4th order)
+    # ============================================================
+
+    def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
+                          ds, k2, k2s, chi, beta0):
+        """
+        One Yoshida-4 slice:
+
+          S4(ds) = S2(z1·ds) ∘ S2(z0·ds) ∘ S2(z1·ds)
+
+        where S2 is the standard DKD (leapfrog) step.
+        """
+        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds * _YOSHIDA_Z1, k2, k2s, chi, beta0)
+        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds * _YOSHIDA_Z0, k2, k2s, chi, beta0)
+        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds * _YOSHIDA_Z1, k2, k2s, chi, beta0)
+
+    def _dkd_step_cpu(self, x, px, y, py, z, dp, tag, mask,
+                      ds, k2, k2s, chi, beta0):
+        """Single DKD step with given effective length ds (can be negative)."""
+        self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
+        self._sextupole_kick_cpu(k2 * ds, k2s * ds,
+                                  x, px, y, py, tag, mask, chi)
+        self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
+
+    # ============================================================
+    # Exact drift map (Table 1.1, map D)
+    # Eq. 1.86-1.88
+    # ============================================================
+
+    def _drift_exact_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0):
+        """
+        Exact drift: free propagation in a straight, field-free region.
+
+        x  += (px / pz) * L
+        y  += (py / pz) * L
+        z  += L * (1 - (beta0/beta) * (1+dp) / pz)
+
+        where pz = sqrt((1+dp)² - px² - py²)
+              beta = (1+dp)*beta0*gamma0 / sqrt(1 + ((1+dp)*beta0*gamma0)²)
+        """
+        if abs(L) < const.eps:
+            return
+
+        one_plus_delta = 1.0 + dp
+        pz_sq = one_plus_delta**2 - px**2 - py**2
+
+        valid = (pz_sq > 0.0) & (tag > 0)
+        tag[~valid] = -np.abs(tag[~valid])
+        pz_sq_safe = np.maximum(pz_sq, const.eps)
+        pz = np.sqrt(pz_sq_safe)
+        inv_pz = 1.0 / pz
+
+        gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
+        bg = beta0 * gamma0
+        beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
+
+        L_mask = L * mask
+
+        x += L_mask * px * inv_pz
+        y += L_mask * py * inv_pz
+        z += L_mask * (1.0 - (beta0 / beta) * one_plus_delta * inv_pz)
+
+    # ============================================================
+    # Sextupole kick (thin lens)
+    # ============================================================
+
+    def _sextupole_kick_cpu(self, k2l_eff, k2sl_eff,
+                             x, px, y, py, tag, mask, chi):
+        """
+        Thin sextupole kick with integrated strengths.
+
+        dpx = -chi * k2l_eff/2 * (x² - y²) + chi * k2sl_eff * xy
+        dpy =  chi * k2l_eff * xy + chi * k2sl_eff/2 * (x² - y²)
+
+        For thin lens mode: k2l_eff = k2l, k2sl_eff = k2sl
+        For DKD mode:       k2l_eff = k2 * ds, k2sl_eff = k2s * ds
+        """
+        if abs(k2l_eff) < const.eps and abs(k2sl_eff) < const.eps:
+            return
+
+        k2l_mask = k2l_eff * mask
+
+        x2 = x * x
+        y2 = y * y
+        xy = x * y
+
+        # Normal sextupole
+        if abs(k2l_eff) > const.eps:
+            half_chi_k2l = 0.5 * chi * k2l_mask
+            px -= half_chi_k2l * (x2 - y2)
+            py += chi * k2l_mask * xy
+
+        # Skew sextupole
+        if abs(k2sl_eff) > const.eps:
+            k2sl_mask = k2sl_eff * mask
+            half_chi_k2sl = 0.5 * chi * k2sl_mask
+            px += chi * k2sl_mask * xy
+            py += half_chi_k2sl * (x2 - y2)
+
+
+# ============================================================
+# Helper: compute beta from (1+delta) and beta0*gamma0
+# ============================================================
+
+def one_plus_delta_beta(one_plus_delta, bg):
+    """
+    Compute beta = v/c given (1+delta) and beta0*gamma0.
+
+    From: P/P0 = 1+delta = beta*gamma / (beta0*gamma0)
+    => beta*gamma = (1+delta) * beta0*gamma0
+    => beta = (beta*gamma) / sqrt(1 + (beta*gamma)²)
+    """
+    bg_new = one_plus_delta * bg
+    return bg_new / np.sqrt(1.0 + bg_new**2)
