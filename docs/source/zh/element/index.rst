@@ -15,4 +15,5 @@
    multipole
    solenoid
    kicker
+   elseparator
    exciter
