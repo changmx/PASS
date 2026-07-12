@@ -11,4 +11,6 @@
    dipole
    quadrupole
    sextupole
+   octupole
+   multipole
    exciter
