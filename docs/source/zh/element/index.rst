@@ -17,3 +17,4 @@
    kicker
    elseparator
    exciter
+   rfcavity
