@@ -9,4 +9,6 @@
    marker
    drift
    dipole
+   quadrupole
+   sextupole
    exciter
