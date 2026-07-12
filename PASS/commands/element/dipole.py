@@ -66,9 +66,14 @@ class SBend(Command):
 
         self.k0l = kwargs["k0l"]
         if self.is_thick:
-            self.rho = self.length / self.k0l
-            self.h = self.k0l / self.length
-            self.k0 = self.k0l / self.length
+            if abs(self.k0l) < const.eps:
+                self.rho = 0.0
+                self.h = 0.0
+                self.k0 = 0.0
+            else:
+                self.rho = self.length / self.k0l
+                self.h = self.k0l / self.length
+                self.k0 = self.k0l / self.length
         else:
             self.rho = 0.0
             self.h = 0.0
