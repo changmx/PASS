@@ -13,4 +13,6 @@
    sextupole
    octupole
    multipole
+   solenoid
+   kicker
    exciter
