@@ -1,0 +1,776 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>螺线管（Solenoid） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="冲击器（Kicker）" href="kicker.html" />
+    <link rel="prev" title="多极铁（Multipole）" href="multipole.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id13">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id16">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id17">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id20">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="kicker.html">冲击器（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id14">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">螺线管（Solenoid）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/zh/element/solenoid.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="solenoid">
+<h1>螺线管（Solenoid）<a class="headerlink" href="#solenoid" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的螺线管元件 <strong>Solenoid</strong> ，用于模拟带电粒子在纵向磁场中的运动。螺线管产生沿束流方向的均匀磁场 <span class="math notranslate nohighlight">\(B_z\)</span>，通过 Larmor 旋转效应耦合水平与垂直平面，同时提供横向聚焦。</p>
+<p>PASS 中的螺线管采用 <strong>精确非线性映射</strong> （Larmor 框架下的哈密顿量解析解）。纯螺线管（无多极场叠加）时映射零误差；叠加多极场时采用 Sol-Kick-Sol（SKS）辛积分器。</p>
+<p><strong>代码位置</strong></p>
+<ul class="simple">
+<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/solenoid.py</span></code></p></li>
+<li><p>类名： <code class="docutils literal notranslate"><span class="pre">Solenoid</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
+<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">solenoid</span></code></p></li>
+<li><p>核心特征：</p>
+<ul>
+<li><p>采用精确螺线管映射（Larmor 旋转 + 聚焦， <span class="math notranslate nohighlight">\(p_z\)</span> 逐粒子计算）</p></li>
+<li><p>无薄透镜模式（螺线管无薄透镜极限， <span class="math notranslate nohighlight">\(L=0\)</span> 时无效应）</p></li>
+<li><p>支持多极场叠加（ <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> ），使用 SKS 积分器</p></li>
+<li><p>支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_s = 0\)</span> 时自动退化为纯漂移</p></li>
+<li><p>色品效应通过逐粒子 <span class="math notranslate nohighlight">\(p_z\)</span> 自然引入</p></li>
+<li><p>支持孔径检查</p></li>
+</ul>
+</li>
+</ul>
+<section id="id1">
+<h2>坐标约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>PASS 采用归一化曲线坐标，六维相空间变量为 <span class="math notranslate nohighlight">\((x, p_x, y, p_y, z, \delta)\)</span> ：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>变量</p></th>
+<th class="head"><p>符号</p></th>
+<th class="head"><p>定义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(x\)</span></p></td>
+<td><p>水平偏移（相对于参考轨道）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_x\)</span></p></td>
+<td><p>归一化水平动量， <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
+<td><p>垂直偏移</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span></p></td>
+<td><p>归一化垂直动量， <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
+<td><p>纵向坐标， <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>相对动量偏差， <span class="math notranslate nohighlight">\(\delta = P / P_0 - 1\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度。</p>
+</section>
+<section id="id2">
+<h2>螺线管磁场与归一化强度<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>螺线管产生沿束流方向（ <span class="math notranslate nohighlight">\(s\)</span> 轴）的均匀磁场：</p>
+<div class="math notranslate nohighlight">
+\[\vec{B} = (0, \, 0, \, B_z)\]</div>
+<p>归一化螺线管强度定义为：</p>
+<div class="math notranslate nohighlight">
+\[k_s = \frac{q_0 B_z}{P_0}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(q_0\)</span> 为参考粒子电荷， <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量。 PASS 中用户直接指定 <span class="math notranslate nohighlight">\(k_s\)</span> （ <code class="docutils literal notranslate"><span class="pre">ks</span></code> ）。</p>
+<p>定义半强度：</p>
+<div class="math notranslate nohighlight">
+\[\text{sk} = \frac{k_s}{2}\]</div>
+<p>Larmor 旋转角为：</p>
+<div class="math notranslate nohighlight">
+\[\theta = \frac{\text{sk} \cdot L}{p_z} = \frac{k_s L}{2 p_z}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(p_z\)</span> 为粒子的归一化纵向动量分量（逐粒子不同，见下文）， <span class="math notranslate nohighlight">\(L\)</span> 为螺线管长度。</p>
+</section>
+<section id="id3">
+<h2>物理推导<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h3>哈密顿量<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>在直线坐标系中，螺线管的哈密顿量为：</p>
+<div class="math notranslate nohighlight">
+\[H_{\text{sol}} = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \frac{k_s^2}{8}(x^2 + y^2) - \frac{k_s}{2}(x p_y - y p_x)\]</div>
+<p>其中各项物理含义：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>项</p></th>
+<th class="head"><p>物理含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(-\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span></p></td>
+<td><p>自由传播（精确漂移）</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\frac{k_s^2}{8}(x^2 + y^2)\)</span></p></td>
+<td><p>螺线管聚焦（等效四极分量）</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(-\frac{k_s}{2}(x p_y - y p_x)\)</span></p></td>
+<td><p>Larmor 旋转（ <span class="math notranslate nohighlight">\(x\)</span> - <span class="math notranslate nohighlight">\(y\)</span> 耦合）</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Larmor 旋转项 <span class="math notranslate nohighlight">\(-\frac{k_s}{2}(x p_y - y p_x)\)</span> <strong>同时依赖位置和动量</strong> ，这是螺线管与四极铁的本质区别。四极铁的踢角项仅依赖位置，可以将哈密顿量干净地分裂为漂移和踢角两部分（DKD 积分器）。螺线管的 Larmor 旋转项不可分裂为纯位置或纯动量的部分，因此 <strong>不能使用普通漂移做 DKD 积分</strong> 。</p>
+</div>
+</section>
+<section id="larmor">
+<h3>Larmor 框架与精确解<a class="headerlink" href="#larmor" title="Link to this heading"></a></h3>
+<p>做 Larmor 变换——将横截面坐标系绕 <span class="math notranslate nohighlight">\(s\)</span> 轴旋转角度 <span class="math notranslate nohighlight">\(\theta = \text{sk} \cdot s / p_z\)</span> ，定义 Larmor 框架下的正则动量：</p>
+<div class="math notranslate nohighlight">
+\[p_{k1} = p_x + \text{sk} \cdot y\]</div>
+<div class="math notranslate nohighlight">
+\[p_{k2} = p_y - \text{sk} \cdot x\]</div>
+<p>在 Larmor 框架中， <span class="math notranslate nohighlight">\(p_{k1}\)</span> 和 <span class="math notranslate nohighlight">\(p_{k2}\)</span> 是 <strong>守恒量</strong> （不随 <span class="math notranslate nohighlight">\(s\)</span> 变化），因此纵向动量分量：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_{k1}^2 - p_{k2}^2}\]</div>
+<p>在整个螺线管内逐粒子恒定。这使得螺线管映射可以 <strong>精确求解</strong> ，无需近似。</p>
+</section>
+<section id="id5">
+<h3>精确螺线管映射<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>给定螺线管长度 <span class="math notranslate nohighlight">\(L\)</span> ， Larmor 旋转角：</p>
+<div class="math notranslate nohighlight">
+\[\theta = \frac{\text{sk} \cdot L}{p_z}\]</div>
+<p>映射分为旋转和漂移两步：</p>
+<p><strong>步骤 1：Larmor 旋转</strong> （将坐标旋转到 <span class="math notranslate nohighlight">\(s=L\)</span> 处的 Larmor 框架）</p>
+<div class="math notranslate nohighlight">
+\[\text{rps}_0 = \cos\theta \cdot x + \sin\theta \cdot y\]</div>
+<div class="math notranslate nohighlight">
+\[\text{rps}_1 = \cos\theta \cdot p_x + \sin\theta \cdot p_y\]</div>
+<div class="math notranslate nohighlight">
+\[\text{rps}_2 = \cos\theta \cdot y - \sin\theta \cdot x\]</div>
+<div class="math notranslate nohighlight">
+\[\text{rps}_3 = \cos\theta \cdot p_y - \sin\theta \cdot p_x\]</div>
+<p><strong>步骤 2：Larmor 框架中的漂移</strong> （等效漂移长度 <span class="math notranslate nohighlight">\(\sin\theta / \text{sk}\)</span> ）</p>
+<div class="math notranslate nohighlight">
+\[x' = \cos\theta \cdot \text{rps}_0 + \frac{\sin\theta}{\text{sk}} \cdot \text{rps}_1\]</div>
+<div class="math notranslate nohighlight">
+\[p_x' = \cos\theta \cdot \text{rps}_1 - \text{sk} \cdot \sin\theta \cdot \text{rps}_0\]</div>
+<div class="math notranslate nohighlight">
+\[y' = \cos\theta \cdot \text{rps}_2 + \frac{\sin\theta}{\text{sk}} \cdot \text{rps}_3\]</div>
+<div class="math notranslate nohighlight">
+\[p_y' = \cos\theta \cdot \text{rps}_3 - \text{sk} \cdot \sin\theta \cdot \text{rps}_2\]</div>
+<p><strong>纵向坐标更新</strong> ：</p>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = L \cdot \left(1 - \frac{1+\delta}{p_z \cdot \text{rvv}}\right)\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\text{rvv} = \beta / \beta_0\)</span> 为粒子速度与参考粒子速度之比：</p>
+<div class="math notranslate nohighlight">
+\[\beta = \frac{(1+\delta) \, \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \, \beta_0 \gamma_0\right]^2}}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p_z\)</span> 逐粒子不同（包含 <span class="math notranslate nohighlight">\(\delta\)</span> 和 Larmor 动量的贡献），因此映射是 <strong>精确非线性</strong> 的</p></li>
+<li><p>当 <span class="math notranslate nohighlight">\(k_s \to 0\)</span> 时， <span class="math notranslate nohighlight">\(\sin\theta/\text{sk} \to L/p_z\)</span> ，映射退化为精确漂移</p></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="id6">
+<h2>为什么螺线管没有薄透镜模式<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>四极铁的薄透镜极限（ <span class="math notranslate nohighlight">\(L \to 0\)</span> ， <span class="math notranslate nohighlight">\(k_1 \to \infty\)</span> ， <span class="math notranslate nohighlight">\(k_1 L = \text{const}\)</span> ）给出有限的动量踢角 <span class="math notranslate nohighlight">\(\Delta p_x = -k_{1L} \cdot x\)</span> ，物理上自洽。</p>
+<p>螺线管的薄透镜极限（ <span class="math notranslate nohighlight">\(L \to 0\)</span> ， <span class="math notranslate nohighlight">\(k_s \to \infty\)</span> ， <span class="math notranslate nohighlight">\(k_s L = \text{const}\)</span> ）存在根本困难：</p>
+<ul class="simple">
+<li><p>Larmor 旋转角 <span class="math notranslate nohighlight">\(\theta = k_s L / (2 p_z)\)</span> 有限 ✓</p></li>
+<li><p>聚焦项 <span class="math notranslate nohighlight">\(\text{sk} \cdot \sin\theta = (k_s/2) \cdot \sin\theta \to \infty\)</span> 发散 ✗</p></li>
+</ul>
+<p>位置和动量的缩放行为不对称：旋转角有限但聚焦力发散，薄透镜极限不存在。</p>
+<p>因此 PASS 中螺线管 <span class="math notranslate nohighlight">\(L = 0\)</span> 时 <strong>无效应</strong> （恒等映射），不提供薄透镜模式。</p>
+</section>
+<section id="sks">
+<h2>多极场叠加与 SKS 积分器<a class="headerlink" href="#sks" title="Link to this heading"></a></h2>
+<p>当螺线管内部叠加横向多极场分量（ <span class="math notranslate nohighlight">\(k_{nl}\)</span> / <span class="math notranslate nohighlight">\(k_{sl}\)</span> ）时，总哈密顿量为：</p>
+<div class="math notranslate nohighlight">
+\[H = H_{\text{sol}} + H_{\text{mult}}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(H_{\text{mult}}\)</span> 为多极铁踢角哈密顿量（仅依赖位置）。由于 <span class="math notranslate nohighlight">\(H_{\text{sol}}\)</span> 和 <span class="math notranslate nohighlight">\(H_{\text{mult}}\)</span> 不对易，需要分裂算符法。</p>
+<p>PASS 采用 <strong>Sol-Kick-Sol</strong> （SKS）积分器，与四极铁的 DKD 完全平行：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{SKS}}(\Delta s) = \text{Sol}\!\left(\frac{\Delta s}{2}\right) \circ \text{Kick}(\Delta s) \circ \text{Sol}\!\left(\frac{\Delta s}{2}\right)\]</div>
+<p>其中：</p>
+<ul class="simple">
+<li><p><strong>Sol</strong> = 精确螺线管映射（ <code class="docutils literal notranslate"><span class="pre">_solenoid_exact_cpu</span></code> ），处理 <span class="math notranslate nohighlight">\(B_z\)</span> 场</p></li>
+<li><p><strong>Kick</strong> = 多极铁踢角（Horner 递归），处理横向多极场</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>漂移算子</p></th>
+<th class="head"><p>踢角算子</p></th>
+<th class="head"><p>场景</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>四极铁 DKD</p></td>
+<td><p>自由漂移 <code class="docutils literal notranslate"><span class="pre">drift_exact</span></code></p></td>
+<td><p>四极踢角 <code class="docutils literal notranslate"><span class="pre">quad_kick</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(B_z = 0\)</span> ，仅横向梯度场</p></td>
+</tr>
+<tr class="row-odd"><td><p>螺线管 SKS</p></td>
+<td><p>螺线管映射 <code class="docutils literal notranslate"><span class="pre">solenoid_exact</span></code></p></td>
+<td><p>多极踢角 <code class="docutils literal notranslate"><span class="pre">multipole_kick</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(B_z \neq 0\)</span> ，叠加横向多极场</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>SKS 中的 “Sol” 不是自由漂移，而是螺线管精确映射。螺线管内 <span class="math notranslate nohighlight">\(B_z\)</span> 始终存在，粒子不是在无场空间漂移。如果错误地使用自由漂移替代螺线管映射，将丢失 Larmor 旋转效应。</p>
+</div>
+<section id="uniform-2">
+<h3>uniform 积分器（2阶辛）<a class="headerlink" href="#uniform-2" title="Link to this heading"></a></h3>
+<p>每个切片采用 Sol-Kick-Sol 结构，即二阶蛙跳（leapfrog）：</p>
+<div class="math notranslate nohighlight">
+\[S_2(\Delta s) = \text{Sol}\!\left(\frac{\Delta s}{2}\right) \circ \text{Kick}(\Delta s) \circ \text{Sol}\!\left(\frac{\Delta s}{2}\right)\]</div>
+<p>每个切片误差为 <span class="math notranslate nohighlight">\(O(\Delta s^3)\)</span> ，全局误差为 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> 。</p>
+</section>
+<section id="yoshida4-4">
+<h3>yoshida4 积分器（4阶辛）<a class="headerlink" href="#yoshida4-4" title="Link to this heading"></a></h3>
+<p>通过组合三个二阶 SKS 步构造四阶辛映射 [Yoshida 1990]：</p>
+<div class="math notranslate nohighlight">
+\[S_4(\Delta s) = S_2(z_1 \Delta s) \circ S_2(z_0 \Delta s) \circ S_2(z_1 \Delta s)\]</div>
+<p>其中 Yoshida 系数为：</p>
+<div class="math notranslate nohighlight">
+\[z_1 = \frac{1}{2 - 2^{1/3}} \approx 1.3512\]</div>
+<div class="math notranslate nohighlight">
+\[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
+<p>每个切片误差为 <span class="math notranslate nohighlight">\(O(\Delta s^5)\)</span> ，全局误差为 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
+</section>
+</section>
+<section id="id7">
+<h2>整体追踪流程<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>根据是否有多极场叠加，螺线管有两种追踪路径：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 厚透镜 (length &gt; 0) ======
+
+无多极场 (knl/ksl 全零):
+  单段精确螺线管映射 Sol(L, ks)
+  [零误差，无需切片]
+
+有多极场 (knl/ksl 非零):
+  切片1 → 切片2 → ... → 切片N
+  (每个切片: Sol(ds/2) → Kick(ds) → Sol(ds/2))
+  其中 ds = L / N
+
+特殊情况:
+  ks = 0 → 退化为纯漂移 Drift(L)
+  L = 0 → 无效应（螺线管无薄透镜极限）
+</pre></div>
+</div>
+<p>完整映射为：</p>
+<p>无多极场：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M} = \text{Sol}(L, k_s)\]</div>
+<p>有多极场（ <span class="math notranslate nohighlight">\(N\)</span> 个切片）：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M} = \left[\mathcal{M}_{\text{SKS}}(\Delta s)\right]^N\]</div>
+</section>
+<section id="id8">
+<h2>色品效应<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>螺线管的色品效应通过逐粒子 <span class="math notranslate nohighlight">\(p_z\)</span> 表达式自然引入。</p>
+<p>在 Larmor 框架中， <span class="math notranslate nohighlight">\(p_z\)</span> 依赖 <span class="math notranslate nohighlight">\(\delta\)</span> 和 Larmor 动量 <span class="math notranslate nohighlight">\(p_{k1}, p_{k2}\)</span> ：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - (p_x + \text{sk} \cdot y)^2 - (p_y - \text{sk} \cdot x)^2}\]</div>
+<p>不同动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 的粒子有不同的 <span class="math notranslate nohighlight">\(p_z\)</span> ，因此有不同的 Larmor 旋转角 <span class="math notranslate nohighlight">\(\theta = \text{sk} \cdot L / p_z\)</span> 和不同的等效漂移长度 <span class="math notranslate nohighlight">\(\sin\theta / \text{sk}\)</span> 。这就是螺线管色品的物理来源——动量依赖的旋转角和聚焦强度。</p>
+</section>
+<section id="id9">
+<h2>接口参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件在束线中的纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>元件长度 （必须 <span class="math notranslate nohighlight">\(\ge 0\)</span> ； <span class="math notranslate nohighlight">\(= 0\)</span> 时无效应）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>元件名称</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ks</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ks</span></code></p></td>
+<td><p>float</p></td>
+<td><p><span class="math notranslate nohighlight">\(\text{m}^{-1}\)</span></p></td>
+<td><p>螺线管归一化强度 <span class="math notranslate nohighlight">\(k_s = q_0 B_z / P_0\)</span> ，默认 0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">knl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kil</span></code></p></td>
+<td><p>list</p></td>
+<td><p><span class="math notranslate nohighlight">\(\text{m}^{-n}\)</span></p></td>
+<td><p>多极铁法向积分强度数组 <span class="math notranslate nohighlight">\(K_{nL}\)</span> ，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ksl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kisl</span></code></p></td>
+<td><p>list</p></td>
+<td><p><span class="math notranslate nohighlight">\(\text{m}^{-n}\)</span></p></td>
+<td><p>多极铁斜向积分强度数组 <span class="math notranslate nohighlight">\(K_{sL}\)</span> ，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>切片数，默认 1（仅多极场叠加时有效）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>积分器，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> 、 <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径类型，默认 <code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>孔径参数值，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 为可选参数。不指定或全零时，螺线管使用单段精确映射（零误差），忽略 <code class="docutils literal notranslate"><span class="pre">num_slices</span></code> 和 <code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></li>
+<li><p>指定非零 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 时，启用 SKS 积分器， <code class="docutils literal notranslate"><span class="pre">num_slices</span></code> 和 <code class="docutils literal notranslate"><span class="pre">integrator</span></code> 生效</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ks</span> <span class="pre">=</span> <span class="pre">0</span></code> 且有长度时，元件退化为纯漂移</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> 时，螺线管无效应（不提供薄透镜模式）</p></li>
+</ul>
+</div>
+</section>
+<section id="id10">
+<h2>使用示例<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<section id="id11">
+<h3>纯螺线管（精确映射）<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;SOL1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Solenoid&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>长度 1.0 m，归一化强度 <span class="math notranslate nohighlight">\(k_s = 2.0\)</span> 。使用单段精确螺线管映射，零误差。</p>
+</section>
+<section id="id12">
+<h3>弱螺线管<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;SOL2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Solenoid&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>弱场螺线管， Larmor 旋转角较小。</p>
+</section>
+<section id="id13">
+<h3>反向磁场螺线管<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;SOL3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Solenoid&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-3.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><span class="math notranslate nohighlight">\(k_s &lt; 0\)</span> 表示反向磁场， Larmor 旋转方向相反。</p>
+</section>
+<section id="id14">
+<h3>螺线管叠加四极场（SKS 积分器）<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;SOL4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Solenoid&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;KiL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;Kisl&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>螺线管（ <span class="math notranslate nohighlight">\(k_s = 2.0\)</span> ）叠加四极分量（ <span class="math notranslate nohighlight">\(K_{1L} = 0.1\)</span> ），4 个切片，4 阶辛积分器。 <code class="docutils literal notranslate"><span class="pre">KiL</span></code> 数组第 0 项为 <span class="math notranslate nohighlight">\(K_{0L}\)</span> （偶极），第 1 项为 <span class="math notranslate nohighlight">\(K_{1L}\)</span> （四极）。</p>
+</section>
+<section id="id15">
+<h3>零场退化（纯漂移）<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;SOL5&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">50.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Solenoid&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;ks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><span class="math notranslate nohighlight">\(k_s = 0\)</span> 时退化为纯漂移。</p>
+</section>
+</section>
+<section id="id16">
+<h2>应用场景<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>低能束流传输线</strong> ：低能段 <span class="math notranslate nohighlight">\(\beta\gamma\)</span> 较小，螺线管聚焦效率高于四极铁，常用于注入器和低能传输线</p></li>
+<li><p><strong>电子冷却器</strong> ：螺线管约束电子束与离子束共线运动，用于冷却横向发射度</p></li>
+<li><p><strong>对撞机探测器螺线管</strong> ：大型实验探测器（如 CMS、ATLAS）的螺线管磁场对束流光学有显著影响，需在 lattice 模型中精确计入</p></li>
+<li><p><strong>超导螺线管</strong> ：高场超导螺线管中的多极场误差可通过 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 参数叠加建模</p></li>
+<li><p><strong>旋转对称束流</strong> ：螺线管的 Larmor 旋转可用于消除 <span class="math notranslate nohighlight">\(x\)</span> - <span class="math notranslate nohighlight">\(y\)</span> 耦合或产生特定旋转对称的束流分布</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="multipole.html" class="btn btn-neutral float-left" title="多极铁（Multipole）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="kicker.html" class="btn btn-neutral float-right" title="冲击器（Kicker）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

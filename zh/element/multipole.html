@@ -1,0 +1,842 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多极铁（Multipole） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="螺线管（Solenoid）" href="solenoid.html" />
+    <link rel="prev" title="八极铁（Octupole）" href="octupole.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id11">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id13">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id16">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id17">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id20">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="kicker.html">冲击器（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#id14">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">多极铁（Multipole）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/zh/element/multipole.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="multipole">
+<h1>多极铁（Multipole）<a class="headerlink" href="#multipole" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的通用多极铁元件 <strong>Multipole</strong> ，用于模拟带电粒子在任意阶多极磁铁中的运动。与四极铁、六极铁、八极铁等单阶元件不同，多极铁通过 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 数组同时支持任意阶（含混合阶）多极分量，适用于场误差注入、组合多极元件、高阶多极铁等场景。</p>
+<p>PASS 中的多极铁支持 <strong>厚元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ）和 <strong>薄透镜</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ）两种模式，厚元件采用精确漂移-踢角-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。踢角采用 Horner 嵌套求值，与 Xsuite <code class="docutils literal notranslate"><span class="pre">kick_simple_single_coordinates</span></code> 在公式层面完全一致。</p>
+<p><strong>代码位置</strong></p>
+<ul class="simple">
+<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/multipole.py</span></code></p></li>
+<li><p>类名： <code class="docutils literal notranslate"><span class="pre">Multipole</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
+<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">multipole</span></code></p></li>
+<li><p>核心特征：</p>
+<ul>
+<li><p>支持任意阶多极分量（ <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 数组，最高阶由数组长度决定）</p></li>
+<li><p>支持正常分量（ <code class="docutils literal notranslate"><span class="pre">knl</span></code> ）和斜分量（ <code class="docutils literal notranslate"><span class="pre">ksl</span></code> ）及其组合</p></li>
+<li><p>支持薄透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ，仅施加多极踢角）</p></li>
+<li><p>支持厚透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ，DKD-exact 辛积分）</p></li>
+<li><p>支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器</p></li>
+<li><p>Horner 嵌套求值，向量化实现，无逐粒子分支</p></li>
+<li><p>零场（所有 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 分量为零）时自动退化为纯漂移</p></li>
+<li><p>支持孔径检查</p></li>
+<li><p>单阶退化与四极铁/六极铁/八极铁逐粒子一致</p></li>
+</ul>
+</li>
+</ul>
+<section id="id1">
+<h2>坐标约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 <span class="math notranslate nohighlight">\((x, p_x, y, p_y, z, \delta)\)</span> ：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>变量</p></th>
+<th class="head"><p>符号</p></th>
+<th class="head"><p>定义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(x\)</span></p></td>
+<td><p>水平偏移（相对于参考轨道）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_x\)</span></p></td>
+<td><p>归一化水平动量， <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
+<td><p>垂直偏移</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span></p></td>
+<td><p>归一化垂直动量， <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
+<td><p>纵向坐标， <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>相对动量偏差， <span class="math notranslate nohighlight">\(\delta = P / P_0 - 1\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度， <span class="math notranslate nohighlight">\(s\)</span> 为沿参考轨道的弧长， <span class="math notranslate nohighlight">\(t\)</span> 为时间。</p>
+<p>纵向动量分量定义为：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<p>荷质比因子：</p>
+<div class="math notranslate nohighlight">
+\[\chi = \frac{q}{q_0} \cdot \frac{m_0}{m}\]</div>
+<p>对于同种粒子束 <span class="math notranslate nohighlight">\(\chi = 1\)</span> 。</p>
+</section>
+<section id="id2">
+<h2>多极磁场与归一化强度<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>通用多极磁铁的磁场在横向平面内展开为泰勒级数。用复数表示：</p>
+<div class="math notranslate nohighlight">
+\[B_y + i B_x = \frac{P_0}{q_0} \sum_{n=0}^{N} \frac{K_n}{n!} (x + i y)^n\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(K_n\)</span> 为 <span class="math notranslate nohighlight">\(n\)</span> 阶归一化多极强度（单位 <span class="math notranslate nohighlight">\(\text{m}^{-n-1}\)</span> ）， <span class="math notranslate nohighlight">\(N\)</span> 为最高阶数。 <span class="math notranslate nohighlight">\(1/n!\)</span> 是泰勒展开的自然系数。</p>
+<p>展开前几阶：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>阶数 <span class="math notranslate nohighlight">\(n\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(n!\)</span></p></th>
+<th class="head"><p>元件类型</p></th>
+<th class="head"><p>磁场表达式</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>二极铁</p></td>
+<td><p><span class="math notranslate nohighlight">\(B_y + i B_x = \frac{P_0}{q_0} K_0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>四极铁</p></td>
+<td><p><span class="math notranslate nohighlight">\(B_y + i B_x = \frac{P_0}{q_0} K_1 (x + i y)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>2</p></td>
+<td><p>六极铁</p></td>
+<td><p><span class="math notranslate nohighlight">\(B_y + i B_x = \frac{P_0}{q_0} \frac{K_2}{2} (x + i y)^2\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>6</p></td>
+<td><p>八极铁</p></td>
+<td><p><span class="math notranslate nohighlight">\(B_y + i B_x = \frac{P_0}{q_0} \frac{K_3}{6} (x + i y)^3\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>归一化积分强度定义为：</p>
+<div class="math notranslate nohighlight">
+\[K_{nL} = K_n \cdot L, \qquad K_{nsL} = K_{ns} \cdot L\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(L\)</span> 为磁铁长度， <span class="math notranslate nohighlight">\(K_{nL}\)</span> 为正常分量， <span class="math notranslate nohighlight">\(K_{nsL}\)</span> 为斜分量。PASS 中用户通过 <code class="docutils literal notranslate"><span class="pre">knl</span></code> 数组指定 <span class="math notranslate nohighlight">\([K_{0L}, K_{1L}, K_{2L}, \ldots]\)</span> ，通过 <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 数组指定 <span class="math notranslate nohighlight">\([K_{0sL}, K_{1sL}, K_{2sL}, \ldots]\)</span> 。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>MAD-X 导出的 <code class="docutils literal notranslate"><span class="pre">KNL</span></code> / <code class="docutils literal notranslate"><span class="pre">KSL</span></code> 值与 PASS 的 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 定义完全一致，均为积分强度 <span class="math notranslate nohighlight">\(K_{nL}\)</span> ，可直接填入，无需手动计算阶乘。 <span class="math notranslate nohighlight">\(1/n!\)</span> 由代码内部的 Horner 递推自动处理。</p>
+</div>
+</section>
+<section id="id3">
+<h2>整体追踪流程<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>根据磁铁长度，多极铁有两种追踪模式：</p>
+<p><strong>薄透镜模式</strong> （ <span class="math notranslate nohighlight">\(L = 0\)</span> ）</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 薄透镜 (length = 0) ======
+
+单次多极踢角 Kick(knl, ksl)
+[位置不变，仅动量跳变]
+</pre></div>
+</div>
+<p><strong>厚透镜模式</strong> （ <span class="math notranslate nohighlight">\(L &gt; 0\)</span> ）</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 厚透镜 (length &gt; 0) ======
+
+切片1 → 切片2 → ... → 切片N
+(每个切片: Drift(ds/2) → Kick(ds) → Drift(ds/2))
+
+其中 ds = L / N
+knl_eff = kn * ds, ksl_eff = ks * ds
+
+若所有 knl/ksl 分量为零：退化为单次精确漂移 Drift(L)
+</pre></div>
+</div>
+<p>完整映射为：</p>
+<p>薄透镜：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{thin}} = \text{Kick}(K_{nL}, K_{nsL})\]</div>
+<p>厚透镜（N 个切片）：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{thick}} = \left[\mathcal{M}_{\text{DKD}}(\Delta s)\right]^N\]</div>
+<p>其中每个切片的 DKD 映射为：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{DKD}}(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>薄透镜模式不改变粒子的位置坐标 <span class="math notranslate nohighlight">\((x, y, z)\)</span> ，仅施加动量踢角</p></li>
+<li><p>厚透镜模式的色品等效应通过精确漂移中的 <span class="math notranslate nohighlight">\(p_z\)</span> 表达式自然引入</p></li>
+<li><p>当所有 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 分量为零时，厚透镜退化为纯漂移，避免无意义的空踢角循环</p></li>
+</ul>
+</div>
+</section>
+<section id="id4">
+<h2>物理推导<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id5">
+<h3>哈密顿量<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>在直线坐标系中（多极铁无曲率， <span class="math notranslate nohighlight">\(h = 0\)</span> ），通用多极铁的哈密顿量为：</p>
+<div class="math notranslate nohighlight">
+\[H_{\text{mult}} = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \chi \sum_{n=0}^{N} \frac{K_n}{n!} \operatorname{Re}\left[(x - i y)^n\right]\]</div>
+<p>其中求和项为势能部分。将其拆分为传播部分（精确漂移 <span class="math notranslate nohighlight">\(H_D\)</span> ）和踢角部分（ <span class="math notranslate nohighlight">\(H_K\)</span> ）：</p>
+<div class="math notranslate nohighlight">
+\[H_D = \frac{p_\tau}{\beta_0} - p_z\]</div>
+<div class="math notranslate nohighlight">
+\[H_K = \chi \sum_{n=0}^{N} \frac{K_n}{n!} \operatorname{Re}\left[(x - i y)^n\right]\]</div>
+</section>
+<section id="id6">
+<h3>踢角映射<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>由哈密顿方程 <span class="math notranslate nohighlight">\(\Delta p_x = -\frac{\partial H_K}{\partial x} \Delta s\)</span> ， <span class="math notranslate nohighlight">\(\Delta p_y = -\frac{\partial H_K}{\partial y} \Delta s\)</span> ，对积分强度 <span class="math notranslate nohighlight">\(K_{nL} = K_n \cdot \Delta s\)</span> 求得：</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = -\chi \sum_{n=0}^{N} \frac{K_{nL}}{n!} \operatorname{Re}\left[(x + i y)^n\right]\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta p_y = +\chi \sum_{n=0}^{N} \frac{K_{nsL}}{n!} \operatorname{Im}\left[(x + i y)^n\right]\]</div>
+<p>其中 <span class="math notranslate nohighlight">\((x+iy)^n\)</span> 的实部对应正常分量，虚部对应斜分量。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>复数场约定为 <span class="math notranslate nohighlight">\(B_y + i B_x = \frac{P_0}{q_0} \sum_n \frac{K_n}{n!} (x+iy)^n\)</span> （ <strong>不含共轭</strong> ）。使用共轭 <span class="math notranslate nohighlight">\(\overline{(x+iy)^n}\)</span> 会导致 <span class="math notranslate nohighlight">\(\Delta p_y\)</span> 符号错误，此约定已通过六极铁交叉验证确认。</p>
+</div>
+</section>
+</section>
+<section id="horner">
+<h2>Horner 嵌套求值<a class="headerlink" href="#horner" title="Link to this heading"></a></h2>
+<p>多极踢角的核心是计算多项式：</p>
+<div class="math notranslate nohighlight">
+\[P(z) = \sum_{n=0}^{N} c_n z^n, \qquad z = x + i y\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(c_n = \chi \cdot K_{nL} / n!\)</span> 。直接展开高阶项计算量大且数值不稳定。PASS 采用 Horner 嵌套求值，与 Xsuite <code class="docutils literal notranslate"><span class="pre">kick_simple_single_coordinates</span></code> （ <code class="docutils literal notranslate"><span class="pre">track_magnet_kick.h:182-228</span></code> ）在算法层面一致。</p>
+<p>Horner 递推从最高阶系数开始，逐步向下：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>index = order
+dpx_mul = chi * knl[order] / order!     # 最高阶系数
+dpy_mul = chi * ksl[order] / order!
+
+while index &gt; 0:
+    zre = dpx_mul * x - dpy_mul * y      # Re[(dpx_mul + i*dpy_mul) * (x + iy)]
+    zim = dpx_mul * y + dpy_mul * x      # Im[(dpx_mul + i*dpy_mul) * (x + iy)]
+    index -= 1
+    dpx_mul = chi * knl[index] / index! + zre
+    dpy_mul = chi * ksl[index] / index! + zim
+
+dpx = -dpx_mul    # px 取负（弧度约定）
+dpy = +dpy_mul    # py 不取负
+</pre></div>
+</div>
+<p>其中 <code class="docutils literal notranslate"><span class="pre">zre</span></code> 和 <code class="docutils literal notranslate"><span class="pre">zim</span></code> 是复数乘法 <span class="math notranslate nohighlight">\((\text{dpx\_mul} + i \cdot \text{dpy\_mul}) \cdot (x + i y)\)</span> 的实部和虚部。</p>
+<p>最终踢角为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = -\text{dpx\_mul}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta p_y = +\text{dpy\_mul}\]</div>
+<p>注意 <span class="math notranslate nohighlight">\(\Delta p_x\)</span> 取负（弧度约定）， <span class="math notranslate nohighlight">\(\Delta p_y\)</span> 不取负。</p>
+<section id="id7">
+<h3>各阶展开结果<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>将 Horner 递推展开，前几阶结果为：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 50.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>阶数</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(\Delta p_x\)</span> （正常分量）</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(\Delta p_y\)</span> （正常分量）</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(n=0\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\chi K_{0L}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(n=1\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\chi K_{1L} \cdot x\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(+\chi K_{1L} \cdot y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(n=2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\chi K_{2L}/2 \cdot (x^2 - y^2)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(+\chi K_{2L} \cdot x y\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(n=3\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\chi K_{3L}/6 \cdot (x^3 - 3xy^2)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(+\chi K_{3L}/6 \cdot (3x^2 y - y^3)\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>斜分量的踢角通过复数乘法 <span class="math notranslate nohighlight">\(i \cdot z^n\)</span> 自然交换实虚部：将上表中 <span class="math notranslate nohighlight">\(\Delta p_x\)</span> 的正常分量公式移至 <span class="math notranslate nohighlight">\(\Delta p_y\)</span> ，将 <span class="math notranslate nohighlight">\(\Delta p_y\)</span> 的正常分量公式移至 <span class="math notranslate nohighlight">\(\Delta p_x\)</span> 并取负。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Horner 递推对任意阶 <span class="math notranslate nohighlight">\(N\)</span> 通用。当 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 数组只有单阶非零分量时，多极铁退化为对应的单阶元件（四极铁/六极铁/八极铁等），踢角公式与硬编码版本逐粒子一致。</p>
+</div>
+</section>
+</section>
+<section id="id8">
+<h2>精确漂移映射<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>漂移部分采用精确漂移（Table 1.1, map D, Eq. 1.86-1.88），与四极铁/六极铁/八极铁完全相同：</p>
+<div class="math notranslate nohighlight">
+\[x \mathrel{+}= \frac{p_x}{p_z} L\]</div>
+<div class="math notranslate nohighlight">
+\[y \mathrel{+}= \frac{p_y}{p_z} L\]</div>
+<div class="math notranslate nohighlight">
+\[z \mathrel{+}= L \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1+\delta}{p_z}\right)\]</div>
+<p>其中：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[\beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}\]</div>
+<p>精确漂移保留了 <span class="math notranslate nohighlight">\(p_z\)</span> 的完整非线性，自然引入色品、高阶色散和路径长度效应。</p>
+</section>
+<section id="id9">
+<h2>辛积分器<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="uniform-2">
+<h3>Uniform（2阶蛙跳）<a class="headerlink" href="#uniform-2" title="Link to this heading"></a></h3>
+<p>每个切片执行 Drift-Kick-Drift：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{DKD}}(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
+<p>这是2阶辛积分器，截断误差 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> 。</p>
+</section>
+<section id="yoshida4-4">
+<h3>Yoshida4（4阶组合）<a class="headerlink" href="#yoshida4-4" title="Link to this heading"></a></h3>
+<p>将3个 DKD 步组合为4阶辛积分器：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{Y4}}(\Delta s) = \mathcal{M}_{\text{DKD}}(z_1 \Delta s) \circ \mathcal{M}_{\text{DKD}}(z_0 \Delta s) \circ \mathcal{M}_{\text{DKD}}(z_1 \Delta s)\]</div>
+<p>其中 Yoshida 系数为：</p>
+<div class="math notranslate nohighlight">
+\[z_1 = \frac{1}{2 - 2^{1/3}} \approx 1.3512\]</div>
+<div class="math notranslate nohighlight">
+\[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
+<p>截断误差 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
+</section>
+</section>
+<section id="id10">
+<h2>自然包含的效应<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<p>DKD-exact 对理想多极铁自然包含所有非线性效应，无需额外项：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>效应</p></th>
+<th class="head"><p>来源</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>自然色品</p></td>
+<td><p>精确漂移中 <span class="math notranslate nohighlight">\(p_z\)</span> 的 <span class="math notranslate nohighlight">\(\delta\)</span> 依赖性</p></td>
+</tr>
+<tr class="row-odd"><td><p>高阶非线性色散</p></td>
+<td><p><span class="math notranslate nohighlight">\(p_z\)</span> 的完整平方根表达式</p></td>
+</tr>
+<tr class="row-even"><td><p>路径长度效应（ <span class="math notranslate nohighlight">\(R_{56}\)</span> 等）</p></td>
+<td><p>精确漂移的 <span class="math notranslate nohighlight">\(z\)</span> 更新</p></td>
+</tr>
+<tr class="row-odd"><td><p>各阶多极踢角的完整非线性</p></td>
+<td><p>Horner 递推保留 <span class="math notranslate nohighlight">\((x+iy)^n\)</span> 的所有项</p></td>
+</tr>
+</tbody>
+</table>
+<p>唯一近似来源是积分器的截断误差（uniform 为 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> ，yoshida4 为 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> ）。</p>
+</section>
+<section id="xsuite-hxl">
+<h2>与 Xsuite 的差异：hxl 曲率修正<a class="headerlink" href="#xsuite-hxl" title="Link to this heading"></a></h2>
+<p>Xsuite 的 <code class="docutils literal notranslate"><span class="pre">Multipole</span></code> 元件支持 <code class="docutils literal notranslate"><span class="pre">hxl</span></code> 参数（水平参考轨迹旋转角），用于描述 <strong>组合功能磁铁</strong> ——即参考轨道在磁铁内有弯曲的多极元件。PASS 当前不实现 <code class="docutils literal notranslate"><span class="pre">hxl</span></code> ，仅支持直铁（ <code class="docutils literal notranslate"><span class="pre">hxl</span> <span class="pre">=</span> <span class="pre">0</span></code> ）。</p>
+<p>Xsuite 中 <code class="docutils literal notranslate"><span class="pre">hxl</span></code> 产生三组修正（源码 <code class="docutils literal notranslate"><span class="pre">track_magnet_kick.h:97-143</span></code> ）：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>修正项</p></th>
+<th class="head"><p>触发条件</p></th>
+<th class="head"><p>表达式</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>rot_frame</p></td>
+<td><p><span class="math notranslate nohighlight">\(h_{xl} \neq 0\)</span> （与 knl 无关）</p></td>
+<td><p><span class="math notranslate nohighlight">\(\Delta p_x \mathrel{+}= h_{xl}(1+\delta)\)</span> ， <span class="math notranslate nohighlight">\(\Delta \zeta \mathrel{+}= -\frac{\beta_0}{\beta} h_{xl} x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>k0h 修正</p></td>
+<td><p><span class="math notranslate nohighlight">\(h_{xl} \neq 0\)</span> 且 <span class="math notranslate nohighlight">\(k_{0L} \neq 0\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\Delta p_x \mathrel{+}= -\chi \, k_{0L} \cdot \frac{h_{xl}}{L} \cdot x\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>k1h 修正</p></td>
+<td><p><span class="math notranslate nohighlight">\(h_{xl} \neq 0\)</span> 且 <span class="math notranslate nohighlight">\(k_{1L} \neq 0\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\Delta p_x \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot (-x^2 + \frac{1}{2}y^2)\)</span> ， <span class="math notranslate nohighlight">\(\Delta p_y \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot xy\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>其中 <code class="docutils literal notranslate"><span class="pre">rot_frame</span></code> 修正描述参考轨迹偏转的几何效应， <strong>与磁场分量无关</strong> ——即使 knl/ksl 全为零（纯漂移），只要 <span class="math notranslate nohighlight">\(h_{xl} \neq 0\)</span> 就会触发。 <code class="docutils literal notranslate"><span class="pre">k0h</span></code> 和 <code class="docutils literal notranslate"><span class="pre">k1h</span></code> 修正则是曲率与多极分量的耦合项，需要同时满足 <code class="docutils literal notranslate"><span class="pre">hxl</span></code> 和对应的 knl 分量非零。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>PASS 多极铁设 <span class="math notranslate nohighlight">\(h_{xl} = 0\)</span> ，三组修正均为零，与 Xsuite 直铁（ <code class="docutils literal notranslate"><span class="pre">hxl=0</span></code> ）在 kick 公式层面完全一致</p></li>
+<li><p>当 <span class="math notranslate nohighlight">\(h_{xl} = 0\)</span> 时，无论 knl/ksl 取何值，PASS 与 Xsuite 的结果逐粒子一致（已验证，精度 <span class="math notranslate nohighlight">\(&lt; 10^{-12}\)</span> ）</p></li>
+<li><p>若需模拟组合功能磁铁（有弯曲参考轨道的多极元件），需在 PASS 中增加 <code class="docutils literal notranslate"><span class="pre">hxl</span></code> 支持，这是未来扩展项</p></li>
+</ul>
+</div>
+</section>
+<section id="id11">
+<h2>接口参数<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>必填</p></td>
+<td><p>元件在束线中的纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cmd_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><p>必填</p></td>
+<td><p>元件名称</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>必填</p></td>
+<td><p>磁铁长度， <span class="math notranslate nohighlight">\(= 0\)</span> 为薄透镜</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">knl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KiL</span></code></p></td>
+<td><p>list</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>正常分量积分强度数组 <span class="math notranslate nohighlight">\([K_{0L}, K_{1L}, \ldots]\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ksl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KiSL</span></code></p></td>
+<td><p>list</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>斜分量积分强度数组 <span class="math notranslate nohighlight">\([K_{0sL}, K_{1sL}, \ldots]\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
+<td><p>int</p></td>
+<td><p>1</p></td>
+<td><p>厚透镜切片数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">adaptive</span></code></p></td>
+<td><p>积分器，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> 、 <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+<td><p>孔径类型</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
+<td><p>list</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>孔径参数值</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">knl</span></code> 和 <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 数组长度不需要相同，短的数组自动补零。最高阶数 <span class="math notranslate nohighlight">\(N\)</span> 由较长数组的长度决定（ <span class="math notranslate nohighlight">\(N = \max(\text{len}) - 1\)</span> ）。</p>
+</div>
+</section>
+<section id="id12">
+<h2>使用示例<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<section id="id13">
+<h3>薄透镜多极铁（场误差注入）<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;MPE1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multipole&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;KiL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.001</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0005</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;KiSL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0003</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0001</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>零长度多极铁，含二阶和三阶场误差分量。用于模拟磁铁安装误差或加工误差对束流的影响。</p>
+</section>
+<section id="id14">
+<h3>厚透镜多极铁（组合元件）<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;MP1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multipole&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;KiL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span><span class="w"> </span><span class="mf">200.0</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;KiSL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>厚透镜组合多极铁，同时含四极、六极、八极正常分量，5 个切片，4 阶辛积分。</p>
+</section>
+<section id="id15">
+<h3>单阶多极铁（等价于八极铁）<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;MP2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multipole&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;KiL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">500.0</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;KiSL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">200.0</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>仅含三阶分量（ <code class="docutils literal notranslate"><span class="pre">knl=[0,0,0,500]</span></code> ， <code class="docutils literal notranslate"><span class="pre">ksl=[0,0,0,200]</span></code> ），等价于一个正常+斜八极铁薄透镜。与 <code class="docutils literal notranslate"><span class="pre">Octupole</span></code> 元件逐粒子一致。</p>
+</section>
+<section id="id16">
+<h3>高阶多极铁（十极铁）<a class="headerlink" href="#id16" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;MP3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multipole&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;KiL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">10000.0</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;KiSL&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>四阶多极铁（十极铁）， <code class="docutils literal notranslate"><span class="pre">knl=[0,0,0,0,10000]</span></code> 。专用元件只支持到八极（三阶），多极铁可支持任意阶。</p>
+</section>
+</section>
+<section id="id17">
+<h2>应用场景<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>场误差注入</strong> ：将 MAD-X 导出的磁铁场误差以多极铁形式插入束线，模拟安装误差和加工偏差</p></li>
+<li><p><strong>组合多极元件</strong> ：同一位置同时施加多个阶数的多极踢角（如四极+六极+八极组合）</p></li>
+<li><p><strong>高阶多极铁</strong> ：十极铁（ <span class="math notranslate nohighlight">\(n=4\)</span> ）、十二极铁（ <span class="math notranslate nohighlight">\(n=5\)</span> ）等超出专用元件范围的高阶元件</p></li>
+<li><p><strong>非线性效应研究</strong> ：研究高阶多极场对束流动力学的影响，如动态孔径、共振驱动</p></li>
+<li><p><strong>MAD-X 兼容</strong> ： <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 定义与 MAD-X 完全一致，可直接导入 MAD-X 序列</p></li>
+</ul>
+</section>
+<section id="id18">
+<h2>参考文献<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Xsuite Physics Guide, Sec 1.10.3 (精确漂移), Sec 1.10.5 (多极铁)</p></li>
+<li><p>Xsuite 源码： <code class="docutils literal notranslate"><span class="pre">xtrack/beam_elements/elements_src/multipole.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet_kick.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet_drift.h</span></code></p></li>
+<li><p>Yoshida, H., “Construction of higher order symplectic integrators”, Phys. Lett. A 150 (1990)</p></li>
+<li><p>MAD-X 物理手册：多极磁场与非线性传输</p></li>
+<li><p>Wiedemann, H., “Particle Accelerator Physics”, Ch. 4 (非线性束流动力学)</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="octupole.html" class="btn btn-neutral float-left" title="八极铁（Octupole）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="solenoid.html" class="btn btn-neutral float-right" title="螺线管（Solenoid）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

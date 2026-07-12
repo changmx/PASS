@@ -11,4 +11,8 @@
    dipole
    quadrupole
    sextupole
+   octupole
+   multipole
+   solenoid
+   kicker
    exciter

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>标记（Marker） &mdash; PASS  documentation</title>
+  <title>冲击器（Kicker） &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
@@ -21,8 +21,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="漂移节（Drift）" href="drift.html" />
-    <link rel="prev" title="元件（Element）" href="index.html" /> 
+    <link rel="next" title="激励器（Exciter）" href="exciter.html" />
+    <link rel="prev" title="螺线管（Solenoid）" href="solenoid.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -68,11 +68,11 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">标记（Marker）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">物理说明</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id4">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id8">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#id8">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="drift.html">漂移节（Drift）</a><ul>
@@ -162,13 +162,13 @@
 <li class="toctree-l4"><a class="reference internal" href="solenoid.html#id16">应用场景</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="kicker.html">冲击器（Kicker）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html#id7">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html#id8">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html#id14">参考文献</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">冲击器（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id14">参考文献</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="exciter.html">激励器（Exciter）</a><ul>
@@ -253,9 +253,9 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
           <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
-      <li class="breadcrumb-item active">标记（Marker）</li>
+      <li class="breadcrumb-item active">冲击器（Kicker）</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/zh/element/marker.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/zh/element/kicker.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -263,230 +263,277 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="marker">
-<h1>标记（Marker）<a class="headerlink" href="#marker" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的标记器元件 <strong>Marker</strong> ，用于在束线中标记一个特定的纵向位置，不改变任何粒子坐标。</p>
-<p>标记器代码位于 <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/marker.py</span></code> ，类名为 <code class="docutils literal notranslate"><span class="pre">Marker</span></code> ，注册名为 <code class="docutils literal notranslate"><span class="pre">marker</span></code> 。标记器的核心特征如下：</p>
+  <section id="kicker">
+<h1>冲击器（Kicker）<a class="headerlink" href="#kicker" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的冲击器元件 <strong>Kicker</strong> ，用于模拟带电粒子在脉冲偶极磁铁中的运动。冲击器是一种快速作用的横向偏转元件，通过施加瞬时角偏转改变束流方向，广泛应用于束流注入、引出、轨道校正和快速束流调节等场景。</p>
+<p>PASS 中的冲击器建模为 <strong>薄透镜</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ），即纯动量平移映射，严格辛。这一处理与 MAD-X 默认薄透镜约定和 Xsuite 将 kicker 转为 order-0 Multipole 的方案一致。物理上，典型冲击器的踢角量级为 <span class="math notranslate nohighlight">\(10^{-3}\)</span> rad，远小于 betatron 波长尺度，薄透镜近似的误差远低于机器精度，无需厚透镜 DKD 积分。</p>
+<p><strong>代码位置</strong></p>
 <ul class="simple">
-<li><p><strong>零长度元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0.0</span></code> ，不可配置），不占据束线物理空间</p></li>
-<li><p><strong>不做任何粒子坐标变换</strong> ，粒子穿过标记器时所有相空间坐标保持不变</p></li>
-<li><p><strong>支持孔径检查</strong> ，通过 <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 和 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 参数控制， <code class="docutils literal notranslate"><span class="pre">execute_cpu</span></code> 中仅调用 <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> 函数</p></li>
-<li><p><strong>GPU 追踪为空操作</strong> （ <code class="docutils literal notranslate"><span class="pre">execute_gpu</span></code> 为 <code class="docutils literal notranslate"><span class="pre">pass</span></code> ），不执行任何计算</p></li>
+<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/kicker.py</span></code></p></li>
+<li><p>类名： <code class="docutils literal notranslate"><span class="pre">Kicker</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
+<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">kicker</span></code></p></li>
+<li><p>核心特征：</p>
+<ul>
+<li><p>薄透镜模型（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ，不可配置），纯动量平移，严格辛</p></li>
+<li><p>水平踢角（ <code class="docutils literal notranslate"><span class="pre">hkick</span></code> ）与垂直踢角（ <code class="docutils literal notranslate"><span class="pre">vkick</span></code> ）独立设置</p></li>
+<li><p>支持单向踢角（仅 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 或仅 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> ）和双向踢角（两者同时非零）</p></li>
+<li><p>掩码方式施加踢角，无逐粒子分支</p></li>
+<li><p>零踢角时退化为标记器（仅孔径检查）</p></li>
+<li><p>支持孔径检查</p></li>
 </ul>
-<p>标记器的主要作用包括：</p>
-<ul class="simple">
-<li><p>在束线序列中标记关键位置 （如测量点、对撞点、注入点等），便于后续分析</p></li>
-<li><p>作为排序基准点，其他元件可参考标记器位置进行布局</p></li>
-<li><p>在输出和日志中标识物理位置，不参与粒子追踪</p></li>
+</li>
 </ul>
 <section id="id1">
-<h2>物理说明<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>标记器不产生任何电磁场，不施加任何力，也不改变粒子状态。粒子穿过标记器时，所有六个相空间坐标 （ <span class="math notranslate nohighlight">\(x, p_x, y, p_y, z, \delta\)</span> ）保持不变：</p>
+<h2>坐标约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 <span class="math notranslate nohighlight">\((x, p_x, y, p_y, z, \delta)\)</span> ：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>变量</p></th>
+<th class="head"><p>符号</p></th>
+<th class="head"><p>定义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(x\)</span></p></td>
+<td><p>水平偏移（相对于参考轨道）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_x\)</span></p></td>
+<td><p>归一化水平动量， <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
+<td><p>垂直偏移</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span></p></td>
+<td><p>归一化垂直动量， <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
+<td><p>纵向坐标， <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>相对动量偏差， <span class="math notranslate nohighlight">\(\delta = P / P_0 - 1\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度。</p>
+</section>
+<section id="id2">
+<h2>物理推导<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>冲击器的物理本质<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>冲击器在物理上是一个脉冲偶极磁铁（pulsed dipole magnet），在短暂的时间窗口内产生均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> ，对穿过其中的粒子施加横向偏转。长度为 <span class="math notranslate nohighlight">\(L\)</span> 的偶极磁铁对参考粒子的偏转角为：</p>
+<div class="math notranslate nohighlight">
+\[\theta = \frac{q B_0 L}{p_0} = \frac{B_0 L}{B\rho}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(B\rho = p_0 / q\)</span> 为磁刚度。因此冲击器在物理上等价于一个积分强度为 <span class="math notranslate nohighlight">\(K_{0L} = \theta\)</span> 的 order-0 多极铁。</p>
+</section>
+<section id="id4">
+<h3>薄透镜近似<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>冲击器建模为薄透镜（ <span class="math notranslate nohighlight">\(\delta\)</span> -kick），即粒子位置不变，仅动量发生瞬时跳变：</p>
 <div class="math notranslate nohighlight">
 \[x \leftarrow x\]</div>
 <div class="math notranslate nohighlight">
-\[p_x \leftarrow p_x\]</div>
+\[p_x \leftarrow p_x + \Delta p_x\]</div>
 <div class="math notranslate nohighlight">
 \[y \leftarrow y\]</div>
 <div class="math notranslate nohighlight">
-\[p_y \leftarrow p_y\]</div>
+\[p_y \leftarrow p_y + \Delta p_y\]</div>
+<p>其中踢角量为：</p>
 <div class="math notranslate nohighlight">
-\[z \leftarrow z\]</div>
+\[\Delta p_x = \text{hkick}\]</div>
 <div class="math notranslate nohighlight">
-\[\delta \leftarrow \delta\]</div>
-<p>标记器仅记录其在束线中的纵向位置 <span class="math notranslate nohighlight">\(s\)</span> ，用于序列排序和位置标注。</p>
-<p>当配置了孔径检查 （ <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 不为 <code class="docutils literal notranslate"><span class="pre">off</span></code> ）时，标记器在 <code class="docutils literal notranslate"><span class="pre">execute_cpu</span></code> 中调用 <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> 函数，对存活粒子 （ <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ）进行横向坐标 （ <span class="math notranslate nohighlight">\((x, y)\)</span> ）的孔径边界检查。超出孔径边界的粒子将被标记为丢失 （ <code class="docutils literal notranslate"><span class="pre">tag</span></code> 取负） ，并记录丢失位置和圈数。孔径检查的详细原理与各类型定义详见 <code class="docutils literal notranslate"><span class="pre">孔径</span></code> 章节。</p>
+\[\Delta p_y = \text{vkick}\]</div>
+<p>这里 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 是积分偶极强度（单位：弧度），等价于 MAD-X 的 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> / <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 参数，也等价于 Multipole 的 <code class="docutils literal notranslate"><span class="pre">knl=[hkick]</span></code> 、 <code class="docutils literal notranslate"><span class="pre">ksl=[vkick]</span></code> 。</p>
 </section>
-<section id="id2">
-<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>标记器的所有接口参数如下表所示：</p>
+<section id="id5">
+<h3>薄透镜近似的误差分析<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>薄透镜近似引入两个误差源：</p>
+<ol class="arabic simple">
+<li><p><strong>路径长度效应</strong> ：粒子穿过物理长度 <span class="math notranslate nohighlight">\(L\)</span> 但纵向坐标 <span class="math notranslate nohighlight">\(z\)</span> 不变，误差量级 <span class="math notranslate nohighlight">\(O(\text{hkick} \cdot L)\)</span> 。</p></li>
+<li><p><strong>色差效应</strong> ：薄 kick 对所有动量粒子施加相同的 <span class="math notranslate nohighlight">\(\Delta p_x\)</span> ，但物理上动量为 <span class="math notranslate nohighlight">\(p_0(1+\delta)\)</span> 的粒子实际偏转为 <span class="math notranslate nohighlight">\(\Delta p_x^{\text{exact}} = \text{hkick} / (1+\delta)\)</span> ，薄透镜丢掉了 <span class="math notranslate nohighlight">\(-\text{hkick} \cdot \delta\)</span> 这一项，量级 <span class="math notranslate nohighlight">\(O(\text{hkick} \cdot \delta)\)</span> 。</p></li>
+</ol>
+<p>对典型冲击器（ <span class="math notranslate nohighlight">\(\text{hkick} \sim 10^{-3}\)</span> rad， <span class="math notranslate nohighlight">\(\delta \sim 10^{-3}\)</span> ），总误差 <span class="math notranslate nohighlight">\(\sim 10^{-6}\)</span> rad，远低于机器精度，薄透镜近似完全充分。</p>
+</section>
+<section id="id6">
+<h3>辛性分析<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>薄透镜踢角是一个纯正则动量平移映射：</p>
+<div class="math notranslate nohighlight">
+\[(x, p_x, y, p_y, z, \delta) \mapsto (x, p_x + \text{hkick}, y, p_y + \text{vkick}, z, \delta)\]</div>
+<p>该映射的 Jacobi 矩阵为单位矩阵，行列式为 1，严格辛。无需 DKD 积分器或任何近似。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>使用厚透镜 DKD 对冲击器 <strong>没有意义</strong> 。DKD 的 kick 步骤仍然是 <span class="math notranslate nohighlight">\(\delta\)</span> 无关的薄 kick ，无法修正色差；同时 DKD 仅是偶极的 2 阶近似，精度低于精确偶极映射。若需要物理精确的厚偶极，应使用专用 Dipole 元件。</p>
+</div>
+</section>
+</section>
+<section id="id7">
+<h2>接口参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
-<col style="width: 25.0%" />
+<col style="width: 20.0%" />
 <col style="width: 10.0%" />
 <col style="width: 10.0%" />
-<col style="width: 35.0%" />
+<col style="width: 40.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>属性名</p></th>
 <th class="head"><p>JSON key</p></th>
 <th class="head"><p>类型</p></th>
-<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
 <th class="head"><p>说明</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>m</p></td>
+<td><p>必填</p></td>
 <td><p>元件在束线中的纵向位置</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cmd_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><p>必填</p></td>
+<td><p>元件名称</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
 <td><ul class="simple">
-<li><p>（固定 0.0，不可配置）</p></li>
+<li><p>（固定 0.0）</p></li>
 </ul>
 </td>
 <td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>元件长度 （恒为 0，不可配置）</p></td>
+<td><p>0.0</p></td>
+<td><p>元件长度（恒为 0，不可配置）</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>元件名称 （由序列 JSON 的键名自动填入）</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hkick</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hkick</span></code></p></td>
+<td><p>float</p></td>
+<td><p>0.0</p></td>
+<td><p>水平踢角（弧度）， <span class="math notranslate nohighlight">\(\Delta p_x = \text{hkick}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vkick</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">vkick</span></code></p></td>
+<td><p>float</p></td>
+<td><p>0.0</p></td>
+<td><p>垂直踢角（弧度）， <span class="math notranslate nohighlight">\(\Delta p_y = \text{vkick}\)</span></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
 <td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>孔径类型，默认 <code class="docutils literal notranslate"><span class="pre">off</span></code> ，不区分大小写</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+<td><p>孔径类型</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
 <td><p>list</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>孔径参数值，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code> ，含义随类型而异</p></td>
-</tr>
-</tbody>
-</table>
-<section id="id3">
-<h3>孔径类型可选值<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 不区分大小写，内部统一转换为小写后匹配。可选值如下：</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 15.0%" />
-<col style="width: 25.0%" />
-<col style="width: 60.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>类型</p></th>
-<th class="head"><p>aperture_value</p></th>
-<th class="head"><p>说明</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
-<td><p>忽略</p></td>
-<td><p>不做孔径检查 （默认）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
-<td><p>忽略</p></td>
-<td><p>默认 ±1m 矩形孔径</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circle</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[r]</span></code></p></td>
-<td><p>圆形， <span class="math notranslate nohighlight">\(r\)</span> 为半径</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectangle</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h]</span></code></p></td>
-<td><p>矩形， <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ellipse</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[a,</span> <span class="pre">b]</span></code></p></td>
-<td><p>椭圆， <span class="math notranslate nohighlight">\(a\)</span> 为半长轴， <span class="math notranslate nohighlight">\(b\)</span> 为半短轴</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectcircle</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code></p></td>
-<td><p>矩形与圆的交集</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rectellipse</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
-<td><p>矩形与椭圆的交集</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">racetrack</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
-<td><p>跑道形 （矩形 + 椭圆端）</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">octagon</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code></p></td>
-<td><p>八角形 （矩形切 45° 角）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">polygon</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[[x1,y1],</span> <span class="pre">...]</span></code></p></td>
-<td><p>多边形顶点列表，自动闭合</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>孔径参数值</p></td>
 </tr>
 </tbody>
 </table>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>标记器无需提供 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 字段，长度在代码中固定为 0。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">Marker</span></code> 。</p>
-<p><code class="docutils literal notranslate"><span class="pre">off</span></code> 和 <code class="docutils literal notranslate"><span class="pre">default</span></code> 类型忽略 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 。各孔径类型的详细物理说明与判定条件见 <code class="docutils literal notranslate"><span class="pre">孔径</span></code> 章节。</p>
+<p><code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 均为可选参数，默认值为 0。两者独立设置：</p>
+<ul class="simple">
+<li><p>仅 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 非零：单向水平冲击器</p></li>
+<li><p>仅 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 非零：单向垂直冲击器</p></li>
+<li><p>两者均非零：双向冲击器</p></li>
+<li><p>两者均为零：退化为标记器</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">kicker</span></code> 。无需提供 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 字段。</p>
 </div>
 </section>
-</section>
-<section id="id4">
-<h2>使用示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<section id="id5">
-<h3>基本用法<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<p>以下示例在 <span class="math notranslate nohighlight">\(s = 12.5\)</span> m 处放置一个标记器，标记对撞点位置，不启用孔径检查：</p>
+<section id="id8">
+<h2>使用示例<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id9">
+<h3>水平冲击器<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 10.0\)</span> m 处放置一个水平冲击器，踢角 <span class="math notranslate nohighlight">\(1.5 \times 10^{-3}\)</span> rad：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;IP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span>
+<span class="w">    </span><span class="nt">&quot;HK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">&quot;IP&quot;</span></code> 为元件名称，由 <code class="docutils literal notranslate"><span class="pre">CommandSequence</span></code> 自动读取并赋给 <code class="docutils literal notranslate"><span class="pre">name</span></code> 属性。</p>
+<p>仅施加水平踢角，垂直方向不受影响。适用于水平轨道校正或水平注入。</p>
 </section>
-<section id="id6">
-<h3>带孔径检查的标记器<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
-<p>标记器也可配置孔径检查，用于在该位置检测超出束流管边界的粒子。以下示例在 <span class="math notranslate nohighlight">\(s = 12.5\)</span> m 处放置一个圆形孔径 （半径 0.05 m） 的标记器：</p>
+<section id="id10">
+<h3>垂直冲击器<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 20.0\)</span> m 处放置一个垂直冲击器，踢角 <span class="math notranslate nohighlight">\(-2.3 \times 10^{-3}\)</span> rad：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;IP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;VK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0023</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>仅施加垂直踢角，水平方向不受影响。负号表示踢角方向向下。</p>
+</section>
+<section id="id11">
+<h3>双向冲击器<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 15.0\)</span> m 处放置一个双向冲击器，同时施加水平和垂直踢角：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0015</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>水平和垂直踢角同时施加，并配置圆形孔径检查（半径 0.05 m）。适用于需要同时在两个方向偏转束流的场景。</p>
 </section>
-<section id="id7">
-<h3>多个标记器组合<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
-<p>多个标记器可在同一束线中重复使用，例如标记对撞点、注入点和测量点：</p>
+<section id="id12">
+<h3>零踢角冲击器<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 30.0\)</span> m 处放置一个零踢角冲击器（退化为标记器）：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;IP&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;Injection_Point&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nt">&quot;Measurement_Point&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">105.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Marker&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.03</span><span class="p">]</span>
+<span class="w">    </span><span class="nt">&quot;K0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>踢角为零时，冲击器不改变任何粒子坐标，行为等同于标记器。可用于预留冲击器位置，后续通过 ramping 表动态启用。</p>
 </section>
 </section>
-<section id="id8">
-<h2>应用场景<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id13">
+<h2>应用场景<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>对撞点标注</strong> ：在对撞机中标记束流对撞位置，便于亮度计算和束束作用元件定位</p></li>
-<li><p><strong>注入点标注</strong> ：标记注入元件的位置，便于注入器与主环的衔接</p></li>
-<li><p><strong>测量点标注</strong> ：标记监视器 （Monitor） 所在位置，便于数据分析与物理量提取</p></li>
-<li><p><strong>序列排序基准</strong> ：利用标记器的 <code class="docutils literal notranslate"><span class="pre">s</span></code> 位置作为参考，组织束线中其他元件的排列顺序</p></li>
-<li><p><strong>孔径监测</strong> ：在关键位置 （如对撞点、注入点） 配置孔径检查，监测束流损失，无需额外添加物理元件</p></li>
+<li><p><strong>束流注入</strong> ：在注入段放置冲击器，将注入束流偏转至与主环闭合轨道匹配的方向，实现束流注入</p></li>
+<li><p><strong>束流引出</strong> ：在引出点放置冲击器，快速将束流偏转至引出通道，实现快引出或慢引出</p></li>
+<li><p><strong>轨道校正</strong> ：在束线关键位置放置冲击器，校正轨道偏差或实现局部凸轨（ bump ）</p></li>
+<li><p><strong>快速束流调节</strong> ：通过时序控制冲击器的踢角，实现束流方向的快速切换或扫描</p></li>
+<li><p><strong>反馈系统</strong> ：与 Pickup（拾取器）配合，构成逐束团横向反馈系统，抑制束流不稳定性</p></li>
+</ul>
+</section>
+<section id="id14">
+<h2>参考文献<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>MAD-X User’s Guide, “Kicker” section (hkick / vkick 定义)</p></li>
+<li><p>Xsuite 源码： <code class="docutils literal notranslate"><span class="pre">xtrack/mad_loader.py</span></code> （ <code class="docutils literal notranslate"><span class="pre">convert_kicker</span></code> , <code class="docutils literal notranslate"><span class="pre">_make_kicker_multipole</span></code> ）</p></li>
+<li><p>Wiedemann, H., “Particle Accelerator Physics”, Ch. 4 (偶极磁铁与偏转)</p></li>
 </ul>
 </section>
 </section>
@@ -495,8 +542,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="元件（Element）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="drift.html" class="btn btn-neutral float-right" title="漂移节（Drift）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="solenoid.html" class="btn btn-neutral float-left" title="螺线管（Solenoid）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="exciter.html" class="btn btn-neutral float-right" title="激励器（Exciter）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
