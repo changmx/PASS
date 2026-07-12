@@ -12,6 +12,7 @@ from .element.solenoid import Solenoid
 from .element.kicker import Kicker
 from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
+from .element.rfcavity import RFCavity
 from .monitor.statistic import StatMonitor
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "Kicker",
     "ElSeparator",
     "Exciter",
+    "RFCavity",
     "StatMonitor",
 ]
