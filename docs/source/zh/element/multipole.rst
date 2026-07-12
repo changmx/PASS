@@ -383,6 +383,39 @@ DKD-exact 对理想多极铁自然包含所有非线性效应，无需额外项�
 唯一近似来源是积分器的截断误差（uniform 为 :math:`O(\Delta s^2)` ，yoshida4 为 :math:`O(\Delta s^4)` ）。
 
 
+与 Xsuite 的差异：hxl 曲率修正
+--------------------------------
+
+Xsuite 的 ``Multipole`` 元件支持 ``hxl`` 参数（水平参考轨迹旋转角），用于描述 **组合功能磁铁** ——即参考轨道在磁铁内有弯曲的多极元件。PASS 当前不实现 ``hxl`` ，仅支持直铁（ ``hxl = 0`` ）。
+
+Xsuite 中 ``hxl`` 产生三组修正（源码 ``track_magnet_kick.h:97-143`` ）：
+
+.. list-table::
+  :header-rows: 1
+  :widths: 25 30 45
+
+  * - 修正项
+    - 触发条件
+    - 表达式
+  * - rot_frame
+    - :math:`h_{xl} \neq 0` （与 knl 无关）
+    - :math:`\Delta p_x \mathrel{+}= h_{xl}(1+\delta)` ， :math:`\Delta \zeta \mathrel{+}= -\frac{\beta_0}{\beta} h_{xl} x`
+  * - k0h 修正
+    - :math:`h_{xl} \neq 0` 且 :math:`k_{0L} \neq 0`
+    - :math:`\Delta p_x \mathrel{+}= -\chi \, k_{0L} \cdot \frac{h_{xl}}{L} \cdot x`
+  * - k1h 修正
+    - :math:`h_{xl} \neq 0` 且 :math:`k_{1L} \neq 0`
+    - :math:`\Delta p_x \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot (-x^2 + \frac{1}{2}y^2)` ， :math:`\Delta p_y \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot xy`
+
+其中 ``rot_frame`` 修正描述参考轨迹偏转的几何效应， **与磁场分量无关** ——即使 knl/ksl 全为零（纯漂移），只要 :math:`h_{xl} \neq 0` 就会触发。 ``k0h`` 和 ``k1h`` 修正则是曲率与多极分量的耦合项，需要同时满足 ``hxl`` 和对应的 knl 分量非零。
+
+.. note::
+
+  - PASS 多极铁设 :math:`h_{xl} = 0` ，三组修正均为零，与 Xsuite 直铁（ ``hxl=0`` ）在 kick 公式层面完全一致
+  - 当 :math:`h_{xl} = 0` 时，无论 knl/ksl 取何值，PASS 与 Xsuite 的结果逐粒子一致（已验证，精度 :math:`< 10^{-12}` ）
+  - 若需模拟组合功能磁铁（有弯曲参考轨道的多极元件），需在 PASS 中增加 ``hxl`` 支持，这是未来扩展项
+
+
 接口参数
 --------
 
