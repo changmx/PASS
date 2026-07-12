@@ -50,7 +50,7 @@ class Drift(Command):
         turn = sim.state.turn
 
         for i, bunch in enumerate(bunches):
-            drift_exact_cpu(self.length, beam, bunch)
+            self._track_drift_cpu(beam, bunch, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
@@ -80,44 +80,51 @@ class Drift(Command):
             )
 
 
-def drift_exact_cpu(L: float, beam: Beam, bunch: BunchInfo):
-    if np.abs(L) < const.eps:
-        return
+    def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
+        if np.abs(self.length) < const.eps:
+            return
 
-    beta0 = bunch.beta
-    gamma0 = bunch.gamma
-    circum = bunch.circum
-    start = bunch.start_idx
-    end = bunch.end_idx
+        L = self.length
+        s_position = self.s
+        beta0 = bunch.beta
+        gamma0 = bunch.gamma
+        circum = bunch.circum
+        start = bunch.start_idx
+        end = bunch.end_idx
 
-    p = beam.particles
-    x = p.x[start:end]
-    px = p.px[start:end]
-    y = p.y[start:end]
-    py = p.py[start:end]
-    z = p.z[start:end]
-    dp = p.dp[start:end]
-    tag = p.tag[start:end]
+        p = beam.particles
+        x = p.x[start:end]
+        px = p.px[start:end]
+        y = p.y[start:end]
+        py = p.py[start:end]
+        z = p.z[start:end]
+        dp = p.dp[start:end]
+        tag = p.tag[start:end]
+        lost_position = p.lost_position[start:end]
+        lost_turn = p.lost_turn[start:end]
 
-    beta = (1 + dp) * (gamma0 * beta0) / np.sqrt(1 + ((1 + dp) * (gamma0 * beta0))**2)
-    pz_sq = (1 + dp)**2 - px**2 - py**2
-    valid = (pz_sq > 0.0) & (tag > 0)
-    tag[~valid] = -1
-    pz_sq_safe = np.maximum(pz_sq, const.eps)
-    pz = np.sqrt(pz_sq_safe)
+        beta = (1 + dp) * (gamma0 * beta0) / np.sqrt(1 + ((1 + dp) * (gamma0 * beta0))**2)
+        pz_sq = (1 + dp)**2 - px**2 - py**2
+        valid = (pz_sq > 0.0) & (tag > 0)
+        lost_mask = ~valid
+        tag[lost_mask] = -np.abs(tag[lost_mask])
+        lost_position[lost_mask] = s_position
+        lost_turn[lost_mask] = turn
+        pz_sq_safe = np.maximum(pz_sq, const.eps)
+        pz = np.sqrt(pz_sq_safe)
 
-    c_half = 0.5 * circum
-    mask = (tag > 0).astype(np.float64)
-    L_mask = L * mask
+        c_half = 0.5 * circum
+        mask = (tag > 0).astype(np.float64)
+        L_mask = L * mask
 
-    x += L_mask * (px / pz)
-    y += L_mask * (py / pz)
-    z += L_mask * (1 - (beta0 / beta) * (1 + dp) / pz)
+        x += L_mask * (px / pz)
+        y += L_mask * (py / pz)
+        z += L_mask * (1 - (beta0 / beta) * (1 + dp) / pz)
 
-    over = (z > c_half).astype(np.int64)
-    under = (z < -c_half).astype(np.int64)
+        over = (z > c_half).astype(np.int64)
+        under = (z < -c_half).astype(np.int64)
 
-    z += (under - over) * circum
+        z += (under - over) * circum
 
 
 kernel_code = r'''

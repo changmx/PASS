@@ -112,7 +112,7 @@ class Octupole(Command):
         turn = sim.state.turn
 
         for i, bunch in enumerate(bunches):
-            self._track_octupole_cpu(beam, bunch)
+            self._track_octupole_cpu(beam, bunch, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
@@ -122,7 +122,7 @@ class Octupole(Command):
     # Full octupole tracking (CPU)
     # ============================================================
 
-    def _track_octupole_cpu(self, beam: Beam, bunch: BunchInfo):
+    def _track_octupole_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
         """Track particles through the octupole: thin lens or sliced DKD-exact."""
 
         beta0 = bunch.beta
@@ -138,6 +138,8 @@ class Octupole(Command):
         z = p.z[start:end]
         dp = p.dp[start:end]
         tag = p.tag[start:end]
+
+        alive_before = tag > 0
 
         # chi = q/q0 * m0/m  (for same-species beam, chi = 1)
         chi = 1.0
@@ -171,6 +173,14 @@ class Octupole(Command):
         over = (z > c_half).astype(np.int64)
         under = (z < -c_half).astype(np.int64)
         z += (under - over) * circum
+
+        # ---- Update lost particle info ----
+        newly_lost = alive_before & (tag < 0)
+        if np.any(newly_lost):
+            lost_position = p.lost_position[start:end]
+            lost_turn = p.lost_turn[start:end]
+            lost_position[newly_lost] = self.s
+            lost_turn[newly_lost] = turn
 
     # ============================================================
     # Body: Drift-Kick-Drift exact (uniform integrator)

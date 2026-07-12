@@ -179,7 +179,7 @@ class Solenoid(Command):
         turn = sim.state.turn
 
         for i, bunch in enumerate(bunches):
-            self._track_solenoid_cpu(beam, bunch)
+            self._track_solenoid_cpu(beam, bunch, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
@@ -189,7 +189,7 @@ class Solenoid(Command):
     # Full solenoid tracking (CPU)
     # ============================================================
 
-    def _track_solenoid_cpu(self, beam: Beam, bunch: BunchInfo):
+    def _track_solenoid_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
         """Track particles through the solenoid."""
 
         beta0 = bunch.beta
@@ -205,6 +205,8 @@ class Solenoid(Command):
         z = p.z[start:end]
         dp = p.dp[start:end]
         tag = p.tag[start:end]
+
+        alive_before = tag > 0
 
         chi = 1.0
         mask = (tag > 0).astype(np.float64)
@@ -237,6 +239,14 @@ class Solenoid(Command):
         over = (z > c_half).astype(np.int64)
         under = (z < -c_half).astype(np.int64)
         z += (under - over) * circum
+
+        # ---- Update lost particle info ----
+        newly_lost = alive_before & (tag < 0)
+        if np.any(newly_lost):
+            lost_position = p.lost_position[start:end]
+            lost_turn = p.lost_turn[start:end]
+            lost_position[newly_lost] = self.s
+            lost_turn[newly_lost] = turn
 
     # ============================================================
     # Body: Sol-Kick-Sol (uniform integrator, 2nd order symplectic)
