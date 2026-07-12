@@ -145,7 +145,14 @@ class Exciter(Command):
         temp_time = effective_turn / frequency_0
 
         exponent = np.exp(-self.am_r0**2 / self.am_delta0**2)
-        delta2_t = (self.am_r0**2 * (1.0 - exponent) / (np.log(temp_time / self.am_t_ext * (1.0 - exponent) + exponent)**2 *
+
+        # Guard against log(0) or log(negative):
+        #   when temp_time=0 and exponent underflows to 0, log(0) = -inf -> NaN
+        log_arg = temp_time / self.am_t_ext * (1.0 - exponent) + exponent
+        if log_arg <= 0.0:
+            return 0.0
+
+        delta2_t = (self.am_r0**2 * (1.0 - exponent) / (np.log(log_arg)**2 *
                                                         (self.am_t_ext * exponent + temp_time * (1.0 - exponent))))
         return np.sqrt(delta2_t / frequency_0 / self.am_k_const)
 
@@ -246,7 +253,7 @@ class Exciter(Command):
         py = p.py[start:end]
         tag = p.tag[start:end]
 
-        alive = tag > 0
+        alive = (tag > 0).astype(np.float64)
 
         # time when each particle arrives at the exciter
         time_temp = t0 - z / v0
@@ -262,7 +269,9 @@ class Exciter(Command):
         else:
             kick = np.zeros(len(z), dtype=np.float64)
 
+        kick *= alive
+
         if self.is_x:
-            px[alive] += kick[alive]
+            px += kick
         else:
-            py[alive] += kick[alive]
+            py += kick
