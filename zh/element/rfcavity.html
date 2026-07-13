@@ -308,6 +308,7 @@
 <li><p>支持 dp 接受度（纵向孔径）检查</p></li>
 <li><p>支持固定值和 TFS 文件（Ramping）两种参数输入方式</p></li>
 <li><p>支持多圈加速模拟</p></li>
+<li><p>谐波数是腔的状态属性，对所有束团统一</p></li>
 </ul>
 </li>
 </ul>
@@ -394,9 +395,9 @@
 <div class="math notranslate nohighlight">
 \[E = \sqrt{(p_0 (1+\delta) c)^2 + (m_0 c^2)^2}\]</div>
 <p>在 <span class="math notranslate nohighlight">\(\delta \to 0\)</span> 处的一阶近似。展开的误差为 <span class="math notranslate nohighlight">\(O(\delta^2)\)</span> 。</p>
-<p><strong>问题 1：大</strong> <span class="math notranslate nohighlight">\(\delta\)</span> <strong>时精度差</strong></p>
+<p><strong>问题 1：大</strong> <code class="docutils literal notranslate"><span class="pre">delta</span></code> <strong>时精度差</strong></p>
 <p>当 <span class="math notranslate nohighlight">\(\delta\)</span> 较大（如 <span class="math notranslate nohighlight">\(\pm 30\%\)</span> 的注入接收度）， <span class="math notranslate nohighlight">\(O(\delta^2)\)</span> 项可达 <span class="math notranslate nohighlight">\(\sim 0.01\)</span> ，远超浮点精度，引入不可忽略的系统性偏差。</p>
-<p><strong>问题 2：参考系变换引入额外的</strong> <span class="math notranslate nohighlight">\(\beta_1/\beta_0\)</span> <strong>因子</strong></p>
+<p><strong>问题 2：参考系变换引入额外的</strong> <code class="docutils literal notranslate"><span class="pre">beta1/beta0</span></code> <strong>因子</strong></p>
 <p>在移动参考系中，参考能量从 <span class="math notranslate nohighlight">\(E_0\)</span> 变为 <span class="math notranslate nohighlight">\(E_1 = E_0 + \Delta E_{\text{syn}}\)</span> 。传统方法假设参考系变换时 <span class="math notranslate nohighlight">\(\delta\)</span> 不变，推导如下：</p>
 <p>从 <span class="math notranslate nohighlight">\(dE = \delta \cdot \beta^2 \cdot E_{\text{total}}\)</span> 出发，旧参考系中 <span class="math notranslate nohighlight">\(dE_0 = \delta \cdot \beta_0^2 \cdot E_0\)</span> ，新参考系中 <span class="math notranslate nohighlight">\(dE_1 = \delta \cdot \beta_1^2 \cdot E_1\)</span> 。若假设 <span class="math notranslate nohighlight">\(\delta\)</span> 不变，则：</p>
 <div class="math notranslate nohighlight">
@@ -407,7 +408,7 @@
 <p>这是一个 <strong>三重近似</strong> ：</p>
 <ol class="arabic simple">
 <li><p><strong>一阶线性化</strong> ： <span class="math notranslate nohighlight">\(dE \approx \delta \cdot \beta^2 \cdot E_{\text{total}}\)</span> （截断 <span class="math notranslate nohighlight">\(O(\delta^2)\)</span> ）</p></li>
-<li><p><strong>:math:`delta` 不变假设</strong> ：参考系变换时 <span class="math notranslate nohighlight">\(\delta\)</span> 不变（实际 <span class="math notranslate nohighlight">\(\delta = p/p_0 - 1\)</span> 依赖于 <span class="math notranslate nohighlight">\(p_0\)</span> ）</p></li>
+<li><p><strong>delta 不变假设</strong> ：参考系变换时 <span class="math notranslate nohighlight">\(\delta\)</span> 不变（实际 <span class="math notranslate nohighlight">\(\delta = p/p_0 - 1\)</span> 依赖于 <span class="math notranslate nohighlight">\(p_0\)</span> ）</p></li>
 <li><p><strong>弱加速近似</strong> ： <span class="math notranslate nohighlight">\(\beta_1^2 E_1 / (\beta_0^2 E_0) \approx \beta_1/\beta_0\)</span> （仅在 <span class="math notranslate nohighlight">\(E_1 \approx E_0\)</span> 时成立）</p></li>
 </ol>
 <p>在强加速场景（如从注入到引出能量变化数倍），第 3 步近似显著失效。</p>
@@ -430,7 +431,7 @@
 <p><strong>计算新</strong> <span class="math notranslate nohighlight">\(\delta\)</span> （相对于新参考动量 <span class="math notranslate nohighlight">\(p_{0,\text{new}}\)</span> ）：</p>
 <div class="math notranslate nohighlight">
 \[\delta_{\text{new}} = \frac{p_{\text{new}}}{p_{0,\text{new}}} - 1\]</div>
-<p><strong>为什么精确方法不需要</strong> <span class="math notranslate nohighlight">\(\beta_1/\beta_0\)</span> <strong>因子</strong></p>
+<p><strong>为什么精确方法不需要</strong> <code class="docutils literal notranslate"><span class="pre">beta1/beta0</span></code> <strong>因子</strong></p>
 <p>精确方法直接追踪每个粒子的绝对总能量 <span class="math notranslate nohighlight">\(E_{\text{particle}}\)</span> 和绝对动量 <span class="math notranslate nohighlight">\(p_{\text{particle}}\)</span> 。 RF kick 改变的是能量（ <span class="math notranslate nohighlight">\(E_{\text{new}} = E_{\text{old}} + \Delta E\)</span> ），然后从能量精确恢复动量（ <span class="math notranslate nohighlight">\(p = \sqrt{E^2 - m_0^2}\)</span> ），最后除以新参考动量得到 <span class="math notranslate nohighlight">\(\delta\)</span> 。</p>
 <p>这个过程中：</p>
 <ul class="simple">
@@ -552,29 +553,17 @@
 <td><p>0.0</p></td>
 <td><p>附加相位偏移（rad），用于多腔相位对齐和相位 trim</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">frequency</span> <span class="pre">(hz)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>None</p></td>
-<td><p>RF 频率（Hz），与 harmonic 互斥</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">_rf_table</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_rf_table</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">rf</span> <span class="pre">data</span> <span class="pre">file</span></code></p></td>
 <td><p>str</p></td>
 <td><p>None</p></td>
-<td><p>Ramping 数据文件路径（TFS 格式）</p></td>
+<td><p>Ramping 数据文件路径（TFS 格式），提供后覆盖固定值参数。每行对应一圈，所需列名： <code class="docutils literal notranslate"><span class="pre">HARMONIC</span></code> 、 <code class="docutils literal notranslate"><span class="pre">VOLTAGE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PHASE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PHI_OFFSET</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">enabled</span></code></p></td>
 <td><p>bool</p></td>
 <td><p>True</p></td>
 <td><p>开关</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>0.0</p></td>
-<td><p>腔长（预留，当前为薄透镜）</p></td>
 </tr>
 </tbody>
 </table>
@@ -658,14 +647,14 @@
 <section id="ramping">
 <h2>Ramping 数据文件<a class="headerlink" href="#ramping" title="Link to this heading"></a></h2>
 <p>当 RF 参数需要随圈数变化时（如能量 ramping ），可提供 TFS 格式的数据文件。 TFS （ Table File System ）是一种带元数据的表格格式，文件中可包含标题、注释等文档信息，列通过列名识别而非位置。</p>
-<p>所需列名（大小写不敏感，顺序不限）：</p>
+<p>所需列名（大小写不限，顺序不限）：</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">HARMONIC</span></code> —— 谐波数</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">VOLTAGE</span></code> —— RF 电压（V）</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PHASE</span></code> —— 同步相位（rad）</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PHI_OFFSET</span></code> —— 附加相位偏移（rad）</p></li>
 </ul>
-<p>每行对应一个圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 <code class="docutils literal notranslate"><span class="pre">TITLE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DATE</span></code> 等元数据头信息，由 <code class="docutils literal notranslate"><span class="pre">tfs-pandas</span></code> 库自动解析。</p>
+<p>读取时列名自动转换为小写，因此 <code class="docutils literal notranslate"><span class="pre">Harmonic</span></code> 、 <code class="docutils literal notranslate"><span class="pre">voltage</span></code> 、 <code class="docutils literal notranslate"><span class="pre">phase</span></code> 等任意大小写组合均可。每行对应一圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 <code class="docutils literal notranslate"><span class="pre">TITLE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DATE</span></code> 等元数据头信息，由 <code class="docutils literal notranslate"><span class="pre">tfs-pandas</span></code> 库自动解析。</p>
 </section>
 <section id="id9">
 <h2>使用示例<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>

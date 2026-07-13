@@ -20,6 +20,7 @@ PASS 中的高频加速腔建模为 **薄透镜** （ ``length = 0`` ）的瞬�
   - 支持 dp 接受度（纵向孔径）检查
   - 支持固定值和 TFS 文件（Ramping）两种参数输入方式
   - 支持多圈加速模拟
+  - 谐波数是腔的状态属性，对所有束团统一
 
 
 坐标约定
@@ -120,11 +121,11 @@ phi_offset 的用途
 
 在 :math:`\delta \to 0` 处的一阶近似。展开的误差为 :math:`O(\delta^2)` 。
 
-**问题 1：大** :math:`\delta` **时精度差**
+**问题 1：大** ``delta`` **时精度差**
 
 当 :math:`\delta` 较大（如 :math:`\pm 30\%` 的注入接收度）， :math:`O(\delta^2)` 项可达 :math:`\sim 0.01` ，远超浮点精度，引入不可忽略的系统性偏差。
 
-**问题 2：参考系变换引入额外的** :math:`\beta_1/\beta_0` **因子**
+**问题 2：参考系变换引入额外的** ``beta1/beta0`` **因子**
 
 在移动参考系中，参考能量从 :math:`E_0` 变为 :math:`E_1 = E_0 + \Delta E_{\text{syn}}` 。传统方法假设参考系变换时 :math:`\delta` 不变，推导如下：
 
@@ -143,7 +144,7 @@ phi_offset 的用途
 这是一个 **三重近似** ：
 
 1. **一阶线性化** ： :math:`dE \approx \delta \cdot \beta^2 \cdot E_{\text{total}}` （截断 :math:`O(\delta^2)` ）
-2. **:math:`\delta` 不变假设** ：参考系变换时 :math:`\delta` 不变（实际 :math:`\delta = p/p_0 - 1` 依赖于 :math:`p_0` ）
+2. **delta 不变假设** ：参考系变换时 :math:`\delta` 不变（实际 :math:`\delta = p/p_0 - 1` 依赖于 :math:`p_0` ）
 3. **弱加速近似** ： :math:`\beta_1^2 E_1 / (\beta_0^2 E_0) \approx \beta_1/\beta_0` （仅在 :math:`E_1 \approx E_0` 时成立）
 
 在强加速场景（如从注入到引出能量变化数倍），第 3 步近似显著失效。
@@ -184,7 +185,7 @@ PASS 弃用上述全部近似，直接从精确相对论关系出发。所有物
 
   \delta_{\text{new}} = \frac{p_{\text{new}}}{p_{0,\text{new}}} - 1
 
-**为什么精确方法不需要** :math:`\beta_1/\beta_0` **因子**
+**为什么精确方法不需要** ``beta1/beta0`` **因子**
 
 精确方法直接追踪每个粒子的绝对总能量 :math:`E_{\text{particle}}` 和绝对动量 :math:`p_{\text{particle}}` 。 RF kick 改变的是能量（ :math:`E_{\text{new}} = E_{\text{old}} + \Delta E` ），然后从能量精确恢复动量（ :math:`p = \sqrt{E^2 - m_0^2}` ），最后除以新参考动量得到 :math:`\delta` 。
 
@@ -322,26 +323,16 @@ RF kick 是纯纵向能量增益，不改变粒子的绝对横向动量 :math:`P
     - float
     - 0.0
     - 附加相位偏移（rad），用于多腔相位对齐和相位 trim
-  * - ``frequency``
-    - ``frequency (hz)``
-    - float
-    - None
-    - RF 频率（Hz），与 harmonic 互斥
   * - ``_rf_table``
     - ``rf data file``
     - str
     - None
-    - Ramping 数据文件路径（TFS 格式）
+    - Ramping 数据文件路径（TFS 格式），提供后覆盖固定值参数。每行对应一圈，所需列名： ``HARMONIC`` 、 ``VOLTAGE`` 、 ``PHASE`` 、 ``PHI_OFFSET``
   * - ``is_enabled``
     - ``is enabled``
     - bool
     - True
     - 开关
-  * - ``length``
-    - ``length (m)``
-    - float
-    - 0.0
-    - 腔长（预留，当前为薄透镜）
 
 .. list-table:: 纵向孔径参数
   :header-rows: 1
@@ -399,14 +390,14 @@ Ramping 数据文件
 
 当 RF 参数需要随圈数变化时（如能量 ramping ），可提供 TFS 格式的数据文件。 TFS （ Table File System ）是一种带元数据的表格格式，文件中可包含标题、注释等文档信息，列通过列名识别而非位置。
 
-所需列名（大小写不敏感，顺序不限）：
+所需列名（大小写不限，顺序不限）：
 
 - ``HARMONIC`` —— 谐波数
 - ``VOLTAGE`` —— RF 电压（V）
 - ``PHASE`` —— 同步相位（rad）
 - ``PHI_OFFSET`` —— 附加相位偏移（rad）
 
-每行对应一个圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 ``TITLE`` 、 ``DATE`` 等元数据头信息，由 ``tfs-pandas`` 库自动解析。
+读取时列名自动转换为小写，因此 ``Harmonic`` 、 ``voltage`` 、 ``phase`` 等任意大小写组合均可。每行对应一圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 ``TITLE`` 、 ``DATE`` 等元数据头信息，由 ``tfs-pandas`` 库自动解析。
 
 
 使用示例
