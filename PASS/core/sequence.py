@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 COMMAND_PRIORITY = {
     "Injection": 0,
     "SortBunch": 100,
+    "ReorganizeBunch": 150,
     "Twiss": 200,
     "Marker": 300,
     "Drift": 300,

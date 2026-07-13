@@ -253,6 +253,23 @@ class RFCavityElement(ElementBase):
 
 
 # ============================================================
+# ReorganizeBunch (bunch index redistribution, no physical tracking)
+# ============================================================
+
+class ReorganizeBunchElement(ElementBase):
+    """Reorganize bunch command: redistribute particle indices among bunches.
+
+    Only modifies ``start_idx`` / ``end_idx`` of each bunch;
+    does not touch any particle coordinates.
+    """
+    command: str = Field(default="ReorganizeBunch", alias="Command")
+    mode: str = Field(default="merge", alias="Mode")
+    start_turn: int = Field(default=0, alias="Start turn")
+    end_turn: int = Field(default=-1, alias="End turn")
+    new_num_bunch: int = Field(default=1, ge=1, alias="New num bunch")
+
+
+# ============================================================
 # Convenience registry
 # ============================================================
 
@@ -269,4 +286,5 @@ ELEMENT_REGISTRY: dict[str, type[ElementBase]] = {
     "elseparator": ElSeparatorElement,
     "exciter": ExciterElement,
     "rfcavity": RFCavityElement,
+    "reorganizebunch": ReorganizeBunchElement,
 }
