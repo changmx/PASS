@@ -612,6 +612,9 @@ class Injection(Command):
             else:
                 pass
 
+        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
+
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
         p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
@@ -647,6 +650,9 @@ class Injection(Command):
                 i += 1
             else:
                 pass
+
+        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
 
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
@@ -723,6 +729,9 @@ class Injection(Command):
             else:
                 pass
 
+        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
+
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
         p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
@@ -798,6 +807,9 @@ class Injection(Command):
             else:
                 pass
 
+        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
+
         p = beam.particles
         p.z[start_index:end_index] = p.xp.asarray(z_arr)
         p.dp[start_index:end_index] = p.xp.asarray(dp_arr)
@@ -866,8 +878,61 @@ class Injection(Command):
 
         logger.info("Saving successfully")
 
+    def _apply_longitudinal_offset(self, inj_bunch: InjectionBunchInfo, z_arr: np.ndarray, dp_arr: np.ndarray):
+        """Apply longitudinal offset: symmetric shift + rf_position back-drift + z folding.
+
+        1. Shift z to the bucket center so that for even h no bucket sits on the C/2 folding boundary.
+        2. Back-drift from s_rf to s=0 (reverse propagation over distance rf_position):
+           z(s=0) = z(s_rf) + eta * rf_position * dp
+        3. Fold z into [-C/2, C/2).
+
+        Parameters
+        ----------
+        z_arr, dp_arr : ndarray
+            Longitudinal coordinates generated around z=0 (at s=s_rf).
+            Modified in-place.
+        """
+        C = inj_bunch.circum
+        h = inj_bunch.harmonic_num
+        hid = inj_bunch.harmonic_id
+
+        # --- 0. Apply momentum offset (ddp) ---
+        # ddp is the bunch-level average momentum deviation, added to each particle's dp
+        # before shift and back-drift, so that all dp-dependent corrections use dp + ddp.
+        if inj_bunch.ddp != 0.0:
+            dp_arr += inj_bunch.ddp
+
+        # --- 1. symmetric shift ---
+        # shift = C/h * (harmonic_id - h/2 + 0.5)
+        # For h=4: hid=0→-3C/8, 1→-C/8, 2→C/8, 3→3C/8  (symmetric about 0)
+        shift = C / h * (hid - h / 2.0 + 0.5)
+        z_arr += shift
+
+        # --- 2. rf_position back-drift (reverse propagation s_rf → s=0) ---
+        # z(s=0) = z(s_rf) - (-1 * eta * rf_position * dp)
+        eta = inj_bunch.getInitEta()
+        z_arr += eta * inj_bunch.rf_position * dp_arr
+
+        # --- 3. Fold z into [-C/2, C/2) ---
+        c_half = 0.5 * C
+        z_arr[:] = ((z_arr + c_half) % C) - c_half
+
     def _add_offset(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
-        pass
+        """Apply transverse dispersion coupling: x += dp*dx, px += dp*dpx."""
+        dx = inj_bunch.dx
+        dpx = inj_bunch.dpx
+        if dx == 0.0 and dpx == 0.0:
+            return
+
+        start_index = bunch_info.start_idx + inj_bunch.Np_injected
+        end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
+
+        p = beam.particles
+        xp = p.xp
+
+        dp_slice = p.dp[start_index:end_index]
+        p.x[start_index:end_index] += xp.asarray(dx * dp_slice)
+        p.px[start_index:end_index] += xp.asarray(dpx * dp_slice)
 
     def _insert_particles(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         logger.info(f"Inserting specified particles to beam{self.beam_id} bunch{inj_bunch.bunch_id} ...")
@@ -946,6 +1011,26 @@ class InjectionBunchInfo:
         self.harmonic_num = kwargs.get("harmonic number", 0)
         self.harmonic_id = kwargs.get("harmonic id", 0)
         self.rf_position = kwargs.get("rf s position refer to inj. point (m)", 0.0)
+
+        # Momentum offset: support both dp offset and kinetic energy offset
+        ddp = kwargs.get("momentum offset dp", 0.0)
+        dde = kwargs.get("kinetic energy offset (ev)", 0.0)
+        if ddp != 0.0 and dde != 0.0:
+            raise ValueError(
+                f"Bunch{bunch_id}: 'momentum offset dp' and 'kinetic energy offset (eV)' "
+                f"are mutually exclusive, please set only one to non-zero."
+            )
+        if dde != 0.0:
+            # Convert kinetic energy offset to dp offset using exact E^2 = p^2 + m_0^2
+            # E0 = Ek + m0, p0 = sqrt(E0^2 - m0^2)
+            # E1 = E0 + dde, p1 = sqrt(E1^2 - m0^2)
+            # dp = p1/p0 - 1
+            E0 = self.Ek + self.m0
+            p0 = self.gamma * self.m0 * self.beta
+            E1 = E0 + dde
+            p1 = np.sqrt(E1 * E1 - self.m0 * self.m0)
+            ddp = p1 / p0 - 1.0
+        self.ddp = ddp
         self.is_load_dist = kwargs.get("is load distribution from file", False)
         self.load_dist_filepath = kwargs.get("distribution file path", None)
         self.is_save_init_dist = kwargs.get("is save initial distribution", True)
