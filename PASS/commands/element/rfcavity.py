@@ -63,28 +63,18 @@ class RFCavity(Command):
 
         self.beam_id = beam_id
         self.s = kwargs["s (m)"]
-        self.length = kwargs.get("length (m)", 0.0)
+        self.length = 0.0
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
 
-        if self.length < 0.0:
-            raise ValueError(
-                f"The length of RFCavity {self.cmd_name} is {self.length}, "
-                f"which should be >= 0"
-            )
-
         # --- RF parameters (two input modes) ---
         # Mode 1 (fixed): voltage, harmonic, phase, phi_offset as scalars
-        # Mode 2 (file):  tfs file with columns VOLTAGE, HARMONIC, PHASE, PHI_OFFSET
+        # Mode 2 (file):  tfs file with columns HARMONIC, VOLTAGE, PHASE, PHI_OFFSET
         #                 one row per turn (turn index starts from 0)
         self.voltage = kwargs.get("voltage (v)", 0.0)
         self.harmonic = kwargs.get("harmonic", 1)
         self.phase = kwargs.get("phase (rad)", 0.0)
         self.phi_offset = kwargs.get("phi offset (rad)", 0.0)
-
-        # Optional: direct frequency (Hz).  If harmonic is also given,
-        # frequency takes precedence and harmonic is derived from it.
-        self.frequency = kwargs.get("frequency (hz)", None)
 
         # RF data file (ramping): tfs file with columns VOLTAGE, HARMONIC, PHASE, PHI_OFFSET
         rf_file = kwargs.get("rf data file", None)
@@ -128,28 +118,32 @@ class RFCavity(Command):
     def _load_rf_table(filepath):
         """Load RF ramping table from TFS file.
 
-        Required columns (by name, order-independent):
+        Required columns (by name, order-independent, case-insensitive):
             HARMONIC, VOLTAGE, PHASE, PHI_OFFSET
 
         One row per turn (turn 0 = first data row).
+        Column names are converted to lowercase internally, so any
+        case (e.g. ``Harmonic``, ``voltage``, ``PHASE``) is accepted.
         The TFS file may also contain header metadata (title, etc.)
         which is automatically handled by tfs-pandas.
         """
         import tfs
 
         df = tfs.read(filepath)
-        required = ["HARMONIC", "VOLTAGE", "PHASE", "PHI_OFFSET"]
-        for col in required:
-            if col not in df.columns:
-                raise ValueError(
-                    f"RF TFS file '{filepath}' missing required column '{col}'. "
-                    f"Required columns: {required}. Found: {list(df.columns)}"
-                )
+        df.columns = df.columns.str.lower()
+
+        required = ["harmonic", "voltage", "phase", "phi_offset"]
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            raise ValueError(
+                f"RF TFS file '{filepath}' missing required column(s): {missing}. "
+                f"Required: {required}. Found: {list(df.columns)}"
+            )
         return {
-            "harmonic": df["HARMONIC"].to_numpy().astype(np.int64),
-            "voltage": df["VOLTAGE"].to_numpy().astype(np.float64),
-            "phase": df["PHASE"].to_numpy().astype(np.float64),
-            "phi_offset": df["PHI_OFFSET"].to_numpy().astype(np.float64),
+            "harmonic": df["harmonic"].to_numpy().astype(np.int64),
+            "voltage": df["voltage"].to_numpy().astype(np.float64),
+            "phase": df["phase"].to_numpy().astype(np.float64),
+            "phi_offset": df["phi_offset"].to_numpy().astype(np.float64),
             "n_turns": len(df),
         }
 
@@ -172,20 +166,25 @@ class RFCavity(Command):
 
     def print(self):
         set_simple_logging()
-        freq_str = (
-            f"Frequency={self.frequency:.4f} Hz"
-            if self.frequency is not None
-            else f"Harmonic={self.harmonic}"
-        )
-        logger.info(
-            f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
-            f"Voltage={self.voltage:.6e} V, {freq_str}, "
-            f"Phase={self.phase:.6f} rad, PhiOffset={self.phi_offset:.6f} rad, "
-            f"IsEnabled={self.is_enabled}, "
-            f"DpAperture=[{self.dp_aperture_lower}, {self.dp_aperture_upper}], "
-            f"ApertureType={self.aperture_type:s}, "
-            f"ApertureValue={self.aperture_value}"
-        )
+        if self._rf_table is not None:
+            logger.info(
+                f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
+                f"RFDataFile(turns={self._rf_table['n_turns']}), "
+                f"IsEnabled={self.is_enabled}, "
+                f"DpAperture=[{self.dp_aperture_lower}, {self.dp_aperture_upper}], "
+                f"ApertureType={self.aperture_type:s}, "
+                f"ApertureValue={self.aperture_value}"
+            )
+        else:
+            logger.info(
+                f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
+                f"Voltage={self.voltage:.6e} V, Harmonic={self.harmonic}, "
+                f"Phase={self.phase:.6f} rad, PhiOffset={self.phi_offset:.6f} rad, "
+                f"IsEnabled={self.is_enabled}, "
+                f"DpAperture=[{self.dp_aperture_lower}, {self.dp_aperture_upper}], "
+                f"ApertureType={self.aperture_type:s}, "
+                f"ApertureValue={self.aperture_value}"
+            )
         set_normal_logging()
 
     # ------------------------------------------------------------------
