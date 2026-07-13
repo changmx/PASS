@@ -1,69 +1,91 @@
+"""Shared utilities for the PASS parameter system.
+
+Contents:
+    - class_map: MADX keyword → PASS Command registry name
+    - sort_sequence: sort sequence dict by (s, command priority)
+"""
+
 from collections import OrderedDict
 
+
+# MADX KEYWORD → PASS Command registry name (lowercase, matches @Command.register)
 class_map = {
-    "marker": "MarkerElement",
-    "drift": "DriftElement",
-    "sbend": "SBendElement",
-    "quadrupole": "QuadrupoleElement",
-    "sextupole": "SextupoleElement",
-    "octupole": "OctupoleElement",
-    "multipole": "MultipoleElement",
-    "solenoid": "SolenoidElement",
-    "kicker": "KickerElement",
-    "elseparator": "ElSeparatorElement",
-    "exciter": "ExciterElement",
-    "rfcavity": "RFElement",
+    "marker": "marker",
+    "drift": "drift",
+    "sbend": "sbend",
+    "rbend": "sbend",          # MADX rbend maps to SBend
+    "quadrupole": "quadrupole",
+    "sextupole": "sextupole",
+    "octupole": "octupole",
+    "multipole": "multipole",
+    "solenoid": "solenoid",
+    "hkicker": "kicker",
+    "vkicker": "kicker",
+    "kicker": "kicker",
+    "tkicker": "kicker",
+    "monitor": "drift",        # BPM treated as drift
+    "elseparator": "elseparator",
+    "exciter": "exciter",
+    "rfcavity": "rfcavity",
 }
 
 
-def convert_ordereddict(obj):
+# Command priority for same-s sorting (lower = earlier)
+_COMMAND_PRIORITY = {
+    "Injection": 0,
+    "SortBunch": 100,
+    "Twiss": 200,
+    "Marker": 300,
+    "Drift": 300,
+    "SBend": 300,
+    "Quadrupole": 300,
+    "Sextupole": 300,
+    "Octupole": 300,
+    "Multipole": 300,
+    "Solenoid": 300,
+    "Kicker": 300,
+    "RF": 300,
+    "ElSeparator": 300,
+    "Exciter": 300,
+    "SpaceCharge": 400,
+    "WakeField": 500,
+    "BeamBeam": 600,
+    "ElectronCloud": 700,
+    "LumiMonitor": 800,
+    "PhaseMonitor": 800,
+    "DistMonitor": 800,
+    "StatMonitor": 800,
+    "ParticleMonitor": 800,
+    "Other": 999,
+}
+
+
+def _convert_ordereddict(obj):
+    """Recursively convert OrderedDict → plain dict for JSON serialization."""
     if isinstance(obj, OrderedDict):
-        return {k: convert_ordereddict(v) for k, v in obj.items()}
+        return {k: _convert_ordereddict(v) for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [convert_ordereddict(item) for item in obj]
+        return [_convert_ordereddict(item) for item in obj]
     else:
         return obj
 
 
-def sort_sequence(sequence):
-    Command_order = {
-        "Injection": 0,  # 最高优先级
-        "SortBunch": 100,  # 次级优先级
-        "Twiss": 200,
-        "MarkerElement": 300,
-        "DriftElement": 300,
-        "SBendElement": 300,
-        "QuadrupoleElement": 300,
-        "SextupoleElement": 300,
-        "OctupoleElement": 300,
-        "MultipoleElement": 300,
-        "SolenoidElement": 300,
-        "KickerElement": 300,
-        "ElSeparatorElement": 300,
-        "ExciterElement": 300,
-        "RFElement": 300,
-        "SpaceCharge": 400,
-        "WakeField": 500,
-        "BeamBeam": 600,
-        "ElectronCloud": 700,
-        "LumiMonitor": 800,
-        "PhaseMonitor": 800,
-        "DistMonitor": 800,
-        "StatMonitor": 800,
-        "ParticleMonitor": 800,
-        "Other": 999,  # 最低优先级
-    }
+def sort_sequence(sequence: dict) -> dict:
+    """Sort sequence items by (S position, command priority).
 
-    # 首先按照位置S进行从小到大的排序，如果两个字典的S相同，按照上述Commnad自定义顺序进行排序
-    sorted_sequence = OrderedDict(
+    Args:
+        sequence: {name: {\"S (m)\": float, \"Command\": str, ...}}
+
+    Returns:
+        Plain dict sorted by (s, priority).
+    """
+    sorted_seq = OrderedDict(
         sorted(
             sequence.items(),
             key=lambda item: (
-                item[1]["S (m)"],  # 主排序键
-                Command_order.get(item[1]["Command"], 999),  # 次排序键
+                item[1]["S (m)"],
+                _COMMAND_PRIORITY.get(item[1].get("Command", ""), 999),
             ),
-        ))
-
-    sorted_sequence_dictType = convert_ordereddict(sorted_sequence)  # 递归转换，把OrderDict转化为dict类型
-
-    return sorted_sequence_dictType
+        )
+    )
+    return _convert_ordereddict(sorted_seq)
