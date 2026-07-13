@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="元件（Element）" href="element/index.html" />
-    <link rel="prev" title="PASS 文档（中文）" href="index.html" /> 
+    <link rel="prev" title="输入文件生成（命令行模式）" href="input_generation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,6 +48,38 @@
               <p class="caption" role="heading"><span class="caption-text">Content</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">注入粒子生成（Injection）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">束团参数</a><ul>
@@ -60,11 +92,17 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id9">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">纵向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16">运行命令</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#d">1D 投影理论曲线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id13">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
@@ -200,14 +238,24 @@
 <li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">坐标约定</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id7">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id9">接口参数</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id9">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id12">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id13">验证测试</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id14">验证测试</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id5">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
@@ -526,13 +574,28 @@
 <li></li>
 </ul>
 </td>
-<td><p>该束团所属的高频谐波 ID</p></td>
+<td><p>该束团所属的高频谐波 ID （从 0 开始），用于多束团注入时将各束团放置到不同的 RF bucket</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_position</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Inj.</span> <span class="pre">Point</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>m</p></td>
-<td><p>高频腔相对于注入点的纵向位置</p></td>
+<td><p>高频腔相对于注入点的纵向位置，用于将 s_rf 处生成的分布逆向传播到 s=0 注入点</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ddp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Momentum</span> <span class="pre">Offset</span> <span class="pre">dp</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>束团级平均动量偏差 <span class="math notranslate nohighlight">\(\delta_0\)</span> ，叠加到每个粒子的 dp 上。与 <code class="docutils literal notranslate"><span class="pre">dde</span></code> 互斥</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dde</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">Offset</span> <span class="pre">(eV)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>eV</p></td>
+<td><p>束团级动能偏差，内部转化为 <code class="docutils literal notranslate"><span class="pre">ddp</span></code> 。与 <code class="docutils literal notranslate"><span class="pre">ddp</span></code> 互斥</p></td>
 </tr>
 </tbody>
 </table>
@@ -907,9 +970,315 @@
 </li>
 </ul>
 </div></blockquote>
-</section>
 <section id="id11">
-<h2>输入文件<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<h3>多束团纵向偏移<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>当注入多个束团时，各束团需要放置到不同的 RF bucket 中。PASS 采用对称偏移公式，在纵向分布生成后自动执行以下三步操作：</p>
+<div class="math notranslate nohighlight">
+\[z_{\text{final}} = \mathrm{fold}\left( z_{\text{gen}} + \Delta z_{\text{shift}} + \eta \, s_{\text{rf}} \, \delta \right), \quad z \in [-C/2, C/2)\]</div>
+<p>其中：</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>对称偏移</strong> ： <span class="math notranslate nohighlight">\(\Delta z_{\text{shift}} = \frac{C}{h}\left(h_{\text{id}} - \frac{h}{2} + 0.5\right)\)</span> ，使各 bucket 关于 <span class="math notranslate nohighlight">\(z=0\)</span> 对称分布，偶数 <span class="math notranslate nohighlight">\(h\)</span> 时没有 bucket 落在 <span class="math notranslate nohighlight">\(C/2\)</span> 折叠边界上</p></li>
+<li><p><strong>rf_position 逆向传播</strong> ： <span class="math notranslate nohighlight">\(\eta \, s_{\text{rf}} \, \delta\)</span> ，将在高频腔位置 <span class="math notranslate nohighlight">\(s=s_{\text{rf}}\)</span> 生成的分布逆向传播到注入点 <span class="math notranslate nohighlight">\(s=0\)</span> ，其中 <span class="math notranslate nohighlight">\(\eta = 1/\gamma_t^2 - 1/\gamma^2\)</span> 为滑相因子</p></li>
+<li><p><strong>z 折叠</strong> ：将 <span class="math notranslate nohighlight">\(z\)</span> 折叠到 <span class="math notranslate nohighlight">\([-C/2, C/2)\)</span> 区间</p></li>
+</ol>
+</div></blockquote>
+<p>同时，偶数 <span class="math notranslate nohighlight">\(h\)</span> 时 RF 腔在计算粒子相位时自动施加 <span class="math notranslate nohighlight">\(C/(2h)\)</span> 补偿，以抵消对称偏移引入的等效 <span class="math notranslate nohighlight">\(180^\circ\)</span> 相位翻转。奇数 <span class="math notranslate nohighlight">\(h\)</span> 不需要补偿。</p>
+</section>
+<section id="id12">
+<h3>束团填充方案<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>束团 ID （ <code class="docutils literal notranslate"><span class="pre">bunch_id</span></code> ）严格按照从 0 开始、步长 1 递增的顺序编号，由输入文件中 <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> 、 <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> 、 … 的键名决定。束团数量由输入文件中 <code class="docutils literal notranslate"><span class="pre">bunch</span></code> 键的数量决定。</p>
+<p>每个束团的谐波 ID （ <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> ）可以独立设置，不需要连续，也不需要从 0 开始。谐波 ID 决定了该束团被放置到哪个 RF bucket。</p>
+<ul class="simple">
+<li><p><strong>均匀填充</strong> ：当 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">...</span> <span class="pre">,</span> <span class="pre">h-1</span></code> 时，各束团均匀分布在 <span class="math notranslate nohighlight">\(h\)</span> 个 bucket 中，位置关于 <span class="math notranslate nohighlight">\(z=0\)</span> 对称（从负到正）</p></li>
+<li><p><strong>部分填充</strong> ：可以只填充部分 bucket。例如 <span class="math notranslate nohighlight">\(h=4\)</span> 时只注入 2 个束团，设置 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span> <span class="pre">=</span> <span class="pre">0</span></code> 和 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span> <span class="pre">=</span> <span class="pre">2</span></code> ，则只有第 0 和第 2 个 bucket 被填充</p></li>
+<li><p><strong>任意填充</strong> ： <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 可以是 <span class="math notranslate nohighlight">\(0\)</span> 到 <span class="math notranslate nohighlight">\(h-1\)</span> 之间的任意整数，支持任意填充方案</p></li>
+</ul>
+</div>
+<p>下图为环形布局下的束团填充示例。圆环代表加速器周长 <span class="math notranslate nohighlight">\(C\)</span> ，圆环上的标记点为各 bucket 中心位置。 <span class="math notranslate nohighlight">\(z=0\)</span> 处为理想粒子位置（注入点）。束团编号和谐波 ID 按顺时针方向递增。上图为 <span class="math notranslate nohighlight">\(h=4\)</span> （偶数）均匀填充，4 个 bucket 全部填充；下图为 <span class="math notranslate nohighlight">\(h=5\)</span> （奇数）部分填充，仅填充 bucket 0 和 bucket 2：</p>
+<div style="text-align: center">
+<svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="420" fill="#1a1a2e"/>
+
+  <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=4 (even): uniform filling</text>
+
+  <!-- Ring -->
+  <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
+
+  <!-- Bucket boundary lines (every C/4 = 90 deg) -->
+  <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="200" y1="220" x2="200" y2="80" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="200" y1="220" x2="200" y2="360" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- hid=0: z=-3C/8, clockwise from z=0(right) => lower-left -->
+  <!-- angle from right = -135deg (clockwise 135deg) => x=200+140*cos(-135)=200-99=101, y=220+140*sin(-135)...
+       Actually clockwise from right: z=0 at angle 0, clockwise positive.
+       z=-3C/8 => fraction -3/8 of C => angle = -3/8*2pi = -135deg => same as 225deg
+       In SVG (y down): clockwise = increasing angle in screen coords
+       z=0 at (340,220). Clockwise (downward first):
+       z=-C/8 => 45deg clockwise => (200+140cos45, 220+140sin45) = (299, 319)
+       z=-3C/8 => 135deg clockwise => (200+140cos135, 220+140sin135) = (101, 319)
+       z=C/8 => -45deg (counterclockwise, upward) => (299, 121)
+       z=3C/8 => -135deg => (101, 121)
+       Wait, clockwise in SVG means y increases (downward).
+       z=0 at right (340,220). Clockwise 45deg goes to lower-right (299,319).
+       But z=-C/8 is negative z, which should be "behind" the ideal particle.
+
+       Let me think again: z = s - beta0*c*t. Positive z means particle is ahead (larger s).
+       If we go clockwise on the ring and call that positive z direction,
+       then z>0 is clockwise from z=0, z<0 is counterclockwise.
+
+       User wants bucket IDs clockwise. hid=0 has most negative z (-3C/8 for h=4).
+       So hid=0 is far counterclockwise (upper-left), hid=3 is far clockwise (lower-right)?
+       No wait - user said "束团编号和谐波id应该是顺时针的" meaning IDs increase clockwise.
+       hid=0 -> hid=1 -> hid=2 -> hid=3 goes clockwise.
+       hid=0: z=-3C/8, hid=1: z=-C/8, hid=2: z=C/8, hid=3: z=3C/8
+       So z increases clockwise. z=0 is between hid=1 and hid=2.
+
+       Positions (clockwise from top, z=0 at right=3 o'clock):
+       z=0 at 3 o'clock (340, 220)
+       Clockwise = downward in SVG
+       z=-3C/8 at 135deg CCW from right = 10:30 position => upper-left
+       z=-C/8 at 45deg CCW from right = 1:30 position => upper-right
+       z=C/8 at 45deg CW from right = 4:30 position => lower-right
+       z=3C/8 at 135deg CW from right = 7:30 position => lower-left
+
+       But that makes IDs go CCW: hid=0(upper-left)->hid=1(upper-right)->hid=2(lower-right)->hid=3(lower-left)
+       That's clockwise! upper-left -> upper-right -> lower-right -> lower-left IS clockwise.
+  -->
+
+  <!-- z=0 ideal particle marker (right side of ring) -->
+  <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
+  <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+
+  <!-- hid=0: z=-3C/8, upper-left, angle=225deg in std (or -135deg) -->
+  <!-- x=200+140*cos(225deg)=200-99=101, y=220+140*sin(225deg)=220-99=121 -->
+  <!-- Wait, in SVG y is down. cos/sin with SVG y-down:
+       angle 0 = right, positive angle = clockwise (y increases)
+       z=-3C/8: this is 3/8*2pi = 135deg counterclockwise from z=0
+       In SVG: counterclockwise = negative angle = y decreases
+       x = 200 + 140*cos(-135deg) = 200 + 140*(-0.707) = 101
+       y = 220 + 140*sin(-135deg) = 220 + 140*(-0.707) = 121  (upper-left) ✓
+  -->
+  <circle cx="101" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="75" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
+  <text x="75" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+  <text x="75" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+  <text x="68" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-3C/8</text>
+
+  <!-- hid=1: z=-C/8, upper-right, angle=-45deg -->
+  <!-- x=200+140*cos(-45)=200+99=299, y=220+140*sin(-45)=220-99=121 -->
+  <circle cx="299" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="325" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
+  <text x="325" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+  <text x="325" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+  <text x="332" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-C/8</text>
+
+  <!-- hid=2: z=C/8, lower-right, angle=45deg -->
+  <!-- x=200+140*cos(45)=299, y=220+140*sin(45)=220+99=319 -->
+  <circle cx="299" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="325" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
+  <text x="325" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+  <text x="325" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 2</text>
+  <text x="332" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">C/8</text>
+
+  <!-- hid=3: z=3C/8, lower-left, angle=135deg -->
+  <!-- x=200+140*cos(135)=101, y=220+140*sin(135)=319 -->
+  <circle cx="101" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="75" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
+  <text x="75" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+  <text x="75" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 3</text>
+  <text x="68" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">3C/8</text>
+
+  <!-- Legend -->
+  <circle cx="60" cy="400" r="7" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="75" y="404" fill="#888" font-size="12" font-family="sans-serif">Filled bunch</text>
+  <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
+  <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+</svg>
+</div><div style="text-align: center">
+<svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="420" fill="#1a1a2e"/>
+
+  <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=5 (odd): partial filling</text>
+
+  <!-- Ring -->
+  <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
+
+  <!-- Bucket boundaries at z = -C/2, -2C/5+..., every C/5 -->
+  <!-- z=0 at right (0deg), boundaries at +/-C/10, +/-3C/10, +/-C/2 -->
+  <!-- C/10 = 36deg, 3C/10 = 108deg, C/2 = 180deg -->
+  <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- 36deg: x=200+140cos(36)=313, y=220+140sin(36)=302 -->
+  <line x1="200" y1="220" x2="313" y2="302" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- -36deg: x=313, y=138 -->
+  <line x1="200" y1="220" x2="313" y2="138" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- 108deg: x=200+140cos(108)=157, y=220+140sin(108)=353 -->
+  <line x1="200" y1="220" x2="157" y2="353" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- -108deg: x=157, y=87 -->
+  <line x1="200" y1="220" x2="157" y2="87" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- 180deg: x=60, y=220 -->
+  <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Bucket centers: shift=C/5*(hid-2.5+0.5)=C/5*(hid-2) -->
+  <!-- hid=0: z=-2C/5, angle=-144deg (CCW). x=200+140cos(-144)=200-113=87, y=220+140sin(-144)=220-82=138 -->
+  <!-- hid=1: z=-C/5, angle=-72deg. x=200+140cos(-72)=200+43=243, y=220+140sin(-72)=220-133=87 -->
+  <!-- hid=2: z=0, angle=0. x=340, y=220 -->
+  <!-- hid=3: z=C/5, angle=72deg. x=243, y=353 -->
+  <!-- hid=4: z=2C/5, angle=144deg. x=87, y=302 -->
+
+  <!-- z=0 ideal particle (hid=2 position, but empty) -->
+  <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
+  <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+
+  <!-- hid=0: z=-2C/5, FILLED, bunch_id=0 -->
+  <circle cx="87" cy="138" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="55" y="125" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
+  <text x="55" y="141" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+  <text x="55" y="157" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+  <text x="48" y="172" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-2C/5</text>
+
+  <!-- hid=1: z=-C/5, EMPTY -->
+  <circle cx="243" cy="87" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="243" y="68" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
+  <text x="243" y="54" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+  <text x="275" y="92" fill="#555" font-size="11" font-family="monospace">(empty)</text>
+  <text x="278" y="106" fill="#888" font-size="11" font-family="monospace">-C/5</text>
+
+  <!-- hid=2: z=0, FILLED, bunch_id=1 -->
+  <circle cx="340" cy="220" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="375" y="250" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
+  <text x="375" y="266" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+  <text x="375" y="282" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+
+  <!-- hid=3: z=C/5, EMPTY -->
+  <circle cx="243" cy="353" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="243" y="378" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
+  <text x="243" y="394" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+  <text x="278" y="348" fill="#555" font-size="11" font-family="monospace">(empty)</text>
+  <text x="278" y="362" fill="#888" font-size="11" font-family="monospace">C/5</text>
+
+  <!-- hid=4: z=2C/5, EMPTY -->
+  <circle cx="87" cy="302" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="55" y="295" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 4</text>
+  <text x="55" y="311" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=4</text>
+  <text x="48" y="327" fill="#555" font-size="11" text-anchor="middle" font-family="monospace">(empty)</text>
+  <text x="48" y="341" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">2C/5</text>
+
+  <!-- Legend -->
+  <circle cx="60" cy="400" r="7" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="75" y="404" fill="#888" font-size="12" font-family="sans-serif">Filled bunch</text>
+  <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
+  <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+</svg>
+</div></section>
+<section id="id13">
+<h3>色散耦合<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<p>如果注入点存在色散函数 <span class="math notranslate nohighlight">\(D_x\)</span> 和 <span class="math notranslate nohighlight">\(D_{px}\)</span> ，则在生成横向分布后自动施加色散耦合：</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + D_x \cdot \delta, \quad p_x \leftarrow p_x + D_{px} \cdot \delta\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\delta\)</span> 为粒子的动量偏差。这确保了粒子分布与纵向动量分散在物理上自洽。</p>
+</section>
+<section id="id14">
+<h3>动量偏差<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<p>注入时可以为整个束团施加平均动量偏移 <span class="math notranslate nohighlight">\(\delta_0\)</span> 。粒子分布生成时 <span class="math notranslate nohighlight">\(\delta\)</span> 服从均值为 0 的分布（如高斯分布 <span class="math notranslate nohighlight">\(\delta \sim \mathcal{N}(0, \sigma_\delta)\)</span> ），施加偏移后变为 <span class="math notranslate nohighlight">\(\delta \sim \mathcal{N}(\delta_0, \sigma_\delta)\)</span> ，即分布中心从 0 平移到 <span class="math notranslate nohighlight">\(\delta_0\)</span> 。<span class="math notranslate nohighlight">\(\delta_0\)</span> 是叠加量，不是粒子的总 <span class="math notranslate nohighlight">\(\delta\)</span> 。这用于模拟注入能量偏移、参考动量偏移等场景。</p>
+<p>支持两种输入方式（互斥，若同时为非零值则报错）：</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>动量偏差</strong> （ <code class="docutils literal notranslate"><span class="pre">Momentum</span> <span class="pre">Offset</span> <span class="pre">dp</span></code> ）：直接给出 <span class="math notranslate nohighlight">\(\delta_0\)</span> （无量纲，相对于参考动量的偏差）</p></li>
+<li><p><strong>动能偏差</strong> （ <code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">Offset</span> <span class="pre">(eV)</span></code> ）：给出 <span class="math notranslate nohighlight">\(\Delta E\)</span> （单位 eV），内部转化为 <span class="math notranslate nohighlight">\(\delta_0\)</span></p></li>
+</ul>
+</div></blockquote>
+<p><strong>精确转换公式</strong></p>
+<p>动能偏差 <span class="math notranslate nohighlight">\(\Delta E\)</span> 到动量偏差 <span class="math notranslate nohighlight">\(\delta_0\)</span> 的转换，采用精确的相对论能量-动量关系：</p>
+<div class="math notranslate nohighlight">
+\[E^2 = p^2 + m_0^2\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(E\)</span> 为总能量（ <span class="math notranslate nohighlight">\(E = E_k + m_0\)</span> ）， <span class="math notranslate nohighlight">\(p\)</span> 为动量， <span class="math notranslate nohighlight">\(m_0\)</span> 为静止质量。参考粒子（无偏差）的参数为：</p>
+<div class="math notranslate nohighlight">
+\[E_0 = E_k + m_0, \quad p_0 = \sqrt{E_0^2 - m_0^2}\]</div>
+<p>施加动能偏差 <span class="math notranslate nohighlight">\(\Delta E\)</span> 后，粒子总能量变为 <span class="math notranslate nohighlight">\(E_1 = E_0 + \Delta E\)</span> ，对应动量为：</p>
+<div class="math notranslate nohighlight">
+\[p_1 = \sqrt{E_1^2 - m_0^2} = \sqrt{(E_0 + \Delta E)^2 - m_0^2}\]</div>
+<p>因此动量偏差为：</p>
+<div class="math notranslate nohighlight">
+\[\delta_0 = \frac{p_1}{p_0} - 1 = \frac{\sqrt{(E_0 + \Delta E)^2 - m_0^2}}{\sqrt{E_0^2 - m_0^2}} - 1\]</div>
+<p>此公式 <strong>完全精确</strong> ，无任何近似，与 RF 腔中采用的精确 <span class="math notranslate nohighlight">\(E^2 = p^2 + m_0^2\)</span> 变换保持一致。</p>
+<p><strong>一阶线性化近似</strong></p>
+<p>对式 <span class="math notranslate nohighlight">\(\delta_0 = p_1/p_0 - 1\)</span> 在 <span class="math notranslate nohighlight">\(\Delta E \to 0\)</span> 处做一阶泰勒展开。由 <span class="math notranslate nohighlight">\(E \, dE = p \, dp\)</span> 得：</p>
+<div class="math notranslate nohighlight">
+\[dE = \frac{p}{E} \, dp = \beta \, dp \quad \Longrightarrow \quad dp = \frac{dE}{\beta}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\beta = p_0 c / E_0\)</span> 为参考粒子速度。由于 PASS 中 <span class="math notranslate nohighlight">\(\delta = \Delta p / p_0\)</span> 为相对动量偏差，参考动量 <span class="math notranslate nohighlight">\(p_0 = \beta \gamma m_0 = \beta E_0\)</span> ，故：</p>
+<div class="math notranslate nohighlight">
+\[\delta_0 \approx \frac{\Delta E}{\beta^2 \, E_0}\]</div>
+<p>此近似截断了 <span class="math notranslate nohighlight">\(O(\delta_0^2)\)</span> 及更高阶项。在小偏差时精度足够，但大偏差时误差显著。</p>
+<p><strong>精确与近似对比</strong></p>
+<p>下表以质子（ <span class="math notranslate nohighlight">\(E_k = 45\)</span> MeV ， <span class="math notranslate nohighlight">\(\beta = 0.299\)</span> ）为例，展示不同 <span class="math notranslate nohighlight">\(\Delta E\)</span> 下两种公式的差异：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.2%" />
+<col style="width: 27.8%" />
+<col style="width: 27.8%" />
+<col style="width: 22.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><span class="math notranslate nohighlight">\(\Delta E\)</span> (eV)</p></th>
+<th class="head"><p>精确 <span class="math notranslate nohighlight">\(\delta_0\)</span></p></th>
+<th class="head"><p>近似 <span class="math notranslate nohighlight">\(\delta_0\)</span></p></th>
+<th class="head"><p>相对误差</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1,000</p></td>
+<td><p>1.137126e-5</p></td>
+<td><p>1.137132e-5</p></td>
+<td><p>0.000005%</p></td>
+</tr>
+<tr class="row-odd"><td><p>10,000</p></td>
+<td><p>1.137073e-4</p></td>
+<td><p>1.137132e-4</p></td>
+<td><p>0.000052%</p></td>
+</tr>
+<tr class="row-even"><td><p>100,000</p></td>
+<td><p>1.136544e-3</p></td>
+<td><p>1.137132e-3</p></td>
+<td><p>0.000517%</p></td>
+</tr>
+<tr class="row-odd"><td><p>1,000,000</p></td>
+<td><p>1.131311e-2</p></td>
+<td><p>1.137132e-2</p></td>
+<td><p>0.0514%</p></td>
+</tr>
+<tr class="row-even"><td><p>10,000,000</p></td>
+<td><p>1.084146e-1</p></td>
+<td><p>1.137132e-1</p></td>
+<td><p>4.89%</p></td>
+</tr>
+<tr class="row-odd"><td><p>50,000,000</p></td>
+<td><p>4.717485e-1</p></td>
+<td><p>5.685659e-1</p></td>
+<td><p>20.5%</p></td>
+</tr>
+</tbody>
+</table>
+<p>在小偏差（ <span class="math notranslate nohighlight">\(\Delta E &lt; 100\)</span> keV ）时两种公式几乎无差异，但在大偏差（如 <span class="math notranslate nohighlight">\(\Delta E &gt; 1\)</span> MeV ）时线性近似误差超过 0.05%，在 <span class="math notranslate nohighlight">\(\Delta E = 50\)</span> MeV 时误差高达 20%。PASS 采用精确公式以覆盖大偏差场景。</p>
+<p><strong>施加顺序</strong></p>
+<p>动量偏差 <span class="math notranslate nohighlight">\(\delta_0\)</span> 在纵向偏移之前施加到每个粒子的 <span class="math notranslate nohighlight">\(\delta\)</span> 上：</p>
+<div class="math notranslate nohighlight">
+\[\delta \leftarrow \delta + \delta_0\]</div>
+<p>因此后续的 rf_position 逆向传播（ <span class="math notranslate nohighlight">\(z \leftarrow z + \eta \, s_{\text{rf}} \, \delta\)</span> ）和色散耦合（ <span class="math notranslate nohighlight">\(x \leftarrow x + D_x \, \delta\)</span> ）均使用包含 <span class="math notranslate nohighlight">\(\delta_0\)</span> 的 <span class="math notranslate nohighlight">\(\delta\)</span> 值，确保物理自洽。</p>
+</section>
+</section>
+<section id="id15">
+<h2>输入文件<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;Beam Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">&quot;Number of Protons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
@@ -983,8 +1352,8 @@
 </pre></div>
 </div>
 </section>
-<section id="id12">
-<h2>运行命令<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<section id="id16">
+<h2>运行命令<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>PASS<span class="se">\e</span>xample<span class="se">\0</span>1_generate_distribution
 python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="o">=</span>./beam0.json
 </pre></div>
@@ -1000,175 +1369,175 @@ python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="
 <section id="d">
 <h2>1D 投影理论曲线<a class="headerlink" href="#d" title="Link to this heading"></a></h2>
 <p>下图展示了四种横向分布（ Uniform 、 KV 、 Waterbag 、 Parabolic ）在 1D 平面的理论投影曲线。所有曲线均归一化至 <span class="math notranslate nohighlight">\(\int_{-1}^{1} \rho(u) \, du = 1\)</span> ，横轴为归一化坐标 <span class="math notranslate nohighlight">\(u \in [-1, 1]\)</span> 。可以清晰看到从 Uniform （平顶）到 Parabolic （尖峰）的幂次递增趋势。</p>
-<figure class="align-center" id="id14">
+<figure class="align-center" id="id18">
 <a class="reference internal image-reference" href="../_images/dist_1d_projections.png"><img alt="1D projections of transverse distributions" src="../_images/dist_1d_projections.png" style="width: 80%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
-<section id="id13">
-<h2>模拟结果<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<section id="id17">
+<h2>模拟结果<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
 <p>下面将展示保持上述输入文件中 Twiss、发射度、高频等参数不变，只改变分布类型时，模拟所得粒子分布图片。</p>
 <ul class="simple">
 <li><p>横向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id15">
+<figure class="align-center" id="id19">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="Gaussian x-px" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id16">
+<figure class="align-center" id="id20">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id17">
+<figure class="align-center" id="id21">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="Gaussian x-y" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id21" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向 KV 分布：</p></li>
 </ul>
-<figure class="align-center" id="id18">
+<figure class="align-center" id="id22">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="kv x-px" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id22" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id19">
+<figure class="align-center" id="id23">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id23" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id20">
+<figure class="align-center" id="id24">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="kv x-y" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id24" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向水袋分布：</p></li>
 </ul>
-<figure class="align-center" id="id21">
+<figure class="align-center" id="id25">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="waterbag x-px" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id21" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id25" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id22">
+<figure class="align-center" id="id26">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id22" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id26" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id23">
+<figure class="align-center" id="id27">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="waterbag x-y" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id23" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id27" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向抛物线分布：</p></li>
 </ul>
-<figure class="align-center" id="id24">
+<figure class="align-center" id="id28">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="parabolic x-px" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id24" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id28" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id25">
+<figure class="align-center" id="id29">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id25" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id26">
+<figure class="align-center" id="id30">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="parabolic x-y" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id26" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向均匀分布：</p></li>
 </ul>
-<figure class="align-center" id="id27">
+<figure class="align-center" id="id31">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="uniform x-px" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id27" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id28">
+<figure class="align-center" id="id32">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id28" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id29">
+<figure class="align-center" id="id33">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="uniform x-y" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id33" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 MatchZ 分布：</p></li>
 </ul>
-<figure class="align-center" id="id30">
+<figure class="align-center" id="id34">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png"><img alt="MatchZ z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id34" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 MatchDp 分布：</p></li>
 </ul>
-<figure class="align-center" id="id31">
+<figure class="align-center" id="id35">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png"><img alt="MatchDp z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id35" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id32">
+<figure class="align-center" id="id36">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png"><img alt="Gaussian z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id36" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 Coasting 分布：</p></li>
 </ul>
-<figure class="align-center" id="id33">
+<figure class="align-center" id="id37">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png"><img alt="coasting z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id33" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id37" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -1178,7 +1547,7 @@ python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="PASS 文档（中文）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="input_generation.html" class="btn btn-neutral float-left" title="输入文件生成（命令行模式）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="element/index.html" class="btn btn-neutral float-right" title="元件（Element）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

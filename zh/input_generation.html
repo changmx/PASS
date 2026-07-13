@@ -1,0 +1,884 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>输入文件生成（命令行模式） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="注入粒子生成（Injection）" href="injection.html" />
+    <link rel="prev" title="PASS 文档（中文）" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id16">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id17">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id20">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/kicker.html">冲击器（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id14">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
+      <li class="breadcrumb-item active">输入文件生成（命令行模式）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/zh/input_generation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="id1">
+<h1>输入文件生成（命令行模式）<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
+<section id="id2">
+<h2>简介<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>PASS 采用 <strong>JSON 文件</strong> 作为仿真输入。引擎（ <code class="docutils literal notranslate"><span class="pre">Config</span></code> 、 <code class="docutils literal notranslate"><span class="pre">Beam</span></code> 、 <code class="docutils literal notranslate"><span class="pre">CommandSequence</span></code> ）从 JSON 文件读取全部参数，包括粒子种类、束团分布、Lattice序列、监测器等。</p>
+<p>参数系统 <code class="docutils literal notranslate"><span class="pre">PASS/para/</span></code> 提供了一套基于 <strong>pydantic v2</strong> 的 schema 定义，用户通过 Python 脚本组装参数对象，调用 <code class="docutils literal notranslate"><span class="pre">generate_input()</span></code> 即可输出引擎兼容的 JSON 文件。这种方式相比手写 JSON 有以下优势：</p>
+<ul class="simple">
+<li><p><strong>类型安全</strong> ：参数类型、范围在 schema 中声明，非法值在生成时即被拦截；</p></li>
+<li><p><strong>别名映射</strong> ：Python 代码使用简洁属性名（如 <code class="docutils literal notranslate"><span class="pre">circumference</span></code> ），JSON 输出自动使用引擎期望的 key（如 <code class="docutils literal notranslate"><span class="pre">&quot;Circumference</span> <span class="pre">(m)&quot;</span></code> ）；</p></li>
+<li><p><strong>可复用</strong> ：schema 对象可 <code class="docutils literal notranslate"><span class="pre">model_copy(update={...})</span></code> 快速派生变体，适合参数扫描；</p></li>
+<li><p><strong>GUI 可扩展</strong> ：schema 自带 JSON Schema 导出，未来 GUI 可自动渲染表单。</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>本文档介绍命令行模式下的输入文件生成方式。GUI 模式将在未来版本中提供。</p>
+</div>
+</section>
+<section id="id3">
+<h2>架构概览<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>参数系统分为五层，各层职责清晰、互不依赖：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PASS/para/
+├── schema/       参数定义（唯一数据源）
+│   ├── main.py         MainConfig：全局仿真参数
+│   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
+│   ├── twiss.py        TwissPoint：twiss 传输点
+│   ├── elements.py     12 种元件（Drift→RFCavity）
+│   ├── monitors.py     StatMonitor / DistMonitor / PhaseMonitor
+│   ├── space_charge.py SpaceChargeConfig
+│   └── sequence.py     Sequence：有序容器 + 自动排序
+├── readers/      外部格式 → schema 对象
+│   ├── madx_twiss.py   MADX twiss TFS → TwissPoint 列表
+│   ├── madx_element.py MADX twiss TFS → Element 列表
+│   ├── madx_error.py   MADX error TFS → 场误差
+│   └── smooth_approx.py 解析平滑近似 twiss
+├── writers/      schema → 输出
+│   └── json_writer.py  schema → 引擎兼容 JSON
+├── tools/        外部数据 → PASS TFS
+│   ├── data_converter.py 通用数据转换流水线
+│   ├── ramping.py         元件 ramping 文件生成
+│   ├── rf_data.py         RF 数据文件生成
+│   └── exciter_data.py    Exciter 数据文件生成
+├── toolkit.py    sort_sequence + class_map
+└── api.py        高级 API
+</pre></div>
+</div>
+<p>数据流如下：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MADX TFS / 用户参数 / 外部数据文件
+           │
+           ▼
+     readers/ + tools/        → schema 对象 / TFS 文件
+           │
+           ▼
+      schema/ (pydantic)     ← 唯一数据源：验证 + 别名
+           │
+           ▼
+     writers/json_writer     → beam0.json
+           │
+           ▼
+      PASS 引擎 (Config → Beam → CommandSequence → Executor)
+</pre></div>
+</div>
+</section>
+<section id="id4">
+<h2>快速开始<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id5">
+<h3>最简示例<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>以下脚本生成一个包含注入 + 平滑近似 twiss + 统计监测器的完整输入文件：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_input</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.main</span><span class="w"> </span><span class="kn">import</span> <span class="n">MainConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.bunch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BunchConfig</span><span class="p">,</span> <span class="n">InjectionItem</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.sequence</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.readers.smooth_approx</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_smooth_twiss</span>
+
+<span class="c1"># 1. 全局参数</span>
+<span class="n">main</span> <span class="o">=</span> <span class="n">MainConfig</span><span class="p">(</span>
+    <span class="n">beam_name</span><span class="o">=</span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
+    <span class="n">num_proton</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_neutron</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_electron</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">gamma_t</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">circumference</span><span class="o">=</span><span class="mf">251.327</span><span class="p">,</span>
+    <span class="n">num_turns</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 2. 束团</span>
+<span class="n">bunch</span> <span class="o">=</span> <span class="n">BunchConfig</span><span class="p">(</span>
+    <span class="n">kinetic_energy</span><span class="o">=</span><span class="mf">45e6</span><span class="p">,</span>
+    <span class="n">num_real_particles</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e11</span><span class="p">),</span>
+    <span class="n">num_macro_particles</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e5</span><span class="p">),</span>
+    <span class="n">beta_x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">beta_y</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">alpha_x</span><span class="o">=-</span><span class="mf">2.61</span><span class="p">,</span> <span class="n">alpha_y</span><span class="o">=</span><span class="mf">1.57</span><span class="p">,</span>
+    <span class="n">emit_x</span><span class="o">=</span><span class="mf">200e-6</span><span class="p">,</span> <span class="n">emit_y</span><span class="o">=</span><span class="mf">100e-6</span><span class="p">,</span>
+    <span class="n">sigma_z</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">dp</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+    <span class="n">dist_trans</span><span class="o">=</span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span> <span class="n">dist_longi</span><span class="o">=</span><span class="s2">&quot;matchz&quot;</span><span class="p">,</span>
+    <span class="n">rf_voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">rf_phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 3. Lattice序列</span>
+<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">generate_smooth_twiss</span><span class="p">(</span>
+    <span class="n">circumference</span><span class="o">=</span><span class="n">main</span><span class="o">.</span><span class="n">circumference</span><span class="p">,</span>
+    <span class="n">qx</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">qy</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">main</span><span class="o">.</span><span class="n">circumference</span> <span class="o">=</span> <span class="n">circum</span>
+
+<span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;injection&quot;</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;stat1&quot;</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+
+<span class="c1"># 4. 生成 JSON</span>
+<span class="n">generate_input</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="s2">&quot;beam0.json&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>运行方式：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd C:\Users\changmx\Documents\PASS</span>
+<span class="go">python input/generate_beam0.py</span>
+</pre></div>
+</div>
+<p>输出文件： <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code></p>
+</section>
+</section>
+<section id="json">
+<h2>JSON 文件结构<a class="headerlink" href="#json" title="Link to this heading"></a></h2>
+<p>生成的 JSON 文件结构如下：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Beam Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of Protons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of Neutrons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of Charges&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Transition Gamma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">4.8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Circumference (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">251.327</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of turns&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Backend (gpu/cpu)&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of GPU devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Device Id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;Output directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./output&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is plot figure&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is space charge&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is beam-beam&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Sequence&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;injection&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Injection&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;bunch0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;twiss_0000&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Twiss&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;S previous (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Beta x (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">8.333</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;stat1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>JSON 的 key 名称是引擎的硬性契约。schema 层通过 pydantic 的 <code class="docutils literal notranslate"><span class="pre">alias</span></code> 机制自动处理 Python 属性名到 JSON key 的映射，用户无需手写。</p>
+<p>引擎在读取时会先调用 <code class="docutils literal notranslate"><span class="pre">convert_keys_to_lower()</span></code> 将所有 key 转为小写，因此 JSON key 的大小写不影响读取。</p>
+</div>
+</section>
+<section id="id6">
+<h2>核心组件<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="mainconfig">
+<h3>MainConfig（全局参数）<a class="headerlink" href="#mainconfig" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beam_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">Name</span></code></p></td>
+<td><p>str</p></td>
+<td><p>束流标签</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_proton</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Protons</span></code></p></td>
+<td><p>int</p></td>
+<td><p>每粒子质子数（0 表示电子/正电子）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_neutron</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Neutrons</span></code></p></td>
+<td><p>int</p></td>
+<td><p>每粒子中子数（&gt;0 表示离子）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_electron</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Charges</span></code></p></td>
+<td><p>int</p></td>
+<td><p>每粒子电荷数（可负，不可为 0）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gamma_t</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Transition</span> <span class="pre">Gamma</span></code></p></td>
+<td><p>float</p></td>
+<td><p>过渡 gamma</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">circumference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Circumference</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>环周长 (m)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">turns</span></code></p></td>
+<td><p>int</p></td>
+<td><p>仿真圈数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">backend</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Backend</span> <span class="pre">(gpu/cpu)</span></code></p></td>
+<td><p>str</p></td>
+<td><p>计算后端： <code class="docutils literal notranslate"><span class="pre">cpu</span></code> 或 <code class="docutils literal notranslate"><span class="pre">gpu</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_gpu</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">GPU</span> <span class="pre">devices</span></code></p></td>
+<td><p>int</p></td>
+<td><p>GPU 数量</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gpu_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Device</span> <span class="pre">Id</span></code></p></td>
+<td><p>list[int]</p></td>
+<td><p>GPU 设备 ID 列表</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code></p></td>
+<td><p>str</p></td>
+<td><p>输出目录</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否生成图表</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_space_charge</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">space</span> <span class="pre">charge</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否启用空间电荷</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>是否启用束流-束流相互作用</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bunchconfig">
+<h3>BunchConfig（束团参数）<a class="headerlink" href="#bunchconfig" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">per</span> <span class="pre">Nucleon</span> <span class="pre">(eV/u)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>每核子动能 (eV/u)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_real_particles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Real</span> <span class="pre">Particles</span></code></p></td>
+<td><p>int</p></td>
+<td><p>每束团真实粒子数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_macro_particles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span> <span class="pre">Particles</span></code></p></td>
+<td><p>int</p></td>
+<td><p>每束团宏粒子数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">beta_x</span></code> / <code class="docutils literal notranslate"><span class="pre">beta_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Twiss β 函数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alpha_x</span></code> / <code class="docutils literal notranslate"><span class="pre">alpha_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">x</span></code> / <code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">y</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Twiss α 函数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">emit_x</span></code> / <code class="docutils literal notranslate"><span class="pre">emit_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Emittance</span> <span class="pre">x</span> <span class="pre">(m'rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>发射度</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">z</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>束团长度</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">dp/p</span></code></p></td>
+<td><p>float</p></td>
+<td><p>动量展宽</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dist_trans</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">dist</span></code></p></td>
+<td><p>str</p></td>
+<td><p>横向分布： <code class="docutils literal notranslate"><span class="pre">kv</span></code> / <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> / <code class="docutils literal notranslate"><span class="pre">uniform</span></code> / <code class="docutils literal notranslate"><span class="pre">waterbag</span></code> / <code class="docutils literal notranslate"><span class="pre">parabolic</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dist_longi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">dist</span></code></p></td>
+<td><p>str</p></td>
+<td><p>纵向分布： <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> / <code class="docutils literal notranslate"><span class="pre">coasting</span></code> / <code class="docutils literal notranslate"><span class="pre">matchz</span></code> / <code class="docutils literal notranslate"><span class="pre">matchdp</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>RF 电压（matchz/matchdp 模式使用）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>RF 相位</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sequence">
+<h3>Sequence（序列容器）<a class="headerlink" href="#sequence" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">Sequence</span></code> 是一个有序容器，存储所有按位置 <code class="docutils literal notranslate"><span class="pre">s</span></code> 排列的序列项。添加顺序不影响最终结果——导出时自动按 <code class="docutils literal notranslate"><span class="pre">(s,</span> <span class="pre">command</span> <span class="pre">priority)</span></code> 排序。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;injection&quot;</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;qd1&quot;</span><span class="p">,</span> <span class="n">QuadrupoleElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">k1l</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;stat1&quot;</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>支持的序列项类型：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">InjectionItem</span></code> — 注入点（必须 <code class="docutils literal notranslate"><span class="pre">s=0</span></code> ）</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TwissPoint</span></code> — twiss 传输点</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DriftElement</span></code> 、 <code class="docutils literal notranslate"><span class="pre">QuadrupoleElement</span></code> 、 <code class="docutils literal notranslate"><span class="pre">SBendElement</span></code> 等 — 物理元件</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PhaseMonitor</span></code> — 监测器</p></li>
+</ul>
+</section>
+</section>
+<section id="lattice">
+<h2>Lattice来源<a class="headerlink" href="#lattice" title="Link to this heading"></a></h2>
+<p>PASS 支持三种Lattice序列生成方式，可根据需要选择或混合使用：</p>
+<section id="madx-twiss">
+<h3>方式一：从 MADX twiss 文件读取<a class="headerlink" href="#madx-twiss" title="Link to this heading"></a></h3>
+<p>读取 MADX 生成的 twiss TFS 文件，每个元件转为一个 <code class="docutils literal notranslate"><span class="pre">TwissPoint</span></code> 传输点。适用于 <strong>逐 twiss 传输</strong> 模式。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.readers.madx_twiss</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss</span>
+
+<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss</span><span class="p">(</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">&quot;lattice.tfs&quot;</span><span class="p">,</span>
+    <span class="n">error_file</span><span class="o">=</span><span class="s2">&quot;errors.tfs&quot;</span><span class="p">,</span>       <span class="c1"># 可选</span>
+    <span class="n">muz</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>                      <span class="c1"># 纵向 tune</span>
+    <span class="n">dqx</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>                        <span class="c1"># 色品（或 &quot;from_file&quot;）</span>
+    <span class="n">dqy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">is_field_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>           <span class="c1"># 是否读取场误差</span>
+    <span class="n">insert_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;QD.*&quot;</span><span class="p">],</span>      <span class="c1"># 正则匹配，插入为薄透镜元件</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h3>方式二：从 MADX twiss 文件读取为元件<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>读取 twiss 文件，但每个元件转为对应的物理元件对象（ <code class="docutils literal notranslate"><span class="pre">QuadrupoleElement</span></code> 、 <code class="docutils literal notranslate"><span class="pre">SBendElement</span></code> 等）。适用于 <strong>逐元件追踪</strong> 模式。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.readers.madx_element</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
+
+<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">&quot;lattice.tfs&quot;</span><span class="p">,</span>
+    <span class="n">is_merge_drift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># 合并相邻漂移节</span>
+    <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">error_file</span><span class="o">=</span><span class="s2">&quot;errors.tfs&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="twiss">
+<h3>方式三：平滑近似 twiss<a class="headerlink" href="#twiss" title="Link to this heading"></a></h3>
+<p>无需 MADX 文件，用解析公式生成恒定 β 函数的 twiss 点。 <span class="math notranslate nohighlight">\(\beta = C / (2\pi Q)\)</span> 。适用于快速测试。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.readers.smooth_approx</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_smooth_twiss</span>
+
+<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">generate_smooth_twiss</span><span class="p">(</span>
+    <span class="n">circumference</span><span class="o">=</span><span class="mf">569.1</span><span class="p">,</span>
+    <span class="n">qx</span><span class="o">=</span><span class="mf">9.47</span><span class="p">,</span> <span class="n">qy</span><span class="o">=</span><span class="mf">9.43</span><span class="p">,</span>
+    <span class="n">num_points</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">muz</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id8">
+<h3>混合模式<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<p>twiss 传输点和物理元件可以在同一个序列中混合使用。例如在 twiss 序列中插入一个 RF 腔：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFCavityElement</span>
+
+<span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;injection&quot;</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+
+<span class="c1"># twiss 传输点</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">twiss_items</span><span class="p">):</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+
+<span class="c1"># 插入 RF 腔（在 s=0 处）</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;rf1&quot;</span><span class="p">,</span> <span class="n">RFCavityElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">harmonic</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="id9">
+<h2>外部数据文件转换<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>PASS 使用 <strong>TFS 格式</strong> 作为所有 ramping/RF/exciter 数据文件的统一格式。 <code class="docutils literal notranslate"><span class="pre">tools/data_converter.py</span></code> 提供了通用转换流水线，将各种外部文件（CSV/TXT/TFS）转为 PASS TFS。</p>
+<section id="id10">
+<h3>四步流水线<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>外部文件 → load_raw_data → time_to_turn → interpolate → write_tfs
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li><p><strong>load_raw_data</strong> ：读取外部文件，自动检测 turn/time 列</p></li>
+<li><p><strong>time_to_turn</strong> ：如外部文件给的是时间而非圈数，用回旋频率转换</p></li>
+<li><p><strong>interpolate_to_continuous_turns</strong> ：圈数不连续时自动插值</p></li>
+<li><p><strong>write_tfs_ramping</strong> ：写入 PASS 统一 TFS 格式</p></li>
+</ol>
+</section>
+<section id="id11">
+<h3>一步到位<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_external_to_tfs</span>
+
+<span class="n">convert_external_to_tfs</span><span class="p">(</span>
+    <span class="n">input_path</span><span class="o">=</span><span class="s2">&quot;external_ramp.csv&quot;</span><span class="p">,</span>     <span class="c1"># 外部文件</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;k1l_ramping.tfs&quot;</span><span class="p">,</span>      <span class="c1"># PASS TFS</span>
+    <span class="n">data_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;k1l&quot;</span><span class="p">,</span> <span class="s2">&quot;k1sl&quot;</span><span class="p">],</span>          <span class="c1"># 数据列名</span>
+    <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">,</span>             <span class="c1"># 回旋频率 (Hz)</span>
+    <span class="n">num_turns</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>                     <span class="c1"># 目标圈数</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>                    <span class="c1"># 插值方法</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id12">
+<h3>预置封装<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<p>针对常见元件类型的薄封装：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_k1l_ramping</span><span class="p">,</span> <span class="n">convert_k2l_ramping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
+
+<span class="c1"># 四极铁 ramping</span>
+<span class="n">convert_k1l_ramping</span><span class="p">(</span><span class="s2">&quot;external.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;k1l_ramping.tfs&quot;</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
+
+<span class="c1"># RF 数据</span>
+<span class="n">convert_rf_data</span><span class="p">(</span><span class="s2">&quot;llrf.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;rf_data.tfs&quot;</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id13">
+<h3>分步调用<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<p>外部文件格式特殊时，可分步调用各函数：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">interpolate_to_continuous_turns</span><span class="p">,</span> <span class="n">write_tfs_ramping</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 自行准备数据</span>
+<span class="n">turn_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
+<span class="n">k2l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">4.4</span><span class="p">])</span>
+
+<span class="n">turn_cont</span><span class="p">,</span> <span class="n">data_cont</span> <span class="o">=</span> <span class="n">interpolate_to_continuous_turns</span><span class="p">(</span>
+    <span class="n">turn_arr</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;K2L&quot;</span><span class="p">:</span> <span class="n">k2l</span><span class="p">},</span>
+    <span class="n">start_turn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">write_tfs_ramping</span><span class="p">(</span><span class="s2">&quot;k2l_ramping.tfs&quot;</span><span class="p">,</span> <span class="n">turn_cont</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_cont</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="api">
+<h2>API 参考<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_input</span><span class="p">,</span> <span class="n">load_input</span>
+
+<span class="c1"># 生成 JSON</span>
+<span class="n">generate_input</span><span class="p">(</span>
+    <span class="n">main</span><span class="p">:</span> <span class="n">MainConfig</span><span class="p">,</span>
+    <span class="n">sequence</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">space_charge</span><span class="p">:</span> <span class="n">SpaceChargeConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">extra_modules</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+
+<span class="c1"># 加载已有 JSON（用于修改后重新生成）</span>
+<span class="n">main</span><span class="p">,</span> <span class="n">seq_dict</span> <span class="o">=</span> <span class="n">load_input</span><span class="p">(</span><span class="s2">&quot;beam0.json&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id14">
+<h2>完整示例<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<p>项目内置的示例脚本位于 <code class="docutils literal notranslate"><span class="pre">input/generate_beam0.py</span></code> ，可直接运行：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd C:\Users\changmx\Documents\PASS</span>
+<span class="go">python input/generate_beam0.py</span>
+</pre></div>
+</div>
+<p>该脚本演示了完整的端到端流程：全局参数 → 多束团配置 → 平滑近似 twiss → Lattice 序列组装 → JSON 输出。生成的 <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> 可直接被 PASS 引擎读取执行。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="PASS 文档（中文）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="injection.html" class="btn btn-neutral float-right" title="注入粒子生成（Injection）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

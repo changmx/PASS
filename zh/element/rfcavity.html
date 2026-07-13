@@ -21,7 +21,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="孔径（Aperture）" href="../aperture.html" />
+    <link rel="next" title="束团重整（ReorganizeBunch）" href="../reorganize.html" />
     <link rel="prev" title="激励器（Exciter）" href="exciter.html" /> 
 </head>
 
@@ -48,6 +48,38 @@
               <p class="caption" role="heading"><span class="caption-text">Content</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../injection.html">注入粒子生成（Injection）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
@@ -60,11 +92,17 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id11">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id12">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id16">运行命令</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id13">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id17">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
@@ -200,14 +238,24 @@
 <li class="toctree-l3 current"><a class="current reference internal" href="#">高频加速腔（RFCavity）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id7">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">接口参数</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id9">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id12">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id13">验证测试</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id14">验证测试</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
@@ -376,6 +424,14 @@
 </ol>
 <p>物理上， <span class="math notranslate nohighlight">\(\varphi_{\text{off}}\)</span> 旋转整个 <span class="math notranslate nohighlight">\(\sin\)</span> 曲线，使得粒子的实际相位变为 <span class="math notranslate nohighlight">\(\varphi_s + \varphi_{\text{off}} - h\theta\)</span> 。</p>
 </section>
+<section id="id3">
+<h3>偶数谐波补偿<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>当注入多个束团时， PASS 采用对称偏移公式将各 bucket 关于 <span class="math notranslate nohighlight">\(z=0\)</span> 对称放置（见 <a class="reference internal" href="../injection.html"><span class="doc">注入粒子生成（Injection）</span></a> 中的多束团纵向偏移说明）。对于偶数谐波数 <span class="math notranslate nohighlight">\(h\)</span> ，这种对称偏移引入了等效 <span class="math notranslate nohighlight">\(180^\circ\)</span> 的相位翻转。</p>
+<p>为补偿这一翻转， RF 腔在计算粒子相位时，对偶数 <span class="math notranslate nohighlight">\(h\)</span> 自动在 <span class="math notranslate nohighlight">\(z\)</span> 上施加 <span class="math notranslate nohighlight">\(C/(2h)\)</span> 的偏移：</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}z_{\text{eff}} = \begin{cases} z + \frac{C}{2h} &amp; h \text{ 为偶数} \\ z &amp; h \text{ 为奇数} \end{cases}\end{split}\\\varphi_{\text{particle}} = \varphi_s + \varphi_{\text{off}} - h \cdot \frac{z_{\text{eff}}}{R}\end{aligned}\end{align} \]</div>
+<p>此补偿确保所有 bucket 中的同步粒子都能正确看到同步相位 <span class="math notranslate nohighlight">\(\varphi_s\)</span> 。奇数 <span class="math notranslate nohighlight">\(h\)</span> 不需要补偿（偏移量是 <span class="math notranslate nohighlight">\(2\pi\)</span> 的整数倍， <span class="math notranslate nohighlight">\(\sin\)</span> 函数自动不变）。</p>
+</section>
 <section id="kick">
 <h3>能量 kick<a class="headerlink" href="#kick" title="Link to this heading"></a></h3>
 <p>每个粒子的能量增益为：</p>
@@ -386,8 +442,8 @@
 \[\Delta E_{\text{syn}} = \frac{q}{A} \cdot V \cdot \sin(\varphi_s)\]</div>
 <p><span class="math notranslate nohighlight">\(\Delta E_{\text{syn}}\)</span> 体现了 RF 腔的净加速效果。</p>
 </section>
-<section id="id3">
-<h3>一阶线性化近似及其问题<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<section id="id4">
+<h3>一阶线性化近似及其问题<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
 <p>传统方法在将能量偏差 <span class="math notranslate nohighlight">\(dE\)</span> 转换为动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 时，采用一阶泰勒展开：</p>
 <div class="math notranslate nohighlight">
 \[dE \approx \delta \cdot \beta^2 \cdot E_{\text{total}}\]</div>
@@ -413,8 +469,8 @@
 </ol>
 <p>在强加速场景（如从注入到引出能量变化数倍），第 3 步近似显著失效。</p>
 </section>
-<section id="id4">
-<h3>精确能量-动量变换<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="id5">
+<h3>精确能量-动量变换<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
 <p>PASS 弃用上述全部近似，直接从精确相对论关系出发。所有物理量采用自然单位制（ <span class="math notranslate nohighlight">\(c = 1\)</span> ）， <span class="math notranslate nohighlight">\(m_0\)</span> 、 <span class="math notranslate nohighlight">\(p_0\)</span> 、 <span class="math notranslate nohighlight">\(E\)</span> 均以 eV 为单位。能量-动量关系为：</p>
 <div class="math notranslate nohighlight">
 \[E^2 = p^2 + m_0^2\]</div>
@@ -442,8 +498,8 @@
 <p>因此三重近似全部被绕过， <span class="math notranslate nohighlight">\(\beta_1/\beta_0\)</span> 因子自然不出现。</p>
 <p>此变换 <strong>完全精确</strong> ，无任何线性化近似，只需两次 <code class="docutils literal notranslate"><span class="pre">sqrt</span></code> 运算（numpy 向量化，成本可忽略），适用于大 <span class="math notranslate nohighlight">\(\delta\)</span> 和强加速场景。</p>
 </section>
-<section id="id5">
-<h3>移动参考系<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="id6">
+<h3>移动参考系<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
 <p>PASS 采用移动参考系（moving reference frame）：每次 RF kick 后，束流的参考能量更新为包含 <span class="math notranslate nohighlight">\(\Delta E_{\text{syn}}\)</span> 的新值：</p>
 <div class="math notranslate nohighlight">
 \[E_{\text{total},1} = E_{\text{total},0} + \Delta E_{\text{syn}}\]</div>
@@ -457,8 +513,8 @@
 \[E_{k,1} = E_{\text{total},1} - m_0\]</div>
 <p>同步粒子的 <span class="math notranslate nohighlight">\(\delta\)</span> 始终保持在 0 附近，避免了固定参考系中 <span class="math notranslate nohighlight">\(\delta\)</span> 持续增长导致的数值精度问题。</p>
 </section>
-<section id="id6">
-<h3>横向动量重缩放与绝热阻尼<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id7">
+<h3>横向动量重缩放与绝热阻尼<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <p>RF kick 是纯纵向能量增益，不改变粒子的绝对横向动量 <span class="math notranslate nohighlight">\(P_x\)</span> 。但由于参考动量 <span class="math notranslate nohighlight">\(P_0\)</span> 增长，归一化横向动量 <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span> 必须重缩放：</p>
 <div class="math notranslate nohighlight">
 \[p_x \leftarrow p_x \cdot \frac{p_{0,\text{old}}}{p_{0,\text{new}}} = p_x \cdot \frac{\beta_0 \gamma_0}{\beta_1 \gamma_1}\]</div>
@@ -470,12 +526,14 @@
 \[\epsilon_{\text{geom}}^{\text{new}} = \epsilon_{\text{geom}}^{\text{old}} \cdot \frac{\beta_0 \gamma_0}{\beta_1 \gamma_1} = \frac{\epsilon_N}{\beta_1 \gamma_1}\]</div>
 </section>
 </section>
-<section id="id7">
-<h2>跟踪流程<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="id8">
+<h2>跟踪流程<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>输入: z, dp(=δ), px, py, tag, bunch参数(β₀, γ₀, m₀, q/A, Ek, p₀, C)
 
 1. 计算 RF 相位
-   θ = z / R                          (R = C/2π)
+   若 h 为偶数: z_eff = z + C/(2h)   (偶数谐波补偿)
+   若 h 为奇数: z_eff = z
+   θ = z_eff / R                       (R = C/2π)
    φ_particle = phase + φ_off - h·θ
 
 2. 能量 kick
@@ -509,10 +567,10 @@
 </pre></div>
 </div>
 </section>
-<section id="id8">
-<h2>接口参数<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<table class="docutils align-default" id="id14">
-<caption><span class="caption-text">RF 参数</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<section id="id9">
+<h2>接口参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">RF 参数</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 22.0%" />
@@ -567,8 +625,8 @@
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id15">
-<caption><span class="caption-text">纵向孔径参数</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id16">
+<caption><span class="caption-text">纵向孔径参数</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 22.0%" />
@@ -599,8 +657,8 @@
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id16">
-<caption><span class="caption-text">通用参数</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">通用参数</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 22.0%" />
@@ -656,10 +714,10 @@
 </ul>
 <p>读取时列名自动转换为小写，因此 <code class="docutils literal notranslate"><span class="pre">Harmonic</span></code> 、 <code class="docutils literal notranslate"><span class="pre">voltage</span></code> 、 <code class="docutils literal notranslate"><span class="pre">phase</span></code> 等任意大小写组合均可。每行对应一圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 <code class="docutils literal notranslate"><span class="pre">TITLE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DATE</span></code> 等元数据头信息，由 <code class="docutils literal notranslate"><span class="pre">tfs-pandas</span></code> 库自动解析。</p>
 </section>
-<section id="id9">
-<h2>使用示例<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
 <section id="id10">
-<h3>示例 1：基本加速腔<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<h2>使用示例<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<section id="id11">
+<h3>示例 1：基本加速腔<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;RFCavity_1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -706,8 +764,8 @@
 </div>
 <p>TFS 文件中每行指定该圈的 <code class="docutils literal notranslate"><span class="pre">HARMONIC</span></code> 、 <code class="docutils literal notranslate"><span class="pre">VOLTAGE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PHASE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PHI_OFFSET</span></code> 。</p>
 </section>
-<section id="id11">
-<h3>示例 4：禁用腔<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<section id="id12">
+<h3>示例 4：禁用腔<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;RFCavity_4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -723,8 +781,8 @@
 <p><code class="docutils literal notranslate"><span class="pre">is_enabled</span> <span class="pre">=</span> <span class="pre">false</span></code> 时，腔体不执行任何操作（no-op ）。</p>
 </section>
 </section>
-<section id="id12">
-<h2>应用场景<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<section id="id13">
+<h2>应用场景<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
 <li><p><strong>同步加速器加速</strong> ：从注入能量到引出能量的加速过程，移动参考系保持 <span class="math notranslate nohighlight">\(\delta\)</span> 在小量级，数值精度好</p></li>
 <li><p><strong>纵向束流动力学</strong> ：同步振荡、束团拉伸/压缩、纵向 Emittance 控制</p></li>
@@ -733,8 +791,8 @@
 <li><p><strong>纵向接受度研究</strong> ：通过 dp aperture 参数设定纵向接受度，研究束流损失边界</p></li>
 </ol>
 </section>
-<section id="id13">
-<h2>验证测试<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<section id="id14">
+<h2>验证测试<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">tests/test_rf_verification.py</span></code> —— 17 组共 25 项测试，全部通过：</p>
 <ol class="arabic simple">
 <li><p>同步粒子 <span class="math notranslate nohighlight">\(\delta \approx 0\)</span> （精度 <span class="math notranslate nohighlight">\(&lt; 10^{-12}\)</span> ）</p></li>
@@ -763,7 +821,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="exciter.html" class="btn btn-neutral float-left" title="激励器（Exciter）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../aperture.html" class="btn btn-neutral float-right" title="孔径（Aperture）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../reorganize.html" class="btn btn-neutral float-right" title="束团重整（ReorganizeBunch）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
