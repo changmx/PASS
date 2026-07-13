@@ -127,6 +127,21 @@ class BunchConfig(BaseModel):
         alias="RF S Position Refer to Inj. Point (m)",
     )
 
+    # --- momentum offset (ddp / dde, mutually exclusive) ---
+    momentum_offset_dp: float = Field(
+        default=0.0,
+        alias="Momentum Offset dp",
+        description="Bunch-level average momentum deviation (dp/p). "
+                    "Mutually exclusive with kinetic energy offset.",
+    )
+    kinetic_energy_offset: float = Field(
+        default=0.0,
+        alias="Kinetic Energy Offset (eV)",
+        description="Bunch-level kinetic energy offset in eV. "
+                    "Converted to dp internally. "
+                    "Mutually exclusive with momentum offset dp.",
+    )
+
     # --- offsets ---
     offset_x: OffsetConfig = Field(
         default_factory=OffsetConfig,
