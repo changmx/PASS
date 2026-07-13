@@ -1,6 +1,7 @@
 from .command import Command
 from .twiss import Twiss
 from .injection import Injection
+from .reorganize import ReorganizeBunch
 from .element.marker import Marker
 from .element.drift import Drift
 from .element.dipole import SBend
