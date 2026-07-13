@@ -8,7 +8,9 @@ PASS 文档（中文）
    :maxdepth: 3
    :caption: 模块介绍
 
+   input_generation
    injection
    element/index
+   reorganize
    aperture
    twiss
