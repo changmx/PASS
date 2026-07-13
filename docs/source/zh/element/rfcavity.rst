@@ -86,6 +86,22 @@ phi_offset 的用途
 物理上， :math:`\varphi_{\text{off}}` 旋转整个 :math:`\sin` 曲线，使得粒子的实际相位变为 :math:`\varphi_s + \varphi_{\text{off}} - h\theta` 。
 
 
+偶数谐波补偿
+~~~~~~~~~~~~~~
+
+当注入多个束团时， PASS 采用对称偏移公式将各 bucket 关于 :math:`z=0` 对称放置（见 :doc:`../injection` 中的多束团纵向偏移说明）。对于偶数谐波数 :math:`h` ，这种对称偏移引入了等效 :math:`180^\circ` 的相位翻转。
+
+为补偿这一翻转， RF 腔在计算粒子相位时，对偶数 :math:`h` 自动在 :math:`z` 上施加 :math:`C/(2h)` 的偏移：
+
+.. math::
+
+  z_{\text{eff}} = \begin{cases} z + \frac{C}{2h} & h \text{ 为偶数} \\ z & h \text{ 为奇数} \end{cases}
+
+  \varphi_{\text{particle}} = \varphi_s + \varphi_{\text{off}} - h \cdot \frac{z_{\text{eff}}}{R}
+
+此补偿确保所有 bucket 中的同步粒子都能正确看到同步相位 :math:`\varphi_s` 。奇数 :math:`h` 不需要补偿（偏移量是 :math:`2\pi` 的整数倍， :math:`\sin` 函数自动不变）。
+
+
 能量 kick
 ~~~~~~~~~~
 
@@ -258,7 +274,9 @@ RF kick 是纯纵向能量增益，不改变粒子的绝对横向动量 :math:`P
   输入: z, dp(=δ), px, py, tag, bunch参数(β₀, γ₀, m₀, q/A, Ek, p₀, C)
 
   1. 计算 RF 相位
-     θ = z / R                          (R = C/2π)
+     若 h 为偶数: z_eff = z + C/(2h)   (偶数谐波补偿)
+     若 h 为奇数: z_eff = z
+     θ = z_eff / R                       (R = C/2π)
      φ_particle = phase + φ_off - h·θ
 
   2. 能量 kick
