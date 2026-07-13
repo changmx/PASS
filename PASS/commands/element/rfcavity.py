@@ -260,10 +260,18 @@ class RFCavity(Command):
         mask = alive_before.astype(np.float64)
 
         # --- 1. RF phase for each particle ---
-        # phi = phase + phi_offset - h * z / R
+        # phi = phase + phi_offset - h * z_eff / R
         # This is equivalent to phase - omega*tau, since
         #   omega*tau = 2*pi*f * z/(beta0*c) = 2*pi*h*z/C = h*z/R
-        theta = z / radius
+        #
+        # For even harmonic, the injection shift places buckets symmetrically
+        # about z=0, which introduces an effective 180°
+        # phase flip. Compensate by adding C/(2h) to z before computing theta.
+        if harmonic % 2 == 0:
+            z_eff = z + circum / (2.0 * harmonic)
+        else:
+            z_eff = z
+        theta = z_eff / radius
         phi_particle = phase + phi_offset - harmonic * theta
 
         # --- 2. Energy kick ---
