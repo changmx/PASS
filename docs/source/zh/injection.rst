@@ -163,12 +163,22 @@
     - ``Harmonic ID of this bunch``
     - int
     - -
-    - 该束团所属的高频谐波 ID
+    - 该束团所属的高频谐波 ID （从 0 开始），用于多束团注入时将各束团放置到不同的 RF bucket
   * - ``rf_position``
     - ``RF S Position Refer to Inj. Point (m)``
     - float
     - m
-    - 高频腔相对于注入点的纵向位置
+    - 高频腔相对于注入点的纵向位置，用于将 s\_rf 处生成的分布逆向传播到 s=0 注入点
+  * - ``ddp``
+    - ``Momentum Offset dp``
+    - float
+    - -
+    - 束团级平均动量偏差 :math:`\delta_0` ，叠加到每个粒子的 dp 上。与 ``dde`` 互斥
+  * - ``dde``
+    - ``Kinetic Energy Offset (eV)``
+    - float
+    - eV
+    - 束团级动能偏差，内部转化为 ``ddp`` 。与 ``ddp`` 互斥
 
 束流参数
 ~~~~~~~~~~
@@ -512,6 +522,344 @@
        |z| \le 2\sigma_z
 
     的粒子。
+
+
+多束团纵向偏移
+~~~~~~~~~~~~~~
+
+当注入多个束团时，各束团需要放置到不同的 RF bucket 中。PASS 采用对称偏移公式，在纵向分布生成后自动执行以下三步操作：
+
+.. math::
+
+  z_{\text{final}} = \mathrm{fold}\left( z_{\text{gen}} + \Delta z_{\text{shift}} + \eta \, s_{\text{rf}} \, \delta \right), \quad z \in [-C/2, C/2)
+
+其中：
+
+  1. **对称偏移** ： :math:`\Delta z_{\text{shift}} = \frac{C}{h}\left(h_{\text{id}} - \frac{h}{2} + 0.5\right)` ，使各 bucket 关于 :math:`z=0` 对称分布，偶数 :math:`h` 时没有 bucket 落在 :math:`C/2` 折叠边界上
+  2. **rf\_position 逆向传播** ： :math:`\eta \, s_{\text{rf}} \, \delta` ，将在高频腔位置 :math:`s=s_{\text{rf}}` 生成的分布逆向传播到注入点 :math:`s=0` ，其中 :math:`\eta = 1/\gamma_t^2 - 1/\gamma^2` 为滑相因子
+  3. **z 折叠** ：将 :math:`z` 折叠到 :math:`[-C/2, C/2)` 区间
+
+同时，偶数 :math:`h` 时 RF 腔在计算粒子相位时自动施加 :math:`C/(2h)` 补偿，以抵消对称偏移引入的等效 :math:`180^\circ` 相位翻转。奇数 :math:`h` 不需要补偿。
+
+束团填充方案
+~~~~~~~~~~~~~~
+
+.. note::
+
+   束团 ID （ ``bunch_id`` ）严格按照从 0 开始、步长 1 递增的顺序编号，由输入文件中 ``bunch0`` 、 ``bunch1`` 、 ... 的键名决定。束团数量由输入文件中 ``bunch`` 键的数量决定。
+
+   每个束团的谐波 ID （ ``harmonic_id`` ）可以独立设置，不需要连续，也不需要从 0 开始。谐波 ID 决定了该束团被放置到哪个 RF bucket。
+
+   - **均匀填充** ：当 ``harmonic_id = 0, 1, ... , h-1`` 时，各束团均匀分布在 :math:`h` 个 bucket 中，位置关于 :math:`z=0` 对称（从负到正）
+   - **部分填充** ：可以只填充部分 bucket。例如 :math:`h=4` 时只注入 2 个束团，设置 ``harmonic_id = 0`` 和 ``harmonic_id = 2`` ，则只有第 0 和第 2 个 bucket 被填充
+   - **任意填充** ： ``harmonic_id`` 可以是 :math:`0` 到 :math:`h-1` 之间的任意整数，支持任意填充方案
+
+下图为环形布局下的束团填充示例。圆环代表加速器周长 :math:`C` ，圆环上的标记点为各 bucket 中心位置。 :math:`z=0` 处为理想粒子位置（注入点）。束团编号和谐波 ID 按顺时针方向递增。上图为 :math:`h=4` （偶数）均匀填充，4 个 bucket 全部填充；下图为 :math:`h=5` （奇数）部分填充，仅填充 bucket 0 和 bucket 2：
+
+.. raw:: html
+
+  <div style="text-align: center">
+  <svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="420" fill="#1a1a2e"/>
+
+    <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=4 (even): uniform filling</text>
+
+    <!-- Ring -->
+    <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
+
+    <!-- Bucket boundary lines (every C/4 = 90 deg) -->
+    <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="200" y1="220" x2="200" y2="80" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="200" y1="220" x2="200" y2="360" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- hid=0: z=-3C/8, clockwise from z=0(right) => lower-left -->
+    <!-- angle from right = -135deg (clockwise 135deg) => x=200+140*cos(-135)=200-99=101, y=220+140*sin(-135)... 
+         Actually clockwise from right: z=0 at angle 0, clockwise positive.
+         z=-3C/8 => fraction -3/8 of C => angle = -3/8*2pi = -135deg => same as 225deg
+         In SVG (y down): clockwise = increasing angle in screen coords
+         z=0 at (340,220). Clockwise (downward first):
+         z=-C/8 => 45deg clockwise => (200+140cos45, 220+140sin45) = (299, 319)
+         z=-3C/8 => 135deg clockwise => (200+140cos135, 220+140sin135) = (101, 319)
+         z=C/8 => -45deg (counterclockwise, upward) => (299, 121)
+         z=3C/8 => -135deg => (101, 121)
+         Wait, clockwise in SVG means y increases (downward).
+         z=0 at right (340,220). Clockwise 45deg goes to lower-right (299,319).
+         But z=-C/8 is negative z, which should be "behind" the ideal particle.
+         
+         Let me think again: z = s - beta0*c*t. Positive z means particle is ahead (larger s).
+         If we go clockwise on the ring and call that positive z direction,
+         then z>0 is clockwise from z=0, z<0 is counterclockwise.
+         
+         User wants bucket IDs clockwise. hid=0 has most negative z (-3C/8 for h=4).
+         So hid=0 is far counterclockwise (upper-left), hid=3 is far clockwise (lower-right)?
+         No wait - user said "束团编号和谐波id应该是顺时针的" meaning IDs increase clockwise.
+         hid=0 -> hid=1 -> hid=2 -> hid=3 goes clockwise.
+         hid=0: z=-3C/8, hid=1: z=-C/8, hid=2: z=C/8, hid=3: z=3C/8
+         So z increases clockwise. z=0 is between hid=1 and hid=2.
+         
+         Positions (clockwise from top, z=0 at right=3 o'clock):
+         z=0 at 3 o'clock (340, 220)
+         Clockwise = downward in SVG
+         z=-3C/8 at 135deg CCW from right = 10:30 position => upper-left
+         z=-C/8 at 45deg CCW from right = 1:30 position => upper-right  
+         z=C/8 at 45deg CW from right = 4:30 position => lower-right
+         z=3C/8 at 135deg CW from right = 7:30 position => lower-left
+         
+         But that makes IDs go CCW: hid=0(upper-left)->hid=1(upper-right)->hid=2(lower-right)->hid=3(lower-left)
+         That's clockwise! upper-left -> upper-right -> lower-right -> lower-left IS clockwise.
+    -->
+
+    <!-- z=0 ideal particle marker (right side of ring) -->
+    <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
+    <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+
+    <!-- hid=0: z=-3C/8, upper-left, angle=225deg in std (or -135deg) -->
+    <!-- x=200+140*cos(225deg)=200-99=101, y=220+140*sin(225deg)=220-99=121 -->
+    <!-- Wait, in SVG y is down. cos/sin with SVG y-down:
+         angle 0 = right, positive angle = clockwise (y increases)
+         z=-3C/8: this is 3/8*2pi = 135deg counterclockwise from z=0
+         In SVG: counterclockwise = negative angle = y decreases
+         x = 200 + 140*cos(-135deg) = 200 + 140*(-0.707) = 101
+         y = 220 + 140*sin(-135deg) = 220 + 140*(-0.707) = 121  (upper-left) ✓
+    -->
+    <circle cx="101" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="75" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
+    <text x="75" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+    <text x="75" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+    <text x="68" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-3C/8</text>
+
+    <!-- hid=1: z=-C/8, upper-right, angle=-45deg -->
+    <!-- x=200+140*cos(-45)=200+99=299, y=220+140*sin(-45)=220-99=121 -->
+    <circle cx="299" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="325" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
+    <text x="325" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+    <text x="325" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+    <text x="332" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-C/8</text>
+
+    <!-- hid=2: z=C/8, lower-right, angle=45deg -->
+    <!-- x=200+140*cos(45)=299, y=220+140*sin(45)=220+99=319 -->
+    <circle cx="299" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="325" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
+    <text x="325" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+    <text x="325" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 2</text>
+    <text x="332" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">C/8</text>
+
+    <!-- hid=3: z=3C/8, lower-left, angle=135deg -->
+    <!-- x=200+140*cos(135)=101, y=220+140*sin(135)=319 -->
+    <circle cx="101" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="75" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
+    <text x="75" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+    <text x="75" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 3</text>
+    <text x="68" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">3C/8</text>
+
+    <!-- Legend -->
+    <circle cx="60" cy="400" r="7" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="75" y="404" fill="#888" font-size="12" font-family="sans-serif">Filled bunch</text>
+    <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
+    <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+  </svg>
+  </div>
+
+.. raw:: html
+
+  <div style="text-align: center">
+  <svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="420" fill="#1a1a2e"/>
+
+    <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=5 (odd): partial filling</text>
+
+    <!-- Ring -->
+    <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
+
+    <!-- Bucket boundaries at z = -C/2, -2C/5+..., every C/5 -->
+    <!-- z=0 at right (0deg), boundaries at +/-C/10, +/-3C/10, +/-C/2 -->
+    <!-- C/10 = 36deg, 3C/10 = 108deg, C/2 = 180deg -->
+    <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- 36deg: x=200+140cos(36)=313, y=220+140sin(36)=302 -->
+    <line x1="200" y1="220" x2="313" y2="302" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- -36deg: x=313, y=138 -->
+    <line x1="200" y1="220" x2="313" y2="138" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- 108deg: x=200+140cos(108)=157, y=220+140sin(108)=353 -->
+    <line x1="200" y1="220" x2="157" y2="353" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- -108deg: x=157, y=87 -->
+    <line x1="200" y1="220" x2="157" y2="87" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- 180deg: x=60, y=220 -->
+    <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- Bucket centers: shift=C/5*(hid-2.5+0.5)=C/5*(hid-2) -->
+    <!-- hid=0: z=-2C/5, angle=-144deg (CCW). x=200+140cos(-144)=200-113=87, y=220+140sin(-144)=220-82=138 -->
+    <!-- hid=1: z=-C/5, angle=-72deg. x=200+140cos(-72)=200+43=243, y=220+140sin(-72)=220-133=87 -->
+    <!-- hid=2: z=0, angle=0. x=340, y=220 -->
+    <!-- hid=3: z=C/5, angle=72deg. x=243, y=353 -->
+    <!-- hid=4: z=2C/5, angle=144deg. x=87, y=302 -->
+
+    <!-- z=0 ideal particle (hid=2 position, but empty) -->
+    <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
+    <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+
+    <!-- hid=0: z=-2C/5, FILLED, bunch_id=0 -->
+    <circle cx="87" cy="138" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="55" y="125" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
+    <text x="55" y="141" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+    <text x="55" y="157" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+    <text x="48" y="172" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-2C/5</text>
+
+    <!-- hid=1: z=-C/5, EMPTY -->
+    <circle cx="243" cy="87" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="243" y="68" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
+    <text x="243" y="54" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+    <text x="275" y="92" fill="#555" font-size="11" font-family="monospace">(empty)</text>
+    <text x="278" y="106" fill="#888" font-size="11" font-family="monospace">-C/5</text>
+
+    <!-- hid=2: z=0, FILLED, bunch_id=1 -->
+    <circle cx="340" cy="220" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="375" y="250" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
+    <text x="375" y="266" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+    <text x="375" y="282" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+
+    <!-- hid=3: z=C/5, EMPTY -->
+    <circle cx="243" cy="353" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="243" y="378" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
+    <text x="243" y="394" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+    <text x="278" y="348" fill="#555" font-size="11" font-family="monospace">(empty)</text>
+    <text x="278" y="362" fill="#888" font-size="11" font-family="monospace">C/5</text>
+
+    <!-- hid=4: z=2C/5, EMPTY -->
+    <circle cx="87" cy="302" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="55" y="295" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 4</text>
+    <text x="55" y="311" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=4</text>
+    <text x="48" y="327" fill="#555" font-size="11" text-anchor="middle" font-family="monospace">(empty)</text>
+    <text x="48" y="341" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">2C/5</text>
+
+    <!-- Legend -->
+    <circle cx="60" cy="400" r="7" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="75" y="404" fill="#888" font-size="12" font-family="sans-serif">Filled bunch</text>
+    <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
+    <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+  </svg>
+  </div>
+
+色散耦合
+~~~~~~~~
+
+如果注入点存在色散函数 :math:`D_x` 和 :math:`D_{px}` ，则在生成横向分布后自动施加色散耦合：
+
+.. math::
+
+  x \leftarrow x + D_x \cdot \delta, \quad p_x \leftarrow p_x + D_{px} \cdot \delta
+
+其中 :math:`\delta` 为粒子的动量偏差。这确保了粒子分布与纵向动量分散在物理上自洽。
+
+
+动量偏差
+~~~~~~~~
+
+注入时可以为整个束团施加平均动量偏移 :math:`\delta_0` 。粒子分布生成时 :math:`\delta` 服从均值为 0 的分布（如高斯分布 :math:`\delta \sim \mathcal{N}(0, \sigma_\delta)` ），施加偏移后变为 :math:`\delta \sim \mathcal{N}(\delta_0, \sigma_\delta)` ，即分布中心从 0 平移到 :math:`\delta_0` 。:math:`\delta_0` 是叠加量，不是粒子的总 :math:`\delta` 。这用于模拟注入能量偏移、参考动量偏移等场景。
+
+支持两种输入方式（互斥，若同时为非零值则报错）：
+
+  - **动量偏差** （ ``Momentum Offset dp`` ）：直接给出 :math:`\delta_0` （无量纲，相对于参考动量的偏差）
+  - **动能偏差** （ ``Kinetic Energy Offset (eV)`` ）：给出 :math:`\Delta E` （单位 eV），内部转化为 :math:`\delta_0`
+
+**精确转换公式**
+
+动能偏差 :math:`\Delta E` 到动量偏差 :math:`\delta_0` 的转换，采用精确的相对论能量-动量关系：
+
+.. math::
+
+  E^2 = p^2 + m_0^2
+
+其中 :math:`E` 为总能量（ :math:`E = E_k + m_0` ）， :math:`p` 为动量， :math:`m_0` 为静止质量。参考粒子（无偏差）的参数为：
+
+.. math::
+
+  E_0 = E_k + m_0, \quad p_0 = \sqrt{E_0^2 - m_0^2}
+
+施加动能偏差 :math:`\Delta E` 后，粒子总能量变为 :math:`E_1 = E_0 + \Delta E` ，对应动量为：
+
+.. math::
+
+  p_1 = \sqrt{E_1^2 - m_0^2} = \sqrt{(E_0 + \Delta E)^2 - m_0^2}
+
+因此动量偏差为：
+
+.. math::
+
+  \delta_0 = \frac{p_1}{p_0} - 1 = \frac{\sqrt{(E_0 + \Delta E)^2 - m_0^2}}{\sqrt{E_0^2 - m_0^2}} - 1
+
+此公式 **完全精确** ，无任何近似，与 RF 腔中采用的精确 :math:`E^2 = p^2 + m_0^2` 变换保持一致。
+
+**一阶线性化近似**
+
+对式 :math:`\delta_0 = p_1/p_0 - 1` 在 :math:`\Delta E \to 0` 处做一阶泰勒展开。由 :math:`E \, dE = p \, dp` 得：
+
+.. math::
+
+  dE = \frac{p}{E} \, dp = \beta \, dp \quad \Longrightarrow \quad dp = \frac{dE}{\beta}
+
+其中 :math:`\beta = p_0 c / E_0` 为参考粒子速度。由于 PASS 中 :math:`\delta = \Delta p / p_0` 为相对动量偏差，参考动量 :math:`p_0 = \beta \gamma m_0 = \beta E_0` ，故：
+
+.. math::
+
+  \delta_0 \approx \frac{\Delta E}{\beta^2 \, E_0}
+
+此近似截断了 :math:`O(\delta_0^2)` 及更高阶项。在小偏差时精度足够，但大偏差时误差显著。
+
+**精确与近似对比**
+
+下表以质子（ :math:`E_k = 45` MeV ， :math:`\beta = 0.299` ）为例，展示不同 :math:`\Delta E` 下两种公式的差异：
+
+.. list-table::
+  :header-rows: 1
+  :widths: 20 25 25 20
+
+  * - :math:`\Delta E` (eV)
+    - 精确 :math:`\delta_0`
+    - 近似 :math:`\delta_0`
+    - 相对误差
+  * - 1,000
+    - 1.137126e-5
+    - 1.137132e-5
+    - 0.000005%
+  * - 10,000
+    - 1.137073e-4
+    - 1.137132e-4
+    - 0.000052%
+  * - 100,000
+    - 1.136544e-3
+    - 1.137132e-3
+    - 0.000517%
+  * - 1,000,000
+    - 1.131311e-2
+    - 1.137132e-2
+    - 0.0514%
+  * - 10,000,000
+    - 1.084146e-1
+    - 1.137132e-1
+    - 4.89%
+  * - 50,000,000
+    - 4.717485e-1
+    - 5.685659e-1
+    - 20.5%
+
+在小偏差（ :math:`\Delta E < 100` keV ）时两种公式几乎无差异，但在大偏差（如 :math:`\Delta E > 1` MeV ）时线性近似误差超过 0.05%，在 :math:`\Delta E = 50` MeV 时误差高达 20%。PASS 采用精确公式以覆盖大偏差场景。
+
+**施加顺序**
+
+动量偏差 :math:`\delta_0` 在纵向偏移之前施加到每个粒子的 :math:`\delta` 上：
+
+.. math::
+
+  \delta \leftarrow \delta + \delta_0
+
+因此后续的 rf\_position 逆向传播（ :math:`z \leftarrow z + \eta \, s_{\text{rf}} \, \delta` ）和色散耦合（ :math:`x \leftarrow x + D_x \, \delta` ）均使用包含 :math:`\delta_0` 的 :math:`\delta` 值，确保物理自洽。
 
 
 输入文件
