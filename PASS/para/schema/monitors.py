@@ -48,10 +48,29 @@ class PhaseMonitor(BaseModel):
 
 
 class ParticleMonitor(BaseModel):
-    """Particle monitor: saves specified particles at an observer position."""
+    """Particle monitor: records turn-by-turn coordinates of specified particles.
+
+    Records particles with 1 <= |tag| <= max_tag every turn (within
+    [start_turn, end_turn)) at the monitor's s-position.
+    Each particle's TBT data is saved to a separate TFS file at the
+    end of the simulation.
+    """
 
     model_config = ConfigDict(populate_by_name=True)
 
     s: float = Field(alias="S (m)")
     command: str = Field(default="ParticleMonitor", alias="Command")
-    observer_id: int = Field(alias="Observer Id")
+    max_tag: int = Field(
+        alias="Max tag",
+        description="Record particles with 1 <= |tag| <= max_tag",
+    )
+    start_turn: int = Field(
+        default=0,
+        alias="Start turn",
+        description="Turn from which recording starts (inclusive, 0-based)",
+    )
+    end_turn: int = Field(
+        default=-1,
+        alias="End turn",
+        description="Turn at which recording stops (exclusive, -1 means last turn inclusive)",
+    )

@@ -170,8 +170,8 @@ def read_madx_twiss(
     length_count = 0.0
     for item in items:
         d = item.model_dump(by_alias=True)
-        if "L (m)" in d and d["L (m)"] > 0:
-            length_count += d["L (m)"]
+        if "Length (m)" in d and d["Length (m)"] > 0:
+            length_count += d["Length (m)"]
         elif "S previous (m)" in d:
             length_count += d["S (m)"] - d["S previous (m)"]
 

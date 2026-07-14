@@ -23,7 +23,7 @@ class ElementBase(BaseModel):
 
     s: float = Field(alias="S (m)")
     command: str = Field(alias="Command")
-    length: float = Field(default=0.0, ge=0, alias="L (m)")
+    length: float = Field(default=0.0, ge=0, alias="Length (m)")
 
     # aperture (shared by all elements)
     aperture_type: str = Field(default="off", alias="Aperture type")
@@ -45,7 +45,7 @@ class DriftElement(ElementBase):
 class MarkerElement(ElementBase):
     """Marker has no length or physical effect, only records position."""
     command: str = Field(default="Marker", alias="Command")
-    length: float = Field(default=0.0, alias="L (m)")
+    length: float = Field(default=0.0, alias="Length (m)")
 
 
 # ============================================================
@@ -188,6 +188,9 @@ class KickerElement(ElementBase):
 
     is_ramping: bool = Field(default=False, alias="Is ramping")
     kick_ramping_file: str = Field(default="", alias="Kick ramping file")
+
+    num_slices: int = Field(default=1, ge=1, alias="Num slices")
+    integrator: str = Field(default="adaptive", alias="Integrator")
 
 
 # ============================================================

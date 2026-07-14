@@ -119,43 +119,50 @@ def read_madx_elements(
         elif et == "drift":
             item = DriftElement(s=s, length=l)
         elif et in ("sbend", "rbend"):
-            fint = twiss_table.iloc[i]["FINT"]
-            fintx = twiss_table.iloc[i]["FINTX"]
+            fint = twiss_table.iloc[i].get("FINT", 0.0)
+            fintx = twiss_table.iloc[i].get("FINTX", 0.0)
             if fintx <= 0:
                 fintx = fint
             item = SBendElement(
                 s=s, length=l,
-                k0l=twiss_table.iloc[i]["ANGLE"],
-                e1=twiss_table.iloc[i]["E1"],
-                e2=twiss_table.iloc[i]["E2"],
-                hgap=twiss_table.iloc[i]["HGAP"],
+                k0l=twiss_table.iloc[i].get("ANGLE", 0.0),
+                e1=twiss_table.iloc[i].get("E1", 0.0),
+                e2=twiss_table.iloc[i].get("E2", 0.0),
+                hgap=twiss_table.iloc[i].get("HGAP", 0.0),
                 fint=fint, fintx=fintx,
             )
         elif et == "quadrupole":
             item = QuadrupoleElement(
                 s=s, length=l,
-                k1l=twiss_table.iloc[i]["K1L"],
-                k1sl=twiss_table.iloc[i]["K1SL"],
+                k1l=twiss_table.iloc[i].get("K1L", 0.0),
+                k1sl=twiss_table.iloc[i].get("K1SL", 0.0),
             )
         elif et == "sextupole":
             item = SextupoleElement(
                 s=s, length=l,
-                k2l=twiss_table.iloc[i]["K2L"],
-                k2sl=twiss_table.iloc[i]["K2SL"],
+                k2l=twiss_table.iloc[i].get("K2L", 0.0),
+                k2sl=twiss_table.iloc[i].get("K2SL", 0.0),
             )
         elif et == "octupole":
             item = OctupoleElement(
                 s=s, length=l,
-                k3l=twiss_table.iloc[i]["K3L"],
-                k3sl=twiss_table.iloc[i]["K3SL"],
+                k3l=twiss_table.iloc[i].get("K3L", 0.0),
+                k3sl=twiss_table.iloc[i].get("K3SL", 0.0),
             )
         elif et == "multipole":
             item = MultipoleElement(s=s, length=l, knl=[], ksl=[])
         elif et in ("hkicker", "vkicker", "kicker", "tkicker"):
+            row = twiss_table.iloc[i]
+            hkick = row.get("HKICK", 0.0)
+            vkick = row.get("VKICK", 0.0)
+            if et == "hkicker":
+                hkick = hkick or row.get("K0L", 0.0)
+            elif et == "vkicker":
+                vkick = vkick or row.get("K0L", 0.0)
             item = KickerElement(
                 s=s, length=l,
-                hkick=twiss_table.iloc[i]["HKICK"],
-                vkick=twiss_table.iloc[i]["VKICK"],
+                hkick=hkick,
+                vkick=vkick,
             )
         elif et == "monitor":
             item = DriftElement(s=s, length=l)
