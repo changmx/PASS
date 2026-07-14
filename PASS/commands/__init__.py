@@ -15,6 +15,7 @@ from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
 from .element.rfcavity import RFCavity
 from .monitor.statistic import StatMonitor
+from .monitor.particle_monitor import ParticleMonitor
 
 __all__ = [
     "Command",
@@ -33,4 +34,5 @@ __all__ = [
     "Exciter",
     "RFCavity",
     "StatMonitor",
+    "ParticleMonitor",
 ]
