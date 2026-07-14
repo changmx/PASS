@@ -120,7 +120,7 @@ class SBend(Command):
     def print(self):
         set_simple_logging()
         logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}, "
-                    f"IsThick={self.is_thick:s}, K0L={self.k0l:.4f}, E1={self.e1:.4f}, E2={self.e2:.4f}, HGap={self.hgap:.4f}, "
+                    f"IsThick={self.is_thick}, K0L={self.k0l:.4f}, E1={self.e1:.4f}, E2={self.e2:.4f}, HGap={self.hgap:.4f}, "
                     f"FInt={self.fint:.4f}, FIntX={self.fintx:.4f}, IsFieldError={self.is_field_error}, "
                     f"IsRamping={self.is_ramping}, NumSlice={self.num_slice:d}, Model={self.model:s}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
