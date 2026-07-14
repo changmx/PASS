@@ -1,0 +1,728 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>统计监视器（StatMonitor） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="粒子监视器（ParticleMonitor）" href="particlemonitor.html" />
+    <link rel="prev" title="监视器（Monitor）" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#id16">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#id17">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#id20">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/dipole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/quadrupole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/kicker.html">冲击磁铁（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/kicker.html#id15">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">监视器（Monitor）</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id11">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
+          <li class="breadcrumb-item"><a href="index.html">监视器（Monitor）</a></li>
+      <li class="breadcrumb-item active">统计监视器（StatMonitor）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/zh/monitor/statmonitor.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="statmonitor">
+<h1>统计监视器（StatMonitor）<a class="headerlink" href="#statmonitor" title="Link to this heading"></a></h1>
+<section id="id1">
+<h2>简介<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 是束流统计监视器，在指定纵向位置逐圈记录束团的统计量，包括质心位置、束流尺寸、发射度、 Twiss 参数、高阶矩及束流损失等。它是评估束流品质演变和诊断束流动力学行为的核心工具。</p>
+<ul class="simple">
+<li><p><strong>代码位置</strong> ： <code class="docutils literal notranslate"><span class="pre">PASS/commands/monitor/statistic.py</span></code></p></li>
+<li><p><strong>类名</strong> ： <code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> ，注册名 <code class="docutils literal notranslate"><span class="pre">&quot;statmonitor&quot;</span></code></p></li>
+<li><p><strong>核心特征</strong> ：</p>
+<ul>
+<li><p>逐圈计算束团在 6D 相空间的统计量（一阶至四阶矩）；</p></li>
+<li><p>由二阶矩导出发射度和 Twiss 参数（beta、alpha、gamma）；</p></li>
+<li><p>记录束流损失数与损失百分比；</p></li>
+<li><p>CPU 使用 numpy 向量化计算， GPU 使用 CUDA 核函数 + warp 归约；</p></li>
+<li><p>每圈数据追加写入 CSV ，最后一圈统一转换为 TFS 格式；</p></li>
+<li><p>仅统计存活粒子（ <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），已丢失粒子不计入。</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h2>工作原理<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>统计量计算<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>对于束团中的 <span class="math notranslate nohighlight">\(N\)</span> 个存活粒子（ <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ），各阶矩定义为：</p>
+<p>一阶矩（质心）：</p>
+<div class="math notranslate nohighlight">
+\[\langle x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i\]</div>
+<p>二阶矩：</p>
+<div class="math notranslate nohighlight">
+\[\langle x^2 \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i^2\]</div>
+<p>协方差：</p>
+<div class="math notranslate nohighlight">
+\[\langle x \, p_x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i \, p_{x,i}\]</div>
+<p>束流尺寸（标准差）：</p>
+<div class="math notranslate nohighlight">
+\[\sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}\]</div>
+<p>同理计算 <span class="math notranslate nohighlight">\(\sigma_{p_x}\)</span>, <span class="math notranslate nohighlight">\(\sigma_y\)</span>, <span class="math notranslate nohighlight">\(\sigma_{p_y}\)</span>, <span class="math notranslate nohighlight">\(\sigma_z\)</span>, <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span> 。</p>
+</section>
+<section id="twiss">
+<h3>发射度与 Twiss 参数<a class="headerlink" href="#twiss" title="Link to this heading"></a></h3>
+<p>由二阶矩导出 2D 发射度：</p>
+<div class="math notranslate nohighlight">
+\[\varepsilon_x = \sqrt{\sigma_x^2 \, \sigma_{p_x}^2 - \sigma_{x,p_x}^2}\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\sigma_{x,p_x} = \langle x \, p_x \rangle - \langle x \rangle \langle p_x \rangle\)</span> 为协方差。</p>
+<p>Twiss 参数：</p>
+<div class="math notranslate nohighlight">
+\[\beta_x = \frac{\sigma_x^2}{\varepsilon_x}\]</div>
+<div class="math notranslate nohighlight">
+\[\alpha_x = -\frac{\sigma_{x,p_x}}{\varepsilon_x}\]</div>
+<div class="math notranslate nohighlight">
+\[\gamma_x = \frac{\sigma_{p_x}^2}{\varepsilon_x}\]</div>
+<p>不变量校验：</p>
+<div class="math notranslate nohighlight">
+\[\gamma_x \, \beta_x - \alpha_x^2 = 1\]</div>
+<p>垂直方向（ y ）的公式形式完全相同，将下标 x 替换为 y 即可。</p>
+</section>
+<section id="id4">
+<h3>高阶矩<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>偏度（三阶标准化矩）：</p>
+<div class="math notranslate nohighlight">
+\[S_x = \frac{\langle x^3 \rangle - 3 \langle x \rangle \sigma_x^2 - \langle x \rangle^3}{\sigma_x^3}\]</div>
+<p>峰度（四阶标准化矩）：</p>
+<div class="math notranslate nohighlight">
+\[K_x = \frac{\langle x^4 \rangle - 4 \langle x \rangle \langle x^3 \rangle + 2 \langle x \rangle^2 \langle x^2 \rangle + 4 \langle x \rangle^2 \sigma_x^2 + \langle x \rangle^4}{\sigma_x^4}\]</div>
+</section>
+<section id="id5">
+<h3>束流损失<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<div class="math notranslate nohighlight">
+\[N_{\text{loss}} = N_{\text{total}} - N_{\text{alive}}\]</div>
+<div class="math notranslate nohighlight">
+\[\text{loss\%} = \frac{N_{\text{loss}}}{N_{\text{total}}} \times 100\%\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(N_{\text{total}}\)</span> 为束团初始宏粒子数， <span class="math notranslate nohighlight">\(N_{\text{alive}}\)</span> 为当前存活粒子数。</p>
+</section>
+<section id="gpu">
+<h3>GPU 实现<a class="headerlink" href="#gpu" title="Link to this heading"></a></h3>
+<p>GPU 版本使用 CUDA 核函数 <code class="docutils literal notranslate"><span class="pre">calc_all_stats</span></code> ，采用 grid stride loop 遍历粒子，每个线程在寄存器中累加 22 个统计量，经 warp 归约（ <code class="docutils literal notranslate"><span class="pre">__shfl_down_sync</span></code> ）和 block 归约后，通过 <code class="docutils literal notranslate"><span class="pre">atomicAdd</span></code> 写入全局结果。块数上限为 512 （因 <code class="docutils literal notranslate"><span class="pre">atomicAdd</span></code> 竞争开销）。</p>
+</section>
+</section>
+<section id="id6">
+<h2>接口参数<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>属性名</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>必填</p></td>
+<td><p>监视器在束线中的纵向位置</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cmd_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p>必填</p></td>
+<td><p>监视器名称（由序列键名自动填入）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Command&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;StatMonitor&quot;</span></code></p></td>
+<td><p>命令类型标识</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 无额外配置参数。统计对象为该位置处束团内的所有存活粒子（ <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），无需指定粒子编号。</p>
+</div>
+</section>
+<section id="id7">
+<h2>输出文件<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>每个束团每个监视器位置生成一对文件：</p>
+<ul class="simple">
+<li><p><strong>CSV</strong> （逐圈追加） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv</span></code></p></li>
+<li><p><strong>TFS</strong> （最后一圈由 CSV 转换） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs</span></code></p></li>
+</ul>
+<p>输出目录为 <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code> 。</p>
+<p>TFS 文件头：</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Statistic</span> <span class="n">Data</span>
+<span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
+</pre></div>
+</div>
+<p>输出列（共 34 列）：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>列名</p></th>
+<th class="head"><p>分组</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">turn</span></code></p></td>
+<td><p>基本</p></td>
+<td><p>圈数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xAverage</span></code></p></td>
+<td><p>质心</p></td>
+<td><p>水平位置均值 <span class="math notranslate nohighlight">\(\langle x \rangle\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pxAverage</span></code></p></td>
+<td><p>质心</p></td>
+<td><p>水平动量均值 <span class="math notranslate nohighlight">\(\langle p_x \rangle\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaX</span></code></p></td>
+<td><p>束流尺寸</p></td>
+<td><p>水平位置标准差 <span class="math notranslate nohighlight">\(\sigma_x\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaPx</span></code></p></td>
+<td><p>束流尺寸</p></td>
+<td><p>水平动量标准差 <span class="math notranslate nohighlight">\(\sigma_{p_x}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yAverage</span></code></p></td>
+<td><p>质心</p></td>
+<td><p>垂直位置均值</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pyAverage</span></code></p></td>
+<td><p>质心</p></td>
+<td><p>垂直动量均值</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaY</span></code></p></td>
+<td><p>束流尺寸</p></td>
+<td><p>垂直位置标准差</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaPy</span></code></p></td>
+<td><p>束流尺寸</p></td>
+<td><p>垂直动量标准差</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">zAverage</span></code></p></td>
+<td><p>质心</p></td>
+<td><p>纵向位置均值</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dpAverage</span></code></p></td>
+<td><p>质心</p></td>
+<td><p>动量偏差均值</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code></p></td>
+<td><p>束流尺寸</p></td>
+<td><p>纵向位置标准差</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmadp</span></code></p></td>
+<td><p>束流尺寸</p></td>
+<td><p>动量偏差标准差</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xEmittance</span></code></p></td>
+<td><p>发射度</p></td>
+<td><p>水平 2D 发射度 <span class="math notranslate nohighlight">\(\varepsilon_x\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yEmittance</span></code></p></td>
+<td><p>发射度</p></td>
+<td><p>垂直 2D 发射度 <span class="math notranslate nohighlight">\(\varepsilon_y\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">betax</span></code></p></td>
+<td><p>Twiss</p></td>
+<td><p>水平 beta 函数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">betay</span></code></p></td>
+<td><p>Twiss</p></td>
+<td><p>垂直 beta 函数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphax</span></code></p></td>
+<td><p>Twiss</p></td>
+<td><p>水平 alpha 函数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphay</span></code></p></td>
+<td><p>Twiss</p></td>
+<td><p>垂直 alpha 函数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gammax</span></code></p></td>
+<td><p>Twiss</p></td>
+<td><p>水平 gamma 函数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gammay</span></code></p></td>
+<td><p>Twiss</p></td>
+<td><p>垂直 gamma 函数</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">invariantx</span></code></p></td>
+<td><p>校验</p></td>
+<td><p>水平不变量 <span class="math notranslate nohighlight">\(\gamma_x \beta_x - \alpha_x^2\)</span> （应等于 1）</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">invarianty</span></code></p></td>
+<td><p>校验</p></td>
+<td><p>垂直不变量（应等于 1）</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xzAverage</span></code></p></td>
+<td><p>关联</p></td>
+<td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xyAverage</span></code></p></td>
+<td><p>关联</p></td>
+<td><p><span class="math notranslate nohighlight">\(\langle x \, y \rangle\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yzAverage</span></code></p></td>
+<td><p>关联</p></td>
+<td><p><span class="math notranslate nohighlight">\(\langle y \, z \rangle\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xzDevideSigmaxSigmaz</span></code></p></td>
+<td><p>关联</p></td>
+<td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle / (\sigma_x \, \sigma_z)\)</span> 归一化关联</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code></p></td>
+<td><p>损失</p></td>
+<td><p>丢失粒子数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lossPercent</span></code></p></td>
+<td><p>损失</p></td>
+<td><p>损失百分比</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xSkewness</span></code></p></td>
+<td><p>高阶矩</p></td>
+<td><p>水平偏度</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xKurtosis</span></code></p></td>
+<td><p>高阶矩</p></td>
+<td><p>水平峰度</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ySkewness</span></code></p></td>
+<td><p>高阶矩</p></td>
+<td><p>垂直偏度</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yKurtosis</span></code></p></td>
+<td><p>高阶矩</p></td>
+<td><p>垂直峰度</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Ek</span></code></p></td>
+<td><p>能量</p></td>
+<td><p>束团动能</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id8">
+<h2>使用示例<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>以下 JSON 片段在 <span class="math notranslate nohighlight">\(s = 0.0\)</span> m 处放置一个统计监视器：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;SM1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>统计监视器不需要额外参数，只需指定位置和命令类型。模拟运行过程中会逐圈记录该位置处束团的统计量。</p>
+<section id="id9">
+<h3>多位置监视<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>可在不同位置放置多个统计监视器，比较束流沿束线的统计量变化：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;SM_start&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="p">},</span>
+<span class="nt">&quot;SM_mid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">100.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="p">},</span>
+<span class="nt">&quot;SM_end&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">250.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="id10">
+<h2>应用场景<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>束流品质评估</strong> ：逐圈监测发射度、束流尺寸、质心位置的变化，评估束流品质是否稳定或退化</p></li>
+<li><p><strong>发射度测量</strong> ：由二阶矩计算发射度和 Twiss 参数，与设计值对比验证</p></li>
+<li><p><strong>束流损失诊断</strong> ：通过 <code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code> 和 <code class="docutils literal notranslate"><span class="pre">lossPercent</span></code> 监测束流损失率，定位损失发生的圈数和位置</p></li>
+<li><p><strong>非线性效应识别</strong> ：通过偏度和峰度的高阶矩信息，判断束流分布偏离高斯分布的程度，识别非线性共振或色散耦合</p></li>
+<li><p><strong>动量 spread 监测</strong> ： <code class="docutils literal notranslate"><span class="pre">sigmadp</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> 反映纵向束流品质，配合纵向动力学研究</p></li>
+<li><p><strong>关联诊断</strong> ： <code class="docutils literal notranslate"><span class="pre">xzAverage</span></code> 等关联量可用于诊断色散耦合或横向-纵向耦合</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="监视器（Monitor）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="particlemonitor.html" class="btn btn-neutral float-right" title="粒子监视器（ParticleMonitor）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>冲击器（Kicker） &mdash; PASS  documentation</title>
+  <title>冲击磁铁（Kicker） &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
@@ -200,13 +200,16 @@
 <li class="toctree-l4"><a class="reference internal" href="solenoid.html#id16">应用场景</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">冲击器（Kicker）</a><ul>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">冲击磁铁（Kicker）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id7">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id8">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id14">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id15">参考文献</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="elseparator.html">静电偏转板（ElSeparator）</a><ul>
@@ -244,6 +247,29 @@
 <li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id10">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id13">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -327,7 +353,7 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
           <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
-      <li class="breadcrumb-item active">冲击器（Kicker）</li>
+      <li class="breadcrumb-item active">冲击磁铁（Kicker）</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/zh/element/kicker.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -338,9 +364,9 @@
            <div itemprop="articleBody">
              
   <section id="kicker">
-<h1>冲击器（Kicker）<a class="headerlink" href="#kicker" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的冲击器元件 <strong>Kicker</strong> ，用于模拟带电粒子在脉冲偶极磁铁中的运动。冲击器是一种快速作用的横向偏转元件，通过施加瞬时角偏转改变束流方向，广泛应用于束流注入、引出、轨道校正和快速束流调节等场景。</p>
-<p>PASS 中的冲击器建模为 <strong>薄透镜</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ），即纯动量平移映射，严格辛。这一处理与 MAD-X 默认薄透镜约定和 Xsuite 将 kicker 转为 order-0 Multipole 的方案一致。物理上，典型冲击器的踢角量级为 <span class="math notranslate nohighlight">\(10^{-3}\)</span> rad，远小于 betatron 波长尺度，薄透镜近似的误差远低于机器精度，无需厚透镜 DKD 积分。</p>
+<h1>冲击磁铁（Kicker）<a class="headerlink" href="#kicker" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的冲击磁铁元件 <strong>Kicker</strong> ，用于模拟带电粒子在脉冲偶极磁铁中的运动。冲击磁铁是一种快速作用的横向偏转元件，通过施加角偏转改变束流方向，广泛应用于束流注入、引出、轨道校正和快速束流调节等场景。</p>
+<p>PASS 中的冲击磁铁支持 <strong>厚元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ）和 <strong>薄透镜</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ）两种模式。厚元件采用精确漂移-踢角-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。物理上，冲击磁铁等价于 order-0 多极铁（偶极铁），踢角公式为 <span class="math notranslate nohighlight">\(\Delta p_x = \text{hkick}\)</span> ， <span class="math notranslate nohighlight">\(\Delta p_y = \text{vkick}\)</span> 。</p>
 <p><strong>代码位置</strong></p>
 <ul class="simple">
 <li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/kicker.py</span></code></p></li>
@@ -348,11 +374,13 @@
 <li><p>注册名： <code class="docutils literal notranslate"><span class="pre">kicker</span></code></p></li>
 <li><p>核心特征：</p>
 <ul>
-<li><p>薄透镜模型（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ，不可配置），纯动量平移，严格辛</p></li>
+<li><p>支持薄透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ，仅施加偶极踢角）</p></li>
+<li><p>支持厚透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ，DKD-exact 辛积分）</p></li>
+<li><p>支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器</p></li>
 <li><p>水平踢角（ <code class="docutils literal notranslate"><span class="pre">hkick</span></code> ）与垂直踢角（ <code class="docutils literal notranslate"><span class="pre">vkick</span></code> ）独立设置</p></li>
 <li><p>支持单向踢角（仅 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 或仅 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> ）和双向踢角（两者同时非零）</p></li>
 <li><p>掩码方式施加踢角，无逐粒子分支</p></li>
-<li><p>零踢角时退化为标记器（仅孔径检查）</p></li>
+<li><p>零踢角时薄透镜退化为标记器，厚透镜退化为纯漂移</p></li>
 <li><p>支持孔径检查</p></li>
 </ul>
 </li>
@@ -399,58 +427,112 @@
 </tr>
 </tbody>
 </table>
-<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度。</p>
+<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度， <span class="math notranslate nohighlight">\(s\)</span> 为沿参考轨道的弧长， <span class="math notranslate nohighlight">\(t\)</span> 为时间。</p>
 </section>
 <section id="id2">
 <h2>物理推导<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <section id="id3">
-<h3>冲击器的物理本质<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
-<p>冲击器在物理上是一个脉冲偶极磁铁（pulsed dipole magnet），在短暂的时间窗口内产生均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> ，对穿过其中的粒子施加横向偏转。长度为 <span class="math notranslate nohighlight">\(L\)</span> 的偶极磁铁对参考粒子的偏转角为：</p>
+<h3>冲击磁铁的物理本质<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>冲击磁铁在物理上是一个脉冲偶极磁铁（pulsed dipole magnet），在短暂的时间窗口内产生均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> ，对穿过其中的粒子施加横向偏转。长度为 <span class="math notranslate nohighlight">\(L\)</span> 的偶极磁铁对参考粒子的偏转角为：</p>
 <div class="math notranslate nohighlight">
 \[\theta = \frac{q B_0 L}{p_0} = \frac{B_0 L}{B\rho}\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(B\rho = p_0 / q\)</span> 为磁刚度。因此冲击器在物理上等价于一个积分强度为 <span class="math notranslate nohighlight">\(K_{0L} = \theta\)</span> 的 order-0 多极铁。</p>
+<p>其中 <span class="math notranslate nohighlight">\(B\rho = p_0 / q\)</span> 为磁刚度。因此冲击磁铁在物理上等价于一个积分强度为 <span class="math notranslate nohighlight">\(K_{0L} = \theta\)</span> 的 order-0 多极铁。PASS 中 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 即为此积分强度（单位：弧度）。</p>
 </section>
 <section id="id4">
-<h3>薄透镜近似<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
-<p>冲击器建模为薄透镜（ <span class="math notranslate nohighlight">\(\delta\)</span> -kick），即粒子位置不变，仅动量发生瞬时跳变：</p>
-<div class="math notranslate nohighlight">
-\[x \leftarrow x\]</div>
-<div class="math notranslate nohighlight">
-\[p_x \leftarrow p_x + \Delta p_x\]</div>
-<div class="math notranslate nohighlight">
-\[y \leftarrow y\]</div>
-<div class="math notranslate nohighlight">
-\[p_y \leftarrow p_y + \Delta p_y\]</div>
-<p>其中踢角量为：</p>
+<h3>偶极踢角<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>冲击磁铁的踢角公式为：</p>
 <div class="math notranslate nohighlight">
 \[\Delta p_x = \text{hkick}\]</div>
 <div class="math notranslate nohighlight">
 \[\Delta p_y = \text{vkick}\]</div>
-<p>这里 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 是积分偶极强度（单位：弧度），等价于 MAD-X 的 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> / <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 参数，也等价于 Multipole 的 <code class="docutils literal notranslate"><span class="pre">knl=[hkick]</span></code> 、 <code class="docutils literal notranslate"><span class="pre">ksl=[vkick]</span></code> 。</p>
-</section>
-<section id="id5">
-<h3>薄透镜近似的误差分析<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<p>薄透镜近似引入两个误差源：</p>
-<ol class="arabic simple">
-<li><p><strong>路径长度效应</strong> ：粒子穿过物理长度 <span class="math notranslate nohighlight">\(L\)</span> 但纵向坐标 <span class="math notranslate nohighlight">\(z\)</span> 不变，误差量级 <span class="math notranslate nohighlight">\(O(\text{hkick} \cdot L)\)</span> 。</p></li>
-<li><p><strong>色差效应</strong> ：薄 kick 对所有动量粒子施加相同的 <span class="math notranslate nohighlight">\(\Delta p_x\)</span> ，但物理上动量为 <span class="math notranslate nohighlight">\(p_0(1+\delta)\)</span> 的粒子实际偏转为 <span class="math notranslate nohighlight">\(\Delta p_x^{\text{exact}} = \text{hkick} / (1+\delta)\)</span> ，薄透镜丢掉了 <span class="math notranslate nohighlight">\(-\text{hkick} \cdot \delta\)</span> 这一项，量级 <span class="math notranslate nohighlight">\(O(\text{hkick} \cdot \delta)\)</span> 。</p></li>
-</ol>
-<p>对典型冲击器（ <span class="math notranslate nohighlight">\(\text{hkick} \sim 10^{-3}\)</span> rad， <span class="math notranslate nohighlight">\(\delta \sim 10^{-3}\)</span> ），总误差 <span class="math notranslate nohighlight">\(\sim 10^{-6}\)</span> rad，远低于机器精度，薄透镜近似完全充分。</p>
-</section>
-<section id="id6">
-<h3>辛性分析<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
-<p>薄透镜踢角是一个纯正则动量平移映射：</p>
-<div class="math notranslate nohighlight">
-\[(x, p_x, y, p_y, z, \delta) \mapsto (x, p_x + \text{hkick}, y, p_y + \text{vkick}, z, \delta)\]</div>
-<p>该映射的 Jacobi 矩阵为单位矩阵，行列式为 1，严格辛。无需 DKD 积分器或任何近似。</p>
+<p>对于薄透镜模式， <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 直接作为积分强度施加。对于厚透镜 DKD 模式，每个切片的踢角为 <span class="math notranslate nohighlight">\(\text{hkick}_{\text{eff}} = \text{hk} \cdot \Delta s\)</span> ，其中 <span class="math notranslate nohighlight">\(\text{hk} = \text{hkick} / L\)</span> 为单位长度强度。</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>使用厚透镜 DKD 对冲击器 <strong>没有意义</strong> 。DKD 的 kick 步骤仍然是 <span class="math notranslate nohighlight">\(\delta\)</span> 无关的薄 kick ，无法修正色差；同时 DKD 仅是偶极的 2 阶近似，精度低于精确偶极映射。若需要物理精确的厚偶极，应使用专用 Dipole 元件。</p>
+<p><code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 是积分偶极强度（单位：弧度），等价于 MAD-X 的 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> / <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 参数，也等价于 Multipole 的 <code class="docutils literal notranslate"><span class="pre">knl=[hkick]</span></code> 、 <code class="docutils literal notranslate"><span class="pre">ksl=[vkick]</span></code> 。</p>
 </div>
 </section>
 </section>
+<section id="id5">
+<h2>整体追踪流程<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>根据磁铁长度，冲击磁铁有两种追踪模式：</p>
+<p><strong>薄透镜模式</strong> （ <span class="math notranslate nohighlight">\(L = 0\)</span> ）</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 薄透镜 (length = 0) ======
+
+单次偶极踢角 Kick(hkick, vkick)
+[位置不变，仅动量跳变]
+</pre></div>
+</div>
+<p><strong>厚透镜模式</strong> （ <span class="math notranslate nohighlight">\(L &gt; 0\)</span> ）</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 厚透镜 (length &gt; 0) ======
+
+切片1 → 切片2 → ... → 切片N
+(每个切片: Drift(ds/2) → Kick(ds) → Drift(ds/2))
+
+其中 ds = L / N
+hkick_eff = hk * ds,  vkick_eff = vk * ds
+
+若 hkick=0 且 vkick=0：退化为单次精确漂移 Drift(L)
+</pre></div>
+</div>
+<p>完整映射为：</p>
+<p>薄透镜：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{thin}} = \text{Kick}(\text{hkick}, \text{vkick})\]</div>
+<p>厚透镜（N 个切片）：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{thick}} = \left[\mathcal{M}_{\text{DKD}}(\Delta s)\right]^N\]</div>
+<p>其中每个切片的 DKD 映射为：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{DKD}}(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>薄透镜模式不改变粒子的位置坐标 <span class="math notranslate nohighlight">\((x, y, z)\)</span> ，仅施加动量踢角</p></li>
+<li><p>厚透镜模式的色品等效应通过精确漂移中的 <span class="math notranslate nohighlight">\(p_z\)</span> 表达式自然引入</p></li>
+<li><p>当 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 均为零时，厚透镜退化为纯漂移，避免无意义的空踢角循环</p></li>
+</ul>
+</div>
+</section>
+<section id="id6">
+<h2>精确漂移映射<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>漂移部分采用精确漂移（Table 1.1, map D, Eq. 1.86-1.88），与四极铁/六极铁/八极铁/多极铁完全相同：</p>
+<div class="math notranslate nohighlight">
+\[x \mathrel{+}= \frac{p_x}{p_z} L\]</div>
+<div class="math notranslate nohighlight">
+\[y \mathrel{+}= \frac{p_y}{p_z} L\]</div>
+<div class="math notranslate nohighlight">
+\[z \mathrel{+}= L \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1+\delta}{p_z}\right)\]</div>
+<p>其中：</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[\beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}\]</div>
+<p>精确漂移保留了 <span class="math notranslate nohighlight">\(p_z\)</span> 的完整非线性，自然引入色品、高阶色散和路径长度效应。</p>
+</section>
 <section id="id7">
-<h2>接口参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<h2>辛积分器<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="uniform-2">
+<h3>Uniform（2阶蛙跳）<a class="headerlink" href="#uniform-2" title="Link to this heading"></a></h3>
+<p>每个切片执行 Drift-Kick-Drift：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{DKD}}(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
+<p>这是2阶辛积分器，截断误差 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> 。</p>
+</section>
+<section id="yoshida4-4">
+<h3>Yoshida4（4阶组合）<a class="headerlink" href="#yoshida4-4" title="Link to this heading"></a></h3>
+<p>将3个 DKD 步组合为4阶辛积分器：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{Y4}}(\Delta s) = \mathcal{M}_{\text{DKD}}(z_1 \Delta s) \circ \mathcal{M}_{\text{DKD}}(z_0 \Delta s) \circ \mathcal{M}_{\text{DKD}}(z_1 \Delta s)\]</div>
+<p>其中 Yoshida 系数为：</p>
+<div class="math notranslate nohighlight">
+\[z_1 = \frac{1}{2 - 2^{1/3}} \approx 1.3512\]</div>
+<div class="math notranslate nohighlight">
+\[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
+<p>截断误差 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
+</section>
+</section>
+<section id="id8">
+<h2>接口参数<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -481,13 +563,10 @@
 <td><p>元件名称</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><ul class="simple">
-<li><p>（固定 0.0）</p></li>
-</ul>
-</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>0.0</p></td>
-<td><p>元件长度（恒为 0，不可配置）</p></td>
+<td><p>磁铁长度， <span class="math notranslate nohighlight">\(= 0\)</span> 为薄透镜， <span class="math notranslate nohighlight">\(&gt; 0\)</span> 为厚透镜</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hkick</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">hkick</span></code></p></td>
@@ -500,6 +579,18 @@
 <td><p>float</p></td>
 <td><p>0.0</p></td>
 <td><p>垂直踢角（弧度）， <span class="math notranslate nohighlight">\(\Delta p_y = \text{vkick}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
+<td><p>int</p></td>
+<td><p>1</p></td>
+<td><p>厚透镜切片数</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">adaptive</span></code></p></td>
+<td><p>积分器，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> 、 <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
@@ -519,19 +610,19 @@
 <p class="admonition-title">Note</p>
 <p><code class="docutils literal notranslate"><span class="pre">hkick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 均为可选参数，默认值为 0。两者独立设置：</p>
 <ul class="simple">
-<li><p>仅 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 非零：单向水平冲击器</p></li>
-<li><p>仅 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 非零：单向垂直冲击器</p></li>
-<li><p>两者均非零：双向冲击器</p></li>
-<li><p>两者均为零：退化为标记器</p></li>
+<li><p>仅 <code class="docutils literal notranslate"><span class="pre">hkick</span></code> 非零：单向水平冲击磁铁</p></li>
+<li><p>仅 <code class="docutils literal notranslate"><span class="pre">vkick</span></code> 非零：单向垂直冲击磁铁</p></li>
+<li><p>两者均非零：双向冲击磁铁</p></li>
+<li><p>两者均为零：薄透镜退化为标记器，厚透镜退化为纯漂移</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">kicker</span></code> 。无需提供 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 字段。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Command</span></code> 字段应设为 <code class="docutils literal notranslate"><span class="pre">kicker</span></code> 。</p>
 </div>
 </section>
-<section id="id8">
-<h2>使用示例<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <section id="id9">
-<h3>水平冲击器<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
-<p>以下示例在 <span class="math notranslate nohighlight">\(s = 10.0\)</span> m 处放置一个水平冲击器，踢角 <span class="math notranslate nohighlight">\(1.5 \times 10^{-3}\)</span> rad：</p>
+<h2>使用示例<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="id10">
+<h3>薄透镜水平冲击磁铁<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 10.0\)</span> m 处放置一个薄透镜水平冲击磁铁，踢角 <span class="math notranslate nohighlight">\(1.5 \times 10^{-3}\)</span> rad：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;HK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
@@ -544,9 +635,9 @@
 </div>
 <p>仅施加水平踢角，垂直方向不受影响。适用于水平轨道校正或水平注入。</p>
 </section>
-<section id="id10">
-<h3>垂直冲击器<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
-<p>以下示例在 <span class="math notranslate nohighlight">\(s = 20.0\)</span> m 处放置一个垂直冲击器，踢角 <span class="math notranslate nohighlight">\(-2.3 \times 10^{-3}\)</span> rad：</p>
+<section id="id11">
+<h3>薄透镜垂直冲击磁铁<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 20.0\)</span> m 处放置一个薄透镜垂直冲击磁铁，踢角 <span class="math notranslate nohighlight">\(-2.3 \times 10^{-3}\)</span> rad：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;VK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
@@ -559,26 +650,47 @@
 </div>
 <p>仅施加垂直踢角，水平方向不受影响。负号表示踢角方向向下。</p>
 </section>
-<section id="id11">
-<h3>双向冲击器<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
-<p>以下示例在 <span class="math notranslate nohighlight">\(s = 15.0\)</span> m 处放置一个双向冲击器，同时施加水平和垂直踢角：</p>
+<section id="id12">
+<h3>厚透镜双向冲击磁铁<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 15.0\)</span> m 处放置一个厚透镜双向冲击磁铁，4 个切片，uniform 积分器：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;BK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0015</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uniform&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>水平和垂直踢角同时施加，并配置圆形孔径检查（半径 0.05 m）。适用于需要同时在两个方向偏转束流的场景。</p>
+<p>水平和垂直踢角同时施加，长度 0.3 m，4 个切片的 DKD-exact 辛积分，并配置圆形孔径检查（半径 0.05 m）。</p>
 </section>
-<section id="id12">
-<h3>零踢角冲击器<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
-<p>以下示例在 <span class="math notranslate nohighlight">\(s = 30.0\)</span> m 处放置一个零踢角冲击器（退化为标记器）：</p>
+<section id="yoshida4">
+<h3>厚透镜 yoshida4 积分器<a class="headerlink" href="#yoshida4" title="Link to this heading"></a></h3>
+<p>以下示例使用 4 阶 Yoshida 积分器，适用于对精度要求较高的场景：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BK2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>2 个切片，每个切片执行 3 次 DKD 步（Yoshida 组合），截断误差 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
+</section>
+<section id="id13">
+<h3>零踢角冲击磁铁<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<p>以下示例在 <span class="math notranslate nohighlight">\(s = 30.0\)</span> m 处放置一个零踢角冲击磁铁：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;K0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
@@ -589,24 +701,25 @@
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>踢角为零时，冲击器不改变任何粒子坐标，行为等同于标记器。可用于预留冲击器位置，后续通过 ramping 表动态启用。</p>
+<p>踢角为零且长度为零时，冲击磁铁退化为标记器，不改变任何粒子坐标。可用于预留冲击磁铁位置，后续通过 ramping 表动态启用。</p>
 </section>
 </section>
-<section id="id13">
-<h2>应用场景<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<section id="id14">
+<h2>应用场景<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p><strong>束流注入</strong> ：在注入段放置冲击器，将注入束流偏转至与主环闭合轨道匹配的方向，实现束流注入</p></li>
-<li><p><strong>束流引出</strong> ：在引出点放置冲击器，快速将束流偏转至引出通道，实现快引出或慢引出</p></li>
-<li><p><strong>轨道校正</strong> ：在束线关键位置放置冲击器，校正轨道偏差或实现局部凸轨（ bump ）</p></li>
-<li><p><strong>快速束流调节</strong> ：通过时序控制冲击器的踢角，实现束流方向的快速切换或扫描</p></li>
+<li><p><strong>束流注入</strong> ：在注入段放置冲击磁铁，将注入束流偏转至与主环闭合轨道匹配的方向，实现束流注入</p></li>
+<li><p><strong>束流引出</strong> ：在引出点放置冲击磁铁，快速将束流偏转至引出通道，实现快引出或慢引出</p></li>
+<li><p><strong>轨道校正</strong> ：在束线关键位置放置冲击磁铁，校正轨道偏差或实现局部凸轨（ bump ）</p></li>
+<li><p><strong>快速束流调节</strong> ：通过时序控制冲击磁铁的踢角，实现束流方向的快速切换或扫描</p></li>
 <li><p><strong>反馈系统</strong> ：与 Pickup（拾取器）配合，构成逐束团横向反馈系统，抑制束流不稳定性</p></li>
 </ul>
 </section>
-<section id="id14">
-<h2>参考文献<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id15">
+<h2>参考文献<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>MAD-X User’s Guide, “Kicker” section (hkick / vkick 定义)</p></li>
 <li><p>Xsuite 源码： <code class="docutils literal notranslate"><span class="pre">xtrack/mad_loader.py</span></code> （ <code class="docutils literal notranslate"><span class="pre">convert_kicker</span></code> , <code class="docutils literal notranslate"><span class="pre">_make_kicker_multipole</span></code> ）</p></li>
+<li><p>Yoshida, H., “Construction of higher order symplectic integrators”, Phys. Lett. A 150 (1990)</p></li>
 <li><p>Wiedemann, H., “Particle Accelerator Physics”, Ch. 4 (偶极磁铁与偏转)</p></li>
 </ul>
 </section>
