@@ -1,7 +1,7 @@
 from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("PASS")
+    __version__ = version("pass-sim")
 except PackageNotFoundError:
     __version__ = "unknown"
 
