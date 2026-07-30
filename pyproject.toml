@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "PASS"
+name = "pass-sim"
 version = "0.2.0"
 description = "Particle Accelerator Simulation Studio"
 readme = "README.md"
@@ -14,7 +14,16 @@ authors = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Intended Audience :: Science/Research",
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -24,14 +33,24 @@ dependencies = [
     "pandas",
     "tfs-pandas",
     "h5py",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+cuda = [
     "numba-cuda",
     "cuda-python>=13.0.0",
     "cuda-core>=1.0.0",
     "cupy-cuda13x>=14.0.0",
     "cuda-cccl[cu13]>=1.0.0",
     "nvmath-python[cu13]==0.9.0",
-    "pydantic>=2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/changmx/PASS"
+Repository = "https://github.com/changmx/PASS"
+Documentation = "https://changmx.github.io/PASS/"
+Issues = "https://github.com/changmx/PASS/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
