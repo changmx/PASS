@@ -37,7 +37,7 @@ def setup_logging(
         root_logger.removeHandler(handler)
 
     # Full format with timestamp, logger name, level, filename, line number
-    _full_formatter = logging.Formatter(fmt='[%(asctime)s.%(msecs)03d][%(levelname)s][%(filename)s:%(lineno)d] %(message)s',
+    _full_formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d | %(levelname)s | %(filename)s:%(lineno)d | %(message)s',
                                         datefmt='%Y-%m-%d %H:%M:%S')
 
     # Console handler (using full format)
