@@ -26,8 +26,16 @@ _NCOLS = 10
 
 # Column names for output TFS
 _COL_NAMES = [
-    "turn", "x", "px", "y", "py", "z", "dp",
-    "tag", "lostTurn", "lostPosition",
+    "turn",
+    "x",
+    "px",
+    "y",
+    "py",
+    "z",
+    "dp",
+    "tag",
+    "lostTurn",
+    "lostPosition",
 ]
 
 
@@ -57,10 +65,8 @@ class ParticleMonitor(Command):
 
         self.max_tag: int = int(kwargs.get("max tag", 0))
         if self.max_tag < 1:
-            logger.warning(
-                f"ParticleMonitor '{self.cmd_name}': max_tag={self.max_tag} < 1, "
-                f"no particles will be recorded."
-            )
+            logger.warning(f"ParticleMonitor '{self.cmd_name}': max_tag={self.max_tag} < 1, "
+                           f"no particles will be recorded.")
 
         cfg: Config = sim.cfg
         self.num_turn: int = cfg.num_turn
@@ -76,10 +82,8 @@ class ParticleMonitor(Command):
         if self.start_turn < 0:
             self.start_turn = 0
         if self.start_turn >= self.num_turn:
-            logger.warning(
-                f"ParticleMonitor '{self.cmd_name}': start_turn={self.start_turn} "
-                f">= num_turn={self.num_turn}, no turns will be recorded."
-            )
+            logger.warning(f"ParticleMonitor '{self.cmd_name}': start_turn={self.start_turn} "
+                           f">= num_turn={self.num_turn}, no turns will be recorded.")
 
         # Number of turns actually recorded
         self.num_record_turn: int = max(0, self.end_turn - self.start_turn)
@@ -93,9 +97,7 @@ class ParticleMonitor(Command):
         xp = beam.particles.xp  # np or cp
 
         if self.max_tag >= 1 and self.num_record_turn > 0:
-            self.buffer = xp.zeros(
-                (self.max_tag, self.num_record_turn, _NCOLS), dtype=xp.float64
-            )
+            self.buffer = xp.zeros((self.max_tag, self.num_record_turn, _NCOLS), dtype=xp.float64)
         else:
             # Edge case: nothing to record, use a tiny placeholder
             self.buffer = xp.zeros((1, 1, _NCOLS), dtype=xp.float64)
@@ -104,11 +106,9 @@ class ParticleMonitor(Command):
 
     def print(self):
         set_simple_logging()
-        logger.info(
-            f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
-            f"MaxTag={self.max_tag:d}, TurnRange=[{self.start_turn:d},{self.end_turn:d}), "
-            f"NumRecordTurn={self.num_record_turn:d}"
-        )
+        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
+                    f"MaxTag={self.max_tag:d}, TurnRange=[{self.start_turn:d},{self.end_turn:d}), "
+                    f"NumRecordTurn={self.num_record_turn:d}")
         set_normal_logging()
 
     def _record_one_turn(self, particles, start, end, turn):
@@ -154,9 +154,7 @@ class ParticleMonitor(Command):
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
-                    self._record_one_turn(
-                        beam.particles, bunch.start_idx, bunch.end_idx, turn
-                    )
+                    self._record_one_turn(beam.particles, bunch.start_idx, bunch.end_idx, turn)
 
         # Write TFS files on the last recorded turn
         if turn == self.end_turn - 1:
@@ -174,9 +172,7 @@ class ParticleMonitor(Command):
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
-                    self._record_one_turn(
-                        beam.particles, bunch.start_idx, bunch.end_idx, turn
-                    )
+                    self._record_one_turn(beam.particles, bunch.start_idx, bunch.end_idx, turn)
 
         # Write TFS files on the last recorded turn (single D2H transfer)
         if turn == self.end_turn - 1:
@@ -221,24 +217,21 @@ class ParticleMonitor(Command):
 
             table = tfs.TfsDataFrame(df, headers=headers)
 
-            filename = (
-                f"{self.output_hms}_particle_beam{self.beam_id}"
-                f"_{self.cmd_name}_s_{self.s:.3f}_tag_{tag_val}.tfs"
-            )
+            filename = (f"{self.output_hms}_beam{self.beam_id}"
+                        f"_{self.cmd_name}_s{self.s:.3f}_tag{tag_val}.tfs")
             filepath = os.path.join(output_dir, filename)
             tfs.write(filepath, table)
 
         set_simple_logging()
-        logger.info(
-            f"ParticleMonitor '{self.cmd_name}': "
-            f"{self.max_tag} TBT files written to {output_dir}"
-        )
+        logger.info(f"ParticleMonitor '{self.cmd_name}': "
+                    f"{self.max_tag} TBT files written to {output_dir}")
         set_normal_logging()
 
 
 # ---------------------------------------------------------------------------
 # Backend-agnostic helpers (work for both numpy and cupy arrays)
 # ---------------------------------------------------------------------------
+
 
 def xp_abs(arr):
     """Absolute value that works for numpy and cupy arrays."""
