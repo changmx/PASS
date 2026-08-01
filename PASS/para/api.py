@@ -186,6 +186,7 @@ def generate_from_tfs(
             'kinetic_energy' is auto-filled from TFS if not provided.
         element_settings: optional dict with keys:
             quad_slices, bend_slices, sext_slices, oct_slices,
+            bend_model, quad_model,
             quad_integrator, bend_integrator, sext_integrator, oct_integrator.
         monitors: optional list of dicts, each with 'type' key
             (e.g. "ParticleMonitor") plus the monitor's fields.
@@ -255,12 +256,14 @@ def _apply_element_settings(
     bend_slices: int = 0,
     sext_slices: int = 0,
     oct_slices: int = 0,
+    bend_model: str = "",
+    quad_model: str = "",
     quad_integrator: str = "",
     bend_integrator: str = "",
     sext_integrator: str = "",
     oct_integrator: str = "",
 ) -> None:
-    """Apply slice counts and integrators to lattice elements by type.
+    """Apply slice counts, models, and integrators to lattice elements by type.
 
     Modifies items in-place. 0 / empty string means skip.
     """
@@ -274,11 +277,15 @@ def _apply_element_settings(
         if cmd == "QuadrupoleElement":
             if quad_slices > 0:
                 item.num_slices = quad_slices
+            if quad_model:
+                item.model = quad_model
             if quad_integrator:
                 item.integrator = quad_integrator
         elif cmd == "SBendElement":
             if bend_slices > 0:
                 item.num_slices = bend_slices
+            if bend_model:
+                item.model = bend_model
             if bend_integrator:
                 item.integrator = bend_integrator
         elif cmd == "SextupoleElement":
