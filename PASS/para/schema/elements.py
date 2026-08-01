@@ -72,6 +72,7 @@ class SBendElement(ElementBase):
 
     # slicing
     num_slices: int = Field(default=1, ge=1, alias="Num slices")
+    model: str = Field(default="adaptive", alias="Model")
     integrator: str = Field(default="adaptive", alias="Integrator")
 
 
@@ -93,6 +94,9 @@ class QuadrupoleElement(ElementBase):
     is_ramping: bool = Field(default=False, alias="Is ramping")
     k1l_ramping_file: str = Field(default="", alias="K1L ramping file")
     k1sl_ramping_file: str = Field(default="", alias="K1SL ramping file")
+
+    # model
+    model: str = Field(default="adaptive", alias="Model")
 
     # slicing
     num_slices: int = Field(default=1, ge=1, alias="Num slices")
