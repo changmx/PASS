@@ -3,7 +3,7 @@
 
 本模块介绍 PASS 中的四极铁元件 **Quadrupole** ，用于模拟带电粒子在四极磁铁中的运动。四极铁是加速器中最基本的聚焦元件，通过梯度磁场提供线性聚焦力。
 
-PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式。厚元件提供两种追踪模型： **drift-kick-drift-exact** （DKD-exact，默认）采用精确漂移-踢角-漂移辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器； **mat-kick-mat** （MKM）采用精确线性传输矩阵方案，对纯线性场一次切片即精确。
+PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式。厚元件提供两种追踪模型： **drift-kick-drift-exact** （DKD-exact）采用精确漂移-踢角-漂移辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器； **mat-kick-mat** （MKM，默认）采用精确线性传输矩阵方案，对纯线性场一次切片即精确。
 
 **代码位置**
 
@@ -554,7 +554,7 @@ MKM 只保留第一项，丢失的高阶项导致：
     - ``model``
     - str
     - -
-    - 物理模型，可选： ``adaptive`` （默认 ``drift-kick-drift-exact`` ）、 ``drift-kick-drift-exact`` 、 ``mat-kick-mat``
+    - 物理模型，可选： ``adaptive`` （默认 ``mat-kick-mat`` ）、 ``drift-kick-drift-exact`` 、 ``mat-kick-mat``
   * - ``num_slice``
     - ``num slices``
     - int
