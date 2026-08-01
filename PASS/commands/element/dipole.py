@@ -30,11 +30,33 @@ class SBend(Command):
     Tracking sequence (entry → body → exit):
 
       Entry:  YRotation(-e1) → DipoleFringe → Wedge(-e1, K0)
-      Body:   N slices of drift-kick-drift-exact (uniform or yoshida4)
+      Body:   N slices of DKD (model-dependent)
       Exit:   Wedge(-e2, K0) → DipoleFringe → YRotation(+e2)
+
+    Body models (self.model):
+
+      'drift-kick-drift-exact' (Xsuite model=5):
+          drift = straight exact drift (no curvature)
+          kick  = k0 + h·(1+δ) + k0·h·x + h·x(path length)
+          Curvature is handled as thin-lens kicks. When num_slice is small,
+          the missing (1+h·x) Jacobian in the drift causes chromaticity
+          errors for d≠0 particles.
+
+      'rot-kick-rot' (Xsuite model=3, drift_model=7) [default]:
+          drift = Yoshida-4 of (polar_drift + k0_kick)
+          kick  = k0·h·x weak focusing only
+          k0 and h are both inside the drift step:
+            - h via polar drift coordinate rotation (curvilinear)
+            - k0 via interleaved k0_kick sub-steps
+          The (1+h·x) Jacobian is exactly included in the polar drift,
+          eliminating the chromaticity bias of the straight-drift model.
+          When h=0, polar drift reduces to straight exact drift.
+          Future: multipole field errors can be added to the outer kick,
+          alongside the weak focusing term.
 
     All maps follow the Xsuite Physics Guide:
       - Drift exact (Table 1.1, map D):   Eq. 1.86-1.88
+      - Polar drift: Xsuite track_magnet_drift.h:45-87
       - Dipole kick (Table 1.1, map K0):  Eq. 1.189
       - Curvature kick (Table 1.1, map h): Eq. 1.189
       - Weak focusing kick (Table 1.1, map K0h): Eq. 1.189
@@ -99,10 +121,10 @@ class SBend(Command):
             self.num_slice = 1
 
         self.model = kwargs.get("model", "adaptive")
-        if self.model not in ["adaptive", "drift-kick-drift-exact"]:
-            raise ValueError(f"The model of SBend {self.cmd_name} is {self.model}, which should be 'adaptive' or 'drift-kick-drift-exact'.")
+        if self.model not in ["adaptive", "drift-kick-drift-exact", "rot-kick-rot"]:
+            raise ValueError(f"The model of SBend {self.cmd_name} is {self.model}, which should be 'adaptive', 'drift-kick-drift-exact' or 'rot-kick-rot'.")
         if self.model == "adaptive":
-            self.model = "drift-kick-drift-exact"
+            self.model = "rot-kick-rot"
 
         self.integrator = kwargs.get("integrator", "adaptive")
         if self.integrator not in ["adaptive", "uniform", "yoshida4"]:
@@ -183,15 +205,23 @@ class SBend(Command):
                              self.e1, self.fint, self.hgap,
                              self.k0, self.h, chi, beta0, gamma0)
 
-        # ---- Body: sliced DKD-exact ----
+        # ---- Body: sliced tracking ----
         ds = self.length / self.num_slice
         for _ in range(self.num_slice):
-            if self.integrator == "uniform":
-                self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
-                                      ds, self.h, self.k0, chi, beta0)
-            elif self.integrator == "yoshida4":
-                self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
-                                       ds, self.h, self.k0, chi, beta0)
+            if self.model == "drift-kick-drift-exact":
+                if self.integrator == "uniform":
+                    self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
+                                          ds, self.h, self.k0, chi, beta0)
+                elif self.integrator == "yoshida4":
+                    self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
+                                           ds, self.h, self.k0, chi, beta0)
+            elif self.model == "rot-kick-rot":
+                if self.integrator == "uniform":
+                    self._rkr_uniform_cpu(x, px, y, py, z, dp, tag, mask,
+                                          ds, self.h, self.k0, chi, beta0)
+                elif self.integrator == "yoshida4":
+                    self._rkr_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
+                                           ds, self.h, self.k0, chi, beta0)
 
         # ---- Exit edge ----
         self._edge_exit_cpu(x, px, y, py, z, dp, tag, mask,
@@ -218,10 +248,19 @@ class SBend(Command):
 
     def _edge_entry_cpu(self, x, px, y, py, z, dp, tag, mask,
                         e1, fint, hgap, k0, h, chi, beta0, gamma0):
-        """Entry edge effects: YRotation → Fringe → Wedge."""
+        """Entry edge effects: YRotation → Fringe → Wedge.
+
+        Xsuite track_magnet_edge.h model=1/2 (full):
+            YRotation(-e1) → DipoleFringe → Wedge(-e1, k0)
+
+        DipoleFringe is called whenever k0 != 0, regardless of fint/hgap.
+        When fint=0, the fringe map is NOT identity (it still applies
+        the geometric nonlinearity atan(xp/(1+yp²))), so skipping it
+        loses the vertical focusing kick.
+        """
 
         has_angle = abs(e1) > const.eps
-        has_fringe = (fint > const.eps) and (hgap > const.eps) and (abs(k0) > const.eps)
+        has_fringe = abs(k0) > const.eps
 
         if not has_angle and not has_fringe:
             return
@@ -261,7 +300,8 @@ class SBend(Command):
         has_angle = abs(e2) > const.eps
         # Xsuite: DipoleFringe uses negated k0 at exit, Wedge uses original k0
         k0_fringe = -k0   # for DipoleFringe only
-        has_fringe = (fintx > const.eps) and (hgap > const.eps) and (abs(k0_fringe) > const.eps)
+        # DipoleFringe is called whenever k0 != 0, regardless of fint/hgap
+        has_fringe = abs(k0_fringe) > const.eps
 
         if not has_angle and not has_fringe:
             return
@@ -644,6 +684,188 @@ class SBend(Command):
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
         rv0v = beta0 / beta  # = 1/rvv
         z -= L_mask * rv0v * h * x
+
+    # ============================================================
+    # Body: Rot-Kick-Rot model (Xsuite model=3, drift_model=7)
+    #
+    # drift = Yoshida-4 of (polar_drift + k0_kick)
+    # kick  = k0·h·x weak focusing only (future: multipole field errors)
+    #
+    # k0 and h are BOTH inside the drift step:
+    #   - h handled by polar drift coordinate rotation
+    #   - k0 handled by k0_kick sub-steps interleaved with polar drift
+    # The outer kick only contains k0·h·x (weak focusing correction).
+    # ============================================================
+
+    def _polar_drift_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0, h):
+        """
+        Polar drift in curvilinear coordinates (h ≠ 0).
+
+        Xsuite track_magnet_drift.h:45-87, track_polar_drift_single_particle.
+        Based on SUBROUTINE Sprotr in PTC and curex_drift in MAD-NG.
+
+        When h → 0, this reduces to exact straight drift, but the caller
+        should dispatch to _drift_exact_cpu for h = 0 to avoid 1/h singularity.
+
+        The (1 + h·x) Jacobian factor is implicitly included in the
+        curvilinear coordinate transformation, which is the key difference
+        from _drift_exact_cpu.
+        """
+        if abs(L) < const.eps:
+            return
+
+        one_plus_delta = 1.0 + dp
+        pz_sq = one_plus_delta**2 - px**2 - py**2
+
+        valid = (pz_sq > 0.0) & (tag > 0)
+        tag[~valid] = -np.abs(tag[~valid])
+        pz_sq_safe = np.maximum(pz_sq, const.eps)
+        pz = np.sqrt(pz_sq_safe)
+
+        rho = 1.0 / h
+        hs = h * L
+        ca = np.cos(hs)
+        sa = np.sin(hs)
+        sa2 = np.sin(0.5 * hs)
+
+        inv_pz = 1.0 / pz
+        pxt = px * inv_pz
+        _ptt = 1.0 / (ca - sa * pxt)
+        pst = (x + rho) * sa * inv_pz * _ptt
+
+        new_x = (x + rho * (2.0 * sa2**2 + sa * pxt)) * _ptt
+        new_px = ca * px + sa * pz
+        new_y = y + pst * py
+
+        # delta_ell = one_plus_delta * pst (algebraically equivalent to
+        #   Xsuite's one_plus_delta * (x+rho) * sa / ca / pz / (1 - px*sa/ca/pz))
+        gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
+        bg = beta0 * gamma0
+        beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
+        rvv = beta / beta0
+
+        z += (L - one_plus_delta * pst / rvv) * mask
+
+        x[:] = new_x * mask + x * (1.0 - mask)
+        px[:] = new_px * mask + px * (1.0 - mask)
+        y[:] = new_y * mask + y * (1.0 - mask)
+
+    def _rkr_drift_cpu(self, L, x, px, y, py, z, dp, tag, mask,
+                       beta0, h, k0, chi):
+        """
+        Drift step for rot-kick-rot model (Xsuite drift_model=7).
+
+        Yoshida-4 integrator of (polar_drift + k0_kick), with adjacent
+        drifts merged. Matches Xsuite track_magnet_drift.h case 7:
+
+          PD(z1·L) → k0k(z1) → PD(z0·L) → k0k(z0) → PD(z0·L) → k0k(z1) → PD(z1·L)
+
+        where PD = polar_drift, k0k = px -= weight·k0·chi·L.
+
+        Both k0 and h are handled inside this step:
+          - h via polar drift coordinate rotation
+          - k0 via interleaved k0_kick sub-steps
+
+        When h = 0 (straight magnet), dispatches to _drift_exact_cpu
+        (k0 is also 0 for sector bends, so no k0_kick needed).
+        """
+        if abs(L) < const.eps:
+            return
+
+        # h = 0 → straight drift (k0 = 0 for sector bends when h = 0)
+        if abs(h) < const.eps:
+            self._drift_exact_cpu(L, x, px, y, py, z, dp, tag, mask, beta0)
+            return
+
+        # Yoshida-4 with merged adjacent drifts
+        # Original: PD(z1*L/2) k0k(z1) PD(z1*L/2+z0*L/2) k0k(z0)
+        #           PD(z0*L/2+z1*L/2) k0k(z1) PD(z1*L/2)
+        # Merged drift lengths:
+        d1 = _YOSHIDA_Z1 * L * 0.5                    # ≈  0.6756 * L
+        d2 = (_YOSHIDA_Z1 + _YOSHIDA_Z0) * L * 0.5     # ≈ -0.1756 * L
+        # k0 kick weights:
+        k1_w = _YOSHIDA_Z1 * k0 * chi * L              # ≈  1.3512 * k0 * chi * L
+        k0_w = _YOSHIDA_Z0 * k0 * chi * L              # ≈ -1.7024 * k0 * chi * L
+
+        m = mask
+
+        self._polar_drift_cpu(d1, x, px, y, py, z, dp, tag, mask, beta0, h)
+        px -= k1_w * m
+
+        self._polar_drift_cpu(d2, x, px, y, py, z, dp, tag, mask, beta0, h)
+        px -= k0_w * m
+
+        self._polar_drift_cpu(d2, x, px, y, py, z, dp, tag, mask, beta0, h)
+        px -= k1_w * m
+
+        self._polar_drift_cpu(d1, x, px, y, py, z, dp, tag, mask, beta0, h)
+
+    def _rkr_kick_cpu(self, L, x, px, y, py, z, dp, tag, mask,
+                      h, k0, chi, beta0):
+        """
+        Outer kick for rot-kick-rot model (kick_rot_frame=0).
+
+        Only contains terms NOT handled by _rkr_drift_cpu:
+          - k0·h·x  weak focusing (curvature × dipole coupling)
+
+        Does NOT contain (handled by _rkr_drift_cpu):
+          - k0 main bend       → k0_kick inside _rkr_drift_cpu
+          - h·(1+δ) curvature  → polar drift coordinate rotation
+          - h·x path length    → polar drift delta_ell
+
+        Future: multipole field errors (k1, k2, knl, ksl) will be added here,
+        alongside the weak focusing term, enabling per-element field errors
+        within the DKD structure.
+        """
+        if abs(L) < const.eps:
+            return
+
+        L_mask = L * mask
+
+        # Weak focusing: dpx = -chi * k0 * h * x * L
+        px -= L_mask * chi * k0 * h * x
+
+    def _rkr_step_cpu(self, x, px, y, py, z, dp, tag, mask,
+                      ds, h, k0, chi, beta0):
+        """Single DKD step for rot-kick-rot model."""
+        self._rkr_drift_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask,
+                            beta0, h, k0, chi)
+        self._rkr_kick_cpu(ds, x, px, y, py, z, dp, tag, mask,
+                           h, k0, chi, beta0)
+        self._rkr_drift_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask,
+                            beta0, h, k0, chi)
+
+    def _rkr_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
+                         ds, h, k0, chi, beta0):
+        """
+        Uniform (leapfrog, 2nd order) integrator for rot-kick-rot:
+
+          Drift(ds/2) → Kick(ds) → Drift(ds/2)
+
+        Drift: _rkr_drift_cpu (Yoshida-4 of polar_drift + k0_kick)
+        Kick:  _rkr_kick_cpu  (k0·h·x weak focusing)
+        """
+        self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds, h, k0, chi, beta0)
+
+    def _rkr_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
+                          ds, h, k0, chi, beta0):
+        """
+        Yoshida-4th order integrator for rot-kick-rot:
+
+          S4(ds) = S2(z1·ds) ∘ S2(z0·ds) ∘ S2(z1·ds)
+
+        where S2 is _rkr_step_cpu.
+        """
+        # S2(z1 * ds)
+        self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds * _YOSHIDA_Z1, h, k0, chi, beta0)
+        # S2(z0 * ds)
+        self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds * _YOSHIDA_Z0, h, k0, chi, beta0)
+        # S2(z1 * ds)
+        self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
+                           ds * _YOSHIDA_Z1, h, k0, chi, beta0)
 
     # ============================================================
     # Thin lens kick (for zero-length bend)
