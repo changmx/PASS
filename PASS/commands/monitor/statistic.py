@@ -134,17 +134,24 @@ class StatMonitor(Command):
 
             sig_xpx = stat['xpx'] - stat['x'] * stat['px_avg']
             sig_ypy = stat['ypy'] - stat['y'] * stat['py_avg']
-            emit_x = np.sqrt(sigma_x**2 * sigma_px**2 - sig_xpx**2)
-            emit_y = np.sqrt(sigma_y**2 * sigma_py**2 - sig_ypy**2)
+            emit_x = np.sqrt(max(sigma_x**2 * sigma_px**2 - sig_xpx**2, 0.0))
+            emit_y = np.sqrt(max(sigma_y**2 * sigma_py**2 - sig_ypy**2, 0.0))
 
-            betax = sigma_x**2 / emit_x
-            betay = sigma_y**2 / emit_y
-            alphax = -sig_xpx / emit_x
-            alphay = -sig_ypy / emit_y
-            gammax = sigma_px**2 / emit_x
-            gammay = sigma_py**2 / emit_y
-            invx = gammax * betax - alphax**2
-            invy = gammay * betay - alphay**2
+            if emit_x > 0:
+                betax = sigma_x**2 / emit_x
+                alphax = -sig_xpx / emit_x
+                gammax = sigma_px**2 / emit_x
+                invx = gammax * betax - alphax**2
+            else:
+                betax = alphax = gammax = invx = 0.0
+
+            if emit_y > 0:
+                betay = sigma_y**2 / emit_y
+                alphay = -sig_ypy / emit_y
+                gammay = sigma_py**2 / emit_y
+                invy = gammay * betay - alphay**2
+            else:
+                betay = alphay = gammay = invy = 0.0
 
             xz_div = stat['xz'] / (sigma_x * sigma_z) if (sigma_x > 0 and sigma_z > 0) else 0.0
 
@@ -296,17 +303,24 @@ class StatMonitor(Command):
             sig_xpx = xpx_avg - x_avg * px_avg
             sig_ypy = ypy_avg - y_avg * py_avg
 
-            emit_x = np.sqrt(sigma_x**2 * sigma_px**2 - sig_xpx**2)
-            emit_y = np.sqrt(sigma_y**2 * sigma_py**2 - sig_ypy**2)
+            emit_x = np.sqrt(max(sigma_x**2 * sigma_px**2 - sig_xpx**2, 0.0))
+            emit_y = np.sqrt(max(sigma_y**2 * sigma_py**2 - sig_ypy**2, 0.0))
 
-            betax = sigma_x**2 / emit_x
-            betay = sigma_y**2 / emit_y
-            alphax = -sig_xpx / emit_x
-            alphay = -sig_ypy / emit_y
-            gammax = sigma_px**2 / emit_x
-            gammay = sigma_py**2 / emit_y
-            invx = gammax * betax - alphax**2
-            invy = gammay * betay - alphay**2
+            if emit_x > 0:
+                betax = sigma_x**2 / emit_x
+                alphax = -sig_xpx / emit_x
+                gammax = sigma_px**2 / emit_x
+                invx = gammax * betax - alphax**2
+            else:
+                betax = alphax = gammax = invx = 0.0
+
+            if emit_y > 0:
+                betay = sigma_y**2 / emit_y
+                alphay = -sig_ypy / emit_y
+                gammay = sigma_py**2 / emit_y
+                invy = gammay * betay - alphay**2
+            else:
+                betay = alphay = gammay = invy = 0.0
 
             xz_div = xz_avg / (sigma_x * sigma_z) if (sigma_x > 0 and sigma_z > 0) else 0.0
 
