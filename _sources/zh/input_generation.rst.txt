@@ -33,20 +33,15 @@ PASS 采用 **JSON 文件** 作为仿真输入。引擎（ ``Config`` 、 ``Beam
    │   ├── monitors.py     StatMonitor / DistMonitor / PhaseMonitor
    │   ├── space_charge.py SpaceChargeConfig
    │   └── sequence.py     Sequence：有序容器 + 自动排序
-   ├── readers/      外部格式 → schema 对象
-   │   ├── madx_twiss.py   MADX twiss TFS → TwissPoint 列表
-   │   ├── madx_element.py MADX twiss TFS → Element 列表
-   │   ├── madx_error.py   MADX error TFS → 场误差
-   │   └── smooth_approx.py 解析平滑近似 twiss
-   ├── writers/      schema → 输出
-   │   └── json_writer.py  schema → 引擎兼容 JSON
+   ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
+   ├── smooth.py      解析平滑近似 twiss
    ├── tools/        外部数据 → PASS TFS
    │   ├── data_converter.py 通用数据转换流水线
    │   ├── ramping.py         元件 ramping 文件生成
    │   ├── rf_data.py         RF 数据文件生成
    │   └── exciter_data.py    Exciter 数据文件生成
-   ├── toolkit.py    sort_sequence + class_map
-   └── api.py        高级 API
+   ├── toolkit.py    sort_sequence + class_map + apply_element_settings + build_sequence
+   └── api.py        高级 API（generate_input / load_input / generate_from_tfs）
 
 数据流如下：
 
@@ -55,13 +50,13 @@ PASS 采用 **JSON 文件** 作为仿真输入。引擎（ ``Config`` 、 ``Beam
    MADX TFS / 用户参数 / 外部数据文件
               │
               ▼
-        readers/ + tools/        → schema 对象 / TFS 文件
+        madx.py / smooth.py + tools/  → schema 对象 / TFS 文件
               │
               ▼
          schema/ (pydantic)     ← 唯一数据源：验证 + 别名
               │
               ▼
-        writers/json_writer     → beam0.json
+        api.py (generate_input) → beam0.json
               │
               ▼
          PASS 引擎 (Config → Beam → CommandSequence → Executor)
@@ -82,7 +77,7 @@ PASS 采用 **JSON 文件** 作为仿真输入。引擎（ ``Config`` 、 ``Beam
    from PASS.para.schema.bunch import BunchConfig, InjectionItem
    from PASS.para.schema.sequence import Sequence
    from PASS.para.schema.monitors import StatMonitor
-   from PASS.para.readers.smooth_approx import generate_smooth_twiss
+   from PASS.para.smooth import generate_smooth_twiss
 
    # 1. 全局参数
    main = MainConfig(
@@ -341,7 +336,7 @@ PASS 支持三种Lattice序列生成方式，可根据需要选择或混合使�
 
 .. code-block:: python
 
-   from PASS.para.readers.madx_twiss import read_madx_twiss
+   from PASS.para.madx import read_madx_twiss
 
    items, circum = read_madx_twiss(
        twiss_file="lattice.tfs",
@@ -360,9 +355,9 @@ PASS 支持三种Lattice序列生成方式，可根据需要选择或混合使�
 
 .. code-block:: python
 
-   from PASS.para.readers.madx_element import read_madx_elements
+   from PASS.para.madx import read_madx_elements
 
-   items, circum = read_madx_elements(
+   items, names, circum = read_madx_elements(
        twiss_file="lattice.tfs",
        is_merge_drift=True,            # 合并相邻漂移节
        is_field_error=True,
@@ -376,7 +371,7 @@ PASS 支持三种Lattice序列生成方式，可根据需要选择或混合使�
 
 .. code-block:: python
 
-   from PASS.para.readers.smooth_approx import generate_smooth_twiss
+   from PASS.para.smooth import generate_smooth_twiss
 
    items, circum = generate_smooth_twiss(
        circumference=569.1,

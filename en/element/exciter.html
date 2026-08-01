@@ -1,0 +1,1271 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exciter &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="RFCavity" href="rfcavity.html" />
+    <link rel="prev" title="ElSeparator" href="elseparator.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../zh/index.html">PASS 文档（中文）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id20">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id21">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id24">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id28">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id9">追踪模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id14">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id15">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id23">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/kicker.html">冲击磁铁（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id15">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS Documentation (English)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#minimal-example">Minimal Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mixed-mode">Mixed Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#bunch-parameters">Bunch parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#transverse-parameters">Transverse parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#beam-parameters">Beam parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#distribution-parameters">Distribution parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#dispersion-coupling">Dispersion coupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#momentum-deviation">Momentum deviation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#input-file">Input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#simulation-results">Simulation results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="marker.html">Marker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#physical-description">Physical Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="drift.html">Drift</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#body-model-comparison">Body Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quadrupole.html">Quadrupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sextupole.html">Sextupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="octupole.html">Octupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="multipole.html">Multipole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="solenoid.html">Solenoid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="kicker.html">Kicker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#septum-logic">Septum Logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#tilt-rotation">Tilt Rotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Exciter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#frequency-input-modes">Frequency Input Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#kick-application">Kick Application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rfcavity.html">RFCavity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#tracking-flow">Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#ramping-data-file">Ramping Data File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#verification-tests">Verification Tests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/statmonitor.html">StatMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#working-principle">Working Principle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#physics-description">Physics Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#index-allocation-method">Index Allocation Method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">Aperture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off-disabled">off (Disabled)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle-circular">circle (Circular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon-polygon">polygon (Polygon)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#usage-example">Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#physics-derivation">Physics Derivation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-handling">Dispersion Handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0-update">t0 Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#position-parameters">Position Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-parameters">Transverse Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#aperture-parameters">Aperture Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS Documentation (English)</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Element</a></li>
+      <li class="breadcrumb-item active">Exciter</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/en/element/exciter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="exciter">
+<h1>Exciter<a class="headerlink" href="#exciter" title="Link to this heading"></a></h1>
+<p>This module introduces the transverse exciter element <strong>Exciter</strong> in PASS, used to apply transverse momentum perturbations to the beam through time-varying electric fields. Exciters are widely used in tune measurement, beam instability studies, emittance growth, and other scenarios.</p>
+<p>The exciter in PASS is a <strong>thin lens element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>), changing only the particle’s transverse momentum (<span class="math notranslate nohighlight">\(p_x\)</span> or <span class="math notranslate nohighlight">\(p_y\)</span>), without changing position coordinates.</p>
+<p><strong>Code Location</strong></p>
+<ul class="simple">
+<li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/exciter.py</span></code></p></li>
+<li><p>Class name: <code class="docutils literal notranslate"><span class="pre">Exciter</span></code> (inherits from <code class="docutils literal notranslate"><span class="pre">Command</span></code>)</p></li>
+<li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">exciter</span></code></p></li>
+<li><p>Core features:</p>
+<ul>
+<li><p>Thin lens element (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>), changes only the particle’s transverse momentum, without changing position coordinates;</p></li>
+<li><p>Supports 4 excitation modes (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code>);</p></li>
+<li><p>Frequency parameters support both tune mode and frequency mode input methods;</p></li>
+<li><p>Supports aperture checking, consistent with other elements.</p></li>
+</ul>
+</li>
+</ul>
+<section id="physical-derivation">
+<h2>Physical Derivation<a class="headerlink" href="#physical-derivation" title="Link to this heading"></a></h2>
+<p>The exciter consists of a pair of parallel plates with voltage <span class="math notranslate nohighlight">\(V\)</span> applied across them, plate gap <span class="math notranslate nohighlight">\(d\)</span>, and plate effective length <span class="math notranslate nohighlight">\(L\)</span>.</p>
+<p>The electric field strength is:</p>
+<div class="math notranslate nohighlight">
+\[E = \frac{V}{d}\]</div>
+<p>The force on a particle (charge <span class="math notranslate nohighlight">\(Q = Z \cdot e\)</span>, where <span class="math notranslate nohighlight">\(Z\)</span> is the charge number and <span class="math notranslate nohighlight">\(e\)</span> is the elementary charge) is:</p>
+<div class="math notranslate nohighlight">
+\[F = Q \cdot E = Z \cdot e \cdot \frac{V}{d}\]</div>
+<p>The particle traverses the plates at velocity <span class="math notranslate nohighlight">\(v = \beta c\)</span>, with an interaction time of:</p>
+<div class="math notranslate nohighlight">
+\[\Delta t = \frac{L}{\beta c}\]</div>
+<p>Therefore the momentum increment is:</p>
+<div class="math notranslate nohighlight">
+\[\Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}\]</div>
+<p>The normalized kick (divided by the reference particle total momentum <span class="math notranslate nohighlight">\(P_0\)</span>) is:</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}\]</div>
+<p>Using the magnetic rigidity <span class="math notranslate nohighlight">\(B\rho = P_0 / Q\)</span>, this simplifies to:</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}\]</div>
+<p>This form is uniformly applicable to proton beams (<span class="math notranslate nohighlight">\(Z=1, A=1\)</span>) and ion beams (<span class="math notranslate nohighlight">\(Z \neq A\)</span>), since <span class="math notranslate nohighlight">\(B\rho\)</span> already contains the charge-to-mass ratio information.</p>
+</section>
+<section id="particle-arrival-time">
+<h2>Particle Arrival Time<a class="headerlink" href="#particle-arrival-time" title="Link to this heading"></a></h2>
+<p>Different particles arrive at the exciter at different times due to their longitudinal coordinate <span class="math notranslate nohighlight">\(z\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[t_{\text{arrive}} = t_0 - \frac{z}{\beta c}\]</div>
+<p>where <span class="math notranslate nohighlight">\(t_0\)</span> is the arrival time of the reference particle, and <span class="math notranslate nohighlight">\(z &gt; 0\)</span> means the particle is ahead of the reference particle (arrives earlier). This time difference causes different particles to see different phases of the excitation signal, which is the source of longitudinal-transverse coupling.</p>
+<p>The revolution frequency is:</p>
+<div class="math notranslate nohighlight">
+\[f_0 = \frac{\beta c}{C}\]</div>
+<p>where <span class="math notranslate nohighlight">\(C\)</span> is the ring circumference. The revolution frequency is used to convert turn number to real time.</p>
+</section>
+<section id="frequency-input-modes">
+<h2>Frequency Input Modes<a class="headerlink" href="#frequency-input-modes" title="Link to this heading"></a></h2>
+<p>The exciter’s center frequency <span class="math notranslate nohighlight">\(f_c\)</span> and sweep width <span class="math notranslate nohighlight">\(\Delta f\)</span> support two input methods:</p>
+<p><strong>Tune mode</strong> (recommended)</p>
+<p>Directly input the excitation tune <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span> and sweep tune <span class="math notranslate nohighlight">\(\Delta Q\)</span>; the program automatically computes the frequencies at runtime based on beam parameters:</p>
+<div class="math notranslate nohighlight">
+\[f_c = Q_{\text{excite}} \cdot f_0\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta f = \Delta Q \cdot f_0\]</div>
+<p>In this mode, there is no need to manually compute frequencies, and it automatically adapts to beams of different energies and circumferences. <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> must be provided as a pair.</p>
+<p><strong>Frequency mode</strong></p>
+<p>Directly input the center frequency and sweep width (in Hz), suitable for scenarios requiring precise frequency control. <code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code> must be provided as a pair.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Choose one of the two modes. If <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> is provided, tune mode is used; otherwise, frequency mode is used. In tune mode, <code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code> must be provided as a pair.</p>
+</div>
+</section>
+<section id="excitation-modes">
+<h2>Excitation Modes<a class="headerlink" href="#excitation-modes" title="Link to this heading"></a></h2>
+<p>The exciter has 4 operating modes, formed by combining two dimensions: frequency modulation (FM) method and amplitude modulation (AM) method:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>FM method</p></th>
+<th class="head"><p>AM method</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm</span></code></p></td>
+<td><p>Single-segment sweep</p></td>
+<td><p>Constant amplitude</p></td>
+<td><p>The most basic linear chirp</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code></p></td>
+<td><p>Single-segment sweep</p></td>
+<td><p>Time-varying amplitude</p></td>
+<td><p>Sweep + amplitude adiabatic growth</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm</span></code></p></td>
+<td><p>Dual-segment sweep</p></td>
+<td><p>Constant amplitude</p></td>
+<td><p>Complex spectral coverage</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
+<td><p>Dual-segment sweep</p></td>
+<td><p>Time-varying amplitude</p></td>
+<td><p>The most complex excitation mode</p></td>
+</tr>
+</tbody>
+</table>
+<section id="frequency-modulation-fm-dimension">
+<h3>Frequency Modulation (FM) Dimension<a class="headerlink" href="#frequency-modulation-fm-dimension" title="Link to this heading"></a></h3>
+<p><strong>Single-segment linear sweep (single)</strong></p>
+<p>Within one period <span class="math notranslate nohighlight">\(T\)</span>, the phase is:</p>
+<div class="math notranslate nohighlight">
+\[\theta(\tau) = 2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\tau = t \bmod T\)</span> is the intra-period time, <span class="math notranslate nohighlight">\(f_c\)</span> is the center frequency, and <span class="math notranslate nohighlight">\(\Delta f\)</span> is the sweep width.</p>
+<p>The instantaneous frequency is:</p>
+<div class="math notranslate nohighlight">
+\[f(t) = f_c + \frac{\Delta f}{T}\left(\tau - \frac{T}{2}\right)\]</div>
+<ul class="simple">
+<li><p>At <span class="math notranslate nohighlight">\(\tau = 0\)</span>: <span class="math notranslate nohighlight">\(f = f_c - \Delta f / 2\)</span> (start frequency)</p></li>
+<li><p>At <span class="math notranslate nohighlight">\(\tau = T/2\)</span>: <span class="math notranslate nohighlight">\(f = f_c\)</span> (center frequency)</p></li>
+<li><p>At <span class="math notranslate nohighlight">\(\tau = T\)</span>: <span class="math notranslate nohighlight">\(f = f_c + \Delta f / 2\)</span> (end frequency)</p></li>
+</ul>
+<p>The frequency sweeps linearly over <span class="math notranslate nohighlight">\([f_c - \Delta f/2,\; f_c + \Delta f/2]\)</span>, repeating every <span class="math notranslate nohighlight">\(T\)</span> seconds. The center frequency <span class="math notranslate nohighlight">\(f_c\)</span> should be close to <span class="math notranslate nohighlight">\(Q \cdot f_0\)</span> (tune times revolution frequency) to cover the beam’s resonance frequency.</p>
+<p><strong>Dual-segment sweep (dual)</strong></p>
+<p>One period is divided into first and second halves, each using a different phase formula, and a cosine envelope <span class="math notranslate nohighlight">\(2\cos(\frac{\pi}{2}\Delta f \cdot \tau)\)</span> is introduced:</p>
+<p>First half <span class="math notranslate nohighlight">\([0,\; T/2]\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\theta_1(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (f_d \cdot \tau - 0.5) \cdot \tau\]</div>
+<p>Second half <span class="math notranslate nohighlight">\([T/2,\; T]\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)\]</div>
+<p>where <span class="math notranslate nohighlight">\(f_d\)</span> is the dual-frequency parameter. The cosine envelope is maximum (<span class="math notranslate nohighlight">\(2A\)</span>) at <span class="math notranslate nohighlight">\(\tau = 0\)</span> and decays over time, reducing discontinuities at period boundaries. The dual-segment phase formula produces a more complex spectral structure, capable of simultaneously covering multiple tune peaks.</p>
+</section>
+<section id="amplitude-modulation-am-dimension">
+<h3>Amplitude Modulation (AM) Dimension<a class="headerlink" href="#amplitude-modulation-am-dimension" title="Link to this heading"></a></h3>
+<p><strong>Constant amplitude</strong></p>
+<div class="math notranslate nohighlight">
+\[A(t) = A_0 = \Delta p_{x,\text{amplitude}}\]</div>
+<p>i.e., the kick amplitude computed from the voltage parameters is used directly, without time variation.</p>
+<p><strong>Time-varying amplitude (am)</strong></p>
+<p>Based on a beam diffusion/growth model, the excitation amplitude grows over time:</p>
+<div class="math notranslate nohighlight">
+\[A(t) = A_0 \cdot \text{am\_factor}(t)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\text{am\_factor}(t)\)</span> is a dimensionless time-varying scaling factor:</p>
+<div class="math notranslate nohighlight">
+\[\text{am\_factor}(t) = \sqrt{\frac{\delta^2(t)}{f_0 \cdot k_{\text{const}}}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(t = n_{\text{eff}} / f_0\)</span> is the real time (seconds) since the start of excitation, and <span class="math notranslate nohighlight">\(n_{\text{eff}}\)</span> is the effective excitation turn number.</p>
+<p>Initial emittance fraction:</p>
+<div class="math notranslate nohighlight">
+\[\varepsilon = \exp\!\left(-\frac{r_0^2}{\delta_0^2}\right)\]</div>
+<p>Time-varying emittance squared:</p>
+<div class="math notranslate nohighlight">
+\[\delta^2(t) = \frac{r_0^2 (1 - \varepsilon)}{L^2 \cdot D}\]</div>
+<p>where:</p>
+<div class="math notranslate nohighlight">
+\[L = \ln\!\left(\frac{t}{t_{\text{ext}}}(1 - \varepsilon) + \varepsilon\right)\]</div>
+<div class="math notranslate nohighlight">
+\[D = t_{\text{ext}} \cdot \varepsilon + t (1 - \varepsilon)\]</div>
+<p>Physical meaning:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(r_0\)</span>: Initial beam size</p></li>
+<li><p><span class="math notranslate nohighlight">\(\delta_0\)</span>: Initial beam diffusion range</p></li>
+<li><p><span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span>: Beam diffusion characteristic time</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_{\text{const}}\)</span>: Emittance growth coefficient</p></li>
+<li><p><span class="math notranslate nohighlight">\(\varepsilon\)</span>: Initial emittance fraction (a measure of the <span class="math notranslate nohighlight">\(r_0 / \delta_0\)</span> ratio)</p></li>
+</ul>
+<p>The exciter continuously injects energy into the beam; the beam oscillation amplitude increases, the emittance grows, and a larger excitation amplitude is needed to maintain the relative driving effect. The logarithmic term makes the growth start fast (steep segment) and slow down later (gentle segment), consistent with the physical characteristics of an adiabatic growth process.</p>
+</section>
+</section>
+<section id="complete-formulas-for-each-mode">
+<h2>Complete Formulas for Each Mode<a class="headerlink" href="#complete-formulas-for-each-mode" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>single_fm</strong> (single-segment sweep + constant amplitude)</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\text{kick}(\tau) = A_0 \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>single_fm_am</strong> (single-segment sweep + time-varying amplitude)</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\text{kick}(\tau) = A_0 \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)\]</div>
+<ol class="arabic simple" start="3">
+<li><p><strong>dual_fm</strong> (dual-segment sweep + constant amplitude)</p></li>
+</ol>
+<p>First half (<span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
+<p>Second half (<span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
+<ol class="arabic simple" start="4">
+<li><p><strong>dual_fm_am</strong> (dual-segment sweep + time-varying amplitude)</p></li>
+</ol>
+<p>First half (<span class="math notranslate nohighlight">\(0 \le \tau \le T/2\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)\]</div>
+<p>Second half (<span class="math notranslate nohighlight">\(T/2 &lt; \tau \le T\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[\text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\tau = t \bmod T\)</span>, <span class="math notranslate nohighlight">\(A_0 = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}\)</span>.</p>
+</section>
+<section id="kick-application">
+<h2>Kick Application<a class="headerlink" href="#kick-application" title="Link to this heading"></a></h2>
+<p>The exciter is a thin lens element; the kick is directly added to the normalized momentum in the corresponding direction:</p>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow p_x + \text{kick} \quad (\text{direction} = x)\]</div>
+<div class="math notranslate nohighlight">
+\[p_y \leftarrow p_y + \text{kick} \quad (\text{direction} = y)\]</div>
+<p>The kick is applied only to alive particles (<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>); lost particles are unaffected.</p>
+<p>After the kick is applied, the exciter performs aperture checking on particles based on the aperture parameters (<code class="docutils literal notranslate"><span class="pre">aperture_type</span></code>): if the aperture type is not <code class="docutils literal notranslate"><span class="pre">off</span></code>, particles exceeding the aperture range are marked as lost (<code class="docutils literal notranslate"><span class="pre">tag</span></code> set to negative); if the aperture type is <code class="docutils literal notranslate"><span class="pre">off</span></code>, no aperture checking is performed.</p>
+</section>
+<section id="parameter-list">
+<h2>Parameter List<a class="headerlink" href="#parameter-list" title="Link to this heading"></a></h2>
+<section id="general-parameters">
+<h3>General Parameters<a class="headerlink" href="#general-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Longitudinal position of the element in the beamline</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Element length (must be 0)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Element name</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">enable</span></code></p></td>
+<td><p>bool</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Exciter switch, options: <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Excitation mode, options: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Excitation direction, options: <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">turn</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Excitation start turn (inclusive)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">end</span> <span class="pre">turn</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Excitation end turn (exclusive)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Aperture type (default <code class="docutils literal notranslate"><span class="pre">off</span></code>, available values in the Aperture chapter)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Aperture parameter values (default <code class="docutils literal notranslate"><span class="pre">[]</span></code>, meaning varies by type, see the Aperture chapter)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="hardware-parameters">
+<h3>Hardware Parameters<a class="headerlink" href="#hardware-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">voltage</span> <span class="pre">(v)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>V</p></td>
+<td><p>Plate peak voltage</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gap</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gap</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Plate gap</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plate_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">plate</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Plate effective length</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="frequency-parameters">
+<h3>Frequency Parameters<a class="headerlink" href="#frequency-parameters" title="Link to this heading"></a></h3>
+<p>Frequency parameters support two input modes, choose one.</p>
+<p><strong>Tune mode</strong> (recommended):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">excite_tune</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">excite</span> <span class="pre">tune</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Excitation tune <span class="math notranslate nohighlight">\(Q_{\text{excite}}\)</span>; <span class="math notranslate nohighlight">\(f_c = Q_{\text{excite}} \cdot f_0\)</span> is automatically computed at runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sweep_tune</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">tune</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Sweep tune <span class="math notranslate nohighlight">\(\Delta Q\)</span>; <span class="math notranslate nohighlight">\(\Delta f = \Delta Q \cdot f_0\)</span> is automatically computed at runtime</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Frequency mode</strong>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">central</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Hz</p></td>
+<td><p>Center frequency <span class="math notranslate nohighlight">\(f_c\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cfw</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sweep</span> <span class="pre">width</span> <span class="pre">(hz)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Hz</p></td>
+<td><p>Sweep width <span class="math notranslate nohighlight">\(\Delta f\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Common frequency parameters</strong> (required for both modes):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Applicable modes</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">period</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">period</span> <span class="pre">(s)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>s</p></td>
+<td><p>All modes</p></td>
+<td><p>Sweep period <span class="math notranslate nohighlight">\(T\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fm_dual_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fm</span> <span class="pre">dual</span> <span class="pre">frequency</span> <span class="pre">(hz)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Hz</p></td>
+<td><p>dual_fm / dual_fm_am</p></td>
+<td><p>Dual-frequency parameter <span class="math notranslate nohighlight">\(f_d\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="amplitude-modulation-am-parameters">
+<h3>Amplitude Modulation (AM) Parameters<a class="headerlink" href="#amplitude-modulation-am-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Applicable modes</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">am_t_ext</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">t</span> <span class="pre">ext</span> <span class="pre">(s)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>s</p></td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>Beam diffusion characteristic time</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">am_r0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">r0</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>Initial beam size</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">am_delta0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">delta0</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>Initial beam diffusion range</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">am_k_const</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">am</span> <span class="pre">k</span> <span class="pre">const</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>single_fm_am / dual_fm_am</p></td>
+<td><p>Emittance growth coefficient</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">am_r0</span></code> and <code class="docutils literal notranslate"><span class="pre">am_delta0</span></code> should be of the same order of magnitude; otherwise <span class="math notranslate nohighlight">\(\exp(-r_0^2/\delta_0^2)\)</span> may suffer numerical underflow.</p>
+<p>In constant amplitude modes (<code class="docutils literal notranslate"><span class="pre">single_fm</span></code>, <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code>), the AM parameters do not participate in the computation and can be set to 0.</p>
+</div>
+</section>
+</section>
+<section id="usage-examples">
+<h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
+<section id="input-file-example">
+<h3>Input File Example<a class="headerlink" href="#input-file-example" title="Link to this heading"></a></h3>
+<p>The following example is taken from <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code>, using tune mode:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Exciter_x&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Exciter&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Enable&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;single_fm&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Direction&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Start Turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;End Turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Voltage (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Gap (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Plate length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Excite tune&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.44</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Sweep tune&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Period (s)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1e-3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Fm Dual Frequency (Hz)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am t ext (s)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am r0 (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am delta0&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Am k const&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If using frequency mode, replace <code class="docutils literal notranslate"><span class="pre">Excite</span> <span class="pre">tune</span></code> and <code class="docutils literal notranslate"><span class="pre">Sweep</span> <span class="pre">tune</span></code> with:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Central Frequency (Hz)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1743.0</span><span class="p">,</span>
+<span class="nt">&quot;Sweep Width (Hz)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">79.2</span><span class="p">,</span>
+</pre></div>
+</div>
+</section>
+<section id="mode-selection-guide">
+<h3>Mode Selection Guide<a class="headerlink" href="#mode-selection-guide" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Tune measurement</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm</span></code> is recommended; simple and effective, sweep covers the working point</p></li>
+<li><p><strong>Emittance growth study</strong>: <code class="docutils literal notranslate"><span class="pre">single_fm_am</span></code> is recommended; time-varying amplitude simulates adiabatic growth</p></li>
+<li><p><strong>Multi-tune-peak coverage</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm</span></code> is recommended; dual-segment sweep produces a complex spectrum</p></li>
+<li><p><strong>Complex instability study</strong>: <code class="docutils literal notranslate"><span class="pre">dual_fm_am</span></code> is recommended; the most complete excitation mode</p></li>
+</ul>
+</section>
+<section id="parameter-selection-recommendations">
+<h3>Parameter Selection Recommendations<a class="headerlink" href="#parameter-selection-recommendations" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Excitation tune</strong>: Set to the beam working point <span class="math notranslate nohighlight">\(Q_x\)</span> (horizontal) or <span class="math notranslate nohighlight">\(Q_y\)</span> (vertical)</p></li>
+<li><p><strong>Sweep tune</strong>: Depends on dispersion and tune spread; typically 0.01~0.05</p></li>
+<li><p><strong>Sweep period</strong>: Should be much larger than the revolution period <span class="math notranslate nohighlight">\(1/f_0\)</span> to ensure sufficient frequency resolution</p></li>
+<li><p><strong>Voltage</strong>: Determined by back-calculating from the required kick amplitude; typical values are in the hundreds to thousands of volts</p></li>
+<li><p><strong>AM parameters</strong>: <span class="math notranslate nohighlight">\(r_0\)</span> and <span class="math notranslate nohighlight">\(\delta_0\)</span> should be of the same order of magnitude; <span class="math notranslate nohighlight">\(t_{\text{ext}}\)</span> is set according to the beam diffusion time scale</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="elseparator.html" class="btn btn-neutral float-left" title="ElSeparator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rfcavity.html" class="btn btn-neutral float-right" title="RFCavity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

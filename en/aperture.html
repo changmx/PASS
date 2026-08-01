@@ -1,0 +1,1113 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aperture &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Twiss Transport (Twiss)" href="twiss.html" />
+    <link rel="prev" title="Bunch Reorganization (ReorganizeBunch)" href="reorganize.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../zh/index.html">PASS 文档（中文）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../zh/input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id20">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id21">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id24">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id28">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id9">追踪模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id14">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id15">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id23">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/kicker.html">冲击磁铁（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id15">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS Documentation (English)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#minimal-example">Minimal Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mixed-mode">Mixed Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="injection.html">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#bunch-parameters">Bunch parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#transverse-parameters">Transverse parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#beam-parameters">Beam parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#distribution-parameters">Distribution parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#dispersion-coupling">Dispersion coupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#momentum-deviation">Momentum deviation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#input-file">Input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#simulation-results">Simulation results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">Element</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">Marker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#physical-description">Physical Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/drift.html">Drift</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#body-model-comparison">Body Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html">Quadrupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html">Sextupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/octupole.html">Octupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/multipole.html">Multipole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html">Solenoid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/kicker.html">Kicker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#septum-logic">Septum Logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#tilt-rotation">Tilt Rotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">Exciter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#frequency-input-modes">Frequency Input Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick-application">Kick Application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">RFCavity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#verification-tests">Verification Tests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">StatMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#working-principle">Working Principle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#physics-description">Physics Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="reorganize.html#index-allocation-method">Index Allocation Method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Aperture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lost-particle-handling">Lost Particle Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-aperture-types">Detailed Aperture Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#off-disabled">off (Disabled)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#default-default-rectangle">default (Default Rectangle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#circle-circular">circle (Circular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rectangle-rectangular">rectangle (Rectangular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ellipse-elliptical">ellipse (Elliptical)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#racetrack-racetrack">racetrack (Racetrack)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#octagon-octagonal">octagon (Octagonal)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#polygon-polygon">polygon (Polygon)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#parameter-summary-table">Parameter Summary Table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage-example">Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#physics-derivation">Physics Derivation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#dispersion-handling">Dispersion Handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0-update">t0 Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#position-parameters">Position Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#transverse-parameters">Transverse Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#aperture-parameters">Aperture Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS Documentation (English)</a></li>
+      <li class="breadcrumb-item active">Aperture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/en/aperture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="aperture">
+<h1>Aperture<a class="headerlink" href="#aperture" title="Link to this heading"></a></h1>
+<p>This module describes the <strong>aperture checking system</strong> (Aperture) in PASS, used to check whether particles exceed the transverse aperture boundaries of the beam pipe during particle tracking. Aperture checking is a core component of beam loss simulation, capable of identifying and recording particles lost due to transverse coordinates exceeding physical pipe limits.</p>
+<p>The aperture module is located at <code class="docutils literal notranslate"><span class="pre">PASS/utils/aperture.py</span></code> and provides both CPU and GPU implementations (called via the <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> and <code class="docutils literal notranslate"><span class="pre">check_aperture_gpu</span></code> functions, respectively), automatically invoked after each element tracking. The current element’s longitudinal position <span class="math notranslate nohighlight">\(s\)</span> and the current turn number are passed in at call time.</p>
+<p>Aperture checking is performed only on the transverse coordinates <span class="math notranslate nohighlight">\((x, y)\)</span> of particles and does not involve longitudinal coordinates. Each element can independently set its aperture type and parameters, supporting 10 aperture geometries.</p>
+<section id="interface-parameters">
+<h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
+<p>The aperture system is controlled by two parameters:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
+<td><p>str</p></td>
+<td><p>Aperture type, case-insensitive; available values are listed below</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
+<td><p>list</p></td>
+<td><p>Aperture parameter values; meaning varies by type</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> is case-insensitive and is internally converted to lowercase before matching. The <code class="docutils literal notranslate"><span class="pre">off</span></code> and <code class="docutils literal notranslate"><span class="pre">default</span></code> types ignore <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> .</p>
+</div>
+</section>
+<section id="lost-particle-handling">
+<h2>Lost Particle Handling<a class="headerlink" href="#lost-particle-handling" title="Link to this heading"></a></h2>
+<p>When a particle is determined to be lost, the system performs the following operations:</p>
+<ul class="simple">
+<li><p><strong>tag negation</strong> : <span class="math notranslate nohighlight">\(\text{tag} \leftarrow -|\text{tag}|\)</span> , preserving the particle ID information and only negating the sign to mark it as lost</p></li>
+<li><p><strong>lost_position</strong> : records the longitudinal coordinate <span class="math notranslate nohighlight">\(s\)</span> of the loss location, i.e., the longitudinal position of the current element</p></li>
+<li><p><strong>lost_turn</strong> : records the turn number at the time of loss</p></li>
+</ul>
+<p>Particles already lost ( <span class="math notranslate nohighlight">\(\text{tag} &lt; 0\)</span> ) are skipped in subsequent aperture checks and are not marked again. Aperture checking is performed only on surviving particles ( <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ).</p>
+</section>
+<section id="detailed-aperture-types">
+<h2>Detailed Aperture Types<a class="headerlink" href="#detailed-aperture-types" title="Link to this heading"></a></h2>
+<p>The following describes the parameter definitions and loss conditions for each of the 10 aperture types.</p>
+<section id="off-disabled">
+<h3>off (Disabled)<a class="headerlink" href="#off-disabled" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : none ( <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> is ignored)</p>
+<p><strong>Description</strong> : No aperture checking is performed; all particles are retained.</p>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <circle cx="150" cy="150" r="60" stroke="#e94560" stroke-width="3" fill="none"/>
+  <line x1="108" y1="108" x2="192" y2="192" stroke="#e94560" stroke-width="3"/>
+  <text x="132" y="248" fill="#e94560" font-size="16" font-weight="bold" font-family="monospace">OFF</text>
+</svg>
+</div></section>
+<section id="default-default-rectangle">
+<h3>default (Default Rectangle)<a class="headerlink" href="#default-default-rectangle" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : none ( <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> is ignored)</p>
+<p><strong>Description</strong> : Uses the default ±1m rectangular aperture, equivalent to the <code class="docutils literal notranslate"><span class="pre">rectangle</span></code> type with <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[1.0,</span> <span class="pre">1.0]</span></code> .</p>
+<p><strong>Loss condition</strong> :</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; 1.0 \quad \text{or} \quad |y| &gt; 1.0\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="90" y="90" width="120" height="120" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <text x="125" y="84" fill="#00d2ff" font-size="11" font-family="monospace">+1m</text>
+  <text x="125" y="228" fill="#00d2ff" font-size="11" font-family="monospace">-1m</text>
+</svg>
+</div></section>
+<section id="circle-circular">
+<h3>circle (Circular)<a class="headerlink" href="#circle-circular" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[r]</span></code> , where <span class="math notranslate nohighlight">\(r\)</span> is the circle radius.</p>
+<p><strong>Loss condition</strong> :</p>
+<div class="math notranslate nohighlight">
+\[x^2 + y^2 &gt; r^2\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <circle cx="150" cy="150" r="108" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="258" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="195" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">r</text>
+</svg>
+</div></section>
+<section id="rectangle-rectangular">
+<h3>rectangle (Rectangular)<a class="headerlink" href="#rectangle-rectangular" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h]</span></code> , where <span class="math notranslate nohighlight">\(w\)</span> is the half-width and <span class="math notranslate nohighlight">\(h\)</span> is the half-height.</p>
+<p><strong>Loss condition</strong> (particle is lost if either condition is met):</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w\]</div>
+<div class="math notranslate nohighlight">
+\[|y| &gt; h\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="30" y="66" width="240" height="168" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="200" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="66" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="156" y="112" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">h</text>
+</svg>
+</div></section>
+<section id="ellipse-elliptical">
+<h3>ellipse (Elliptical)<a class="headerlink" href="#ellipse-elliptical" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[a,</span> <span class="pre">b]</span></code> , where <span class="math notranslate nohighlight">\(a\)</span> is the semi-major axis (x direction) and <span class="math notranslate nohighlight">\(b\)</span> is the semi-minor axis (y direction).</p>
+<p><strong>Loss condition</strong> :</p>
+<div class="math notranslate nohighlight">
+\[\left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 &gt; 1\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <ellipse cx="150" cy="150" rx="120" ry="84" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="200" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">a</text>
+  <line x1="150" y1="150" x2="150" y2="66" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <text x="156" y="112" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">b</text>
+</svg>
+</div></section>
+<section id="rectcircle-rectangle-inscribed-circle">
+<h3>rectcircle (Rectangle Inscribed Circle)<a class="headerlink" href="#rectcircle-rectangle-inscribed-circle" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code> , where <span class="math notranslate nohighlight">\(w\)</span> is the rectangle half-width, <span class="math notranslate nohighlight">\(h\)</span> is the rectangle half-height, and <span class="math notranslate nohighlight">\(r\)</span> is the circle radius.</p>
+<p>The aperture region is the <strong>intersection</strong> of the rectangle and the circle (particles must be inside both the rectangle and the circle to survive).</p>
+<p><strong>Loss condition</strong> (particle is lost if either condition is met):</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w \quad \text{or} \quad |y| &gt; h\]</div>
+<div class="math notranslate nohighlight">
+\[x^2 + y^2 &gt; r^2\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="90" y="60" width="120" height="180" stroke="#e94560" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+  <circle cx="150" cy="150" r="78" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="210" y2="150" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="172" y="145" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="135" y="108" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="150" y1="150" x2="205" y2="107" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="165" y="128" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">r</text>
+</svg>
+</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The red dashed line is the rectangle boundary, and the blue solid line is the circle boundary. The aperture region is the intersection of the two.</p>
+</div>
+</section>
+<section id="rectellipse-rectangle-inscribed-ellipse">
+<h3>rectellipse (Rectangle Inscribed Ellipse)<a class="headerlink" href="#rectellipse-rectangle-inscribed-ellipse" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code> , where <span class="math notranslate nohighlight">\(w\)</span> is the rectangle half-width, <span class="math notranslate nohighlight">\(h\)</span> is the rectangle half-height, <span class="math notranslate nohighlight">\(a\)</span> is the ellipse semi-major axis (x direction), and <span class="math notranslate nohighlight">\(b\)</span> is the ellipse semi-minor axis (y direction).</p>
+<p>The aperture region is the <strong>intersection</strong> of the rectangle and the ellipse (particles must be inside both the rectangle and the ellipse to survive).</p>
+<p><strong>Loss condition</strong> (particle is lost if either condition is met):</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w \quad \text{or} \quad |y| &gt; h\]</div>
+<div class="math notranslate nohighlight">
+\[\left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 &gt; 1\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <rect x="90" y="60" width="120" height="180" stroke="#e94560" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+  <ellipse cx="150" cy="150" rx="90" ry="78" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="210" y2="150" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="172" y="145" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="135" y="108" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="150" y1="155" x2="240" y2="155" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="188" y="170" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">a</text>
+  <line x1="155" y1="150" x2="155" y2="72" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="160" y="90" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">b</text>
+</svg>
+</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The red dashed line is the rectangle boundary, and the blue solid line is the ellipse boundary. The aperture region is the intersection of the two.</p>
+</div>
+</section>
+<section id="racetrack-racetrack">
+<h3>racetrack (Racetrack)<a class="headerlink" href="#racetrack-racetrack" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code> , where <span class="math notranslate nohighlight">\(w\)</span> is the rectangle half-width, <span class="math notranslate nohighlight">\(h\)</span> is the rectangle half-height, <span class="math notranslate nohighlight">\(a\)</span> is the x-direction semi-axis of the elliptical ends, and <span class="math notranslate nohighlight">\(b\)</span> is the y-direction semi-axis of the elliptical ends.</p>
+<p>The racetrack aperture consists of a central rectangle and two semi-elliptical ends. The centers of the elliptical ends are located at <span class="math notranslate nohighlight">\((\pm w, 0)\)</span> .</p>
+<p><strong>Survival condition</strong> (particle survives if either condition is met):</p>
+<p>Inside the rectangular region:</p>
+<div class="math notranslate nohighlight">
+\[|x| \le w \quad \text{and} \quad |y| \le h\]</div>
+<p>Inside the elliptical end region (when <span class="math notranslate nohighlight">\(|x| &gt; w\)</span> ):</p>
+<div class="math notranslate nohighlight">
+\[\left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \le 1\]</div>
+<p><strong>Loss condition</strong> : Not inside the rectangle and not inside the elliptical end.</p>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <path d="M 102 60 L 198 60 A 60 72 0 0 1 198 240 L 102 240 A 60 72 0 0 1 102 60 Z" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <circle cx="198" cy="150" r="3" fill="#f5a623"/>
+  <circle cx="102" cy="150" r="3" fill="#f5a623"/>
+  <line x1="150" y1="150" x2="198" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="168" y="145" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="135" y="108" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="198" y1="150" x2="258" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="220" y="165" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">a</text>
+  <line x1="198" y1="150" x2="198" y2="78" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="203" y="118" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">b</text>
+</svg>
+</div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The orange dots mark the centers of the elliptical ends at <span class="math notranslate nohighlight">\((\pm w, 0)\)</span> .</p>
+</div>
+</section>
+<section id="octagon-octagonal">
+<h3>octagon (Octagonal)<a class="headerlink" href="#octagon-octagonal" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code> , where <span class="math notranslate nohighlight">\(w\)</span> is the half-width, <span class="math notranslate nohighlight">\(h\)</span> is the half-height, and <span class="math notranslate nohighlight">\(d\)</span> is the half-diagonal clearance (chamfer distance).</p>
+<p>The octagon is the shape obtained by cutting 45° corners off a rectangle. The larger <span class="math notranslate nohighlight">\(d\)</span> , the larger the chamfer; when <span class="math notranslate nohighlight">\(d = 0\)</span> , it degenerates into a rectangle.</p>
+<p><strong>Loss condition</strong> (particle is lost if either condition is met):</p>
+<div class="math notranslate nohighlight">
+\[|x| &gt; w \quad \text{or} \quad |y| &gt; h\]</div>
+<div class="math notranslate nohighlight">
+\[|x| + |y| &gt; w + h - d\]</div>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <polygon points="60,60 240,60 270,90 270,210 240,240 60,240 30,210 30,90" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="200" y="145" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">w</text>
+  <line x1="150" y1="150" x2="150" y2="60" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="156" y="108" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">h</text>
+  <line x1="240" y1="60" x2="240" y2="90" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
+  <text x="244" y="80" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">d</text>
+</svg>
+</div></section>
+<section id="polygon-polygon">
+<h3>polygon (Polygon)<a class="headerlink" href="#polygon-polygon" title="Link to this heading"></a></h3>
+<p><strong>Parameters</strong> : <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[[x1,</span> <span class="pre">y1],</span> <span class="pre">[x2,</span> <span class="pre">y2],</span> <span class="pre">...]</span></code> , a list of vertices, automatically closed (the last vertex connects back to the first vertex).</p>
+<p><strong>Loss condition</strong> : The point is outside the polygon.</p>
+<p>The <strong>ray casting</strong> method is used to determine whether a point is inside the polygon: a ray is cast from the test point in the horizontal direction, and the number of intersections with the polygon edges is counted:</p>
+<ul class="simple">
+<li><p>Odd number of intersections → the point is inside the polygon (survives)</p></li>
+<li><p>Even number of intersections → the point is outside the polygon (lost)</p></li>
+</ul>
+<div style="text-align: center">
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#1a1a2e"/>
+  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
+  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
+  <polygon points="270,150 210,46 90,46 30,150 90,254 210,254" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
+  <circle cx="270" cy="150" r="4" fill="#f5a623"/>
+  <circle cx="210" cy="46" r="4" fill="#f5a623"/>
+  <circle cx="90" cy="46" r="4" fill="#f5a623"/>
+  <circle cx="30" cy="150" r="4" fill="#f5a623"/>
+  <circle cx="90" cy="254" r="4" fill="#f5a623"/>
+  <circle cx="210" cy="254" r="4" fill="#f5a623"/>
+  <text x="248" y="170" fill="#f5a623" font-size="10" font-family="monospace">P1</text>
+  <text x="215" y="40" fill="#f5a623" font-size="10" font-family="monospace">P2</text>
+  <text x="72" y="40" fill="#f5a623" font-size="10" font-family="monospace">P3</text>
+  <text x="10" y="170" fill="#f5a623" font-size="10" font-family="monospace">P4</text>
+  <text x="72" y="270" fill="#f5a623" font-size="10" font-family="monospace">P5</text>
+  <text x="215" y="270" fill="#f5a623" font-size="10" font-family="monospace">P6</text>
+</svg>
+</div></section>
+</section>
+<section id="parameter-summary-table">
+<h2>Parameter Summary Table<a class="headerlink" href="#parameter-summary-table" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>aperture_value</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+<td><p>ignored</p></td>
+<td><p>No aperture checking</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>ignored</p></td>
+<td><p>Default ±1m rectangular aperture</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[r]</span></code></p></td>
+<td><p>Circular, <span class="math notranslate nohighlight">\(r\)</span> is the radius</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectangle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h]</span></code></p></td>
+<td><p>Rectangular, <span class="math notranslate nohighlight">\(w\)</span> is the half-width, <span class="math notranslate nohighlight">\(h\)</span> is the half-height</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ellipse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>Elliptical, <span class="math notranslate nohighlight">\(a\)</span> is the semi-major axis, <span class="math notranslate nohighlight">\(b\)</span> is the semi-minor axis</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectcircle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code></p></td>
+<td><p>Intersection of rectangle and circle</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rectellipse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>Intersection of rectangle and ellipse</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">racetrack</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
+<td><p>Racetrack (rectangle + elliptical ends)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">octagon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code></p></td>
+<td><p>Octagonal (rectangle with 45° chamfers)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">polygon</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[[x1,y1],</span> <span class="pre">...]</span></code></p></td>
+<td><p>Polygon vertex list, automatically closed</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="usage-example">
+<h2>Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
+<p>The following JSON snippets show the configuration of each aperture type. Aperture parameters are element properties,
+placed alongside fields such as <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> , <code class="docutils literal notranslate"><span class="pre">Command</span></code> , <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> , etc.:</p>
+<p><strong>Circular aperture</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.1</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Rectangular aperture</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rectangle&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Elliptical aperture</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">11.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ellipse&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Racetrack aperture</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">11.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;racetrack&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.03</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Octagonal aperture</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift5&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;octagon&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.03</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Polygon aperture</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift6&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;polygon&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.043</span><span class="p">]]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Disable aperture checking</strong> :</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Drift7&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">13.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Drift&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reorganize.html" class="btn btn-neutral float-left" title="Bunch Reorganization (ReorganizeBunch)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="twiss.html" class="btn btn-neutral float-right" title="Twiss Transport (Twiss)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

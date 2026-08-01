@@ -124,13 +124,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#id1">坐标约定</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id2">整体追踪流程</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">主体模型对比</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#yrotation">入口边缘：YRotation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#wedge">入口边缘：Wedge（边缘角）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id16">边缘角正负号定义</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id17">参数列表</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id20">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id24">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id20">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id21">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id24">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id28">参考文献</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a><ul>
@@ -139,10 +140,11 @@
 <li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id3">整体追踪流程</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id4">物理推导</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id6">色品效应</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id17">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id18">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id9">追踪模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id14">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id15">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id23">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#id24">参考文献</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a><ul>
@@ -330,9 +332,287 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../en/theory.html">Theory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../en/tracking.html">Tracking</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../en/simulation.html">Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#minimal-example">Minimal Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#mixed-mode">Mixed Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/injection.html">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#bunch-parameters">Bunch parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#transverse-parameters">Transverse parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#beam-parameters">Beam parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#distribution-parameters">Distribution parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#dispersion-coupling">Dispersion coupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#momentum-deviation">Momentum deviation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#input-file">Input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#simulation-results">Simulation results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/element/index.html">Element</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/marker.html">Marker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/marker.html#physical-description">Physical Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/marker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/marker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/marker.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/drift.html">Drift</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#body-model-comparison">Body Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/quadrupole.html">Quadrupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/quadrupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/sextupole.html">Sextupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/sextupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/octupole.html">Octupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/octupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/multipole.html">Multipole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/multipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/solenoid.html">Solenoid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/solenoid.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/kicker.html">Kicker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/kicker.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#septum-logic">Septum Logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#tilt-rotation">Tilt Rotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/elseparator.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/exciter.html">Exciter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#frequency-input-modes">Frequency Input Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#kick-application">Kick Application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/exciter.html#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/element/rfcavity.html">RFCavity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/statmonitor.html">StatMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#physics-description">Physics Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/reorganize.html#index-allocation-method">Index Allocation Method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/aperture.html">Aperture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/aperture.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#off-disabled">off (Disabled)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#circle-circular">circle (Circular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/aperture.html#polygon-polygon">polygon (Polygon)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/aperture.html#usage-example">Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/twiss.html">Twiss Transport (Twiss)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/twiss.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/twiss.html#physics-derivation">Physics Derivation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#dispersion-handling">Dispersion Handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#t0-update">t0 Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/twiss.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#position-parameters">Position Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#transverse-parameters">Transverse Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#aperture-parameters">Aperture Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/twiss.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/twiss.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -374,7 +654,7 @@
 <li><p>注册名： <code class="docutils literal notranslate"><span class="pre">sbend</span></code></p></li>
 <li><p>核心特征：</p>
 <ul>
-<li><p>支持 drift-kick-drift-exact (DKD-exact) 模型</p></li>
+<li><p>支持 rot-kick-rot (RKR) 和 drift-kick-drift-exact (DKD-exact) 两种主体模型，默认 rot-kick-rot</p></li>
 <li><p>支持 uniform (2阶) 和 yoshida4 (4阶) 两种辛积分器</p></li>
 <li><p>支持非线性边缘角 (wedge) 效应</p></li>
 <li><p>支持非线性边缘场 (fringe field) 效应</p></li>
@@ -628,15 +908,98 @@ Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
 </table>
 </section>
 </section>
+<section id="id5">
+<h2>主体模型对比<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>PASS 二极铁主体支持两种物理模型，由 <code class="docutils literal notranslate"><span class="pre">model</span></code> 参数选择。</p>
+<section id="id6">
+<h3>模型说明<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>rot-kick-rot (RKR)</strong> ：偶极场为常数场（不依赖 <span class="math notranslate nohighlight">\(x\)</span> ），薄透镜踢角本身是精确的。drift 步使用极坐标漂移（polar drift），处理曲率效应。1个切片即可达到高精度。默认模型。</p></li>
+<li><p><strong>drift-kick-drift-exact (DKD-exact)</strong> ：drift 步使用直线精确漂移，曲率作为薄透镜 kick 处理。对于偏角较大的弯铁，切片数不足时色品会有误差。</p></li>
+</ul>
+</section>
+<section id="id7">
+<h3>特性对比<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>特性</p></th>
+<th class="head"><p>rot-kick-rot</p></th>
+<th class="head"><p>drift-kick-drift-exact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>drift类型</p></td>
+<td><p>极坐标漂移（含曲率）</p></td>
+<td><p>直线精确漂移</p></td>
+</tr>
+<tr class="row-odd"><td><p>k0处理</p></td>
+<td><p>在drift步内部（interleaved k0_kick）</p></td>
+<td><p>在kick步（薄透镜）</p></td>
+</tr>
+<tr class="row-even"><td><p>曲率Jacobian</p></td>
+<td><p>包含（(1+h·x)修正）</p></td>
+<td><p>不包含（需多切片弥补）</p></td>
+</tr>
+<tr class="row-odd"><td><p>1切片精度</p></td>
+<td><p>高（常数场kick精确）</p></td>
+<td><p>有限（曲率近似）</p></td>
+</tr>
+<tr class="row-even"><td><p>色品精度</p></td>
+<td><p>1切片即精确</p></td>
+<td><p>需足够切片数</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id8">
+<h3>切片数推荐<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>模型</p></th>
+<th class="head"><p>推荐切片数</p></th>
+<th class="head"><p>推荐积分器</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>rot-kick-rot</p></td>
+<td><p>1</p></td>
+<td><p>yoshida4</p></td>
+<td><p>偶极常数场使1切片kick精确，极坐标漂移处理曲率，1切片即达高精度</p></td>
+</tr>
+<tr class="row-odd"><td><p>drift-kick-drift-exact</p></td>
+<td><p>5~10</p></td>
+<td><p>yoshida4</p></td>
+<td><p>偏角较大时需多切片弥补曲率Jacobian缺失导致的色品误差</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>DKD-exact模型中，曲率h作为薄透镜kick处理，drift步不含(1+h·x) Jacobian修正。当弯铁偏角较大时，不同动量粒子在drift中走过的路径差异未被正确计入，导致色品出现偏差。增加切片数可缓解此问题（误差按 <span class="math notranslate nohighlight">\(O(1/N^2)\)</span> 收敛），但RKR模型从根本上避免了此问题——极坐标漂移在drift步内部处理曲率，无需多切片。</p>
+</div>
+</section>
+</section>
 <section id="yrotation">
 <h2>入口边缘：YRotation<a class="headerlink" href="#yrotation" title="Link to this heading"></a></h2>
-<section id="id5">
-<h3>物理目的<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="id9">
+<h3>物理目的<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <p>YRotation 是纯几何坐标旋转，不涉及任何磁场。其目的是将粒子坐标从参考轨迹坐标系变换到磁铁端面坐标系，使后续的边缘场计算能在正确的参考系中进行。</p>
 <p>当磁铁端面与参考轨迹法线有夹角 <span class="math notranslate nohighlight">\(e_1\)</span> 时，粒子相对于端面的入射斜率不等于 <span class="math notranslate nohighlight">\(p_x / p_z\)</span> 。YRotation 将坐标系旋转 <span class="math notranslate nohighlight">\(-e_1\)</span> ，使得旋转后的 <span class="math notranslate nohighlight">\(p_x / p_z\)</span> 成为相对于端面的斜率。</p>
 </section>
-<section id="id6">
-<h3>完整推导<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id10">
+<h3>完整推导<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>YRotation(-e1)                    Wedge(-e1, K0)
 ─────────────────                 ──────────────────
 坐标系: 轨迹系 → 端面系            坐标系: 端面系 → 轨迹系
@@ -689,8 +1052,8 @@ Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
 \[\Delta\zeta = \beta_0 \cdot \tan\theta \cdot \frac{x \cdot \text{time\_fac}}{p_z \cdot p_{tt}}\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(\text{time\_fac} = 1/\beta_0 + p_\tau\)</span> 是时间-路径转换因子（见变量转换说明）。</p>
 </section>
-<section id="id7">
-<h3>最终公式<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<section id="id11">
+<h3>最终公式<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <p>定义：</p>
 <div class="math notranslate nohighlight">
 \[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
@@ -712,8 +1075,8 @@ Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
 <div class="math notranslate nohighlight">
 \[p_y, \delta \text{ 不变}\]</div>
 </section>
-<section id="id8">
-<h3>变量转换说明<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<section id="id12">
+<h3>变量转换说明<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <p>Xsuite 中存储 <span class="math notranslate nohighlight">\(p_\tau\)</span> （归一化纵向动量偏差），而 PASS 存储 <span class="math notranslate nohighlight">\(\delta\)</span> （归一化总动量偏差）。两者的精确关系为：</p>
 <div class="math notranslate nohighlight">
 \[(1+\delta)^2 = \left(\frac{1}{\beta_0} + p_\tau\right)^2 - \frac{1}{\beta_0^2 \gamma_0^2}\]</div>
@@ -731,12 +1094,12 @@ Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
 </section>
 <section id="fringe-field">
 <h2>入口边缘：边缘场（Fringe Field）<a class="headerlink" href="#fringe-field" title="Link to this heading"></a></h2>
-<section id="id9">
-<h3>物理目的<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<section id="id13">
+<h3>物理目的<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
 <p>真实磁铁的磁场在端面处不是阶跃函数，而是有一个渐变区域。这个渐变区域产生额外的非线性效应，主要是垂直方向的聚焦。</p>
 </section>
-<section id="id10">
-<h3>物理推导<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<section id="id14">
+<h3>物理推导<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>B_y                                          B_y = B0
 ↑                              ┌──────────────
 │                             /
@@ -807,8 +1170,8 @@ hgap = 半气隙
 \[y_f = \frac{2y}{1 + \sqrt{1 - 2 k_y y}}\]</div>
 <p>这个形式保证了正则性（保辛）：当 <span class="math notranslate nohighlight">\(k_y y\)</span> 很小时， <span class="math notranslate nohighlight">\(y_f \approx y + k_y y^2/2\)</span> ，即二阶展开。</p>
 </section>
-<section id="id11">
-<h3>参数<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<section id="id15">
+<h3>参数<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 15.0%" />
@@ -837,8 +1200,8 @@ hgap = 半气隙
 </tbody>
 </table>
 </section>
-<section id="id12">
-<h3>完整公式<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<section id="id16">
+<h3>完整公式<a class="headerlink" href="#id16" title="Link to this heading"></a></h3>
 <p>定义辅助量：</p>
 <div class="math notranslate nohighlight">
 \[f_h = \text{hgap} \cdot F\]</div>
@@ -905,8 +1268,8 @@ hgap = 半气隙
 </section>
 <section id="wedge">
 <h2>入口边缘：Wedge（边缘角）<a class="headerlink" href="#wedge" title="Link to this heading"></a></h2>
-<section id="id13">
-<h3>物理目的<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<section id="id17">
+<h3>物理目的<a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
 <p>Wedge 描述粒子在均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> 中穿过倾斜端面时的坐标变换。它同时完成两件事：</p>
 <ol class="arabic simple">
 <li><p><strong>几何旋转</strong> ：将坐标系从端面参考系转回参考轨迹参考系（与 YRotation 的旋转方向相反，互相抵消）</p></li>
@@ -914,8 +1277,8 @@ hgap = 半气隙
 </ol>
 <p>当 <span class="math notranslate nohighlight">\(K_0 = 0\)</span> （无磁场）时，Wedge 退化为纯 YRotation（证明见下文）。</p>
 </section>
-<section id="id14">
-<h3>计算公式<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<section id="id18">
+<h3>计算公式<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
 <p>参数： <span class="math notranslate nohighlight">\(\theta\)</span> （楔形角度，入口 <span class="math notranslate nohighlight">\(\theta = -e_1\)</span> ）， <span class="math notranslate nohighlight">\(K_0\)</span> ， <span class="math notranslate nohighlight">\(\chi\)</span></p>
 <p>定义：</p>
 <div class="math notranslate nohighlight">
@@ -952,8 +1315,8 @@ hgap = 半气隙
 <div class="math notranslate nohighlight">
 \[p_y, \delta \text{ 不变}\]</div>
 </section>
-<section id="id15">
-<h3>踢角项的物理含义<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<section id="id19">
+<h3>踢角项的物理含义<a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
 <p>将 <span class="math notranslate nohighlight">\(p_x'\)</span> 的公式展开：</p>
 <div class="math notranslate nohighlight">
 \[p_x' = \underbrace{p_x \cos\theta + p_z \sin\theta}_{\text{几何旋转}} \;\underbrace{-\; b_1 x \sin\theta}_{\text{磁场踢角}}\]</div>
@@ -1041,8 +1404,8 @@ hgap = 半气隙
 </div>
 </section>
 </section>
-<section id="id16">
-<h2>边缘角正负号定义<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<section id="id20">
+<h2>边缘角正负号定义<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>e1 &gt; 0 (聚焦):
 
                   端面法线
@@ -1109,10 +1472,10 @@ e1 &lt; 0 (散焦):
 </tbody>
 </table>
 </section>
-<section id="id17">
-<h2>参数列表<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
-<section id="id18">
-<h3>通用参数<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<section id="id21">
+<h2>参数列表<a class="headerlink" href="#id21" title="Link to this heading"></a></h2>
+<section id="id22">
+<h3>通用参数<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -1212,7 +1575,7 @@ e1 &lt; 0 (散焦):
 <li></li>
 </ul>
 </td>
-<td><p>物理模型，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认，自动选 <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code></p></td>
+<td><p>物理模型，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认，自动选 <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code> 、 <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
@@ -1244,8 +1607,8 @@ e1 &lt; 0 (散焦):
 </tbody>
 </table>
 </section>
-<section id="id19">
-<h3>扩展参数（预留）<a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
+<section id="id23">
+<h3>扩展参数（预留）<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -1294,10 +1657,10 @@ e1 &lt; 0 (散焦):
 </table>
 </section>
 </section>
-<section id="id20">
-<h2>使用示例<a class="headerlink" href="#id20" title="Link to this heading"></a></h2>
-<section id="id21">
-<h3>扇形弯铁<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<section id="id24">
+<h2>使用示例<a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<section id="id25">
+<h3>扇形弯铁<a class="headerlink" href="#id25" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;BEND1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
@@ -1313,8 +1676,8 @@ e1 &lt; 0 (散焦):
 </div>
 <p>扇形弯铁，端面垂直于参考轨道，无边缘效应。</p>
 </section>
-<section id="id22">
-<h3>矩形弯铁<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
+<section id="id26">
+<h3>矩形弯铁<a class="headerlink" href="#id26" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;BEND2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
@@ -1334,8 +1697,8 @@ e1 &lt; 0 (散焦):
 </div>
 <p>矩形弯铁，含边缘角和边缘场效应。弯转角 <span class="math notranslate nohighlight">\(\alpha = K_{0L} = 0.1\)</span> rad，边缘角 <span class="math notranslate nohighlight">\(e_1 = e_2 = \alpha/2 = 0.05\)</span> rad。</p>
 </section>
-<section id="id23">
-<h3>薄透镜弯转<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
+<section id="id27">
+<h3>薄透镜弯转<a class="headerlink" href="#id27" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;BEND3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
@@ -1350,8 +1713,8 @@ e1 &lt; 0 (散焦):
 <p>零长度二极铁，仅施加 <span class="math notranslate nohighlight">\(K_{0L}\)</span> 薄透镜踢角，无 body 追踪，无边缘效应。</p>
 </section>
 </section>
-<section id="id24">
-<h2>参考文献<a class="headerlink" href="#id24" title="Link to this heading"></a></h2>
+<section id="id28">
+<h2>参考文献<a class="headerlink" href="#id28" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Xsuite Physics Guide, Sec 1.10.3 (精确弯铁), Sec 1.10.9 (边缘场), Sec 1.10.10 (楔形), Sec 1.10.12 (四极楔形修正)</p></li>
 <li><p>Forest, E. et al., “Edge Focusing Effects in Sector Bending Magnets”</p></li>

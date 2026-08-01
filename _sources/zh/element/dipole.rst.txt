@@ -12,7 +12,7 @@ PASS 中的二极铁为 **厚元件** （ ``length > 0`` ），支持完整的�
 - 注册名： ``sbend``
 - 核心特征：
 
-  - 支持 drift-kick-drift-exact (DKD-exact) 模型
+  - 支持 rot-kick-rot (RKR) 和 drift-kick-drift-exact (DKD-exact) 两种主体模型，默认 rot-kick-rot
   - 支持 uniform (2阶) 和 yoshida4 (4阶) 两种辛积分器
   - 支持非线性边缘角 (wedge) 效应
   - 支持非线性边缘场 (fringe field) 效应
@@ -306,6 +306,68 @@ yoshida4 积分器（4阶辛）
   * - 含空间电荷
     - uniform + 更多切片
     - PIC 求解开销远大于漂移，4阶 Yoshida 需要 3 次 PIC 求解
+
+
+主体模型对比
+------------
+
+PASS 二极铁主体支持两种物理模型，由 ``model`` 参数选择。
+
+模型说明
+~~~~~~~~
+
+- **rot-kick-rot (RKR)** ：偶极场为常数场（不依赖 :math:`x` ），薄透镜踢角本身是精确的。drift 步使用极坐标漂移（polar drift），处理曲率效应。1个切片即可达到高精度。默认模型。
+- **drift-kick-drift-exact (DKD-exact)** ：drift 步使用直线精确漂移，曲率作为薄透镜 kick 处理。对于偏角较大的弯铁，切片数不足时色品会有误差。
+
+特性对比
+~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 25 35 40
+
+  * - 特性
+    - rot-kick-rot
+    - drift-kick-drift-exact
+  * - drift类型
+    - 极坐标漂移（含曲率）
+    - 直线精确漂移
+  * - k0处理
+    - 在drift步内部（interleaved k0_kick）
+    - 在kick步（薄透镜）
+  * - 曲率Jacobian
+    - 包含（(1+h·x)修正）
+    - 不包含（需多切片弥补）
+  * - 1切片精度
+    - 高（常数场kick精确）
+    - 有限（曲率近似）
+  * - 色品精度
+    - 1切片即精确
+    - 需足够切片数
+
+切片数推荐
+~~~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 25 15 20 40
+
+  * - 模型
+    - 推荐切片数
+    - 推荐积分器
+    - 说明
+  * - rot-kick-rot
+    - 1
+    - yoshida4
+    - 偶极常数场使1切片kick精确，极坐标漂移处理曲率，1切片即达高精度
+  * - drift-kick-drift-exact
+    - 5~10
+    - yoshida4
+    - 偏角较大时需多切片弥补曲率Jacobian缺失导致的色品误差
+
+.. note::
+
+  DKD-exact模型中，曲率h作为薄透镜kick处理，drift步不含(1+h·x) Jacobian修正。当弯铁偏角较大时，不同动量粒子在drift中走过的路径差异未被正确计入，导致色品出现偏差。增加切片数可缓解此问题（误差按 :math:`O(1/N^2)` 收敛），但RKR模型从根本上避免了此问题——极坐标漂移在drift步内部处理曲率，无需多切片。
 
 
 入口边缘：YRotation
@@ -1091,7 +1153,7 @@ YRotation 的 :math:`p_x'` 公式为 :math:`p_x' = \cos\alpha \cdot p_x - \sin\a
     - ``model``
     - str
     - -
-    - 物理模型，可选： ``adaptive`` （默认，自动选 ``drift-kick-drift-exact`` ）、 ``drift-kick-drift-exact``
+    - 物理模型，可选： ``adaptive`` （默认，自动选 ``rot-kick-rot`` ）、 ``rot-kick-rot`` 、 ``drift-kick-drift-exact``
   * - ``integrator``
     - ``integrator``
     - str

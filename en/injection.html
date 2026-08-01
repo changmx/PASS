@@ -1,0 +1,1880 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Injection / Particle Generation &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Element" href="element/index.html" />
+    <link rel="prev" title="Input File Generation (Command-Line Mode)" href="input_generation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../zh/index.html">PASS 文档（中文）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../zh/input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id20">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id21">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id24">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id28">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id9">追踪模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id14">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id15">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id23">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/quadrupole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/kicker.html">冲击磁铁（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/kicker.html#id15">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS Documentation (English)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#minimal-example">Minimal Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mixed-mode">Mixed Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bunch-parameters">Bunch parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#transverse-parameters">Transverse parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#longitudinal-parameters">Longitudinal parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#beam-parameters">Beam parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#distribution-parameters">Distribution parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transverse-particle-distribution">Transverse particle distribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bunch-filling-scheme">Bunch filling scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dispersion-coupling">Dispersion coupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#momentum-deviation">Momentum deviation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#input-file">Input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#simulation-results">Simulation results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">Element</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">Marker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#physical-description">Physical Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/drift.html">Drift</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#body-model-comparison">Body Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html">Quadrupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html">Sextupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/octupole.html">Octupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/multipole.html">Multipole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html">Solenoid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/kicker.html">Kicker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#septum-logic">Septum Logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#tilt-rotation">Tilt Rotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">Exciter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#frequency-input-modes">Frequency Input Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick-application">Kick Application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">RFCavity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#verification-tests">Verification Tests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">StatMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#working-principle">Working Principle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#physics-description">Physics Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="reorganize.html#index-allocation-method">Index Allocation Method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="aperture.html">Aperture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#off-disabled">off (Disabled)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#circle-circular">circle (Circular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#polygon-polygon">polygon (Polygon)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#usage-example">Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#physics-derivation">Physics Derivation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#dispersion-handling">Dispersion Handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0-update">t0 Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#position-parameters">Position Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#transverse-parameters">Transverse Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#aperture-parameters">Aperture Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS Documentation (English)</a></li>
+      <li class="breadcrumb-item active">Injection / Particle Generation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/en/injection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="injection-particle-generation">
+<h1>Injection / Particle Generation<a class="headerlink" href="#injection-particle-generation" title="Link to this heading"></a></h1>
+<p>This module introduces the <strong>Injection</strong> command in PASS, which is used to generate specific particle distributions at the simulation starting position and inject the beam. The injection command supports independently setting transverse distribution, longitudinal distribution, beam parameters, offsets, etc. for each bunch, and is the entry point for particle simulation.</p>
+<p>This example demonstrates how to construct specific particle distributions. The input files and running code used in this document can be found in <a class="reference external" href="https://github.com/changmx/PASS/tree/master/example/01_generate_distribution">GitHub example code</a> .</p>
+<p><strong>Code location</strong></p>
+<ul class="simple">
+<li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/injection.py</span></code></p></li>
+<li><p>Class name: <code class="docutils literal notranslate"><span class="pre">Injection</span></code> (inherited from <code class="docutils literal notranslate"><span class="pre">Command</span></code> )</p></li>
+<li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">injection</span></code></p></li>
+<li><p>Auxiliary class: <code class="docutils literal notranslate"><span class="pre">InjectionBunchInfo</span></code> (same file, responsible for parameter parsing and distribution generation of a single bunch)</p></li>
+</ul>
+<section id="interface-parameters">
+<h2>Interface parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
+<p>The parameters of the <code class="docutils literal notranslate"><span class="pre">Injection</span></code> command are shown in the table below. Here <code class="docutils literal notranslate"><span class="pre">s</span></code> must be 0 (the injection point is fixed at the starting position of the sequence), <code class="docutils literal notranslate"><span class="pre">name</span></code> is automatically filled by the sequence key name, and <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> , <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> , … are the parameter dictionaries of each bunch.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Injection position (must be 0)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Element name, automatically filled by the sequence key name</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bunch0</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bunch0</span></code></p></td>
+<td><p>dict</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Parameter dictionary of the 0th bunch</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bunch1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bunch1</span></code></p></td>
+<td><p>dict</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Parameter dictionary of the 1st bunch</p></td>
+</tr>
+<tr class="row-even"><td><p>…</p></td>
+<td><p>…</p></td>
+<td><p>dict</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Parameter dictionaries of more bunches</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bunch-parameters">
+<h2>Bunch parameters<a class="headerlink" href="#bunch-parameters" title="Link to this heading"></a></h2>
+<p>Each bunch uses <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> , <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> , … as keys, and the value is a dictionary containing all parameters of that bunch. The parameters are described below in five groups: transverse, longitudinal, beam, distribution, and offset.</p>
+<section id="transverse-parameters">
+<h3>Transverse parameters<a class="headerlink" href="#transverse-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">x</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Horizontal Twiss parameter <span class="math notranslate nohighlight">\(\alpha_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">y</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Vertical Twiss parameter <span class="math notranslate nohighlight">\(\alpha_y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">betax</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">x</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Horizontal Twiss parameter <span class="math notranslate nohighlight">\(\beta_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">betay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Vertical Twiss parameter <span class="math notranslate nohighlight">\(\beta_y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">emitx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Emittance</span> <span class="pre">x</span> <span class="pre">(m'rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m·rad</p></td>
+<td><p>Horizontal emittance <span class="math notranslate nohighlight">\(\varepsilon_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">emity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Emittance</span> <span class="pre">y</span> <span class="pre">(m'rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m·rad</p></td>
+<td><p>Vertical emittance <span class="math notranslate nohighlight">\(\varepsilon_y\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dx</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Horizontal dispersion function <span class="math notranslate nohighlight">\(D_x\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dpx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dpx</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Horizontal dispersion derivative <span class="math notranslate nohighlight">\(D_{px}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dist_trans</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">dist</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Transverse distribution type, options: <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> , <code class="docutils literal notranslate"><span class="pre">kv</span></code> , <code class="docutils literal notranslate"><span class="pre">waterbag</span></code> , <code class="docutils literal notranslate"><span class="pre">parabolic</span></code> , <code class="docutils literal notranslate"><span class="pre">uniform</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="longitudinal-parameters">
+<h3>Longitudinal parameters<a class="headerlink" href="#longitudinal-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 45.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaz</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">z</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Longitudinal bunch length RMS value <span class="math notranslate nohighlight">\(\sigma_z\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">dp/p</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Momentum spread RMS value <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dist_longi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">dist</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Longitudinal distribution type, options: <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> , <code class="docutils literal notranslate"><span class="pre">coasting</span></code> , <code class="docutils literal notranslate"><span class="pre">matchz</span></code> , <code class="docutils literal notranslate"><span class="pre">matchdp</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>V</p></td>
+<td><p>RF voltage (required for <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> distributions)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>rad</p></td>
+<td><p>RF phase <span class="math notranslate nohighlight">\(\phi_s\)</span> (required for <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> distributions)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_num</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>RF harmonic number (required for <code class="docutils literal notranslate"><span class="pre">matchz</span></code> and <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> distributions)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>RF harmonic ID of this bunch (starting from 0), used in multi-bunch injection to place each bunch into a different RF bucket</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_position</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Inj.</span> <span class="pre">Point</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Longitudinal position of the RF cavity relative to the injection point, used to back-propagate the distribution generated at s_rf to the injection point s=0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ddp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Momentum</span> <span class="pre">Offset</span> <span class="pre">dp</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Bunch-level average momentum deviation <span class="math notranslate nohighlight">\(\delta_0\)</span> , added to each particle’s dp. Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">dde</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dde</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">Offset</span> <span class="pre">(eV)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>eV</p></td>
+<td><p>Bunch-level kinetic energy offset, internally converted to <code class="docutils literal notranslate"><span class="pre">ddp</span></code> . Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">ddp</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="beam-parameters">
+<h3>Beam parameters<a class="headerlink" href="#beam-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 45.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Ek</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">per</span> <span class="pre">Nucleon</span> <span class="pre">(eV/u)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>eV/u</p></td>
+<td><p>Kinetic energy per nucleon</p></td>
+</tr>
+<tr class="row-odd"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Real</span> <span class="pre">Particles</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Number of real particles</p></td>
+</tr>
+<tr class="row-even"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span> <span class="pre">Particles</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Number of macro particles</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stop_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Injection</span> <span class="pre">Turns</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Total injection turns</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interval</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Injection</span> <span class="pre">Interval</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Injection interval (inject once every <code class="docutils literal notranslate"><span class="pre">interval</span></code> turns)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="distribution-parameters">
+<h3>Distribution parameters<a class="headerlink" href="#distribution-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 45.0%" />
+<col style="width: 10.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_load_dist</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>Whether to load particle distribution from file</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_filepath</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Path</span></code></p></td>
+<td><p>str</p></td>
+<td><p>Distribution file path ( <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> format)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_save_init_dist</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Save</span> <span class="pre">Initial</span> <span class="pre">Distribution</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>Whether to save the initial distribution</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">insert_particles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code></p></td>
+<td><p>list</p></td>
+<td><p>Insert specified particle coordinates, format is <code class="docutils literal notranslate"><span class="pre">[[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp],</span> <span class="pre">...]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="offset-parameters">
+<h3>Offset parameters<a class="headerlink" href="#offset-parameters" title="Link to this heading"></a></h3>
+<p>The horizontal offset ( <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">x</span></code> ) and vertical offset ( <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">y</span></code> ) have the same structure, each containing the following sub-parameters:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Offset</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>Whether to enable offset</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_offset_fromfile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">From</span> <span class="pre">File</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>Whether to load offset data from file</p></td>
+</tr>
+<tr class="row-even"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">Path</span></code></p></td>
+<td><p>str</p></td>
+<td><p>Offset data file path ( <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> format)</p></td>
+</tr>
+<tr class="row-odd"><td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">Time</span> <span class="pre">Kind</span></code></p></td>
+<td><p>str</p></td>
+<td><p>Time column type, options: <code class="docutils literal notranslate"><span class="pre">turn</span></code> , <code class="docutils literal notranslate"><span class="pre">time</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset_position</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">Position</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Position offset</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">offset_momentum</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">Momentum</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>Momentum offset</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="introduction-to-particle-distribution-types">
+<h2>Introduction to particle distribution types<a class="headerlink" href="#introduction-to-particle-distribution-types" title="Link to this heading"></a></h2>
+<p>In the PASS program, the initial particle distribution is implemented by the <strong>Injection</strong> command. In the <strong>Injection</strong> command, different distribution information can be set independently for each bunch.</p>
+</section>
+<section id="transverse-particle-distribution">
+<h2>Transverse particle distribution<a class="headerlink" href="#transverse-particle-distribution" title="Link to this heading"></a></h2>
+<p>Currently, the PASS program supports generating the following transverse particle distributions: <strong>horizontally-vertically decoupled 2D Gaussian distribution</strong> , <strong>4D KV distribution</strong> , <strong>4D waterbag distribution</strong> , <strong>4D parabolic distribution</strong> , <strong>2D uniform distribution in phase space</strong> .</p>
+<p>The 4D distribution refers to defining a generalized hyper-ellipsoid boundary in the 4D phase space <span class="math notranslate nohighlight">\((x, p_x, y, p_y)\)</span>. To simplify the derivation without loss of generality, we introduce <strong>normalized coordinates</strong> :</p>
+<div class="math notranslate nohighlight">
+\[X = \frac{x}{a}, \quad P_x = \frac{p_x}{b}, \quad Y = \frac{y}{c}, \quad P_y = \frac{p_y}{d}\]</div>
+<p>where <span class="math notranslate nohighlight">\(a, b, c, d\)</span> are the <strong>maximum physical envelope boundaries (hard boundaries)</strong> of the beam in the corresponding dimensions. Under this normalized coordinate system, the 4D hyper-ellipsoid boundary simplifies to a unit hypersphere:</p>
+<div class="math notranslate nohighlight">
+\[r^2 = X^2 + P_x^2 + Y^2 + P_y^2 \le 1\]</div>
+<p>The following describes each transverse particle distribution in detail. For 4D distributions, their projections onto the 1D plane have a unified power-law form. Let the distribution density in 4D phase space be <span class="math notranslate nohighlight">\(f(r^2) \propto (1-r^2)^{\alpha}\)</span> (<cite>alpha ge 0</cite>, defined within the 4D unit ball <span class="math notranslate nohighlight">\(B^4\)</span>), then the 1D marginal distribution for any single normalized coordinate <span class="math notranslate nohighlight">\(u\)</span> is:</p>
+<div class="math notranslate nohighlight">
+\[\rho(u) \propto (1-u^2)^{\frac{n-1}{2}+\alpha}, \quad |u| \le 1\]</div>
+<p>where <span class="math notranslate nohighlight">\(n=4\)</span> is the phase space dimension. For distributions uniformly distributed on the <span class="math notranslate nohighlight">\(n\)</span>-dimensional sphere <span class="math notranslate nohighlight">\(S^{n-1}\)</span> (such as KV), the 1D projection is:</p>
+<div class="math notranslate nohighlight">
+\[\rho(u) \propto (1-u^2)^{\frac{n-3}{2}}\]</div>
+<p>The 1D projections of each distribution are summarized below:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Distribution</p></th>
+<th class="head"><p>4D density</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(\alpha\)</span></p></th>
+<th class="head"><p>1D projection power</p></th>
+<th class="head"><p>1D projection form</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Uniform (2D square)</p></td>
+<td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>0</p></td>
+<td><p><span class="math notranslate nohighlight">\(\rho(u) = \mathrm{const}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>KV ( <span class="math notranslate nohighlight">\(S^3\)</span> sphere)</p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta(r-1)\)</span></p></td>
+<td><p>—</p></td>
+<td><p><span class="math notranslate nohighlight">\(\frac{1}{2}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\rho(u) \propto \sqrt{1-u^2}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>Waterbag ( <span class="math notranslate nohighlight">\(B^4\)</span> uniform)</p></td>
+<td><p><span class="math notranslate nohighlight">\(1\)</span></p></td>
+<td><p>0</p></td>
+<td><p><span class="math notranslate nohighlight">\(\frac{3}{2}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\rho(u) \propto (1-u^2)^{3/2}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>Parabolic ( <span class="math notranslate nohighlight">\(B^4\)</span> , <span class="math notranslate nohighlight">\(1-r^2\)</span> )</p></td>
+<td><p><span class="math notranslate nohighlight">\((1-r^2)^1\)</span></p></td>
+<td><p>1</p></td>
+<td><p><span class="math notranslate nohighlight">\(\frac{5}{2}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\rho(u) \propto (1-u^2)^{5/2}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>The following describes each transverse particle distribution in detail:</p>
+<blockquote>
+<div><ul>
+<li><p><strong>Independent 2D Gaussian distribution (Gaussian)</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(x-p_x\)</span> and <span class="math notranslate nohighlight">\(y-p_y\)</span> phase spaces, transverse coordinates following a Gaussian distribution are generated independently. The particle distribution in transverse phase space uses a <span class="math notranslate nohighlight">\(4\sigma\)</span> truncation, i.e., only particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
+<p>are retained.</p>
+<p>For the 2D phase space Gaussian distribution ( <span class="math notranslate nohighlight">\(x-p_x\)</span> and <span class="math notranslate nohighlight">\(y-p_y\)</span> ), the particle inclusion ratios corresponding to different RMS emittances are as follows:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><span class="math notranslate nohighlight">\(\epsilon/\epsilon_{\mathrm{rms}}\)</span></p></th>
+<th class="head"><p>Truncation range</p></th>
+<th class="head"><p>Retained ratio</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><span class="math notranslate nohighlight">\(1\sigma\)</span></p></td>
+<td><p>39.346934029%</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><span class="math notranslate nohighlight">\(\sqrt{2}\sigma\)</span></p></td>
+<td><p>63.212055883%</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\sigma\)</span></p></td>
+<td><p>86.466471676%</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p><span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span></p></td>
+<td><p>95.021293163%</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p><span class="math notranslate nohighlight">\(3\sigma\)</span></p></td>
+<td><p>98.889100346%</p></td>
+</tr>
+<tr class="row-odd"><td><p>16</p></td>
+<td><p><span class="math notranslate nohighlight">\(4\sigma\)</span></p></td>
+<td><p>99.966453737%</p></td>
+</tr>
+</tbody>
+</table>
+<p>Therefore, under the <span class="math notranslate nohighlight">\(4\sigma\)</span> truncation condition, the particle loss ratio is very low (approximately <span class="math notranslate nohighlight">\(3.3\times10^{-4}\)</span> ), and the Gaussian tail can be considered fully covered.</p>
+<p>The specific truncation ratio can be calculated using the following function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fraction_by_emittance</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">epsilon_rms</span><span class="p">):</span>
+    <span class="n">fraction</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">epsilon</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">epsilon_rms</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;eps/eps_rms = </span><span class="si">{</span><span class="n">epsilon</span><span class="o">/</span><span class="n">epsilon_rms</span><span class="si">}</span><span class="s2">, particle proportion = </span><span class="si">{</span><span class="n">fraction</span><span class="si">:</span><span class="s2">.9%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">epsi</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">36</span><span class="p">):</span>
+    <span class="n">fraction_by_emittance</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="n">epsi</span><span class="p">,</span> <span class="n">epsilon_rms</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>4D KV (Kapchinskij-Vladimirskij) distribution</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(x-p_x-y-p_y\)</span> four-dimensional phase space, a particle distribution <strong>uniformly distributed on the surface of a four-dimensional hyper-ellipsoid</strong> is generated, which is an idealized distribution existing only on the 4D spherical shell. Under this distribution, the space charge field produced by the particles is strictly linear within the bunch, enabling a rigorous analytical solution of the space charge problem.</p>
+<p>After integrating out two dimensions, the projection of the KV distribution onto any 2D plane (such as the <span class="math notranslate nohighlight">\(x-p_x\)</span> plane) is a uniformly filled ellipse. After further integrating out one dimension, the projection of the KV distribution onto the 1D plane is a semi-ellipse (or semi-circle) distribution. The detailed derivation is as follows: the KV distribution is uniformly distributed on the 4D hypersphere <span class="math notranslate nohighlight">\(S^3\)</span> ( <span class="math notranslate nohighlight">\(r^2 = 1\)</span> ). To obtain the 1D marginal distribution of <span class="math notranslate nohighlight">\(u_x\)</span>, the remaining three coordinates on <span class="math notranslate nohighlight">\(S^3\)</span> need to be integrated:</p>
+<div class="math notranslate nohighlight">
+\[\rho(u_x) \propto (1-u_x^2)^{\frac{n-3}{2}} = (1-u_x^2)^{\frac{1}{2}}\]</div>
+<p>i.e., the 1D projection power is <span class="math notranslate nohighlight">\(\frac{1}{2}\)</span> .</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>According to the integration: in the <span class="math notranslate nohighlight">\(x-p_x\)</span> and <span class="math notranslate nohighlight">\(y-p_y\)</span> phase planes, the full emittance of the KV distribution is 4 times the RMS emittance.</p>
+</div>
+<p>i.e., all particles in the KV distribution are within the <span class="math notranslate nohighlight">\(2\sigma\)</span> truncation range. However, the program still retains particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
+</li>
+<li><p><strong>4D Waterbag distribution</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(x-p_x-y-p_y\)</span> four-dimensional phase space, a particle distribution <strong>uniformly distributed inside the four-dimensional hyper-ellipsoid</strong> is generated.</p>
+<p>After integrating out two dimensions, the projection of the waterbag distribution onto any 2D plane (such as the <span class="math notranslate nohighlight">\(x-p_x\)</span> plane) follows a parabolic distribution. After further integrating out one dimension, the projection of the waterbag distribution onto the 1D plane is a <span class="math notranslate nohighlight">\(\frac{3}{2}\)</span> -power parabolic distribution. The detailed derivation is as follows: the waterbag distribution is uniformly distributed inside the 4D hyper-ball <span class="math notranslate nohighlight">\(B^4\)</span> ( <span class="math notranslate nohighlight">\(f(r^2) = 1\)</span> , i.e., <span class="math notranslate nohighlight">\(\alpha = 0\)</span> ). To obtain the 1D marginal distribution of <span class="math notranslate nohighlight">\(u_x\)</span>, the remaining three coordinates on <span class="math notranslate nohighlight">\(B^4\)</span> need to be integrated, and the remaining part is a 3D ball of radius <span class="math notranslate nohighlight">\(\sqrt{1-u_x^2}\)</span> :</p>
+<div class="math notranslate nohighlight">
+\[\rho(u_x) \propto V_3\!\left(\sqrt{1-u_x^2}\right) \propto (1-u_x^2)^{\frac{3}{2}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(V_3(R) \propto R^3\)</span> is the 3D ball volume. i.e., the 1D projection power is <span class="math notranslate nohighlight">\(\frac{3}{2}\)</span> .</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>According to the integration: in the <span class="math notranslate nohighlight">\(x-p_x\)</span> and <span class="math notranslate nohighlight">\(y-p_y\)</span> phase planes, the full emittance of the waterbag distribution is 6 times the RMS emittance.</p>
+</div>
+<p>i.e., all particles in the waterbag distribution are within the <span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span> truncation range. However, the program still retains particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
+</li>
+<li><p><strong>4D Parabolic distribution</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(x-p_x-y-p_y\)</span> four-dimensional phase space, a particle distribution with <strong>density decreasing parabolically from the center outward as r increases</strong> is generated. This distribution is more realistic than the waterbag distribution for beams in real accelerators that tend to be concentrated toward the center.</p>
+<p>After integrating out two dimensions, the projection of the parabolic distribution onto any 2D plane (such as the <span class="math notranslate nohighlight">\(x-p_x\)</span> plane) follows a quadratic parabolic distribution. After further integrating out one dimension, the projection of the parabolic distribution onto the 1D plane is a <span class="math notranslate nohighlight">\(\frac{5}{2}\)</span> -power parabolic distribution. The detailed derivation is as follows: the 4D density of the parabolic distribution is <span class="math notranslate nohighlight">\(f(r^2) \propto (1-r^2)^1\)</span> ( <span class="math notranslate nohighlight">\(\alpha = 1\)</span> ). To obtain the 1D marginal distribution of <span class="math notranslate nohighlight">\(u_x\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\rho(u_x) \propto (1-u_x^2)^{\frac{n-1}{2}+\alpha} = (1-u_x^2)^{\frac{3}{2}+1} = (1-u_x^2)^{\frac{5}{2}}\]</div>
+<p>i.e., the 1D projection power is <span class="math notranslate nohighlight">\(\frac{5}{2}\)</span> .</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>According to the integration: in the <span class="math notranslate nohighlight">\(x-p_x\)</span> and <span class="math notranslate nohighlight">\(y-p_y\)</span> phase planes, the full emittance of the parabolic distribution is 8 times the RMS emittance.</p>
+</div>
+<p>i.e., all particles in the parabolic distribution are within the <span class="math notranslate nohighlight">\(\sqrt{8}\sigma\)</span> truncation range. However, the program still retains particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|x| \le 4\sigma_x, \quad |y| \le 4\sigma_y\]</div>
+</li>
+<li><p><strong>Uniform distribution</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(x-p_x\)</span> and <span class="math notranslate nohighlight">\(y-p_y\)</span> phase spaces, 2D uniform square distributions are generated independently. For each transverse plane, uniform sampling is performed within the square region <span class="math notranslate nohighlight">\([-1, 1] \times [-1, 1]\)</span> in normalized coordinates <span class="math notranslate nohighlight">\((u, v)\)</span> , and then mapped to physical coordinates through Twiss parameters. The RMS emittance of this distribution is strictly equal to the input parameter <span class="math notranslate nohighlight">\(\varepsilon\)</span> , the full emittance is 3 times the RMS emittance, and all particles are within the <span class="math notranslate nohighlight">\(\sqrt{3}\sigma\)</span> truncation range. This distribution can simulate the initial beam produced by an electron gun, etc.</p>
+<p>After integrating out one dimension, the projection of the uniform distribution onto the 1D plane is a constant (uniform) distribution. Since <span class="math notranslate nohighlight">\(u_x\)</span> and <span class="math notranslate nohighlight">\(v_x\)</span> are independently and uniformly distributed on <span class="math notranslate nohighlight">\([-1, 1]\)</span> , after integrating over <span class="math notranslate nohighlight">\(v_x\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\rho(u_x) = \frac{1}{2} = \mathrm{const} \propto (1-u_x^2)^{0}\]</div>
+<p>i.e., the 1D projection power is <span class="math notranslate nohighlight">\(0\)</span> .</p>
+</li>
+</ul>
+</div></blockquote>
+</section>
+<section id="longitudinal-particle-distribution">
+<h2>Longitudinal particle distribution<a class="headerlink" href="#longitudinal-particle-distribution" title="Link to this heading"></a></h2>
+<p>Currently, the PASS program supports generating the following longitudinal particle distributions: <strong>2D Gaussian distribution</strong> , <strong>coasting beam distribution</strong> , <strong>distribution matched to RF parameters - longitudinal bunch length RMS value</strong> , <strong>distribution matched to RF parameters - momentum spread RMS value</strong> :</p>
+<blockquote>
+<div><ul>
+<li><p><strong>2D Gaussian distribution (Gaussian)</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(z-p_z\)</span> phase space, longitudinal coordinates following a Gaussian distribution are generated. The particle distribution in longitudinal phase space uses a <span class="math notranslate nohighlight">\(4\sigma\)</span> truncation, i.e., only particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|z| \le 4\sigma_z\]</div>
+<p>are retained.</p>
+</li>
+<li><p><strong>Coasting beam distribution (Coasting)</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(z-p_z\)</span> phase space, longitudinal coordinates are generated where <span class="math notranslate nohighlight">\(z\)</span> follows a uniform distribution and <span class="math notranslate nohighlight">\(p_z\)</span> follows a Gaussian distribution. The particles are not truncated in the longitudinal phase space; the longitudinal position coordinate has a maximum of half the circumference and a minimum of negative half the circumference.</p>
+</li>
+<li><p><strong>Distribution matched to RF parameters - longitudinal bunch length RMS value (MatchZ)</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(z-p_z\)</span> phase space, longitudinal coordinates satisfying both the RF parameters and the longitudinal bunch length constraint ( <span class="math notranslate nohighlight">\(\sigma_z\)</span> ) are generated. The particle distribution in longitudinal phase space uses a <span class="math notranslate nohighlight">\(2\sigma\)</span> truncation, i.e., only particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|z| \le 2\sigma_z\]</div>
+<p>are retained.</p>
+</li>
+<li><p><strong>Distribution matched to RF parameters - momentum spread RMS value (MatchDp)</strong></p>
+<p>In the <span class="math notranslate nohighlight">\(z-p_z\)</span> phase space, longitudinal coordinates satisfying both the RF parameters and the momentum spread constraint ( <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span> ) are generated. The particle distribution in longitudinal phase space uses a <span class="math notranslate nohighlight">\(2\sigma\)</span> truncation, i.e., only particles satisfying:</p>
+<div class="math notranslate nohighlight">
+\[|z| \le 2\sigma_z\]</div>
+<p>are retained.</p>
+</li>
+</ul>
+</div></blockquote>
+<section id="multi-bunch-longitudinal-offset">
+<h3>Multi-bunch longitudinal offset<a class="headerlink" href="#multi-bunch-longitudinal-offset" title="Link to this heading"></a></h3>
+<p>When injecting multiple bunches, each bunch needs to be placed into a different RF bucket. PASS uses a symmetric offset formula and automatically performs the following three operations after generating the longitudinal distribution:</p>
+<div class="math notranslate nohighlight">
+\[z_{\text{final}} = \mathrm{fold}\left( z_{\text{gen}} + \Delta z_{\text{shift}} + \eta \, s_{\text{rf}} \, \delta \right), \quad z \in [-C/2, C/2)\]</div>
+<p>where:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><strong>Symmetric offset</strong> : <span class="math notranslate nohighlight">\(\Delta z_{\text{shift}} = \frac{C}{h}\left(h_{\text{id}} - \frac{h}{2} + 0.5\right)\)</span> , making each bucket symmetrically distributed about <span class="math notranslate nohighlight">\(z=0\)</span> ; for even <span class="math notranslate nohighlight">\(h\)</span> , no bucket falls on the <span class="math notranslate nohighlight">\(C/2\)</span> folding boundary</p></li>
+<li><p><strong>rf_position back-propagation</strong> : <span class="math notranslate nohighlight">\(\eta \, s_{\text{rf}} \, \delta\)</span> , back-propagating the distribution generated at the RF cavity position <span class="math notranslate nohighlight">\(s=s_{\text{rf}}\)</span> to the injection point <span class="math notranslate nohighlight">\(s=0\)</span> , where <span class="math notranslate nohighlight">\(\eta = 1/\gamma_t^2 - 1/\gamma^2\)</span> is the phase slip factor</p></li>
+<li><p><strong>z folding</strong> : folding <span class="math notranslate nohighlight">\(z\)</span> into the <span class="math notranslate nohighlight">\([-C/2, C/2)\)</span> interval</p></li>
+</ol>
+</div></blockquote>
+<p>Additionally, for even <span class="math notranslate nohighlight">\(h\)</span> , the RF cavity automatically applies a <span class="math notranslate nohighlight">\(C/(2h)\)</span> compensation when calculating the particle phase, to cancel the equivalent <span class="math notranslate nohighlight">\(180^\circ\)</span> phase flip introduced by the symmetric offset. Odd <span class="math notranslate nohighlight">\(h\)</span> does not require compensation.</p>
+</section>
+<section id="bunch-filling-scheme">
+<h3>Bunch filling scheme<a class="headerlink" href="#bunch-filling-scheme" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The bunch ID ( <code class="docutils literal notranslate"><span class="pre">bunch_id</span></code> ) is strictly numbered starting from 0 with a step of 1, determined by the key names <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> , <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> , … in the input file. The number of bunches is determined by the number of <code class="docutils literal notranslate"><span class="pre">bunch</span></code> keys in the input file.</p>
+<p>The harmonic ID ( <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> ) of each bunch can be set independently; it does not need to be consecutive or start from 0. The harmonic ID determines which RF bucket the bunch is placed into.</p>
+<ul class="simple">
+<li><p><strong>Uniform filling</strong> : When <code class="docutils literal notranslate"><span class="pre">harmonic_id</span> <span class="pre">=</span> <span class="pre">0,</span> <span class="pre">1,</span> <span class="pre">...</span> <span class="pre">,</span> <span class="pre">h-1</span></code> , the bunches are uniformly distributed across <span class="math notranslate nohighlight">\(h\)</span> buckets, with positions symmetric about <span class="math notranslate nohighlight">\(z=0\)</span> (from negative to positive)</p></li>
+<li><p><strong>Partial filling</strong> : Only some buckets can be filled. For example, when <span class="math notranslate nohighlight">\(h=4\)</span> , only 2 bunches are injected, set <code class="docutils literal notranslate"><span class="pre">harmonic_id</span> <span class="pre">=</span> <span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">harmonic_id</span> <span class="pre">=</span> <span class="pre">2</span></code> , then only the 0th and 2nd buckets are filled</p></li>
+<li><p><strong>Arbitrary filling</strong> : <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> can be any integer between <span class="math notranslate nohighlight">\(0\)</span> and <span class="math notranslate nohighlight">\(h-1\)</span> , supporting arbitrary filling schemes</p></li>
+</ul>
+</div>
+<p>The figure below shows an example of bunch filling in a ring layout. The ring represents the accelerator circumference <span class="math notranslate nohighlight">\(C\)</span> , and the marked points on the ring are the center positions of each bucket. <span class="math notranslate nohighlight">\(z=0\)</span> is the ideal particle position (injection point). Bunch IDs and harmonic IDs increase in the clockwise direction. The top figure shows <span class="math notranslate nohighlight">\(h=4\)</span> (even) uniform filling, with all 4 buckets filled; the bottom figure shows <span class="math notranslate nohighlight">\(h=5\)</span> (odd) partial filling, with only bucket 0 and bucket 2 filled:</p>
+<div style="text-align: center">
+<svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="420" fill="#1a1a2e"/>
+
+  <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=4 (even): uniform filling</text>
+
+  <!-- Ring -->
+  <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
+
+  <!-- Bucket boundary lines (every C/4 = 90 deg) -->
+  <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="200" y1="220" x2="200" y2="80" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="200" y1="220" x2="200" y2="360" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- hid=0: z=-3C/8, clockwise from z=0(right) => lower-left -->
+  <!-- angle from right = -135deg (clockwise 135deg) => x=200+140*cos(-135)=200-99=101, y=220+140*sin(-135)...
+       Actually clockwise from right: z=0 at angle 0, clockwise positive.
+       z=-3C/8 => fraction -3/8 of C => angle = -3/8*2pi = -135deg => same as 225deg
+       In SVG (y down): clockwise = increasing angle in screen coords
+       z=0 at (340,220). Clockwise (downward first):
+       z=-C/8 => 45deg clockwise => (200+140cos45, 220+140sin45) = (299, 319)
+       z=-3C/8 => 135deg clockwise => (200+140cos135, 220+140sin135) = (101, 319)
+       z=C/8 => -45deg (counterclockwise, upward) => (299, 121)
+       z=3C/8 => -135deg => (101, 121)
+       Wait, clockwise in SVG means y increases (downward).
+       z=0 at right (340,220). Clockwise 45deg goes to lower-right (299,319).
+       But z=-C/8 is negative z, which should be "behind" the ideal particle.
+
+       Let me think again: z = s - beta0*c*t. Positive z means particle is ahead (larger s).
+       If we go clockwise on the ring and call that positive z direction,
+       then z>0 is clockwise from z=0, z<0 is counterclockwise.
+
+       User wants bucket IDs clockwise. hid=0 has most negative z (-3C/8 for h=4).
+       So hid=0 is far counterclockwise (upper-left), hid=3 is far clockwise (lower-right)?
+       No wait - user said "bunch IDs and harmonic IDs should increase clockwise" meaning IDs increase clockwise.
+       hid=0 -> hid=1 -> hid=2 -> hid=3 goes clockwise.
+       hid=0: z=-3C/8, hid=1: z=-C/8, hid=2: z=C/8, hid=3: z=3C/8
+       So z increases clockwise. z=0 is between hid=1 and hid=2.
+
+       Positions (clockwise from top, z=0 at right=3 o'clock):
+       z=0 at 3 o'clock (340, 220)
+       Clockwise = downward in SVG
+       z=-3C/8 at 135deg CCW from right = 10:30 position => upper-left
+       z=-C/8 at 45deg CCW from right = 1:30 position => upper-right
+       z=C/8 at 45deg CW from right = 4:30 position => lower-right
+       z=3C/8 at 135deg CW from right = 7:30 position => lower-left
+
+       But that makes IDs go CCW: hid=0(upper-left)->hid=1(upper-right)->hid=2(lower-right)->hid=3(lower-left)
+       That's clockwise! upper-left -> upper-right -> lower-right -> lower-left IS clockwise.
+  -->
+
+  <!-- z=0 ideal particle marker (right side of ring) -->
+  <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
+  <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+
+  <!-- hid=0: z=-3C/8, upper-left, angle=225deg in std (or -135deg) -->
+  <!-- x=200+140*cos(225deg)=200-99=101, y=220+140*sin(225deg)=220-99=121 -->
+  <!-- Wait, in SVG y is down. cos/sin with SVG y-down:
+       angle 0 = right, positive angle = clockwise (y increases)
+       z=-3C/8: this is 3/8*2pi = 135deg counterclockwise from z=0
+       In SVG: counterclockwise = negative angle = y decreases
+       x = 200 + 140*cos(-135deg) = 200 + 140*(-0.707) = 101
+       y = 220 + 140*sin(-135deg) = 220 + 140*(-0.707) = 121  (upper-left) ✓
+  -->
+  <circle cx="101" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="75" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
+  <text x="75" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+  <text x="75" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+  <text x="68" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-3C/8</text>
+
+  <!-- hid=1: z=-C/8, upper-right, angle=-45deg -->
+  <!-- x=200+140*cos(-45)=200+99=299, y=220+140*sin(-45)=220-99=121 -->
+  <circle cx="299" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="325" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
+  <text x="325" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+  <text x="325" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+  <text x="332" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-C/8</text>
+
+  <!-- hid=2: z=C/8, lower-right, angle=45deg -->
+  <!-- x=200+140*cos(45)=299, y=220+140*sin(45)=220+99=319 -->
+  <circle cx="299" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="325" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
+  <text x="325" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+  <text x="325" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 2</text>
+  <text x="332" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">C/8</text>
+
+  <!-- hid=3: z=3C/8, lower-left, angle=135deg -->
+  <!-- x=200+140*cos(135)=101, y=220+140*sin(135)=319 -->
+  <circle cx="101" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="75" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
+  <text x="75" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+  <text x="75" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 3</text>
+  <text x="68" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">3C/8</text>
+
+  <!-- Legend -->
+  <circle cx="60" cy="400" r="7" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+  <text x="75" y="404" fill="#888" font-size="12" font-family="sans-serif">Filled bunch</text>
+  <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
+  <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+</svg>
+</div><div style="text-align: center">
+<svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="420" fill="#1a1a2e"/>
+
+  <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=5 (odd): partial filling</text>
+
+  <!-- Ring -->
+  <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
+
+  <!-- Bucket boundaries at z = -C/2, -2C/5+..., every C/5 -->
+  <!-- z=0 at right (0deg), boundaries at +/-C/10, +/-3C/10, +/-C/2 -->
+  <!-- C/10 = 36deg, 3C/10 = 108deg, C/2 = 180deg -->
+  <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- 36deg: x=200+140cos(36)=313, y=220+140sin(36)=302 -->
+  <line x1="200" y1="220" x2="313" y2="302" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- -36deg: x=313, y=138 -->
+  <line x1="200" y1="220" x2="313" y2="138" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- 108deg: x=200+140cos(108)=157, y=220+140sin(108)=353 -->
+  <line x1="200" y1="220" x2="157" y2="353" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- -108deg: x=157, y=87 -->
+  <line x1="200" y1="220" x2="157" y2="87" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- 180deg: x=60, y=220 -->
+  <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Bucket centers: shift=C/5*(hid-2.5+0.5)=C/5*(hid-2) -->
+  <!-- hid=0: z=-2C/5, angle=-144deg (CCW). x=200+140cos(-144)=200-113=87, y=220+140sin(-144)=220-82=138 -->
+  <!-- hid=1: z=-C/5, angle=-72deg. x=200+140cos(-72)=200+43=243, y=220+140sin(-72)=220-133=87 -->
+  <!-- hid=2: z=0, angle=0. x=340, y=220 -->
+  <!-- hid=3: z=C/5, angle=72deg. x=243, y=353 -->
+  <!-- hid=4: z=2C/5, angle=144deg. x=87, y=302 -->
+
+  <!-- z=0 ideal particle (hid=2 position, but empty) -->
+  <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
+  <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+
+  <!-- hid=0: z=-2C/5, FILLED, bunch_id=0 -->
+  <circle cx="87" cy="138" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="55" y="125" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
+  <text x="55" y="141" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+  <text x="55" y="157" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+  <text x="48" y="172" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-2C/5</text>
+
+  <!-- hid=1: z=-C/5, EMPTY -->
+  <circle cx="243" cy="87" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="243" y="68" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
+  <text x="243" y="54" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+  <text x="275" y="92" fill="#555" font-size="11" font-family="monospace">(empty)</text>
+  <text x="278" y="106" fill="#888" font-size="11" font-family="monospace">-C/5</text>
+
+  <!-- hid=2: z=0, FILLED, bunch_id=1 -->
+  <circle cx="340" cy="220" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="375" y="250" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
+  <text x="375" y="266" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+  <text x="375" y="282" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+
+  <!-- hid=3: z=C/5, EMPTY -->
+  <circle cx="243" cy="353" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="243" y="378" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
+  <text x="243" y="394" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+  <text x="278" y="348" fill="#555" font-size="11" font-family="monospace">(empty)</text>
+  <text x="278" y="362" fill="#888" font-size="11" font-family="monospace">C/5</text>
+
+  <!-- hid=4: z=2C/5, EMPTY -->
+  <circle cx="87" cy="302" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="55" y="295" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 4</text>
+  <text x="55" y="311" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=4</text>
+  <text x="48" y="327" fill="#555" font-size="11" text-anchor="middle" font-family="monospace">(empty)</text>
+  <text x="48" y="341" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">2C/5</text>
+
+  <!-- Legend -->
+  <circle cx="60" cy="400" r="7" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="75" y="404" fill="#888" font-size="12" font-family="sans-serif">Filled bunch</text>
+  <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
+  <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+  <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+</svg>
+</div></section>
+<section id="dispersion-coupling">
+<h3>Dispersion coupling<a class="headerlink" href="#dispersion-coupling" title="Link to this heading"></a></h3>
+<p>If the injection point has dispersion functions <span class="math notranslate nohighlight">\(D_x\)</span> and <span class="math notranslate nohighlight">\(D_{px}\)</span> , then after generating the transverse distribution, dispersion coupling is automatically applied:</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + D_x \cdot \delta, \quad p_x \leftarrow p_x + D_{px} \cdot \delta\]</div>
+<p>where <span class="math notranslate nohighlight">\(\delta\)</span> is the particle’s momentum deviation. This ensures that the particle distribution and the longitudinal momentum spread are physically self-consistent.</p>
+</section>
+<section id="momentum-deviation">
+<h3>Momentum deviation<a class="headerlink" href="#momentum-deviation" title="Link to this heading"></a></h3>
+<p>During injection, an average momentum offset <span class="math notranslate nohighlight">\(\delta_0\)</span> can be applied to the entire bunch. When the particle distribution is generated, <span class="math notranslate nohighlight">\(\delta\)</span> follows a distribution with mean 0 (such as a Gaussian distribution <span class="math notranslate nohighlight">\(\delta \sim \mathcal{N}(0, \sigma_\delta)\)</span> ). After applying the offset, it becomes <span class="math notranslate nohighlight">\(\delta \sim \mathcal{N}(\delta_0, \sigma_\delta)\)</span> , i.e., the distribution center shifts from 0 to <span class="math notranslate nohighlight">\(\delta_0\)</span> . <span class="math notranslate nohighlight">\(\delta_0\)</span> is an additive quantity, not the total <span class="math notranslate nohighlight">\(\delta\)</span> of the particle. This is used to simulate scenarios such as injection energy offset and reference momentum offset.</p>
+<p>Two input methods are supported (mutually exclusive; if both are non-zero, an error is raised):</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Momentum deviation</strong> ( <code class="docutils literal notranslate"><span class="pre">Momentum</span> <span class="pre">Offset</span> <span class="pre">dp</span></code> ): directly provides <span class="math notranslate nohighlight">\(\delta_0\)</span> (dimensionless, relative to the reference momentum deviation)</p></li>
+<li><p><strong>Kinetic energy offset</strong> ( <code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">Offset</span> <span class="pre">(eV)</span></code> ): provides <span class="math notranslate nohighlight">\(\Delta E\)</span> (in eV), internally converted to <span class="math notranslate nohighlight">\(\delta_0\)</span></p></li>
+</ul>
+</div></blockquote>
+<p><strong>Exact conversion formula</strong></p>
+<p>The conversion from kinetic energy offset <span class="math notranslate nohighlight">\(\Delta E\)</span> to momentum deviation <span class="math notranslate nohighlight">\(\delta_0\)</span> uses the exact relativistic energy-momentum relation:</p>
+<div class="math notranslate nohighlight">
+\[E^2 = p^2 + m_0^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(E\)</span> is the total energy ( <span class="math notranslate nohighlight">\(E = E_k + m_0\)</span> ), <span class="math notranslate nohighlight">\(p\)</span> is the momentum, and <span class="math notranslate nohighlight">\(m_0\)</span> is the rest mass. The parameters of the reference particle (no deviation) are:</p>
+<div class="math notranslate nohighlight">
+\[E_0 = E_k + m_0, \quad p_0 = \sqrt{E_0^2 - m_0^2}\]</div>
+<p>After applying the kinetic energy offset <span class="math notranslate nohighlight">\(\Delta E\)</span> , the particle’s total energy becomes <span class="math notranslate nohighlight">\(E_1 = E_0 + \Delta E\)</span> , and the corresponding momentum is:</p>
+<div class="math notranslate nohighlight">
+\[p_1 = \sqrt{E_1^2 - m_0^2} = \sqrt{(E_0 + \Delta E)^2 - m_0^2}\]</div>
+<p>Therefore, the momentum deviation is:</p>
+<div class="math notranslate nohighlight">
+\[\delta_0 = \frac{p_1}{p_0} - 1 = \frac{\sqrt{(E_0 + \Delta E)^2 - m_0^2}}{\sqrt{E_0^2 - m_0^2}} - 1\]</div>
+<p>This formula is <strong>fully exact</strong> , with no approximations, and is consistent with the exact <span class="math notranslate nohighlight">\(E^2 = p^2 + m_0^2\)</span> transformation used in the RF cavity.</p>
+<p><strong>First-order linearization approximation</strong></p>
+<p>For the formula <span class="math notranslate nohighlight">\(\delta_0 = p_1/p_0 - 1\)</span> , a first-order Taylor expansion is performed at <span class="math notranslate nohighlight">\(\Delta E \to 0\)</span> . From <span class="math notranslate nohighlight">\(E \, dE = p \, dp\)</span> we get:</p>
+<div class="math notranslate nohighlight">
+\[dE = \frac{p}{E} \, dp = \beta \, dp \quad \Longrightarrow \quad dp = \frac{dE}{\beta}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\beta = p_0 c / E_0\)</span> is the reference particle velocity. Since in PASS <span class="math notranslate nohighlight">\(\delta = \Delta p / p_0\)</span> is the relative momentum deviation, the reference momentum <span class="math notranslate nohighlight">\(p_0 = \beta \gamma m_0 = \beta E_0\)</span> , therefore:</p>
+<div class="math notranslate nohighlight">
+\[\delta_0 \approx \frac{\Delta E}{\beta^2 \, E_0}\]</div>
+<p>This approximation truncates <span class="math notranslate nohighlight">\(O(\delta_0^2)\)</span> and higher-order terms. It has sufficient accuracy for small deviations, but significant errors for large deviations.</p>
+<p><strong>Comparison of exact and approximate formulas</strong></p>
+<p>The following table uses a proton ( <span class="math notranslate nohighlight">\(E_k = 45\)</span> MeV , <span class="math notranslate nohighlight">\(\beta = 0.299\)</span> ) as an example to show the differences between the two formulas at different <span class="math notranslate nohighlight">\(\Delta E\)</span> values:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.2%" />
+<col style="width: 27.8%" />
+<col style="width: 27.8%" />
+<col style="width: 22.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><span class="math notranslate nohighlight">\(\Delta E\)</span> (eV)</p></th>
+<th class="head"><p>Exact <span class="math notranslate nohighlight">\(\delta_0\)</span></p></th>
+<th class="head"><p>Approximate <span class="math notranslate nohighlight">\(\delta_0\)</span></p></th>
+<th class="head"><p>Relative error</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1,000</p></td>
+<td><p>1.137126e-5</p></td>
+<td><p>1.137132e-5</p></td>
+<td><p>0.000005%</p></td>
+</tr>
+<tr class="row-odd"><td><p>10,000</p></td>
+<td><p>1.137073e-4</p></td>
+<td><p>1.137132e-4</p></td>
+<td><p>0.000052%</p></td>
+</tr>
+<tr class="row-even"><td><p>100,000</p></td>
+<td><p>1.136544e-3</p></td>
+<td><p>1.137132e-3</p></td>
+<td><p>0.000517%</p></td>
+</tr>
+<tr class="row-odd"><td><p>1,000,000</p></td>
+<td><p>1.131311e-2</p></td>
+<td><p>1.137132e-2</p></td>
+<td><p>0.0514%</p></td>
+</tr>
+<tr class="row-even"><td><p>10,000,000</p></td>
+<td><p>1.084146e-1</p></td>
+<td><p>1.137132e-1</p></td>
+<td><p>4.89%</p></td>
+</tr>
+<tr class="row-odd"><td><p>50,000,000</p></td>
+<td><p>4.717485e-1</p></td>
+<td><p>5.685659e-1</p></td>
+<td><p>20.5%</p></td>
+</tr>
+</tbody>
+</table>
+<p>For small deviations ( <span class="math notranslate nohighlight">\(\Delta E &lt; 100\)</span> keV ), the two formulas have almost no difference, but for large deviations (e.g., <span class="math notranslate nohighlight">\(\Delta E &gt; 1\)</span> MeV ), the linear approximation error exceeds 0.05%, and at <span class="math notranslate nohighlight">\(\Delta E = 50\)</span> MeV the error reaches 20%. PASS uses the exact formula to cover large deviation scenarios.</p>
+<p><strong>Application order</strong></p>
+<p>The momentum deviation <span class="math notranslate nohighlight">\(\delta_0\)</span> is applied to each particle’s <span class="math notranslate nohighlight">\(\delta\)</span> before the longitudinal offset:</p>
+<div class="math notranslate nohighlight">
+\[\delta \leftarrow \delta + \delta_0\]</div>
+<p>Therefore, the subsequent rf_position back-propagation ( <span class="math notranslate nohighlight">\(z \leftarrow z + \eta \, s_{\text{rf}} \, \delta\)</span> ) and dispersion coupling ( <span class="math notranslate nohighlight">\(x \leftarrow x + D_x \, \delta\)</span> ) both use the <span class="math notranslate nohighlight">\(\delta\)</span> value that includes <span class="math notranslate nohighlight">\(\delta_0\)</span> , ensuring physical self-consistency.</p>
+</section>
+</section>
+<section id="input-file">
+<h2>Input file<a class="headerlink" href="#input-file" title="Link to this heading"></a></h2>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Beam Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of Protons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of Neutrons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of Charges&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Transition Gamma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">4.8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of turns&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Circumference (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">251.327</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Backend (gpu/cpu)&quot;</span><span class="p">:</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Number of GPU devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Device Id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;Output directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./output&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is plot figure&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Sequence&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;Injection&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Injection&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;bunch0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;Kinetic Energy per Nucleon (eV/u)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">45e6</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Number of Real Particles&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">100000000000.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Number of Macro Particles&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">100000.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Is Load Distribution from File&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Distribution File Path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Total Injection Turns&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Injection Interval&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Alpha x&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-2.614303952</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Alpha y&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.57442348</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Beta x (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Beta y (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Emittance x (m&#39;rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.00019999999999999998</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Emittance y (m&#39;rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">9.999999999999999e-05</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Dx (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Dpx&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Sigma z (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Sigma dp/p&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Transverse dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Longitudinal dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;matchz&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;RF Voltage (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">100e3</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;RF Phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5235987755982988</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Harmonic Number&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Harmonic ID of this bunch&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;RF S Position Refer to Inj. Point (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Offset x&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;Is Offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;Is Load From File&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;File Path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;File Time Kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;turn&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;Offset Position (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;Offset Momentum (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nt">&quot;Offset y&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="nt">&quot;Is Offset&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;Is Load From File&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;File Path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;File Time Kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;turn&quot;</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;Offset Position (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">&quot;Offset Momentum (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">                </span><span class="p">},</span>
+<span class="w">                </span><span class="nt">&quot;Is Save Initial Distribution&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">&quot;Insert Particle Coordinate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]]</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;StatMonitor1&quot;</span><span class="p">:{</span>
+<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="run-command">
+<h2>Run command<a class="headerlink" href="#run-command" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>PASS<span class="se">\e</span>xample<span class="se">\0</span>1_generate_distribution
+python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="o">=</span>./beam0.json
+</pre></div>
+</div>
+<p>Based on the input file above, a bunch with a Gaussian distribution in the transverse direction and a MatchZ distribution in the longitudinal direction will be generated. By modifying the following two parameter lines, the type of generated bunch distribution can be adjusted:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Transverse dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
+<span class="nt">&quot;Longitudinal dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;matchz&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>The values for the transverse distribution are: <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> , <code class="docutils literal notranslate"><span class="pre">kv</span></code> , <code class="docutils literal notranslate"><span class="pre">waterbag</span></code> , <code class="docutils literal notranslate"><span class="pre">parabolic</span></code> , <code class="docutils literal notranslate"><span class="pre">uniform</span></code> , and the values for the longitudinal distribution are: <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> , <code class="docutils literal notranslate"><span class="pre">coasting</span></code> , <code class="docutils literal notranslate"><span class="pre">matchz</span></code> , <code class="docutils literal notranslate"><span class="pre">matchdp</span></code> .</p>
+<p>When generating longitudinal gaussian and coasting distributions, RF-related parameters are not required. When generating matchz and matchdp distributions, RF parameters must be provided.</p>
+</section>
+<section id="d-projection-theoretical-curves">
+<h2>1D projection theoretical curves<a class="headerlink" href="#d-projection-theoretical-curves" title="Link to this heading"></a></h2>
+<p>The figure below shows the theoretical projection curves of the four transverse distributions ( Uniform , KV , Waterbag , Parabolic ) on the 1D plane. All curves are normalized to <span class="math notranslate nohighlight">\(\int_{-1}^{1} \rho(u) \, du = 1\)</span> , with the horizontal axis being the normalized coordinate <span class="math notranslate nohighlight">\(u \in [-1, 1]\)</span> . The increasing power trend from Uniform (flat-top) to Parabolic (peaked) can be clearly seen.</p>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="../_images/dist_1d_projections.png"><img alt="1D projections of transverse distributions" src="../_images/dist_1d_projections.png" style="width: 80%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="simulation-results">
+<h2>Simulation results<a class="headerlink" href="#simulation-results" title="Link to this heading"></a></h2>
+<p>Below, we show the simulated particle distribution figures obtained by keeping the Twiss, emittance, RF, and other parameters in the above input file unchanged and only changing the distribution type.</p>
+<ul class="simple">
+<li><p>Transverse Gaussian distribution:</p></li>
+</ul>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="Gaussian x-px" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id4">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="Gaussian x-y" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Transverse KV distribution:</p></li>
+</ul>
+<figure class="align-center" id="id5">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="kv x-px" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id6">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id7">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="kv x-y" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Transverse waterbag distribution:</p></li>
+</ul>
+<figure class="align-center" id="id8">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="waterbag x-px" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id9">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id10">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="waterbag x-y" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Transverse parabolic distribution:</p></li>
+</ul>
+<figure class="align-center" id="id11">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="parabolic x-px" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id12">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id13">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="parabolic x-y" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Transverse uniform distribution:</p></li>
+</ul>
+<figure class="align-center" id="id14">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png"><img alt="uniform x-px" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id15">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id16">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png"><img alt="uniform x-y" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Longitudinal MatchZ distribution:</p></li>
+</ul>
+<figure class="align-center" id="id17">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png"><img alt="MatchZ z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Longitudinal MatchDp distribution:</p></li>
+</ul>
+<figure class="align-center" id="id18">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png"><img alt="MatchDp z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Longitudinal Gaussian distribution:</p></li>
+</ul>
+<figure class="align-center" id="id19">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png"><img alt="Gaussian z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ul class="simple">
+<li><p>Longitudinal Coasting distribution:</p></li>
+</ul>
+<figure class="align-center" id="id20">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png"><img alt="coasting z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="input_generation.html" class="btn btn-neutral float-left" title="Input File Generation (Command-Line Mode)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="element/index.html" class="btn btn-neutral float-right" title="Element" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

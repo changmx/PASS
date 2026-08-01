@@ -1,0 +1,1758 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dipole (SBend) &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Quadrupole" href="quadrupole.html" />
+    <link rel="prev" title="Drift" href="drift.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo_blue.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../zh/index.html">PASS 文档（中文）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id20">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id21">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id24">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html#id28">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id9">追踪模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id14">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id15">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id23">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/kicker.html">冲击磁铁（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html#id15">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">物理说明</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/reorganize.html#id3">索引分配方式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id7">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id8">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id13">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS Documentation (English)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#minimal-example">Minimal Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mixed-mode">Mixed Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#bunch-parameters">Bunch parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#transverse-parameters">Transverse parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#beam-parameters">Beam parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#distribution-parameters">Distribution parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#dispersion-coupling">Dispersion coupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#momentum-deviation">Momentum deviation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#input-file">Input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#simulation-results">Simulation results</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="marker.html">Marker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#physical-description">Physical Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="marker.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="drift.html">Drift</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#body-dkd-exact-model">Body: DKD-exact Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#body-model-comparison">Body Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="quadrupole.html">Quadrupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quadrupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sextupole.html">Sextupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="octupole.html">Octupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="octupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="multipole.html">Multipole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="multipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="solenoid.html">Solenoid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="solenoid.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="kicker.html">Kicker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="kicker.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#septum-logic">Septum Logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#tilt-rotation">Tilt Rotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="exciter.html">Exciter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#frequency-input-modes">Frequency Input Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#kick-application">Kick Application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="exciter.html#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="rfcavity.html">RFCavity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#tracking-flow">Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#ramping-data-file">Ramping Data File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#verification-tests">Verification Tests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/statmonitor.html">StatMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#working-principle">Working Principle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#physics-description">Physics Description</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#index-allocation-method">Index Allocation Method</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../aperture.html">Aperture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off-disabled">off (Disabled)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle-circular">circle (Circular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon-polygon">polygon (Polygon)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../aperture.html#usage-example">Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#physics-derivation">Physics Derivation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-handling">Dispersion Handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0-update">t0 Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#position-parameters">Position Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-parameters">Transverse Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#aperture-parameters">Aperture Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS Documentation (English)</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Element</a></li>
+      <li class="breadcrumb-item active">Dipole (SBend)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/en/element/dipole.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dipole-sbend">
+<h1>Dipole (SBend)<a class="headerlink" href="#dipole-sbend" title="Link to this heading"></a></h1>
+<p>This module describes the PASS dipole element <strong>SBend</strong>, used to simulate the motion of charged particles in a sector bending magnet. The dipole is the most fundamental bending element in accelerators, deflecting the particle orbit through a uniform magnetic field.</p>
+<p>The PASS dipole is a <strong>thick element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>), supporting full nonlinear tracking including edge angle effects, fringe field effects, and multiple symplectic integration schemes.</p>
+<p><strong>Code Location</strong></p>
+<ul class="simple">
+<li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/dipole.py</span></code></p></li>
+<li><p>Class name: <code class="docutils literal notranslate"><span class="pre">SBend</span></code> (inherits from <code class="docutils literal notranslate"><span class="pre">Command</span></code>)</p></li>
+<li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">sbend</span></code></p></li>
+<li><p>Key features:</p>
+<ul>
+<li><p>Supports rot-kick-rot (RKR) and drift-kick-drift-exact (DKD-exact) body models, default rot-kick-rot</p></li>
+<li><p>Supports uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators</p></li>
+<li><p>Supports nonlinear edge angle (wedge) effects</p></li>
+<li><p>Supports nonlinear fringe field effects</p></li>
+<li><p>Supports aperture check</p></li>
+</ul>
+</li>
+</ul>
+<section id="coordinate-convention">
+<h2>Coordinate Convention<a class="headerlink" href="#coordinate-convention" title="Link to this heading"></a></h2>
+<p>PASS uses normalized curvilinear coordinates consistent with Xsuite. The six-dimensional phase-space variables are <span class="math notranslate nohighlight">\((x, p_x, y, p_y, z, \delta)\)</span>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Symbol</p></th>
+<th class="head"><p>Definition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(x\)</span></p></td>
+<td><p>Horizontal offset (relative to the reference orbit)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_x\)</span></p></td>
+<td><p>Normalized horizontal momentum, <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
+<td><p>Vertical offset</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(p_y\)</span></p></td>
+<td><p>Normalized vertical momentum, <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
+<td><p>Longitudinal coordinate, <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>Relative momentum deviation, <span class="math notranslate nohighlight">\(\delta = P / P_0 - 1\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>where <span class="math notranslate nohighlight">\(P_0\)</span> is the reference particle momentum, <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> is the reference particle normalized velocity, <span class="math notranslate nohighlight">\(s\)</span> is the arc length along the reference orbit, and <span class="math notranslate nohighlight">\(t\)</span> is time.</p>
+<p>The longitudinal momentum component is defined as:</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<p>Other commonly used physical quantities:</p>
+<div class="math notranslate nohighlight">
+\[h = \frac{1}{\rho} = \frac{K_0 L}{L} = \frac{K_{0L}}{L}\]</div>
+<div class="math notranslate nohighlight">
+\[K_0 = \frac{q_0 B_0}{P_0} = \frac{K_{0L}}{L}\]</div>
+<div class="math notranslate nohighlight">
+\[\chi = \frac{q}{q_0} \cdot \frac{m_0}{m}\]</div>
+<p>where <span class="math notranslate nohighlight">\(h\)</span> is the reference orbit curvature, <span class="math notranslate nohighlight">\(\rho\)</span> is the bending radius, <span class="math notranslate nohighlight">\(K_0\)</span> is the normalized dipole field strength, and <span class="math notranslate nohighlight">\(\chi\)</span> is the charge-to-mass ratio factor (for a beam of identical particle species, <span class="math notranslate nohighlight">\(\chi = 1\)</span>). For a sector bend, <span class="math notranslate nohighlight">\(h = K_0\)</span>.</p>
+</section>
+<section id="overall-tracking-flow">
+<h2>Overall Tracking Flow<a class="headerlink" href="#overall-tracking-flow" title="Link to this heading"></a></h2>
+<p>A complete dipole consists of the <strong>entrance edge</strong>, <strong>body</strong>, and <strong>exit edge</strong>. The tracking order is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== Entrance edge (B=0 → B=B0) ======
+
+YRotation(-e1)  →  Fringe Field  →  Wedge(-e1, K0)
+[Pure geometric rotation]  [Nonlinear fringe field]  [Rotation + focusing kick]
+[B=0]                      [B: 0→B0]                 [B=B0]
+
+       ↓
+
+====== Body (B=B0) ======
+
+Slice 1 → Slice 2 → ... → Slice N
+(Reference trajectory coordinate system, symplectic integrator)
+
+       ↓
+
+====== Exit edge (B=B0 → B=0) ======
+
+Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
+[Rotation + focusing kick]  [Nonlinear fringe field]  [Pure geometric rotation]
+[B=B0]                      [B: B0→0]                 [B=0]
+
+Entrance net rotation: (-e1) + (+e1) = 0
+Exit net rotation: (+e2) + (-e2) = 0
+→ Body operates in the reference trajectory coordinate system
+</pre></div>
+</div>
+<p>The complete map is:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{M}_{\text{body}} \circ \mathcal{M}_{\text{entry}}\]</div>
+<p><strong>Entrance edge</strong>:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{entry}} = \text{Wedge}(-e_1, K_0) \circ \text{Fringe}(e_1) \circ \text{YRotation}(-e_1)\]</div>
+<p><strong>Exit edge</strong> (mirror-symmetric to the entrance):</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{exit}} = \text{YRotation}(-e_2) \circ \text{Fringe}(e_2) \circ \text{Wedge}(-e_2, K_0)\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>When <span class="math notranslate nohighlight">\(e_1 = 0\)</span>, both YRotation and Wedge are skipped (no edge angle effect)</p></li>
+<li><p>When <code class="docutils literal notranslate"><span class="pre">fint</span></code> = 0 or <code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 0, Fringe is skipped (no fringe field effect)</p></li>
+<li><p>When <span class="math notranslate nohighlight">\(K_0 = 0\)</span>, both Fringe and Wedge are skipped</p></li>
+<li><p>The execution order of entrance and exit are mirror images of each other</p></li>
+<li><p><strong>At the exit</strong>, <span class="math notranslate nohighlight">\(K_0\)</span> <strong>is partially negated</strong>: Xsuite negates the local variable <span class="math notranslate nohighlight">\(K_0\)</span> at the exit (<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">(is_exit)</span> <span class="pre">k0</span> <span class="pre">=</span> <span class="pre">-k0</span></code>), but only <strong>DipoleFringe</strong> uses the negated <span class="math notranslate nohighlight">\(-K_0\)</span>, because the exit fringe field is the magnetic field decreasing from <span class="math notranslate nohighlight">\(B_0\)</span> to 0 (opposite direction to the entrance’s 0 rising to <span class="math notranslate nohighlight">\(B_0\)</span>). <strong>Wedge</strong> directly uses the original <code class="docutils literal notranslate"><span class="pre">knorm[0]</span></code> (not negated), because Wedge describes rotation in the uniform magnetic field <span class="math notranslate nohighlight">\(B_0\)</span>, and the field direction is the same at entrance and exit. PASS implements this behavior in <code class="docutils literal notranslate"><span class="pre">_edge_exit_cpu</span></code> using <code class="docutils literal notranslate"><span class="pre">k0_fringe</span> <span class="pre">=</span> <span class="pre">-k0</span></code> (Fringe only) and <code class="docutils literal notranslate"><span class="pre">k0</span></code> (Wedge).</p></li>
+</ul>
+</div>
+<section id="why-this-order">
+<h3>Why This Order<a class="headerlink" href="#why-this-order" title="Link to this heading"></a></h3>
+<p><strong>Role of YRotation</strong>: Pure geometric coordinate rotation, transforming particle coordinates from the reference trajectory coordinate system to the magnet end-face coordinate system. It applies no force and only changes the observational reference frame.</p>
+<p><strong>Role of Fringe Field</strong>: Computes nonlinear fringe field effects in the end-face reference frame. The particle slope <span class="math notranslate nohighlight">\(x' = p_x / p_z\)</span> in the Fringe formula must be the slope relative to the magnet end face, so YRotation must be performed first.</p>
+<p><strong>Role of Wedge</strong>: Rotates the observation plane in the uniform magnetic field <span class="math notranslate nohighlight">\(B_0\)</span>, while applying the edge angle focusing kick. Wedge includes both geometric rotation (rotating the coordinate system back to the reference trajectory system) and magnetic field kick.</p>
+<p>The geometric rotations of YRotation and Wedge are in opposite directions, with zero net rotation:</p>
+<div class="math notranslate nohighlight">
+\[\text{Rotation of YRotation}(-e_1) + \text{Geometric rotation of Wedge}(-e_1) = (-e_1) + (+e_1) = 0\]</div>
+<p>Therefore the body operates in the reference trajectory coordinate system, requiring no additional rotation.</p>
+</section>
+</section>
+<section id="body-dkd-exact-model">
+<h2>Body: DKD-exact Model<a class="headerlink" href="#body-dkd-exact-model" title="Link to this heading"></a></h2>
+<section id="hamiltonian">
+<h3>Hamiltonian<a class="headerlink" href="#hamiltonian" title="Link to this heading"></a></h3>
+<p>In curvilinear coordinates, the complete dipole Hamiltonian is:</p>
+<div class="math notranslate nohighlight">
+\[H_{\text{bend}} = \frac{p_\tau}{\beta_0} - (1+hx)\sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \chi K_0\!\left(x + \frac{h x^2}{2}\right)\]</div>
+<p>Splitting it into the propagation part (exact straight drift <span class="math notranslate nohighlight">\(H_D\)</span>) and the kick parts (<span class="math notranslate nohighlight">\(H_h\)</span>, <span class="math notranslate nohighlight">\(H_{K_0}\)</span>, <span class="math notranslate nohighlight">\(H_{K_0 h}\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[H_D = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[H_h = -h x (1+\delta)\]</div>
+<div class="math notranslate nohighlight">
+\[H_{K_0} = \chi K_0 x\]</div>
+<div class="math notranslate nohighlight">
+\[H_{K_0 h} = \frac{\chi K_0 h x^2}{2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(H_D\)</span> is the exact straight drift Hamiltonian (preserving the <span class="math notranslate nohighlight">\(p_z\)</span> square root without small-momentum expansion), and the remaining three terms are thin lens kicks.</p>
+</section>
+<section id="exact-drift-map-d">
+<h3>Exact Drift Map D<a class="headerlink" href="#exact-drift-map-d" title="Link to this heading"></a></h3>
+<p>The Hamilton’s equations of the propagation part give the exact straight drift:</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + \frac{p_x}{p_z} \cdot L_D\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y + \frac{p_y}{p_z} \cdot L_D\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta + L_D \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1+\delta}{p_z}\right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(L_D\)</span> is the drift length, and <span class="math notranslate nohighlight">\(\beta\)</span> is the particle’s actual normalized velocity:</p>
+<div class="math notranslate nohighlight">
+\[\beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The meaning of “exact”: the drift part preserves the exact square root <span class="math notranslate nohighlight">\(p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span> without small-momentum expansion <span class="math notranslate nohighlight">\(p_x \ll 1\)</span>. The approximation lies only in separating the propagation part from the kick part (split-operator method).</p>
+</div>
+</section>
+<section id="dipole-kick-map-k">
+<h3>Dipole Kick Map K<a class="headerlink" href="#dipole-kick-map-k" title="Link to this heading"></a></h3>
+<p>The kick parts are combined into a single thin lens kick (position unchanged, momentum jump only):</p>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow p_x + L_K \cdot \left[h(1+\delta) - \chi K_0 - \chi K_0 h x\right]\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta - \frac{\beta_0}{\beta} \cdot h x L_K\]</div>
+<p>Physical meaning of each term:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 15.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Term</p></th>
+<th class="head"><p>Source</p></th>
+<th class="head"><p>Physical Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(h(1+\delta) L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_h\)</span></p></td>
+<td><p>Curvature kick (reference orbit bending)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(-\chi K_0 L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_{K_0}\)</span></p></td>
+<td><p>Main dipole bending</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(-\chi K_0 h x L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_{K_0 h}\)</span></p></td>
+<td><p>Weak focusing (curvature-dipole field coupling)</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(-(\beta_0/\beta) \cdot h x L_K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(H_h\)</span></p></td>
+<td><p>Path-length effect (longitudinal)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For a sector bend <span class="math notranslate nohighlight">\(h = K_0\)</span>, the net kick of the reference particle (<span class="math notranslate nohighlight">\(x=0, \delta=0, \chi=1\)</span>) is <span class="math notranslate nohighlight">\(h L_K - K_0 L_K = 0\)</span>. This is correct: in curvilinear coordinates, the reference particle moves along the reference orbit, and <span class="math notranslate nohighlight">\(p_x\)</span> is always 0. The bending effect is already encoded in the curvilinear coordinate system itself.</p>
+</div>
+</section>
+<section id="uniform-integrator-2nd-order-symplectic">
+<h3>Uniform Integrator (2nd-order symplectic)<a class="headerlink" href="#uniform-integrator-2nd-order-symplectic" title="Link to this heading"></a></h3>
+<p>Each slice uses the drift-kick-drift (DKD) structure, i.e., 2nd-order leapfrog:</p>
+<div class="math notranslate nohighlight">
+\[S_2(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
+<p>The per-slice error is <span class="math notranslate nohighlight">\(O(\Delta s^3)\)</span>, and the global error is <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span>. A 2nd-order symplectic integrator where every step is a canonical transformation.</p>
+</section>
+<section id="yoshida4-integrator-4th-order-symplectic">
+<h3>yoshida4 Integrator (4th-order symplectic)<a class="headerlink" href="#yoshida4-integrator-4th-order-symplectic" title="Link to this heading"></a></h3>
+<p>A 4th-order symplectic map is constructed by composing three 2nd-order DKD steps [Yoshida 1990]:</p>
+<div class="math notranslate nohighlight">
+\[S_4(\Delta s) = S_2(z_1 \Delta s) \circ S_2(z_0 \Delta s) \circ S_2(z_1 \Delta s)\]</div>
+<p>where the Yoshida coefficients are:</p>
+<div class="math notranslate nohighlight">
+\[z_1 = \frac{1}{2 - 2^{1/3}} \approx 1.3512\]</div>
+<div class="math notranslate nohighlight">
+\[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><span class="math notranslate nohighlight">\(z_0 &lt; 0\)</span> means the middle step is a backward tracking (the drift and kick “lengths” are negative). This is a mathematical requirement of the Yoshida composition method and is fully self-consistent in the symplectic map group. The per-slice error is <span class="math notranslate nohighlight">\(O(\Delta s^5)\)</span>, and the global error is <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span>.</p>
+</div>
+<p>Integrator Selection Recommendations:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Scenario</p></th>
+<th class="head"><p>Recommended Integrator</p></th>
+<th class="head"><p>Reason</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Fast simulation</p></td>
+<td><p>uniform</p></td>
+<td><p>2 drifts + 1 kick per slice, low computational cost</p></td>
+</tr>
+<tr class="row-odd"><td><p>High-precision simulation</p></td>
+<td><p>yoshida4</p></td>
+<td><p>4th-order accuracy, but 6 drifts + 3 kicks per slice</p></td>
+</tr>
+<tr class="row-even"><td><p>With space charge</p></td>
+<td><p>uniform + more slices</p></td>
+<td><p>PIC solve cost far exceeds drift; 4th-order Yoshida requires 3 PIC solves</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="body-model-comparison">
+<h2>Body Model Comparison<a class="headerlink" href="#body-model-comparison" title="Link to this heading"></a></h2>
+<p>The PASS dipole body supports two physical models, selected by the <code class="docutils literal notranslate"><span class="pre">model</span></code> parameter.</p>
+<section id="model-description">
+<h3>Model Description<a class="headerlink" href="#model-description" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>rot-kick-rot (RKR)</strong>: The dipole field is a constant field (independent of <span class="math notranslate nohighlight">\(x\)</span>), and the thin lens kick itself is exact. The drift step uses polar drift, handling curvature effects. A single slice achieves high precision. Default model.</p></li>
+<li><p><strong>drift-kick-drift-exact (DKD-exact)</strong>: The drift step uses straight-line exact drift, and curvature is treated as a thin lens kick. For bends with large deflection angles, insufficient slice count leads to chromaticity errors.</p></li>
+</ul>
+</section>
+<section id="feature-comparison">
+<h3>Feature Comparison<a class="headerlink" href="#feature-comparison" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Feature</p></th>
+<th class="head"><p>rot-kick-rot</p></th>
+<th class="head"><p>drift-kick-drift-exact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Drift type</p></td>
+<td><p>Polar drift (including curvature)</p></td>
+<td><p>Straight-line exact drift</p></td>
+</tr>
+<tr class="row-odd"><td><p>k0 handling</p></td>
+<td><p>Within the drift step (interleaved k0_kick)</p></td>
+<td><p>In the kick step (thin lens)</p></td>
+</tr>
+<tr class="row-even"><td><p>Curvature Jacobian</p></td>
+<td><p>Included ((1+h·x) correction)</p></td>
+<td><p>Not included (requires more slices to compensate)</p></td>
+</tr>
+<tr class="row-odd"><td><p>1-slice precision</p></td>
+<td><p>High (constant field kick is exact)</p></td>
+<td><p>Limited (curvature approximation)</p></td>
+</tr>
+<tr class="row-even"><td><p>Chromaticity precision</p></td>
+<td><p>Exact with 1 slice</p></td>
+<td><p>Requires sufficient slice count</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="slice-count-recommendations">
+<h3>Slice Count Recommendations<a class="headerlink" href="#slice-count-recommendations" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Model</p></th>
+<th class="head"><p>Recommended Slices</p></th>
+<th class="head"><p>Recommended Integrator</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>rot-kick-rot</p></td>
+<td><p>1</p></td>
+<td><p>yoshida4</p></td>
+<td><p>The constant dipole field makes the 1-slice kick exact; polar drift handles curvature; 1 slice achieves high precision</p></td>
+</tr>
+<tr class="row-odd"><td><p>drift-kick-drift-exact</p></td>
+<td><p>5~10</p></td>
+<td><p>yoshida4</p></td>
+<td><p>Large deflection angles require more slices to compensate for chromaticity errors due to missing curvature Jacobian</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the DKD-exact model, curvature h is treated as a thin lens kick, and the drift step does not include the (1+h·x) Jacobian correction. When the bend deflection angle is large, the path differences of particles with different momenta in the drift are not correctly accounted for, leading to chromaticity deviations. Increasing the slice count can mitigate this issue (error converges as <span class="math notranslate nohighlight">\(O(1/N^2)\)</span>), but the RKR model fundamentally avoids this problem—polar drift handles curvature within the drift step, requiring no additional slices.</p>
+</div>
+</section>
+</section>
+<section id="entrance-edge-yrotation">
+<h2>Entrance Edge: YRotation<a class="headerlink" href="#entrance-edge-yrotation" title="Link to this heading"></a></h2>
+<section id="physical-purpose">
+<h3>Physical Purpose<a class="headerlink" href="#physical-purpose" title="Link to this heading"></a></h3>
+<p>YRotation is a pure geometric coordinate rotation that does not involve any magnetic field. Its purpose is to transform particle coordinates from the reference trajectory coordinate system to the magnet end-face coordinate system, so that subsequent fringe field calculations can be performed in the correct reference frame.</p>
+<p>When the magnet end face has an angle <span class="math notranslate nohighlight">\(e_1\)</span> with respect to the reference trajectory normal, the particle’s incident slope relative to the end face is not equal to <span class="math notranslate nohighlight">\(p_x / p_z\)</span>. YRotation rotates the coordinate system by <span class="math notranslate nohighlight">\(-e_1\)</span>, so that the rotated <span class="math notranslate nohighlight">\(p_x / p_z\)</span> becomes the slope relative to the end face.</p>
+</section>
+<section id="complete-derivation">
+<h3>Complete Derivation<a class="headerlink" href="#complete-derivation" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>YRotation(-e1)                    Wedge(-e1, K0)
+─────────────────                 ──────────────────
+Coordinate system: trajectory → end-face    Coordinate system: end-face → trajectory
+Magnetic field: B = 0 (field-free region)   Magnetic field: B = B0 (field region)
+Rotation: -e1                                Rotation: +e1 (opposite to YRotation)
+Kick: none                                   Kick: Δpx = K0·x·sin(e1) (focusing)
+─────────────────                 ──────────────────
+
+Net rotation: (-e1) + (+e1) = 0
+Net effect: fringe field effect + focusing kick
+</pre></div>
+</div>
+<p><strong>Step 1: Momentum rotation</strong></p>
+<p>The reference frame is rotated about the <span class="math notranslate nohighlight">\(y\)</span> axis by angle <span class="math notranslate nohighlight">\(\theta\)</span>. This rotation occurs in the <span class="math notranslate nohighlight">\((x, z)\)</span> plane of 3D space, with the <span class="math notranslate nohighlight">\(y\)</span> direction unaffected. Therefore, the <span class="math notranslate nohighlight">\(x\)</span> component of momentum <span class="math notranslate nohighlight">\(p_x\)</span> and the <span class="math notranslate nohighlight">\(z\)</span> component <span class="math notranslate nohighlight">\(p_z\)</span> are mixed, while <span class="math notranslate nohighlight">\(p_y\)</span> is unchanged. The standard rotation transformation of momentum is:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{pmatrix} p_x' \\ p_z' \end{pmatrix} = \begin{pmatrix} \cos\theta &amp; -\sin\theta \\ \sin\theta &amp; \cos\theta \end{pmatrix} \begin{pmatrix} p_x \\ p_z \end{pmatrix}\end{split}\]</div>
+<p>Therefore:</p>
+<div class="math notranslate nohighlight">
+\[p_x' = \cos\theta \cdot p_x - \sin\theta \cdot p_z\]</div>
+<div class="math notranslate nohighlight">
+\[p_z' = \sin\theta \cdot p_x + \cos\theta \cdot p_z\]</div>
+<p>This is a pure momentum rotation with no force involved.</p>
+<p><strong>Step 2: Position projection</strong></p>
+<p>The key is the definition of <span class="math notranslate nohighlight">\(x\)</span> in curvilinear coordinates: <strong>x is the transverse offset measured on the transverse plane at the reference position</strong> <span class="math notranslate nohighlight">\(s. When the reference frame is rotated by :math:\)</span>theta`, the direction of the “transverse plane” changes, and the same physical position has a different <span class="math notranslate nohighlight">\(x'\)</span> value in the new coordinate system.</p>
+<p>The particle’s trajectory in the old frame is <span class="math notranslate nohighlight">\(\vec{r}(\lambda) = (x + \lambda p_x/p_z,\; 0,\; \lambda)\)</span>. The <span class="math notranslate nohighlight">\(z'\)</span> axis direction of the new frame is <span class="math notranslate nohighlight">\(\hat{z}' = (\sin\theta, 0, \cos\theta)\)</span>, and the transverse direction is <span class="math notranslate nohighlight">\(\hat{x}' = (\cos\theta, 0, -\sin\theta)\)</span>.</p>
+<p>In the new frame, zero longitudinal position means:</p>
+<div class="math notranslate nohighlight">
+\[\vec{r} \cdot \hat{z}' = (x + \lambda p_x/p_z)\sin\theta + \lambda\cos\theta = 0\]</div>
+<p>Solving for <span class="math notranslate nohighlight">\(\lambda\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\lambda = -\frac{x \sin\theta \cdot p_z}{p_x \sin\theta + p_z \cos\theta} = -\frac{x \sin\theta \cdot p_z}{p_z'}\]</div>
+<p>The new transverse position is:</p>
+<div class="math notranslate nohighlight">
+\[x' = \vec{r} \cdot \hat{x}' = (x + \lambda p_x/p_z)\cos\theta - \lambda\sin\theta\]</div>
+<p>Substituting <span class="math notranslate nohighlight">\(\lambda\)</span> and simplifying, using the orthogonality of rotation <span class="math notranslate nohighlight">\(p_z'\cos\theta - p_x'\sin\theta = p_z\)</span>, we finally obtain:</p>
+<div class="math notranslate nohighlight">
+\[x' = \frac{x \cdot p_z}{p_z'} = \frac{x \cdot p_z}{p_x \sin\theta + p_z \cos\theta}\]</div>
+<p><strong>Verification of consistency with the Xsuite formula</strong>:</p>
+<p>Xsuite writes <code class="docutils literal notranslate"><span class="pre">x_hat</span> <span class="pre">=</span> <span class="pre">x</span> <span class="pre">/</span> <span class="pre">(cos_angle</span> <span class="pre">*</span> <span class="pre">ptt)</span></code>, where <code class="docutils literal notranslate"><span class="pre">ptt</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">+</span> <span class="pre">tan_angle</span> <span class="pre">*</span> <span class="pre">px</span> <span class="pre">/</span> <span class="pre">pz</span></code>:</p>
+<div class="math notranslate nohighlight">
+\[\cos\theta \cdot p_{tt} = \cos\theta + \sin\theta \cdot \frac{p_x}{p_z} = \frac{p_z'}{p_z}\]</div>
+<p>Therefore <span class="math notranslate nohighlight">\(x' = x / (\cos\theta \cdot p_{tt}) = x \cdot p_z / p_z'\)</span>, consistent with the derivation.</p>
+<p><strong>Step 3: y direction</strong></p>
+<p>The <span class="math notranslate nohighlight">\(y\)</span> direction does not directly participate in the rotation, but due to the tilting of the transverse plane, the particle acquires an additional offset in the <span class="math notranslate nohighlight">\(y\)</span> direction due to trajectory slope while traveling to the new transverse plane:</p>
+<div class="math notranslate nohighlight">
+\[y' = y - \sin\theta \cdot \frac{x \cdot p_y}{p_z'} = y - \tan\theta \cdot \frac{x \cdot p_y}{p_z \cdot p_{tt}}\]</div>
+<p><strong>Step 4:</strong> <span class="math notranslate nohighlight">\(\zeta\)</span> <strong>direction</strong></p>
+<p>The longitudinal coordinate <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span>. After rotating the reference frame, <span class="math notranslate nohighlight">\(\sin\theta \cdot x\)</span> is the projection of the transverse position onto the new longitudinal direction (additional path length due to reference frame rotation), which needs to be converted to a time increment:</p>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = \beta_0 \cdot \tan\theta \cdot \frac{x \cdot \text{time\_fac}}{p_z \cdot p_{tt}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\text{time\_fac} = 1/\beta_0 + p_\tau\)</span> is the time-path conversion factor (see variable conversion section).</p>
+</section>
+<section id="final-formulas">
+<h3>Final Formulas<a class="headerlink" href="#final-formulas" title="Link to this heading"></a></h3>
+<p>Definitions:</p>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[p_{tt} = 1 + \tan(\theta) \cdot \frac{p_x}{p_z}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\theta\)</span> is the rotation angle (entrance <span class="math notranslate nohighlight">\(\theta = -e_1\)</span>, exit <span class="math notranslate nohighlight">\(\theta = -e_2\)</span>).</p>
+<p>Time factor:</p>
+<div class="math notranslate nohighlight">
+\[\text{time\_fac} = \frac{1}{\beta_0} + p_\tau = \sqrt{(1+\delta)^2 + \frac{1}{\beta_0^2 \gamma_0^2}}\]</div>
+<p>Six-dimensional map:</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow \frac{x}{\cos\theta \cdot p_{tt}}\]</div>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow \cos\theta \cdot p_x - \sin\theta \cdot p_z\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y - \tan\theta \cdot \frac{x \cdot p_y}{p_z \cdot p_{tt}}\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta + \beta_0 \cdot \tan\theta \cdot \frac{x \cdot \text{time\_fac}}{p_z \cdot p_{tt}}\]</div>
+<div class="math notranslate nohighlight">
+\[p_y, \delta \text{ unchanged}\]</div>
+</section>
+<section id="variable-conversion-notes">
+<h3>Variable Conversion Notes<a class="headerlink" href="#variable-conversion-notes" title="Link to this heading"></a></h3>
+<p>Xsuite stores <span class="math notranslate nohighlight">\(p_\tau\)</span> (normalized longitudinal momentum deviation), while PASS stores <span class="math notranslate nohighlight">\(\delta\)</span> (normalized total momentum deviation). The exact relationship between them is:</p>
+<div class="math notranslate nohighlight">
+\[(1+\delta)^2 = \left(\frac{1}{\beta_0} + p_\tau\right)^2 - \frac{1}{\beta_0^2 \gamma_0^2}\]</div>
+<p>Therefore:</p>
+<div class="math notranslate nohighlight">
+\[\frac{1}{\beta_0} + p_\tau = \sqrt{(1+\delta)^2 + \frac{1}{\beta_0^2 \gamma_0^2}}\]</div>
+<p><strong>Derivation</strong>: The total particle energy <span class="math notranslate nohighlight">\(E = E_0(1 + p_\tau)\)</span>. From <span class="math notranslate nohighlight">\(E^2 - E_0^2 = (Pc)^2 - (P_0 c)^2\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[(1+\delta)^2 = (P/P_0)^2 = \frac{(1+p_\tau)^2 - 1/\gamma_0^2}{\beta_0^2}\]</div>
+<p>Expanding and using <span class="math notranslate nohighlight">\(1 - 1/\gamma_0^2 = \beta_0^2\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[(1+\delta)^2 = 1 + \frac{2 p_\tau}{\beta_0^2} + \frac{p_\tau^2}{\beta_0^2}\]</div>
+<p>And the Xsuite expression for <span class="math notranslate nohighlight">\(p_z\)</span> is <code class="docutils literal notranslate"><span class="pre">sqrt(1</span> <span class="pre">+</span> <span class="pre">2*pt/beta0</span> <span class="pre">+</span> <span class="pre">pt*pt</span> <span class="pre">-</span> <span class="pre">px*px</span> <span class="pre">-</span> <span class="pre">py*py)</span></code>, which after substituting the above relation equals exactly <span class="math notranslate nohighlight">\(\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span>.</p>
+</section>
+</section>
+<section id="entrance-edge-fringe-field">
+<h2>Entrance Edge: Fringe Field<a class="headerlink" href="#entrance-edge-fringe-field" title="Link to this heading"></a></h2>
+<section id="id1">
+<h3>Physical Purpose<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>The magnetic field of a real magnet is not a step function at the end face, but has a gradual transition region. This gradual region produces additional nonlinear effects, mainly vertical focusing.</p>
+</section>
+<section id="physical-derivation">
+<h3>Physical Derivation<a class="headerlink" href="#physical-derivation" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>B_y                                          B_y = B0
+↑                              ┌──────────────
+│                             /
+│         Fringe             /  end face
+│         Field             /
+│       (B: 0→B0)          /
+│                        /
+│  B = 0               /
+└────────────┬────────┘──────────────────────── → s
+             ↑        ↑
+             YRotation Fringe    Wedge / Body
+             (B=0)    (0→B0)     (B=B0)
+
+hgap = half gap
+Δp_y = vertical focusing kick
+</pre></div>
+</div>
+<p><strong>Fringe field distribution</strong></p>
+<p>The magnetic field at the end face of a real magnet transitions as:</p>
+<div class="math notranslate nohighlight">
+\[B_y(s) = B_0 \cdot b(s), \quad b(s): 0 \to 1\]</div>
+<p>where <span class="math notranslate nohighlight">\(b(s)\)</span> is the normalized fringe field distribution function. This gradual field produces nonlinear effects on particles, mainly vertical focusing.</p>
+<p><strong>Fringe field integral</strong></p>
+<p>Forest defines the fringe field integral:</p>
+<div class="math notranslate nohighlight">
+\[F = \int \frac{b(s)\bigl(K_0 - b(s)K_0\bigr)}{g_{\text{full}} \cdot K_0^2} \, ds\]</div>
+<p>where <span class="math notranslate nohighlight">\(g_{\text{full}}\)</span> is the magnet full gap (<span class="math notranslate nohighlight">\(g_{\text{full}} = 2 \times \text{hgap}\)</span>). <span class="math notranslate nohighlight">\(F\)</span> describes the “strength” of the fringe field: <span class="math notranslate nohighlight">\(F=0\)</span> corresponds to a hard edge, and larger <span class="math notranslate nohighlight">\(F\)</span> means stronger fringe field effects.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Naming relationship between hgap and g</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">hgap</span></code> parameter in Xsuite and PASS is the magnet <strong>half gap</strong>, i.e., half the distance between the upper and lower pole faces.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">hgap</span></code> = half gap = <span class="math notranslate nohighlight">\(g_{\text{half}}\)</span></p></li>
+<li><p>Magnet full gap <span class="math notranslate nohighlight">\(g_{\text{full}} = 2 \times \text{hgap}\)</span></p></li>
+</ul>
+<p>In the fringe field code, the auxiliary quantity <span class="math notranslate nohighlight">\(f_h\)</span> directly uses <code class="docutils literal notranslate"><span class="pre">hgap</span></code> (half gap):</p>
+<div class="math notranslate nohighlight">
+\[f_h = \text{hgap} \times \text{fint}\]</div>
+<p>This is fully consistent with Xsuite source code <code class="docutils literal notranslate"><span class="pre">track_dipole_fringe.h</span></code> line 37 <code class="docutils literal notranslate"><span class="pre">fh</span> <span class="pre">=</span> <span class="pre">hgap</span> <span class="pre">*</span> <span class="pre">fint</span></code>. The <code class="docutils literal notranslate"><span class="pre">hgap</span></code> parameter in Xsuite is also the half gap. Therefore the physical meaning of <span class="math notranslate nohighlight">\(f_h\)</span> is “half gap × fringe field integral”, not “full gap × fringe field integral”.</p>
+<p>In the physics literature (e.g., Forest’s original paper), <span class="math notranslate nohighlight">\(g\)</span> in the fringe field integral formula typically refers to the full gap. The Xsuite/MAD-NG implementation has replaced <span class="math notranslate nohighlight">\(g\)</span> with the half gap <code class="docutils literal notranslate"><span class="pre">hgap</span></code>, with corresponding coefficient adjustments (e.g., the factor 72 in <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 \cdot f_h)\)</span> comes from this adjustment). PASS strictly follows the Xsuite implementation without additional conversion.</p>
+</div>
+<p><strong>Generating function</strong></p>
+<p>The fringe field map is a canonical transformation (symplectic map), generated by the generating function <span class="math notranslate nohighlight">\(\Phi_0\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+<p>where <span class="math notranslate nohighlight">\(x' = p_x/p_z\)</span>, <span class="math notranslate nohighlight">\(y' = p_y/p_z\)</span> are the particle slopes, and <span class="math notranslate nohighlight">\(c_2 = 2 K_0 \chi \cdot f_h\)</span> is the linear fringe field strength parameter.</p>
+<ul class="simple">
+<li><p><strong>First term</strong> <span class="math notranslate nohighlight">\(\arctan(x'/(1+y'^2))\)</span>: Incident angle correction of the particle at the end face. <span class="math notranslate nohighlight">\(x'\)</span> is the horizontal slope, and <span class="math notranslate nohighlight">\(1+y'^2\)</span> reflects the geometric correction of vertical motion on the horizontal incident angle (3D direction cosines).</p></li>
+<li><p><strong>Second term</strong> <span class="math notranslate nohighlight">\(-c_2(1 + x'^2(1+y'^2))p_z\)</span>: Fringe field integral effect. <span class="math notranslate nohighlight">\(c_2\)</span> is the fringe field strength, and <span class="math notranslate nohighlight">\((1 + x'^2(1+y'^2))\)</span> is the higher-order slope correction.</p></li>
+</ul>
+<p><strong>Partial derivatives and forces</strong></p>
+<p>Taking partial derivatives of <span class="math notranslate nohighlight">\(\Phi_0\)</span> with respect to slopes <span class="math notranslate nohighlight">\((x', y', p_z)\)</span>, then converting to partial derivatives with respect to <span class="math notranslate nohighlight">\((p_x, p_y, \delta)\)</span> via the chain rule, gives the force components.</p>
+<p>Introducing intermediate variables <span class="math notranslate nohighlight">\(c_{o2} = b_0 / \cos^2\Phi_0\)</span>, <span class="math notranslate nohighlight">\(c_{o1}\)</span>, <span class="math notranslate nohighlight">\(c_{o3}\)</span> (see formula section for details), the partial derivatives are:</p>
+<div class="math notranslate nohighlight">
+\[\phi_1 = \frac{\partial \Phi_0}{\partial x'}, \quad \phi_2 = \frac{\partial \Phi_0}{\partial y'}, \quad \phi_3 = \frac{\partial \Phi_0}{\partial p_z}\]</div>
+<p>Force components (chain rule <span class="math notranslate nohighlight">\(k_i = \phi_1 \partial x'/\partial p_i + \phi_2 \partial y'/\partial p_i + \phi_3 \partial p_z/\partial p_i\)</span>):</p>
+<div class="math notranslate nohighlight">
+\[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x'y'}{p_z} - \phi_3 x'\]</div>
+<div class="math notranslate nohighlight">
+\[k_y = \phi_1 \frac{x'y'}{p_z} + \phi_2 \frac{1+y'^2}{p_z} - \phi_3 y'\]</div>
+<div class="math notranslate nohighlight">
+\[k_z = \phi_1 \frac{\text{tfac} \cdot x'}{p_z^2} + \phi_2 \frac{\text{tfac} \cdot y'}{p_z^2} - \phi_3 \frac{\text{tfac}}{p_z}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\text{tfac} = -(1/\beta_0 + p_\tau)\)</span> comes from the dependence of <span class="math notranslate nohighlight">\(t\)</span> on <span class="math notranslate nohighlight">\(p_z\)</span> in <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span>.</p>
+<p><strong>Implicit equation</strong></p>
+<p>The fringe field map is not a simple kick (position unchanged, momentum jump), but an <strong>implicit map</strong>. The reason is that the fringe field effect is nonlinearly coupled with the particle’s <span class="math notranslate nohighlight">\(y\)</span> coordinate: as the particle passes through the fringe field, the <span class="math notranslate nohighlight">\(y\)</span> coordinate itself is changing, so the force (depending on <span class="math notranslate nohighlight">\(y\)</span>) and the displacement (depending on the force) are mutually coupled.</p>
+<p>The implicit solution comes from the generating function expanded to second order:</p>
+<div class="math notranslate nohighlight">
+\[y_f = \frac{2y}{1 + \sqrt{1 - 2 k_y y}}\]</div>
+<p>This form guarantees canonicity (symplecticity): when <span class="math notranslate nohighlight">\(k_y y\)</span> is small, <span class="math notranslate nohighlight">\(y_f \approx y + k_y y^2/2\)</span>, i.e., the second-order expansion.</p>
+</section>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Symbol</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fint</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(F\)</span></p></td>
+<td><p>Fringe field integral, <span class="math notranslate nohighlight">\(F=0\)</span> for hard edge</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hgap</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(g_{\text{half}}\)</span></p></td>
+<td><p>Magnet <strong>half gap</strong>, full gap <span class="math notranslate nohighlight">\(g_{\text{full}} = 2 \cdot \text{hgap}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k0</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(K_0\)</span></p></td>
+<td><p>Normalized dipole field strength</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="complete-formulas">
+<h3>Complete Formulas<a class="headerlink" href="#complete-formulas" title="Link to this heading"></a></h3>
+<p>Define auxiliary quantities:</p>
+<div class="math notranslate nohighlight">
+\[f_h = \text{hgap} \cdot F\]</div>
+<div class="math notranslate nohighlight">
+\[f_{\text{sad}} = \frac{1}{72 \cdot f_h} \quad (f_h &gt; 0 \text{, otherwise } 0)\]</div>
+<div class="math notranslate nohighlight">
+\[b_0 = K_0 \cdot \chi\]</div>
+<div class="math notranslate nohighlight">
+\[\text{relp} = \frac{1}{\sqrt{(1+\delta)^2}}\]</div>
+<div class="math notranslate nohighlight">
+\[\text{tfac} = -\left(\frac{1}{\beta_0} + p_\tau\right) = -\sqrt{(1+\delta)^2 + \frac{1}{\beta_0^2 \gamma_0^2}}\]</div>
+<div class="math notranslate nohighlight">
+\[c_2 = b_0 \cdot f_h \cdot 2\]</div>
+<div class="math notranslate nohighlight">
+\[c_3 = b_0^2 \cdot f_{\text{sad}} \cdot \text{relp}\]</div>
+<p>where <span class="math notranslate nohighlight">\(c_2\)</span> is the linear fringe field strength, and <span class="math notranslate nohighlight">\(c_3\)</span> is the 6th-order nonlinear correction (from <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 f_h)\)</span>, called the “sixth-order achromatic detuning” term).</p>
+<p>Particle slopes:</p>
+<div class="math notranslate nohighlight">
+\[x' = \frac{p_x}{p_z}, \quad y' = \frac{p_y}{p_z}\]</div>
+<p>Characteristic functions and partial derivatives:</p>
+<div class="math notranslate nohighlight">
+\[\phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+<div class="math notranslate nohighlight">
+\[c_{o2} = \frac{b_0}{\cos^2\phi_0}\]</div>
+<div class="math notranslate nohighlight">
+\[c_{o1} = \frac{c_{o2}}{1 + \left(\frac{x'}{1+y'^2}\right)^2} \cdot \frac{1}{1+y'^2}\]</div>
+<div class="math notranslate nohighlight">
+\[c_{o3} = c_{o2} \cdot c_2\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_1 = c_{o1} - c_{o3} \cdot 2 x'(1+y'^2) p_z\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x' y' \cdot p_z\]</div>
+<div class="math notranslate nohighlight">
+\[\phi_3 = -c_{o3} \left(1 + x'^2(1+y'^2)\right)\]</div>
+<p>Force components:</p>
+<div class="math notranslate nohighlight">
+\[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x' y'}{p_z} - \phi_3 x'\]</div>
+<div class="math notranslate nohighlight">
+\[k_y = \phi_1 \frac{x' y'}{p_z} + \phi_2 \frac{1+y'^2}{p_z} - \phi_3 y'\]</div>
+<div class="math notranslate nohighlight">
+\[k_z = \phi_1 \frac{\text{tfac} \cdot x'}{p_z^2} + \phi_2 \frac{\text{tfac} \cdot y'}{p_z^2} - \phi_3 \frac{\text{tfac}}{p_z}\]</div>
+<p>Six-dimensional map:</p>
+<div class="math notranslate nohighlight">
+\[y_f = \frac{2y}{1 + \sqrt{1 - 2 k_y y}}\]</div>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x + \frac{1}{2} k_x y_f^2\]</div>
+<div class="math notranslate nohighlight">
+\[p_y \leftarrow p_y - 4 c_3 y_f^3 - b_0 \tan(\phi_0) \cdot y_f\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta + \beta_0 \left(\frac{1}{2} k_z y_f^2 + c_3 y_f^4 \cdot \text{relp}^2 \cdot \text{tfac}\right)\]</div>
+<div class="math notranslate nohighlight">
+\[p_x, \delta \text{ unchanged}\]</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(p_x\)</span> and <span class="math notranslate nohighlight">\(\delta\)</span> are unchanged: the fringe field is a static magnetic field and does no work</p></li>
+<li><p>The <span class="math notranslate nohighlight">\(-b_0 \tan(\phi_0) y_f\)</span> term in the <span class="math notranslate nohighlight">\(p_y\)</span> change is the main vertical focusing</p></li>
+<li><p><span class="math notranslate nohighlight">\(-4 c_3 y_f^3\)</span> is the 6th-order nonlinear correction</p></li>
+<li><p><span class="math notranslate nohighlight">\(y_f\)</span> is solved through the implicit equation, ensuring precise treatment and symplecticity of nonlinear effects</p></li>
+<li><p>The <span class="math notranslate nohighlight">\(x\)</span> change is an <span class="math notranslate nohighlight">\(O(y^2)\)</span> order horizontal-vertical coupling</p></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="entrance-edge-wedge-edge-angle">
+<h2>Entrance Edge: Wedge (Edge Angle)<a class="headerlink" href="#entrance-edge-wedge-edge-angle" title="Link to this heading"></a></h2>
+<section id="id2">
+<h3>Physical Purpose<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<p>Wedge describes the coordinate transformation of a particle passing through a tilted end face in a uniform magnetic field <span class="math notranslate nohighlight">\(B_0\)</span>. It accomplishes two things simultaneously:</p>
+<ol class="arabic simple">
+<li><p><strong>Geometric rotation</strong>: Rotates the coordinate system from the end-face reference frame back to the reference trajectory reference frame (opposite rotation direction to YRotation, canceling each other)</p></li>
+<li><p><strong>Magnetic field kick</strong>: Applies the edge angle focusing effect <span class="math notranslate nohighlight">\(\Delta p_x \propto -x\)</span></p></li>
+</ol>
+<p>When <span class="math notranslate nohighlight">\(K_0 = 0\)</span> (no magnetic field), Wedge degenerates to pure YRotation (proof below).</p>
+</section>
+<section id="computation-formulas">
+<h3>Computation Formulas<a class="headerlink" href="#computation-formulas" title="Link to this heading"></a></h3>
+<p>Parameters: <span class="math notranslate nohighlight">\(\theta\)</span> (wedge angle, entrance <span class="math notranslate nohighlight">\(\theta = -e_1\)</span>), <span class="math notranslate nohighlight">\(K_0\)</span>, <span class="math notranslate nohighlight">\(\chi\)</span></p>
+<p>Definitions:</p>
+<div class="math notranslate nohighlight">
+\[b_1 = K_0 \cdot \chi\]</div>
+<div class="math notranslate nohighlight">
+\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[A = \frac{1}{\sqrt{(1+\delta)^2 - p_y^2}}\]</div>
+<div class="math notranslate nohighlight">
+\[\text{rvv} = \frac{\beta}{\beta_0}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\beta\)</span> is the particle’s actual normalized velocity (see the formula in the drift map).</p>
+<p>Six-dimensional map:</p>
+<div class="math notranslate nohighlight">
+\[p_x' = p_x \cos\theta + (p_z - b_1 x) \sin\theta\]</div>
+<div class="math notranslate nohighlight">
+\[p_z' = \sqrt{(1+\delta)^2 - p_x'^2 - p_y^2}\]</div>
+<div class="math notranslate nohighlight">
+\[x' = x \cos\theta + \frac{x p_x \sin(2\theta) + \sin^2\theta \cdot (2 x p_z - b_1 x^2)}{p_z' + p_z \cos\theta - p_x \sin\theta}\]</div>
+<div class="math notranslate nohighlight">
+\[D = \arcsin(A \cdot p_x) - \arcsin(A \cdot p_x')\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta y = \frac{p_y (\theta + D)}{b_1}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta \ell = \frac{(1+\delta) (\theta + D)}{b_1}\]</div>
+<p>Final updates:</p>
+<div class="math notranslate nohighlight">
+\[x \leftarrow x'\]</div>
+<div class="math notranslate nohighlight">
+\[p_x \leftarrow p_x'\]</div>
+<div class="math notranslate nohighlight">
+\[y \leftarrow y + \Delta y\]</div>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta - \frac{\Delta \ell}{\text{rvv}}\]</div>
+<div class="math notranslate nohighlight">
+\[p_y, \delta \text{ unchanged}\]</div>
+</section>
+<section id="physical-meaning-of-the-kick-term">
+<h3>Physical Meaning of the Kick Term<a class="headerlink" href="#physical-meaning-of-the-kick-term" title="Link to this heading"></a></h3>
+<p>Expanding the <span class="math notranslate nohighlight">\(p_x'\)</span> formula:</p>
+<div class="math notranslate nohighlight">
+\[p_x' = \underbrace{p_x \cos\theta + p_z \sin\theta}_{\text{geometric rotation}} \;\underbrace{-\; b_1 x \sin\theta}_{\text{magnetic field kick}}\]</div>
+<ul class="simple">
+<li><p><strong>Geometric rotation part</strong>: <span class="math notranslate nohighlight">\(p_x \cos\theta + p_z \sin\theta\)</span>, opposite in direction to YRotation’s <span class="math notranslate nohighlight">\(\cos\theta \cdot p_x - \sin\theta \cdot p_z\)</span>, canceling each other</p></li>
+<li><p><strong>Magnetic field kick part</strong>: <span class="math notranslate nohighlight">\(-b_1 x \sin\theta = -K_0 \chi x \sin\theta\)</span>, proportional to <span class="math notranslate nohighlight">\(-x\)</span>, i.e., edge angle focusing</p></li>
+</ul>
+<p>For the entrance (<span class="math notranslate nohighlight">\(\theta = -e_1\)</span>), the kick is:</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x = -K_0 \chi x \sin(-e_1) = K_0 \chi x \sin(e_1) &gt; 0 \quad (\text{when } x &gt; 0)\]</div>
+<p>This gives particles on the outside of the orbit (<span class="math notranslate nohighlight">\(x &gt; 0\)</span>) an inward momentum, i.e., a focusing effect. The equivalent focal length is <span class="math notranslate nohighlight">\(f = \rho / \sin(e_1)\)</span>.</p>
+</section>
+<section id="relationship-between-delta-ell-and-zeta">
+<h3>Relationship Between Delta-ell and zeta<a class="headerlink" href="#relationship-between-delta-ell-and-zeta" title="Link to this heading"></a></h3>
+<p>Equation Eq. 1.201 gives the <strong>path length</strong> <span class="math notranslate nohighlight">\(\Delta\ell\)</span>, while the code updates the <strong>longitudinal coordinate</strong> <span class="math notranslate nohighlight">\(\zeta\)</span>. The two are different:</p>
+<div class="math notranslate nohighlight">
+\[\Delta\ell = \frac{(1+\delta)(\theta + D)}{b_1} \quad \text{(path length)}\]</div>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = -\frac{\Delta\ell}{\text{rvv}} \quad (\zeta \text{ coordinate update})\]</div>
+<p><strong>Physical reason</strong>:</p>
+<ol class="arabic simple">
+<li><p><span class="math notranslate nohighlight">\(\Delta\ell\)</span> is the path length the particle travels in the wedge</p></li>
+<li><p><span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span>, updating <span class="math notranslate nohighlight">\(\zeta\)</span> requires time: <span class="math notranslate nohighlight">\(\Delta t = \Delta\ell / v = \Delta\ell / (\text{rvv} \cdot \beta_0 c)\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(\Delta s\)</span> is already handled in the geometric transformations of <span class="math notranslate nohighlight">\(x'\)</span> and <span class="math notranslate nohighlight">\(\Delta y\)</span>, so <span class="math notranslate nohighlight">\(\zeta\)</span> only needs the <strong>time correction</strong> part:</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\Delta\zeta = -\beta_0 c \cdot \Delta t = -\beta_0 c \cdot \frac{\Delta\ell}{\text{rvv} \cdot \beta_0 c} = -\frac{\Delta\ell}{\text{rvv}}\]</div>
+<ul class="simple">
+<li><p><strong>Negative sign</strong>: <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span>, time increase causes <span class="math notranslate nohighlight">\(\zeta\)</span> to decrease</p></li>
+<li><p><strong>Division by rvv</strong>: <span class="math notranslate nohighlight">\(\text{rvv} = v/v_0 = \beta/\beta_0\)</span>, converting path length to time requires dividing by the particle’s actual velocity</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\zeta \leftarrow \zeta - \frac{\Delta \ell}{\text{rvv}}\]</div>
+<p>Fully consistent with Xsuite source code <code class="docutils literal notranslate"><span class="pre">add_to_zeta(-delta_ell</span> <span class="pre">/</span> <span class="pre">rvv)</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not add <span class="math notranslate nohighlight">\(\Delta\ell\)</span> directly to <span class="math notranslate nohighlight">\(\zeta\)</span>. <span class="math notranslate nohighlight">\(\Delta\ell\)</span> is path length, <span class="math notranslate nohighlight">\(\zeta\)</span> is a time-related coordinate, and the two are related through <span class="math notranslate nohighlight">\(-\Delta\ell/\text{rvv}\)</span>.</p>
+</div>
+</section>
+<section id="arcsin-clipping">
+<h3>arcsin Clipping<a class="headerlink" href="#arcsin-clipping" title="Link to this heading"></a></h3>
+<p>The computation of <span class="math notranslate nohighlight">\(D\)</span> in Wedge uses <span class="math notranslate nohighlight">\(\arcsin\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[D = \arcsin(A \cdot p_x) - \arcsin(A \cdot p_x')\]</div>
+<p>where <span class="math notranslate nohighlight">\(A = 1/\sqrt{(1+\delta)^2 - p_y^2}\)</span>. Theoretically <span class="math notranslate nohighlight">\(|A \cdot p_x| \leq 1\)</span> (because <span class="math notranslate nohighlight">\(|p_x| \leq \sqrt{(1+\delta)^2 - p_y^2}\)</span>), but <strong>floating-point errors</strong> may cause <span class="math notranslate nohighlight">\(A \cdot p_x = 1.0000000001\)</span>, in which case Python’s <code class="docutils literal notranslate"><span class="pre">np.arcsin</span></code> returns NaN and triggers a RuntimeWarning.</p>
+<p>The code uses <code class="docutils literal notranslate"><span class="pre">np.clip</span></code> to limit the argument to the <span class="math notranslate nohighlight">\([-1, 1]\)</span> range:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arg_px</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">arg_px</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">arg_new_px</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">arg_new_px</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This is a <strong>pure numerical safety measure</strong> that does not change the physical result. In exact arithmetic, <span class="math notranslate nohighlight">\(A \cdot p_x\)</span> is strictly within <span class="math notranslate nohighlight">\([-1, 1]\)</span>, and the clip is never triggered. Xsuite is C code, where <code class="docutils literal notranslate"><span class="pre">asin(1.0000000001)</span></code> returns a finite value without raising an exception, but Python requires explicit protection.</p>
+</section>
+<section id="proof-that-wedge-degenerates-to-yrotation-when-k0-0">
+<h3>Proof That Wedge Degenerates to YRotation When K0=0<a class="headerlink" href="#proof-that-wedge-degenerates-to-yrotation-when-k0-0" title="Link to this heading"></a></h3>
+<p><strong>Wedge’s</strong> <span class="math notranslate nohighlight">\(p_x'\)</span> <strong>formula</strong>:</p>
+<div class="math notranslate nohighlight">
+\[p_x' = p_x \cos\theta + (p_z - b_1 x) \sin\theta\]</div>
+<p>Setting <span class="math notranslate nohighlight">\(b_1 = K_0 \chi \to 0\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[p_x' = p_x \cos\theta + p_z \sin\theta\]</div>
+<p>YRotation’s <span class="math notranslate nohighlight">\(p_x'\)</span> formula is <span class="math notranslate nohighlight">\(p_x' = \cos\alpha \cdot p_x - \sin\alpha \cdot p_z\)</span>. Setting <span class="math notranslate nohighlight">\(\alpha = -\theta\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[p_x' = \cos\theta \cdot p_x + \sin\theta \cdot p_z\]</div>
+<p>The momentum formulas are consistent.</p>
+<p><strong>Position</strong> <span class="math notranslate nohighlight">\(x'\)</span>:</p>
+<p>Setting <span class="math notranslate nohighlight">\(b_1 = 0\)</span>, Wedge’s <span class="math notranslate nohighlight">\(x'\)</span> simplifies to:</p>
+<div class="math notranslate nohighlight">
+\[x' = x \cos\theta + \frac{2 x \sin\theta \cdot p_x'}{p_z' + p_z \cos\theta - p_x \sin\theta}\]</div>
+<p>Using the rotation orthogonality <span class="math notranslate nohighlight">\(p_z' = p_x \sin\theta + p_z \cos\theta\)</span>, the denominator becomes <span class="math notranslate nohighlight">\(2 p_z \cos\theta\)</span>, and we finally obtain:</p>
+<div class="math notranslate nohighlight">
+\[x' = \frac{x \cdot p_z}{p_z'} = \frac{x \cdot p_z}{p_x \sin\theta + p_z \cos\theta}\]</div>
+<p>Consistent with YRotation’s position formula.</p>
+<p><strong>y and</strong> <span class="math notranslate nohighlight">\(\zeta\)</span>:</p>
+<p>When <span class="math notranslate nohighlight">\(b_1 \to 0\)</span>, <span class="math notranslate nohighlight">\(D \to 0\)</span>, <span class="math notranslate nohighlight">\(\theta + D \to \theta\)</span>, so <span class="math notranslate nohighlight">\(\Delta y = p_y \theta / b_1 \to \infty\)</span>.</p>
+<p>This means the formulas for <span class="math notranslate nohighlight">\(y\)</span> and <span class="math notranslate nohighlight">\(\zeta\)</span> diverge as <span class="math notranslate nohighlight">\(b_1 \to 0\)</span>. Therefore, the <span class="math notranslate nohighlight">\(b_1 = 0\)</span> limit of Wedge is not continuous—when <span class="math notranslate nohighlight">\(|b_1| &lt; \epsilon\)</span>, the code directly branches to YRotation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">b1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">const</span><span class="o">.</span><span class="n">eps</span><span class="p">:</span>
+    <span class="c1"># Directly call YRotation, skipping computation containing 1/b1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_y_rotation_cpu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">py</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">dp</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">beta0</span><span class="p">)</span>
+    <span class="k">return</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Wedge degenerates to YRotation at <span class="math notranslate nohighlight">\(b_1 = 0\)</span> through a <strong>code branch structure</strong>. The momentum and position formulas are consistent in the <span class="math notranslate nohighlight">\(b_1 \to 0\)</span> limit, but <span class="math notranslate nohighlight">\(y\)</span> and <span class="math notranslate nohighlight">\(\zeta\)</span> contain a <span class="math notranslate nohighlight">\(1/b_1\)</span> factor, making the limit discontinuous, so a branch is necessary.</p>
+</div>
+</section>
+</section>
+<section id="edge-angle-sign-convention">
+<h2>Edge Angle Sign Convention<a class="headerlink" href="#edge-angle-sign-convention" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>e1 &gt; 0 (focusing):
+
+                  End face normal
+                    ↗  e1
+Trajectory normal  ↑        ↗
+          |      ╱  End face
+          |    ╱
+──────────┼──╱──────────→ s (reference trajectory)
+          |  ╱
+          |╱
+
+End face normal tilts toward the bending outside relative to trajectory normal
+
+
+e1 &lt; 0 (defocusing):
+
+          |╲
+          |  ╲
+──────────┼──╲──────────→ s (reference trajectory)
+          |    ╲  End face
+          |      ╲
+Trajectory normal  ↓        ╲  e1
+                   ╲ End face normal
+
+End face normal tilts toward the bending inside relative to trajectory normal
+</pre></div>
+</div>
+<p>The sign convention for edge angles <span class="math notranslate nohighlight">\(e_1\)</span>, <span class="math notranslate nohighlight">\(e_2\)</span> follows the MAD-X / Xsuite convention:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(e_1 &gt; 0\)</span>: The entrance end face normal tilts toward the bending outside relative to the reference trajectory normal</p></li>
+<li><p><span class="math notranslate nohighlight">\(e_2 &gt; 0\)</span>: The exit end face normal tilts toward the bending outside relative to the reference trajectory normal</p></li>
+</ul>
+<p>Common magnet types:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Magnet Type</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(e_1\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(e_2\)</span></p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Sector bend</p></td>
+<td><p>0</p></td>
+<td><p>0</p></td>
+<td><p>End face perpendicular to the reference trajectory</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rectangular bend</p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha/2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha/2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\alpha\)</span> is the bending angle</p></td>
+</tr>
+<tr class="row-even"><td><p>General</p></td>
+<td><p>Arbitrary</p></td>
+<td><p>Arbitrary</p></td>
+<td><p>User-specified</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameter-list">
+<h2>Parameter List<a class="headerlink" href="#parameter-list" title="Link to this heading"></a></h2>
+<section id="general-parameters">
+<h3>General Parameters<a class="headerlink" href="#general-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Longitudinal position of the element in the beamline</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Element length (<span class="math notranslate nohighlight">\(L\)</span>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Element name</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k0l</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">k0l</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Normalized dipole field integral (<span class="math notranslate nohighlight">\(K_{0L}\)</span>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">e1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">e1</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>rad</p></td>
+<td><p>Entrance edge angle (<span class="math notranslate nohighlight">\(e_1\)</span>), default 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">e2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">e2</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>rad</p></td>
+<td><p>Exit edge angle (<span class="math notranslate nohighlight">\(e_2\)</span>), default 0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hgap</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hgap</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float</p></td>
+<td><p>m</p></td>
+<td><p>Magnet half gap (<span class="math notranslate nohighlight">\(g_{\text{half}}\)</span>), default 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fint</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fint</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Entrance fringe field integral (<span class="math notranslate nohighlight">\(F\)</span>), default 0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fintx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fintx</span></code></p></td>
+<td><p>float</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Exit fringe field integral, default 0 (auto-set to <code class="docutils literal notranslate"><span class="pre">fint</span></code> when <span class="math notranslate nohighlight">\(\leq 0\)</span>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
+<td><p>int</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Number of slices, default 1</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Physical model, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default, auto-selects <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code>), <code class="docutils literal notranslate"><span class="pre">rot-kick-rot</span></code>, <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Integrator, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default <code class="docutils literal notranslate"><span class="pre">uniform</span></code>), <code class="docutils literal notranslate"><span class="pre">uniform</span></code>, <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Aperture type, default <code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
+<td><p>list</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Aperture parameter values, default <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="extended-parameters-reserved">
+<h3>Extended Parameters (Reserved)<a class="headerlink" href="#extended-parameters-reserved" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Property</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_field_error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">field</span> <span class="pre">error</span></code></p></td>
+<td><p>bool</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Whether field error is enabled, default <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">ramping</span></code></p></td>
+<td><p>bool</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Whether magnetic field ramping is enabled, default <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k0l_ramping_filepath</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">k0l</span> <span class="pre">ramping</span> <span class="pre">filepath</span></code></p></td>
+<td><p>str</p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>Magnetic field ramping data file path</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="usage-examples">
+<h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
+<section id="sector-bend">
+<h3>Sector Bend<a class="headerlink" href="#sector-bend" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BEND1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SBend&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;K0L&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Sector bend with end faces perpendicular to the reference trajectory, no edge effects.</p>
+</section>
+<section id="rectangular-bend">
+<h3>Rectangular Bend<a class="headerlink" href="#rectangular-bend" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BEND2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SBend&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;K0L&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;E1 (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;E2 (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;HGap (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;FInt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Rectangular bend with edge angle and fringe field effects. Bending angle <span class="math notranslate nohighlight">\(\alpha = K_{0L} = 0.1\)</span> rad, edge angles <span class="math notranslate nohighlight">\(e_1 = e_2 = \alpha/2 = 0.05\)</span> rad.</p>
+</section>
+<section id="thin-lens-bend">
+<h3>Thin Lens Bend<a class="headerlink" href="#thin-lens-bend" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;BEND3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;SBend&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;K0L&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;off&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Zero-length dipole, applying only the <span class="math notranslate nohighlight">\(K_{0L}\)</span> thin lens kick, no body tracking, no edge effects.</p>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Xsuite Physics Guide, Sec 1.10.3 (exact bend), Sec 1.10.9 (fringe field), Sec 1.10.10 (wedge), Sec 1.10.12 (quadrupole wedge correction)</p></li>
+<li><p>Forest, E. et al., “Edge Focusing Effects in Sector Bending Magnets”</p></li>
+<li><p>Yoshida, H., “Construction of higher order symplectic integrators”, Phys. Lett. A 150 (1990)</p></li>
+<li><p>MAD-NG fringe field implementation: <a class="reference external" href="https://github.com/MethodicalAcceleratorDesign/MAD">https://github.com/MethodicalAcceleratorDesign/MAD</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="drift.html" class="btn btn-neutral float-left" title="Drift" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quadrupole.html" class="btn btn-neutral float-right" title="Quadrupole" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
