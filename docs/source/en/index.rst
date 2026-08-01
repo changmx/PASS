@@ -1,12 +1,16 @@
 PASS Documentation (English)
 ============================
 
-Welcome to PASS.
+Welcome to PASS, the Particle Accelerator Simulation Studio.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents
+   :maxdepth: 3
+   :caption: Modules
 
-   theory
-   tracking
-   simulation
+   input_generation
+   injection
+   element/index
+   monitor/index
+   reorganize
+   aperture
+   twiss
