@@ -25,15 +25,31 @@ _YOSHIDA_Z0 = 1.0 - 2.0 * _YOSHIDA_Z1          # ≈ -1.7024143839193
 @Command.register("quadrupole")
 class Quadrupole(Command):
     """
-    Quadrupole magnet with exact drift-kick-drift tracking.
+    Quadrupole magnet with multiple tracking models.
 
     Tracking sequence:
       Thin lens (length=0):  single quadrupole kick
-      Thick lens (length>0): N slices of drift-kick-drift-exact
-        - uniform:   Drift(ds/2) → Kick(ds) → Drift(ds/2)  (2nd order symplectic)
-        - yoshida4:  4th order Yoshida composition of DKD steps
+      Thick lens (length>0): model-dependent
 
-      If k1l=0 and k1sl=0 (no field), thick lens degenerates to a pure drift.
+    Models (self.model):
+      'drift-kick-drift-exact' [default]:
+          N slices of drift-kick-drift with exact drift.
+          - uniform:   Drift(ds/2) → Kick(ds) → Drift(ds/2)  (2nd order symplectic)
+          - yoshida4:  4th order Yoshida composition of DKD steps
+          Preserves full nonlinear kinematics (exact pz).
+          Linear chromaticity is approximate (O(1/N^2) splitting error).
+
+      'mat-kick-mat':
+          Exact linear transport matrix with chromaticity.
+          k1 and k1s are diagonalized via rotation into K_eff,
+          then the exact linear matrix M(L, K_eff*chi/(1+delta)) is applied.
+          - If k1s != 0: rotation by theta = 0.5*arctan2(k1s, k1) diagonalizes
+            the quadrupole into focusing/defocusing planes.
+          - theta is delta-independent (k1 and k1s scale identically with delta).
+          Linear chromaticity and R56 are exact.
+          Nonlinear kinematics (pz higher-order terms) are not included.
+          For pure k1 + k1s (no higher-order multipoles), this is a single
+          matrix multiplication — no kick needed.
 
     Quadrupole kick (integrated strength k1l_eff = k1 * ds):
       dpx = -chi * k1l_eff * x + chi * k1sl_eff * y
@@ -42,9 +58,9 @@ class Quadrupole(Command):
     Drift: exact drift (Table 1.1, map D), Eq. 1.86-1.88
 
     Coordinate convention (PASS):
-      x, px, y, py, z, dp(=δ)
+      x, px, y, py, z, dp(=delta)
       px = Px/P0,  py = Py/P0,  dp = (P-P0)/P0
-      z  = s - β0·c·t  (ζ coordinate)
+      z  = s - beta0*c*t  (zeta coordinate)
     """
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
@@ -76,6 +92,13 @@ class Quadrupole(Command):
         if abs(self.k1l) > const.eps and abs(self.k1sl) > const.eps:
             logger.warning(f"Quadrupole {self.cmd_name} has both normal and skew components (k1l={self.k1l}, k1sl={self.k1sl}). It will act as a combined quadrupole.")
 
+        # ---- Model selection ----
+        self.model = kwargs.get("model", "adaptive")
+        if self.model not in ["adaptive", "drift-kick-drift-exact", "mat-kick-mat"]:
+            raise ValueError(f"The model of Quadrupole {self.cmd_name} is {self.model}, which should be 'adaptive', 'drift-kick-drift-exact' or 'mat-kick-mat'.")
+        if self.model == "adaptive":
+            self.model = "mat-kick-mat"
+
         self.num_slice = kwargs.get("num slices", 1)
         if self.num_slice < 1:
             logger.warning(f"The number of slices of {self.cmd_name} is {self.num_slice}, which should be >= 1. It has been changed to 1 now.")
@@ -86,6 +109,21 @@ class Quadrupole(Command):
             raise ValueError(f"The integrator of Quadrupole {self.cmd_name} is {self.integrator}, which should be 'adaptive', 'uniform' or 'yoshida4'.")
         if self.integrator == "adaptive":
             self.integrator = "uniform"
+
+        # ---- MKM precomputation: rotation diagonalization ----
+        # theta = 0.5 * arctan2(k1s, k1) is delta-independent
+        # (k1 and k1s both scale by chi/(1+delta), so the ratio is unchanged)
+        if abs(self.k1s) > const.eps:
+            self.is_skew = True
+            theta = 0.5 * np.arctan2(-self.k1s, self.k1)
+            self.cos_theta = np.cos(theta)
+            self.sin_theta = np.sin(theta)
+            self.k_eff_base = np.sqrt(self.k1**2 + self.k1s**2)
+        else:
+            self.is_skew = False
+            self.cos_theta = 1.0
+            self.sin_theta = 0.0
+            self.k_eff_base = self.k1
 
         self.aperture_type: str = kwargs.get("aperture type", "off").lower()
         self.aperture_value: list = kwargs.get("aperture value", [])
@@ -98,7 +136,7 @@ class Quadrupole(Command):
         set_simple_logging()
         logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}, "
                     f"IsThick={self.is_thick}, K1L={self.k1l:.6f}, K1SL={self.k1sl:.6f}, "
-                    f"NumSlice={self.num_slice:d}, Integrator={self.integrator:s}, "
+                    f"NumSlice={self.num_slice:d}, Model={self.model:s}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
         set_normal_logging()
 
@@ -123,7 +161,7 @@ class Quadrupole(Command):
     # ============================================================
 
     def _track_quadrupole_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        """Track particles through the quadrupole: thin lens or sliced DKD-exact."""
+        """Track particles through the quadrupole: thin lens or thick lens."""
 
         beta0 = bunch.beta
         circum = bunch.circum
@@ -158,15 +196,20 @@ class Quadrupole(Command):
             # No field: pure drift
             self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag, mask, beta0)
         else:
-            # Sliced DKD-exact
-            ds = self.length / self.num_slice
-            for _ in range(self.num_slice):
-                if self.integrator == "uniform":
-                    self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
-                                          ds, self.k1, self.k1s, chi, beta0)
-                elif self.integrator == "yoshida4":
-                    self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
-                                           ds, self.k1, self.k1s, chi, beta0)
+            if self.model == "mat-kick-mat":
+                ds = self.length / self.num_slice
+                for _ in range(self.num_slice):
+                    self._mat_kick_mat_cpu(x, px, y, py, z, dp, tag, mask,
+                                           chi, beta0, ds)
+            else:  # drift-kick-drift-exact
+                ds = self.length / self.num_slice
+                for _ in range(self.num_slice):
+                    if self.integrator == "uniform":
+                        self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
+                                              ds, self.k1, self.k1s, chi, beta0)
+                    elif self.integrator == "yoshida4":
+                        self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
+                                               ds, self.k1, self.k1s, chi, beta0)
 
         # ---- Wrap z into [-C/2, C/2) ----
         c_half = 0.5 * circum
@@ -181,6 +224,213 @@ class Quadrupole(Command):
             lost_turn = p.lost_turn[start:end]
             lost_position[newly_lost] = self.s
             lost_turn[newly_lost] = turn
+
+    # ============================================================
+    # Body: mat-kick-mat (exact linear transport matrix)
+    # ============================================================
+
+    def _mat_kick_mat_cpu(self, x, px, y, py, z, dp, tag, mask,
+                          chi, beta0, ds):
+        """
+        Exact linear quadrupole transport with chromaticity (one slice).
+
+        For k1 + k1s combined quadrupole:
+          1. Rotate to principal axes by theta = 0.5*arctan2(-k1s, k1)
+          2. Apply exact linear matrix with K_eff = sqrt(k1^2 + k1s^2)
+             K_eff_scaled = K_eff * chi / (1 + delta)   [per-particle]
+          3. Rotate back
+
+        For pure k1 (k1s = 0):
+          theta = 0, rotation is identity, directly apply matrix with K_eff = k1.
+
+        The matrix is the exact solution of:
+          u'' + K_eff * chi / (1+delta) * u = 0
+
+        which includes exact linear chromaticity.
+        Nonlinear kinematics (pz higher-order terms) are not included.
+
+        For pure k1 + k1s (no higher-order multipoles), the matrix is exact
+        for any slice length ds, so num_slice=1 is sufficient. Multiple slices
+        only matter when nonlinear multipole kicks (k2, k2s, ...) are inserted
+        between matrix steps (future feature).
+
+        Longitudinal (z) update:
+          Uses the linearized path length from the matrix transport,
+          analogous to Xsuite's track_expanded_combined_dipole_quad.
+          dzeta = ds - L_path / rvv
+          where L_path is computed from the linearized trajectory.
+        """
+        L = ds
+        one_plus_delta = 1.0 + dp
+
+        # ---- Step 1: Rotate to principal axes (if skew) ----
+        if self.is_skew:
+            ct = self.cos_theta
+            st = self.sin_theta
+            u  =  ct * x + st * y
+            pu =  ct * px + st * py
+            v  = -st * x + ct * y
+            pv = -st * px + ct * py
+        else:
+            u  = x
+            pu = px
+            v  = y
+            pv = py
+
+        # ---- Step 2: Apply exact linear matrix ----
+        # K_eff_scaled = k_eff_base * chi / (1+delta)  [per-particle]
+        K = self.k_eff_base * chi / one_plus_delta
+
+        # u-plane (focusing for K > 0): sin/cos
+        # v-plane (defocusing for K > 0): sinh/cosh
+        # For K < 0, the roles swap: u uses sinh/cosh, v uses sin/cos
+        # We handle this by computing based on sign of K.
+
+        # u-plane
+        K_pos_u = K > 0.0
+        K_neg_u = K < 0.0
+        K_zero_u = np.abs(K) < 1e-15
+
+        sqrt_K = np.sqrt(np.abs(K))
+        KL = sqrt_K * L
+
+        # For K > 0: cos, sin/sqrt_K
+        # For K < 0: cosh, sinh/sqrt_K
+        Cu = np.where(K_pos_u, np.cos(KL), np.cosh(KL))
+        Su = np.where(K_pos_u, np.sin(KL) / np.where(K_zero_u, 1.0, sqrt_K),
+                                 np.sinh(KL) / np.where(K_zero_u, 1.0, sqrt_K))
+        # Handle K ≈ 0: Cu=1, Su=L
+        Su = np.where(K_zero_u, L, Su)
+        Cu = np.where(K_zero_u, 1.0, Cu)
+
+        # v-plane: opposite sign of K
+        K_v = -K
+        K_pos_v = K_v > 0.0
+        K_neg_v = K_v < 0.0
+        K_zero_v = np.abs(K_v) < 1e-15
+
+        sqrt_Kv = np.sqrt(np.abs(K_v))
+        KLv = sqrt_Kv * L
+
+        Cv = np.where(K_pos_v, np.cos(KLv), np.cosh(KLv))
+        Sv = np.where(K_pos_v, np.sin(KLv) / np.where(K_zero_v, 1.0, sqrt_Kv),
+                                 np.sinh(KLv) / np.where(K_zero_v, 1.0, sqrt_Kv))
+        Sv = np.where(K_zero_v, L, Sv)
+        Cv = np.where(K_zero_v, 1.0, Cv)
+
+        # Linearized slopes: xp = pu / (1+delta), yp = pv / (1+delta)
+        xp = pu / one_plus_delta
+        yp = pv / one_plus_delta
+
+        # Transport: u' = u*Cu + xp*Su, pu' = (-K*u*Su + xp*Cu) * (1+delta)
+        u_new  = u * Cu + xp * Su
+        pu_new = (-K * u * Su + xp * Cu) * one_plus_delta
+
+        v_new  = v * Cv + yp * Sv
+        pv_new = (-K_v * v * Sv + yp * Cv) * one_plus_delta
+
+        # ---- Step 3: Rotate back (if skew) ----
+        if self.is_skew:
+            x_new  =  ct * u_new - st * v_new
+            px_new =  ct * pu_new - st * pv_new
+            y_new  =  st * u_new + ct * v_new
+            py_new =  st * pu_new + ct * pv_new
+        else:
+            x_new  = u_new
+            px_new = pu_new
+            y_new  = v_new
+            py_new = pv_new
+
+        # ---- Step 4: Longitudinal (z) update ----
+        # Path length from linearized trajectory:
+        # L_path = L + 0.5 * (xp^2 * L + ...) terms
+        # For the quadrupole matrix, the path length correction comes from
+        # the transverse motion. Using the linearized approximation:
+        #   delta_ell = L * (xp^2 + yp^2) / 2  (first-order path length)
+        # plus higher-order terms from the focusing.
+        #
+        # Following Xsuite's track_expanded_combined_dipole_quad:
+        # For Kx != 0 (here K_u):
+        #   L_path corrections involve A = -K*u, B = xp
+        # For Ky != 0 (here K_v):
+        #   L_path corrections involve C = -K_v*v, D = yp
+        #
+        # We use the same analytical formulas.
+
+        A = -K * u      # = -K_eff_scaled * u
+        B = xp
+        C_coeff = -K_v * v
+        D = yp
+
+        L_path = L * np.ones_like(x)  # Start with nominal length
+
+        # u-plane path length correction (Kx = K)
+        # With h=0, k0=0, the first Xsuite term (h*(...)) vanishes.
+        Kx_nonzero = ~K_zero_u
+        K_safe_u = np.where(K_zero_u, 1.0, K)
+        # The full Xsuite formula (with k0=0, h=0 simplifications):
+        # length_ -= (h * ((Cx-1)*xp + Sx*A + length*(k0-h))) / Kx
+        #         += 0.5 * (-(A^2*Cx*Sx)/(2*Kx) + (B^2*Cx*Sx)/2
+        #                   + (A^2*length)/(2*Kx) + (B^2*length)/2
+        #                   - (A*B*Cx^2)/Kx + (A*B)/Kx)
+        # With h=0, k0=0: the first term vanishes, leaving:
+        L_path = np.where(
+            Kx_nonzero,
+            L_path + 0.5 * (
+                -(A**2 * Cu * Su) / (2.0 * K_safe_u)
+                + (B**2 * Cu * Su) / 2.0
+                + (A**2 * L) / (2.0 * K_safe_u)
+                + (B**2 * L) / 2.0
+                - (A * B * Cu**2) / K_safe_u
+                + (A * B) / K_safe_u
+            ),
+            L_path
+        )
+        # Kx ≈ 0 case: L_path += 0.5 * B^2 * L
+        L_path = np.where(
+            K_zero_u,
+            L_path + 0.5 * B**2 * L,
+            L_path
+        )
+
+        # v-plane path length correction (Ky = K_v = -K)
+        Ky_nonzero = ~K_zero_v
+        K_safe_v = np.where(K_zero_v, 1.0, K_v)
+
+        L_path = np.where(
+            Ky_nonzero,
+            L_path + 0.5 * (
+                -(C_coeff**2 * Cv * Sv) / (2.0 * K_safe_v)
+                + (D**2 * Cv * Sv) / 2.0
+                + (C_coeff**2 * L) / (2.0 * K_safe_v)
+                + (D**2 * L) / 2.0
+                - (C_coeff * D * Cv**2) / K_safe_v
+                + (C_coeff * D) / K_safe_v
+            ),
+            L_path
+        )
+        L_path = np.where(
+            K_zero_v,
+            L_path + 0.5 * D**2 * L,
+            L_path
+        )
+
+        # dzeta = L - L_path / rvv
+        gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
+        bg = beta0 * gamma0
+        bg_new = one_plus_delta * bg
+        beta = bg_new / np.sqrt(1.0 + bg_new**2)
+        rvv = beta / beta0
+
+        dzeta = L - L_path / rvv
+
+        # ---- Apply results (only alive particles) ----
+        m = mask
+        x[:]  = x_new * m + x * (1.0 - m)
+        px[:] = px_new * m + px * (1.0 - m)
+        y[:]  = y_new * m + y * (1.0 - m)
+        py[:] = py_new * m + py * (1.0 - m)
+        z += dzeta * m
 
     # ============================================================
     # Body: Drift-Kick-Drift exact (uniform integrator)
@@ -207,7 +457,7 @@ class Quadrupole(Command):
         """
         One Yoshida-4 slice:
 
-          S4(ds) = S2(z1·ds) ∘ S2(z0·ds) ∘ S2(z1·ds)
+          S4(ds) = S2(z1*ds) ∘ S2(z0*ds) ∘ S2(z1*ds)
 
         where S2 is the standard DKD (leapfrog) step.
         """
@@ -239,8 +489,8 @@ class Quadrupole(Command):
         y  += (py / pz) * L
         z  += L * (1 - (beta0/beta) * (1+dp) / pz)
 
-        where pz = sqrt((1+dp)² - px² - py²)
-              beta = (1+dp)*beta0*gamma0 / sqrt(1 + ((1+dp)*beta0*gamma0)²)
+        where pz = sqrt((1+dp)^2 - px^2 - py^2)
+              beta = (1+dp)*beta0*gamma0 / sqrt(1 + ((1+dp)*beta0*gamma0)^2)
         """
         if abs(L) < const.eps:
             return
@@ -304,7 +554,7 @@ def one_plus_delta_beta(one_plus_delta, bg):
 
     From: P/P0 = 1+delta = beta*gamma / (beta0*gamma0)
     => beta*gamma = (1+delta) * beta0*gamma0
-    => beta = (beta*gamma) / sqrt(1 + (beta*gamma)²)
+    => beta = (beta*gamma) / sqrt(1 + (beta*gamma)^2)
     """
     bg_new = one_plus_delta * bg
     return bg_new / np.sqrt(1.0 + bg_new**2)
