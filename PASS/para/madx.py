@@ -54,6 +54,41 @@ def _make_match_key(elem_name: str, occurrence: int) -> str:
     return f"{elem_name}[{occurrence}]"
 
 
+def _extract_multipole_kl(row, columns) -> tuple[list, list]:
+    """Extract KNL and KSL arrays from a MADX twiss TFS row.
+
+    MADX twiss TFS stores multipole strengths as individual K0L, K1L, K2L, ...
+    and K0SL, K1SL, K2SL, ... columns (not as array-valued KNL/KSL).
+    This function collects all available orders and strips trailing zeros.
+
+    Example: K0L=0, K1L=0, K2L=0.039, K3L=0 → knl=[0, 0, 0.039]
+
+    Args:
+        row: a pandas Series (one TFS row).
+        columns: the TFS column index (for membership testing).
+
+    Returns:
+        (knl, ksl) as lists of floats, with trailing zeros removed.
+    """
+    knl = []
+    for n in range(0, 21):
+        col = f"K{n}L"
+        knl.append(float(row[col]) if col in columns else 0.0)
+
+    ksl = []
+    for n in range(0, 21):
+        col = f"K{n}SL"
+        ksl.append(float(row[col]) if col in columns else 0.0)
+
+    # Strip trailing zeros
+    while knl and abs(knl[-1]) < 1e-15:
+        knl.pop()
+    while ksl and abs(ksl[-1]) < 1e-15:
+        ksl.pop()
+
+    return knl, ksl
+
+
 def _read_tfs_headers(twiss_file: str) -> dict:
     """Read MADX twiss TFS headers + first-row twiss parameters."""
     df = tfs.read(twiss_file)
@@ -228,7 +263,8 @@ def read_madx_elements(
                 k3sl=row.get("K3SL", 0.0),
             )
         elif et == "multipole":
-            item = MultipoleElement(s=s, length=l, knl=[], ksl=[])
+            knl, ksl = _extract_multipole_kl(row, twiss_table.columns)
+            item = MultipoleElement(s=s, length=l, knl=knl, ksl=ksl)
         elif et in ("hkicker", "vkicker", "kicker", "tkicker"):
             hkick = row.get("HKICK", 0.0)
             vkick = row.get("VKICK", 0.0)
@@ -366,7 +402,7 @@ def read_madx_twiss(
 
     for i in range(num_elem):
         elem_name = twiss_table.iloc[i]["NAME"]
-        name = _make_name(elem_name, s[i])
+        name = "twiss_" + _make_name(elem_name, s[i])
         name_count[elem_name] = name_count.get(elem_name, 0) + 1
         match_key = _make_match_key(elem_name, name_count[elem_name])
 
@@ -486,7 +522,11 @@ def read_madx_twiss(
 
 
 def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, list[str]]:
-    """Create thin-lens elements for names matching *insert_patterns*."""
+    """Create thin-lens elements for names matching *insert_patterns*.
+
+    TwissPoint names from read_madx_twiss are prefixed with 'twiss_', so
+    there is no name collision with inserted elements.
+    """
     combined = re.compile("|".join(f"({p})" for p in insert_patterns))
     items = []
     names = []
@@ -506,31 +546,32 @@ def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, lis
             item = QuadrupoleElement(
                 s=s,
                 length=0.0,
-                k1l=twiss_table.iloc[i]["K1L"],
-                k1sl=twiss_table.iloc[i]["K1SL"],
+                k1l=twiss_table.iloc[i].get("K1L", 0.0),
+                k1sl=twiss_table.iloc[i].get("K1SL", 0.0),
             )
         elif et == "sextupole":
             item = SextupoleElement(
                 s=s,
                 length=0.0,
-                k2l=twiss_table.iloc[i]["K2L"],
-                k2sl=twiss_table.iloc[i]["K2SL"],
+                k2l=twiss_table.iloc[i].get("K2L", 0.0),
+                k2sl=twiss_table.iloc[i].get("K2SL", 0.0),
             )
         elif et == "octupole":
             item = OctupoleElement(
                 s=s,
                 length=0.0,
-                k3l=twiss_table.iloc[i]["K3L"],
-                k3sl=twiss_table.iloc[i]["K3SL"],
+                k3l=twiss_table.iloc[i].get("K3L", 0.0),
+                k3sl=twiss_table.iloc[i].get("K3SL", 0.0),
             )
         elif et == "multipole":
-            item = MultipoleElement(s=s, length=0.0, knl=[], ksl=[])
+            knl, ksl = _extract_multipole_kl(twiss_table.iloc[i], twiss_table.columns)
+            item = MultipoleElement(s=s, length=0.0, knl=knl, ksl=ksl)
         elif et in ("hkicker", "vkicker", "kicker", "tkicker"):
             item = KickerElement(
                 s=s,
                 length=0.0,
-                hkick=twiss_table.iloc[i]["HKICK"],
-                vkick=twiss_table.iloc[i]["VKICK"],
+                hkick=twiss_table.iloc[i].get("HKICK", 0.0),
+                vkick=twiss_table.iloc[i].get("VKICK", 0.0),
             )
         else:
             print(f"[Read MADX Twiss] Warning: cannot insert {et} '{name}', skipping")
