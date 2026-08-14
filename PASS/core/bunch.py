@@ -1,31 +1,20 @@
 from PASS.utils.constants import const
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-from PASS.utils.helper import convert_keys_to_lower
-
 import logging
-import json
 import numpy as np
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 class BunchInfo:
 
-    def __init__(self, input_file: str, bunch_id: int):
+    def __init__(self, input_data: dict, bunch_id: int):
 
         self.start_idx: int = 0
         self.end_idx: int = 0
-        self._load_input(input_file, bunch_id)
+        self._load_input(input_data, bunch_id)
 
-    def _load_input(self, input_file: str, bunch_id: int) -> None:
-        path = Path(input_file)
-        if not path.exists():
-            raise FileNotFoundError(f"Input file not found: {path}")
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            data = convert_keys_to_lower(data)
-
+    def _load_input(self, data: dict, bunch_id: int) -> None:
         bunch_data = data["sequence"]["injection"][f"bunch{bunch_id}"]
 
         self.bunch_id = bunch_id
@@ -43,10 +32,26 @@ class BunchInfo:
         self.circum = data.get("circumference (m)")
 
         if self.Np == 0:
-            raise ValueError(f"number of macro particles is zero for bunch {bunch_id}")
-        if self.Nrp == 0:
-            raise ValueError(f"number of real particles is zero for bunch {bunch_id}")
-        self.ratio = self.Nrp / self.Np
+            self.ratio = 0.0
+        else:
+            self.ratio = self.Nrp / self.Np
+
+        # --- Bunch grouping metadata (per-bunch relative z convention) ---
+        # The beam harmonic number is declared once at the injection level
+        # and means how many longitudinal groups the beam is organized into.
+        self.harmonic_number = int(
+            data["sequence"]["injection"]["harmonic number"]
+        )
+        self.harmonic_id = int(bunch_data.get("harmonic id of this bunch", 0))
+        if not (0 <= self.harmonic_id < self.harmonic_number):
+            raise ValueError(
+                f"bunch {bunch_id}: harmonic id {self.harmonic_id} out of "
+                f"range [0, {self.harmonic_number})"
+            )
+        # Ideal-particle (bunch-center) longitudinal position in the machine
+        # reference frame.  Particle coordinates p.z are stored RELATIVE to
+        # this position (z_rel), so z_lab = p.z + z_center.
+        self.z_center = self.harmonic_id * self.circum / self.harmonic_number
 
         if self.num_proton == 0 and self.num_neutron == 0:  # electron or position
             if self.num_charge == -1:
@@ -75,6 +80,15 @@ class BunchInfo:
         self.brho = self.p0_kg / (self.qm_ratio * const.e)
 
         self.t0 = 0.0
+
+    def t0_i(self) -> float:
+        """Arrival time of this bunch's ideal particle at a given element.
+
+        Reference clock t0 is the ideal particle's arrival time at the
+        element; the bunch center arrives z_center/(beta*c) later (or
+        earlier), so its own time reference is t0 - z_center/(beta*c).
+        """
+        return self.t0 - self.z_center / (self.beta * const.c)
 
     def print(self) -> None:
 
