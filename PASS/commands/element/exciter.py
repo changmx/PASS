@@ -229,7 +229,6 @@ class Exciter(Command):
         kick_amplitude = (self.voltage * self.plate_length / (self.gap * bunch.beta * const.c * bunch.brho))
 
         v0 = bunch.beta * const.c
-        t0 = bunch.t0
         frequency_0 = 1.0 / (bunch.circum / v0)
 
         # compute cf and cfw: tune mode or frequency mode
@@ -255,8 +254,13 @@ class Exciter(Command):
 
         alive = (tag > 0).astype(np.float64)
 
-        # time when each particle arrives at the exciter
-        time_temp = t0 - z / v0
+        # Time when each particle arrives at the exciter.  p.z is the
+        # unwrapped bunch-relative coordinate, so z_lab = z + z_center.
+        # The reference clock bunch.t0 is shared for the machine origin;
+        # particle arrival time at this element is therefore
+        # t = t0 - z_lab / (beta*c). No folding is applied here.
+        z_lab = z + bunch.z_center
+        time_temp = bunch.t0 - z_lab / v0
 
         if self.mode == "single_fm":
             kick = self._kick_saw_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
