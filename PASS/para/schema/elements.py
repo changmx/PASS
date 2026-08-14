@@ -251,7 +251,7 @@ class ExciterElement(ElementBase):
 class RFCavityElement(ElementBase):
     command: str = Field(default="RFCavity", alias="Command")
     voltage: float = Field(default=0.0, alias="Voltage (V)")
-    harmonic: int = Field(default=1, alias="Harmonic")
+    harmonic: int = Field(default=1, ge=1, alias="Harmonic")
     phase: float = Field(default=0.0, alias="Phase (rad)")
     phi_offset: float = Field(default=0.0, alias="Phi offset (rad)")
     rf_data_file: str | None = Field(default=None, alias="RF data file")
@@ -264,16 +264,21 @@ class RFCavityElement(ElementBase):
 # ============================================================
 
 class ReorganizeBunchElement(ElementBase):
-    """Reorganize bunch command: redistribute particle indices among bunches.
+    """Reorganize bunch command: switch to a new harmonic (bucket grid).
 
-    Only modifies ``start_idx`` / ``end_idx`` of each bunch;
-    does not touch any particle coordinates.
+    All particles are sorted by longitudinal position, reassigned to the
+    nearest new bucket center, and the beam harmonic number / bunch structure
+    are updated to the new harmonic (one bunch per bucket).
     """
     command: str = Field(default="ReorganizeBunch", alias="Command")
-    mode: str = Field(default="merge", alias="Mode")
     start_turn: int = Field(default=0, alias="Start turn")
-    end_turn: int = Field(default=-1, alias="End turn")
-    new_num_bunch: int = Field(default=1, ge=1, alias="New num bunch")
+    new_harmonic: int | None = Field(
+        default=None, ge=1, alias="New harmonic number",
+        description="Harmonic number after reorganization (bucket count). "
+                    "Particles are re-sorted and assigned to the nearest new "
+                    "bucket center; beam harmonic and bunch count are "
+                    "updated accordingly.",
+    )
 
 
 # ============================================================
