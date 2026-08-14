@@ -11,35 +11,7 @@ result is sorted by (s, command priority).
 from collections import OrderedDict
 from pydantic import BaseModel
 
-
-# Command priority for same-s sorting (lower = earlier)
-_COMMAND_PRIORITY = {
-    "Injection": 0,
-    "SortBunch": 100,
-    "Twiss": 200,
-    "Marker": 300,
-    "Drift": 300,
-    "SBend": 300,
-    "Quadrupole": 300,
-    "Sextupole": 300,
-    "Octupole": 300,
-    "Multipole": 300,
-    "Solenoid": 300,
-    "Kicker": 300,
-    "RF": 300,
-    "ElSeparator": 300,
-    "Exciter": 300,
-    "SpaceCharge": 400,
-    "WakeField": 500,
-    "BeamBeam": 600,
-    "ElectronCloud": 700,
-    "LumiMonitor": 800,
-    "PhaseMonitor": 800,
-    "DistMonitor": 800,
-    "StatMonitor": 800,
-    "ParticleMonitor": 800,
-    "Other": 999,
-}
+from PASS.commands import command_priority
 
 
 def _convert_ordereddict(obj):
@@ -66,7 +38,7 @@ def _sort_sequence(sequence: dict) -> dict:
             sequence.items(),
             key=lambda item: (
                 item[1]["S (m)"],
-                _COMMAND_PRIORITY.get(item[1].get("Command", ""), 999),
+                command_priority(item[1].get("Command", "")),
             ),
         )
     )
