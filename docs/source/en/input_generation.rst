@@ -244,6 +244,18 @@ MainConfig (Global Parameters)
      - bool
      - Whether to enable beam-beam interaction
 
+InjectionItem (Injection and Grouping)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``InjectionItem`` declares ``harmonic_number`` (JSON key ``Harmonic Number``) once at the injection level. This value is the bunch-grouping count and determines:
+
+- The number of bunch centers around the ring, separated by :math:`C/h_{\mathrm{group}}`
+- The required number of ``BunchConfig`` entries in ``bunches``
+- The requirement that ``harmonic_id`` values uniquely cover :math:`0,\ldots,h_{\mathrm{group}}-1`
+
+It does not constrain ``RFCavityElement.harmonic``. Represent an unfilled group with a declared bunch whose ``num_macro_particles`` is zero.
+
+
 BunchConfig (Bunch Parameters)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -303,6 +315,24 @@ BunchConfig (Bunch Parameters)
      - ``RF Phase (rad)``
      - float
      - RF phase
+   * - ``harmonic_id``
+     - ``Harmonic ID of this bunch``
+     - int
+     - Bunch-group index; its center is :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
+   * - ``rf_s_position``
+     - ``RF S Position Refer to Inj. Point (m)``
+     - float
+     - RF-cavity position relative to injection, used to linearly back-propagate a matched distribution to :math:`s=0`
+   * - ``momentum_offset_dp``
+     - ``Momentum Offset dp``
+     - float
+     - Mean bunch relative-momentum offset; mutually exclusive with the kinetic-energy offset
+   * - ``kinetic_energy_offset``
+     - ``Kinetic Energy Offset (eV)``
+     - float
+     - Mean bunch kinetic-energy offset, converted exactly to a relative-momentum offset internally
+
+All generated or manually inserted ``z`` values in ``BunchConfig`` are bunch-relative coordinates :math:`z_{\mathrm{rel}}`, not absolute laboratory azimuths.
 
 Sequence (Sequence Container)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

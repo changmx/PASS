@@ -52,6 +52,8 @@ Beam size (standard deviation):
 
 Similarly, :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` are computed.
 
+Longitudinal statistics use the bunch-relative coordinate :math:`z_{\mathrm{rel}}`. Before calculating moments, the program folds a temporary copy into :math:`[-C/2,C/2)` to prevent equivalent ring-period representations from inflating the mean and variance. This statistical fold is not written back to the tracked particle coordinates. Under the ring-coordinate convention, the laboratory centroid can be reconstructed from :math:`z_{\mathrm{center}}+\langle z_{\mathrm{rel}}\rangle`.
+
 Emittance and Twiss Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -169,7 +171,7 @@ TFS file header:
    @ Name             PASS Statistic Data
    @ Time             2026-07-14 00:11:03
 
-Output columns (34 columns total):
+Output columns (35 columns total):
 
 .. list-table::
   :header-rows: 1
@@ -207,13 +209,13 @@ Output columns (34 columns total):
     - Vertical momentum standard deviation
   * - ``zAverage``
     - Centroid
-    - Longitudinal position mean
+    - Mean of the folded bunch-relative coordinate :math:`\langle z_{\mathrm{rel}}\rangle`
   * - ``dpAverage``
     - Centroid
     - Momentum deviation mean
   * - ``sigmaZ``
     - Beam size
-    - Longitudinal position standard deviation
+    - Standard deviation of the folded bunch-relative coordinate
   * - ``sigmadp``
     - Beam size
     - Momentum deviation standard deviation
@@ -247,6 +249,9 @@ Output columns (34 columns total):
   * - ``invarianty``
     - Verification
     - Vertical invariant (should equal 1)
+  * - ``zCenter``
+    - Longitudinal reference
+    - Laboratory longitudinal center of the bunch, :math:`z_{\mathrm{center}}`
   * - ``xzAverage``
     - Correlation
     - :math:`\langle x \, z \rangle`
@@ -324,5 +329,5 @@ Application Scenarios
 - **Emittance measurement**: Compute emittance and Twiss parameters from second-order moments, and compare with design values for verification
 - **Beam loss diagnostics**: Monitor beam loss rate through ``beamLossTotal`` and ``lossPercent``, identifying the turn and position where losses occur
 - **Nonlinear effect identification**: Use higher-order moment information (skewness and kurtosis) to determine the degree to which the beam distribution deviates from Gaussian, identifying nonlinear resonances or dispersion coupling
-- **Momentum spread monitoring**: ``sigmadp`` and ``sigmaZ`` reflect longitudinal beam quality, supporting longitudinal dynamics studies
+- **Momentum-spread monitoring**: ``sigmadp`` and ``sigmaZ`` describe longitudinal beam quality within a bunch; use ``zCenter`` as well when comparing absolute azimuths across bunches
 - **Correlation diagnostics**: Correlation quantities such as ``xzAverage`` can be used to diagnose dispersion coupling or transverse-longitudinal coupling

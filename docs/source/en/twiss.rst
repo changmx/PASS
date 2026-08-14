@@ -14,7 +14,7 @@ The ``Twiss`` element implements 6D linear optical transport based on Twiss para
   - Supports dispersion removal and restoration, ensuring correct transport of particles with momentum deviation in dispersive regions;
   - Supports chromaticity correction; tune shifts caused by momentum deviation are automatically incorporated into the phase;
   - Longitudinal transport supports three modes: drift, matrix, and identity matrix;
-  - Supports z-coordinate wrapping/folding, keeping the longitudinal coordinate within the ring circumference;
+  - Preserves the continuously evolving bunch-relative longitudinal coordinate without ring folding inside the element;
   - Supports aperture checking, consistent with other elements.
 
 Physics Derivation
@@ -129,16 +129,10 @@ Momentum deviation causes tune shifts, which are corrected through the chromatic
 
 where :math:`\Delta Q_x` and :math:`\Delta Q_y` are the horizontal and vertical chromaticities, respectively, and :math:`\Delta p` is the particle momentum deviation.
 
-z-Coordinate Wrapping/Folding
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Longitudinal Coordinate Continuity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To keep the longitudinal coordinate within the ring circumference, the z-coordinate is wrapped after transport:
-
-.. math::
-
-   z_2 = z_2 + (\mathrm{under} - \mathrm{over}) \cdot C
-
-where :math:`C` is the ring circumference, and ``under`` and ``over`` are folding counters.
+Twiss transport stores the updated bunch-relative coordinate :math:`z_{\mathrm{rel}}` without folding it into one circumference. This preserves accumulated multi-turn phase slip. When a laboratory azimuth is needed, use :math:`z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}` and apply a modulo operation only when required by the analysis.
 
 t0 Update
 ~~~~~~~~~

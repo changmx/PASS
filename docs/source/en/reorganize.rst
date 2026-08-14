@@ -1,27 +1,68 @@
-Bunch Reorganization (ReorganizeBunch)
-=======================================
+Bunch Regrouping (ReorganizeBunch)
+==================================
 
-This module describes the **ReorganizeBunch** command in PASS, used to dynamically adjust the grouping of bunches during simulation.
+This page describes the PASS **ReorganizeBunch** command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the laboratory longitudinal positions of the particles.
 
-**Function Description**
+**Code location**
 
-The ReorganizeBunch command **only modifies the index ranges of bunches** ( ``start_idx`` and ``end_idx`` ) and **does not modify any particle coordinates** (x, px, y, py, z, dp, tag, etc.).
+- Source: ``PASS/commands/reorganize.py``
+- Regrouping algorithm: ``PASS/commands/sort_bunch.py``
+- Class: ``ReorganizeBunch`` (inherits from ``Command``)
+- Registered name: ``reorganizebunch``
+- Schema: ``ReorganizeBunchElement`` in ``PASS/para/schema/elements.py``
 
-.. note::
 
-   This command only reorganizes the index allocation of bunches and does not involve physical debunching or bunch compression. True debunching (bunch lengthening) and bunch compression are physical processes achieved by adjusting parameters such as RF cavity voltage and phase, not index reallocation.
+Operation
+---------
 
-Applicable scenarios:
+Let the old and new grouping counts be :math:`h_{\mathrm{old}}` and :math:`h_{\mathrm{new}}`. The command runs once at ``Start turn`` and performs the following operations:
 
-  - **Merge** : Merge the indices of multiple bunches into fewer bunches. The z-coordinate of particles remains unchanged; only the index ranges are reallocated. For example, at injection with harmonic number :math:`h=4` producing 4 bunches, merge them into 1 bunch
-  - **Split** : Regroup the indices of existing bunches into more bunches
+1. Recover each particle's laboratory longitudinal position from its old bunch reference:
 
-**Code Location**
+   .. math::
 
-  - Source file: ``PASS/commands/reorganize.py``
-  - Class name: ``ReorganizeBunch`` (inherits from ``Command`` )
-  - Registered name: ``reorganizebunch``
-  - Schema class: ``ReorganizeBunchElement`` ( ``PASS/para/schema/elements.py`` )
+      z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center,old}}.
+
+2. Build a new grid of bunch centers separated by :math:`C/h_{\mathrm{new}}`:
+
+   .. math::
+
+      z_{\mathrm{center},k} = k\frac{C}{h_{\mathrm{new}}},
+      \qquad k=0,1,\ldots,h_{\mathrm{new}}-1.
+
+3. Assign particles to the nearest new group center around the ring and reorder every particle array so that each new bunch occupies a contiguous index range.
+4. Convert laboratory positions back to coordinates relative to the new bunch center:
+
+   .. math::
+
+      z_{\mathrm{rel,new}}
+      = \operatorname{fold}_C
+        \left(z_{\mathrm{lab}}-z_{\mathrm{center,new}}\right).
+
+5. Update the beam ``harmonic_number`` and each bunch's ``harmonic_id``, ``z_center``, particle count, and index range.
+6. If a new bunch inherits a different reference momentum, rebase :math:`p_x`, :math:`p_y`, and :math:`\delta` so that each particle's absolute mechanical momentum is preserved.
+
+ReorganizeBunch is therefore more than an index edit, but it is not itself a physical debunching, merging, capture, or compression process. Laboratory positions are preserved, while bunch reference centers, relative longitudinal coordinates, and normalized momenta may change.
+
+
+Group Boundaries
+----------------
+
+The algorithm uses the ring-azimuth sorting key
+
+.. math::
+
+   k_z = \left(z_{\mathrm{lab}}+\frac{C}{2h_{\mathrm{new}}}\right)\bmod C.
+
+Group :math:`j` contains particles satisfying
+
+.. math::
+
+   j\frac{C}{h_{\mathrm{new}}}
+   \le k_z
+   < (j+1)\frac{C}{h_{\mathrm{new}}}.
+
+The half-group-width shift places each boundary midway between adjacent centers. The same rule applies to odd and even grouping counts.
 
 
 Interface Parameters
@@ -29,68 +70,39 @@ Interface Parameters
 
 .. list-table::
   :header-rows: 1
-  :widths: 20 30 10 10 30
+  :widths: 22 30 12 12 24
 
   * - Property
     - JSON key
     - Type
-    - Unit
+    - Default
     - Description
   * - ``s``
     - ``S (m)``
     - float
-    - m
-    - s-position of the command in the ring
+    - Required
+    - Longitudinal position of the command in the ring
   * - ``name``
     - ``name``
     - str
-    - -
-    - Command name, automatically filled from the sequence key name
-  * - ``mode``
-    - ``Mode``
-    - str
-    - -
-    - Operation mode, options: ``merge`` (merge bunches), ``split`` (split bunches)
+    - Auto-filled
+    - Command name
   * - ``start_turn``
     - ``Start turn``
     - int
-    - -
-    - Effective starting turn (inclusive, counted from 0)
-  * - ``end_turn``
-    - ``End turn``
+    - 0
+    - Execution turn (inclusive, 0-based); the command runs only once
+  * - ``new_harmonic``
+    - ``New harmonic number``
     - int
-    - -
-    - Effective ending turn (exclusive). Set to -1 for no upper limit, continuing until the end of the simulation
-  * - ``new_num_bunch``
-    - ``New num bunch``
-    - int
-    - -
-    - New number of bunches (must be :math:`\ge 1` )
-
-
-Physics Description
--------------------
-
-The design philosophy of the ReorganizeBunch command is: **the physical position of particles is determined by the tracking process, and bunch identity is merely an index label.**
-
-The z-coordinate of particles evolves naturally with tracking (through energy modulation in RF cavities and the slipping effect in drifts) and does not need manual adjustment. ReorganizeBunch only handles the reallocation of index ranges, enabling subsequent diagnostics, slicing, and other operations to correctly identify the new bunch structure.
-
-Index Allocation Method
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The total number of particles :math:`N_{\text{total}}` is distributed as evenly as possible among ``new_num_bunch`` bunches:
-
-.. math::
-
-  N_k = \left\lfloor \frac{N_{\text{total}}}{n} \right\rfloor + \begin{cases} 1 & k < N_{\text{total}} \bmod n \\ 0 & \text{otherwise} \end{cases}
-
-where :math:`n` is the new number of bunches and :math:`k = 0, 1, \ldots, n-1` . The first :math:`N_{\text{total}} \bmod n` bunches each receive one extra particle.
+    - Required
+    - New bunch-grouping count, must be :math:`\ge 1`
 
 
 Usage Example
 -------------
 
-The following example shows how to merge 4 bunches into 1 bunch at turn 500:
+The following example switches the beam to one longitudinal group at turn 500:
 
 .. code-block:: json
 
@@ -98,17 +110,19 @@ The following example shows how to merge 4 bunches into 1 bunch at turn 500:
       "ReorganizeBunch1": {
           "S (m)": 0.0,
           "Command": "ReorganizeBunch",
-          "Mode": "merge",
           "Start turn": 500,
-          "End turn": -1,
-          "New num bunch": 1
+          "New harmonic number": 1
       }
   }
 
 
-Application Scenarios
----------------------
+Applications
+------------
 
-  - **Merging indices after debunching** : At injection, a high harmonic number (e.g., :math:`h=4` ) is used to produce multiple bunches, then the RF voltage is turned off or reduced to let the bunches naturally debunch. After debunching is complete, ReorganizeBunch is used to merge the indices into 1 bunch
-  - **Regrouping after rebunching** : After debunching, RF voltage is reapplied to rebunch the particles, and ReorganizeBunch is used to regroup the indices
-  - **Bunch filling scheme adjustment** : Using different bunch grouping schemes at different simulation stages
+- Update diagnostic grouping after RF manipulations have changed the longitudinal distribution
+- Change the bunch-grouping count between simulation stages
+- Reclassify particles that have crossed old group boundaries according to their current laboratory azimuth
+
+.. note::
+
+   ReorganizeBunch changes the PASS bunch-reference grouping only. It does not replace the physical debunching, capture, merging, or bunch-compression process produced by RF elements. First create the intended longitudinal distribution with the appropriate physical elements, then regroup at the selected turn.

@@ -37,6 +37,11 @@
     - str
     - -
     - 元件名称，由序列键名自动填入
+  * - ``harmonic_number``
+    - ``Harmonic Number``
+    - int
+    - -
+    - 束团分组数；必须声明同样数量的 ``bunch0`` 、 ``bunch1`` 、 ... ，未填充分组用空束团占位
   * - ``bunch0``
     - ``bunch0``
     - dict
@@ -155,15 +160,15 @@
     - rad
     - 高频相位 :math:`\phi_s` （ ``matchz`` 和 ``matchdp`` 分布需提供）
   * - ``harmonic_num``
-    - ``Harmonic Number``
+    - 注入顶层 ``Harmonic Number``
     - int
     - -
-    - 高频谐波数 （ ``matchz`` 和 ``matchdp`` 分布需提供）
+    - 从 Injection 顶层传入的束团分组数 :math:`h_{\mathrm{group}}` 。它同时用于 ``matchz`` / ``matchdp`` 的纵向尺度计算，但不限制 RFCavity 的 RF 谐波数
   * - ``harmonic_id``
     - ``Harmonic ID of this bunch``
     - int
     - -
-    - 该束团所属的高频谐波 ID （从 0 开始），用于多束团注入时将各束团放置到不同的 RF bucket
+    - 束团分组编号 :math:`h_{\mathrm{id}}` ，决定固定中心 :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
   * - ``rf_position``
     - ``RF S Position Refer to Inj. Point (m)``
     - float
@@ -524,22 +529,30 @@
     的粒子。
 
 
-多束团纵向偏移
+多束团纵向坐标
 ~~~~~~~~~~~~~~
 
-当注入多个束团时，各束团需要放置到不同的 RF bucket 中。PASS 采用对称偏移公式，在纵向分布生成后自动执行以下三步操作：
+PASS 将粒子数组中的 ``z`` 定义为相对所属束团中心的坐标 :math:`z_{\mathrm{rel}}` 。每个束团的固定实验室坐标中心由分组编号给出：
 
 .. math::
 
-  z_{\text{final}} = \mathrm{fold}\left( z_{\text{gen}} + \Delta z_{\text{shift}} + \eta \, s_{\text{rf}} \, \delta \right), \quad z \in [-C/2, C/2)
+  z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},
+  \qquad
+  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.
 
-其中：
+注入过程不再把束团中心平移进粒子 ``z`` 数组，也不按奇偶谐波采用不同公式。生成的纵向分布直接作为 :math:`z_{\mathrm{rel}}` 保存。
 
-  1. **对称偏移** ： :math:`\Delta z_{\text{shift}} = \frac{C}{h}\left(h_{\text{id}} - \frac{h}{2} + 0.5\right)` ，使各 bucket 关于 :math:`z=0` 对称分布，偶数 :math:`h` 时没有 bucket 落在 :math:`C/2` 折叠边界上
-  2. **rf\_position 逆向传播** ： :math:`\eta \, s_{\text{rf}} \, \delta` ，将在高频腔位置 :math:`s=s_{\text{rf}}` 生成的分布逆向传播到注入点 :math:`s=0` ，其中 :math:`\eta = 1/\gamma_t^2 - 1/\gamma^2` 为滑相因子
-  3. **z 折叠** ：将 :math:`z` 折叠到 :math:`[-C/2, C/2)` 区间
+若分布参数定义在 RF 腔位置 :math:`s=s_{\mathrm{rf}}` ，注入时仅执行一次线性逆向传播：
 
-同时，偶数 :math:`h` 时 RF 腔在计算粒子相位时自动施加 :math:`C/(2h)` 补偿，以抵消对称偏移引入的等效 :math:`180^\circ` 相位翻转。奇数 :math:`h` 不需要补偿。
+.. math::
+
+  z_{\mathrm{rel}}(0)
+  = z_{\mathrm{rel}}(s_{\mathrm{rf}})
+  + \eta s_{\mathrm{rf}}\delta,
+  \qquad
+  \eta = \frac{1}{\gamma_t^2}-\frac{1}{\gamma^2}.
+
+注入过程不对 :math:`z_{\mathrm{rel}}` 做环周折叠。RFCavity 等需要绝对到达相位的元件会自行使用 :math:`z_{\mathrm{lab}}`。
 
 束团填充方案
 ~~~~~~~~~~~~~~
@@ -548,13 +561,12 @@
 
    束团 ID （ ``bunch_id`` ）严格按照从 0 开始、步长 1 递增的顺序编号，由输入文件中 ``bunch0`` 、 ``bunch1`` 、 ... 的键名决定。束团数量由输入文件中 ``bunch`` 键的数量决定。
 
-   每个束团的谐波 ID （ ``harmonic_id`` ）可以独立设置，不需要连续，也不需要从 0 开始。谐波 ID 决定了该束团被放置到哪个 RF bucket。
+   ``harmonic_id`` 必须唯一，并完整覆盖 :math:`0,1,\ldots,h_{\mathrm{group}}-1` 。因此输入中束团数等于 ``Harmonic Number`` ；未填充的槽位也要声明为宏粒子数为 0 的空束团。
 
-   - **均匀填充** ：当 ``harmonic_id = 0, 1, ... , h-1`` 时，各束团均匀分布在 :math:`h` 个 bucket 中，位置关于 :math:`z=0` 对称（从负到正）
-   - **部分填充** ：可以只填充部分 bucket。例如 :math:`h=4` 时只注入 2 个束团，设置 ``harmonic_id = 0`` 和 ``harmonic_id = 2`` ，则只有第 0 和第 2 个 bucket 被填充
-   - **任意填充** ： ``harmonic_id`` 可以是 :math:`0` 到 :math:`h-1` 之间的任意整数，支持任意填充方案
+   - **全填充** ：所有分组都包含非零宏粒子，中心依次位于 :math:`0,C/h_{\mathrm{group}},\ldots,(h_{\mathrm{group}}-1)C/h_{\mathrm{group}}`
+   - **部分填充** ：保留完整的分组编号，但将未填充槽位对应束团的宏粒子数设为 0
 
-下图为环形布局下的束团填充示例。圆环代表加速器周长 :math:`C` ，圆环上的标记点为各 bucket 中心位置。 :math:`z=0` 处为理想粒子位置（注入点）。束团编号和谐波 ID 按顺时针方向递增。上图为 :math:`h=4` （偶数）均匀填充，4 个 bucket 全部填充；下图为 :math:`h=5` （奇数）部分填充，仅填充 bucket 0 和 bucket 2：
+下图为环形布局下的束团分组示例。圆环代表加速器周长 :math:`C` ，标记点为 :math:`z_{\mathrm{center}}` 。分组编号按顺时针方向递增。上图为 :math:`h_{\mathrm{group}}=4` 全填充；下图为 :math:`h_{\mathrm{group}}=5` 部分填充，其中分组 1、3、4 由空束团占位：
 
 .. raw:: html
 
@@ -562,97 +574,50 @@
   <svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
     <rect width="400" height="420" fill="#1a1a2e"/>
 
-    <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=4 (even): uniform filling</text>
+    <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h_group=4: full filling</text>
 
     <!-- Ring -->
     <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
 
-    <!-- Bucket boundary lines (every C/4 = 90 deg) -->
-    <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <line x1="200" y1="220" x2="200" y2="80" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <line x1="200" y1="220" x2="200" y2="360" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- Group boundaries halfway between centers -->
+    <line x1="200" y1="220" x2="299" y2="319" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="200" y1="220" x2="101" y2="319" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="200" y1="220" x2="101" y2="121" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="200" y1="220" x2="299" y2="121" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
 
-    <!-- hid=0: z=-3C/8, clockwise from z=0(right) => lower-left -->
-    <!-- angle from right = -135deg (clockwise 135deg) => x=200+140*cos(-135)=200-99=101, y=220+140*sin(-135)... 
-         Actually clockwise from right: z=0 at angle 0, clockwise positive.
-         z=-3C/8 => fraction -3/8 of C => angle = -3/8*2pi = -135deg => same as 225deg
-         In SVG (y down): clockwise = increasing angle in screen coords
-         z=0 at (340,220). Clockwise (downward first):
-         z=-C/8 => 45deg clockwise => (200+140cos45, 220+140sin45) = (299, 319)
-         z=-3C/8 => 135deg clockwise => (200+140cos135, 220+140sin135) = (101, 319)
-         z=C/8 => -45deg (counterclockwise, upward) => (299, 121)
-         z=3C/8 => -135deg => (101, 121)
-         Wait, clockwise in SVG means y increases (downward).
-         z=0 at right (340,220). Clockwise 45deg goes to lower-right (299,319).
-         But z=-C/8 is negative z, which should be "behind" the ideal particle.
-         
-         Let me think again: z = s - beta0*c*t. Positive z means particle is ahead (larger s).
-         If we go clockwise on the ring and call that positive z direction,
-         then z>0 is clockwise from z=0, z<0 is counterclockwise.
-         
-         User wants bucket IDs clockwise. hid=0 has most negative z (-3C/8 for h=4).
-         So hid=0 is far counterclockwise (upper-left), hid=3 is far clockwise (lower-right)?
-         No wait - user said "束团编号和谐波id应该是顺时针的" meaning IDs increase clockwise.
-         hid=0 -> hid=1 -> hid=2 -> hid=3 goes clockwise.
-         hid=0: z=-3C/8, hid=1: z=-C/8, hid=2: z=C/8, hid=3: z=3C/8
-         So z increases clockwise. z=0 is between hid=1 and hid=2.
-         
-         Positions (clockwise from top, z=0 at right=3 o'clock):
-         z=0 at 3 o'clock (340, 220)
-         Clockwise = downward in SVG
-         z=-3C/8 at 135deg CCW from right = 10:30 position => upper-left
-         z=-C/8 at 45deg CCW from right = 1:30 position => upper-right  
-         z=C/8 at 45deg CW from right = 4:30 position => lower-right
-         z=3C/8 at 135deg CW from right = 7:30 position => lower-left
-         
-         But that makes IDs go CCW: hid=0(upper-left)->hid=1(upper-right)->hid=2(lower-right)->hid=3(lower-left)
-         That's clockwise! upper-left -> upper-right -> lower-right -> lower-left IS clockwise.
-    -->
+    <!-- Group centers are 0, C/4, C/2, and 3C/4 clockwise. -->
 
     <!-- z=0 ideal particle marker (right side of ring) -->
     <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
-    <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
-    <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+    <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">origin</text>
 
-    <!-- hid=0: z=-3C/8, upper-left, angle=225deg in std (or -135deg) -->
-    <!-- x=200+140*cos(225deg)=200-99=101, y=220+140*sin(225deg)=220-99=121 -->
-    <!-- Wait, in SVG y is down. cos/sin with SVG y-down:
-         angle 0 = right, positive angle = clockwise (y increases)
-         z=-3C/8: this is 3/8*2pi = 135deg counterclockwise from z=0
-         In SVG: counterclockwise = negative angle = y decreases
-         x = 200 + 140*cos(-135deg) = 200 + 140*(-0.707) = 101
-         y = 220 + 140*sin(-135deg) = 220 + 140*(-0.707) = 121  (upper-left) ✓
-    -->
-    <circle cx="101" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
-    <text x="75" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
-    <text x="75" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
-    <text x="75" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
-    <text x="68" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-3C/8</text>
+    <!-- hid=0: z_center=0, right -->
+    <circle cx="340" cy="220" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="365" y="245" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">group 0</text>
+    <text x="365" y="261" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+    <text x="365" y="277" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+    <text x="365" y="293" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">0</text>
 
-    <!-- hid=1: z=-C/8, upper-right, angle=-45deg -->
-    <!-- x=200+140*cos(-45)=200+99=299, y=220+140*sin(-45)=220-99=121 -->
-    <circle cx="299" cy="121" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
-    <text x="325" y="108" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
-    <text x="325" y="124" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
-    <text x="325" y="140" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
-    <text x="332" y="155" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-C/8</text>
+    <!-- hid=1: z_center=C/4, bottom -->
+    <circle cx="200" cy="360" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="165" y="326" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">group 1</text>
+    <text x="165" y="342" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+    <text x="165" y="358" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+    <text x="165" y="374" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">C/4</text>
 
-    <!-- hid=2: z=C/8, lower-right, angle=45deg -->
-    <!-- x=200+140*cos(45)=299, y=220+140*sin(45)=220+99=319 -->
-    <circle cx="299" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
-    <text x="325" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
-    <text x="325" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
-    <text x="325" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 2</text>
-    <text x="332" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">C/8</text>
+    <!-- hid=2: z_center=C/2, left -->
+    <circle cx="60" cy="220" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="35" y="245" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">group 2</text>
+    <text x="35" y="261" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+    <text x="35" y="277" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 2</text>
+    <text x="35" y="293" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">C/2</text>
 
-    <!-- hid=3: z=3C/8, lower-left, angle=135deg -->
-    <!-- x=200+140*cos(135)=101, y=220+140*sin(135)=319 -->
-    <circle cx="101" cy="319" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
-    <text x="75" y="312" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
-    <text x="75" y="328" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
-    <text x="75" y="344" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 3</text>
-    <text x="68" y="360" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">3C/8</text>
+    <!-- hid=3: z_center=3C/4, top -->
+    <circle cx="200" cy="80" r="10" fill="#e94560" stroke="#e94560" stroke-width="2"/>
+    <text x="235" y="82" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">group 3</text>
+    <text x="235" y="98" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+    <text x="235" y="114" fill="#e94560" font-size="12" text-anchor="middle" font-family="monospace">bunch 3</text>
+    <text x="235" y="130" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">3C/4</text>
 
     <!-- Legend -->
     <circle cx="60" cy="400" r="7" fill="#e94560" stroke="#e94560" stroke-width="2"/>
@@ -660,7 +625,7 @@
     <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
     <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
     <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
-    <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+    <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">z_center=0</text>
   </svg>
   </div>
 
@@ -670,71 +635,63 @@
   <svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
     <rect width="400" height="420" fill="#1a1a2e"/>
 
-    <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h=5 (odd): partial filling</text>
+    <text x="200" y="25" fill="#e0e0e0" font-size="15" font-weight="bold" text-anchor="middle" font-family="sans-serif">h_group=5: partial filling</text>
 
     <!-- Ring -->
     <circle cx="200" cy="220" r="140" fill="none" stroke="#555" stroke-width="2"/>
 
-    <!-- Bucket boundaries at z = -C/2, -2C/5+..., every C/5 -->
-    <!-- z=0 at right (0deg), boundaries at +/-C/10, +/-3C/10, +/-C/2 -->
-    <!-- C/10 = 36deg, 3C/10 = 108deg, C/2 = 180deg -->
-    <line x1="200" y1="220" x2="340" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <!-- 36deg: x=200+140cos(36)=313, y=220+140sin(36)=302 -->
+    <!-- Group boundaries halfway between the five centers. -->
     <line x1="200" y1="220" x2="313" y2="302" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <!-- -36deg: x=313, y=138 -->
-    <line x1="200" y1="220" x2="313" y2="138" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <!-- 108deg: x=200+140cos(108)=157, y=220+140sin(108)=353 -->
+    <!-- 36deg: x=200+140cos(36)=313, y=220+140sin(36)=302 -->
     <line x1="200" y1="220" x2="157" y2="353" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <!-- -108deg: x=157, y=87 -->
-    <line x1="200" y1="220" x2="157" y2="87" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
-    <!-- 180deg: x=60, y=220 -->
+    <!-- -36deg: x=313, y=138 -->
     <line x1="200" y1="220" x2="60" y2="220" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- 108deg: x=200+140cos(108)=157, y=220+140sin(108)=353 -->
+    <line x1="200" y1="220" x2="157" y2="87" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- -108deg: x=157, y=87 -->
+    <line x1="200" y1="220" x2="313" y2="138" stroke="#444" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- Five boundaries are halfway between adjacent group centers. -->
 
-    <!-- Bucket centers: shift=C/5*(hid-2.5+0.5)=C/5*(hid-2) -->
-    <!-- hid=0: z=-2C/5, angle=-144deg (CCW). x=200+140cos(-144)=200-113=87, y=220+140sin(-144)=220-82=138 -->
-    <!-- hid=1: z=-C/5, angle=-72deg. x=200+140cos(-72)=200+43=243, y=220+140sin(-72)=220-133=87 -->
-    <!-- hid=2: z=0, angle=0. x=340, y=220 -->
-    <!-- hid=3: z=C/5, angle=72deg. x=243, y=353 -->
-    <!-- hid=4: z=2C/5, angle=144deg. x=87, y=302 -->
+    <!-- Centers: 0, C/5, 2C/5, 3C/5, and 4C/5 clockwise. -->
 
-    <!-- z=0 ideal particle (hid=2 position, but empty) -->
+    <!-- Laboratory-coordinate origin and group 0 center -->
     <circle cx="340" cy="220" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
-    <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">z=0</text>
-    <text x="352" y="232" fill="#00d2ff" font-size="11" font-family="sans-serif">(ideal)</text>
+    <text x="352" y="215" fill="#00d2ff" font-size="13" font-weight="bold" font-family="monospace">origin</text>
 
-    <!-- hid=0: z=-2C/5, FILLED, bunch_id=0 -->
-    <circle cx="87" cy="138" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
-    <text x="55" y="125" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 0</text>
-    <text x="55" y="141" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
-    <text x="55" y="157" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
-    <text x="48" y="172" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">-2C/5</text>
-
-    <!-- hid=1: z=-C/5, EMPTY -->
-    <circle cx="243" cy="87" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
-    <text x="243" y="68" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 1</text>
-    <text x="243" y="54" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
-    <text x="275" y="92" fill="#555" font-size="11" font-family="monospace">(empty)</text>
-    <text x="278" y="106" fill="#888" font-size="11" font-family="monospace">-C/5</text>
-
-    <!-- hid=2: z=0, FILLED, bunch_id=1 -->
+    <!-- hid=0: z_center=0, filled -->
     <circle cx="340" cy="220" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
-    <text x="375" y="250" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bucket 2</text>
-    <text x="375" y="266" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
-    <text x="375" y="282" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 1</text>
+    <text x="370" y="245" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">group 0</text>
+    <text x="370" y="261" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=0</text>
+    <text x="370" y="277" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 0</text>
+    <text x="370" y="293" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">0</text>
 
-    <!-- hid=3: z=C/5, EMPTY -->
+    <!-- hid=1: z_center=C/5, empty -->
     <circle cx="243" cy="353" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
-    <text x="243" y="378" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 3</text>
-    <text x="243" y="394" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
-    <text x="278" y="348" fill="#555" font-size="11" font-family="monospace">(empty)</text>
-    <text x="278" y="362" fill="#888" font-size="11" font-family="monospace">C/5</text>
+    <text x="275" y="332" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">group 1</text>
+    <text x="275" y="348" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=1</text>
+    <text x="275" y="364" fill="#555" font-size="11" font-family="monospace">empty bunch</text>
+    <text x="275" y="380" fill="#888" font-size="11" font-family="monospace">C/5</text>
 
-    <!-- hid=4: z=2C/5, EMPTY -->
-    <circle cx="87" cy="302" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
-    <text x="55" y="295" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">bucket 4</text>
-    <text x="55" y="311" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=4</text>
-    <text x="48" y="327" fill="#555" font-size="11" text-anchor="middle" font-family="monospace">(empty)</text>
-    <text x="48" y="341" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">2C/5</text>
+    <!-- hid=2: z_center=2C/5, filled -->
+    <circle cx="87" cy="302" r="10" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
+    <text x="52" y="270" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">group 2</text>
+    <text x="52" y="286" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">hid=2</text>
+    <text x="52" y="318" fill="#00d2ff" font-size="12" text-anchor="middle" font-family="monospace">bunch 2</text>
+    <text x="52" y="334" fill="#888" font-size="11" text-anchor="middle" font-family="monospace">2C/5</text>
+
+    <!-- hid=3: z_center=3C/5, empty -->
+    <circle cx="87" cy="138" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="52" y="106" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">group 3</text>
+    <text x="52" y="122" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=3</text>
+    <text x="52" y="154" fill="#555" font-size="11" font-family="monospace">empty bunch</text>
+    <text x="52" y="170" fill="#888" font-size="11" font-family="monospace">3C/5</text>
+
+    <!-- hid=4: z_center=4C/5, empty -->
+    <circle cx="243" cy="87" r="10" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+    <text x="275" y="70" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">group 4</text>
+    <text x="275" y="86" fill="#666" font-size="12" text-anchor="middle" font-family="monospace">hid=4</text>
+    <text x="275" y="102" fill="#555" font-size="11" font-family="monospace">empty bunch</text>
+    <text x="275" y="118" fill="#888" font-size="11" font-family="monospace">4C/5</text>
 
     <!-- Legend -->
     <circle cx="60" cy="400" r="7" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
@@ -742,7 +699,7 @@
     <circle cx="190" cy="400" r="7" fill="none" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
     <text x="205" y="404" fill="#888" font-size="12" font-family="sans-serif">Empty bucket</text>
     <circle cx="315" cy="400" r="6" fill="#00d2ff" stroke="#00d2ff" stroke-width="2"/>
-    <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">Ideal particle</text>
+    <text x="328" y="404" fill="#888" font-size="12" font-family="sans-serif">z_center=0</text>
   </svg>
   </div>
 
@@ -886,6 +843,7 @@
           "Injection": {
               "S (m)": 0.0,
               "Command": "Injection",
+              "Harmonic Number": 1,
               "bunch0": {
                   "Kinetic Energy per Nucleon (eV/u)": 45e6,
                   "Number of Real Particles": 100000000000.0,
@@ -908,7 +866,6 @@
                   "Longitudinal dist": "matchz",
                   "RF Voltage (V)": 100e3,
                   "RF Phase (rad)": 0.5235987755982988,
-                  "Harmonic Number": 1,
                   "Harmonic ID of this bunch": 0,
                   "RF S Position Refer to Inj. Point (m)": 0.0,
                   "Offset x": {
