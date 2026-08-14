@@ -21,8 +21,9 @@ import os
 logger = logging.getLogger(__name__)
 
 # Columns stored per particle per turn
-# 0:turn, 1:x, 2:px, 3:y, 4:py, 5:z, 6:dp, 7:tag, 8:lost_turn, 9:lost_position
-_NCOLS = 10
+# 0:turn, 1:x, 2:px, 3:y, 4:py, 5:z, 6:dp, 7:tag, 8:lost_turn,
+# 9:lost_position, 10:zCenter
+_NCOLS = 11
 
 # Column names for output TFS
 _COL_NAMES = [
@@ -36,6 +37,7 @@ _COL_NAMES = [
     "tag",
     "lostTurn",
     "lostPosition",
+    "zCenter",
 ]
 
 
@@ -111,7 +113,7 @@ class ParticleMonitor(Command):
                     f"NumRecordTurn={self.num_record_turn:d}")
         set_normal_logging()
 
-    def _record_one_turn(self, particles, start, end, turn):
+    def _record_one_turn(self, particles, bunch, turn):
         """Fill buffer for one bunch at a given turn.
 
         Works for both CPU (numpy) and GPU (cupy) particle arrays.
@@ -120,6 +122,8 @@ class ParticleMonitor(Command):
         if record_idx < 0 or record_idx >= self.num_record_turn:
             return
 
+        start = bunch.start_idx
+        end = bunch.end_idx
         tag_all = particles.tag[start:end]
 
         for tag_val in range(1, self.max_tag + 1):
@@ -143,6 +147,7 @@ class ParticleMonitor(Command):
             buf_row[7] = float(particles.tag[idx])
             buf_row[8] = float(particles.lost_turn[idx])
             buf_row[9] = float(particles.lost_position[idx])
+            buf_row[10] = float(bunch.z_center)
 
     def execute_cpu(self, sim: Simulation):
         cfg: Config = sim.cfg
@@ -154,7 +159,7 @@ class ParticleMonitor(Command):
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
-                    self._record_one_turn(beam.particles, bunch.start_idx, bunch.end_idx, turn)
+                    self._record_one_turn(beam.particles, bunch, turn)
 
         # Write TFS files on the last recorded turn
         if turn == self.end_turn - 1:
@@ -172,7 +177,7 @@ class ParticleMonitor(Command):
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
-                    self._record_one_turn(beam.particles, bunch.start_idx, bunch.end_idx, turn)
+                    self._record_one_turn(beam.particles, bunch, turn)
 
         # Write TFS files on the last recorded turn (single D2H transfer)
         if turn == self.end_turn - 1:
