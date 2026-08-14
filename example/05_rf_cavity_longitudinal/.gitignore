@@ -1,0 +1,6 @@
+/output
+*.ps
+*.tfs
+*.seq
+*.txt
+*.json
