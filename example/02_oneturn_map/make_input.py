@@ -154,8 +154,6 @@ if __name__ == "__main__":
         dist_longi="gaussian",
         rf_voltage=100e3,
         rf_phase=0.5235987755982988,
-        harmonic_number=1,
-        harmonic_id=0,
         rf_s_position=0.0,
         momentum_offset_dp=0.0,
         kinetic_energy_offset=0.0,
