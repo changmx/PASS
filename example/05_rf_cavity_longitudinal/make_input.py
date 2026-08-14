@@ -31,7 +31,9 @@ dE = (q/A) V sin(phase - h z/R), synchronous particle at z = 0):
     zmax   = R (pi - 2 phi_s) / h                             [m]
 
 Usage:
-    python make_input.py      (uncomment the cases to build in __main__)
+    python make_input.py
+    python make_input.py --case twiss_h1_fixed
+    python make_input.py --case all
 """
 
 import math
@@ -44,8 +46,10 @@ from PASS.para.api import generate_input, build_sequence
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, OffsetConfig
 from PASS.para.schema.monitors import StatMonitor, ParticleMonitor
-from PASS.para.schema.elements import RFCavityElement, DriftElement
+from PASS.para.schema.elements import RFCavityElement
 from PASS.para.schema.twiss import TwissPoint
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # ============================================================
 # Beam parameters (low-energy heavy ion 238U35+)
@@ -131,7 +135,7 @@ def make_test_particles(harmonic: int, dpmax: float) -> list:
     tag  6-11: dp=+-{0.5,0.8,1.0}*dpmax -> bucket boundary scan
     tag 12: dp=+1.2*dpmax          -> outside bucket (loss via dp aperture)
     tag 13: x=3mm, px=1e-4         -> adiabatic damping (bunch-level check)
-    tag 14-15 (h even only): z=+-C/2 -> RF-period symmetry (both sync)
+    tag 14-15 (h=2 case): z=+-C/2 -> one-period RF symmetry
     """
     z_sync = 0.0   # bunch-relative: the bunch center is always z_rel = 0
     dp_frac = [0.5, 0.8, 1.0]
@@ -148,10 +152,10 @@ def make_test_particles(harmonic: int, dpmax: float) -> list:
     particles.append([0.0, 0.0, 0.0, 0.0, z_sync, +1.2 * dpmax])   # tag 12
     particles.append([3.0e-3, 1.0e-4, 0.0, 0.0, z_sync, 0.0])      # tag 13
 
-    if harmonic % 2 == 0:
-        # Even harmonic: bucket centers are z = 0 and z = C/2 (mod C).
-        # Both must give the synchronous gain (RF phase periodic mod C/h).
-        # +C/2 and -C/2 are the same physical bucket center after folding.
+    if harmonic == 2:
+        # For h=2, +/-C/2 differ from z=0 by one RF period C/h.
+        # Both therefore receive the same kick without coordinate folding
+        # or a parity-dependent phase correction.
         particles.append([0.0, 0.0, 0.0, 0.0, +CIRCUM / 2.0, 0.0])   # tag 14
         particles.append([0.0, 0.0, 0.0, 0.0, -CIRCUM / 2.0, 0.0])   # tag 15
 
@@ -211,6 +215,18 @@ CASES = {
 
 # Cross-case comparison (twiss vs element first-order drift error)
 CASE_PAIRS = [("twiss_h1_fixed", "element_h1_fixed")]
+
+
+def input_path(case_name: str) -> Path:
+    """Return the generated JSON path for a named case."""
+    return SCRIPT_DIR / f"beam0_{case_name}.json"
+
+
+def selected_cases(case_name: str) -> list[str]:
+    """Expand the all shortcut and validate a user-provided case name."""
+    if case_name == "all":
+        return list(CASES)
+    return [case_name]
 
 
 def build_ramp_tfs(script_dir: Path, case: dict) -> str:
@@ -325,7 +341,6 @@ def build_case(name: str, script_dir: Path) -> str:
         dist_longi="gaussian",
         rf_voltage=rf_voltage,
         rf_phase=case["phase"],
-        harmonic_id=0,
         rf_s_position=0.0,
         momentum_offset_dp=0.0,
         kinetic_energy_offset=0.0,
@@ -369,7 +384,7 @@ def build_case(name: str, script_dir: Path) -> str:
     seq = build_sequence(items=items, names=names, bunches=bunches,
                          monitors=monitors)
 
-    output_path = str(script_dir / f"beam0_{name}.json")
+    output_path = str(input_path(name))
     generate_input(main, seq, output_path)
 
     print(f"[{name}]")
@@ -385,9 +400,16 @@ def build_case(name: str, script_dir: Path) -> str:
 
 
 if __name__ == "__main__":
-    script_dir = Path(__file__).resolve().parent
+    import argparse
 
-    build_case("twiss_h1_fixed", script_dir)
-    build_case("twiss_h2_fixed", script_dir)
-    build_case("twiss_h1_ramping", script_dir)
-    build_case("element_h1_fixed", script_dir)
+    parser = argparse.ArgumentParser(description="Generate Example 05 inputs.")
+    parser.add_argument(
+        "--case",
+        choices=["all", *CASES],
+        default="all",
+        help="Input case to generate (default: all).",
+    )
+    args = parser.parse_args()
+
+    for case_name in selected_cases(args.case):
+        build_case(case_name, SCRIPT_DIR)

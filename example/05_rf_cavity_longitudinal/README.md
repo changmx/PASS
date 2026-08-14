@@ -1,209 +1,222 @@
-# Example 05 — RF Cavity 纵向动力学测试
+# Example 05 - RF Cavity Longitudinal Dynamics Test
 
-## 概述
+## Overview
 
-本 example 系统测试 PASS 高频腔元件 `RFCavity`（`PASS/commands/element/rfcavity.py`）的物理正确性与功能特性，束流为**低能重离子 ²³⁸U³⁵⁺ @ 17 MeV/u**，环光学采用 example 03/04 的 FODO（`fodo.tfs` 头部参数：**C = 234.4 m，γ_t = 3.3746**）。
+This example verifies the physical correctness and functionality of PASS's RF cavity element `RFCavity` (`PASS/commands/element/rfcavity.py`). The beam is a low-energy heavy ion, 238U35+ at 17 MeV/u, and the ring optics use the FODO lattice from examples 03/04 (`fodo.tfs`, with headers C = 234.4 m and gamma_t = 3.3746).
 
-测试覆盖 4 个 case（由 `make_input.py` 中单一 `CASES` 配置源驱动，`analyse.py` 反向 import 保证参数与理论期望值不重复定义）：
+Four cases are covered. They are driven from a single `CASES` source in `make_input.py`, and `analyse.py` imports that source to avoid duplicate parameter definitions and theory values.
 
-| case | lattice | RF 模式 | 谐波 | 专项验证 |
-|------|---------|---------|------|---------|
-| `twiss_h1_fixed` | 单 Twiss 点整环 map（`longitudinal_transfer="drift"`） | 固定标量 | h=1 | 能量增益 / Qs / bucket / 阻尼 / 丢失 |
-| `twiss_h2_fixed` | 同上 | 固定标量 | h=2 | RF 周期 $C/h$ 的相位对称性 |
-| `twiss_h1_ramping` | 同上 | **TFS 波形文件**（每圈一行） | h=1 | 逐圈参数读取 + 越界钳制 |
-| `element_h1_fixed` | 真实 FODO 环（fodo.tfs 元件） | 固定标量 | h=1 | 精确逐元素纵向 / 动量压缩涌现验证 |
+| case | lattice | RF mode | harmonic | focus |
+|------|---------|---------|----------|-------|
+| `twiss_h1_fixed` | single Twiss point one-turn map (`longitudinal_transfer="drift"`) | fixed scalar | h=1 | energy gain / Qs / bucket / damping / loss |
+| `twiss_h2_fixed` | same | fixed scalar | h=2 | RF phase symmetry with period C/h |
+| `twiss_h1_ramping` | same | TFS waveform file (one row per turn) | h=1 | turn-by-turn parameter loading + clamping |
+| `element_h1_fixed` | real FODO ring (`fodo.tfs` elements) | fixed scalar | h=1 | exact element-by-element longitudinal transport / momentum compaction emergence |
 
-**关于光学与 transition**：γ_t = 3.3746 的 FODO 上，17 MeV/u 重离子 γ = 1.01825 远低于 γ_t，η = 1/γ_t² − 1/γ² = **−0.8767**（transition 之下，稳定加速相位 0<φ_s<π/2）。加速 2048 圈 γ 仅增至 ~1.019，距 γ_t 差约 3600 倍，**不会穿越 transition**（穿越需能量 ~2.2 GeV/u，η 变号后 φ_s 需移至 (π/2, π)，属另一测试场景）。
+### Optics and transition
 
-**关于 K 值归一化**：`fodo.tfs` 的 K1L/K0L 等是**归一化强度**（除以参考磁刚度 Bρ），在 PASS 与 MADX 中均作为与粒子能量无关的光学参数直接使用（PASS `quadrupole.py` 中 `Δp_x = −K1L·x`，chi=1 无额外缩放）。这对应"磁铁梯度随粒子磁刚度缩放"的缩场同步加速模式（K 恒定是同步加速器的标准运行方式），因此 2 TeV 质子标定的 K 值可直接用于 17 MeV/u 重离子，横向光学（tune、β 函数）保持不变。element case 使用 fodo.tfs 真实元件，其纵向动量压缩（γ_t=3.3746）应从 dipole 的几何路径差中**自然涌现**——这是本 example 对 PASS dipole 纵向映射的专项验证（见 §6）。
+For the FODO ring with gamma_t = 3.3746, the 17 MeV/u ion has gamma = 1.01825, far below gamma_t. The slip factor is eta = 1/gamma_t^2 - 1/gamma^2 = -0.8767, so the machine is below transition and the stable accelerating phase satisfies 0 < phi_s < pi/2. After 2048 turns, gamma only rises to about 1.019, still far from transition. Crossing would require about 2.2 GeV/u and a phase shift into (pi/2, pi), which is a different test scenario.
 
-## 物理模型
+### K-value normalization
 
-### RF kick（薄透镜，PASS 约定）
+The K1L/K0L values in `fodo.tfs` are normalized strengths, i.e. divided by reference magnetic rigidity Brho. PASS and MADX use them directly as energy-independent optics parameters. In PASS's quadrupole implementation, `Delta p_x = -K1L * x` with no extra scaling. This matches the standard synchrotron operating mode where magnet gradients scale with particle rigidity. Therefore the K values calibrated for 2 TeV protons can be used directly for the 17 MeV/u ion, and the transverse optics remain unchanged. The element case uses the real `fodo.tfs` elements, and its longitudinal momentum compaction (gamma_t=3.3746) should emerge naturally from the dipole geometry; this is the dedicated PASS dipole longitudinal-map check.
 
-每圈在 s=0 处施加纵向 kick：
+## Physics Model
+
+### RF kick
+
+Each turn applies a longitudinal kick at s=0:
 
 $$dE = (q/A)\,V\,\sin\left(\phi_s + \phi_{\text{off}} - \frac{2\pi h}{C}z_{\text{lab}}\right),\qquad z_{\text{lab}}=z_{\text{rel}}+z_{\text{center}}$$
 
-- PASS 存储的粒子坐标是相对本束团中心的 $z_{\text{rel}}$；$z_{\text{center}}=h_{\text{id}}C/h_{\text{group}}$ 是束团在整环上的固定标签。因此 RF 相位总是使用实验室纵向坐标 $z_{\text{lab}}$，不使用偶数谐波专用补偿。
-- 本 example 只有一个束团，$z_{\text{center}}=0$，所以同步粒子为 $z_{\text{rel}}=0$，与 RF 谐波奇偶无关。相差一个 RF 周期 $C/h$ 的粒子获得相同 kick；h=2 时 $z=\pm C/2$ 与 $z=0$ 同相。
-- 当腔谐波与束团分组数相同或为其整数倍时，所有束团中心获得相同参考增益。若二者不是整数倍，程序仍按每束团自己的 $z_{\text{center}}$ 计算相位和参考能量，因此不同束团可获得不同增益。
-- 能量→动量→δ 转换为**精确相对论**（无线性化）；每个束团的参考系随自身中心粒子的 $dE_{\text{ref}}$ 更新。横向动量重缩放 $p_{x,y} \leftarrow p_{x,y}\cdot(p_0^{\text{old}}/p_0^{\text{new}})$（绝热阻尼）。
+- PASS stores particle coordinates relative to the bunch center as `z_rel`; `z_center = h_id * C / h_group` is the fixed bunch label in the ring. The RF phase is therefore always evaluated with the laboratory coordinate `z_lab`, not with any special even-harmonic correction.
+- This example has only one bunch, so `z_center = 0` and the synchronous particle is `z_rel = 0`, independent of harmonic parity. Particles separated by one RF period C/h receive the same kick; for h=2, `z = +-C/2` is in phase with `z = 0`.
+- When the cavity harmonic matches the bunch grouping number, or is an integer multiple of it, all bunch centers get the same reference gain. Otherwise the code still computes phase and reference energy per bunch using each bunch's `z_center`, so different bunches can receive different gains.
+- Energy -> momentum -> delta conversion is fully relativistic, with no linearization. Each bunch's reference frame is updated by its own center particle `dE_ref`, and transverse momenta are rescaled as `p_x,y <- p_x,y * (p0_old / p0_new)` for adiabatic damping.
 
-### 一圈 map 与同步振荡
+### One-turn map and synchrotron motion
 
-Twiss case：`Injection → RFCavity(s=0) → monitors(s=0) → Twiss(s=C, s_prev=0)`，Twiss 点提供整环传输，纵向为一阶漂移 $z \leftarrow z - \eta\,C\,\delta p$（`twiss.py` 的 `"drift"` 模式，用真实 γ_t、γ）。element case：fodo.tfs 真实元件逐元素传输，纵向由 drift/dipole 的精确公式 $z \leftarrow z + L\big(1 - \beta_0(1+\delta p)/(\beta\,p_z)\big)$ 及 dipole 几何路径差提供——动量压缩（γ_t=3.3746）从 dipole 映射中自然涌现，与 twiss 的一阶 η 应一致（§6 验证）。
+Twiss case: `Injection -> RFCavity(s=0) -> monitors(s=0) -> Twiss(s=C, s_prev=0)`. The Twiss point provides full-ring transport, and the longitudinal motion is a first-order drift `z <- z - eta * C * delta p` (`twiss.py` "drift" mode, using the real gamma_t and gamma).
 
-小振幅线性化一圈 map 给出同步振荡频率与 bucket 参数（一阶理论，与 PASS `injection.py` 公式同源）：
+Element case: real `fodo.tfs` elements are tracked one by one, and the longitudinal motion comes from the exact drift/dipole formulas and dipole geometry. The momentum compaction (gamma_t=3.3746) emerges from the dipole mapping and should match the first-order eta from the Twiss case.
+
+The small-amplitude linearized one-turn map gives the synchrotron tune and bucket parameters:
 
 $$Q_s = \sqrt{\frac{-(q/A)\,h\,V\,\eta\,\cos\phi_s}{2\pi\beta^2 E}},\qquad
 \Delta p_{\max} = \sqrt{\frac{-(q/A)\,V\big[2\cos\phi_s - (\pi-2\phi_s)\sin\phi_s\big]}{\pi\beta^2 E\, h\, \eta}},\qquad
 z_{\max} = \frac{R(\pi-2\phi_s)}{h}$$
 
-分离线由纵向 Hamiltonian 等值线数值给出（`analyse.bucket_separatrix()`）。
+The separatrix is obtained numerically from the longitudinal Hamiltonian contour (`analyse.bucket_separatrix()`).
 
-## 束流与参数
+## Beam and Parameters
 
-| 参数 | 值 | 说明 |
+| parameter | value | note |
 |------|-----|------|
-| 离子 | ²³⁸U³⁵⁺（92p, 146n, q=35） | q/A = 0.14706 |
-| 动能 | 17 MeV/u | γ=1.01825, β=0.18847 |
-| 周长 C | 234.4 m（fodo.tfs） | R=37.31 m |
-| γ_t | 3.3746（fodo.tfs） | η = −0.87667 |
-| 腔电压 V | 20 kV | |
-| 同步相位 φ_s | 0.1 rad | η<0 → 稳定加速相位 0<φ_s<π/2 |
-| 圈数 | 2048（ramping: 200） | |
+| ion | 238U35+ (92p, 146n, q=35) | q/A = 0.14706 |
+| kinetic energy | 17 MeV/u | gamma=1.01825, beta=0.18847 |
+| circumference C | 234.4 m (`fodo.tfs`) | R=37.31 m |
+| gamma_t | 3.3746 (`fodo.tfs`) | eta = -0.87667 |
+| cavity voltage V | 20 kV | |
+| synchronous phase phi_s | 0.1 rad | eta < 0 -> stable accelerating phase 0 < phi_s < pi/2 |
+| turns | 2048 (ramping: 200) | |
 
-**圈数选择（2048 而非 1024）**：Qs ≈ 3.5e-3 → 同步周期 ~287 圈。1024 圈仅 3.6 个周期，FFT 分辨率 1/1024 = 9.8e-4（仅比 Qs 小 3.6 倍），谱峰解析差；2048 圈 = 7.1 个周期，分辨率 4.9e-4，配合零填充/抛物线插值达到 ~1e-5 精度。此外 bucket 边界粒子（tag 10）滑相至丢失需 ~500 圈，1024 圈余量不足。
+**Why 2048 turns instead of 1024?** Qs is about 3.5e-3, so the synchrotron period is about 287 turns. With only 1024 turns, the FFT sees just 3.6 periods and the frequency resolution is poor. With 2048 turns, the tune resolution improves to about 4.9e-4, and zero-padding plus parabolic interpolation reaches about 1e-5. In addition, the bucket-edge particle (tag 12) needs about 500 turns to slip into loss, so 1024 turns leaves too little margin.
 
-**理论期望值**（`make_input.calc_theory()` 自动计算）：
+**Theory values** (`make_input.calc_theory()` computes these automatically):
 
-| 量 | h=1 | h=2 |
+| quantity | h=1 | h=2 |
 |----|-----|-----|
-| dE_syn | 293.628 eV/u/圈 | 293.628 eV/u/圈 |
-| Q_s | 3.4811e-3（周期 287 圈） | 4.9230e-3（周期 203 圈） |
-| Δp_max | 7.332e-3 | 5.185e-3 |
-| z_max | 109.74 m（< C/2=117.2 m） | 54.87 m |
+| dE_syn | 293.628 eV/u/turn | 293.628 eV/u/turn |
+| Q_s | 3.4811e-3 (period 287 turns) | 4.9230e-3 (period 203 turns) |
+| Delta p_max | 7.332e-3 | 5.185e-3 |
+| z_max | 109.74 m (< C/2 = 117.2 m) | 54.87 m |
 
-**分布粒子**（5000 个，KV 横向 / 高斯纵向）：σ_z = 5 m，σ_dp = 1e-3。约束：z 方向裕度 22×（vs z_max），dp 方向裕度 7.3×（vs Δp_max）——**dp 是约束方**。束团匹配长度（σ_z = σ_dp·|η|C/2πQ_s）约 9.4 m，本测试取"欠匹配"（dp 主导），不影响稳定性与统计。
+**Distribution particles** (5000, KV transverse / Gaussian longitudinal): sigma_z = 5 m, sigma_dp = 1e-3. The longitudinal margin is 22x in z and 7.3x in dp, so dp is the limiting factor. The matched bunch length is about 9.4 m; this test intentionally uses an under-matched distribution dominated by dp spread.
 
-## 测试粒子（tag 分组）
+## Test Particles
 
-基准同步位置为 $z_{\text{rel}}=0$（本 example 的 $z_{\text{center}}=0$）。13+2 个 tag 粒子：
+The reference synchronous position is `z_rel = 0` (and `z_center = 0` for this example). There are 13+2 tagged particles:
 
-| tag | 坐标（相对 z_sync） | 用途 |
+| tag | coordinates (relative to z_sync) | purpose |
 |-----|---------------------|------|
-| 1 | z=0, dp=0 | 同步粒子 → 能量增益 / 参考系跟踪 |
-| 2–3 | z=±3 m | Qs（z 振荡，δ_amp≈3.2e-4 线性区） |
-| 4–5 | dp=±1e-3 | Qs（dp 振荡，z_amp≈9.4 m） |
-| 6–7 | dp=±0.5·Δp_max | bucket 边界扫描 |
-| 8–9 | dp=±0.8·Δp_max | 同上 |
-| 10–11 | dp=±1.0·Δp_max | 边界（理论临界） |
-| 12 | dp=+1.2·Δp_max | 桶外 → dp aperture 丢失路径 |
-| 13 | x=3 mm, px=1e-4 | 绝热阻尼（束团级验证） |
-| 14–15 | z=±C/2（仅 h=2） | 相差一个 RF 周期的同相性 |
+| 1 | z=0, dp=0 | synchronous particle -> energy gain / reference tracking |
+| 2-3 | z=+-3 m | Qs from z oscillation |
+| 4-5 | dp=+-1e-3 | Qs from dp oscillation |
+| 6-7 | dp=+-0.5*Delta p_max | bucket scan |
+| 8-9 | dp=+-0.8*Delta p_max | same |
+| 10-11 | dp=+-1.0*Delta p_max | boundary particles |
+| 12 | dp=+1.2*Delta p_max | outside bucket -> dp aperture loss |
+| 13 | x=3 mm, px=1e-4 | adiabatic damping (bunch-level check) |
+| 14-15 | z=+-C/2 (h=2 only) | same RF phase separated by one period |
 
-dp 孔径 `±1.08·Δp_max`（自动随 case 计算）：tag 12 第一圈即被截断，tag 10/11 边界粒子可观测滑相/环绕。
+The dp aperture is `+-1.08 * Delta p_max` (computed automatically per case). Tag 12 is clipped on the first turn, while tags 10/11 probe the bucket edge.
 
-## 验证结果
+## Verification Results
 
-### 1. 能量增益（4 个 case 全部）
+### 1. Energy Gain (all 4 cases)
 
-| 量 | 实测 | 理论 | 误差 |
+| quantity | measured | theory | error |
 |----|------|------|------|
-| dE/dn（Ek 斜率） | 293.627696 eV/u/圈 | 293.627696 eV/u/圈 | **0.0000 %** |
+| dE/dn (Ek slope) | 293.627696 eV/u/turn | 293.627696 eV/u/turn | 0.0000 % |
 
-### 2. 同步振荡 Qs（FFT，Hann 窗 + 零填充 65536 + 抛物线插值）
+### 2. Synchrotron Tune Qs (FFT, Hann window + zero padding 65536 + parabolic interpolation)
 
-| case | 实测 Qs | 理论 Qs(γ₀) | 相对 | 理论 ⟨Qs(γ)⟩ | 相对 |
+| case | measured Qs | theory Qs(gamma_0) | rel. | theory <Qs(gamma)> | rel. |
 |------|---------|-------------|------|--------------|------|
-| twiss_h1 | 3.4422e-3 | 3.4811e-3 | 1.12 % | 3.4499e-3 | **0.22 %** |
-| twiss_h2 | 4.8553e-3 | 4.9230e-3 | 1.38 % | 4.8789e-3 | **0.48 %** |
-| element_h1 | 3.4418e-3 | 3.4811e-3 | 1.13 % | 3.4499e-3 | **0.24 %** |
+| twiss_h1 | 3.4422e-3 | 3.4811e-3 | 1.12 % | 3.4499e-3 | 0.22 % |
+| twiss_h2 | 4.8553e-3 | 4.9230e-3 | 1.38 % | 4.8789e-3 | 0.48 % |
+| element_h1 | 3.4418e-3 | 3.4811e-3 | 1.13 % | 3.4499e-3 | 0.24 % |
 
-**绝热漂移**：2048 圈参考能量 +0.60 MeV/u（相对总能量 0.063%），但低 β 时 Qs 分母 β²E = (γ−1/γ)m₀ 对 γ 高度敏感（放大因子 ~1/β²），Qs 全程下移 ~1.7%。FFT 测到全程平均，与绝热平均理论 ⟨Qs(γ)⟩ 吻合（0.2–0.5%）。
+**Adiabatic drift:** after 2048 turns, the reference energy rises by about 0.60 MeV/u, but at low beta the denominator beta^2 E is highly sensitive to gamma, so Qs drifts downward by about 1.7%. The FFT measures the full-run average, which agrees with the adiabatic-average theory <Qs(gamma)> to within 0.2-0.5%.
 
-**element case 的动量压缩验证**：真实 FODO 逐元素模拟（精确漂移 + dipole 几何路径差）得到的 Qs 与 twiss 一阶模拟**一致到 0.012%**（见 §6）——证明 PASS dipole 的纵向映射（含动量压缩 γ_t=3.3746）是正确的，动量压缩从 dipole 映射中自然涌现。
+**Momentum compaction check in the element case:** the real FODO element-by-element simulation (exact drifts + dipole geometry) matches the Twiss first-order simulation in Qs to 0.012%, confirming that PASS's dipole longitudinal map and momentum compaction (gamma_t=3.3746) are correct.
 
-### 3. Bucket 边界扫描（dp 孔径 ±1.08·Δp_max）
+### 3. Bucket Edge Scan (dp aperture +-1.08*Delta p_max)
 
-| dp₀/Δp_max | twiss_h1 | twiss_h2 | element_h1 |
+| dp0/Delta p_max | twiss_h1 | twiss_h2 | element_h1 |
 |------------|----------|----------|------------|
-| ±0.5 | 稳定 ✓ | 稳定 ✓ | 稳定 ✓ |
-| ±0.8 | 稳定 ✓ | 稳定 ✓ | 稳定 ✓ |
-| +1.0 | 滑相丢失 | 滑相丢失 | **稳定 ✓** |
-| −1.0 | 稳定 ✓ | 稳定 ✓ | **稳定 ✓** |
-| +1.2 | turn 0 丢失 ✓ | turn 0 丢失 ✓ | turn 0 丢失 ✓ |
+| +-0.5 | stable | stable | stable |
+| +-0.8 | stable | stable | stable |
+| +1.0 | phase slip loss | phase slip loss | stable |
+| -1.0 | stable | stable | stable |
+| +1.2 | turn 0 loss | turn 0 loss | turn 0 loss |
 
-tag 12 第一圈被 dp 孔径截断（lost_turn=0），丢失路径正确。**±1.0Δp_max 边界粒子在 element（精确漂移）下稳定**，而在 twiss（一阶漂移）下 +1.0 滑出丢失——一阶近似的桶边界判据偏移是近似误差而非物理（理论 Δp_max 为一阶值，精确桶略大）。±方向不对称来自 φ_s≠0 的 bucket 上下不对称。
+Tag 12 is clipped by the dp aperture on the first turn (`lost_turn=0`). The boundary particles at `+-1.0 Delta p_max` are stable in the exact element model, but the +1.0 case slips out in the first-order Twiss model. That mismatch is a first-order approximation effect, not a physics error. The asymmetry between positive and negative dp comes from the bucket asymmetry when phi_s != 0.
 
-### 4. h=2 的 RF 周期对称性
+### 4. h=2 RF Phase Symmetry
 
-| tag | 初始 z | max\|dp\| | max\|z−z₀\| |
+| tag | initial z | max|dp| | max|z-z0| |
 |-----|--------|-----------|-------------|
-| 14 | +117.2 m（=+C/2） | 6.2e-15 | 0.0 m |
-| 15 | −117.2 m（=−C/2） | 6.2e-15 | 0.0 m |
+| 14 | +117.2 m (= +C/2) | 6.2e-15 | 0.0 m |
+| 15 | -117.2 m (= -C/2) | 6.2e-15 | 0.0 m |
 
-两个粒子与 $z=0$ 相差一个 h=2 的 RF 周期 $C/h=C/2$，因此增益与参考系一致（δ 恒 0）。该结果不依赖坐标折叠或偶数谐波专用补偿。
+Both particles are one RF period C/h = C/2 away from z=0, so they receive the same kick and remain phase-locked. This does not depend on coordinate folding or any special even-harmonic correction.
 
-### 5. 能量斜坡（rf data file，V(n)=20 kV·(1+0.02n)，50 行）
+### 5. Energy Ramp (rf data file, V(n) = 20 kV * (1 + 0.02n), 50 rows)
 
-| 验证 | 结果 |
+| check | result |
 |------|------|
-| E(n) vs Σ V(k)sinφ_s 逐圈模型 | max 相对偏差 **1.5e-11** |
-| 50 行后钳制斜率 vs 期望冻结值 | **0.000 %** |
+| E(n) vs sum of V(k) sin(phi_s) | max relative error 1.5e-11 |
+| slope after row 50 vs expected frozen slope | 0.000 % |
 
-### 6. Twiss vs Element：一阶漂移近似误差
+### 6. Twiss vs Element: First-Order Drift Error
 
-两个 case 使用同一 FODO（γ_t=3.3746）：twiss 用一阶纵向漂移 $z \leftarrow z-\eta C\delta p$，element 用精确逐元素映射（动量压缩从 dipole 几何中涌现）。
+Both cases use the same FODO ring (gamma_t=3.3746): the Twiss case uses the first-order longitudinal drift `z <- z - eta * C * delta p`, while the element case uses exact element-by-element mapping and dipole geometry.
 
-**(a) Qs 一致性**（一阶 vs 精确的实现自洽性）
+**(a) Qs consistency**
 
-| 量 | 值 |
+| quantity | value |
 |----|-----|
-| Qs(twiss) 实测 | 3.4484e-3 |
-| Qs(element) 实测 | 3.4480e-3 |
-| 比值 | **0.999879**（理论 1.0，相同 γ_t） |
+| Qs(twiss) measured | 3.4484e-3 |
+| Qs(element) measured | 3.4480e-3 |
+| ratio | 0.999879 (theory 1.0, same gamma_t) |
 
-一阶漂移与精确逐元素传输的 Qs 一致到 0.012%，同时证明 PASS dipole 的纵向映射（动量压缩）正确。
+The first-order drift and exact element transport agree in Qs to 0.012%.
 
-**(b) 轨迹差异 vs dp**（一阶近似误差）
+**(b) Trajectory difference vs dp**
 
-| dp₀ | max\|Δz\| |
+| dp0 | max|Delta z| |
 |-----|----------|
-| ±1e-3 | 0.05 m |
-| ±3.7e-3 | 0.10–0.36 m |
-| ±5.9e-3 | 2.4–2.8 m |
-| ±7.3e-3 | 172–218 m（边界分叉：twiss 一阶下 tag10 滑出丢失，element 精确下稳定） |
+| +-1e-3 | 0.05 m |
+| +-3.7e-3 | 0.10-0.36 m |
+| +-5.9e-3 | 2.4-2.8 m |
+| +-7.3e-3 | 172-218 m (branching at the bucket edge: tag 10 is lost in the Twiss approximation but remains stable in the exact element case) |
 
-一阶轨迹误差随 \|δp\| 增长；正常束流（δp≲1e-3）误差 ~5 cm（占 z 振荡振幅 ~0.5%），接近 bucket 边界时一阶近似失效（见 §3）。
+The first-order error grows with |delta p|. For ordinary beam conditions (delta p <= 1e-3), the error is about 5 cm, roughly 0.5% of the z oscillation amplitude. Near the bucket edge, the first-order approximation breaks down.
 
-### 7. 绝热阻尼（束团级）
+### 7. Adiabatic Damping (bunch level)
 
-| 量 | 相对变化 |
+| quantity | relative change |
 |----|----------|
-| σ_py·p₀（守恒量） | 7.2e-3（≈ 5000 粒子统计噪声水平） |
-| tag 13 Jx·p₀²（单粒子） | ~5e-3（Jx 的 x²/β 项不被 kick 缩放，物理预期） |
+| sigma_py * p0 (conserved quantity) | 7.2e-3 (about the statistical noise level for 5000 particles) |
+| tag 13 Jx * p0^2 (single particle) | about 5e-3 (the x^2/beta term is not scaled by the kick, which is expected) |
 
-## 关于三个物理注意点的严重性评估
+## Three Important Physical Notes
 
-| 注意点 | 性质 | 严重性 |
+| note | nature | severity |
 |--------|------|--------|
-| **多束团与非整倍 RF 谐波** | 允许的物理配置：中心相位使用 $z_{\text{lab}}=z_{\text{rel}}+z_{\text{center}}$；若腔谐波不是分组数整数倍，不同束团中心会有不同参考增益 | 取决于机器运行方案。程序不限制该配置，但使用者应确认不同束团的纵向工作点是否符合预期 |
-| **低 β 束流 Qs 绝热漂移**（2048 圈下移 ~1.7%） | 真实物理：β²E 对 γ 的放大 ~1/β² | 低。分析时对比绝热平均理论 ⟨Qs(γ)⟩ 即可（0.2–0.5% 吻合）；缩短圈数或提高能量可抑制 |
-| **twiss 一阶漂移在边界失效**（±1.0Δp 丢失时机不同） | 模型近似属性：一阶 −ηCδp 不含高阶项 | 中低。正常束流 δp≲1e-3 时影响小；大 δp / 边界粒子研究应使用 element 模式 |
+| multi-bunch operation with non-integer RF harmonic ratios | allowed configuration: the phase is evaluated with `z_lab = z_rel + z_center`; if the cavity harmonic is not an integer multiple of the bunch grouping number, different bunch centers receive different reference gains | depends on the machine operating scheme. The code does not forbid it, but the user should verify the resulting longitudinal working point |
+| low-beta Qs adiabatic drift (about -1.7% over 2048 turns) | real physical effect: beta^2 E is strongly amplified by 1/beta^2 at low gamma | low. Compare against the adiabatic-average theory <Qs(gamma)>; shortening the run or increasing energy reduces it |
+| first-order Twiss drift failure near the bucket edge | model approximation: the first-order `-eta*C*delta p` drift omits higher-order terms | medium-low. For normal beam conditions (delta p <= 1e-3) the effect is small; use the element mode for large-dp or edge studies |
 
-**RFCavity 实现结论**：核心物理（能量增益、同步振荡、bucket、基于 $z_{\text{lab}}$ 的多束团相位、ramping 读取、dp 孔径、绝热阻尼）全部通过真实模拟验证，**未发现问题**。唯一已知限制：GPU 实现未完成（`execute_gpu` 抛 NotImplementedError），本 example 使用 CPU backend。
+**RFCavity conclusion:** In the normal physics range covered by this example, energy gain, synchrotron motion, bucket structure, multi-bunch phase handling based on `z_lab`, ramp-file reading, dp aperture, and adiabatic damping are all validated by simulation. Two limits remain: the GPU backend is not implemented (`execute_gpu` raises `NotImplementedError`), and if an unphysical over-decelerating kick drives the total energy below rest energy, the current implementation does not yet mark that particle as lost automatically.
 
-## 文件结构
+## File Layout
 
-```
+```text
 05_rf_cavity_longitudinal/
-├── make_input.py   # 单一配置源：CASES 字典 + calc_theory() + build_case()
-├── run.py          # run_case(name) → PASS.main
-├── analyse.py      # 9 个验证模块 + A/B 对比（import make_input 保证一致性）
-├── fodo.madx/.seq/.ps/.tfs  # example 03/04 的 FODO（提供 C、γ_t）
-├── rf_ramp.tfs     # ramping 波形（make_input 自动生成）
+├── make_input.py   # single source of truth: CASES + calc_theory() + build_case()
+├── run.py          # --case/--beam0 -> PASS.main
+├── analyse.py      # verification modules + A/B comparison (imports make_input)
+├── fodo.madx/.seq/.ps/.tfs  # FODO lattice from examples 03/04 (provides C and gamma_t)
+├── rf_ramp.tfs     # ramp waveform (generated automatically by make_input)
 ├── beam0_<case>.json
 └── output/<case>/YYYY_MMDD/HHMM_SS/
 ```
 
-## 使用方法
+## Usage
 
 ```bash
 cd example/05_rf_cavity_longitudinal
-python make_input.py    # 生成 4 个 beam0_<case>.json + rf_ramp.tfs
-python run.py           # 跑 4 个 case（CPU backend，每个约 10 s）
-python analyse.py       # 打印全部验证结果 + 交互图（plt.show()）
+python make_input.py    # generate 4 beam0_<case>.json files + rf_ramp.tfs
+python run.py           # run the 4 cases in sequence
+python analyse.py       # print all verification results + interactive plots
 ```
 
-`make_input.py` / `run.py` / `analyse.py` 的 `__main__` 中均可手动取消注释选择单个 case。
+You can also generate or run a single case:
 
-## 注意事项
+```bash
+python make_input.py --case twiss_h1_fixed
+python run.py --case twiss_h1_fixed
+python run.py --case all
+python run.py --beam0 beam0_twiss_h1_fixed.json
+```
 
-1. **backend 必须为 CPU**：`RFCavity.execute_gpu` 未实现。
-2. **序列排序修复**：本 example 依赖 `PASS/commands/__init__.py` 中统一维护的 `COMMAND_PRIORITY`，其中 `"RFCavity": 300`。此前 RFCavity 落入 `Other=999`，会在同 s 处排到 monitors 之后（每圈记录 kick 前状态）。修复后顺序为 `Injection → RFCavity → monitors → 环传输`，turn n 记录第 n 次 kick 后的状态。
-3. **turn 约定**：turn 0 即包含第一次 kick。
-4. **纵向坐标**：手动指定粒子的 z 是相对该束团中心的 $z_{\text{rel}}$；需要 RF 相位时程序自动加上 $z_{\text{center}}$。
-5. **K 值归一化**：`fodo.tfs` 的 K1L 等为归一化强度，能量无关（见概述），element case 可直接使用真实 FODO 元件，无需磁刚度缩放。
-6. **FFT 测 Qs**：Qs ~ 3.5e-3 很小，需零填充 65536 + 抛物线插值，并与绝热平均理论 ⟨Qs(γ)⟩ 对比而非初始值。
+## Notes
+
+1. **CPU backend required**: `RFCavity.execute_gpu` is not implemented.
+2. **Sequence ordering fix**: this example depends on the shared `COMMAND_PRIORITY` in `PASS/commands/__init__.py`, where `"RFCavity": 300`. Before that fix, RFCavity fell into `Other=999` and was sorted after monitors at the same s, which caused the monitors to record the pre-kick state. The corrected order is `Injection -> RFCavity -> monitors -> ring transport`, so turn n records the state after the n-th kick.
+3. **Turn convention**: turn 0 includes the first kick.
+4. **Longitudinal coordinate**: manually specified particle z is `z_rel` relative to the bunch center; the code adds `z_center` automatically when computing RF phase.
+5. **K-value normalization**: K1L in `fodo.tfs` is normalized strength and does not depend on beam energy. The element case can therefore use the real FODO elements directly without rigidity scaling.
+6. **FFT Qs measurement**: Qs is very small, so zero padding to 65536 plus parabolic interpolation is needed, and the result should be compared against the adiabatic-average theory <Qs(gamma)> rather than the initial value.

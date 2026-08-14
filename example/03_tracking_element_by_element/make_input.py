@@ -26,12 +26,19 @@ Test particles (17 total):
         tag 17: x=3mm, y=3mm
 
 Usage:
-    python generate_beam0.py
+    python make_input.py
 """
 
 from pathlib import Path
 
 from PASS.para.api import generate_from_tfs
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def input_path() -> Path:
+    """Return the generated Example 03 input path."""
+    return SCRIPT_DIR / "beam0.json"
 
 
 def make_test_particles():
@@ -69,9 +76,9 @@ def make_test_particles():
 
 
 if __name__ == "__main__":
-    script_dir = Path(__file__).resolve().parent
+    script_dir = SCRIPT_DIR
     twiss_file = str(script_dir / "fodo.tfs")
-    output_path = str(script_dir / "beam0.json")
+    output_path = str(input_path())
 
     insert_particles = make_test_particles()
     num_particles = len(insert_particles)
@@ -118,8 +125,6 @@ if __name__ == "__main__":
                 dist_longi="gaussian",
                 rf_voltage=0.0,
                 rf_phase=0.0,
-                harmonic_number=1,
-                harmonic_id=0,
                 rf_s_position=0.0,
                 momentum_offset_dp=0.0,
                 kinetic_energy_offset=0.0,

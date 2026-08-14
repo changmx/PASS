@@ -20,9 +20,13 @@ Turn convention (after RFCavity priority fix in PASS.core.sequence):
   So turn n records the state AFTER kick n (before transport n+1).
 
 Usage:
-    python analyse.py      (uncomment the cases in __main__)
+    python analyse.py
+    python analyse.py --case twiss_h1_fixed
+    python analyse.py --case all
+    python analyse.py --no-plot
 """
 
+import argparse
 import csv
 import math
 from pathlib import Path
@@ -32,7 +36,7 @@ import matplotlib.pyplot as plt
 
 from make_input import (CASES, CASE_PAIRS, calc_theory, CIRCUM, RADIUS,
                         BETA_0, GAMMA_0, ETA_0, E_TOTAL_0, QM_RATIO, M0,
-                        GAMMA_T, SIGMA_Z, SIGMA_DP)
+                        GAMMA_T, SIGMA_Z, SIGMA_DP, selected_cases)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -41,7 +45,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # ============================================================
 
 def find_latest_output(case_name: str):
-    """Most recent output/<case_name>/YYYY_MMDD/HHMM_SS directory."""
+    """Most recent complete output/<case_name>/YYYY_MMDD/HHMM_SS directory."""
     root = SCRIPT_DIR / "output" / case_name
     if not root.exists():
         return None
@@ -49,7 +53,11 @@ def find_latest_output(case_name: str):
         if not date_dir.is_dir():
             continue
         for time_dir in sorted(date_dir.iterdir(), reverse=True):
-            if time_dir.is_dir():
+            particle_dir = time_dir / "particle"
+            if (time_dir.is_dir()
+                    and particle_dir.is_dir()
+                    and any(particle_dir.glob("*.tfs"))
+                    and any(time_dir.glob("*_stat_*.csv"))):
                 return time_dir
     return None
 
@@ -317,9 +325,9 @@ def check_h2_symmetry(case, data, theory):
         dp = data[tag]["dp"]
         z = data[tag]["z"]
         max_dp = np.max(np.abs(dp))
-        z_max = np.max(np.abs(z))
+        z_excursion = np.max(np.abs(z - z0))
         print(f"  tag {tag}: z0={z0:+.2f} m, max|dp|={max_dp:.2e}, "
-              f"max|z|={z_max:.2e} m (bucket half-width "
+              f"max|z-z0|={z_excursion:.2e} m (bucket half-width "
               f"{CIRCUM/(2.0*case['harmonic']):.2f} m)")
     return max_dp
 
@@ -461,9 +469,21 @@ def analyse_case(name, output_dir=None, is_plot=True):
 
 
 if __name__ == "__main__":
-    analyse_case("twiss_h1_fixed")
-    analyse_case("twiss_h2_fixed")
-    analyse_case("twiss_h1_ramping")
-    analyse_case("element_h1_fixed")
+    parser = argparse.ArgumentParser(description="Analyse Example 05 results.")
+    parser.add_argument(
+        "--case",
+        choices=["all", *CASES],
+        default="all",
+        help="Case to analyse (default: all).",
+    )
+    parser.add_argument("--no-plot", action="store_true",
+                        help="Disable interactive plots.")
+    args = parser.parse_args()
+
+    case_names = selected_cases(args.case)
+    for case_name in case_names:
+        analyse_case(case_name, is_plot=not args.no_plot)
+
     for pair in CASE_PAIRS:
-        compare_twiss_element(pair)
+        if all(name in case_names for name in pair):
+            compare_twiss_element(pair)

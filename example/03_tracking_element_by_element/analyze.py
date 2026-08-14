@@ -13,7 +13,7 @@ Usage:
     # Specify twiss file for reference values
     python analyze.py --twiss bring.tfs
 
-    # Custom chromaticity dp list (must match generate_beam0.py)
+    # Custom chromaticity dp list (must match make_input.py)
     python analyze.py --dp-list 5e-5,1e-4,5e-4,1e-3
 """
 

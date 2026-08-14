@@ -39,6 +39,8 @@ from PASS.para.schema.bunch import BunchConfig, OffsetConfig
 from PASS.para.schema.monitors import StatMonitor, ParticleMonitor
 from PASS.para.madx import read_madx_twiss
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 
 # ============================================================
 # Parameters
@@ -57,6 +59,11 @@ EMIT_Y = 100e-6            # m·rad
 
 # Sextupole name patterns for thin-lens insertion
 SEXTUPOLE_PATTERNS = ["SF1", "SD1"]
+
+
+def input_path() -> Path:
+    """Return the generated Example 04 input path."""
+    return SCRIPT_DIR / "beam0.json"
 
 
 def make_test_particles():
@@ -83,10 +90,10 @@ def make_test_particles():
 
 
 if __name__ == "__main__":
-    script_dir = Path(__file__).resolve().parent
+    script_dir = SCRIPT_DIR
     natural_tfs = str(script_dir / "fodo_natural.tfs")
     corrected_tfs = str(script_dir / "fodo.tfs")
-    output_path = str(script_dir / "beam0.json")
+    output_path = str(input_path())
 
     # --- Read natural chromaticity ---
     natural = tfs_lib.read(natural_tfs)
@@ -164,8 +171,6 @@ if __name__ == "__main__":
         dist_longi="gaussian",
         rf_voltage=0.0,
         rf_phase=0.0,
-        harmonic_number=1,
-        harmonic_id=0,
         rf_s_position=0.0,
         momentum_offset_dp=0.0,
         kinetic_energy_offset=0.0,
