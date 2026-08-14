@@ -22,7 +22,7 @@ class Config:
 
     num_beam: int = 0
     beam_name: list[str] = field(default_factory=list)
-    num_bunch: list[int] = field(default_factory=list)
+    harmonic_number: list[int] = field(default_factory=list)
     num_turn: int = 0
     num_collision: int = 0
     use_cpu: bool = False
@@ -31,6 +31,7 @@ class Config:
     gpu_id: list[int] = field(default_factory=list)
     is_plot: bool = False
     input_path: list[str] = field(default_factory=list)
+    input_data: list[dict] = field(default_factory=list)
     output_interval: int = 100
     output_ymd: str = ""
     output_hms: str = ""
@@ -46,6 +47,11 @@ class Config:
     output_dir_slowExt_particle: str = ""
 
     def load_input(self, beam0_path: str, beam1_path: str | None = None) -> None:
+        self.beam_name.clear()
+        self.harmonic_number.clear()
+        self.input_path.clear()
+        self.input_data.clear()
+
         path0 = Path(beam0_path)
         if not path0.exists():
             raise FileNotFoundError(f"Input beam0 file not found: {path0}")
@@ -69,14 +75,20 @@ class Config:
         if self.num_beam == 1:
             self.beam_name.append(data0.get("beam name"))
             self.input_path.append(beam0_path)
-            self.num_bunch.append(len(data0["sequence"]["injection"]) - 2)
+            self.input_data.append(data0)
+            h0 = int(data0["sequence"]["injection"]["harmonic number"])
+            self.harmonic_number.append(h0)
         else:
             self.beam_name.append(data0.get("beam name"))
             self.beam_name.append(data1.get("beam name"))
             self.input_path.append(beam0_path)
             self.input_path.append(beam1_path)
-            self.num_bunch.append(len(data0["sequence"]["injection"]) - 2)
-            self.num_bunch.append(len(data1["sequence"]["injection"]) - 2)
+            self.input_data.append(data0)
+            self.input_data.append(data1)
+            h0 = int(data0["sequence"]["injection"]["harmonic number"])
+            h1 = int(data1["sequence"]["injection"]["harmonic number"])
+            self.harmonic_number.append(h0)
+            self.harmonic_number.append(h1)
 
         self.num_turn = data0.get("number of turns", 0)
         # self.num_collision = data0.get(["Number of collisions"])
