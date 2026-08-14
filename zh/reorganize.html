@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>束团重整（ReorganizeBunch） &mdash; PASS  documentation</title>
+  <title>束团重分组（ReorganizeBunch） &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence">Sequence（序列容器）</a></li>
 </ul>
@@ -93,7 +94,7 @@
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id9">横向粒子分布</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">多束团纵向坐标</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#id12">束团填充方案</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#id13">色散耦合</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#id14">动量偏差</a></li>
@@ -276,12 +277,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">束团重整（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">物理说明</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id3">索引分配方式</a></li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id4">使用示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id5">应用场景</a></li>
 </ul>
@@ -313,20 +312,20 @@
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#id4">色散处理</a></li>
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#id5">横向传输矩阵</a></li>
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id7">纵向坐标连续性</a></li>
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#t0">t0 更新</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id7">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id8">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">孔径参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id13">孔径参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id13">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id15">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +341,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
@@ -377,7 +377,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/injection.html#dispersion-coupling">Dispersion coupling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/injection.html#momentum-deviation">Momentum deviation</a></li>
@@ -560,14 +560,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#physics-description">Physics Description</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/reorganize.html#index-allocation-method">Index Allocation Method</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#applications">Applications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/aperture.html">Aperture</a><ul>
@@ -597,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#dispersion-handling">Dispersion Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#t0-update">t0 Update</a></li>
 </ul>
 </li>
@@ -632,7 +630,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
-      <li class="breadcrumb-item active">束团重整（ReorganizeBunch）</li>
+      <li class="breadcrumb-item active">束团重分组（ReorganizeBunch）</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/zh/reorganize.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -643,45 +641,68 @@
            <div itemprop="articleBody">
              
   <section id="reorganizebunch">
-<h1>束团重整（ReorganizeBunch）<a class="headerlink" href="#reorganizebunch" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的束团重整命令 <strong>ReorganizeBunch</strong> ，用于在模拟过程中动态调整束团的分组方式。</p>
-<p><strong>功能说明</strong></p>
-<p>ReorganizeBunch 命令 <strong>只修改束团的索引范围</strong> （ <code class="docutils literal notranslate"><span class="pre">start_idx</span></code> 和 <code class="docutils literal notranslate"><span class="pre">end_idx</span></code> ）， <strong>不修改任何粒子坐标</strong> （x, px, y, py, z, dp, tag 等）。</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>本命令仅重整束团的索引分配，不涉及物理上的散束或合束。真正的散束（bunch lengthening）和合束（bunch compression）是通过调节高频腔的电压和相位等参数实现的物理过程，而非索引重分配。</p>
-</div>
-<p>适用场景：</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>合并</strong> ：将多个束团的索引合并为更少的束团。粒子的 z 坐标保持不变，只是索引范围重新分配。例如注入时谐波数 <span class="math notranslate nohighlight">\(h=4\)</span> 产生 4 个束团，合并为 1 个束团</p></li>
-<li><p><strong>拆分</strong> ：将现有束团的索引重新分组为更多束团</p></li>
-</ul>
-</div></blockquote>
+<h1>束团重分组（ReorganizeBunch）<a class="headerlink" href="#reorganizebunch" title="Link to this heading"></a></h1>
+<p>本模块介绍 PASS 中的 <strong>ReorganizeBunch</strong> 命令。该命令在指定圈数切换束流的束团分组数，并按照粒子的实验室纵向位置重新建立束团结构。</p>
 <p><strong>代码位置</strong></p>
-<blockquote>
-<div><ul class="simple">
+<ul class="simple">
 <li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/reorganize.py</span></code></p></li>
+<li><p>分组算法： <code class="docutils literal notranslate"><span class="pre">PASS/commands/sort_bunch.py</span></code></p></li>
 <li><p>类名： <code class="docutils literal notranslate"><span class="pre">ReorganizeBunch</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
 <li><p>注册名： <code class="docutils literal notranslate"><span class="pre">reorganizebunch</span></code></p></li>
 <li><p>Schema 类： <code class="docutils literal notranslate"><span class="pre">ReorganizeBunchElement</span></code> （ <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/elements.py</span></code> ）</p></li>
 </ul>
-</div></blockquote>
 <section id="id1">
-<h2>接口参数<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<h2>功能说明<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>设原束团分组数为 <span class="math notranslate nohighlight">\(h_{\mathrm{old}}\)</span> ，新分组数为 <span class="math notranslate nohighlight">\(h_{\mathrm{new}}\)</span> 。命令在 <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> 指定的圈数执行一次，并完成：</p>
+<ol class="arabic">
+<li><p>根据旧束团中心恢复每个粒子的实验室纵向位置</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center,old}}.\]</div>
+</li>
+<li><p>建立间隔为 <span class="math notranslate nohighlight">\(C/h_{\mathrm{new}}\)</span> 的新束团中心网格</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{center},k} = k\frac{C}{h_{\mathrm{new}}},
+\qquad k=0,1,\ldots,h_{\mathrm{new}}-1.\]</div>
+</li>
+<li><p>按环上的最近分组中心为粒子分组，并重排所有粒子数组，使每个新束团对应连续的索引范围。</p></li>
+<li><p>将实验室坐标重新写为新束团的相对坐标</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{rel,new}}
+= \operatorname{fold}_C
+  \left(z_{\mathrm{lab}}-z_{\mathrm{center,new}}\right).\]</div>
+</li>
+<li><p>更新束流的 <code class="docutils literal notranslate"><span class="pre">harmonic_number</span></code> 、每个束团的 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 、 <code class="docutils literal notranslate"><span class="pre">z_center</span></code> 、粒子数和索引范围。</p></li>
+<li><p>若新束团继承了不同的参考动量，则重新归一化 <span class="math notranslate nohighlight">\(p_x\)</span> 、 <span class="math notranslate nohighlight">\(p_y\)</span> 和 <span class="math notranslate nohighlight">\(\delta\)</span> ，以保持每个粒子的绝对机械动量不变。</p></li>
+</ol>
+<p>因此，ReorganizeBunch 不只是修改索引，也不是直接执行物理意义上的散束、合束或压缩。粒子的实验室位置保持不变，但束团参考中心、相对纵向坐标和归一化动量可能改变。</p>
+</section>
+<section id="id2">
+<h2>分组边界<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>算法使用以下环方位排序键：</p>
+<div class="math notranslate nohighlight">
+\[k_z = \left(z_{\mathrm{lab}}+\frac{C}{2h_{\mathrm{new}}}\right)\bmod C.\]</div>
+<p>第 <span class="math notranslate nohighlight">\(j\)</span> 个分组包含满足</p>
+<div class="math notranslate nohighlight">
+\[j\frac{C}{h_{\mathrm{new}}}
+\le k_z
+&lt; (j+1)\frac{C}{h_{\mathrm{new}}}\]</div>
+<p>的粒子。半个分组宽度的平移使边界位于相邻中心的中点，并对奇数、偶数分组数采用完全相同的规则。</p>
+</section>
+<section id="id3">
+<h2>接口参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 20.0%" />
+<col style="width: 22.0%" />
 <col style="width: 30.0%" />
-<col style="width: 10.0%" />
-<col style="width: 10.0%" />
-<col style="width: 30.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 24.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>属性名</p></th>
 <th class="head"><p>JSON key</p></th>
 <th class="head"><p>类型</p></th>
-<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
 <th class="head"><p>说明</p></th>
 </tr>
 </thead>
@@ -689,80 +710,39 @@
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>命令在环中的 s 位置</p></td>
+<td><p>必填</p></td>
+<td><p>命令在环中的纵向位置</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>命令名称，由序列键名自动填入</p></td>
+<td><p>自动填入</p></td>
+<td><p>命令名称</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>操作模式，可选： <code class="docutils literal notranslate"><span class="pre">merge</span></code> （合并束团）、 <code class="docutils literal notranslate"><span class="pre">split</span></code> （拆分束团）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
 <td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>生效起始圈数（含，从 0 开始计数）</p></td>
+<td><p>0</p></td>
+<td><p>执行圈数（含，0-based）；命令只执行一次</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">new_harmonic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">harmonic</span> <span class="pre">number</span></code></p></td>
 <td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>生效结束圈数（不含）。设为 -1 表示不限制上限，持续到模拟结束</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">new_num_bunch</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">num</span> <span class="pre">bunch</span></code></p></td>
-<td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>新的束团数量（必须 <span class="math notranslate nohighlight">\(\ge 1\)</span> ）</p></td>
+<td><p>必填</p></td>
+<td><p>新的束团分组数，必须 <span class="math notranslate nohighlight">\(\ge 1\)</span></p></td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="id2">
-<h2>物理说明<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>ReorganizeBunch 命令的设计理念是： <strong>粒子的物理位置由 tracking 过程决定，束团身份只是索引标签。</strong></p>
-<p>粒子的 z 坐标随 tracking 自然演化（通过 RF 腔的能量调制和漂移中的滑相效应），不需要人为调整。ReorganizeBunch 只负责重新分配索引范围，使后续的诊断、切片等操作能正确识别新的束团结构。</p>
-<section id="id3">
-<h3>索引分配方式<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
-<p>总粒子数 <span class="math notranslate nohighlight">\(N_{\text{total}}\)</span> 被尽可能均匀地分配到 <code class="docutils literal notranslate"><span class="pre">new_num_bunch</span></code> 个束团中：</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}N_k = \left\lfloor \frac{N_{\text{total}}}{n} \right\rfloor + \begin{cases} 1 &amp; k &lt; N_{\text{total}} \bmod n \\ 0 &amp; \text{otherwise} \end{cases}\end{split}\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(n\)</span> 为新束团数， <span class="math notranslate nohighlight">\(k = 0, 1, \ldots, n-1\)</span> 。前 <span class="math notranslate nohighlight">\(N_{\text{total}} \bmod n\)</span> 个束团各多分一个粒子。</p>
-</section>
-</section>
 <section id="id4">
 <h2>使用示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<p>以下示例展示如何在第 500 圈将 4 个束团合并为 1 个束团：</p>
+<p>以下示例在第 500 圈把束流切换到 1 个纵向分组：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;ReorganizeBunch1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ReorganizeBunch&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Start turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;End turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;New num bunch&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="nt">&quot;New harmonic number&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -770,13 +750,15 @@
 </section>
 <section id="id5">
 <h2>应用场景<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>散束后合并索引</strong> ：注入时使用高谐波数（如 <span class="math notranslate nohighlight">\(h=4\)</span> ）产生多个束团，然后关闭或降低 RF 电压使束团自然散开。在散束完成后使用 ReorganizeBunch 将索引合并为 1 个束团</p></li>
-<li><p><strong>再聚束后重新分组</strong> ：散束后重新施加 RF 电压使粒子重新聚束，使用 ReorganizeBunch 将索引重新分组</p></li>
-<li><p><strong>束团填充方案调整</strong> ：在不同模拟阶段使用不同的束团分组方式</p></li>
+<ul class="simple">
+<li><p>在 RF 操作改变纵向分布后，按新的束团中心网格更新诊断分组</p></li>
+<li><p>在不同模拟阶段切换束团分组数</p></li>
+<li><p>将跨越旧分组边界的粒子按当前实验室方位重新归类</p></li>
 </ul>
-</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>ReorganizeBunch 只改变 PASS 的束团分组参考系，不会替代 RF 腔产生的散束、俘获、合束或束团压缩过程。应先通过相应物理元件形成所需纵向分布，再在合适圈数执行重分组。</p>
+</div>
 </section>
 </section>
 

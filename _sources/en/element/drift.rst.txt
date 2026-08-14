@@ -62,15 +62,9 @@ The particle coordinates in the drift are updated as:
 
 where the :math:`z` update includes the path length difference effect: particles with momentum deviations have different velocities, causing a change in longitudinal position.
 
-**z Coordinate Revolution Folding**
+**Longitudinal Coordinate Continuity**
 
-The updated :math:`z` coordinate is folded into the range :math:`[-C/2, \; C/2]`:
-
-.. math::
-
-  z \leftarrow z + \left\lfloor \frac{C/2 - z}{C} \right\rfloor \cdot C
-
-where :math:`C` is the ring circumference. This ensures that :math:`z` always remains within the ring circumference range.
+Drift does not fold the updated :math:`z_{\mathrm{rel}}` around the ring. Keeping the coordinate continuous preserves accumulated multi-turn phase slip. Use :math:`z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}` when a laboratory coordinate is needed.
 
 
 Interface Parameters

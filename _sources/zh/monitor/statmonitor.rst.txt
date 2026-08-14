@@ -52,6 +52,8 @@
 
 同理计算 :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` 。
 
+纵向统计使用相对束团中心的 :math:`z_{\mathrm{rel}}` 。计算矩之前，程序仅为统计目的将它按环周长折叠到 :math:`[-C/2,C/2)` ，避免同一纵向位置的不同周期表示拉大均值和方差。该临时折叠不会写回粒子坐标。实验室质心可按环坐标约定由 :math:`z_{\mathrm{center}}+\langle z_{\mathrm{rel}}\rangle` 恢复。
+
 发射度与 Twiss 参数
 ~~~~~~~~~~~~~~~~~~~
 
@@ -169,7 +171,7 @@ TFS 文件头：
    @ Name             PASS Statistic Data
    @ Time             2026-07-14 00:11:03
 
-输出列（共 34 列）：
+输出列（共 35 列）：
 
 .. list-table::
   :header-rows: 1
@@ -207,13 +209,13 @@ TFS 文件头：
     - 垂直动量标准差
   * - ``zAverage``
     - 质心
-    - 纵向位置均值
+    - 折叠后的束团相对纵向坐标均值 :math:`\langle z_{\mathrm{rel}}\rangle`
   * - ``dpAverage``
     - 质心
     - 动量偏差均值
   * - ``sigmaZ``
     - 束流尺寸
-    - 纵向位置标准差
+    - 折叠后的束团相对纵向坐标标准差
   * - ``sigmadp``
     - 束流尺寸
     - 动量偏差标准差
@@ -247,6 +249,9 @@ TFS 文件头：
   * - ``invarianty``
     - 校验
     - 垂直不变量（应等于 1）
+  * - ``zCenter``
+    - 纵向参考
+    - 束团实验室纵向中心 :math:`z_{\mathrm{center}}`
   * - ``xzAverage``
     - 关联
     - :math:`\langle x \, z \rangle`
@@ -324,5 +329,5 @@ TFS 文件头：
 - **发射度测量** ：由二阶矩计算发射度和 Twiss 参数，与设计值对比验证
 - **束流损失诊断** ：通过 ``beamLossTotal`` 和 ``lossPercent`` 监测束流损失率，定位损失发生的圈数和位置
 - **非线性效应识别** ：通过偏度和峰度的高阶矩信息，判断束流分布偏离高斯分布的程度，识别非线性共振或色散耦合
-- **动量 spread 监测** ： ``sigmadp`` 和 ``sigmaZ`` 反映纵向束流品质，配合纵向动力学研究
+- **动量展宽监测** ： ``sigmadp`` 和 ``sigmaZ`` 反映束团内部的纵向束流品质；跨束团比较绝对方位时还应使用 ``zCenter``
 - **关联诊断** ： ``xzAverage`` 等关联量可用于诊断色散耦合或横向-纵向耦合

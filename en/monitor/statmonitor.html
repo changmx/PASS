@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
 </ul>
@@ -93,7 +94,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id9">横向粒子分布</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">多束团纵向坐标</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id12">束团填充方案</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id13">色散耦合</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id14">动量偏差</a></li>
@@ -276,12 +277,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">物理说明</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/reorganize.html#id3">索引分配方式</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">使用示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id5">应用场景</a></li>
 </ul>
@@ -313,20 +312,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id4">色散处理</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id5">横向传输矩阵</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id7">纵向坐标连续性</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#t0">t0 更新</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id7">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id8">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">孔径参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id13">孔径参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id13">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id15">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +341,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
@@ -377,7 +377,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#dispersion-coupling">Dispersion coupling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#momentum-deviation">Momentum deviation</a></li>
@@ -560,14 +560,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#group-boundaries">Group Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#physics-description">Physics Description</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#index-allocation-method">Index Allocation Method</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#applications">Applications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">Aperture</a><ul>
@@ -597,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-handling">Dispersion Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0-update">t0 Update</a></li>
 </ul>
 </li>
@@ -681,6 +679,7 @@
 <div class="math notranslate nohighlight">
 \[\sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}\]</div>
 <p>Similarly, <span class="math notranslate nohighlight">\(\sigma_{p_x}\)</span>, <span class="math notranslate nohighlight">\(\sigma_y\)</span>, <span class="math notranslate nohighlight">\(\sigma_{p_y}\)</span>, <span class="math notranslate nohighlight">\(\sigma_z\)</span>, <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span> are computed.</p>
+<p>Longitudinal statistics use the bunch-relative coordinate <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span>. Before calculating moments, the program folds a temporary copy into <span class="math notranslate nohighlight">\([-C/2,C/2)\)</span> to prevent equivalent ring-period representations from inflating the mean and variance. This statistical fold is not written back to the tracked particle coordinates. Under the ring-coordinate convention, the laboratory centroid can be reconstructed from <span class="math notranslate nohighlight">\(z_{\mathrm{center}}+\langle z_{\mathrm{rel}}\rangle\)</span>.</p>
 </section>
 <section id="emittance-and-twiss-parameters">
 <h3>Emittance and Twiss Parameters<a class="headerlink" href="#emittance-and-twiss-parameters" title="Link to this heading"></a></h3>
@@ -779,7 +778,7 @@
 <span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
 </pre></div>
 </div>
-<p>Output columns (34 columns total):</p>
+<p>Output columns (35 columns total):</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 25.0%" />
@@ -831,7 +830,7 @@
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">zAverage</span></code></p></td>
 <td><p>Centroid</p></td>
-<td><p>Longitudinal position mean</p></td>
+<td><p>Mean of the folded bunch-relative coordinate <span class="math notranslate nohighlight">\(\langle z_{\mathrm{rel}}\rangle\)</span></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dpAverage</span></code></p></td>
 <td><p>Centroid</p></td>
@@ -839,7 +838,7 @@
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code></p></td>
 <td><p>Beam size</p></td>
-<td><p>Longitudinal position standard deviation</p></td>
+<td><p>Standard deviation of the folded bunch-relative coordinate</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmadp</span></code></p></td>
 <td><p>Beam size</p></td>
@@ -885,47 +884,51 @@
 <td><p>Verification</p></td>
 <td><p>Vertical invariant (should equal 1)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xzAverage</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code></p></td>
+<td><p>Longitudinal reference</p></td>
+<td><p>Laboratory longitudinal center of the bunch, <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xzAverage</span></code></p></td>
 <td><p>Correlation</p></td>
 <td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle\)</span></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xyAverage</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xyAverage</span></code></p></td>
 <td><p>Correlation</p></td>
 <td><p><span class="math notranslate nohighlight">\(\langle x \, y \rangle\)</span></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yzAverage</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yzAverage</span></code></p></td>
 <td><p>Correlation</p></td>
 <td><p><span class="math notranslate nohighlight">\(\langle y \, z \rangle\)</span></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xzDevideSigmaxSigmaz</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xzDevideSigmaxSigmaz</span></code></p></td>
 <td><p>Correlation</p></td>
 <td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle / (\sigma_x \, \sigma_z)\)</span> normalized correlation</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code></p></td>
 <td><p>Loss</p></td>
 <td><p>Number of lost particles</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lossPercent</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lossPercent</span></code></p></td>
 <td><p>Loss</p></td>
 <td><p>Loss percentage</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xSkewness</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xSkewness</span></code></p></td>
 <td><p>Higher-order moments</p></td>
 <td><p>Horizontal skewness</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xKurtosis</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xKurtosis</span></code></p></td>
 <td><p>Higher-order moments</p></td>
 <td><p>Horizontal kurtosis</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ySkewness</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ySkewness</span></code></p></td>
 <td><p>Higher-order moments</p></td>
 <td><p>Vertical skewness</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yKurtosis</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yKurtosis</span></code></p></td>
 <td><p>Higher-order moments</p></td>
 <td><p>Vertical kurtosis</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Ek</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Ek</span></code></p></td>
 <td><p>Energy</p></td>
 <td><p>Bunch kinetic energy</p></td>
 </tr>
@@ -968,7 +971,7 @@
 <li><p><strong>Emittance measurement</strong>: Compute emittance and Twiss parameters from second-order moments, and compare with design values for verification</p></li>
 <li><p><strong>Beam loss diagnostics</strong>: Monitor beam loss rate through <code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code> and <code class="docutils literal notranslate"><span class="pre">lossPercent</span></code>, identifying the turn and position where losses occur</p></li>
 <li><p><strong>Nonlinear effect identification</strong>: Use higher-order moment information (skewness and kurtosis) to determine the degree to which the beam distribution deviates from Gaussian, identifying nonlinear resonances or dispersion coupling</p></li>
-<li><p><strong>Momentum spread monitoring</strong>: <code class="docutils literal notranslate"><span class="pre">sigmadp</span></code> and <code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> reflect longitudinal beam quality, supporting longitudinal dynamics studies</p></li>
+<li><p><strong>Momentum-spread monitoring</strong>: <code class="docutils literal notranslate"><span class="pre">sigmadp</span></code> and <code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> describe longitudinal beam quality within a bunch; use <code class="docutils literal notranslate"><span class="pre">zCenter</span></code> as well when comparing absolute azimuths across bunches</p></li>
 <li><p><strong>Correlation diagnostics</strong>: Correlation quantities such as <code class="docutils literal notranslate"><span class="pre">xzAverage</span></code> can be used to diagnose dispersion coupling or transverse-longitudinal coupling</p></li>
 </ul>
 </section>

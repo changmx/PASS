@@ -21,7 +21,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Bunch Reorganization (ReorganizeBunch)" href="../reorganize.html" />
+    <link rel="next" title="Bunch Regrouping (ReorganizeBunch)" href="../reorganize.html" />
     <link rel="prev" title="StatMonitor" href="statmonitor.html" /> 
 </head>
 
@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
 </ul>
@@ -93,7 +94,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id9">横向粒子分布</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">多束团纵向坐标</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id12">束团填充方案</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id13">色散耦合</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id14">动量偏差</a></li>
@@ -276,12 +277,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">物理说明</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/reorganize.html#id3">索引分配方式</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">使用示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id5">应用场景</a></li>
 </ul>
@@ -313,20 +312,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id4">色散处理</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id5">横向传输矩阵</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id7">纵向坐标连续性</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#t0">t0 更新</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id7">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id8">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">孔径参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id13">孔径参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id13">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id15">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +341,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
@@ -377,7 +377,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#dispersion-coupling">Dispersion coupling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#momentum-deviation">Momentum deviation</a></li>
@@ -560,14 +560,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#group-boundaries">Group Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#physics-description">Physics Description</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#index-allocation-method">Index Allocation Method</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#applications">Applications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">Aperture</a><ul>
@@ -597,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-handling">Dispersion Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0-update">t0 Update</a></li>
 </ul>
 </li>
@@ -655,8 +653,8 @@
 <ul>
 <li><p>Selects recorded particles via the <code class="docutils literal notranslate"><span class="pre">max_tag</span></code> parameter, with the matching condition <span class="math notranslate nohighlight">\(1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}\)</span>;</p></li>
 <li><p>Supports setting a recorded turn range <code class="docutils literal notranslate"><span class="pre">[start_turn,</span> <span class="pre">end_turn)</span></code>, without needing to start tracking from turn 0;</p></li>
-<li><p>Pre-allocates buffer <code class="docutils literal notranslate"><span class="pre">(max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">10)</span></code>, avoiding runtime dynamic allocation;</p></li>
-<li><p>Records 10 columns of data per turn: turn + 6D coordinates + tag + lost_turn + lost_position;</p></li>
+<li><p>Pre-allocates buffer <code class="docutils literal notranslate"><span class="pre">(max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">11)</span></code>, avoiding runtime dynamic allocation;</p></li>
+<li><p>Records 11 columns per turn: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter;</p></li>
 <li><p>After simulation, each particle is written to a separate TFS file;</p></li>
 <li><p>Filenames include the monitor name and longitudinal position (3 decimal places), supporting multi-position deployment;</p></li>
 <li><p>CPU uses numpy, GPU uses cupy, with the buffer residing on GPU throughout; only a single D2H copy is performed at the end;</p></li>
@@ -698,13 +696,13 @@
 <h2>Pre-allocation Strategy<a class="headerlink" href="#pre-allocation-strategy" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> pre-allocates the complete buffer at initialization:</p>
 <div class="math notranslate nohighlight">
-\[\mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times 10}\]</div>
+\[\mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times 11}\]</div>
 <p>Memory overhead:</p>
 <div class="math notranslate nohighlight">
-\[M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times 10 \times 8 \;\text{bytes}\]</div>
+\[M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times 11 \times 8 \;\text{bytes}\]</div>
 <p>Typical scenario (14 test particles, recording 1000 turns):</p>
 <div class="math notranslate nohighlight">
-\[M = 14 \times 1000 \times 10 \times 8 = 1.12 \;\text{MB}\]</div>
+\[M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}\]</div>
 <p>The buffer uses the same array backend as the beam (<code class="docutils literal notranslate"><span class="pre">beam.particles.xp</span></code>), numpy on CPU, cupy on GPU. Advantages of pre-allocation:</p>
 <ul class="simple">
 <li><p>Zero memory allocation at runtime, no impact on tracking performance;</p></li>
@@ -793,7 +791,7 @@
 <span class="o">@</span> <span class="n">EndTurn</span>          <span class="mi">1000</span>
 </pre></div>
 </div>
-<p>Output columns (10 columns total):</p>
+<p>Output columns (11 columns total):</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -838,7 +836,7 @@
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
 <td><p>m</p></td>
-<td><p>Longitudinal position</p></td>
+<td><p>Longitudinal coordinate relative to the owning bunch center, <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
 <td><ul class="simple">
@@ -865,8 +863,16 @@
 <td><p>m</p></td>
 <td><p>Loss position <span class="math notranslate nohighlight">\(s\)</span> (-1 means not lost)</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code></p></td>
+<td><p>m</p></td>
+<td><p>Laboratory longitudinal center of the owning bunch, <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
+</tr>
 </tbody>
 </table>
+<p>The laboratory longitudinal position is recovered as</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{lab}} = z + zCenter.\]</div>
+<p>The tracked <code class="docutils literal notranslate"><span class="pre">z</span></code> value may extend beyond one circumference and should not be used by itself to determine bunch membership.</p>
 </section>
 <section id="usage-example">
 <h2>Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
@@ -940,7 +946,7 @@
 <li><p><strong>Chromaticity measurement</strong>: Measure the tune at different momentum deviations <span class="math notranslate nohighlight">\(\delta\)</span>; the slope of the linear fit of <span class="math notranslate nohighlight">\(Q(\delta)\)</span> gives the chromaticity <span class="math notranslate nohighlight">\(DQ_x\)</span>, <span class="math notranslate nohighlight">\(DQ_y\)</span></p></li>
 <li><p><strong>Amplitude-dependent tune shift (ADTS)</strong>: Measure the tune for particles with different initial amplitudes to analyze the nonlinear tune shift with amplitude</p></li>
 <li><p><strong>Dispersion function measurement</strong>: Take the time average of the TBT centroid orbit of the momentum-offset particle, divided by <span class="math notranslate nohighlight">\(\delta\)</span>, to obtain the dispersion function <span class="math notranslate nohighlight">\(D(s)\)</span></p></li>
-<li><p><strong>Slip factor measurement</strong>: Record the longitudinal coordinate <span class="math notranslate nohighlight">\(z\)</span> of the momentum-offset particle turn-by-turn; the rate of change of <span class="math notranslate nohighlight">\(z\)</span> per turn divided by <span class="math notranslate nohighlight">\(\delta\)</span> gives the slip factor <span class="math notranslate nohighlight">\(\eta\)</span></p></li>
+<li><p><strong>Slip-factor measurement</strong>: Record the bunch-relative coordinate <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> of a momentum-offset particle turn-by-turn. For comparisons across bunches or after regrouping, combine it with <code class="docutils literal notranslate"><span class="pre">zCenter</span></code> to recover <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}\)</span></p></li>
 <li><p><strong>Closed orbit verification</strong>: The TBT coordinates of an initially un-offset particle should remain unchanged, verifying closed orbit stability</p></li>
 <li><p><strong>Particle loss tracking</strong>: Locate the time and position of particle loss through <code class="docutils literal notranslate"><span class="pre">tag</span></code> sign changes and <code class="docutils literal notranslate"><span class="pre">lostTurn</span></code> / <code class="docutils literal notranslate"><span class="pre">lostPosition</span></code></p></li>
 </ul>
@@ -952,7 +958,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="statmonitor.html" class="btn btn-neutral float-left" title="StatMonitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../reorganize.html" class="btn btn-neutral float-right" title="Bunch Reorganization (ReorganizeBunch)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../reorganize.html" class="btn btn-neutral float-right" title="Bunch Regrouping (ReorganizeBunch)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence">Sequence（序列容器）</a></li>
 </ul>
@@ -93,7 +94,7 @@
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id9">横向粒子分布</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">多束团纵向坐标</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#id12">束团填充方案</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#id13">色散耦合</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#id14">动量偏差</a></li>
@@ -276,12 +277,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重整（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">物理说明</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="reorganize.html#id3">索引分配方式</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id3">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">使用示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="reorganize.html#id5">应用场景</a></li>
 </ul>
@@ -313,20 +312,20 @@
 <li class="toctree-l4"><a class="reference internal" href="#id4">色散处理</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id5">横向传输矩阵</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">纵向坐标连续性</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#t0">t0 更新</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id8">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id9">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id10">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id11">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id12">孔径参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id13">孔径参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id13">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id14">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +341,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
@@ -377,7 +377,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/injection.html#dispersion-coupling">Dispersion coupling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/injection.html#momentum-deviation">Momentum deviation</a></li>
@@ -560,14 +560,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#physics-description">Physics Description</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/reorganize.html#index-allocation-method">Index Allocation Method</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#applications">Applications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/aperture.html">Aperture</a><ul>
@@ -597,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#dispersion-handling">Dispersion Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#t0-update">t0 Update</a></li>
 </ul>
 </li>
@@ -656,7 +654,7 @@
 <li><p>支持色散的去除与恢复，保证动量偏差粒子在色散区正确传输；</p></li>
 <li><p>支持色品修正，动量偏差引起的 tune 偏移可自动计入相位；</p></li>
 <li><p>纵向传输支持 drift、matrix 及单位矩阵三种模式；</p></li>
-<li><p>支持 z 坐标回旋折叠，保持纵向坐标在环周长范围内；</p></li>
+<li><p>保留连续演化的束团相对纵向坐标，不在元件内做环周折叠；</p></li>
 <li><p>支持孔径检查，与其它元件一致。</p></li>
 </ul>
 </li>
@@ -733,12 +731,9 @@
 \[\phi_y = \phi_y + \Delta p \cdot \Delta Q_y \cdot 2\pi\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(\Delta Q_x\)</span> 、 <span class="math notranslate nohighlight">\(\Delta Q_y\)</span> 分别为水平与垂直色品， <span class="math notranslate nohighlight">\(\Delta p\)</span> 为粒子动量偏差。</p>
 </section>
-<section id="z">
-<h3>z 坐标回旋折叠<a class="headerlink" href="#z" title="Link to this heading"></a></h3>
-<p>为保持纵向坐标在环周长范围内，传输后对 z 坐标进行回旋折叠：</p>
-<div class="math notranslate nohighlight">
-\[z_2 = z_2 + (\mathrm{under} - \mathrm{over}) \cdot C\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(C\)</span> 为环周长， <code class="docutils literal notranslate"><span class="pre">under</span></code> 与 <code class="docutils literal notranslate"><span class="pre">over</span></code> 为折叠计数。</p>
+<section id="id7">
+<h3>纵向坐标连续性<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>Twiss 传输直接保存更新后的束团相对纵向坐标 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> ，不把它折叠到单个环周范围。这样可保留多圈滑相的累计信息。需要实验室方位时，应使用 <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}\)</span> ，并由具体分析任务决定是否取模。</p>
 </section>
 <section id="t0">
 <h3>t0 更新<a class="headerlink" href="#t0" title="Link to this heading"></a></h3>
@@ -748,10 +743,10 @@
 <p>其中 <span class="math notranslate nohighlight">\(\beta\)</span> 为粒子相对论速度， <span class="math notranslate nohighlight">\(c\)</span> 为光速。</p>
 </section>
 </section>
-<section id="id7">
-<h2>接口参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
 <section id="id8">
-<h3>位置参数<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<h2>接口参数<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id9">
+<h3>位置参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -793,8 +788,8 @@
 </tbody>
 </table>
 </section>
-<section id="id9">
-<h3>横向参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<section id="id10">
+<h3>横向参数<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -911,8 +906,8 @@
 </tbody>
 </table>
 </section>
-<section id="id10">
-<h3>纵向参数<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<section id="id11">
+<h3>纵向参数<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -960,8 +955,8 @@
 </tbody>
 </table>
 </section>
-<section id="id11">
-<h3>色散与色品<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<section id="id12">
+<h3>色散与色品<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -1030,8 +1025,8 @@
 </tbody>
 </table>
 </section>
-<section id="id12">
-<h3>孔径参数<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<section id="id13">
+<h3>孔径参数<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -1071,8 +1066,8 @@
 </table>
 </section>
 </section>
-<section id="id13">
-<h2>使用示例<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<section id="id14">
+<h2>使用示例<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
 <p>以下 JSON 片段展示了一个完整的 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件定义：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;Twiss1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
@@ -1114,8 +1109,8 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;Aperture</span> <span class="pre">Type&quot;:</span> <span class="pre">&quot;off&quot;</span></code> —— 关闭孔径检查。</p></li>
 </ul>
 </section>
-<section id="id14">
-<h2>应用场景<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id15">
+<h2>应用场景<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件适用于以下场景：</p>
 <ul class="simple">
 <li><p><strong>基于 lattice 设计的线性追踪</strong> ：当已有 MadX、AT 等光学计算程序输出的 Twiss 参数表时，可直接使用 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 元件进行粒子追踪，无需重新建模磁铁元件。</p></li>

@@ -65,13 +65,19 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 粒子到达时间
 ------------
 
-不同粒子因纵向坐标 :math:`z` 不同，到达激励器的时刻也不同：
+粒子数组中的纵向坐标 :math:`z_{\mathrm{rel}}` 是相对各自束团中心的坐标。对于束团中心位置 :math:`z_{\mathrm{center}}`，粒子的实验室系纵向位置为：
 
 .. math::
 
-  t_{\text{arrive}} = t_0 - \frac{z}{\beta c}
+  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}
 
-其中 :math:`t_0` 为参考粒子到达时刻， :math:`z > 0` 表示粒子在参考粒子前方 （更早到达）。这一时间差异使得不同粒子看到不同相位的激励信号，是纵向-横向耦合的来源。
+因此，粒子到达激励器的时刻为：
+
+.. math::
+
+  t_{\text{arrive}} = t_0 - \frac{z_{\mathrm{lab}}}{\beta c}
+
+其中 :math:`t_0` 是机器坐标原点处参考粒子的时钟， :math:`z_{\mathrm{lab}} > 0` 表示粒子位于该参考点前方，因而更早到达。Exciter 直接使用 :math:`z_{\mathrm{lab}}` 计算信号相位，不会对 :math:`z_{\mathrm{rel}}` 进行折叠或回绕。这一到达时间差异使不同粒子看到不同相位的激励信号，是纵向-横向耦合的来源。
 
 回旋频率为：
 

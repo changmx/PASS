@@ -410,7 +410,8 @@ Drift 本身是坐标无关的（自由空间传播不依赖横向坐标系方�
        Drift(L/2) → Kick → Drift(L/2)
     5. 撞击极板: tag 取负, 记录 lost_position/lost_turn
     6. Tilt 旋转回 (若有)
-    7. z 坐标 wrap 到 [-C/2, C/2)
+
+  厚透镜中的 Drift 更新连续的束团相对纵向坐标，不做环周折叠。
 
 
 接口参数

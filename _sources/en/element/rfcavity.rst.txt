@@ -20,7 +20,7 @@ The PASS RF cavity is modeled as a **thin lens** (``length = 0``) instantaneous 
   - Supports dp acceptance (longitudinal aperture) check
   - Supports both fixed-value and TFS file (Ramping) parameter input methods
   - Supports multi-turn acceleration simulation
-  - Harmonic number is a property of the cavity state, unified for all bunches
+  - The RF harmonic is a cavity property shared by all bunches; it is independent of the beam bunch-grouping count
 
 
 Coordinate Convention
@@ -48,13 +48,25 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - :math:`p_y`
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
-    - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - :math:`z_{\mathrm{rel}}`
+    - Longitudinal coordinate relative to the center of the owning bunch
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
 
-where :math:`P_0` is the reference particle momentum, :math:`\beta_0 = v_0 / c` is the reference particle normalized velocity.
+where :math:`P_0` is the reference particle momentum and :math:`\beta_0 = v_0 / c` is the normalized reference velocity. Each bunch also carries a fixed laboratory-coordinate center
+
+.. math::
+
+  z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},
+
+where :math:`h_{\mathrm{group}}` is the beam bunch-grouping count and :math:`h_{\mathrm{id}}` is the group index of that bunch. The laboratory longitudinal position of a particle is
+
+.. math::
+
+  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.
+
+The particle ``z`` array stores only :math:`z_{\mathrm{rel}}`. Elements that need an RF phase or arrival time explicitly add :math:`z_{\mathrm{center}}`.
 
 
 Physical Derivation
@@ -63,13 +75,15 @@ Physical Derivation
 Physical Nature of the RF Cavity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The RF cavity produces a longitudinal (along the beam direction) oscillating electric field :math:`E_s(t) = E_0 \sin(\omega_{\text{rf}} t + \varphi_s)`. The energy gain a particle receives when passing through the cavity depends on the moment the particle arrives at the cavity, i.e., the particle's longitudinal position :math:`\zeta` determines the RF phase it experiences.
+The RF cavity produces a longitudinal oscillating electric field :math:`E_s(t) = E_0 \sin(\omega_{\text{rf}} t + \varphi_s)`. The energy gain depends on the arrival time, so the RF phase must be evaluated from the laboratory coordinate :math:`z_{\mathrm{lab}}`, not from the bunch-relative coordinate :math:`z_{\mathrm{rel}}` alone.
 
-Let the machine circumference be :math:`C`, machine radius :math:`R = C / (2\pi)`, harmonic number :math:`h`, RF voltage :math:`V`, synchronous phase :math:`\varphi_s`. The azimuthal angle corresponding to the particle's longitudinal position :math:`\zeta` is :math:`\theta = \zeta / R`, and its RF phase is:
+Let the machine circumference be :math:`C`, the equivalent radius :math:`R = C / (2\pi)`, the cavity harmonic :math:`h_{\mathrm{rf}}`, the RF voltage :math:`V`, and the set phase :math:`\varphi_s`. The particle azimuth is :math:`\theta = z_{\mathrm{lab}} / R`, and its RF phase is:
 
 .. math::
 
-  \varphi_{\text{particle}} = \varphi_s - h \cdot \theta + \varphi_{\text{off}}
+  \varphi_{\text{particle}}
+  = \varphi_s + \varphi_{\text{off}}
+  - h_{\mathrm{rf}}\frac{z_{\mathrm{lab}}}{R}
 
 where :math:`\varphi_{\text{off}}` is an additional phase offset (see below).
 
@@ -81,25 +95,17 @@ Purpose of phi_offset
 
 1. **Multi-cavity phase alignment**: When multiple RF cavities are distributed around the ring and the cavity spacing is not an integer multiple of the RF wavelength, each cavity needs an independent phase correction to maintain synchronism.
 2. **Multi-harmonic systems**: When cavities with different harmonic numbers share the same frequency reference, :math:`\varphi_{\text{off}}` enables independent phase adjustment for each cavity.
-3. **Phase trim**: Fine-tuning the cavity phase during operation without changing the definition of the synchronous particle (``phase`` still defines the energy gain of the synchronous particle).
+3. **Phase trim**: Fine-tuning the effective cavity phase through ``phi_offset`` without changing the nominal phase set by ``phase``. The actual phase of a bunch reference particle also contains the azimuthal term from its :math:`z_{\mathrm{center}}`.
 
-Physically, :math:`\varphi_{\text{off}}` rotates the entire :math:`\sin` curve so that the particle's actual phase becomes :math:`\varphi_s + \varphi_{\text{off}} - h\theta`.
+Physically, :math:`\varphi_{\text{off}}` rotates the entire :math:`\sin` curve so that the particle's actual phase becomes :math:`\varphi_s + \varphi_{\text{off}} - h_{\mathrm{rf}}\theta`.
 
 
-Even Harmonic Compensation
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Bunch Grouping and RF Harmonic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When injecting multiple bunches, PASS uses a symmetric offset formula to place each bucket symmetrically about :math:`z=0` (see the multi-bunch longitudinal offset description in :doc:`../injection`). For even harmonic number :math:`h`, this symmetric offset introduces an equivalent :math:`180^\circ` phase flip.
+The beam quantity :math:`h_{\mathrm{group}}` defines only the grid of bunch centers. The cavity quantity :math:`h_{\mathrm{rf}}` defines only the number of RF periods around the ring. They need not be equal or integer multiples of one another. RFCavity uses the same equation for odd and even harmonics and applies no parity-dependent phase compensation.
 
-To compensate for this flip, the RF cavity automatically applies a :math:`C/(2h)` offset to :math:`z` when computing the particle phase for even :math:`h`:
-
-.. math::
-
-  z_{\text{eff}} = \begin{cases} z + \frac{C}{2h} & h \text{ is even} \\ z & h \text{ is odd} \end{cases}
-
-  \varphi_{\text{particle}} = \varphi_s + \varphi_{\text{off}} - h \cdot \frac{z_{\text{eff}}}{R}
-
-This compensation ensures that the synchronous particle in all buckets correctly sees the synchronous phase :math:`\varphi_s`. Odd :math:`h` does not need compensation (the offset is an integer multiple of :math:`2\pi`, and the :math:`\sin` function is automatically unchanged).
+If :math:`h_{\mathrm{rf}}/h_{\mathrm{group}}` is an integer, all bunch centers lie at equivalent RF phases. Otherwise, different bunch centers may see different phases and different reference energy gains. This is the direct physical consequence of the requested grouping and RF configuration; PASS does not alter the phase automatically.
 
 
 Energy Kick
@@ -111,13 +117,18 @@ The energy gain for each particle is:
 
   \Delta E_{\text{kick}} = \frac{q}{A} \cdot V \cdot \sin(\varphi_{\text{particle}})
 
-where :math:`q/A` is the charge-to-mass ratio. The energy gain of the synchronous particle (:math:`\zeta = 0`) is:
+where :math:`q/A` is the charge-to-mass ratio. For each bunch, the reference particle is defined by :math:`z_{\mathrm{rel}}=0`, so its laboratory position is :math:`z_{\mathrm{center}}` and its reference energy gain is:
 
 .. math::
 
-  \Delta E_{\text{syn}} = \frac{q}{A} \cdot V \cdot \sin(\varphi_s)
+  \Delta E_{\text{ref}}
+  = \frac{q}{A} V
+  \sin\left(
+  \varphi_s + \varphi_{\text{off}}
+  - h_{\mathrm{rf}}\frac{z_{\mathrm{center}}}{R}
+  \right)
 
-:math:`\Delta E_{\text{syn}}` reflects the net acceleration effect of the RF cavity.
+:math:`\Delta E_{\text{ref}}` updates the moving reference frame of that bunch, keeping the bunch-center particle near :math:`\delta=0`. Different bunches may therefore have different reference gains.
 
 
 First-Order Linearization Approximation and Its Problems
@@ -213,17 +224,21 @@ In this process:
 
 Thus all three approximations are bypassed, and the :math:`\beta_1/\beta_0` factor naturally does not appear.
 
-This transformation is **completely exact**, with no linearization approximation. It requires only two ``sqrt`` operations (numpy vectorized, negligible cost), and is suitable for large :math:`\delta` and strong acceleration scenarios.
+Within its physical domain, this transformation uses no longitudinal linearization. It requires only two ``sqrt`` operations (numpy vectorized, negligible cost) and is suitable for large :math:`\delta` and strong acceleration scenarios.
+
+.. warning::
+
+  The input must keep both the kicked particle total energy and the updated reference total energy at or above the rest energy. If an unphysical decelerating kick gives :math:`E_{\mathrm{new}} < m_0`, the momentum square root has no real-valued result; the current implementation does not repair such an input automatically.
 
 
 Moving Reference Frame
 ~~~~~~~~~~~~~~~~~~~~~~
 
-PASS uses a moving reference frame: after each RF kick, the beam reference energy is updated to a new value including :math:`\Delta E_{\text{syn}}`:
+PASS uses a moving reference frame: after each RF kick, the reference energy of each bunch is updated using its own :math:`\Delta E_{\text{ref}}`:
 
 .. math::
 
-  E_{\text{total},1} = E_{\text{total},0} + \Delta E_{\text{syn}}
+  E_{\text{total},1} = E_{\text{total},0} + \Delta E_{\text{ref}}
 
 .. math::
 
@@ -241,7 +256,7 @@ PASS uses a moving reference frame: after each RF kick, the beam reference energ
 
   E_{k,1} = E_{\text{total},1} - m_0
 
-The :math:`\delta` of the synchronous particle is always maintained near 0, avoiding the numerical precision issues caused by continuously growing :math:`\delta` in a fixed reference frame.
+The :math:`\delta` of each bunch reference particle is maintained near 0, avoiding the numerical precision issues caused by continuously growing :math:`\delta` in a fixed reference frame.
 
 
 Transverse Momentum Rescaling and Adiabatic Damping
@@ -271,20 +286,20 @@ Tracking Flow
 
 .. code-block:: text
 
-  Input: z, dp(=δ), px, py, tag, bunch parameters (β₀, γ₀, m₀, q/A, Ek, p₀, C)
+  Input: z_rel, z_center, dp(=δ), px, py, tag,
+         bunch parameters (β₀, γ₀, m₀, q/A, Ek, p₀, C)
 
   1. Compute RF phase
-     If h is even: z_eff = z + C/(2h)   (even harmonic compensation)
-     If h is odd:  z_eff = z
-     θ = z_eff / R                       (R = C/2π)
-     φ_particle = phase + φ_off - h·θ
+     z_lab = z_rel + z_center
+     φ_particle = phase + φ_off - h_rf·z_lab/R
 
   2. Energy kick
      ΔE_kick = (q/A)·V·sin(φ_particle)  [per particle]
-     ΔE_syn  = (q/A)·V·sin(phase)       [scalar]
+     ΔE_ref  = (q/A)·V·sin(phase + φ_off - h_rf·z_center/R)
+                                             [scalar per bunch]
 
   3. Update beam reference (moving reference frame)
-     E_total1 = E_total0 + ΔE_syn
+     E_total1 = E_total0 + ΔE_ref
      γ₁ = E_total1 / m₀
      β₁ = √(1 - 1/γ₁²)
      p₀_new = γ₁·m₀·β₁
@@ -304,9 +319,9 @@ Tracking Flow
 
   6. dp acceptance check (exceeds → mark as lost)
 
-  7. z-wrap to [-C/2, C/2)
+  7. Update lost particle information
 
-  8. Update lost particle information
+  RFCavity neither changes nor folds z_rel.
 
 
 Interface Parameters
@@ -322,32 +337,32 @@ Interface Parameters
     - Default
     - Description
   * - ``voltage``
-    - ``voltage (v)``
+    - ``Voltage (V)``
     - float
     - 0.0
     - RF voltage (V)
   * - ``harmonic``
-    - ``harmonic``
+    - ``Harmonic``
     - int
     - 1
     - Harmonic number :math:`h`
   * - ``phase``
-    - ``phase (rad)``
+    - ``Phase (rad)``
     - float
     - 0.0
-    - Synchronous phase :math:`\varphi_s` (rad)
+    - Nominal RF phase :math:`\varphi_s` (rad); the actual bunch-center phase also includes ``phi_offset`` and the :math:`z_{\mathrm{center}}` term
   * - ``phi_offset``
-    - ``phi offset (rad)``
+    - ``Phi offset (rad)``
     - float
     - 0.0
     - Additional phase offset (rad), used for multi-cavity phase alignment and phase trim
   * - ``_rf_table``
-    - ``rf data file``
+    - ``RF data file``
     - str
     - None
     - Ramping data file path (TFS format); when provided, overrides fixed-value parameters. Each row corresponds to one turn; required column names: ``HARMONIC``, ``VOLTAGE``, ``PHASE``, ``PHI_OFFSET``
   * - ``is_enabled``
-    - ``is enabled``
+    - ``Is enabled``
     - bool
     - True
     - On/off switch
@@ -362,12 +377,12 @@ Interface Parameters
     - Default
     - Description
   * - ``dp_aperture_lower``
-    - ``dp aperture[0]``
+    - ``Dp aperture[0]``
     - float
     - -1.0
     - dp acceptance lower bound
   * - ``dp_aperture_upper``
-    - ``dp aperture[1]``
+    - ``Dp aperture[1]``
     - float
     - 1.0
     - dp acceptance upper bound
@@ -412,7 +427,7 @@ Required column names (case-insensitive, order-insensitive):
 
 - ``HARMONIC`` — harmonic number
 - ``VOLTAGE`` — RF voltage (V)
-- ``PHASE`` — synchronous phase (rad)
+- ``PHASE`` — nominal RF phase (rad)
 - ``PHI_OFFSET`` — additional phase offset (rad)
 
 Column names are automatically converted to lowercase when reading, so any case combination such as ``Harmonic``, ``voltage``, ``phase``, etc. works. Each row corresponds to one turn (row 0 = turn 0). If the turn number exceeds the number of file rows, the last row's data is used. The file can also contain metadata header information such as ``TITLE``, ``DATE``, etc., which is automatically parsed by the ``tfs-pandas`` library.
@@ -429,15 +444,15 @@ Example 1: Basic Acceleration Cavity
   {
     "RFCavity_1": {
       "S (m)": 0.0,
-      "Command": "RFElement",
-      "voltage (v)": 100000,
-      "harmonic": 1,
-      "phase (rad)": 0.3,
-      "is enabled": true
+      "Command": "RFCavity",
+      "Voltage (V)": 100000,
+      "Harmonic": 1,
+      "Phase (rad)": 0.3,
+      "Is enabled": true
     }
   }
 
-The synchronous particle gains :math:`\Delta E = q \cdot V \cdot \sin(0.3) \approx 29552` eV of energy per turn.
+For a single proton bunch with :math:`z_{\mathrm{center}}=0` and :math:`\varphi_{\mathrm{off}}=0`, the reference particle gains :math:`\Delta E = V \sin(0.3) \approx 29552` eV per turn.
 
 Example 2: Cavity with dp Acceptance and Phase Offset
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -447,13 +462,13 @@ Example 2: Cavity with dp Acceptance and Phase Offset
   {
     "RFCavity_2": {
       "S (m)": 500.0,
-      "Command": "RFElement",
-      "voltage (v)": 200000,
-      "harmonic": 4,
-      "phase (rad)": 0.5236,
-      "phi offset (rad)": 0.05,
-      "dp aperture": [-0.02, 0.02],
-      "is enabled": true
+      "Command": "RFCavity",
+      "Voltage (V)": 200000,
+      "Harmonic": 4,
+      "Phase (rad)": 0.5236,
+      "Phi offset (rad)": 0.05,
+      "Dp aperture": [-0.02, 0.02],
+      "Is enabled": true
     }
   }
 
@@ -467,9 +482,9 @@ Example 3: Ramping Cavity (TFS File Input)
   {
     "RFCavity_3": {
       "S (m)": 0.0,
-      "Command": "RFElement",
-      "rf data file": "D:/PASS/para/rf_data.tfs",
-      "is enabled": true
+      "Command": "RFCavity",
+      "RF data file": "D:/PASS/para/rf_data.tfs",
+      "Is enabled": true
     }
   }
 
@@ -483,15 +498,15 @@ Example 4: Disabled Cavity
   {
     "RFCavity_4": {
       "S (m)": 0.0,
-      "Command": "RFElement",
-      "voltage (v)": 100000,
-      "harmonic": 1,
-      "phase (rad)": 0.3,
-      "is enabled": false
+      "Command": "RFCavity",
+      "Voltage (V)": 100000,
+      "Harmonic": 1,
+      "Phase (rad)": 0.3,
+      "Is enabled": false
     }
   }
 
-When ``is_enabled = false``, the cavity performs no operation (no-op).
+When ``Is enabled = false``, the cavity performs no operation (no-op).
 
 
 Application Scenarios
@@ -511,12 +526,12 @@ Application Scenarios
 Verification Tests
 ------------------
 
-``tests/test_rf_verification.py`` — 17 groups totaling 25 tests, all passing:
+``tests/test_rf_verification.py`` — 18 groups totaling 28 tests, all passing:
 
-1. Synchronous particle :math:`\delta \approx 0` (precision :math:`< 10^{-12}`)
-2. Synchronous energy gain :math:`\Delta E = (q/A) V \sin(\varphi_s)`
+1. Bunch reference particle :math:`\delta \approx 0` (precision :math:`< 10^{-12}`)
+2. Reference energy gain :math:`\Delta E = (q/A) V \sin(\varphi_s)` in the single-bunch baseline case (:math:`z_{\mathrm{center}}=0`, :math:`\varphi_{\mathrm{off}}=0`)
 3. Exact energy-momentum relation :math:`E^2 = p^2 + m_0^2`
-4. Phase dependence (particles with different :math:`\zeta` receive different kicks)
+4. Phase dependence (particles with different :math:`z_{\mathrm{lab}}` receive different kicks)
 5. Moving reference frame (beam reference energy correctly updated)
 6. Adiabatic damping (:math:`p_x` scaled by :math:`\beta_0\gamma_0/(\beta_1\gamma_1)`)
 7. Normalized emittance conservation (relative error :math:`< 10^{-15}`)
@@ -530,3 +545,4 @@ Verification Tests
 15. Ions (:math:`q/A \neq 1`)
 16. Phase offset :math:`\varphi_{\text{off}}`
 17. Disabled cavity (``is_enabled = false``)
+18. Multi-bunch laboratory coordinates, non-integer harmonic relationships, and parity-independent harmonic handling

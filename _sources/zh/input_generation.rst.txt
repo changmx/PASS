@@ -244,6 +244,18 @@ MainConfig（全局参数）
      - bool
      - 是否启用束流-束流相互作用
 
+InjectionItem（注入与分组）
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``InjectionItem`` 在注入层统一声明 ``harmonic_number`` （JSON 键 ``Harmonic Number`` ）。该值是束团分组数，决定：
+
+- 一圈内建立多少个束团中心，中心间距为 :math:`C/h_{\mathrm{group}}`
+- ``bunches`` 列表必须包含多少个 ``BunchConfig``
+- ``harmonic_id`` 必须唯一覆盖 :math:`0,\ldots,h_{\mathrm{group}}-1`
+
+它不限制 ``RFCavityElement.harmonic`` 。未填充的分组应使用 ``num_macro_particles=0`` 的空束团占位。
+
+
 BunchConfig（束团参数）
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -303,6 +315,24 @@ BunchConfig（束团参数）
      - ``RF Phase (rad)``
      - float
      - RF 相位
+   * - ``harmonic_id``
+     - ``Harmonic ID of this bunch``
+     - int
+     - 束团分组编号；中心为 :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
+   * - ``rf_s_position``
+     - ``RF S Position Refer to Inj. Point (m)``
+     - float
+     - RF 腔相对注入点的位置，用于把匹配分布线性逆传输到 :math:`s=0`
+   * - ``momentum_offset_dp``
+     - ``Momentum Offset dp``
+     - float
+     - 束团平均相对动量偏差；与动能偏差互斥
+   * - ``kinetic_energy_offset``
+     - ``Kinetic Energy Offset (eV)``
+     - float
+     - 束团平均动能偏差，内部精确转换为相对动量偏差
+
+``BunchConfig`` 中手动输入或生成的 ``z`` 坐标都是相对束团中心的 :math:`z_{\mathrm{rel}}` ，不是实验室绝对方位。
 
 Sequence（序列容器）
 ~~~~~~~~~~~~~~~~~~~~

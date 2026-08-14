@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence">Sequence（序列容器）</a></li>
 </ul>
@@ -93,7 +94,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id11">多束团纵向坐标</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#id12">束团填充方案</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#id13">色散耦合</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../injection.html#id14">动量偏差</a></li>
@@ -276,12 +277,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重整（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">物理说明</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../reorganize.html#id3">索引分配方式</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
 </ul>
@@ -313,20 +312,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#id4">色散处理</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#id5">横向传输矩阵</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id7">纵向坐标连续性</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0">t0 更新</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id7">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id8">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">孔径参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../twiss.html#id13">孔径参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id13">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../twiss.html#id15">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +341,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
@@ -377,7 +377,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#dispersion-coupling">Dispersion coupling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#momentum-deviation">Momentum deviation</a></li>
@@ -560,14 +560,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#physics-description">Physics Description</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/reorganize.html#index-allocation-method">Index Allocation Method</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#applications">Applications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/aperture.html">Aperture</a><ul>
@@ -597,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#dispersion-handling">Dispersion Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/twiss.html#t0-update">t0 Update</a></li>
 </ul>
 </li>
@@ -662,7 +660,7 @@
 <li><p>支持 dp 接受度（纵向孔径）检查</p></li>
 <li><p>支持固定值和 TFS 文件（Ramping）两种参数输入方式</p></li>
 <li><p>支持多圈加速模拟</p></li>
-<li><p>谐波数是腔的状态属性，对所有束团统一</p></li>
+<li><p>RF 谐波数是腔的状态属性，对所有束团统一；它与束流的束团分组数相互独立</p></li>
 </ul>
 </li>
 </ul>
@@ -699,8 +697,8 @@
 <td><p>归一化垂直动量， <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
-<td><p>纵向坐标， <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span></p></td>
+<td><p>粒子相对所属束团中心的纵向坐标</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
 <td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
@@ -708,16 +706,24 @@
 </tr>
 </tbody>
 </table>
-<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度。</p>
+<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度。每个束团还保存一个固定的实验室坐标中心</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(h_{\mathrm{group}}\)</span> 是束流的束团分组数， <span class="math notranslate nohighlight">\(h_{\mathrm{id}}\)</span> 是该束团的分组编号。粒子的实验室纵向位置为</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.\]</div>
+<p><code class="docutils literal notranslate"><span class="pre">z</span></code> 数组只存储 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> ；需要计算 RF 相位或到达时间时，元件再显式加上 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span>。</p>
 </section>
 <section id="id2">
 <h2>物理推导<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <section id="rf">
 <h3>RF 腔的物理本质<a class="headerlink" href="#rf" title="Link to this heading"></a></h3>
-<p>RF 腔产生纵向（沿束流方向）振荡电场 <span class="math notranslate nohighlight">\(E_s(t) = E_0 \sin(\omega_{\text{rf}} t + \varphi_s)\)</span> 。粒子穿过腔体时获得的能量增益取决于粒子到达腔体的时刻，即粒子的纵向位置 <span class="math notranslate nohighlight">\(\zeta\)</span> 决定了它感受到的 RF 相位。</p>
-<p>设机器周长为 <span class="math notranslate nohighlight">\(C\)</span> ，机器半径 <span class="math notranslate nohighlight">\(R = C / (2\pi)\)</span> ，谐波数 <span class="math notranslate nohighlight">\(h\)</span> ， RF 电压 <span class="math notranslate nohighlight">\(V\)</span> ，同步相位 <span class="math notranslate nohighlight">\(\varphi_s\)</span> 。粒子的纵向位置 <span class="math notranslate nohighlight">\(\zeta\)</span> 对应的方位角 <span class="math notranslate nohighlight">\(\theta = \zeta / R\)</span> ，其 RF 相位为：</p>
+<p>RF 腔产生纵向（沿束流方向）振荡电场 <span class="math notranslate nohighlight">\(E_s(t) = E_0 \sin(\omega_{\text{rf}} t + \varphi_s)\)</span> 。粒子穿过腔体时获得的能量增益取决于到达时刻，因此 RF 相位必须由实验室纵向位置 <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}\)</span> 计算，而不是只使用束团内的相对坐标 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span>。</p>
+<p>设机器周长为 <span class="math notranslate nohighlight">\(C\)</span> ，等效半径 <span class="math notranslate nohighlight">\(R = C / (2\pi)\)</span> ，RF 腔谐波数为 <span class="math notranslate nohighlight">\(h_{\mathrm{rf}}\)</span> ，RF 电压为 <span class="math notranslate nohighlight">\(V\)</span> ，设定相位为 <span class="math notranslate nohighlight">\(\varphi_s\)</span> 。粒子的方位角为 <span class="math notranslate nohighlight">\(\theta = z_{\mathrm{lab}} / R\)</span> ，其 RF 相位为：</p>
 <div class="math notranslate nohighlight">
-\[\varphi_{\text{particle}} = \varphi_s - h \cdot \theta + \varphi_{\text{off}}\]</div>
+\[\varphi_{\text{particle}}
+= \varphi_s + \varphi_{\text{off}}
+- h_{\mathrm{rf}}\frac{z_{\mathrm{lab}}}{R}\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(\varphi_{\text{off}}\)</span> 为附加相位偏移（详见后文）。</p>
 </section>
 <section id="phi-offset">
@@ -726,27 +732,29 @@
 <ol class="arabic simple">
 <li><p><strong>多腔相位对齐</strong> ：当多台 RF 腔沿环分布、腔间距不是 RF 波长的整数倍时，每台腔需要独立的相位修正以保持同步。</p></li>
 <li><p><strong>多谐波系统</strong> ：不同谐波数的腔共享同一频率基准时，通过 <span class="math notranslate nohighlight">\(\varphi_{\text{off}}\)</span> 实现各腔独立的相位调节。</p></li>
-<li><p><strong>相位 trim</strong> ：在运行中微调腔的相位而不改变同步粒子的定义（ <code class="docutils literal notranslate"><span class="pre">phase</span></code> 仍然定义同步粒子的能量增益）。</p></li>
+<li><p><strong>相位微调（phase trim）</strong> ：在运行中通过 <code class="docutils literal notranslate"><span class="pre">phi_offset</span></code> 微调腔的有效相位，而不改变 <code class="docutils literal notranslate"><span class="pre">phase</span></code> 给出的标称相位设定。束团参考粒子的实际相位还包含其 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span> 对应的方位项。</p></li>
 </ol>
-<p>物理上， <span class="math notranslate nohighlight">\(\varphi_{\text{off}}\)</span> 旋转整个 <span class="math notranslate nohighlight">\(\sin\)</span> 曲线，使得粒子的实际相位变为 <span class="math notranslate nohighlight">\(\varphi_s + \varphi_{\text{off}} - h\theta\)</span> 。</p>
+<p>物理上， <span class="math notranslate nohighlight">\(\varphi_{\text{off}}\)</span> 旋转整个 <span class="math notranslate nohighlight">\(\sin\)</span> 曲线，使得粒子的实际相位变为 <span class="math notranslate nohighlight">\(\varphi_s + \varphi_{\text{off}} - h_{\mathrm{rf}}\theta\)</span> 。</p>
 </section>
 <section id="id3">
-<h3>偶数谐波补偿<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
-<p>当注入多个束团时， PASS 采用对称偏移公式将各 bucket 关于 <span class="math notranslate nohighlight">\(z=0\)</span> 对称放置（见 <a class="reference internal" href="../injection.html"><span class="doc">注入粒子生成（Injection）</span></a> 中的多束团纵向偏移说明）。对于偶数谐波数 <span class="math notranslate nohighlight">\(h\)</span> ，这种对称偏移引入了等效 <span class="math notranslate nohighlight">\(180^\circ\)</span> 的相位翻转。</p>
-<p>为补偿这一翻转， RF 腔在计算粒子相位时，对偶数 <span class="math notranslate nohighlight">\(h\)</span> 自动在 <span class="math notranslate nohighlight">\(z\)</span> 上施加 <span class="math notranslate nohighlight">\(C/(2h)\)</span> 的偏移：</p>
-<div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}\begin{split}z_{\text{eff}} = \begin{cases} z + \frac{C}{2h} &amp; h \text{ 为偶数} \\ z &amp; h \text{ 为奇数} \end{cases}\end{split}\\\varphi_{\text{particle}} = \varphi_s + \varphi_{\text{off}} - h \cdot \frac{z_{\text{eff}}}{R}\end{aligned}\end{align} \]</div>
-<p>此补偿确保所有 bucket 中的同步粒子都能正确看到同步相位 <span class="math notranslate nohighlight">\(\varphi_s\)</span> 。奇数 <span class="math notranslate nohighlight">\(h\)</span> 不需要补偿（偏移量是 <span class="math notranslate nohighlight">\(2\pi\)</span> 的整数倍， <span class="math notranslate nohighlight">\(\sin\)</span> 函数自动不变）。</p>
+<h3>束团分组数与 RF 谐波数<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>束流的 <span class="math notranslate nohighlight">\(h_{\mathrm{group}}\)</span> 只定义束团中心网格；RF 腔的 <span class="math notranslate nohighlight">\(h_{\mathrm{rf}}\)</span> 只定义 RF 波形在一圈内的周期数。两者不要求相等，也不要求互为整数倍。RFCavity 对奇数和偶数谐波使用同一公式，不施加额外相位补偿。</p>
+<p>当 <span class="math notranslate nohighlight">\(h_{\mathrm{rf}}/h_{\mathrm{group}}\)</span> 为整数时，各束团中心位于等价 RF 相位；否则不同束团中心可能看到不同相位和不同参考能量增益。这是给定分组与 RF 配置的直接物理结果，程序不会自动修改相位。</p>
 </section>
 <section id="kick">
 <h3>能量 kick<a class="headerlink" href="#kick" title="Link to this heading"></a></h3>
 <p>每个粒子的能量增益为：</p>
 <div class="math notranslate nohighlight">
 \[\Delta E_{\text{kick}} = \frac{q}{A} \cdot V \cdot \sin(\varphi_{\text{particle}})\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(q/A\)</span> 为荷质比。同步粒子（ <span class="math notranslate nohighlight">\(\zeta = 0\)</span> ）的能量增益为：</p>
+<p>其中 <span class="math notranslate nohighlight">\(q/A\)</span> 为荷质比。对每个束团，参考粒子定义为 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}=0\)</span> ，其实验室位置为 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span> ，参考能量增益为：</p>
 <div class="math notranslate nohighlight">
-\[\Delta E_{\text{syn}} = \frac{q}{A} \cdot V \cdot \sin(\varphi_s)\]</div>
-<p><span class="math notranslate nohighlight">\(\Delta E_{\text{syn}}\)</span> 体现了 RF 腔的净加速效果。</p>
+\[\Delta E_{\text{ref}}
+= \frac{q}{A} V
+\sin\left(
+\varphi_s + \varphi_{\text{off}}
+- h_{\mathrm{rf}}\frac{z_{\mathrm{center}}}{R}
+\right)\]</div>
+<p><span class="math notranslate nohighlight">\(\Delta E_{\text{ref}}\)</span> 用于更新该束团的移动参考系，因此束团中心粒子的 <span class="math notranslate nohighlight">\(\delta\)</span> 保持在 0 附近。不同束团的参考增益可以不同。</p>
 </section>
 <section id="id4">
 <h3>一阶线性化近似及其问题<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
@@ -802,13 +810,17 @@
 <li><p>不需要 <span class="math notranslate nohighlight">\(\beta_1/\beta_0\)</span> 缩放因子（参考系变换已隐含在 <span class="math notranslate nohighlight">\(p_{0,\text{new}}\)</span> 中）</p></li>
 </ul>
 <p>因此三重近似全部被绕过， <span class="math notranslate nohighlight">\(\beta_1/\beta_0\)</span> 因子自然不出现。</p>
-<p>此变换 <strong>完全精确</strong> ，无任何线性化近似，只需两次 <code class="docutils literal notranslate"><span class="pre">sqrt</span></code> 运算（numpy 向量化，成本可忽略），适用于大 <span class="math notranslate nohighlight">\(\delta\)</span> 和强加速场景。</p>
+<p>此变换在物理定义域内不使用纵向线性化，只需两次 <code class="docutils literal notranslate"><span class="pre">sqrt</span></code> 运算（numpy 向量化，成本可忽略），适用于大 <span class="math notranslate nohighlight">\(\delta\)</span> 和强加速场景。</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>输入参数必须保证 kick 后的粒子总能量和参考总能量不低于静止能量。若设置了非物理的过强减速，使 <span class="math notranslate nohighlight">\(E_{\mathrm{new}} &lt; m_0\)</span> ，动量平方根将失去实数定义；当前实现不会自动修正这类输入。</p>
+</div>
 </section>
 <section id="id6">
 <h3>移动参考系<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
-<p>PASS 采用移动参考系（moving reference frame）：每次 RF kick 后，束流的参考能量更新为包含 <span class="math notranslate nohighlight">\(\Delta E_{\text{syn}}\)</span> 的新值：</p>
+<p>PASS 采用移动参考系（moving reference frame）：每次 RF kick 后，每个束团的参考能量更新为包含其 <span class="math notranslate nohighlight">\(\Delta E_{\text{ref}}\)</span> 的新值：</p>
 <div class="math notranslate nohighlight">
-\[E_{\text{total},1} = E_{\text{total},0} + \Delta E_{\text{syn}}\]</div>
+\[E_{\text{total},1} = E_{\text{total},0} + \Delta E_{\text{ref}}\]</div>
 <div class="math notranslate nohighlight">
 \[\gamma_1 = \frac{E_{\text{total},1}}{m_0}\]</div>
 <div class="math notranslate nohighlight">
@@ -817,7 +829,7 @@
 \[p_{0,\text{new}} = \gamma_1 m_0 \beta_1\]</div>
 <div class="math notranslate nohighlight">
 \[E_{k,1} = E_{\text{total},1} - m_0\]</div>
-<p>同步粒子的 <span class="math notranslate nohighlight">\(\delta\)</span> 始终保持在 0 附近，避免了固定参考系中 <span class="math notranslate nohighlight">\(\delta\)</span> 持续增长导致的数值精度问题。</p>
+<p>每个束团参考粒子的 <span class="math notranslate nohighlight">\(\delta\)</span> 始终保持在 0 附近，避免了固定参考系中 <span class="math notranslate nohighlight">\(\delta\)</span> 持续增长导致的数值精度问题。</p>
 </section>
 <section id="id7">
 <h3>横向动量重缩放与绝热阻尼<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
@@ -834,20 +846,20 @@
 </section>
 <section id="id8">
 <h2>跟踪流程<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>输入: z, dp(=δ), px, py, tag, bunch参数(β₀, γ₀, m₀, q/A, Ek, p₀, C)
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>输入: z_rel, z_center, dp(=δ), px, py, tag,
+      bunch参数(β₀, γ₀, m₀, q/A, Ek, p₀, C)
 
 1. 计算 RF 相位
-   若 h 为偶数: z_eff = z + C/(2h)   (偶数谐波补偿)
-   若 h 为奇数: z_eff = z
-   θ = z_eff / R                       (R = C/2π)
-   φ_particle = phase + φ_off - h·θ
+   z_lab = z_rel + z_center
+   φ_particle = phase + φ_off - h_rf·z_lab/R
 
 2. 能量 kick
    ΔE_kick = (q/A)·V·sin(φ_particle)  [逐粒子]
-   ΔE_syn  = (q/A)·V·sin(phase)       [标量]
+   ΔE_ref  = (q/A)·V·sin(phase + φ_off - h_rf·z_center/R)
+                                           [逐束团标量]
 
 3. 更新束流参考（移动参考系）
-   E_total1 = E_total0 + ΔE_syn
+   E_total1 = E_total0 + ΔE_ref
    γ₁ = E_total1 / m₀
    β₁ = √(1 - 1/γ₁²)
    p₀_new = γ₁·m₀·β₁
@@ -867,9 +879,9 @@
 
 6. dp 接受度检查（超出 → 标记丢失）
 
-7. z-wrap 到 [-C/2, C/2)
+7. 更新丢失粒子信息
 
-8. 更新丢失粒子信息
+RFCavity 不修改也不折叠 z_rel。
 </pre></div>
 </div>
 </section>
@@ -894,37 +906,37 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">voltage</span> <span class="pre">(v)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>0.0</p></td>
 <td><p>RF 电压（V）</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">harmonic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code></p></td>
 <td><p>int</p></td>
 <td><p>1</p></td>
 <td><p>谐波数 <span class="math notranslate nohighlight">\(h\)</span></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>0.0</p></td>
-<td><p>同步相位 <span class="math notranslate nohighlight">\(\varphi_s\)</span> （rad）</p></td>
+<td><p>标称 RF 相位 <span class="math notranslate nohighlight">\(\varphi_s\)</span> （rad）；束团中心的实际相位还包含 <code class="docutils literal notranslate"><span class="pre">phi_offset</span></code> 和 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span> 项</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phi_offset</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">phi</span> <span class="pre">offset</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phi</span> <span class="pre">offset</span> <span class="pre">(rad)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>0.0</p></td>
 <td><p>附加相位偏移（rad），用于多腔相位对齐和相位 trim</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_rf_table</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">rf</span> <span class="pre">data</span> <span class="pre">file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">data</span> <span class="pre">file</span></code></p></td>
 <td><p>str</p></td>
 <td><p>None</p></td>
 <td><p>Ramping 数据文件路径（TFS 格式），提供后覆盖固定值参数。每行对应一圈，所需列名： <code class="docutils literal notranslate"><span class="pre">HARMONIC</span></code> 、 <code class="docutils literal notranslate"><span class="pre">VOLTAGE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PHASE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PHI_OFFSET</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
 <td><p>bool</p></td>
 <td><p>True</p></td>
 <td><p>开关</p></td>
@@ -950,13 +962,13 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dp_aperture_lower</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">dp</span> <span class="pre">aperture[0]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dp</span> <span class="pre">aperture[0]</span></code></p></td>
 <td><p>float</p></td>
 <td><p>-1.0</p></td>
 <td><p>dp 接受度下限</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp_aperture_upper</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">dp</span> <span class="pre">aperture[1]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Dp</span> <span class="pre">aperture[1]</span></code></p></td>
 <td><p>float</p></td>
 <td><p>1.0</p></td>
 <td><p>dp 接受度上限</p></td>
@@ -1015,7 +1027,7 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">HARMONIC</span></code> —— 谐波数</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">VOLTAGE</span></code> —— RF 电压（V）</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PHASE</span></code> —— 同步相位（rad）</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PHASE</span></code> —— 标称 RF 相位（rad）</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PHI_OFFSET</span></code> —— 附加相位偏移（rad）</p></li>
 </ul>
 <p>读取时列名自动转换为小写，因此 <code class="docutils literal notranslate"><span class="pre">Harmonic</span></code> 、 <code class="docutils literal notranslate"><span class="pre">voltage</span></code> 、 <code class="docutils literal notranslate"><span class="pre">phase</span></code> 等任意大小写组合均可。每行对应一圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 <code class="docutils literal notranslate"><span class="pre">TITLE</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DATE</span></code> 等元数据头信息，由 <code class="docutils literal notranslate"><span class="pre">tfs-pandas</span></code> 库自动解析。</p>
@@ -1027,29 +1039,29 @@
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;RFCavity_1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFElement&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;voltage (v)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100000</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;harmonic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFCavity&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Voltage (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Harmonic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>同步粒子每圈获得 <span class="math notranslate nohighlight">\(\Delta E = q \cdot V \cdot \sin(0.3) \approx 29552\)</span> eV 的能量增益。</p>
+<p>对质子单束团（ <span class="math notranslate nohighlight">\(z_{\mathrm{center}}=0\)</span> 、 <span class="math notranslate nohighlight">\(\varphi_{\mathrm{off}}=0\)</span> ），参考粒子每圈获得 <span class="math notranslate nohighlight">\(\Delta E = V \sin(0.3) \approx 29552\)</span> eV 的能量增益。</p>
 </section>
 <section id="dp">
 <h3>示例 2：带 dp 接受度和相位偏移的腔<a class="headerlink" href="#dp" title="Link to this heading"></a></h3>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;RFCavity_2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">500.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFElement&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;voltage (v)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200000</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;harmonic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5236</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;phi offset (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;dp aperture&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.02</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFCavity&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Voltage (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Harmonic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5236</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Phi offset (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Dp aperture&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.02</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;Is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1061,9 +1073,9 @@
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;RFCavity_3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFElement&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;rf data file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;D:/PASS/para/rf_data.tfs&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFCavity&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;RF data file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;D:/PASS/para/rf_data.tfs&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1075,16 +1087,16 @@
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;RFCavity_4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFElement&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;voltage (v)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100000</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;harmonic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;RFCavity&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Voltage (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Harmonic&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Phase (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Is enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">is_enabled</span> <span class="pre">=</span> <span class="pre">false</span></code> 时，腔体不执行任何操作（no-op ）。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span> <span class="pre">=</span> <span class="pre">false</span></code> 时，腔体不执行任何操作（no-op ）。</p>
 </section>
 </section>
 <section id="id13">
@@ -1099,12 +1111,12 @@
 </section>
 <section id="id14">
 <h2>验证测试<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">tests/test_rf_verification.py</span></code> —— 17 组共 25 项测试，全部通过：</p>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_rf_verification.py</span></code> —— 18 组共 28 项测试，全部通过：</p>
 <ol class="arabic simple">
-<li><p>同步粒子 <span class="math notranslate nohighlight">\(\delta \approx 0\)</span> （精度 <span class="math notranslate nohighlight">\(&lt; 10^{-12}\)</span> ）</p></li>
-<li><p>同步能量增益 <span class="math notranslate nohighlight">\(\Delta E = (q/A) V \sin(\varphi_s)\)</span></p></li>
+<li><p>束团参考粒子 <span class="math notranslate nohighlight">\(\delta \approx 0\)</span> （精度 <span class="math notranslate nohighlight">\(&lt; 10^{-12}\)</span> ）</p></li>
+<li><p>单束团基准情形（ <span class="math notranslate nohighlight">\(z_{\mathrm{center}}=0\)</span> 、 <span class="math notranslate nohighlight">\(\varphi_{\mathrm{off}}=0\)</span> ）的参考能量增益 <span class="math notranslate nohighlight">\(\Delta E = (q/A) V \sin(\varphi_s)\)</span></p></li>
 <li><p>精确能量-动量关系 <span class="math notranslate nohighlight">\(E^2 = p^2 + m_0^2\)</span></p></li>
-<li><p>相位依赖性（不同 <span class="math notranslate nohighlight">\(\zeta\)</span> 的粒子获得不同 kick ）</p></li>
+<li><p>相位依赖性（不同 <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}\)</span> 的粒子获得不同 kick ）</p></li>
 <li><p>移动参考系（束流参考能量正确更新）</p></li>
 <li><p>绝热阻尼（ <span class="math notranslate nohighlight">\(p_x\)</span> 按 <span class="math notranslate nohighlight">\(\beta_0\gamma_0/(\beta_1\gamma_1)\)</span> 缩放）</p></li>
 <li><p>归一化发射度守恒（相对误差 <span class="math notranslate nohighlight">\(&lt; 10^{-15}\)</span> ）</p></li>
@@ -1118,6 +1130,7 @@
 <li><p>离子（ <span class="math notranslate nohighlight">\(q/A \neq 1\)</span> ）</p></li>
 <li><p>相位偏移 <span class="math notranslate nohighlight">\(\varphi_{\text{off}}\)</span></p></li>
 <li><p>禁用腔（ <code class="docutils literal notranslate"><span class="pre">is_enabled</span> <span class="pre">=</span> <span class="pre">false</span></code> ）</p></li>
+<li><p>多束团实验室坐标、非整倍谐波关系和奇偶谐波统一处理</p></li>
 </ol>
 </section>
 </section>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunch Reorganization (ReorganizeBunch) &mdash; PASS  documentation</title>
+  <title>Bunch Regrouping (ReorganizeBunch) &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
 </ul>
@@ -93,7 +94,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id8">粒子分布类型简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id9">横向粒子分布</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id11">多束团纵向偏移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id11">多束团纵向坐标</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id12">束团填充方案</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id13">色散耦合</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id14">动量偏差</a></li>
@@ -276,12 +277,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../zh/reorganize.html">束团重整（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id2">物理说明</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/reorganize.html#id3">索引分配方式</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id3">接口参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id4">使用示例</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id5">应用场景</a></li>
 </ul>
@@ -313,20 +312,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id4">色散处理</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id5">横向传输矩阵</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#z">z 坐标回旋折叠</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id7">纵向坐标连续性</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#t0">t0 更新</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id7">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id8">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id9">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id10">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id11">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id12">孔径参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/twiss.html#id13">孔径参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id13">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id14">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/twiss.html#id15">应用场景</a></li>
 </ul>
 </li>
 </ul>
@@ -342,6 +341,7 @@
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
@@ -377,7 +377,7 @@
 <li class="toctree-l3"><a class="reference internal" href="injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#multi-bunch-longitudinal-offset">Multi-bunch longitudinal offset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#dispersion-coupling">Dispersion coupling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="injection.html#momentum-deviation">Momentum deviation</a></li>
@@ -560,14 +560,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Bunch Reorganization (ReorganizeBunch)</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#group-boundaries">Group Boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#physics-description">Physics Description</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#index-allocation-method">Index Allocation Method</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#applications">Applications</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="aperture.html">Aperture</a><ul>
@@ -597,7 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#dispersion-handling">Dispersion Handling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#z-coordinate-wrapping-folding">z-Coordinate Wrapping/Folding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="twiss.html#t0-update">t0 Update</a></li>
 </ul>
 </li>
@@ -632,7 +630,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">PASS Documentation (English)</a></li>
-      <li class="breadcrumb-item active">Bunch Reorganization (ReorganizeBunch)</li>
+      <li class="breadcrumb-item active">Bunch Regrouping (ReorganizeBunch)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/en/reorganize.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -642,46 +640,69 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="bunch-reorganization-reorganizebunch">
-<h1>Bunch Reorganization (ReorganizeBunch)<a class="headerlink" href="#bunch-reorganization-reorganizebunch" title="Link to this heading"></a></h1>
-<p>This module describes the <strong>ReorganizeBunch</strong> command in PASS, used to dynamically adjust the grouping of bunches during simulation.</p>
-<p><strong>Function Description</strong></p>
-<p>The ReorganizeBunch command <strong>only modifies the index ranges of bunches</strong> ( <code class="docutils literal notranslate"><span class="pre">start_idx</span></code> and <code class="docutils literal notranslate"><span class="pre">end_idx</span></code> ) and <strong>does not modify any particle coordinates</strong> (x, px, y, py, z, dp, tag, etc.).</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This command only reorganizes the index allocation of bunches and does not involve physical debunching or bunch compression. True debunching (bunch lengthening) and bunch compression are physical processes achieved by adjusting parameters such as RF cavity voltage and phase, not index reallocation.</p>
-</div>
-<p>Applicable scenarios:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Merge</strong> : Merge the indices of multiple bunches into fewer bunches. The z-coordinate of particles remains unchanged; only the index ranges are reallocated. For example, at injection with harmonic number <span class="math notranslate nohighlight">\(h=4\)</span> producing 4 bunches, merge them into 1 bunch</p></li>
-<li><p><strong>Split</strong> : Regroup the indices of existing bunches into more bunches</p></li>
-</ul>
-</div></blockquote>
-<p><strong>Code Location</strong></p>
-<blockquote>
-<div><ul class="simple">
-<li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/reorganize.py</span></code></p></li>
-<li><p>Class name: <code class="docutils literal notranslate"><span class="pre">ReorganizeBunch</span></code> (inherits from <code class="docutils literal notranslate"><span class="pre">Command</span></code> )</p></li>
+  <section id="bunch-regrouping-reorganizebunch">
+<h1>Bunch Regrouping (ReorganizeBunch)<a class="headerlink" href="#bunch-regrouping-reorganizebunch" title="Link to this heading"></a></h1>
+<p>This page describes the PASS <strong>ReorganizeBunch</strong> command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the laboratory longitudinal positions of the particles.</p>
+<p><strong>Code location</strong></p>
+<ul class="simple">
+<li><p>Source: <code class="docutils literal notranslate"><span class="pre">PASS/commands/reorganize.py</span></code></p></li>
+<li><p>Regrouping algorithm: <code class="docutils literal notranslate"><span class="pre">PASS/commands/sort_bunch.py</span></code></p></li>
+<li><p>Class: <code class="docutils literal notranslate"><span class="pre">ReorganizeBunch</span></code> (inherits from <code class="docutils literal notranslate"><span class="pre">Command</span></code>)</p></li>
 <li><p>Registered name: <code class="docutils literal notranslate"><span class="pre">reorganizebunch</span></code></p></li>
-<li><p>Schema class: <code class="docutils literal notranslate"><span class="pre">ReorganizeBunchElement</span></code> ( <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/elements.py</span></code> )</p></li>
+<li><p>Schema: <code class="docutils literal notranslate"><span class="pre">ReorganizeBunchElement</span></code> in <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/elements.py</span></code></p></li>
 </ul>
-</div></blockquote>
+<section id="operation">
+<h2>Operation<a class="headerlink" href="#operation" title="Link to this heading"></a></h2>
+<p>Let the old and new grouping counts be <span class="math notranslate nohighlight">\(h_{\mathrm{old}}\)</span> and <span class="math notranslate nohighlight">\(h_{\mathrm{new}}\)</span>. The command runs once at <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> and performs the following operations:</p>
+<ol class="arabic">
+<li><p>Recover each particle’s laboratory longitudinal position from its old bunch reference:</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center,old}}.\]</div>
+</li>
+<li><p>Build a new grid of bunch centers separated by <span class="math notranslate nohighlight">\(C/h_{\mathrm{new}}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{center},k} = k\frac{C}{h_{\mathrm{new}}},
+\qquad k=0,1,\ldots,h_{\mathrm{new}}-1.\]</div>
+</li>
+<li><p>Assign particles to the nearest new group center around the ring and reorder every particle array so that each new bunch occupies a contiguous index range.</p></li>
+<li><p>Convert laboratory positions back to coordinates relative to the new bunch center:</p>
+<div class="math notranslate nohighlight">
+\[z_{\mathrm{rel,new}}
+= \operatorname{fold}_C
+  \left(z_{\mathrm{lab}}-z_{\mathrm{center,new}}\right).\]</div>
+</li>
+<li><p>Update the beam <code class="docutils literal notranslate"><span class="pre">harmonic_number</span></code> and each bunch’s <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code>, <code class="docutils literal notranslate"><span class="pre">z_center</span></code>, particle count, and index range.</p></li>
+<li><p>If a new bunch inherits a different reference momentum, rebase <span class="math notranslate nohighlight">\(p_x\)</span>, <span class="math notranslate nohighlight">\(p_y\)</span>, and <span class="math notranslate nohighlight">\(\delta\)</span> so that each particle’s absolute mechanical momentum is preserved.</p></li>
+</ol>
+<p>ReorganizeBunch is therefore more than an index edit, but it is not itself a physical debunching, merging, capture, or compression process. Laboratory positions are preserved, while bunch reference centers, relative longitudinal coordinates, and normalized momenta may change.</p>
+</section>
+<section id="group-boundaries">
+<h2>Group Boundaries<a class="headerlink" href="#group-boundaries" title="Link to this heading"></a></h2>
+<p>The algorithm uses the ring-azimuth sorting key</p>
+<div class="math notranslate nohighlight">
+\[k_z = \left(z_{\mathrm{lab}}+\frac{C}{2h_{\mathrm{new}}}\right)\bmod C.\]</div>
+<p>Group <span class="math notranslate nohighlight">\(j\)</span> contains particles satisfying</p>
+<div class="math notranslate nohighlight">
+\[j\frac{C}{h_{\mathrm{new}}}
+\le k_z
+&lt; (j+1)\frac{C}{h_{\mathrm{new}}}.\]</div>
+<p>The half-group-width shift places each boundary midway between adjacent centers. The same rule applies to odd and even grouping counts.</p>
+</section>
 <section id="interface-parameters">
 <h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 20.0%" />
+<col style="width: 22.0%" />
 <col style="width: 30.0%" />
-<col style="width: 10.0%" />
-<col style="width: 10.0%" />
-<col style="width: 30.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 24.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Property</p></th>
 <th class="head"><p>JSON key</p></th>
 <th class="head"><p>Type</p></th>
-<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
@@ -689,94 +710,55 @@
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>s-position of the command in the ring</p></td>
+<td><p>Required</p></td>
+<td><p>Longitudinal position of the command in the ring</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Command name, automatically filled from the sequence key name</p></td>
+<td><p>Auto-filled</p></td>
+<td><p>Command name</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Operation mode, options: <code class="docutils literal notranslate"><span class="pre">merge</span></code> (merge bunches), <code class="docutils literal notranslate"><span class="pre">split</span></code> (split bunches)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
 <td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Effective starting turn (inclusive, counted from 0)</p></td>
+<td><p>0</p></td>
+<td><p>Execution turn (inclusive, 0-based); the command runs only once</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">new_harmonic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">harmonic</span> <span class="pre">number</span></code></p></td>
 <td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Effective ending turn (exclusive). Set to -1 for no upper limit, continuing until the end of the simulation</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">new_num_bunch</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">New</span> <span class="pre">num</span> <span class="pre">bunch</span></code></p></td>
-<td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>New number of bunches (must be <span class="math notranslate nohighlight">\(\ge 1\)</span> )</p></td>
+<td><p>Required</p></td>
+<td><p>New bunch-grouping count, must be <span class="math notranslate nohighlight">\(\ge 1\)</span></p></td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="physics-description">
-<h2>Physics Description<a class="headerlink" href="#physics-description" title="Link to this heading"></a></h2>
-<p>The design philosophy of the ReorganizeBunch command is: <strong>the physical position of particles is determined by the tracking process, and bunch identity is merely an index label.</strong></p>
-<p>The z-coordinate of particles evolves naturally with tracking (through energy modulation in RF cavities and the slipping effect in drifts) and does not need manual adjustment. ReorganizeBunch only handles the reallocation of index ranges, enabling subsequent diagnostics, slicing, and other operations to correctly identify the new bunch structure.</p>
-<section id="index-allocation-method">
-<h3>Index Allocation Method<a class="headerlink" href="#index-allocation-method" title="Link to this heading"></a></h3>
-<p>The total number of particles <span class="math notranslate nohighlight">\(N_{\text{total}}\)</span> is distributed as evenly as possible among <code class="docutils literal notranslate"><span class="pre">new_num_bunch</span></code> bunches:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}N_k = \left\lfloor \frac{N_{\text{total}}}{n} \right\rfloor + \begin{cases} 1 &amp; k &lt; N_{\text{total}} \bmod n \\ 0 &amp; \text{otherwise} \end{cases}\end{split}\]</div>
-<p>where <span class="math notranslate nohighlight">\(n\)</span> is the new number of bunches and <span class="math notranslate nohighlight">\(k = 0, 1, \ldots, n-1\)</span> . The first <span class="math notranslate nohighlight">\(N_{\text{total}} \bmod n\)</span> bunches each receive one extra particle.</p>
-</section>
-</section>
 <section id="usage-example">
 <h2>Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
-<p>The following example shows how to merge 4 bunches into 1 bunch at turn 500:</p>
+<p>The following example switches the beam to one longitudinal group at turn 500:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;ReorganizeBunch1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ReorganizeBunch&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="nt">&quot;Start turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;End turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;New num bunch&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="nt">&quot;New harmonic number&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </section>
-<section id="application-scenarios">
-<h2>Application Scenarios<a class="headerlink" href="#application-scenarios" title="Link to this heading"></a></h2>
-<blockquote>
-<div><ul class="simple">
-<li><p><strong>Merging indices after debunching</strong> : At injection, a high harmonic number (e.g., <span class="math notranslate nohighlight">\(h=4\)</span> ) is used to produce multiple bunches, then the RF voltage is turned off or reduced to let the bunches naturally debunch. After debunching is complete, ReorganizeBunch is used to merge the indices into 1 bunch</p></li>
-<li><p><strong>Regrouping after rebunching</strong> : After debunching, RF voltage is reapplied to rebunch the particles, and ReorganizeBunch is used to regroup the indices</p></li>
-<li><p><strong>Bunch filling scheme adjustment</strong> : Using different bunch grouping schemes at different simulation stages</p></li>
+<section id="applications">
+<h2>Applications<a class="headerlink" href="#applications" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Update diagnostic grouping after RF manipulations have changed the longitudinal distribution</p></li>
+<li><p>Change the bunch-grouping count between simulation stages</p></li>
+<li><p>Reclassify particles that have crossed old group boundaries according to their current laboratory azimuth</p></li>
 </ul>
-</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>ReorganizeBunch changes the PASS bunch-reference grouping only. It does not replace the physical debunching, capture, merging, or bunch-compression process produced by RF elements. First create the intended longitudinal distribution with the appropriate physical elements, then regroup at the selected turn.</p>
+</div>
 </section>
 </section>
 

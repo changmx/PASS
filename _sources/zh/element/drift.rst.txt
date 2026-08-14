@@ -62,15 +62,9 @@
 
 其中 :math:`z` 的更新包含路径长度差效应：具有动量偏差的粒子速度不同，导致纵向位置发生变化。
 
-**z 坐标回旋折叠**
+**纵向坐标连续性**
 
-更新后的 :math:`z` 坐标被折叠到 :math:`[-C/2, \; C/2]` 范围内：
-
-.. math::
-
-  z \leftarrow z + \left\lfloor \frac{C/2 - z}{C} \right\rfloor \cdot C
-
-其中 :math:`C` 为环周长。这保证了 :math:`z` 始终在环周长范围内。
+Drift 不对更新后的 :math:`z_{\mathrm{rel}}` 做环周折叠。连续保存纵向滑移可避免丢失多圈累计信息；需要实验室坐标时使用 :math:`z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}`。
 
 
 接口参数

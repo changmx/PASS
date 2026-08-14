@@ -410,7 +410,8 @@ Overall Tracking Flow
        Drift(L/2) → Kick → Drift(L/2)
     5. Striking plate: tag set negative, record lost_position/lost_turn
     6. Tilt rotation back (if any)
-    7. z coordinate wrap to [-C/2, C/2)
+
+  The drift steps update the continuous bunch-relative longitudinal coordinate without ring folding.
 
 
 Interface Parameters
