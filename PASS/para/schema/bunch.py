@@ -120,7 +120,6 @@ class BunchConfig(BaseModel):
     # --- RF (for matchz/matchdp) ---
     rf_voltage: float = Field(default=0.0, alias="RF Voltage (V)")
     rf_phase: float = Field(default=0.0, alias="RF Phase (rad)")
-    harmonic_number: int = Field(default=1, ge=1, alias="Harmonic Number")
     harmonic_id: int = Field(default=0, ge=0, alias="Harmonic ID of this bunch")
     rf_s_position: float = Field(
         default=0.0,
@@ -168,8 +167,10 @@ class InjectionItem(BaseModel):
     """The Injection sequence node.
 
     Consumed by PASS.commands.injection.Injection.__init__.
-    The engine counts bunches as: num_bunch = len(kwargs) - 2
-    (subtracting "s (m)" and "command" keys).
+    ``harmonic_number`` is declared ONCE at the injection level; it defines
+    how many longitudinal bunch groups are created.  Every bunch dict must
+    carry its ``Harmonic ID of this bunch`` (group slot in
+    [0, harmonic_number)).
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -183,6 +184,15 @@ class InjectionItem(BaseModel):
         default="Injection",
         alias="Command",
     )
+    harmonic_number: int = Field(
+        default=1,
+        ge=1,
+        alias="Harmonic Number",
+        description="Beam bunch grouping count. Determines the number of "
+                    "longitudinal groups (C/h spacing) and the number of "
+                    "bunch dictionaries created at injection. It does not "
+                    "restrict RF cavity harmonics.",
+    )
     bunches: list[BunchConfig] = Field(
         default_factory=lambda: [BunchConfig(
             kinetic_energy=33.2e6,
@@ -194,9 +204,23 @@ class InjectionItem(BaseModel):
 
     def to_sequence_dict(self) -> dict:
         """Convert to engine-compatible dict with bunch0/bunch1/... keys."""
+        if len(self.bunches) != self.harmonic_number:
+            raise ValueError(
+                "InjectionItem requires exactly one BunchConfig per "
+                f"harmonic group: harmonic_number={self.harmonic_number}, "
+                f"bunches={len(self.bunches)}"
+            )
+        harmonic_ids = [bunch.harmonic_id for bunch in self.bunches]
+        if set(harmonic_ids) != set(range(self.harmonic_number)):
+            raise ValueError(
+                "InjectionItem bunch harmonic ids must be a permutation of "
+                f"[0, {self.harmonic_number}); got {harmonic_ids}"
+            )
+
         result = {
             "S (m)": self.s,
             "Command": self.command,
+            "Harmonic Number": self.harmonic_number,
         }
         for i, bunch in enumerate(self.bunches):
             result[f"bunch{i}"] = bunch.model_dump(by_alias=True)

@@ -137,7 +137,21 @@ def build_sequence(
     """
     seq = Sequence()
 
-    seq.add("injection", InjectionItem(s=0.0, bunches=bunches))
+    if not bunches:
+        raise ValueError("at least one bunch must be declared")
+
+    prepared_bunches = []
+    for harmonic_id, bunch in enumerate(bunches):
+        # The common API path defines groups by list order. Preserve an
+        # explicitly supplied harmonic_id, which is validated by Beam later.
+        if "harmonic_id" not in bunch.model_fields_set:
+            bunch = bunch.model_copy(update={"harmonic_id": harmonic_id})
+        prepared_bunches.append(bunch)
+
+    # One bunch per bucket: the harmonic number equals the number of
+    # declared bunches (declare empty 0-particle bunches for unfilled
+    # buckets).
+    seq.add("injection", InjectionItem(s=0.0, harmonic_number=len(prepared_bunches), bunches=prepared_bunches))
 
     for name, item in zip(names, items):
         seq.add(name, item)
