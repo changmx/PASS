@@ -81,15 +81,6 @@ class BunchInfo:
 
         self.t0 = 0.0
 
-    def t0_i(self) -> float:
-        """Arrival time of this bunch's ideal particle at a given element.
-
-        Reference clock t0 is the ideal particle's arrival time at the
-        element; the bunch center arrives z_center/(beta*c) later (or
-        earlier), so its own time reference is t0 - z_center/(beta*c).
-        """
-        return self.t0 - self.z_center / (self.beta * const.c)
-
     def print(self) -> None:
 
         set_simple_logging()
