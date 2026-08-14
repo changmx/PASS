@@ -114,6 +114,8 @@ class Sextupole(Command):
         for i, bunch in enumerate(bunches):
             self._track_sextupole_cpu(beam, bunch, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+            if abs(self.length) >= const.eps:
+                bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
         raise NotImplementedError("GPU implementation of Sextupole is not yet available")
@@ -126,7 +128,6 @@ class Sextupole(Command):
         """Track particles through the sextupole: thin lens or sliced DKD-exact."""
 
         beta0 = bunch.beta
-        circum = bunch.circum
         start = bunch.start_idx
         end = bunch.end_idx
 
@@ -167,12 +168,6 @@ class Sextupole(Command):
                 elif self.integrator == "yoshida4":
                     self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
                                            ds, self.k2, self.k2s, chi, beta0)
-
-        # ---- Wrap z into [-C/2, C/2) ----
-        c_half = 0.5 * circum
-        over = (z > c_half).astype(np.int64)
-        under = (z < -c_half).astype(np.int64)
-        z += (under - over) * circum
 
         # ---- Update lost particle info ----
         newly_lost = alive_before & (tag < 0)

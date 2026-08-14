@@ -52,32 +52,34 @@ class Drift(Command):
         for i, bunch in enumerate(bunches):
             self._track_drift_cpu(beam, bunch, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+            if abs(self.length) >= const.eps:
+                bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
         L = self.length
-        if np.abs(L) < const.eps:
-            return
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
 
         for i, bunch in enumerate(bunches):
             beta = bunch.beta
             gamma = bunch.gamma
-            circum = bunch.circum
             start = bunch.start_idx
             end = bunch.end_idx
 
             p = beam.particles  # slicing in the kernel
 
             N = end - start
-            threads = 256
-            blocks = (N + threads - 1) // threads
-
-            transfer_drift_kernel(
-                (blocks, ),
-                (threads, ),
-                (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, start, end, beta, gamma, circum, L),
-            )
+            if N > 0 and np.abs(L) >= const.eps:
+                threads = 256
+                blocks = (N + threads - 1) // threads
+                transfer_drift_kernel(
+                    (blocks, ),
+                    (threads, ),
+                    (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, start, end,
+                     beta, gamma, L),
+                )
+            if abs(L) >= const.eps:
+                bunch.t0 += L / (bunch.beta * const.c)
 
 
     def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
@@ -88,7 +90,6 @@ class Drift(Command):
         s_position = self.s
         beta0 = bunch.beta
         gamma0 = bunch.gamma
-        circum = bunch.circum
         start = bunch.start_idx
         end = bunch.end_idx
 
@@ -113,19 +114,12 @@ class Drift(Command):
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
 
-        c_half = 0.5 * circum
         mask = (tag > 0).astype(np.float64)
         L_mask = L * mask
 
         x += L_mask * (px / pz)
         y += L_mask * (py / pz)
         z += L_mask * (1 - (beta0 / beta) * (1 + dp) / pz)
-
-        over = (z > c_half).astype(np.int64)
-        under = (z < -c_half).astype(np.int64)
-
-        z += (under - over) * circum
-
 
 kernel_code = r'''
 extern "C" __global__
@@ -141,25 +135,18 @@ void transfer_drift(
     int end_index,
     double beta,
     double gamma,
-    double circum,
     double L)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (i >= end_index) return;
 
     double r56 = L / (beta * beta * gamma * gamma);
-    double c_half = 0.5 * circum;
-
     int mask = tag[i] > 0;
 
     x[i] += L * px[i] * mask;
     y[i] += L * py[i] * mask;
     z[i] += r56 * (dp[i] * beta) * beta * mask;
 
-    int over = z[i] > c_half;
-    int under = z[i] < -c_half;
-
-    z[i] += (under - over) * circum;
 }
 '''
 transfer_drift_kernel = cp.RawKernel(kernel_code, "transfer_drift")

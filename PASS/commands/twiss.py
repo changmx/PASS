@@ -99,17 +99,18 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
     """6D linear optics transfer using Twiss parameters.
 
     Applies the longitudinal transfer (drift/matrix/identity), removes the
-    previous dispersion, rotates by the phase advance, adds the new dispersion,
-    and wraps z into [-C/2, +C/2).
+    previous dispersion, rotates by the phase advance, and adds the new
+    dispersion.
     """
-    dt = (self.s - self.s_previous) / (bunch.beta * const.c)
-    bunch.t0 += dt
+    length = self.s - self.s_previous
+    if abs(length) >= const.eps:
+        bunch.t0 += length / (bunch.beta * const.c)
 
     if self.longitudinal_transfer == "drift":
         gammat = bunch.gamma_t
         gamma = bunch.gamma
         m11_z = 1.0
-        m12_z = -1.0 * (1.0 / gammat**2 - 1.0 / gamma**2) * (self.s - self.s_previous)
+        m12_z = -1.0 * (1.0 / gammat**2 - 1.0 / gamma**2) * length
         m21_z = 0.0
         m22_z = 1.0
     elif self.longitudinal_transfer == "matrix":
@@ -125,7 +126,6 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
         m21_z = 0.0
         m22_z = 1.0
 
-    circum = bunch.circum
     start = bunch.start_idx
     end = bunch.end_idx
 
@@ -182,11 +182,6 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
 
     y2 = y1 * m11_y + py1 * m12_y
     py2 = y1 * m21_y + py1 * m22_y
-
-    c_half = 0.5 * circum
-    over = (z2 > c_half).astype(np.int64)
-    under = (z2 < -c_half).astype(np.int64)
-    z2 += (under - over) * circum
 
     # --- write back (only alive particles) ---
     z[:] = np.where(alive, z2, z)
