@@ -21,13 +21,16 @@ class RFCavity(Command):
     RF cavity (高频加速腔).
 
     Applies a longitudinal RF kick to particles.  The energy gain depends
-    on the particle's longitudinal position *z* relative to the
-    synchronous particle:
+    on the particle's laboratory longitudinal position
+    z_lab = z_rel + z_center:
 
-        dE = (q/A) * V * sin(phase - h*z/R + phi_offset)
+        dE = (q/A) * V * sin(phase + phi_offset - h*z_lab/R)
 
     where R = C/(2*pi) is the machine radius.  The synchronous particle
-    (z=0) receives dE_syn = (q/A)*V*sin(phase).
+    of each bunch (z_rel=0, z_lab=z_center) receives a bunch-dependent
+    reference kick:
+
+        dE_ref = (q/A) * V * sin(phase + phi_offset - h*z_center/R)
 
     phi_offset:
         A constant phase offset applied to all particles, shifting the
@@ -36,12 +39,14 @@ class RFCavity(Command):
         (e.g. cavity spacing not an integer multiple of the RF
         wavelength, or multi-harmonic systems where each cavity needs
         an independent phase trim).  phi_offset rotates the entire
-        sin curve without changing the synchronous-particle definition
-        (phase still defines the sync-particle energy gain).
+        sin curve; phase plus phi_offset defines the zero-azimuth
+        reference phase.
 
     Moving reference frame:
-        After the kick the bunch reference energy is updated to include
-        dE_syn, so the synchronous particle always sits at delta ~ 0.
+        After the kick each bunch reference energy is updated to include
+        dE_ref for that bunch center, so the bunch-center particle always
+        sits at delta ~ 0 even if the RF harmonic is not an integer
+        multiple of the beam grouping harmonic.
         Transverse momenta px, py are rescaled by beta0*gamma0 /
         (beta1*gamma1) to preserve the absolute transverse momentum
         (adiabatic damping of geometric emittance).
@@ -72,9 +77,20 @@ class RFCavity(Command):
         # Mode 2 (file):  tfs file with columns HARMONIC, VOLTAGE, PHASE, PHI_OFFSET
         #                 one row per turn (turn index starts from 0)
         self.voltage = kwargs.get("voltage (v)", 0.0)
-        self.harmonic = kwargs.get("harmonic", 1)
+        self.harmonic = int(kwargs.get("harmonic", 1))
+        if self.harmonic < 1:
+            raise ValueError(
+                f"RF harmonic of {self.cmd_name} must be a positive integer, "
+                f"got {self.harmonic}"
+            )
         self.phase = kwargs.get("phase (rad)", 0.0)
         self.phi_offset = kwargs.get("phi offset (rad)", 0.0)
+
+        # Beam harmonic_number is a bunch-grouping convention, not a
+        # restriction on the RF harmonic.  The RF kick below always uses the
+        # particle's laboratory azimuth z_lab = z_rel + z_center, so RF
+        # harmonics that are not integer multiples of the grouping harmonic
+        # are allowed and tracked bunch-by-bunch.
 
         # RF data file (ramping): tfs file with columns VOLTAGE, HARMONIC, PHASE, PHI_OFFSET
         rf_file = kwargs.get("rf data file", None)
@@ -152,13 +168,19 @@ class RFCavity(Command):
         if self._rf_table is not None:
             idx = min(turn, self._rf_table["n_turns"] - 1)
             idx = max(idx, 0)
+            harmonic = int(self._rf_table["harmonic"][idx])
+            if harmonic < 1:
+                raise ValueError(
+                    f"RF data file harmonic at turn {idx} must be a positive "
+                    f"integer, got {harmonic}"
+                )
             return (
                 self._rf_table["voltage"][idx],
-                int(self._rf_table["harmonic"][idx]),
+                harmonic,
                 self._rf_table["phase"][idx],
                 self._rf_table["phi_offset"][idx],
             )
-        return self.voltage, int(self.harmonic), self.phase, self.phi_offset
+        return self.voltage, self.harmonic, self.phase, self.phi_offset
 
     # ------------------------------------------------------------------
     # Print
@@ -260,29 +282,41 @@ class RFCavity(Command):
         mask = alive_before.astype(np.float64)
 
         # --- 1. RF phase for each particle ---
-        # phi = phase + phi_offset - h * z_eff / R
+        # phi = phase + phi_offset - h * z_lab / R
         # This is equivalent to phase - omega*tau, since
         #   omega*tau = 2*pi*f * z/(beta0*c) = 2*pi*h*z/C = h*z/R
         #
-        # For even harmonic, the injection shift places buckets symmetrically
-        # about z=0, which introduces an effective 180°
-        # phase flip. Compensate by adding C/(2h) to z before computing theta.
-        if harmonic % 2 == 0:
-            z_eff = z + circum / (2.0 * harmonic)
-        else:
-            z_eff = z
-        theta = z_eff / radius
+        # z is the bunch-relative coordinate; the laboratory position is
+        # z_lab = z + z_center (explicitly, like the Exciter).  The beam's
+        # harmonic_number is only a grouping convention; it does not need to
+        # divide this cavity's RF harmonic.  Therefore the bunch reference
+        # particle must use its own center phase below.
+        z_lab = z + bunch.z_center
+        # Reduce mod C/h before evaluating sin (robust with unwrapped z).
+        rf_period = circum / harmonic
+        z_phase = z_lab - rf_period * np.rint(z_lab / rf_period)
+        theta = z_phase / radius
         phi_particle = phase + phi_offset - harmonic * theta
 
         # --- 2. Energy kick ---
         # dE_kick = (q/A) * V * sin(phi_particle)   [eV/u]
         dE_kick = qm_ratio * voltage * np.sin(phi_particle)
 
-        # --- 3. Synchronous energy gain ---
-        dE_syn = qm_ratio * voltage * np.sin(phase)  # scalar [eV/u]
+        # --- 3. Bunch-reference energy gain ---
+        # The moving reference frame follows this bunch's ideal particle at
+        # z_rel=0, i.e. z_lab=z_center.  For non-integer relationships between
+        # the RF harmonic and the grouping harmonic, different bunch centers
+        # can see different RF phases, so dE_ref is bunch-dependent.
+        z_center_phase = bunch.z_center - rf_period * np.rint(
+            bunch.z_center / rf_period
+        )
+        phi_center = (
+            phase + phi_offset - harmonic * z_center_phase / radius
+        )
+        dE_ref = qm_ratio * voltage * np.sin(phi_center)  # scalar [eV/u]
 
         # --- 4. New reference energy ---
-        E_total1 = E_total0 + dE_syn  # new total energy per nucleon (eV)
+        E_total1 = E_total0 + dE_ref  # new total energy per nucleon (eV)
         gamma1 = E_total1 / m0
         beta1 = np.sqrt(1.0 - 1.0 / (gamma1 * gamma1))
         p0_new = gamma1 * m0 * beta1  # new reference momentum per nucleon (eV/c)
@@ -343,13 +377,7 @@ class RFCavity(Command):
         if np.any(newly_lost_dp):
             tag[newly_lost_dp] = -np.abs(tag[newly_lost_dp])
 
-        # --- 9. Wrap z into [-C/2, C/2) ---
-        c_half = 0.5 * circum
-        over = (z > c_half).astype(np.int64)
-        under = (z < -c_half).astype(np.int64)
-        z += (under - over) * circum
-
-        # --- 10. Update lost particle info ---
+        # --- 9. Update lost particle info ---
         newly_lost = alive_before & (tag < 0)
         if np.any(newly_lost):
             lost_position = p.lost_position[start:end]
