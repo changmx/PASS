@@ -22,6 +22,11 @@ import csv
 logger = logging.getLogger(__name__)
 
 
+def _fold_by_ring(z, circumference):
+    """Return the ring-period representative in [-C/2, C/2)."""
+    return ((z + 0.5 * circumference) % circumference) - 0.5 * circumference
+
+
 @Command.register("statmonitor")
 class StatMonitor(Command):
 
@@ -100,6 +105,13 @@ class StatMonitor(Command):
             dp = dp[mask]
 
             N = len(x)
+            if N == 0:
+                # Empty bunch: no statistics row.
+                continue
+
+            # z is stored bunch-relative and may remain unwrapped during
+            # tracking. Statistics use one full-ring representative.
+            z = _fold_by_ring(z, bunch.circum)
 
             stat = {
                 'x': x.mean(),
@@ -195,6 +207,7 @@ class StatMonitor(Command):
                 'gammay': gammay,
                 'invariantx': invx,
                 'invarianty': invy,
+                'zCenter': bunch.z_center,
                 'xzAverage': stat['xz'],
                 'xyAverage': stat['xy'],
                 'yzAverage': stat['yz'],
@@ -249,6 +262,9 @@ class StatMonitor(Command):
             # The maximum block is limited to 512, because there is atomicAdd in this kernel.
             # If the number of blocks is too large, the calculation will be slowed down due to atomicAdd
             N = end_idx - start_idx
+            if N == 0:
+                # Empty bunch: no statistics row.
+                continue
             threads = 256
             blocks = min((N + threads - 1) // threads, 512)
 
@@ -257,7 +273,9 @@ class StatMonitor(Command):
             kernel(
                 (blocks, ),
                 (threads, ),
-                (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(start_idx), np.int32(end_idx), out_gpu),
+                (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
+                 np.int32(start_idx), np.int32(end_idx),
+                 np.float64(bunch.circum), out_gpu),
             )
 
             cp.cuda.runtime.deviceSynchronize()
@@ -359,6 +377,7 @@ class StatMonitor(Command):
                 'gammay': gammay,
                 'invariantx': invx,
                 'invarianty': invy,
+                'zCenter': bunch.z_center,
                 'xzAverage': xz_avg,
                 'xyAverage': xy_avg,
                 'yzAverage': yz_avg,
@@ -396,6 +415,7 @@ void calc_all_stats(
     const int* __restrict__ tag,
     int start,
     int end,
+    double circumference,
     double* out   // size 22
 ) {
     // ===== shared memory for warp results =====
@@ -417,6 +437,9 @@ void calc_all_stats(
         double yi  = y[i];
         double pyi = py[i];
         double zi  = z[i];
+        zi = zi + 0.5 * circumference;
+        zi = zi - floor(zi / circumference) * circumference;
+        zi = zi - 0.5 * circumference;
         double dpi = dp[i];
 
         local[0]  += xi;
