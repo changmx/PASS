@@ -12,6 +12,7 @@ from PASS.utils.helper import get_current_time
 import numpy as np
 import cupy as cp
 import pandas as pd
+import copy
 import logging
 import tfs
 import re
@@ -38,10 +39,24 @@ class Injection(Command):
         if np.abs(self.s) > const.eps:
             raise ValueError(f"The position s of injection must be 0, but now is {self.s}")
 
-        self.num_bunch = len(kwargs) - 2
+        # The beam harmonic number is declared ONCE at the injection level
+        # and defines how many bunch groups are created.  Every bunch dict
+        # must be present in the input; declare empty bunches (0 particles)
+        # for unfilled groups.
+        self.harmonic_number = int(kwargs["harmonic number"])
         self.inj_bunchs = []
-        for bunch_id in range(self.num_bunch):
-            inj_bunch = InjectionBunchInfo(self.beam_id, bunch_id, sim, **kwargs[f"bunch{bunch_id}"])
+        for bunch_id in range(self.harmonic_number):
+            b_kwargs = kwargs.get(f"bunch{bunch_id}")
+            if b_kwargs is None:
+                raise ValueError(
+                    f"Injection {self.cmd_name}: bunch{bunch_id} not "
+                    f"declared; harmonic number {self.harmonic_number} "
+                    f"requires {self.harmonic_number} bunch dicts (one per "
+                    f"group)."
+                )
+            b_kwargs = copy.deepcopy(b_kwargs)
+            b_kwargs["harmonic number"] = self.harmonic_number
+            inj_bunch = InjectionBunchInfo(self.beam_id, bunch_id, sim, **b_kwargs)
             self.inj_bunchs.append(inj_bunch)
 
         self.rng = random.Random()
@@ -70,12 +85,17 @@ class Injection(Command):
         use_cpu = cfg.use_cpu
         turn = state.turn
 
-        for i in range(beam.num_bunch):
+        for i in range(len(self.inj_bunchs)):
             inj_bunch = self.inj_bunchs[i]
             if turn not in inj_bunch.inj_turns:
                 continue
             bunch_info = bunches[i]
             Np = bunch_info.Np
+            if Np == 0:
+                # Empty bunch (declared by the beam harmonic number but with
+                # no particles): skip generation; the reference parameters
+                # still evolve through the RF cavity each turn.
+                continue
             total_inj_turns = len(inj_bunch.inj_turns)
             inj_bunch.Np_inj_curTurn = int(Np / total_inj_turns)
             logger.info(f"total injection turns = {total_inj_turns}, Np_inj_curTurn = {inj_bunch.Np_inj_curTurn}")
@@ -612,7 +632,7 @@ class Injection(Command):
             else:
                 pass
 
-        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        # Apply bunch-relative longitudinal back-drift from the RF location.
         self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
 
         p = beam.particles
@@ -651,7 +671,7 @@ class Injection(Command):
             else:
                 pass
 
-        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        # Apply bunch-relative longitudinal back-drift from the RF location.
         self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
 
         p = beam.particles
@@ -729,7 +749,7 @@ class Injection(Command):
             else:
                 pass
 
-        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        # Apply bunch-relative longitudinal back-drift from the RF location.
         self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
 
         p = beam.particles
@@ -807,7 +827,7 @@ class Injection(Command):
             else:
                 pass
 
-        # Apply longitudinal offset: shift + rf_position back-drift + z folding
+        # Apply bunch-relative longitudinal back-drift from the RF location.
         self._apply_longitudinal_offset(inj_bunch, z_arr, dp_arr)
 
         p = beam.particles
@@ -879,43 +899,30 @@ class Injection(Command):
         logger.info("Saving successfully")
 
     def _apply_longitudinal_offset(self, inj_bunch: InjectionBunchInfo, z_arr: np.ndarray, dp_arr: np.ndarray):
-        """Apply longitudinal offset: symmetric shift + rf_position back-drift + z folding.
+        """Apply longitudinal offset: rf_position back-drift.
 
-        1. Shift z to the bucket center so that for even h no bucket sits on the C/2 folding boundary.
-        2. Back-drift from s_rf to s=0 (reverse propagation over distance rf_position):
-           z(s=0) = z(s_rf) + eta * rf_position * dp
-        3. Fold z into [-C/2, C/2).
+        The bunch-relative z is generated around 0 (the bunch center), so no
+        bucket shift is applied.  The only correction is the
+        back-drift from s_rf to s=0 (reverse propagation over distance
+        rf_position): z(s=0) = z(s_rf) + eta * rf_position * dp.
 
         Parameters
         ----------
         z_arr, dp_arr : ndarray
-            Longitudinal coordinates generated around z=0 (at s=s_rf).
-            Modified in-place.
+            Bunch-relative longitudinal coordinates generated around z=0
+            (at s=s_rf).  Modified in-place.
         """
-        C = inj_bunch.circum
-        h = inj_bunch.harmonic_num
-        hid = inj_bunch.harmonic_id
 
         # --- 0. Apply momentum offset (ddp) ---
-        # ddp is the bunch-level average momentum deviation, added to each particle's dp
-        # before shift and back-drift, so that all dp-dependent corrections use dp + ddp.
+        # ddp is the bunch-level average momentum deviation, added before
+        # back-drift so every dp-dependent correction uses dp + ddp.
         if inj_bunch.ddp != 0.0:
             dp_arr += inj_bunch.ddp
 
-        # --- 1. symmetric shift ---
-        # shift = C/h * (harmonic_id - h/2 + 0.5)
-        # For h=4: hid=0→-3C/8, 1→-C/8, 2→C/8, 3→3C/8  (symmetric about 0)
-        shift = C / h * (hid - h / 2.0 + 0.5)
-        z_arr += shift
-
-        # --- 2. rf_position back-drift (reverse propagation s_rf → s=0) ---
+        # rf_position back-drift (reverse propagation s_rf -> s=0).
         # z(s=0) = z(s_rf) - (-1 * eta * rf_position * dp)
         eta = inj_bunch.getInitEta()
         z_arr += eta * inj_bunch.rf_position * dp_arr
-
-        # --- 3. Fold z into [-C/2, C/2) ---
-        c_half = 0.5 * C
-        z_arr[:] = ((z_arr + c_half) % C) - c_half
 
     def _add_offset(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         """Apply transverse dispersion coupling: x += dp*dx, px += dp*dpx."""
@@ -1009,7 +1016,7 @@ class InjectionBunchInfo:
         self.rf_voltage = kwargs.get("rf voltage (v)", 0.0)
         self.rf_phi = kwargs.get("rf phase (rad)", 0.0)
         self.harmonic_num = kwargs.get("harmonic number", 0)
-        self.harmonic_id = kwargs.get("harmonic id", 0)
+        self.harmonic_id = kwargs.get("harmonic id of this bunch", 0)
         self.rf_position = kwargs.get("rf s position refer to inj. point (m)", 0.0)
 
         # Momentum offset: support both dp offset and kinetic energy offset
