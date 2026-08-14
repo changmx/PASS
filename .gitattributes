@@ -1,0 +1,32 @@
+# Default: let Git detect text files and normalize them in the repository.
+* text=auto
+
+# Source and docs: store as LF.
+*.py text eol=lf
+*.md text eol=lf
+*.rst text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.gitignore text eol=lf
+Makefile text eol=lf
+
+# Windows scripts: keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files: never modify line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.pkl binary
+*.npy binary
+*.npz binary
