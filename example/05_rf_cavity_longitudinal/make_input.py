@@ -1,12 +1,13 @@
 """Generate PASS input for RF cavity longitudinal tracking (Example 05).
 
-Four test cases, all driven by the single CASES dictionary below.
+Five test cases, all driven by the single CASES dictionary below.
 analyse.py imports CASES from this module so that lattice / RF / particle
 parameters and theory expectations are never duplicated.
 
     twiss_h1_fixed    - one-turn Twiss map (longitudinal_transfer="drift") + RFCavity, h=1
     twiss_h2_fixed    - same lattice, h=2 (RF-period symmetry)
     twiss_h1_ramping  - h=1, RF parameters from a TFS ramping file (one row per turn)
+    twiss_h1_waveform - h=1, continuously modulated RF voltage waveform from TFS
     element_h1_fixed  - element-by-element drift ring + RFCavity (exact longitudinal drift)
 
 Beam: low-energy heavy ion 238U35+ at 17 MeV/u, in the example-03/04 FODO
@@ -201,6 +202,20 @@ CASES = {
         ramp_rows=50,
         checks=["ramping_gain", "ramping_clamp"],
     ),
+    "twiss_h1_waveform": dict(
+        lattice="twiss",
+        rf_mode="waveform",
+        voltage=RF_VOLTAGE,
+        harmonic=1,
+        phase=RF_PHASE,
+        phi_offset=RF_PHI_OFFSET,
+        num_turns=NUM_TURNS,
+        waveform_file="rf_waveform.tfs",
+        waveform_amplitude=0.25,
+        waveform_period=256,
+        waveform_ramp=0.15,
+        checks=[],
+    ),
     "element_h1_fixed": dict(
         lattice="element",
         rf_mode="fixed",
@@ -229,12 +244,24 @@ def selected_cases(case_name: str) -> list[str]:
     return [case_name]
 
 
-def build_ramp_tfs(script_dir: Path, case: dict) -> str:
-    """Write the RF ramping TFS file: one row per turn (V ramps linearly)."""
-    n_rows = case["ramp_rows"]
-    slope = case["ramp_slope"]
-    turns = np.arange(n_rows)
-    voltage = case["voltage"] * (1.0 + slope * turns)
+def build_rf_data_tfs(script_dir: Path, case: dict) -> str:
+    """Write the RF TFS waveform used by a file-driven case."""
+    if case["rf_mode"] == "file":
+        n_rows = case["ramp_rows"]
+        turns = np.arange(n_rows)
+        voltage = case["voltage"] * (1.0 + case["ramp_slope"] * turns)
+        filename = case["ramp_file"]
+    elif case["rf_mode"] == "waveform":
+        n_rows = case["num_turns"]
+        turns = np.arange(n_rows)
+        modulation = case["waveform_amplitude"] * np.sin(
+            2.0 * math.pi * turns / case["waveform_period"]
+        )
+        ramp = case["waveform_ramp"] * turns / max(n_rows - 1, 1)
+        voltage = case["voltage"] * (1.0 + modulation + ramp)
+        filename = case["waveform_file"]
+    else:
+        raise ValueError(f"RF data TFS requested for unsupported mode {case['rf_mode']!r}")
 
     df = tfs_lib.TfsDataFrame(
         {"HARMONIC": np.full(n_rows, case["harmonic"], dtype=np.int64),
@@ -242,7 +269,7 @@ def build_ramp_tfs(script_dir: Path, case: dict) -> str:
          "PHASE": np.full(n_rows, case["phase"]),
          "PHI_OFFSET": np.full(n_rows, case["phi_offset"])}
     )
-    path = script_dir / case["ramp_file"]
+    path = script_dir / filename
     tfs_lib.write(str(path), df)
     return str(path)
 
@@ -286,10 +313,10 @@ def build_case(name: str, script_dir: Path) -> str:
     case = CASES[name]
     theory = calc_theory(case["voltage"], case["harmonic"], case["phase"])
 
-    # --- RF data file (ramping mode) ---
+    # --- RF data file (file or continuously varying waveform mode) ---
     rf_file = None
-    if case["rf_mode"] == "file":
-        rf_file = build_ramp_tfs(script_dir, case)
+    if case["rf_mode"] != "fixed":
+        rf_file = build_rf_data_tfs(script_dir, case)
         rf_voltage = case["voltage"]          # first-row value
     else:
         rf_voltage = case["voltage"]
