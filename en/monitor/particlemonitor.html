@@ -879,19 +879,19 @@
 <section id="basic-usage">
 <h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h3>
 <p>The following JSON snippet places a particle monitor at <span class="math notranslate nohighlight">\(s = 0.0\)</span> m, recording particles with <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">1</span></code> through <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">3</span></code>:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;PM1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ParticleMonitor&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Max tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 <p>Combined with inserting 3 test particles in <code class="docutils literal notranslate"><span class="pre">Injection</span></code>:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;injection&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Injection&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;bunch0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;Insert Particle Coordinate&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Injection"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"bunch0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Insert Particle Coordinate"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">            </span><span class="p">[</span><span class="mf">0.001</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
 <span class="w">            </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.001</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
 <span class="w">            </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.001</span><span class="p">]</span>
@@ -911,12 +911,12 @@
 <section id="delayed-recording">
 <h3>Delayed Recording<a class="headerlink" href="#delayed-recording" title="Link to this heading"></a></h3>
 <p>The following configuration does not record for the first 200 turns (to let the beam stabilize), then records from turn 200 to turn 1000:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;PM1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ParticleMonitor&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Max tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Start turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;End turn&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -925,15 +925,15 @@
 <section id="multi-position-monitoring">
 <h3>Multi-position Monitoring<a class="headerlink" href="#multi-position-monitoring" title="Link to this heading"></a></h3>
 <p>Multiple particle monitors can be placed at different positions on the ring to compare the phase space coordinates of particles at different locations:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;PM_start&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ParticleMonitor&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Max tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM_start"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span>
 <span class="p">},</span>
-<span class="nt">&quot;PM_mid&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">284.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ParticleMonitor&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Max tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span>
+<span class="nt">"PM_mid"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">284.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span>
 <span class="p">}</span>
 </pre></div>
 </div>

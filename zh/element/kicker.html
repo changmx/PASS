@@ -902,11 +902,11 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <h3>薄透镜水平冲击磁铁<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 10.0\)</span> m 处放置一个薄透镜水平冲击磁铁，踢角 <span class="math notranslate nohighlight">\(1.5 \times 10^{-3}\)</span> rad：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;HK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">    </span><span class="nt">"HK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0015</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"vkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -917,11 +917,11 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <h3>薄透镜垂直冲击磁铁<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 20.0\)</span> m 处放置一个薄透镜垂直冲击磁铁，踢角 <span class="math notranslate nohighlight">\(-2.3 \times 10^{-3}\)</span> rad：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;VK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0023</span>
+<span class="w">    </span><span class="nt">"VK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"vkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0023</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -932,16 +932,16 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <h3>厚透镜双向冲击磁铁<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 15.0\)</span> m 处放置一个厚透镜双向冲击磁铁，4 个切片，uniform 积分器：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;BK1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0015</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uniform&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Aperture Type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;circle&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Aperture Value&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">]</span>
+<span class="w">    </span><span class="nt">"BK1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.003</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"vkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.0015</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">]</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -952,14 +952,14 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <h3>厚透镜 yoshida4 积分器<a class="headerlink" href="#yoshida4" title="Link to this heading"></a></h3>
 <p>以下示例使用 4 阶 Yoshida 积分器，适用于对精度要求较高的场景：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;BK2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Num Slices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Integrator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;yoshida4&quot;</span>
+<span class="w">    </span><span class="nt">"BK2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"vkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -970,11 +970,11 @@ hkick_eff = hk * ds,  vkick_eff = vk * ds
 <h3>零踢角冲击磁铁<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
 <p>以下示例在 <span class="math notranslate nohighlight">\(s = 30.0\)</span> m 处放置一个零踢角冲击磁铁：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;K0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;kicker&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;hkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;vkick&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">    </span><span class="nt">"K0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"kicker"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"hkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"vkick"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>

@@ -954,7 +954,7 @@
 </svg>
 </div><p>Tilt does not affect the choice of integration method—it only performs an instantaneous coordinate transformation at the entrance and exit:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Entrance:  Clockwise rotation of :math:`(x, y, p_x, p_y)` by :math:`+\varphi`  → Enter element natural coordinate system
-Interior:  DKD or thin lens, tracked in the natural coordinate system (field along :math:`x&#39;`, septum along :math:`x&#39;`)
+Interior:  DKD or thin lens, tracked in the natural coordinate system (field along :math:`x'`, septum along :math:`x'`)
 Exit:      Counterclockwise rotation of :math:`(x, y, p_x, p_y)` by :math:`-\varphi`  → Return to laboratory coordinate system
 </pre></div>
 </div>
@@ -1123,10 +1123,10 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Thin Lens Horizontal Deflection<a class="headerlink" href="#thin-lens-horizontal-deflection" title="Link to this heading"></a></h3>
 <p>The following example places a thin lens electrostatic separator at <span class="math notranslate nohighlight">\(s = 10.0\)</span> m with integrated field <span class="math notranslate nohighlight">\(\mathrm{exl} = 1 \times 10^5\)</span> V:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;ExL (V)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1e5</span>
+<span class="w">    </span><span class="nt">"ES1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"ExL (V)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e5</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1137,11 +1137,11 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Thick Lens Horizontal Deflection<a class="headerlink" href="#thick-lens-horizontal-deflection" title="Link to this heading"></a></h3>
 <p>The following example places a thick lens electrostatic separator at <span class="math notranslate nohighlight">\(s = 15.0\)</span> m, length 0.5 m, field strength <span class="math notranslate nohighlight">\(E_x = 2 \times 10^5\)</span> V/m:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Ex (V/m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2e5</span>
+<span class="w">    </span><span class="nt">"ES2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">15.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Ex (V/m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">2e5</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1152,13 +1152,13 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Injection Separator with Septum<a class="headerlink" href="#injection-separator-with-septum" title="Link to this heading"></a></h3>
 <p>The following example simulates an injection electrostatic separator with the septum at <span class="math notranslate nohighlight">\(x = 5\)</span> mm and septum thickness 2 mm:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Ex (V/m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">3e5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Septum X Position (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Septum Thickness (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span>
+<span class="w">    </span><span class="nt">"ES3"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Ex (V/m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">3e5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Septum X Position (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Septum Thickness (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1174,12 +1174,12 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Negative-Side Septum (Extraction Scenario)<a class="headerlink" href="#negative-side-septum-extraction-scenario" title="Link to this heading"></a></h3>
 <p>The following example simulates an extraction scenario with the septum at <span class="math notranslate nohighlight">\(x = -5\)</span> mm and the field on the left side:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES4&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Ex (V/m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-3e5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Septum X Position (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.005</span>
+<span class="w">    </span><span class="nt">"ES4"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">25.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Ex (V/m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">-3e5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Septum X Position (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.005</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1194,12 +1194,12 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Vertical Deflection Plate<a class="headerlink" href="#vertical-deflection-plate" title="Link to this heading"></a></h3>
 <p>The following example places a vertical deflection plate with only <span class="math notranslate nohighlight">\(E_y\)</span> nonzero:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES5&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Ey (V/m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.5e5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Septum Y Position (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span>
+<span class="w">    </span><span class="nt">"ES5"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Ey (V/m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">2.5e5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Septum Y Position (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1210,13 +1210,13 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Deflection Plate with Tilt<a class="headerlink" href="#deflection-plate-with-tilt" title="Link to this heading"></a></h3>
 <p>The following example places a deflection plate rotated 30 degrees clockwise about the <span class="math notranslate nohighlight">\(s\)</span> axis:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES6&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">35.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Ex (V/m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2e5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Tilt (rad)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5236</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Septum X Position (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span>
+<span class="w">    </span><span class="nt">"ES6"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">35.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Ex (V/m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">2e5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Tilt (rad)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5236</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Septum X Position (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.005</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
@@ -1227,10 +1227,10 @@ The drift steps update the continuous bunch-relative longitudinal coordinate wit
 <h3>Zero-Field Degeneration<a class="headerlink" href="#zero-field-degeneration" title="Link to this heading"></a></h3>
 <p>The following example has zero field strength, degenerating to a pure drift (thick lens) or marker (thin lens):</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;ES7&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;elseparator&quot;</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">&quot;Length (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span>
+<span class="w">    </span><span class="nt">"ES7"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"elseparator"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>

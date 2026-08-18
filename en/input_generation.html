@@ -711,10 +711,10 @@
 
 <span class="c1"># 1. Global parameters</span>
 <span class="n">main</span> <span class="o">=</span> <span class="n">MainConfig</span><span class="p">(</span>
-    <span class="n">beam_name</span><span class="o">=</span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
+    <span class="n">beam_name</span><span class="o">=</span><span class="s2">"proton"</span><span class="p">,</span>
     <span class="n">num_proton</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_neutron</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_electron</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">gamma_t</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">circumference</span><span class="o">=</span><span class="mf">251.327</span><span class="p">,</span>
-    <span class="n">num_turns</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">num_turns</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">"cpu"</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># 2. Bunch</span>
@@ -726,7 +726,7 @@
     <span class="n">alpha_x</span><span class="o">=-</span><span class="mf">2.61</span><span class="p">,</span> <span class="n">alpha_y</span><span class="o">=</span><span class="mf">1.57</span><span class="p">,</span>
     <span class="n">emit_x</span><span class="o">=</span><span class="mf">200e-6</span><span class="p">,</span> <span class="n">emit_y</span><span class="o">=</span><span class="mf">100e-6</span><span class="p">,</span>
     <span class="n">sigma_z</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">dp</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
-    <span class="n">dist_trans</span><span class="o">=</span><span class="s2">&quot;gaussian&quot;</span><span class="p">,</span> <span class="n">dist_longi</span><span class="o">=</span><span class="s2">&quot;matchz&quot;</span><span class="p">,</span>
+    <span class="n">dist_trans</span><span class="o">=</span><span class="s2">"gaussian"</span><span class="p">,</span> <span class="n">dist_longi</span><span class="o">=</span><span class="s2">"matchz"</span><span class="p">,</span>
     <span class="n">rf_voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">rf_phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -738,13 +738,13 @@
 <span class="n">main</span><span class="o">.</span><span class="n">circumference</span> <span class="o">=</span> <span class="n">circum</span>
 
 <span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;injection&quot;</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
-    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;stat1&quot;</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">"twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"stat1"</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
 
 <span class="c1"># 4. Generate JSON</span>
-<span class="n">generate_input</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="s2">&quot;beam0.json&quot;</span><span class="p">)</span>
+<span class="n">generate_input</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="s2">"beam0.json"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>How to run:</p>
@@ -759,35 +759,35 @@
 <h2>JSON File Structure<a class="headerlink" href="#json-file-structure" title="Link to this heading"></a></h2>
 <p>The generated JSON file has the following structure:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;Beam Name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proton&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Number of Protons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Number of Neutrons&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Number of Charges&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Transition Gamma&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">4.8</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Circumference (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">251.327</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Number of turns&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Backend (gpu/cpu)&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Number of GPU devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Device Id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-<span class="w">    </span><span class="nt">&quot;Output directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;./output&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Is plot figure&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Is space charge&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Is beam-beam&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;Sequence&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">&quot;injection&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Injection&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;bunch0&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="nt">"Beam Name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"proton"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of Protons"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of Neutrons"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of Charges"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Transition Gamma"</span><span class="p">:</span><span class="w"> </span><span class="mf">4.8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Circumference (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">251.327</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of turns"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Backend (gpu/cpu)"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cpu"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Number of GPU devices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Device Id"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"Output directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./output"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Is plot figure"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Is space charge"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Is beam-beam"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Injection"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"bunch0"</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;twiss_0000&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Twiss&quot;</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;S previous (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Beta x (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">8.333</span>
+<span class="w">        </span><span class="nt">"twiss_0000"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Twiss"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"S previous (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Beta x (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">8.333</span>
 <span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">&quot;stat1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">&quot;S (m)&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">&quot;Command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;StatMonitor&quot;</span>
+<span class="w">        </span><span class="nt">"stat1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span>
 <span class="w">        </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="p">}</span>
@@ -1006,9 +1006,9 @@
 <h3>Sequence (Sequence Container)<a class="headerlink" href="#sequence-sequence-container" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">Sequence</span></code> is an ordered container that stores all sequence items arranged by position <code class="docutils literal notranslate"><span class="pre">s</span></code> . The order of insertion does not affect the final result — items are automatically sorted by <code class="docutils literal notranslate"><span class="pre">(s,</span> <span class="pre">command</span> <span class="pre">priority)</span></code> upon export.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;injection&quot;</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;qd1&quot;</span><span class="p">,</span> <span class="n">QuadrupoleElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">k1l</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;stat1&quot;</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"qd1"</span><span class="p">,</span> <span class="n">QuadrupoleElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">k1l</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"stat1"</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Supported sequence item types:</p>
@@ -1029,13 +1029,13 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss</span>
 
 <span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss</span><span class="p">(</span>
-    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">&quot;lattice.tfs&quot;</span><span class="p">,</span>
-    <span class="n">error_file</span><span class="o">=</span><span class="s2">&quot;errors.tfs&quot;</span><span class="p">,</span>       <span class="c1"># optional</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
+    <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>       <span class="c1"># optional</span>
     <span class="n">muz</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>                      <span class="c1"># longitudinal tune</span>
-    <span class="n">dqx</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>                        <span class="c1"># chromaticity (or &quot;from_file&quot;)</span>
+    <span class="n">dqx</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>                        <span class="c1"># chromaticity (or "from_file")</span>
     <span class="n">dqy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="n">is_field_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>           <span class="c1"># whether to read field errors</span>
-    <span class="n">insert_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;QD.*&quot;</span><span class="p">],</span>      <span class="c1"># regex matching, inserted as thin lens elements</span>
+    <span class="n">insert_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"QD.*"</span><span class="p">],</span>      <span class="c1"># regex matching, inserted as thin lens elements</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -1046,10 +1046,10 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
 
 <span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
-    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">&quot;lattice.tfs&quot;</span><span class="p">,</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
     <span class="n">is_merge_drift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># merge adjacent drift sections</span>
     <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">error_file</span><span class="o">=</span><span class="s2">&quot;errors.tfs&quot;</span><span class="p">,</span>
+    <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -1074,14 +1074,14 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFCavityElement</span>
 
 <span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;injection&quot;</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
 
 <span class="c1"># twiss transfer points</span>
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">twiss_items</span><span class="p">):</span>
-    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">"twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
 
 <span class="c1"># insert RF cavity (at s=0)</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;rf1&quot;</span><span class="p">,</span> <span class="n">RFCavityElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">harmonic</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"rf1"</span><span class="p">,</span> <span class="n">RFCavityElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">harmonic</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">))</span>
 </pre></div>
 </div>
 </section>
@@ -1106,12 +1106,12 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_external_to_tfs</span>
 
 <span class="n">convert_external_to_tfs</span><span class="p">(</span>
-    <span class="n">input_path</span><span class="o">=</span><span class="s2">&quot;external_ramp.csv&quot;</span><span class="p">,</span>     <span class="c1"># external file</span>
-    <span class="n">output_path</span><span class="o">=</span><span class="s2">&quot;k1l_ramping.tfs&quot;</span><span class="p">,</span>      <span class="c1"># PASS TFS</span>
-    <span class="n">data_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;k1l&quot;</span><span class="p">,</span> <span class="s2">&quot;k1sl&quot;</span><span class="p">],</span>          <span class="c1"># data column names</span>
+    <span class="n">input_path</span><span class="o">=</span><span class="s2">"external_ramp.csv"</span><span class="p">,</span>     <span class="c1"># external file</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span>      <span class="c1"># PASS TFS</span>
+    <span class="n">data_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">"k1l"</span><span class="p">,</span> <span class="s2">"k1sl"</span><span class="p">],</span>          <span class="c1"># data column names</span>
     <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">,</span>             <span class="c1"># revolution frequency (Hz)</span>
     <span class="n">num_turns</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>                     <span class="c1"># target number of turns</span>
-    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>                    <span class="c1"># interpolation method</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>                    <span class="c1"># interpolation method</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -1123,10 +1123,10 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
 
 <span class="c1"># Quadrupole ramping</span>
-<span class="n">convert_k1l_ramping</span><span class="p">(</span><span class="s2">&quot;external.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;k1l_ramping.tfs&quot;</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
+<span class="n">convert_k1l_ramping</span><span class="p">(</span><span class="s2">"external.csv"</span><span class="p">,</span> <span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
 
 <span class="c1"># RF data</span>
-<span class="n">convert_rf_data</span><span class="p">(</span><span class="s2">&quot;llrf.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;rf_data.tfs&quot;</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
+<span class="n">convert_rf_data</span><span class="p">(</span><span class="s2">"llrf.csv"</span><span class="p">,</span> <span class="s2">"rf_data.tfs"</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -1143,10 +1143,10 @@
 <span class="n">k2l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">4.4</span><span class="p">])</span>
 
 <span class="n">turn_cont</span><span class="p">,</span> <span class="n">data_cont</span> <span class="o">=</span> <span class="n">interpolate_to_continuous_turns</span><span class="p">(</span>
-    <span class="n">turn_arr</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;K2L&quot;</span><span class="p">:</span> <span class="n">k2l</span><span class="p">},</span>
-    <span class="n">start_turn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+    <span class="n">turn_arr</span><span class="p">,</span> <span class="p">{</span><span class="s2">"K2L"</span><span class="p">:</span> <span class="n">k2l</span><span class="p">},</span>
+    <span class="n">start_turn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="n">write_tfs_ramping</span><span class="p">(</span><span class="s2">&quot;k2l_ramping.tfs&quot;</span><span class="p">,</span> <span class="n">turn_cont</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_cont</span><span class="p">)</span>
+<span class="n">write_tfs_ramping</span><span class="p">(</span><span class="s2">"k2l_ramping.tfs"</span><span class="p">,</span> <span class="n">turn_cont</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_cont</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -1165,7 +1165,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
 
 <span class="c1"># Load existing JSON (for modification and regeneration)</span>
-<span class="n">main</span><span class="p">,</span> <span class="n">seq_dict</span> <span class="o">=</span> <span class="n">load_input</span><span class="p">(</span><span class="s2">&quot;beam0.json&quot;</span><span class="p">)</span>
+<span class="n">main</span><span class="p">,</span> <span class="n">seq_dict</span> <span class="o">=</span> <span class="n">load_input</span><span class="p">(</span><span class="s2">"beam0.json"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
