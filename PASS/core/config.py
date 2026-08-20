@@ -27,6 +27,7 @@ class Config:
     num_collision: int = 0
     use_cpu: bool = False
     use_gpu: bool = True
+    particle_precision: str = "float64"
     num_gpu: int = 0
     gpu_id: list[int] = field(default_factory=list)
     is_plot: bool = False
@@ -101,6 +102,23 @@ class Config:
             self.use_cpu = True
         else:
             raise ValueError(f"The backend should be cpu or gpu, but now is {self.backend}")
+
+        self.particle_precision = data0.get("particle precision", "float64").lower()
+        if self.particle_precision not in {"float32", "float64"}:
+            self.particle_precision = "float64"
+            logger.warning(
+                f"Particle Precision must be 'float32' or 'float64', but got "
+                f"{self.particle_precision!r}. Defaulting to 'float64'."
+            )
+        if self.num_beam == 2:
+            beam1_precision = data1.get("particle precision", "float64").lower()
+            if beam1_precision != self.particle_precision:
+                logger.warning(
+                    f"Both beam input files must use the same Particle Precision; "
+                    f"got {self.particle_precision!r} and {beam1_precision!r}. "
+                    f"Defaulting to 'float64'."
+                )
+                self.particle_precision = "float64"
 
         if self.use_gpu:
             self.num_gpu = data0.get("number of gpu devices")
@@ -195,6 +213,7 @@ class Config:
 
         logger.info(f"Use CPU: {self.use_cpu}")
         logger.info(f"Use GPU: {self.use_gpu}")
+        logger.info(f"Particle Precision: {self.particle_precision}")
         if self.use_gpu:
 
             logger.info(f"Num GPU: {self.num_gpu}")

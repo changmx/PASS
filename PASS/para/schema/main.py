@@ -8,6 +8,8 @@ Consumed by:
 All aliases must match the JSON keys the engine expects (case-insensitive).
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -63,6 +65,11 @@ class MainConfig(BaseModel):
         default="cpu",
         alias="Backend (gpu/cpu)",
         description="Compute backend: 'cpu' or 'gpu'",
+    )
+    particle_precision: Literal["float32", "float64"] = Field(
+        default="float64",
+        alias="Particle Precision",
+        description="Storage precision for the six particle coordinates",
     )
     num_gpu: int = Field(
         default=1, ge=1,

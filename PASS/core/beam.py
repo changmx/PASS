@@ -71,7 +71,13 @@ class Beam:
         else:
             xp = np
 
-        self.particles = ParticlePool(self.Np_total, xp, self.is_cal_phase)
+        dtype = np.float32 if self.cfg.particle_precision == "float32" else np.float64
+        self.particles = ParticlePool(
+            self.Np_total,
+            xp,
+            dtype=dtype,
+            is_cal_phase=self.is_cal_phase,
+        )
 
     def print(self) -> None:
 
