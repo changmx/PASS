@@ -2,7 +2,6 @@ from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
 
 import numpy as np
-import cupy as cp
 import logging
 
 logger = logging.getLogger(__name__)
@@ -397,6 +396,13 @@ _kernel_cache = {}
 
 
 def _get_kernel(name):
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU aperture checks require the optional 'cuda' dependencies "
+            "(install PASS with the [cuda] extra)."
+        ) from exc
     if name not in _kernel_cache:
         _kernel_cache[name] = cp.RawKernel(kernel_code, name)
     return _kernel_cache[name]
@@ -437,6 +443,13 @@ def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
     elif aperture_type == "octagon":
         _launch_gpu(_get_kernel("check_aperture_octagon"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
     elif aperture_type == "polygon":
+        try:
+            import cupy as cp
+        except (ImportError, OSError) as exc:
+            raise RuntimeError(
+                "GPU aperture checks require the optional 'cuda' dependencies "
+                "(install PASS with the [cuda] extra)."
+            ) from exc
         vertx = cp.asarray([v[0] for v in aperture_value], dtype=cp.float64)
         verty = cp.asarray([v[1] for v in aperture_value], dtype=cp.float64)
         nvert = len(aperture_value)

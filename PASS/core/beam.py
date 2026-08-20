@@ -66,7 +66,14 @@ class Beam:
 
     def _create_particles(self):
         if self.use_gpu:
-            import cupy as cp
+            try:
+                import cupy as cp
+            except (ImportError, OSError) as exc:
+                raise RuntimeError(
+                    "The GPU backend was requested, but CuPy is unavailable. "
+                    "Install PASS with the optional [cuda] extra or select "
+                    "'cpu' in the input configuration."
+                ) from exc
             xp = cp
         else:
             xp = np

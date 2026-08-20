@@ -11,7 +11,6 @@ from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
 
 import numpy as np
-import cupy as cp
 import pandas as pd
 import logging
 import tfs
@@ -233,6 +232,13 @@ class StatMonitor(Command):
             self._write_row(output_path_csv, output_path_tfs, row_dict, is_last_turn)
 
     def execute_gpu(self, sim):
+        try:
+            import cupy as cp
+        except (ImportError, OSError) as exc:
+            raise RuntimeError(
+                "GPU StatMonitor requires the optional 'cuda' dependencies "
+                "(install PASS with the [cuda] extra)."
+            ) from exc
         cfg = sim.cfg
         beam: Beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
@@ -270,7 +276,7 @@ class StatMonitor(Command):
 
             out_gpu = cp.zeros(21, dtype=p.dtype)
             count_gpu = cp.zeros(1, dtype=cp.int32)
-            kernel = stat_kernel_f32 if p.dtype == np.dtype(np.float32) else stat_kernel_f64
+            kernel = _get_stat_kernel(p.dtype)
 
             kernel(
                 (blocks, ),
@@ -551,11 +557,25 @@ void calc_all_stats(
 }
 '''
 STAT_SOURCE = CUDA_REAL_PREAMBLE + STAT_KERNEL_BODY
-stat_kernel_f32 = cp.RawKernel(
-    STAT_SOURCE, "calc_all_stats",
-    options=("--std=c++14", "-DPASS_USE_FLOAT=1"),
-)
-stat_kernel_f64 = cp.RawKernel(
-    STAT_SOURCE, "calc_all_stats",
-    options=("--std=c++14", "-DPASS_USE_FLOAT=0"),
-)
+_stat_kernels = {}
+
+
+def _get_stat_kernel(dtype):
+    """Compile the CUDA statistics kernel on first GPU use."""
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU StatMonitor requires the optional 'cuda' dependencies "
+            "(install PASS with the [cuda] extra)."
+        ) from exc
+
+    key = np.dtype(dtype)
+    if key not in _stat_kernels:
+        use_float = key == np.dtype(np.float32)
+        _stat_kernels[key] = cp.RawKernel(
+            STAT_SOURCE,
+            "calc_all_stats",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
+        )
+    return _stat_kernels[key]

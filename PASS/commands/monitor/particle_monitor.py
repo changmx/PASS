@@ -11,7 +11,6 @@ from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
 
 import numpy as np
-import cupy as cp
 import pandas as pd
 import logging
 import tfs
@@ -240,20 +239,27 @@ class ParticleMonitor(Command):
 
 def xp_abs(arr):
     """Absolute value that works for numpy and cupy arrays."""
-    if isinstance(arr, cp.ndarray):
+    if _is_cupy_array(arr):
+        import cupy as cp
         return cp.abs(arr)
     return np.abs(arr)
 
 
 def xp_where(condition):
     """np.where / cp.where dispatch."""
-    if isinstance(condition, cp.ndarray):
+    if _is_cupy_array(condition):
+        import cupy as cp
         return cp.where(condition)
     return np.where(condition)
 
 
 def xp_get(arr):
     """Copy GPU array to CPU; pass through CPU array."""
-    if isinstance(arr, cp.ndarray):
-        return cp.asnumpy(arr)
+    if _is_cupy_array(arr):
+        return arr.get()
     return arr
+
+
+def _is_cupy_array(arr):
+    """Detect a CuPy array without importing the optional CuPy package."""
+    return arr.__class__.__module__.startswith("cupy")

@@ -9,7 +9,6 @@ from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
 
 import numpy as np
-import cupy as cp
 import logging
 
 logger = logging.getLogger(__name__)

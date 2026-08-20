@@ -9,7 +9,6 @@ from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
 
 import numpy as np
-import cupy as cp
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,7 +71,7 @@ class Drift(Command):
             if N > 0 and np.abs(L) >= const.eps:
                 threads = 256
                 blocks = (N + threads - 1) // threads
-                kernel = transfer_drift_kernel_f32 if p.dtype == np.dtype(np.float32) else transfer_drift_kernel_f64
+                kernel = _get_transfer_drift_kernel(p.dtype)
                 kernel(
                     (blocks, ),
                     (threads, ),
@@ -166,11 +165,25 @@ void transfer_drift(
 }
 '''
 DRIFT_SOURCE = CUDA_REAL_PREAMBLE + DRIFT_KERNEL_BODY
-transfer_drift_kernel_f32 = cp.RawKernel(
-    DRIFT_SOURCE, "transfer_drift",
-    options=("--std=c++14", "-DPASS_USE_FLOAT=1"),
-)
-transfer_drift_kernel_f64 = cp.RawKernel(
-    DRIFT_SOURCE, "transfer_drift",
-    options=("--std=c++14", "-DPASS_USE_FLOAT=0"),
-)
+_transfer_drift_kernels = {}
+
+
+def _get_transfer_drift_kernel(dtype):
+    """Compile the CUDA kernel only when the GPU backend is actually used."""
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU Drift tracking requires the optional 'cuda' dependencies "
+            "(install PASS with the [cuda] extra)."
+        ) from exc
+
+    key = np.dtype(dtype)
+    if key not in _transfer_drift_kernels:
+        use_float = key == np.dtype(np.float32)
+        _transfer_drift_kernels[key] = cp.RawKernel(
+            DRIFT_SOURCE,
+            "transfer_drift",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
+        )
+    return _transfer_drift_kernels[key]

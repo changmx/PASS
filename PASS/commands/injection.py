@@ -10,7 +10,6 @@ from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
 
 import numpy as np
-import cupy as cp
 import pandas as pd
 import copy
 import logging

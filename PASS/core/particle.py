@@ -1,5 +1,4 @@
 import numpy as np
-import cupy as cp
 
 
 class ParticlePool:
@@ -96,13 +95,14 @@ def convert_array(x, xp_target, dtype=None):
     if x is None:
         return None
 
-    # GPU->CPU
-    if isinstance(x, cp.ndarray) and xp_target is np:
+    # GPU->CPU.  Avoid importing CuPy just to inspect a CPU array; CuPy
+    # arrays expose ``get`` and the target backend already owns conversion.
+    if xp_target is np and hasattr(x, "get") and x.__class__.__module__.startswith("cupy"):
         x = x.get()
 
     # CPU->GPU
-    if isinstance(x, np.ndarray) and xp_target is cp:
-        return cp.asarray(x, dtype=dtype)
+    if isinstance(x, np.ndarray) and xp_target is not np:
+        return xp_target.asarray(x, dtype=dtype)
 
     # CPU->CPU and GPU->GPU
     if dtype is not None and hasattr(x, "astype"):
