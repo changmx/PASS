@@ -6,7 +6,7 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
-from PASS.utils.aperture import check_aperture_cpu
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 
 import numpy as np
 import logging
@@ -58,6 +58,7 @@ class Drift(Command):
         L = self.length
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
+        turn = sim.state.turn
 
         for i, bunch in enumerate(bunches):
             beta = bunch.beta
@@ -76,8 +77,15 @@ class Drift(Command):
                     (blocks, ),
                     (threads, ),
                     (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag,
+                     p.lost_position, p.lost_turn,
                      np.int32(start), np.int32(end),
-                     p.real(beta), p.real(gamma), p.real(L)),
+                     p.real(beta * gamma), p.real(1.0 / gamma), p.real(L),
+                     p.real(self.s), np.int32(turn)),
+                )
+            if N > 0:
+                check_aperture_gpu(
+                    beam, bunch, self.aperture_type, self.aperture_value,
+                    self.s, turn,
                 )
             if abs(L) >= const.eps:
                 bunch.t0 += L / (bunch.beta * const.c)
@@ -109,8 +117,11 @@ class Drift(Command):
         one = real(1.0)
         beta = (one + dp) * (gamma0 * beta0) / np.sqrt(one + ((one + dp) * (gamma0 * beta0))**2)
         pz_sq = (one + dp)**2 - px**2 - py**2
-        valid = (pz_sq > real(0.0)) & (tag > 0)
-        lost_mask = ~valid
+        # Only particles that are alive on entry can become newly lost here.
+        # Preserve the first loss location/turn for particles lost earlier.
+        valid = pz_sq > real(0.0)
+        alive = tag > 0
+        lost_mask = alive & ~valid
         tag[lost_mask] = -np.abs(tag[lost_mask])
         lost_position[lost_mask] = s_position
         lost_turn[lost_mask] = turn
@@ -145,22 +156,46 @@ void transfer_drift(
     const pass_real_t* __restrict__ px,
     const pass_real_t* __restrict__ py,
     const pass_real_t* __restrict__ dp,
-    const int* __restrict__ tag,
+    int* __restrict__ tag,
+    float* __restrict__ lost_position,
+    int* __restrict__ lost_turn,
     int start_index,
     int end_index,
-    pass_real_t beta,
-    pass_real_t gamma,
-    pass_real_t L)
+    pass_real_t beta_gamma,
+    pass_real_t inv_gamma,
+    pass_real_t L,
+    pass_real_t s_position,
+    int turn)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (i >= end_index) return;
 
-    pass_real_t r56 = L / (beta * beta * gamma * gamma);
-    int mask = tag[i] > 0;
+    if (tag[i] <= 0) {
+        return;
+    }
 
-    x[i] += L * px[i] * mask;
-    y[i] += L * py[i] * mask;
-    z[i] += r56 * (dp[i] * beta) * beta * mask;
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp[i];
+    pass_real_t px_i = px[i];
+    pass_real_t py_i = py[i];
+    pass_real_t pz_sq = one_plus_delta * one_plus_delta - px_i * px_i - py_i * py_i;
+    bool valid = pz_sq > (pass_real_t)0;
+
+    if (!valid) {
+        tag[i] = -abs(tag[i]);
+        lost_position[i] = (float)s_position;
+        lost_turn[i] = turn;
+        return;
+    }
+
+    // Algebraically equivalent to the CPU beta expression, but avoids a
+    // second division and keeps all particle work in registers.
+    pass_real_t inv_pz = (pass_real_t)1 / sqrt(pz_sq);
+    pass_real_t bg = one_plus_delta * beta_gamma;
+    pass_real_t dzeta_factor = sqrt((pass_real_t)1 + bg * bg) * inv_pz * inv_gamma;
+
+    x[i] += L * px_i * inv_pz;
+    y[i] += L * py_i * inv_pz;
+    z[i] += L * ((pass_real_t)1 - dzeta_factor);
 
 }
 '''
