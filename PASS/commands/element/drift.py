@@ -72,11 +72,13 @@ class Drift(Command):
             if N > 0 and np.abs(L) >= const.eps:
                 threads = 256
                 blocks = (N + threads - 1) // threads
-                transfer_drift_kernel(
+                kernel = transfer_drift_kernel_f32 if p.dtype == np.dtype(np.float32) else transfer_drift_kernel_f64
+                kernel(
                     (blocks, ),
                     (threads, ),
-                    (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, start, end,
-                     beta, gamma, L),
+                    (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag,
+                     np.int32(start), np.int32(end),
+                     p.real(beta), p.real(gamma), p.real(L)),
                 )
             if abs(L) >= const.eps:
                 bunch.t0 += L / (bunch.beta * const.c)
@@ -86,14 +88,15 @@ class Drift(Command):
         if np.abs(self.length) < const.eps:
             return
 
-        L = self.length
-        s_position = self.s
-        beta0 = bunch.beta
-        gamma0 = bunch.gamma
         start = bunch.start_idx
         end = bunch.end_idx
 
         p = beam.particles
+        real = p.real
+        L = real(self.length)
+        s_position = self.s
+        beta0 = real(bunch.beta)
+        gamma0 = real(bunch.gamma)
         x = p.x[start:end]
         px = p.px[start:end]
         y = p.y[start:end]
@@ -104,43 +107,56 @@ class Drift(Command):
         lost_position = p.lost_position[start:end]
         lost_turn = p.lost_turn[start:end]
 
-        beta = (1 + dp) * (gamma0 * beta0) / np.sqrt(1 + ((1 + dp) * (gamma0 * beta0))**2)
-        pz_sq = (1 + dp)**2 - px**2 - py**2
-        valid = (pz_sq > 0.0) & (tag > 0)
+        one = real(1.0)
+        beta = (one + dp) * (gamma0 * beta0) / np.sqrt(one + ((one + dp) * (gamma0 * beta0))**2)
+        pz_sq = (one + dp)**2 - px**2 - py**2
+        valid = (pz_sq > real(0.0)) & (tag > 0)
         lost_mask = ~valid
         tag[lost_mask] = -np.abs(tag[lost_mask])
         lost_position[lost_mask] = s_position
         lost_turn[lost_mask] = turn
-        pz_sq_safe = np.maximum(pz_sq, const.eps)
+        pz_sq_safe = np.maximum(pz_sq, real(const.eps))
         pz = np.sqrt(pz_sq_safe)
 
-        mask = (tag > 0).astype(np.float64)
+        mask = (tag > 0).astype(p.dtype, copy=False)
         L_mask = L * mask
 
         x += L_mask * (px / pz)
         y += L_mask * (py / pz)
-        z += L_mask * (1 - (beta0 / beta) * (1 + dp) / pz)
+        z += L_mask * (one - (beta0 / beta) * (one + dp) / pz)
 
-kernel_code = r'''
+CUDA_REAL_PREAMBLE = r'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+'''
+
+DRIFT_KERNEL_BODY = r'''
 extern "C" __global__
 void transfer_drift(
-    double* __restrict__ x,
-    double* __restrict__ y,
-    double* __restrict__ z,
-    const double* __restrict__ px,
-    const double* __restrict__ py,
-    const double* __restrict__ dp,
+    pass_real_t* __restrict__ x,
+    pass_real_t* __restrict__ y,
+    pass_real_t* __restrict__ z,
+    const pass_real_t* __restrict__ px,
+    const pass_real_t* __restrict__ py,
+    const pass_real_t* __restrict__ dp,
     const int* __restrict__ tag,
     int start_index,
     int end_index,
-    double beta,
-    double gamma,
-    double L)
+    pass_real_t beta,
+    pass_real_t gamma,
+    pass_real_t L)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (i >= end_index) return;
 
-    double r56 = L / (beta * beta * gamma * gamma);
+    pass_real_t r56 = L / (beta * beta * gamma * gamma);
     int mask = tag[i] > 0;
 
     x[i] += L * px[i] * mask;
@@ -149,4 +165,12 @@ void transfer_drift(
 
 }
 '''
-transfer_drift_kernel = cp.RawKernel(kernel_code, "transfer_drift")
+DRIFT_SOURCE = CUDA_REAL_PREAMBLE + DRIFT_KERNEL_BODY
+transfer_drift_kernel_f32 = cp.RawKernel(
+    DRIFT_SOURCE, "transfer_drift",
+    options=("--std=c++14", "-DPASS_USE_FLOAT=1"),
+)
+transfer_drift_kernel_f64 = cp.RawKernel(
+    DRIFT_SOURCE, "transfer_drift",
+    options=("--std=c++14", "-DPASS_USE_FLOAT=0"),
+)
