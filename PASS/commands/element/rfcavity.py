@@ -279,7 +279,6 @@ class RFCavity(Command):
         tag = p.tag[start:end]
 
         alive_before = tag > 0
-        mask = alive_before.astype(np.float64)
 
         # --- 1. RF phase for each particle ---
         # phi = phase + phi_offset - h * z_lab / R
@@ -336,7 +335,7 @@ class RFCavity(Command):
         E_particle_old = np.sqrt(p_particle_old**2 + m0**2)  # eV
 
         # After kick
-        E_particle_new = E_particle_old + dE_kick * mask  # eV
+        E_particle_new = E_particle_old + dE_kick * alive_before  # eV
 
         # Guard against negative or unphysical energies
         E_particle_new_safe = np.maximum(E_particle_new, const.eps)
@@ -350,13 +349,13 @@ class RFCavity(Command):
         dp_new = p_particle_new / p0_new - 1.0
 
         # Apply mask (dead particles unchanged)
-        dp[:] = dp_new * mask + dp * (1.0 - mask)
+        dp[:] = np.where(alive_before, dp_new, dp)
 
         # --- 6. Transverse momentum rescaling (adiabatic damping) ---
         # px_new = px * (p0_old / p0_new) = px * (beta0*gamma0) / (beta1*gamma1)
         trans_scale = p0_old / p0_new  # = beta0*gamma0 / (beta1*gamma1)
-        px[:] = px * trans_scale * mask + px * (1.0 - mask)
-        py[:] = py * trans_scale * mask + py * (1.0 - mask)
+        px[:] = np.where(alive_before, px * trans_scale, px)
+        py[:] = np.where(alive_before, py * trans_scale, py)
 
         # z is unchanged (thin-lens kick, no drift)
 
