@@ -199,6 +199,16 @@ def check_aperture_cpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
 # ------------------------------------------------------------------
 
 kernel_code = r'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+using pass_loss_t = float;
+
 extern "C" __global__
 void check_aperture_rect(
     double* __restrict__ x, double* __restrict__ y,
@@ -395,7 +405,26 @@ void check_aperture_polygon(
 _kernel_cache = {}
 
 
-def _get_kernel(name):
+def _kernel_source(dtype):
+    """Specialize aperture coordinates to the particle precision."""
+    # Protect the type aliases in the preamble from the broad scalar-type
+    # substitution applied to the kernel bodies.
+    source = kernel_code.replace(
+        "using pass_real_t = float;", "using pass_real_t = __PASS_FLOAT__;"
+    ).replace(
+        "using pass_real_t = double;", "using pass_real_t = __PASS_DOUBLE__;"
+    )
+    source = source.replace("double", "pass_real_t")
+    source = source.replace("__PASS_FLOAT__", "float")
+    source = source.replace("__PASS_DOUBLE__", "double")
+    source = source.replace(
+        "pass_real_t* __restrict__ lost_position",
+        "pass_loss_t* __restrict__ lost_position",
+    )
+    return source
+
+
+def _get_kernel(name, dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
@@ -403,9 +432,14 @@ def _get_kernel(name):
             "GPU aperture checks require the optional 'cuda' dependencies "
             "(install PASS with the [cuda] extra)."
         ) from exc
-    if name not in _kernel_cache:
-        _kernel_cache[name] = cp.RawKernel(kernel_code, name)
-    return _kernel_cache[name]
+    key = (name, np.dtype(dtype))
+    if key not in _kernel_cache:
+        use_float = np.dtype(dtype) == np.dtype(np.float32)
+        _kernel_cache[key] = cp.RawKernel(
+            _kernel_source(dtype), name,
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
+        )
+    return _kernel_cache[key]
 
 
 def _launch_gpu(kernel, beam, bunch, *args):
@@ -415,7 +449,16 @@ def _launch_gpu(kernel, beam, bunch, *args):
     N = end - start
     threads = 256
     blocks = (N + threads - 1) // threads
-    kernel((blocks, ), (threads, ), (p.x, p.y, p.tag, p.lost_position, p.lost_turn, start, end, *args))
+    kernel = _get_kernel(kernel, p.dtype)
+    real = p.real
+    args = tuple(
+        real(arg) if isinstance(arg, (float, np.floating))
+        else np.int32(arg) if isinstance(arg, (int, np.integer))
+        else arg
+        for arg in args
+    )
+    kernel((blocks, ), (threads, ), (p.x, p.y, p.tag, p.lost_position, p.lost_turn,
+                                    np.int32(start), np.int32(end), *args))
 
 
 def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, aperture_value: list, s_position: float, turn: int):
@@ -425,23 +468,23 @@ def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
     if aperture_type == "off":
         return
     elif aperture_type == "default":
-        _launch_gpu(_get_kernel("check_aperture_rect"), beam, bunch, 1.0, 1.0, s_position, turn)
+        _launch_gpu("check_aperture_rect", beam, bunch, 1.0, 1.0, s_position, turn)
     elif aperture_type == "circle":
-        _launch_gpu(_get_kernel("check_aperture_circle"), beam, bunch, aperture_value[0], s_position, turn)
+        _launch_gpu("check_aperture_circle", beam, bunch, aperture_value[0], s_position, turn)
     elif aperture_type == "rectangle":
-        _launch_gpu(_get_kernel("check_aperture_rect"), beam, bunch, aperture_value[0], aperture_value[1], s_position, turn)
+        _launch_gpu("check_aperture_rect", beam, bunch, aperture_value[0], aperture_value[1], s_position, turn)
     elif aperture_type == "ellipse":
-        _launch_gpu(_get_kernel("check_aperture_ellipse"), beam, bunch, aperture_value[0], aperture_value[1], s_position, turn)
+        _launch_gpu("check_aperture_ellipse", beam, bunch, aperture_value[0], aperture_value[1], s_position, turn)
     elif aperture_type == "rectcircle":
-        _launch_gpu(_get_kernel("check_aperture_rectcircle"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
+        _launch_gpu("check_aperture_rectcircle", beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
     elif aperture_type == "rectellipse":
-        _launch_gpu(_get_kernel("check_aperture_rectellipse"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2],
+        _launch_gpu("check_aperture_rectellipse", beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2],
                     aperture_value[3], s_position, turn)
     elif aperture_type == "racetrack":
-        _launch_gpu(_get_kernel("check_aperture_racetrack"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], aperture_value[3],
+        _launch_gpu("check_aperture_racetrack", beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], aperture_value[3],
                     s_position, turn)
     elif aperture_type == "octagon":
-        _launch_gpu(_get_kernel("check_aperture_octagon"), beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
+        _launch_gpu("check_aperture_octagon", beam, bunch, aperture_value[0], aperture_value[1], aperture_value[2], s_position, turn)
     elif aperture_type == "polygon":
         try:
             import cupy as cp
@@ -450,9 +493,9 @@ def check_aperture_gpu(beam: Beam, bunch: BunchInfo, aperture_type: str, apertur
                 "GPU aperture checks require the optional 'cuda' dependencies "
                 "(install PASS with the [cuda] extra)."
             ) from exc
-        vertx = cp.asarray([v[0] for v in aperture_value], dtype=cp.float64)
-        verty = cp.asarray([v[1] for v in aperture_value], dtype=cp.float64)
+        vertx = cp.asarray([v[0] for v in aperture_value], dtype=beam.particles.dtype)
+        verty = cp.asarray([v[1] for v in aperture_value], dtype=beam.particles.dtype)
         nvert = len(aperture_value)
-        _launch_gpu(_get_kernel("check_aperture_polygon"), beam, bunch, nvert, vertx, verty, s_position, turn)
+        _launch_gpu("check_aperture_polygon", beam, bunch, nvert, vertx, verty, s_position, turn)
     else:
         raise ValueError(f"Unknown aperture type: {aperture_type}. Must be one of {sorted(_VALID_TYPES)}")
