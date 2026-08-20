@@ -268,14 +268,16 @@ class StatMonitor(Command):
             threads = 256
             blocks = min((N + threads - 1) // threads, 512)
 
-            out_gpu = cp.zeros(22, dtype=cp.float64)
+            out_gpu = cp.zeros(21, dtype=p.dtype)
+            count_gpu = cp.zeros(1, dtype=cp.int32)
+            kernel = stat_kernel_f32 if p.dtype == np.dtype(np.float32) else stat_kernel_f64
 
             kernel(
                 (blocks, ),
                 (threads, ),
                 (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
                  np.int32(start_idx), np.int32(end_idx),
-                 np.float64(bunch.circum), out_gpu),
+                 p.real(bunch.circum), out_gpu, count_gpu),
             )
 
             cp.cuda.runtime.deviceSynchronize()
@@ -283,8 +285,9 @@ class StatMonitor(Command):
             out_cpu = out_gpu.get()
             # print(out_cpu)
 
-            count_alive = int(out_cpu[21])
-            inv_count = 1.0 / count_alive if count_alive > 0 else 0.0
+            count_alive = int(count_gpu.get()[0])
+            real = p.real
+            inv_count = real(1.0 / count_alive) if count_alive > 0 else real(0.0)
 
             x_avg = out_cpu[0] * inv_count
             x2_avg = out_cpu[1] * inv_count
@@ -403,26 +406,43 @@ class StatMonitor(Command):
             self._write_row(output_path_csv, output_path_tfs, row_dict, is_last_turn)
 
 
-kernel_code = r'''
+CUDA_REAL_PREAMBLE = r'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#define PASS_FLOOR floorf
+#else
+using pass_real_t = double;
+#define PASS_FLOOR floor
+#endif
+'''
+
+STAT_KERNEL_BODY = r'''
 extern "C" __global__
 void calc_all_stats(
-    const double* __restrict__ x,
-    const double* __restrict__ px,
-    const double* __restrict__ y,
-    const double* __restrict__ py,
-    const double* __restrict__ z,
-    const double* __restrict__ dp,
+    const pass_real_t* __restrict__ x,
+    const pass_real_t* __restrict__ px,
+    const pass_real_t* __restrict__ y,
+    const pass_real_t* __restrict__ py,
+    const pass_real_t* __restrict__ z,
+    const pass_real_t* __restrict__ dp,
     const int* __restrict__ tag,
     int start,
     int end,
-    double circumference,
-    double* out   // size 22
+    pass_real_t circumference,
+    pass_real_t* out,   // size 21
+    int* count_alive
 ) {
     // ===== shared memory for warp results =====
-    __shared__ double warp_sum[32][22];
+    __shared__ pass_real_t warp_sum[32][21];
+    __shared__ int warp_count[32];
 
     // ===== register accumulation (FASTEST) =====
-    double local[22] = {0.0};
+    pass_real_t local[21] = {pass_real_t(0.0)};
+    int local_count = 0;
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
@@ -432,15 +452,15 @@ void calc_all_stats(
 
         if (tag[i] <= 0) continue;
 
-        double xi  = x[i];
-        double pxi = px[i];
-        double yi  = y[i];
-        double pyi = py[i];
-        double zi  = z[i];
-        zi = zi + 0.5 * circumference;
-        zi = zi - floor(zi / circumference) * circumference;
-        zi = zi - 0.5 * circumference;
-        double dpi = dp[i];
+        pass_real_t xi  = x[i];
+        pass_real_t pxi = px[i];
+        pass_real_t yi  = y[i];
+        pass_real_t pyi = py[i];
+        pass_real_t zi  = z[i];
+        zi = zi + pass_real_t(0.5) * circumference;
+        zi = zi - PASS_FLOOR(zi / circumference) * circumference;
+        zi = zi - pass_real_t(0.5) * circumference;
+        pass_real_t dpi = dp[i];
 
         local[0]  += xi;
         local[1]  += xi * xi;
@@ -460,15 +480,15 @@ void calc_all_stats(
         local[15] += xi * yi;
         local[16] += yi * zi;
 
-        double x2 = xi * xi;
-        double y2 = yi * yi;
+        pass_real_t x2 = xi * xi;
+        pass_real_t y2 = yi * yi;
 
         local[17] += xi * x2;
         local[18] += x2 * x2;
         local[19] += yi * y2;
         local[20] += y2 * y2;
 
-        local[21] += 1.0;
+        local_count += 1;
     }
 
     // ===== 2. WARP REDUCTION (FULL UNROLLED) =====
@@ -478,17 +498,19 @@ void calc_all_stats(
     #pragma unroll
     for (int offset = 16; offset > 0; offset >>= 1) {
         #pragma unroll
-        for (int k = 0; k < 22; k++) {
+        for (int k = 0; k < 21; k++) {
             local[k] += __shfl_down_sync(0xffffffff, local[k], offset);
         }
+        local_count += __shfl_down_sync(0xffffffff, local_count, offset);
     }
 
     // ===== 3. WRITE WARP RESULT =====
     if (lane == 0) {
         #pragma unroll
-        for (int k = 0; k < 22; k++) {
+        for (int k = 0; k < 21; k++) {
             warp_sum[warp][k] = local[k];
         }
+        warp_count[warp] = local_count;
     }
 
     __syncthreads();
@@ -496,32 +518,44 @@ void calc_all_stats(
     // ===== 4. BLOCK REDUCTION (warp0 only) =====
     if (warp == 0) {
 
-        double sum[22] = {0.0};
+        pass_real_t sum[21] = {pass_real_t(0.0)};
+        int count_sum = 0;
         int num_warps = (blockDim.x + 31) >> 5;
 
         if (lane < num_warps) {
             #pragma unroll
-            for (int k = 0; k < 22; k++) {
+            for (int k = 0; k < 21; k++) {
                 sum[k] = warp_sum[lane][k];
             }
+            count_sum = warp_count[lane];
         }
 
         // warp reduce again
         #pragma unroll
         for (int offset = 16; offset > 0; offset >>= 1) {
             #pragma unroll
-            for (int k = 0; k < 22; k++) {
+            for (int k = 0; k < 21; k++) {
                 sum[k] += __shfl_down_sync(0xffffffff, sum[k], offset);
             }
+            count_sum += __shfl_down_sync(0xffffffff, count_sum, offset);
         }
 
         // ===== 5. FINAL WRITE (ONE PER BLOCK) =====
         if (lane == 0) {
-            for (int k = 0; k < 22; k++) {
+            for (int k = 0; k < 21; k++) {
                 atomicAdd(&out[k], sum[k]);
             }
+            atomicAdd(count_alive, count_sum);
         }
     }
 }
 '''
-kernel = cp.RawKernel(kernel_code, "calc_all_stats")
+STAT_SOURCE = CUDA_REAL_PREAMBLE + STAT_KERNEL_BODY
+stat_kernel_f32 = cp.RawKernel(
+    STAT_SOURCE, "calc_all_stats",
+    options=("--std=c++14", "-DPASS_USE_FLOAT=1"),
+)
+stat_kernel_f64 = cp.RawKernel(
+    STAT_SOURCE, "calc_all_stats",
+    options=("--std=c++14", "-DPASS_USE_FLOAT=0"),
+)
