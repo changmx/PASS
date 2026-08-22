@@ -191,9 +191,10 @@ class ExecutionProfiler:
         remaining = max(self.total_turns - completed, 0)
         eta = remaining * average
         return (
-            f"Turn: {turn}/{self.total_turns} | turn: {turn_time:.3f} s | "
-            f"avg: {average:.3f} s/turn | elapsed: {elapsed:.3f} s | "
-            f"ETA: {self._format_duration(eta)}"
+            f"Turn: {turn}/{self.total_turns} | turn: {self._format_seconds(turn_time)} | "
+            f"avg: {self._format_seconds(average)}/turn | "
+            f"elapsed: {self._format_long_duration(elapsed)} | "
+            f"ETA: {self._format_long_duration(eta)}"
         )
 
     def print_summary(self):
@@ -208,11 +209,11 @@ class ExecutionProfiler:
         logger.info("")
         logger.info(center_string(" Timing Summary "))
         logger.info(f"Timing mode: {self.mode}")
-        logger.info(f"Total tracking time: {total_turn:.6f} s")
-        logger.info(f"Average turn time: {average_turn:.6f} s")
+        logger.info(f"Total tracking time: {self._format_long_duration(total_turn)}")
+        logger.info(f"Average turn time: {self._format_seconds(average_turn)}")
         if turn_values:
-            logger.info(f"Minimum turn time: {min(turn_values):.6f} s")
-            logger.info(f"Maximum turn time: {max(turn_values):.6f} s")
+            logger.info(f"Minimum turn time: {self._format_seconds(min(turn_values))}")
+            logger.info(f"Maximum turn time: {self._format_seconds(max(turn_values))}")
 
         if self.command_timings:
             denominator = sum(item.total_seconds for item in self.command_timings.values())
@@ -251,13 +252,20 @@ class ExecutionProfiler:
 
     @staticmethod
     def _format_seconds(seconds: float) -> str:
+        """Format a per-turn or per-call duration using ms or s."""
+        seconds = max(0.0, float(seconds))
         if seconds < 1.0:
             return f"{seconds * 1000.0:.3f} ms"
         return f"{seconds:.3f} s"
 
     @staticmethod
-    def _format_duration(seconds: float) -> str:
-        seconds = max(0, int(seconds))
-        hours, remainder = divmod(seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    def _format_long_duration(seconds: float) -> str:
+        """Format elapsed/ETA duration using ms, s, min, or h."""
+        seconds = max(0.0, float(seconds))
+        if seconds < 1.0:
+            return f"{seconds * 1000.0:.3f} ms"
+        if seconds < 60.0:
+            return f"{seconds:.3f} s"
+        if seconds < 3600.0:
+            return f"{seconds / 60.0:.2f} min"
+        return f"{seconds / 3600.0:.2f} h"
