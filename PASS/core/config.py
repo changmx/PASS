@@ -33,6 +33,12 @@ class Config:
     is_plot: bool = False
     input_path: list[str] = field(default_factory=list)
     input_data: list[dict] = field(default_factory=list)
+    timing: dict = field(default_factory=lambda: {
+        "mode": "command",
+        "log_interval": 10,
+        "warmup_turns": 1,
+        "include_io": True,
+    })
     output_interval: int = 100
     output_ymd: str = ""
     output_hms: str = ""
@@ -92,6 +98,7 @@ class Config:
             self.harmonic_number.append(h1)
 
         self.num_turn = data0.get("number of turns", 0)
+        self.timing = self._load_timing(data0.get("timing"))
         # self.num_collision = data0.get(["Number of collisions"])
         self.backend = data0.get("backend (gpu/cpu)", "cpu").lower()
         if self.backend == "gpu":
@@ -183,6 +190,67 @@ class Config:
     def get_log_path(self):
         return Path(self.output_dir_log) / f"{self.output_hms}.log"
 
+    @staticmethod
+    def _load_timing(raw_timing) -> dict:
+        """Parse optional timing settings while keeping old inputs valid."""
+        timing = {
+            "mode": "command",
+            "log_interval": 10,
+            "warmup_turns": 1,
+            "include_io": True,
+        }
+        if raw_timing is None:
+            return timing
+        if not isinstance(raw_timing, dict):
+            logger.warning("Timing must be an object; using default timing settings.")
+            return timing
+
+        def get_value(*names, default):
+            for name in names:
+                if name in raw_timing:
+                    return raw_timing[name]
+            return default
+
+        mode = str(get_value("mode", default=timing["mode"])).lower().strip()
+        if mode not in {"off", "turn", "command", "synchronized-command"}:
+            logger.warning(
+                "Timing mode must be one of off, turn, command, synchronized-command; "
+                "using 'command'."
+            )
+            mode = timing["mode"]
+        timing["mode"] = mode
+
+        interval = get_value("log interval", "log_interval", default=timing["log_interval"])
+        if isinstance(interval, bool):
+            interval = timing["log_interval"]
+        try:
+            interval = int(interval)
+        except (TypeError, ValueError):
+            interval = timing["log_interval"]
+        if interval < 1:
+            logger.warning("Timing log interval must be >= 1; using 10.")
+            interval = timing["log_interval"]
+        timing["log_interval"] = interval
+
+        warmup = get_value("warmup turns", "warmup_turns", default=timing["warmup_turns"])
+        if isinstance(warmup, bool):
+            warmup = timing["warmup_turns"]
+        try:
+            warmup = int(warmup)
+        except (TypeError, ValueError):
+            warmup = timing["warmup_turns"]
+        if warmup < 0:
+            logger.warning("Timing warmup turns must be >= 0; using 0.")
+            warmup = 0
+        timing["warmup_turns"] = warmup
+
+        include_io = get_value("include io", "include_io", default=timing["include_io"])
+        if not isinstance(include_io, bool):
+            logger.warning("Timing include io must be boolean; using true.")
+            include_io = timing["include_io"]
+        timing["include_io"] = include_io
+        return timing
+
     def get_stat_path(self, beam_name, bunch_id):
         return Path(self.output_dir_stat / f"{beam_name}_bunch{bunch_id}_stat_{self.output_hms}")
 
@@ -210,6 +278,7 @@ class Config:
         logger.info(f"Output hms: {self.output_hms}")
         logger.info(f"Output Dir: {self.output_dir}")
         logger.info(f"Output Interval: {self.output_interval}")
+        logger.info(f"Timing: {self.timing}")
 
         logger.info(f"Use CPU: {self.use_cpu}")
         logger.info(f"Use GPU: {self.use_gpu}")

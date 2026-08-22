@@ -17,7 +17,7 @@ Models:
     SpaceChargeConfig — space-charge parameters
 """
 
-from PASS.para.schema.main import MainConfig
+from PASS.para.schema.main import MainConfig, TimingConfig
 from PASS.para.schema.bunch import BunchConfig, OffsetConfig, InjectionItem
 from PASS.para.schema.twiss import TwissPoint
 from PASS.para.schema.elements import (
@@ -47,6 +47,7 @@ from PASS.para.schema.space_charge import SpaceChargeConfig
 
 __all__ = [
     "MainConfig",
+    "TimingConfig",
     "BunchConfig",
     "OffsetConfig",
     "InjectionItem",

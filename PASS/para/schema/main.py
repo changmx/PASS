@@ -13,6 +13,35 @@ from typing import Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 
+class TimingConfig(BaseModel):
+    """Optional execution timing and progress reporting settings."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    mode: Literal["off", "turn", "command", "synchronized-command"] = Field(
+        default="command",
+        alias="Mode",
+        description="Timing mode: off, turn, command, or synchronized-command",
+    )
+    log_interval: int = Field(
+        default=10,
+        ge=1,
+        alias="Log Interval",
+        description="Print progress and ETA every N turns",
+    )
+    warmup_turns: int = Field(
+        default=1,
+        ge=0,
+        alias="Warmup Turns",
+        description="Initial turns excluded from ETA averaging",
+    )
+    include_io: bool = Field(
+        default=True,
+        alias="Include IO",
+        description="Include command wall-time work such as file I/O where applicable",
+    )
+
+
 class MainConfig(BaseModel):
     """Global parameters for a PASS simulation.
 
@@ -90,6 +119,11 @@ class MainConfig(BaseModel):
         default=False,
         alias="Is plot figure",
         description="Whether to generate plots after simulation",
+    )
+    timing: TimingConfig = Field(
+        default_factory=TimingConfig,
+        alias="Timing",
+        description="Execution timing and progress reporting settings",
     )
 
     # --- optional module flags (read by Beam._load_input) ---
