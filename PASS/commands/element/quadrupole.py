@@ -7,6 +7,7 @@ from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
+from PASS.commands.element.multipole import launch_multipole
 
 import numpy as np
 import logging
@@ -155,7 +156,21 @@ class Quadrupole(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
-        raise NotImplementedError("GPU implementation of Quadrupole is not yet available")
+        if self.is_thick and self.model == "mat-kick-mat":
+            launch_quadrupole_matrix(self, sim)
+            return
+        if self.is_thick:
+            all_zero = (abs(self.k1l) < const.eps and
+                        abs(self.k1sl) < const.eps)
+            mode = 2 if all_zero else 1
+            knl = np.array([0.0, self.k1,], dtype=np.float64)
+            ksl = np.array([0.0, self.k1s], dtype=np.float64)
+        else:
+            mode = 0
+            knl = np.array([0.0, self.k1l], dtype=np.float64)
+            ksl = np.array([0.0, self.k1sl], dtype=np.float64)
+        launch_multipole(self, sim, knl, ksl,
+                         np.array([1.0, 1.0], dtype=np.float64), mode)
 
     # ============================================================
     # Full quadrupole tracking (CPU)
@@ -492,8 +507,9 @@ class Quadrupole(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
@@ -502,7 +518,9 @@ class Quadrupole(Command):
         bg = beta0 * gamma0
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
 
-        L_mask = L * mask
+        # A particle that becomes invalid at this drift exits immediately;
+        # do not transport it with the stale entry mask.
+        L_mask = L * (alive & valid)
 
         x += L_mask * px * inv_pz
         y += L_mask * py * inv_pz
@@ -526,14 +544,15 @@ class Quadrupole(Command):
         if abs(k1l_eff) < const.eps and abs(k1sl_eff) < const.eps:
             return
 
-        k1l_mask = k1l_eff * mask
+        active = (tag > 0).astype(mask.dtype, copy=False)
+        k1l_mask = k1l_eff * active
 
         px -= chi * k1l_mask * x
         py += chi * k1l_mask * y
 
         # Skew quadrupole
         if abs(k1sl_eff) > const.eps:
-            k1sl_mask = k1sl_eff * mask
+            k1sl_mask = k1sl_eff * active
             px += chi * k1sl_mask * y
             py += chi * k1sl_mask * x
 
@@ -552,3 +571,155 @@ def one_plus_delta_beta(one_plus_delta, bg):
     """
     bg_new = one_plus_delta * bg
     return bg_new / np.sqrt(1.0 + bg_new**2)
+CUDA_REAL_PREAMBLE = r'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+'''
+
+
+QUAD_MATRIX_BODY = r'''
+extern "C" __global__
+void track_quadrupole_matrix(
+    pass_real_t* __restrict__ x, pass_real_t* __restrict__ px,
+    pass_real_t* __restrict__ y, pass_real_t* __restrict__ py,
+    pass_real_t* __restrict__ z, const pass_real_t* __restrict__ dp,
+    const int* __restrict__ tag, int start_index, int end_index,
+    pass_real_t beta0, pass_real_t beta_gamma, pass_real_t inv_gamma,
+    pass_real_t ds, pass_real_t cos_theta, pass_real_t sin_theta,
+    pass_real_t k_eff_base, int num_slice)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x + start_index;
+    if (index >= end_index || tag[index] <= 0) return;
+
+    pass_real_t xi = x[index], pxi = px[index];
+    pass_real_t yi = y[index], pyi = py[index];
+    pass_real_t zi = z[index], dpi = dp[index];
+    pass_real_t one = (pass_real_t)1;
+
+    for (int slice = 0; slice < num_slice; ++slice) {
+        pass_real_t opd = one + dpi;
+        pass_real_t u = cos_theta * xi + sin_theta * yi;
+        pass_real_t pu = cos_theta * pxi + sin_theta * pyi;
+        pass_real_t v = -sin_theta * xi + cos_theta * yi;
+        pass_real_t pv = -sin_theta * pxi + cos_theta * pyi;
+
+        pass_real_t K = k_eff_base / opd;
+        pass_real_t absK = fabs(K);
+        pass_real_t sqrtK = sqrt(absK);
+        pass_real_t KL = sqrtK * ds;
+        pass_real_t Cu, Su;
+        if (absK < (pass_real_t)1e-15) {
+            Cu = one; Su = ds;
+        } else if (K > (pass_real_t)0) {
+            Cu = cos(KL); Su = sin(KL) / sqrtK;
+        } else {
+            Cu = cosh(KL); Su = sinh(KL) / sqrtK;
+        }
+
+        pass_real_t Kv = -K;
+        pass_real_t absKv = fabs(Kv);
+        pass_real_t sqrtKv = sqrt(absKv);
+        pass_real_t KLv = sqrtKv * ds;
+        pass_real_t Cv, Sv;
+        if (absKv < (pass_real_t)1e-15) {
+            Cv = one; Sv = ds;
+        } else if (Kv > (pass_real_t)0) {
+            Cv = cos(KLv); Sv = sin(KLv) / sqrtKv;
+        } else {
+            Cv = cosh(KLv); Sv = sinh(KLv) / sqrtKv;
+        }
+
+        pass_real_t xp = pu / opd;
+        pass_real_t yp = pv / opd;
+        pass_real_t A = -K * u;
+        pass_real_t B = xp;
+        pass_real_t C = -Kv * v;
+        pass_real_t D = yp;
+
+        pass_real_t Lpath = ds;
+        if (absK < (pass_real_t)1e-15) {
+            Lpath += (pass_real_t)0.5 * B * B * ds;
+        } else {
+            Lpath += (pass_real_t)0.5 * (
+                -(A*A*Cu*Su) / ((pass_real_t)2*K)
+                + (B*B*Cu*Su) / (pass_real_t)2
+                + (A*A*ds) / ((pass_real_t)2*K)
+                + (B*B*ds) / (pass_real_t)2
+                - (A*B*Cu*Cu) / K + (A*B) / K);
+        }
+        if (absKv < (pass_real_t)1e-15) {
+            Lpath += (pass_real_t)0.5 * D * D * ds;
+        } else {
+            Lpath += (pass_real_t)0.5 * (
+                -(C*C*Cv*Sv) / ((pass_real_t)2*Kv)
+                + (D*D*Cv*Sv) / (pass_real_t)2
+                + (C*C*ds) / ((pass_real_t)2*Kv)
+                + (D*D*ds) / (pass_real_t)2
+                - (C*D*Cv*Cv) / Kv + (C*D) / Kv);
+        }
+
+        pass_real_t un = u * Cu + xp * Su;
+        pass_real_t pun = (-K * u * Su + xp * Cu) * opd;
+        pass_real_t vn = v * Cv + yp * Sv;
+        pass_real_t pvn = (-Kv * v * Sv + yp * Cv) * opd;
+
+        xi = cos_theta * un - sin_theta * vn;
+        pxi = cos_theta * pun - sin_theta * pvn;
+        yi = sin_theta * un + cos_theta * vn;
+        pyi = sin_theta * pun + cos_theta * pvn;
+
+        pass_real_t bg = opd * beta_gamma;
+        pass_real_t beta = bg / sqrt(one + bg * bg);
+        zi += ds - Lpath * beta0 / beta;
+    }
+
+    x[index] = xi; px[index] = pxi;
+    y[index] = yi; py[index] = pyi; z[index] = zi;
+}
+'''
+
+_kernels = {}
+
+
+def launch_quadrupole_matrix(element, sim):
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU quadrupole tracking requires the optional 'cuda' dependencies."
+        ) from exc
+    p = sim.beams[element.beam_id].particles
+    key = np.dtype(p.dtype)
+    if key not in _kernels:
+        _kernels[key] = cp.RawKernel(
+            CUDA_REAL_PREAMBLE + QUAD_MATRIX_BODY,
+            "track_quadrupole_matrix",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+        )
+    kernel = _kernels[key]
+    beam = sim.beams[element.beam_id]
+    real = p.real
+    threads = 256
+    for bunch in beam.bunches:
+        n = bunch.end_idx - bunch.start_idx
+        if n > 0:
+            blocks = (n + threads - 1) // threads
+            kernel((blocks,), (threads,),
+                   (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
+                    np.int32(bunch.start_idx), np.int32(bunch.end_idx),
+                    real(bunch.beta), real(bunch.beta * bunch.gamma),
+                    real(1.0 / bunch.gamma), real(element.length / element.num_slice),
+                    real(element.cos_theta), real(element.sin_theta),
+                    real(element.k_eff_base), np.int32(element.num_slice)))
+        if n > 0:
+            from PASS.utils.aperture import check_aperture_gpu
+            check_aperture_gpu(beam, bunch, element.aperture_type,
+                               element.aperture_value, element.s, sim.state.turn)
+        if abs(element.length) >= const.eps:
+            bunch.t0 += element.length / (bunch.beta * const.c)

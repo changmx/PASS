@@ -6,7 +6,7 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
-from PASS.utils.aperture import check_aperture_cpu
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 
 import numpy as np
 import logging
@@ -91,7 +91,67 @@ class Twiss(Command):
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
-        pass
+        beam = sim.beams[self.beam_id]
+        turn = sim.state.turn
+        length = self.s - self.s_previous
+        p = beam.particles
+        real = p.real
+        kernel = _get_twiss_kernel(p.dtype)
+        threads = 256
+
+        dq_x = self.DQx * 2.0 * const.pi
+        dq_y = self.DQy * 2.0 * const.pi
+        sbx = np.sqrt(self.betax * self.betax_previous)
+        bx_ratio = np.sqrt(self.betax / self.betax_previous)
+        bx_prev_ratio = np.sqrt(self.betax_previous / self.betax)
+        sby = np.sqrt(self.betay * self.betay_previous)
+        by_ratio = np.sqrt(self.betay / self.betay_previous)
+        by_prev_ratio = np.sqrt(self.betay_previous / self.betay)
+
+        for bunch in beam.bunches:
+            start = bunch.start_idx
+            end = bunch.end_idx
+            n = end - start
+            if n > 0:
+                if self.longitudinal_transfer == "drift":
+                    gammat = bunch.gamma_t
+                    gamma = bunch.gamma
+                    m11_z = 1.0
+                    m12_z = -(1.0 / gammat**2 - 1.0 / gamma**2) * length
+                    m21_z = 0.0
+                    m22_z = 1.0
+                elif self.longitudinal_transfer == "matrix":
+                    m11_z = np.cos(self.phi_z)
+                    m12_z = bunch.sigma_z / bunch.dp * np.sin(self.phi_z)
+                    m21_z = -bunch.dp / bunch.sigma_z * np.sin(self.phi_z)
+                    m22_z = m11_z
+                else:
+                    m11_z = 1.0
+                    m12_z = m21_z = 0.0
+                    m22_z = 1.0
+
+                blocks = (n + threads - 1) // threads
+                kernel(
+                    (blocks,), (threads,),
+                    (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
+                     np.int32(start), np.int32(end),
+                     real(m11_z), real(m12_z), real(m21_z), real(m22_z),
+                     real(self.Dx_previous), real(self.Dpx_previous),
+                     real(self.Dx), real(self.Dpx),
+                     real(self.phi_x), real(self.phi_y),
+                     real(dq_x), real(dq_y), real(sbx), real(bx_ratio),
+                     real(bx_prev_ratio), real(sby), real(by_ratio),
+                     real(by_prev_ratio),
+                     real(self.alphax), real(self.alphax_previous),
+                     real(self.alphay), real(self.alphay_previous)),
+                )
+
+            check_aperture_gpu(
+                beam, bunch, self.aperture_type, self.aperture_value,
+                self.s, turn,
+            )
+            if abs(length) >= const.eps:
+                bunch.t0 += length / (bunch.beta * const.c)
 
 
 def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
@@ -189,3 +249,93 @@ def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):
     px[:] = np.where(alive, px2, px)
     y[:] = np.where(alive, y2, y)
     py[:] = np.where(alive, py2, py)
+
+
+CUDA_REAL_PREAMBLE = r'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+'''
+
+TWISS_KERNEL_BODY = r'''
+extern "C" __global__
+void transfer_twiss(
+    pass_real_t* __restrict__ x,
+    pass_real_t* __restrict__ px,
+    pass_real_t* __restrict__ y,
+    pass_real_t* __restrict__ py,
+    pass_real_t* __restrict__ z,
+    pass_real_t* __restrict__ dp,
+    const int* __restrict__ tag,
+    int start_index, int end_index,
+    pass_real_t m11_z, pass_real_t m12_z,
+    pass_real_t m21_z, pass_real_t m22_z,
+    pass_real_t dx_prev, pass_real_t dpx_prev,
+    pass_real_t dx, pass_real_t dpx,
+    pass_real_t phi_x, pass_real_t phi_y,
+    pass_real_t dqx, pass_real_t dqy,
+    pass_real_t sbx, pass_real_t bx_ratio, pass_real_t bx_prev_ratio,
+    pass_real_t sby, pass_real_t by_ratio, pass_real_t by_prev_ratio,
+    pass_real_t alphax, pass_real_t alphax_prev,
+    pass_real_t alphay, pass_real_t alphay_prev)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
+    if (i >= end_index || tag[i] <= 0) return;
+
+    pass_real_t xi = x[i], pxi = px[i];
+    pass_real_t yi = y[i], pyi = py[i];
+    pass_real_t zi = z[i], dpi = dp[i];
+
+    pass_real_t z2 = zi * m11_z + dpi * m12_z;
+    pass_real_t dp2 = zi * m21_z + dpi * m22_z;
+    pass_real_t x1 = xi - dx_prev * dpi;
+    pass_real_t px1 = pxi - dpx_prev * dpi;
+
+    pass_real_t sx, cx, sy, cy;
+    sincos(phi_x + dpi * dqx, &sx, &cx);
+    sincos(phi_y + dpi * dqy, &sy, &cy);
+
+    pass_real_t m11_x = bx_ratio * (cx + alphax_prev * sx);
+    pass_real_t m12_x = sbx * sx;
+    pass_real_t m21_x = (-(1 + alphax * alphax_prev) / sbx * sx
+                         + (alphax_prev - alphax) / sbx * cx);
+    pass_real_t m22_x = bx_prev_ratio * (cx - alphax * sx);
+
+    pass_real_t m11_y = by_ratio * (cy + alphay_prev * sy);
+    pass_real_t m12_y = sby * sy;
+    pass_real_t m21_y = (-(1 + alphay * alphay_prev) / sby * sy
+                         + (alphay_prev - alphay) / sby * cy);
+    pass_real_t m22_y = by_prev_ratio * (cy - alphay * sy);
+
+    x[i] = x1 * m11_x + px1 * m12_x + dx * dp2;
+    px[i] = x1 * m21_x + px1 * m22_x + dpx * dp2;
+    y[i] = yi * m11_y + pyi * m12_y;
+    py[i] = yi * m21_y + pyi * m22_y;
+    z[i] = z2;
+    dp[i] = dp2;
+}
+'''
+
+TWISS_SOURCE = CUDA_REAL_PREAMBLE + TWISS_KERNEL_BODY
+_twiss_kernels = {}
+
+
+def _get_twiss_kernel(dtype):
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU Twiss tracking requires the optional 'cuda' dependencies."
+        ) from exc
+    key = np.dtype(dtype)
+    if key not in _twiss_kernels:
+        _twiss_kernels[key] = cp.RawKernel(
+            TWISS_SOURCE, "transfer_twiss",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+        )
+    return _twiss_kernels[key]

@@ -6,7 +6,7 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
-from PASS.utils.aperture import check_aperture_cpu
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 
 import numpy as np
 import logging
@@ -48,4 +48,11 @@ class Marker(Command):
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
 
     def execute_gpu(self, sim):
-        pass
+        beam = sim.beams[self.beam_id]
+        turn = sim.state.turn
+        for bunch in beam.bunches:
+            if bunch.end_idx > bunch.start_idx:
+                check_aperture_gpu(
+                    beam, bunch, self.aperture_type, self.aperture_value,
+                    self.s, turn,
+                )

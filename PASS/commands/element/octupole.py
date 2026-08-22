@@ -7,6 +7,7 @@ from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
+from PASS.commands.element.multipole import launch_multipole
 
 import numpy as np
 import logging
@@ -117,7 +118,18 @@ class Octupole(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
-        raise NotImplementedError("GPU implementation of Octupole is not yet available")
+        if self.is_thick:
+            all_zero = (abs(self.k3l) < const.eps and
+                        abs(self.k3sl) < const.eps)
+            mode = 2 if all_zero else 1
+            knl = np.array([0.0, 0.0, 0.0, self.k3], dtype=np.float64)
+            ksl = np.array([0.0, 0.0, 0.0, self.k3s], dtype=np.float64)
+        else:
+            mode = 0
+            knl = np.array([0.0, 0.0, 0.0, self.k3l], dtype=np.float64)
+            ksl = np.array([0.0, 0.0, 0.0, self.k3sl], dtype=np.float64)
+        launch_multipole(self, sim, knl, ksl,
+                         np.array([1.0, 1.0, 0.5, 1.0 / 6.0], dtype=np.float64), mode)
 
     # ============================================================
     # Full octupole tracking (CPU)
@@ -242,8 +254,9 @@ class Octupole(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
@@ -252,7 +265,9 @@ class Octupole(Command):
         bg = beta0 * gamma0
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
 
-        L_mask = L * mask
+        # A particle that becomes invalid at this drift exits immediately;
+        # do not transport it with the stale entry mask.
+        L_mask = L * (alive & valid)
 
         x += L_mask * px * inv_pz
         y += L_mask * py * inv_pz
@@ -279,7 +294,8 @@ class Octupole(Command):
         if abs(k3l_eff) < const.eps and abs(k3sl_eff) < const.eps:
             return
 
-        k3l_mask = k3l_eff * mask
+        active = (tag > 0).astype(mask.dtype, copy=False)
+        k3l_mask = k3l_eff * active
 
         x2 = x * x
         y2 = y * y
@@ -297,7 +313,7 @@ class Octupole(Command):
 
         # Skew octupole
         if abs(k3sl_eff) > const.eps:
-            k3sl_mask = k3sl_eff * mask
+            k3sl_mask = k3sl_eff * active
             chi_k3sl = chi * k3sl_mask / 6.0
             px += chi_k3sl * im_c3
             py += chi_k3sl * re_c3

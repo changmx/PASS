@@ -232,9 +232,40 @@ class RFCavity(Command):
             )
 
     def execute_gpu(self, sim):
-        raise NotImplementedError(
-            "GPU implementation of RFCavity is not yet available"
-        )
+        if not self.is_enabled:
+            return
+        beam = sim.beams[self.beam_id]
+        turn = sim.state.turn
+        voltage, harmonic, phase, phi_offset = self._get_rf_params(turn)
+        if abs(voltage) < const.eps:
+            return
+        for bunch in beam.bunches:
+            beta0 = bunch.beta
+            gamma0 = bunch.gamma
+            m0 = bunch.m0
+            qm_ratio = bunch.qm_ratio
+            E_total0 = bunch.Ek + m0
+            radius = bunch.circum / (2.0 * const.pi)
+            rf_period = bunch.circum / harmonic
+            zc_phase = bunch.z_center - rf_period * np.rint(bunch.z_center / rf_period)
+            phi_center = phase + phi_offset - harmonic * zc_phase / radius
+            dE_ref = qm_ratio * voltage * np.sin(phi_center)
+            E_total1 = E_total0 + dE_ref
+            gamma1 = E_total1 / m0
+            beta1 = np.sqrt(1.0 - 1.0 / (gamma1 * gamma1))
+            p0_old = bunch.p0
+            p0_new = gamma1 * m0 * beta1
+            scale = p0_old / p0_new
+            launch_rf(self, sim, bunch,
+                      (voltage, harmonic, phase, phi_offset, p0_old,
+                       m0, qm_ratio, p0_new, scale), turn)
+            bunch.Ek = E_total1 - m0
+            bunch.gamma = gamma1
+            bunch.beta = beta1
+            bunch.p0 = p0_new
+            p0_kg_new = gamma1 * (m0 * const.e / (const.c * const.c)) * beta1 * const.c
+            bunch.p0_kg = p0_kg_new
+            bunch.brho = p0_kg_new / (qm_ratio * const.e)
 
     # ------------------------------------------------------------------
     # Core RF tracking (CPU)
@@ -382,3 +413,87 @@ class RFCavity(Command):
             lost_turn = p.lost_turn[start:end]
             lost_position[newly_lost] = self.s
             lost_turn[newly_lost] = turn
+CUDA_REAL_PREAMBLE = r'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+'''
+
+
+RF_BODY = r'''
+extern "C" __global__
+void track_rf(
+    pass_real_t* __restrict__ px, pass_real_t* __restrict__ py,
+    pass_real_t* __restrict__ z, pass_real_t* __restrict__ dp,
+    int* __restrict__ tag, float* __restrict__ lost_position,
+    int* __restrict__ lost_turn, int start_index, int end_index,
+    pass_real_t z_center, pass_real_t circum, pass_real_t radius,
+    pass_real_t p0_old, pass_real_t m0, pass_real_t qm_ratio,
+    pass_real_t voltage, pass_real_t harmonic, pass_real_t phase,
+    pass_real_t phi_offset, pass_real_t p0_new, pass_real_t trans_scale,
+    pass_real_t dp_lower, pass_real_t dp_upper, pass_real_t s_position,
+    int turn)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
+    if (i >= end_index) return;
+    int ti = tag[i];
+    if (ti <= 0) return;
+
+    pass_real_t rf_period = circum / harmonic;
+    pass_real_t zlab = z[i] + z_center;
+    pass_real_t zphase = zlab - rf_period * rint(zlab / rf_period);
+    pass_real_t phi = phase + phi_offset - harmonic * zphase / radius;
+    pass_real_t dE = qm_ratio * voltage * sin(phi);
+    pass_real_t pold = p0_old * ((pass_real_t)1 + dp[i]);
+    pass_real_t Eold = sqrt(pold * pold + m0 * m0);
+    pass_real_t Enew = Eold + dE;
+    if (Enew < (pass_real_t)1e-10) Enew = (pass_real_t)1e-10;
+    pass_real_t pnew2 = Enew * Enew - m0 * m0;
+    pass_real_t pnew = sqrt(pnew2);
+    dp[i] = pnew / p0_new - (pass_real_t)1;
+    px[i] *= trans_scale;
+    py[i] *= trans_scale;
+    if (dp[i] < dp_lower || dp[i] > dp_upper) {
+        tag[i] = -abs(ti);
+        lost_position[i] = (float)s_position;
+        lost_turn[i] = turn;
+    }
+}
+'''
+
+_kernels = {}
+
+
+def launch_rf(element, sim, bunch, params, turn):
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError("GPU RFCavity tracking requires the optional 'cuda' dependencies.") from exc
+    p = sim.beams[element.beam_id].particles
+    key = np.dtype(p.dtype)
+    if key not in _kernels:
+        _kernels[key] = cp.RawKernel(
+            CUDA_REAL_PREAMBLE + RF_BODY, "track_rf",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+        )
+    voltage, harmonic, phase, phi_offset, p0_old, m0, qm_ratio, p0_new, scale = params
+    real = p.real; start, end = bunch.start_idx, bunch.end_idx; n = end - start
+    if n > 0:
+        threads=256
+        blocks = (n + threads - 1) // threads
+        _kernels[key]((blocks,), (threads,),
+                       (p.px,p.py,p.z,p.dp,p.tag,p.lost_position,p.lost_turn,
+                        np.int32(start),np.int32(end),real(bunch.z_center),
+                        real(bunch.circum),real(bunch.circum/(2*np.pi)),real(p0_old),
+                        real(m0),real(qm_ratio),real(voltage),real(harmonic),
+                        real(phase),real(phi_offset),real(p0_new),real(scale),
+                        real(element.dp_aperture_lower),real(element.dp_aperture_upper),
+                        real(element.s),np.int32(turn)))
+        from PASS.utils.aperture import check_aperture_gpu
+        check_aperture_gpu(sim.beams[element.beam_id], bunch, element.aperture_type,
+                           element.aperture_value, element.s, turn)

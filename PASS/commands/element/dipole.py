@@ -30,7 +30,7 @@ class SBend(Command):
 
       Entry:  YRotation(-e1) → DipoleFringe → Wedge(-e1, K0)
       Body:   N slices of DKD (model-dependent)
-      Exit:   Wedge(-e2, K0) → DipoleFringe → YRotation(+e2)
+      Exit:   Wedge(-e2, K0) → DipoleFringe(-K0) → YRotation(-e2)
 
     Body models (self.model):
 
@@ -61,7 +61,7 @@ class SBend(Command):
       - Weak focusing kick (Table 1.1, map K0h): Eq. 1.189
       - YRotation: §1.10.19.2
       - Wedge: §1.10.10, Eq. 1.196-1.201
-      - DipoleFringe: §1.10.9, Eq. 1.194-1.195 (MAD-NG implementation)
+      - DipoleFringe: §1.10.9, Eq. 1.194-1.195 (PTC-compatible implementation)
 
     Coordinate convention (PASS):
       x, px, y, py, z, dp(=δ)
@@ -163,7 +163,7 @@ class SBend(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
-        raise NotImplementedError("GPU implementation of SBend is not yet available")
+        launch_dipole(self, sim)
 
     # ============================================================
     # Full bend tracking (CPU)
@@ -273,7 +273,7 @@ class SBend(Command):
             self._wedge_cpu(x, px, y, py, z, dp, tag, mask, -e1, k0, chi, beta0)
 
     # ============================================================
-    # Exit edge: Wedge(-e2, K0) → DipoleFringe → YRotation(+e2)
+    # Exit edge: Wedge(-e2, K0) → DipoleFringe(-K0) → YRotation(-e2)
     # ============================================================
 
     def _edge_exit_cpu(self, x, px, y, py, z, dp, tag, mask,
@@ -365,8 +365,9 @@ class SBend(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
 
@@ -382,21 +383,22 @@ class SBend(Command):
         y_new = y - tan_angle * x * py / (pz * ptt_safe)
         z_new = z + beta0 * tan_angle * x * time_fac / (pz * ptt_safe)
 
-        x[:] = x_new * mask + x * (1.0 - mask)
-        px[:] = px_new * mask + px * (1.0 - mask)
-        y[:] = y_new * mask + y * (1.0 - mask)
-        z[:] = z_new * mask + z * (1.0 - mask)
+        active = (alive & valid).astype(mask.dtype, copy=False)
+        x[:] = x_new * active + x * (1.0 - active)
+        px[:] = px_new * active + px * (1.0 - active)
+        y[:] = y_new * active + y * (1.0 - active)
+        z[:] = z_new * active + z * (1.0 - active)
 
     # ============================================================
     # DipoleFringe (nonlinear fringe field)
-    # Xsuite track_dipole_fringe.h (MAD-NG implementation)
+    # Xsuite geometry with the PTC-compatible generating function
     # §1.10.9, Eq. 1.194-1.195
     # ============================================================
 
     def _dipole_fringe_cpu(self, x, px, y, py, z, dp, tag, mask,
                            fint, hgap, k0, chi, beta0):
         """
-        Dipole fringe field map (MAD-NG / Xsuite implementation).
+        Dipole fringe field map using the PTC-compatible generating function.
 
         Reference: Xsuite track_dipole_fringe.h, lines 16-84.
         Physics Guide §1.10.9, Eq. 1.194-1.195.
@@ -416,8 +418,9 @@ class SBend(Command):
         dpp = one_plus_delta**2
         pz_sq = dpp - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
@@ -437,6 +440,8 @@ class SBend(Command):
         xp2 = xp**2
         inv_yp2 = 1.0 / yp2
 
+        # PTC-compatible generating function: the fringe term is proportional
+        # to pz (the slope derivatives below still use 1/pz).
         fi0 = np.arctan(xp * inv_yp2) - c2 * (1.0 + xp2 * (1.0 + yp2)) * pz
         cos_fi0 = np.cos(fi0)
         cos_fi0_safe = np.where(np.abs(cos_fi0) < const.eps, const.eps, cos_fi0)
@@ -461,10 +466,11 @@ class SBend(Command):
         new_py = py - 4.0 * c3 * new_y**3 - k0w * np.tan(fi0) * new_y
         new_z = z + beta0 * (0.5 * kz * new_y**2 + c3 * new_y**4 * (relp**2) * tfac)
 
-        x[:] = new_x * mask + x * (1.0 - mask)
-        y[:] = new_y * mask + y * (1.0 - mask)
-        py[:] = new_py * mask + py * (1.0 - mask)
-        z[:] = new_z * mask + z * (1.0 - mask)
+        active = (alive & valid).astype(mask.dtype, copy=False)
+        x[:] = new_x * active + x * (1.0 - active)
+        y[:] = new_y * active + y * (1.0 - active)
+        py[:] = new_py * active + py * (1.0 - active)
+        z[:] = new_z * active + z * (1.0 - active)
 
     # ============================================================
     # Wedge (edge angle: geometric rotation + dipole focusing kick)
@@ -505,8 +511,9 @@ class SBend(Command):
         A = 1.0 / np.sqrt(one_plus_delta**2 - py**2)
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
 
@@ -543,10 +550,11 @@ class SBend(Command):
         # delta_ell: Eq. 1.201
         delta_ell = one_plus_delta * (theta + D) / b1_safe
 
-        x[:] = new_x * mask + x * (1.0 - mask)
-        px[:] = new_px * mask + px * (1.0 - mask)
-        y[:] = (y + delta_y) * mask + y * (1.0 - mask)
-        z[:] = (z - delta_ell / rvv) * mask + z * (1.0 - mask)
+        active = (alive & valid).astype(mask.dtype, copy=False)
+        x[:] = new_x * active + x * (1.0 - active)
+        px[:] = new_px * active + px * (1.0 - active)
+        y[:] = (y + delta_y) * active + y * (1.0 - active)
+        z[:] = (z - delta_ell / rvv) * active + z * (1.0 - active)
 
     # ============================================================
     # Body: Drift-Kick-Drift exact (uniform integrator)
@@ -626,8 +634,9 @@ class SBend(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
@@ -636,7 +645,7 @@ class SBend(Command):
         bg = beta0 * gamma0
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
 
-        L_mask = L * mask
+        L_mask = L * (alive & valid)
 
         x += L_mask * px * inv_pz
         y += L_mask * py * inv_pz
@@ -666,7 +675,7 @@ class SBend(Command):
             return
 
         one_plus_delta = 1.0 + dp
-        L_mask = L * mask
+        L_mask = L * (tag > 0).astype(mask.dtype, copy=False)
 
         # px kick: Eq. 1.189
         px += L_mask * (h * one_plus_delta - chi * k0 - chi * k0 * h * x)
@@ -711,8 +720,9 @@ class SBend(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
 
@@ -724,7 +734,9 @@ class SBend(Command):
 
         inv_pz = 1.0 / pz
         pxt = px * inv_pz
-        _ptt = 1.0 / (ca - sa * pxt)
+        denom = ca - sa * pxt
+        denom_safe = np.where(np.abs(denom) < const.eps, const.eps, denom)
+        _ptt = 1.0 / denom_safe
         pst = (x + rho) * sa * inv_pz * _ptt
 
         new_x = (x + rho * (2.0 * sa2**2 + sa * pxt)) * _ptt
@@ -738,11 +750,12 @@ class SBend(Command):
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
         rvv = beta / beta0
 
-        z += (L - one_plus_delta * pst / rvv) * mask
+        active = (alive & valid).astype(mask.dtype, copy=False)
+        z += (L - one_plus_delta * pst / rvv) * active
 
-        x[:] = new_x * mask + x * (1.0 - mask)
-        px[:] = new_px * mask + px * (1.0 - mask)
-        y[:] = new_y * mask + y * (1.0 - mask)
+        x[:] = new_x * active + x * (1.0 - active)
+        px[:] = new_px * active + px * (1.0 - active)
+        y[:] = new_y * active + y * (1.0 - active)
 
     def _rkr_drift_cpu(self, L, x, px, y, py, z, dp, tag, mask,
                        beta0, h, k0, chi):
@@ -781,16 +794,14 @@ class SBend(Command):
         k1_w = _YOSHIDA_Z1 * k0 * chi * L              # ≈  1.3512 * k0 * chi * L
         k0_w = _YOSHIDA_Z0 * k0 * chi * L              # ≈ -1.7024 * k0 * chi * L
 
-        m = mask
-
         self._polar_drift_cpu(d1, x, px, y, py, z, dp, tag, mask, beta0, h)
-        px -= k1_w * m
+        px -= k1_w * (tag > 0).astype(mask.dtype, copy=False)
 
         self._polar_drift_cpu(d2, x, px, y, py, z, dp, tag, mask, beta0, h)
-        px -= k0_w * m
+        px -= k0_w * (tag > 0).astype(mask.dtype, copy=False)
 
         self._polar_drift_cpu(d2, x, px, y, py, z, dp, tag, mask, beta0, h)
-        px -= k1_w * m
+        px -= k1_w * (tag > 0).astype(mask.dtype, copy=False)
 
         self._polar_drift_cpu(d1, x, px, y, py, z, dp, tag, mask, beta0, h)
 
@@ -814,7 +825,7 @@ class SBend(Command):
         if abs(L) < const.eps:
             return
 
-        L_mask = L * mask
+        L_mask = L * (tag > 0).astype(mask.dtype, copy=False)
 
         # Weak focusing: dpx = -chi * k0 * h * x * L
         px -= L_mask * chi * k0 * h * x
@@ -902,3 +913,525 @@ def one_plus_delta_beta(one_plus_delta, bg):
     """
     bg_new = one_plus_delta * bg
     return bg_new / np.sqrt(1.0 + bg_new**2)
+
+
+CUDA_REAL_PREAMBLE = f'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+#define PASS_EPS ((pass_real_t){const.eps:.17g})
+#ifndef PASS_DIPOLE_MODEL
+#define PASS_DIPOLE_MODEL 0
+#endif
+#ifndef PASS_DIPOLE_INTEGRATOR
+#define PASS_DIPOLE_INTEGRATOR 0
+#endif
+#ifndef PASS_DIPOLE_THIN
+#define PASS_DIPOLE_THIN 0
+#endif
+#define PASS_DIPOLE_INLINE __forceinline__
+'''
+
+
+DIPOLE_BODY = r'''
+__device__ PASS_DIPOLE_INLINE bool d_drift(
+    pass_real_t& x, pass_real_t& px, pass_real_t& y, pass_real_t& py,
+    pass_real_t& z, pass_real_t dp, int& tag, float* lp, int* lt, int i,
+    pass_real_t L, pass_real_t beta_ratio, pass_real_t bg0, pass_real_t s0,
+    int turn)
+{
+    // Match the CPU epsilon guard; exact equality is unsafe for floating-point
+    // slice lengths (especially after Yoshida scaling).
+    if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    if (!(pz_squared > (pass_real_t)0)) {
+        tag = -abs(tag);
+        lp[i] = (float)s0;
+        lt[i] = turn;
+        return false;
+    }
+    pass_real_t inv_pz = (pass_real_t)1 / sqrt(pz_squared);
+    x += L * px * inv_pz;
+    y += L * py * inv_pz;
+    z += L * ((pass_real_t)1 - beta_ratio * one_plus_delta * inv_pz);
+    return true;
+}
+
+__device__ PASS_DIPOLE_INLINE bool d_yrot(
+    pass_real_t& x, pass_real_t& px, pass_real_t& y, pass_real_t& z,
+    pass_real_t py, pass_real_t dp, int& tag, float* lp, int* lt, int i,
+    pass_real_t a, pass_real_t sa, pass_real_t ca,
+    pass_real_t beta0, pass_real_t time_factor,
+    pass_real_t s0, int turn)
+{
+    if (fabs(a) < PASS_EPS || tag <= 0) return tag > 0;
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    if (!(pz_squared > (pass_real_t)0)) {
+        tag = -abs(tag);
+        lp[i] = (float)s0;
+        lt[i] = turn;
+        return false;
+    }
+    pass_real_t pz = sqrt(pz_squared);
+    pass_real_t ta = sa / ca;
+    pass_real_t ptt = (pass_real_t)1 + ta * px / pz;
+    if (fabs(ptt) < PASS_EPS) ptt = PASS_EPS;
+    pass_real_t xold = x;
+    x = xold / (ca * ptt);
+    px = ca * px - sa * pz;
+    y = y - ta * xold * py / (pz * ptt);
+    z = z + beta0 * ta * xold * time_factor / (pz * ptt);
+    return true;
+}
+
+__device__ PASS_DIPOLE_INLINE bool d_fringe(pass_real_t& x, pass_real_t& px,
+    pass_real_t& y, pass_real_t& py, pass_real_t& z, pass_real_t dp,
+    int& tag, float* lp, int* lt, int i, pass_real_t fint,
+    pass_real_t hgap, pass_real_t k0, pass_real_t beta0, pass_real_t time_factor,
+    pass_real_t s0, int turn)
+{
+    if (fabs(k0) < PASS_EPS || tag <= 0) return tag > 0;
+    pass_real_t dipole_strength = k0;
+    pass_real_t fh = hgap * fint;
+    pass_real_t fsad = (fh > PASS_EPS)
+        ? (pass_real_t)1 / (72 * fh) : (pass_real_t)0;
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    if (!(pz_squared > (pass_real_t)0)) {
+        tag = -abs(tag);
+        lp[i] = (float)s0;
+        lt[i] = turn;
+        return false;
+    }
+    pass_real_t pz = sqrt(pz_squared);
+    pass_real_t inv_pz = (pass_real_t)1 / pz;
+    pass_real_t inv_one_plus_delta = (pass_real_t)1 / sqrt(one_plus_delta * one_plus_delta);
+    time_factor = -time_factor;
+    pass_real_t fringe_linear_strength = dipole_strength * fh * 2;
+    pass_real_t fringe_cubic_strength = dipole_strength * dipole_strength * fsad
+        * inv_one_plus_delta;
+    pass_real_t normalized_px = px * inv_pz;
+    pass_real_t normalized_py = py * inv_pz;
+    pass_real_t normalized_px_py = normalized_px * normalized_py;
+    pass_real_t one_plus_normalized_py_squared = (pass_real_t)1
+        + normalized_py * normalized_py;
+    pass_real_t normalized_px_squared = normalized_px * normalized_px;
+    pass_real_t inv_one_plus_normalized_py_squared = (pass_real_t)1
+        / one_plus_normalized_py_squared;
+    pass_real_t fringe_angle = atan(normalized_px
+        * inv_one_plus_normalized_py_squared)
+        - fringe_linear_strength * ((pass_real_t)1 + normalized_px_squared
+        * ((pass_real_t)1 + one_plus_normalized_py_squared)) * pz;
+    pass_real_t sin_fringe_angle, cos_fringe_angle;
+    sincos(fringe_angle, &sin_fringe_angle, &cos_fringe_angle);
+    if (fabs(cos_fringe_angle) < PASS_EPS) cos_fringe_angle = PASS_EPS;
+    pass_real_t fringe_second_derivative = dipole_strength
+        / (cos_fringe_angle * cos_fringe_angle);
+    pass_real_t fringe_first_derivative = fringe_second_derivative
+        / ((pass_real_t)1 + (normalized_px
+        * inv_one_plus_normalized_py_squared) * (normalized_px
+        * inv_one_plus_normalized_py_squared))
+        * inv_one_plus_normalized_py_squared;
+    pass_real_t fringe_third_derivative = fringe_second_derivative
+        * fringe_linear_strength;
+    pass_real_t fringe_x_derivative = fringe_first_derivative
+        - fringe_third_derivative * 2 * normalized_px
+        * ((pass_real_t)1 + one_plus_normalized_py_squared) * pz;
+    pass_real_t fringe_xy_derivative = -2 * fringe_first_derivative
+        * normalized_px_py * inv_one_plus_normalized_py_squared
+        - fringe_third_derivative * 2 * normalized_px * normalized_px_py * pz;
+    pass_real_t fringe_y_derivative = -fringe_third_derivative
+        * ((pass_real_t)1 + normalized_px_squared
+        * ((pass_real_t)1 + one_plus_normalized_py_squared));
+    pass_real_t x_kick = fringe_x_derivative
+        * ((pass_real_t)1 + normalized_px_squared) * inv_pz
+        + fringe_xy_derivative * normalized_px_py * inv_pz
+        - fringe_y_derivative * normalized_px;
+    pass_real_t y_kick = fringe_x_derivative * normalized_px_py * inv_pz
+        + fringe_xy_derivative * one_plus_normalized_py_squared * inv_pz
+        - fringe_y_derivative * normalized_py;
+    pass_real_t z_kick = fringe_x_derivative * time_factor * normalized_px
+        * inv_pz * inv_pz + fringe_xy_derivative * time_factor * normalized_py
+        * inv_pz * inv_pz - fringe_y_derivative * time_factor * inv_pz;
+    pass_real_t y_discriminant = (pass_real_t)1 - 2 * y_kick * y;
+    if (y_discriminant < (pass_real_t)0) y_discriminant = 0;
+    pass_real_t new_y = 2 * y / ((pass_real_t)1 + sqrt(y_discriminant));
+    x += (pass_real_t)0.5 * x_kick * new_y * new_y;
+    py -= 4 * fringe_cubic_strength * new_y * new_y * new_y
+        + dipole_strength * (sin_fringe_angle / cos_fringe_angle) * new_y;
+    y = new_y;
+    z += beta0 * ((pass_real_t)0.5 * z_kick * new_y * new_y
+        + fringe_cubic_strength * new_y * new_y * new_y * new_y
+        * (inv_one_plus_delta * inv_one_plus_delta) * time_factor);
+    return true;
+}
+
+__device__ PASS_DIPOLE_INLINE bool d_wedge(pass_real_t& x, pass_real_t& px,
+    pass_real_t& y, pass_real_t& z, pass_real_t py, pass_real_t dp,
+    int& tag, float* lp, int* lt, int i, pass_real_t theta,
+    pass_real_t k0, pass_real_t sa, pass_real_t ca,
+    pass_real_t beta0, pass_real_t beta_ratio,
+    pass_real_t time_factor,
+    pass_real_t s0, int turn)
+{
+    if (tag <= 0) return false;
+    if (fabs(k0) < PASS_EPS)
+        return d_yrot(x, px, y, z, py, dp, tag, lp, lt, i, theta,
+                      sa, ca,
+                      beta0, time_factor, s0, turn);
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    if (!(pz_squared > (pass_real_t)0)) {
+        tag = -abs(tag);
+        lp[i] = (float)s0;
+        lt[i] = turn;
+        return false;
+    }
+    pass_real_t pz = sqrt(pz_squared);
+    pass_real_t sin_theta = sa, cos_theta = ca;
+    pass_real_t sin_2theta = (pass_real_t)2 * sin_theta * cos_theta;
+    pass_real_t new_px = px * cos_theta + (pz - k0 * x) * sin_theta;
+    pass_real_t new_pz_squared = one_plus_delta * one_plus_delta
+        - new_px * new_px - py * py;
+    if (new_pz_squared < PASS_EPS) new_pz_squared = PASS_EPS;
+    pass_real_t new_pz = sqrt(new_pz_squared);
+    pass_real_t denominator = new_pz + pz * cos_theta - px * sin_theta;
+    if (fabs(denominator) < PASS_EPS) denominator = PASS_EPS;
+    pass_real_t new_x = x * cos_theta
+        + (x * px * sin_2theta + sin_theta * sin_theta
+           * ((pass_real_t)2 * x * pz - k0 * x * x)) / denominator;
+    pass_real_t inv_transverse_momentum = (pass_real_t)1
+        / sqrt(one_plus_delta * one_plus_delta - py * py);
+    pass_real_t phase_advance = asin(fmax((pass_real_t)-1,
+        fmin((pass_real_t)1, inv_transverse_momentum * px)))
+        - asin(fmax((pass_real_t)-1,
+        fmin((pass_real_t)1, inv_transverse_momentum * new_px)));
+    pass_real_t safe_strength = (fabs(k0) > PASS_EPS) ? k0 : PASS_EPS;
+    x = new_x;
+    px = new_px;
+    y += py * (theta + phase_advance) / safe_strength;
+    z -= one_plus_delta * (theta + phase_advance) / safe_strength
+        * beta_ratio;
+    return true;
+}
+
+__device__ PASS_DIPOLE_INLINE void d_kick(pass_real_t& px, pass_real_t& z,
+    pass_real_t x, pass_real_t dp, pass_real_t L, pass_real_t h,
+    pass_real_t k0, pass_real_t beta0, pass_real_t beta_ratio)
+{
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    px += L * (h * one_plus_delta - k0 - k0 * h * x);
+    z -= L * beta_ratio * h * x;
+}
+
+__device__ PASS_DIPOLE_INLINE bool d_polar(pass_real_t& x, pass_real_t& px,
+    pass_real_t& y, pass_real_t& z, pass_real_t py, pass_real_t dp,
+    int& tag, float* lp, int* lt, int i, pass_real_t L, pass_real_t h,
+    pass_real_t rho, pass_real_t sin_bend_angle, pass_real_t cos_bend_angle,
+    pass_real_t beta0, pass_real_t beta_ratio, pass_real_t bg0,
+    pass_real_t s0, int turn)
+{
+    if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
+    if (fabs(h) < PASS_EPS)
+        return d_drift(x, px, y, py, z, dp, tag, lp, lt, i,
+                       L, beta_ratio, bg0, s0, turn);
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    if (!(pz_squared > (pass_real_t)0)) {
+        tag = -abs(tag);
+        lp[i] = (float)s0;
+        lt[i] = turn;
+        return false;
+    }
+    pass_real_t pz = sqrt(pz_squared);
+    pass_real_t inv_pz = (pass_real_t)1 / pz;
+    pass_real_t normalized_px = px * inv_pz;
+    pass_real_t denominator = cos_bend_angle - sin_bend_angle * normalized_px;
+    if (fabs(denominator) < PASS_EPS) denominator = PASS_EPS;
+    pass_real_t path_length_factor = (pass_real_t)1 / denominator;
+    pass_real_t polar_path_length = (x + rho) * sin_bend_angle
+        * inv_pz * path_length_factor;
+    pass_real_t new_x = (x + rho * ((pass_real_t)1 - cos_bend_angle
+        + sin_bend_angle * normalized_px))
+        * path_length_factor;
+    pass_real_t new_px = cos_bend_angle * px + sin_bend_angle * pz;
+    pass_real_t new_y = y + polar_path_length * py;
+    x = new_x;
+    px = new_px;
+    y = new_y;
+    z += L - one_plus_delta * polar_path_length * beta_ratio;
+    return true;
+}
+
+__device__ PASS_DIPOLE_INLINE bool d_rkr_drift(pass_real_t& x,pass_real_t& px,
+ pass_real_t& y,pass_real_t& z,pass_real_t py,pass_real_t dp,int& tag,
+ float*lp,int*lt,int i,pass_real_t L,pass_real_t h,pass_real_t k0,
+ pass_real_t beta0,pass_real_t beta_ratio,pass_real_t bg0,pass_real_t rho,
+ pass_real_t sin_first,pass_real_t cos_first,
+ pass_real_t sin_middle,pass_real_t cos_middle,
+ pass_real_t s0,int turn){
+  if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
+  if (fabs(h) < PASS_EPS)
+      return d_drift(x, px, y, py, z, dp, tag, lp, lt, i,
+                     L, beta_ratio, bg0, s0, turn);
+  pass_real_t yoshida_z1 = (pass_real_t)1.3512071919596;
+  pass_real_t yoshida_z0 = (pass_real_t)-1.7024143839193;
+  pass_real_t first_polar_drift = yoshida_z1 * L * (pass_real_t)0.5;
+  pass_real_t middle_polar_drift = (yoshida_z1 + yoshida_z0) * L * (pass_real_t)0.5;
+  if (!d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
+               first_polar_drift, h, rho, sin_first, cos_first,
+               beta0, beta_ratio, bg0, s0, turn)) return false;
+  px -= yoshida_z1 * k0 * L;
+  if (!d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
+               middle_polar_drift, h, rho, sin_middle, cos_middle,
+               beta0, beta_ratio, bg0, s0, turn)) return false;
+  px -= yoshida_z0 * k0 * L;
+  if (!d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
+               middle_polar_drift, h, rho, sin_middle, cos_middle,
+               beta0, beta_ratio, bg0, s0, turn)) return false;
+  px -= yoshida_z1 * k0 * L;
+  return d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
+                 first_polar_drift, h, rho, sin_first, cos_first,
+                 beta0, beta_ratio, bg0, s0, turn);
+}
+
+__device__ PASS_DIPOLE_INLINE bool d_dkd(
+    pass_real_t& x, pass_real_t& px, pass_real_t& y, pass_real_t& z,
+    pass_real_t py, pass_real_t dp, int& tag, float* lp, int* lt, int i,
+    pass_real_t L, pass_real_t h, pass_real_t k0, pass_real_t beta0,
+    pass_real_t beta_ratio, pass_real_t bg0, pass_real_t s0, int turn)
+{
+    if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
+    if (!d_drift(x, px, y, py, z, dp, tag, lp, lt, i,
+                 L * (pass_real_t)0.5, beta_ratio, bg0, s0, turn)) return false;
+    d_kick(px, z, x, dp, L, h, k0, beta0, beta_ratio);
+    return d_drift(x, px, y, py, z, dp, tag, lp, lt, i,
+                   L * (pass_real_t)0.5, beta_ratio, bg0, s0, turn);
+}
+
+extern "C" __global__ void track_sbend(
+    pass_real_t* x, pass_real_t* px, pass_real_t* y, pass_real_t* py,
+    pass_real_t* z, const pass_real_t* dp, int* tag, float* lp, int* lt,
+    int start, int end, pass_real_t beta0, pass_real_t bg0,
+    pass_real_t time_factor_sq_const, pass_real_t rho_const, pass_real_t ds_const,
+    pass_real_t L,
+    pass_real_t k0l, pass_real_t h, pass_real_t k0, pass_real_t e1,
+    pass_real_t e2, pass_real_t e1_s, pass_real_t e1_c,
+    pass_real_t e2_s, pass_real_t e2_c,
+    pass_real_t hgap, pass_real_t fint, pass_real_t fintx,
+    pass_real_t s0, int turn, int slices, int integrator, int model, int thin)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x + start;
+    if (i >= end || tag[i] <= 0) return;
+    pass_real_t xi = x[i], pxi = px[i], yi = y[i], pyi = py[i];
+    pass_real_t zi = z[i], dpi = dp[i];
+    int ti = tag[i];
+    bool alive = true;
+#if PASS_DIPOLE_THIN
+    {
+        pxi -= k0l;
+        x[i] = xi; px[i] = pxi; y[i] = yi; py[i] = pyi;
+        z[i] = zi; tag[i] = ti;
+        return;
+    }
+#else
+    pass_real_t one_plus_delta_i = (pass_real_t)1 + dpi;
+    pass_real_t particle_bg = one_plus_delta_i * bg0;
+    pass_real_t particle_beta = particle_bg
+        / sqrt((pass_real_t)1 + particle_bg * particle_bg);
+    pass_real_t beta_ratio = beta0 / particle_beta;
+    pass_real_t rho = rho_const;
+    pass_real_t ds = ds_const;
+    pass_real_t time_factor = sqrt(one_plus_delta_i * one_plus_delta_i
+        + time_factor_sq_const);
+#if PASS_DIPOLE_MODEL == 1
+    // RKR uses the same polar angles for both drifts around each kick.  Keep
+    // these values per particle, but evaluate each distinct angle only once.
+    pass_real_t rkr_sf1 = 0, rkr_cf1 = 1, rkr_sm1 = 0, rkr_cm1 = 1;
+    pass_real_t rkr_sf0 = 0, rkr_cf0 = 1, rkr_sm0 = 0, rkr_cm0 = 1;
+    if (fabs(h) > PASS_EPS) {
+        pass_real_t rkr_base = h * ds * (pass_real_t)0.25;
+        pass_real_t z1 = (pass_real_t)1.3512071919596;
+        pass_real_t z0 = (pass_real_t)-1.7024143839193;
+        if (PASS_DIPOLE_INTEGRATOR == 0) {
+            sincos(rkr_base * z1, &rkr_sf1, &rkr_cf1);
+            sincos(rkr_base * (z1 + z0), &rkr_sm1, &rkr_cm1);
+        } else {
+            sincos(rkr_base * z1 * z1, &rkr_sf1, &rkr_cf1);
+            sincos(rkr_base * z1 * (z1 + z0), &rkr_sm1, &rkr_cm1);
+            sincos(rkr_base * z0 * z1, &rkr_sf0, &rkr_cf0);
+            sincos(rkr_base * z0 * (z1 + z0), &rkr_sm0, &rkr_cm0);
+        }
+    }
+#endif
+    if (fabs(e1) > PASS_EPS)
+        alive = d_yrot(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                       -e1, e1_s, e1_c, beta0, time_factor, s0, turn);
+    if (alive && fabs(k0) > PASS_EPS)
+        alive = d_fringe(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i,
+                         fint, hgap, k0, beta0, time_factor, s0, turn);
+    if (alive && fabs(e1) > PASS_EPS)
+        alive = d_wedge(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                        -e1, k0, e1_s, e1_c, beta0, beta_ratio,
+                        time_factor, s0, turn);
+    for (int slice_index = 0; slice_index < slices && alive; ++slice_index) {
+#if PASS_DIPOLE_MODEL == 0
+#if PASS_DIPOLE_INTEGRATOR == 0
+        alive = d_dkd(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                      ds, h, k0, beta0, beta_ratio, bg0, s0, turn);
+#else
+        alive = d_dkd(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                      ds * (pass_real_t)1.3512071919596,
+                      h, k0, beta0, beta_ratio, bg0, s0, turn);
+        if (alive) alive = d_dkd(
+            xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+            ds * (pass_real_t)-1.7024143839193,
+            h, k0, beta0, beta_ratio, bg0, s0, turn);
+        if (alive) alive = d_dkd(
+            xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+            ds * (pass_real_t)1.3512071919596,
+            h, k0, beta0, beta_ratio, bg0, s0, turn);
+#endif
+#else
+#if PASS_DIPOLE_INTEGRATOR == 0
+        // RKR outer step; internal polar drift is Yoshida-4.
+        pass_real_t d = ds;
+        if (alive) alive = d_rkr_drift(
+            xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+            d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+        if (alive) pxi -= d * k0 * h * xi;
+        if (alive) alive = d_rkr_drift(
+            xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+            d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+#else
+        // RKR outer step; internal polar drift is Yoshida-4.
+        pass_real_t d = ds * (pass_real_t)1.3512071919596;
+        if (alive) alive = d_rkr_drift(
+            xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+            d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+        if (alive) pxi -= d * k0 * h * xi;
+        if (alive) alive = d_rkr_drift(
+            xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+            d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+
+        if (alive) {
+            d = ds * (pass_real_t)-1.7024143839193;
+            alive = d_rkr_drift(
+                xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+                rkr_sf0, rkr_cf0, rkr_sm0, rkr_cm0, s0, turn);
+            if (alive) {
+                pxi -= d * k0 * h * xi;
+                alive = d_rkr_drift(
+                    xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                    d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+                    rkr_sf0, rkr_cf0, rkr_sm0, rkr_cm0, s0, turn);
+            }
+            d = ds * (pass_real_t)1.3512071919596;
+            if (alive) alive = d_rkr_drift(
+                xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+                rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+            if (alive) {
+                pxi -= d * k0 * h * xi;
+                alive = d_rkr_drift(
+                    xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                    d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
+                    rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+            }
+        }
+#endif
+#endif
+    }
+    if (fabs(e2) > PASS_EPS)
+        alive = d_wedge(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                        -e2, k0, e2_s, e2_c, beta0, beta_ratio,
+                        time_factor, s0, turn);
+    if (alive && fabs(k0) > PASS_EPS)
+        alive = d_fringe(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i,
+                         fintx, hgap, -k0, beta0, time_factor, s0, turn);
+    if (alive && fabs(e2) > PASS_EPS)
+        alive = d_yrot(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
+                       -e2, e2_s, e2_c, beta0, time_factor, s0, turn);
+    x[i] = xi; px[i] = pxi; y[i] = yi; py[i] = pyi;
+    z[i] = zi; tag[i] = ti;
+#endif
+}
+
+'''
+
+_kernels = {}
+
+
+def _get_fused_kernel(dtype, model=0, integrator=0, thin=0):
+    """Compile the single-launch map once per particle precision."""
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError("GPU SBend tracking requires the optional 'cuda' dependencies.") from exc
+    key = (np.dtype(dtype), int(model), int(integrator), int(thin))
+    if key not in _kernels:
+        options = (
+            "--std=c++14",
+            f"-DPASS_USE_FLOAT={int(key[0] == np.dtype(np.float32))}",
+            f"-DPASS_DIPOLE_MODEL={key[1]}",
+            f"-DPASS_DIPOLE_INTEGRATOR={key[2]}",
+            f"-DPASS_DIPOLE_THIN={key[3]}",
+        )
+        if key[0] == np.dtype(np.float64):
+            options += ("--maxrregcount=160",)
+        _kernels[key] = cp.RawKernel(
+            CUDA_REAL_PREAMBLE + DIPOLE_BODY, "track_sbend", options=options
+        )
+    return _kernels[key]
+
+
+def launch_dipole(element, sim):
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError("GPU SBend tracking requires the optional 'cuda' dependencies.") from exc
+    beam=sim.beams[element.beam_id]; p=beam.particles
+    real=p.real
+    threads = 256
+    turn=sim.state.turn
+    model = 0 if element.model == "drift-kick-drift-exact" else 1
+    integrator = 0 if element.integrator == "uniform" else 1
+    thin = 0 if element.is_thick else 1
+    kernel = _get_fused_kernel(p.dtype, model, integrator, thin)
+    for b in beam.bunches:
+        n=b.end_idx-b.start_idx
+        if n > 0:
+            blocks = (n + threads - 1) // threads
+            args = (
+                p.x,p.px,p.y,p.py,p.z,p.dp,p.tag,p.lost_position,p.lost_turn,
+                np.int32(b.start_idx),np.int32(b.end_idx),real(b.beta),real(b.beta*b.gamma),
+                real(1.0 / ((1.0 + (b.beta * b.gamma) ** 2) * b.beta ** 2)),
+                real(1.0 / element.h if abs(element.h) > const.eps else 0.0),
+                real(element.length / element.num_slice),
+                real(element.length),real(element.k0l),real(element.h),real(element.k0),
+                real(element.e1),real(element.e2),
+                real(np.sin(-element.e1)),real(np.cos(-element.e1)),
+                real(np.sin(-element.e2)),real(np.cos(-element.e2)),
+                real(element.hgap),real(element.fint),
+                real(element.fintx),real(element.s),np.int32(turn),np.int32(element.num_slice),
+                np.int32(0 if element.integrator=="uniform" else 1),
+                np.int32(0 if element.model=="drift-kick-drift-exact" else 1),
+                np.int32(0 if element.is_thick else 1))
+            kernel((blocks,), (threads,), args)
+        if n > 0:
+            from PASS.utils.aperture import check_aperture_gpu
+            check_aperture_gpu(beam,b,element.aperture_type,element.aperture_value,element.s,turn)
+        if abs(element.length) >= const.eps:
+            b.t0 += element.length / (b.beta * const.c)

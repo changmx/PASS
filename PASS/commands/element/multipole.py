@@ -153,7 +153,12 @@ class Multipole(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
-        raise NotImplementedError("GPU implementation of Multipole is not yet available")
+        all_zero = (np.all(np.abs(self.knl) < const.eps) and
+                    np.all(np.abs(self.ksl) < const.eps))
+        mode = 0 if not self.is_thick else (2 if all_zero else 1)
+        launch_multipole(self, sim, self.knl if not self.is_thick else self.kn,
+                         self.ksl if not self.is_thick else self.ks,
+                         self.inv_fact, mode)
 
     # ============================================================
     # Full multipole tracking (CPU)
@@ -279,8 +284,9 @@ class Multipole(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
@@ -289,7 +295,9 @@ class Multipole(Command):
         bg = beta0 * gamma0
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
 
-        L_mask = L * mask
+        # A particle that becomes invalid at this drift exits immediately;
+        # do not transport it with the stale entry mask.
+        L_mask = L * (alive & valid)
 
         x += L_mask * px * inv_pz
         y += L_mask * py * inv_pz
@@ -344,8 +352,9 @@ class Multipole(Command):
             dpy_mul = chi * ksl_eff[index] * inv_fact[index] + zim  # scalar + array
 
         # Apply mask (zero out dead particles)
-        dpx_mul *= mask
-        dpy_mul *= mask
+        active = (tag > 0).astype(mask.dtype, copy=False)
+        dpx_mul *= active
+        dpy_mul *= active
 
         px -= dpx_mul   # sign flip on px only (rad convention)
         py += dpy_mul
@@ -365,3 +374,213 @@ def one_plus_delta_beta(one_plus_delta, bg):
     """
     bg_new = one_plus_delta * bg
     return bg_new / np.sqrt(1.0 + bg_new**2)
+CUDA_REAL_PREAMBLE = f'''
+#ifndef PASS_USE_FLOAT
+#define PASS_USE_FLOAT 0
+#endif
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+#define PASS_EPS ((pass_real_t){const.eps:.17g})
+'''
+
+
+MULTIPOLE_KERNEL_BODY = r'''
+__device__ __forceinline__ bool pass_drift(
+    pass_real_t& x, pass_real_t& px, pass_real_t& y, pass_real_t& py,
+    pass_real_t& z, pass_real_t dp, int& tag, float* lost_position,
+    int* lost_turn, int index, pass_real_t L, pass_real_t beta_gamma,
+    pass_real_t inv_gamma, pass_real_t s_position, int turn)
+{
+    // A tolerance matches the CPU const.eps guard and avoids exact floating-point
+    // equality.  ``L`` is an element/slice length, so sub-epsilon transport is
+    // intentionally treated as a no-op.
+    if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
+    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
+    pass_real_t pz_sq = one_plus_delta * one_plus_delta - px * px - py * py;
+    if (!(pz_sq > (pass_real_t)0)) {
+        tag = -abs(tag);
+        lost_position[index] = (float)s_position;
+        lost_turn[index] = turn;
+        return false;
+    }
+    pass_real_t inv_pz = (pass_real_t)1 / sqrt(pz_sq);
+    pass_real_t bg = one_plus_delta * beta_gamma;
+    pass_real_t dzeta_factor = sqrt((pass_real_t)1 + bg * bg) * inv_pz * inv_gamma;
+    x += L * px * inv_pz;
+    y += L * py * inv_pz;
+    z += L * ((pass_real_t)1 - dzeta_factor);
+    return true;
+}
+
+__device__ __forceinline__ void pass_kick(
+    pass_real_t& px, pass_real_t& py, pass_real_t x, pass_real_t y,
+    const pass_real_t* __restrict__ knl,
+    const pass_real_t* __restrict__ ksl,
+    const pass_real_t* __restrict__ inv_fact,
+    int order, pass_real_t scale)
+{
+    pass_real_t dpx_mul = knl[order] * inv_fact[order] * scale;
+    pass_real_t dpy_mul = ksl[order] * inv_fact[order] * scale;
+    for (int n = order; n > 0; --n) {
+        pass_real_t zre = dpx_mul * x - dpy_mul * y;
+        pass_real_t zim = dpx_mul * y + dpy_mul * x;
+        dpx_mul = knl[n - 1] * inv_fact[n - 1] * scale + zre;
+        dpy_mul = ksl[n - 1] * inv_fact[n - 1] * scale + zim;
+    }
+    px -= dpx_mul;
+    py += dpy_mul;
+}
+
+__device__ __forceinline__ bool pass_dkd_step(
+    pass_real_t& x, pass_real_t& px, pass_real_t& y, pass_real_t& py,
+    pass_real_t& z, pass_real_t dp, int& tag, float* lost_position,
+    int* lost_turn, int index, pass_real_t ds, pass_real_t beta_gamma,
+    pass_real_t inv_gamma, pass_real_t s_position, int turn,
+    const pass_real_t* __restrict__ knl,
+    const pass_real_t* __restrict__ ksl,
+    const pass_real_t* __restrict__ inv_fact, int order)
+{
+    if (!pass_drift(x, px, y, py, z, dp, tag, lost_position, lost_turn,
+                    index, ds * (pass_real_t)0.5, beta_gamma, inv_gamma,
+                    s_position, turn)) return false;
+    pass_kick(px, py, x, y, knl, ksl, inv_fact, order, ds);
+    return pass_drift(x, px, y, py, z, dp, tag, lost_position, lost_turn,
+                      index, ds * (pass_real_t)0.5, beta_gamma, inv_gamma,
+                      s_position, turn);
+}
+
+// mode: 0 = thin integrated kick, 1 = thick sliced DKD, 2 = pure drift.
+// integrator: 0 = uniform second-order DKD, 1 = Yoshida fourth-order DKD.
+extern "C" __global__
+void track_multipole_dkd(
+    pass_real_t* __restrict__ x, pass_real_t* __restrict__ px,
+    pass_real_t* __restrict__ y, pass_real_t* __restrict__ py,
+    pass_real_t* __restrict__ z, const pass_real_t* __restrict__ dp,
+    int* __restrict__ tag, float* __restrict__ lost_position,
+    int* __restrict__ lost_turn, int start_index, int end_index,
+    pass_real_t beta_gamma, pass_real_t inv_gamma, pass_real_t L,
+    pass_real_t s_position, int turn, const pass_real_t* __restrict__ knl,
+    const pass_real_t* __restrict__ ksl,
+    const pass_real_t* __restrict__ inv_fact, int order, int num_slice,
+    int integrator, int mode)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x + start_index;
+    if (index >= end_index || tag[index] <= 0) return;
+
+    pass_real_t xi = x[index], pxi = px[index];
+    pass_real_t yi = y[index], pyi = py[index];
+    pass_real_t zi = z[index], dpi = dp[index];
+    int ti = tag[index];
+    bool alive = true;
+
+    if (mode == 0) {
+        pass_kick(pxi, pyi, xi, yi, knl, ksl, inv_fact, order,
+                  (pass_real_t)1);
+    } else if (mode == 2) {
+        alive = pass_drift(xi, pxi, yi, pyi, zi, dpi, ti,
+                           lost_position, lost_turn, index, L, beta_gamma,
+                           inv_gamma, s_position, turn);
+    } else {
+        pass_real_t ds = L / (pass_real_t)num_slice;
+        for (int slice = 0; slice < num_slice && alive; ++slice) {
+            if (integrator == 0) {
+                alive = pass_dkd_step(xi, pxi, yi, pyi, zi, dpi, ti,
+                                      lost_position, lost_turn, index, ds,
+                                      beta_gamma, inv_gamma, s_position, turn,
+                                      knl, ksl, inv_fact, order);
+            } else {
+                alive = pass_dkd_step(xi, pxi, yi, pyi, zi, dpi, ti,
+                                      lost_position, lost_turn, index,
+                                      ds * (pass_real_t)1.3512071919596,
+                                      beta_gamma, inv_gamma, s_position, turn,
+                                      knl, ksl, inv_fact, order);
+                if (alive) alive = pass_dkd_step(
+                    xi, pxi, yi, pyi, zi, dpi, ti, lost_position, lost_turn,
+                    index, ds * (pass_real_t)-1.7024143839193, beta_gamma,
+                    inv_gamma, s_position, turn, knl, ksl, inv_fact, order);
+                if (alive) alive = pass_dkd_step(
+                    xi, pxi, yi, pyi, zi, dpi, ti, lost_position, lost_turn,
+                    index, ds * (pass_real_t)1.3512071919596, beta_gamma,
+                    inv_gamma, s_position, turn, knl, ksl, inv_fact, order);
+            }
+        }
+    }
+
+    if (alive) {
+        x[index] = xi; px[index] = pxi;
+        y[index] = yi; py[index] = pyi; z[index] = zi;
+    }
+    tag[index] = ti;
+}
+'''
+
+_kernels = {}
+
+
+def get_multipole_kernel(dtype):
+    """Return a dtype-specialized raw kernel, compiled lazily."""
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU multipole tracking requires the optional 'cuda' dependencies."
+        ) from exc
+    key = np.dtype(dtype)
+    if key not in _kernels:
+        _kernels[key] = cp.RawKernel(
+            CUDA_REAL_PREAMBLE + MULTIPOLE_KERNEL_BODY,
+            "track_multipole_dkd",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+        )
+    return _kernels[key]
+
+
+def launch_multipole(element, sim, knl, ksl, inv_fact, mode):
+    """Launch the fused map for every bunch of an element.
+
+    ``mode`` is 0 for a thin kick, 1 for a thick sliced DKD map, and 2 for a
+    zero-strength drift.  The kernel's ``integrator`` argument is 0 for the
+    uniform second-order map and 1 for Yoshida-4.
+    """
+    import cupy as cp
+
+    beam = sim.beams[element.beam_id]
+    turn = sim.state.turn
+    p = beam.particles
+    real = p.real
+    cache = getattr(element, "_gpu_strength_cache", None)
+    if cache is None:
+        cache = {}
+        element._gpu_strength_cache = cache
+    key = np.dtype(p.dtype)
+    if key not in cache:
+        cache[key] = (cp.asarray(knl, dtype=p.dtype),
+                      cp.asarray(ksl, dtype=p.dtype),
+                      cp.asarray(inv_fact, dtype=p.dtype))
+    knl_gpu, ksl_gpu, inv_gpu = cache[key]
+    kernel = get_multipole_kernel(p.dtype)
+    threads = 256
+    for bunch in beam.bunches:
+        start, end = bunch.start_idx, bunch.end_idx
+        n = end - start
+        if n > 0:
+            blocks = (n + threads - 1) // threads
+            kernel((blocks,), (threads,),
+                   (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
+                    p.lost_position, p.lost_turn,
+                    np.int32(start), np.int32(end),
+                    real(bunch.beta * bunch.gamma), real(1.0 / bunch.gamma),
+                    real(element.length), real(element.s), np.int32(turn),
+                    knl_gpu, ksl_gpu, inv_gpu, np.int32(len(knl) - 1),
+                    np.int32(element.num_slice),
+                    np.int32(0 if element.integrator == "uniform" else 1),
+                    np.int32(mode)))
+        if n > 0:
+            from PASS.utils.aperture import check_aperture_gpu
+            check_aperture_gpu(beam, bunch, element.aperture_type,
+                               element.aperture_value, element.s, turn)
+        if abs(element.length) >= const.eps:
+            bunch.t0 += element.length / (bunch.beta * const.c)

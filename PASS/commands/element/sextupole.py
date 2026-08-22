@@ -7,6 +7,7 @@ from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
+from PASS.commands.element.multipole import launch_multipole
 
 import numpy as np
 import logging
@@ -117,7 +118,18 @@ class Sextupole(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
 
     def execute_gpu(self, sim):
-        raise NotImplementedError("GPU implementation of Sextupole is not yet available")
+        if self.is_thick:
+            all_zero = (abs(self.k2l) < const.eps and
+                        abs(self.k2sl) < const.eps)
+            mode = 2 if all_zero else 1
+            knl = np.array([0.0, 0.0, self.k2], dtype=np.float64)
+            ksl = np.array([0.0, 0.0, self.k2s], dtype=np.float64)
+        else:
+            mode = 0
+            knl = np.array([0.0, 0.0, self.k2l], dtype=np.float64)
+            ksl = np.array([0.0, 0.0, self.k2sl], dtype=np.float64)
+        launch_multipole(self, sim, knl, ksl,
+                         np.array([1.0, 1.0, 0.5], dtype=np.float64), mode)
 
     # ============================================================
     # Full sextupole tracking (CPU)
@@ -242,8 +254,9 @@ class Sextupole(Command):
         one_plus_delta = 1.0 + dp
         pz_sq = one_plus_delta**2 - px**2 - py**2
 
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
+        valid = pz_sq > 0.0
+        alive = tag > 0
+        tag[alive & ~valid] = -np.abs(tag[alive & ~valid])
         pz_sq_safe = np.maximum(pz_sq, const.eps)
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
@@ -252,7 +265,9 @@ class Sextupole(Command):
         bg = beta0 * gamma0
         beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
 
-        L_mask = L * mask
+        # A particle that becomes invalid at this drift exits immediately;
+        # do not transport it with the stale entry mask.
+        L_mask = L * (alive & valid)
 
         x += L_mask * px * inv_pz
         y += L_mask * py * inv_pz
@@ -276,7 +291,8 @@ class Sextupole(Command):
         if abs(k2l_eff) < const.eps and abs(k2sl_eff) < const.eps:
             return
 
-        k2l_mask = k2l_eff * mask
+        active = (tag > 0).astype(mask.dtype, copy=False)
+        k2l_mask = k2l_eff * active
 
         x2 = x * x
         y2 = y * y
@@ -290,7 +306,7 @@ class Sextupole(Command):
 
         # Skew sextupole
         if abs(k2sl_eff) > const.eps:
-            k2sl_mask = k2sl_eff * mask
+            k2sl_mask = k2sl_eff * active
             half_chi_k2sl = 0.5 * chi * k2sl_mask
             px += chi * k2sl_mask * xy
             py += half_chi_k2sl * (x2 - y2)
