@@ -921,8 +921,12 @@ CUDA_REAL_PREAMBLE = f'''
 #endif
 #if PASS_USE_FLOAT
 using pass_real_t = float;
+// Particle state remains FP32; this type is reserved for the sensitive
+// polar-coordinate map where rho+x and pz-related divisions lose FP32 bits.
+using pass_high_precision_t = double;
 #else
 using pass_real_t = double;
+using pass_high_precision_t = double;
 #endif
 #define PASS_EPS ((pass_real_t){const.eps:.17g})
 #ifndef PASS_DIPOLE_MODEL
@@ -949,7 +953,8 @@ __device__ PASS_DIPOLE_INLINE bool d_drift(
     // slice lengths (especially after Yoshida scaling).
     if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
     pass_real_t one_plus_delta = (pass_real_t)1 + dp;
-    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    pass_real_t pz_squared = one_plus_delta * one_plus_delta
+        - px * px - py * py;
     if (!(pz_squared > (pass_real_t)0)) {
         tag = -abs(tag);
         lp[i] = (float)s0;
@@ -1142,31 +1147,40 @@ __device__ PASS_DIPOLE_INLINE bool d_polar(pass_real_t& x, pass_real_t& px,
     if (fabs(h) < PASS_EPS)
         return d_drift(x, px, y, py, z, dp, tag, lp, lt, i,
                        L, beta_ratio, bg0, s0, turn);
-    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
-    pass_real_t pz_squared = one_plus_delta * one_plus_delta - px * px - py * py;
+    pass_high_precision_t xc = (pass_high_precision_t)x;
+    pass_high_precision_t pxc = (pass_high_precision_t)px;
+    pass_high_precision_t pyc = (pass_high_precision_t)py;
+    pass_high_precision_t dpc = (pass_high_precision_t)dp;
+    pass_high_precision_t one_plus_delta = (pass_high_precision_t)1 + dpc;
+    pass_high_precision_t pz_squared = one_plus_delta * one_plus_delta
+        - pxc * pxc - pyc * pyc;
     if (!(pz_squared > (pass_real_t)0)) {
         tag = -abs(tag);
         lp[i] = (float)s0;
         lt[i] = turn;
         return false;
     }
-    pass_real_t pz = sqrt(pz_squared);
-    pass_real_t inv_pz = (pass_real_t)1 / pz;
-    pass_real_t normalized_px = px * inv_pz;
-    pass_real_t denominator = cos_bend_angle - sin_bend_angle * normalized_px;
-    if (fabs(denominator) < PASS_EPS) denominator = PASS_EPS;
-    pass_real_t path_length_factor = (pass_real_t)1 / denominator;
-    pass_real_t polar_path_length = (x + rho) * sin_bend_angle
+    pass_high_precision_t pz = sqrt(pz_squared);
+    pass_high_precision_t inv_pz = (pass_high_precision_t)1 / pz;
+    pass_high_precision_t normalized_px = pxc * inv_pz;
+    pass_high_precision_t sa = (pass_high_precision_t)sin_bend_angle;
+    pass_high_precision_t ca = (pass_high_precision_t)cos_bend_angle;
+    pass_high_precision_t rhoc = (pass_high_precision_t)rho;
+    pass_high_precision_t denominator = ca - sa * normalized_px;
+    if (fabs(denominator) < (pass_high_precision_t)PASS_EPS)
+        denominator = (pass_high_precision_t)PASS_EPS;
+    pass_high_precision_t path_length_factor = (pass_high_precision_t)1 / denominator;
+    pass_high_precision_t polar_path_length = (xc + rhoc) * sa
         * inv_pz * path_length_factor;
-    pass_real_t new_x = (x + rho * ((pass_real_t)1 - cos_bend_angle
-        + sin_bend_angle * normalized_px))
-        * path_length_factor;
-    pass_real_t new_px = cos_bend_angle * px + sin_bend_angle * pz;
-    pass_real_t new_y = y + polar_path_length * py;
-    x = new_x;
-    px = new_px;
-    y = new_y;
-    z += L - one_plus_delta * polar_path_length * beta_ratio;
+    pass_high_precision_t new_x = (xc + rhoc * ((pass_high_precision_t)1 - ca
+        + sa * normalized_px)) * path_length_factor;
+    pass_high_precision_t new_px = ca * pxc + sa * pz;
+    pass_high_precision_t new_y = (pass_high_precision_t)y + polar_path_length * pyc;
+    x = (pass_real_t)new_x;
+    px = (pass_real_t)new_px;
+    y = (pass_real_t)new_y;
+    z += (pass_real_t)((pass_high_precision_t)L
+        - one_plus_delta * polar_path_length * (pass_high_precision_t)beta_ratio);
     return true;
 }
 
