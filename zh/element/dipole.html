@@ -1137,7 +1137,7 @@ hgap = 半气隙
 <div class="math notranslate nohighlight">
 \[f_h = \text{hgap} \times \text{fint}\]</div>
 <p>这与 Xsuite 源码 <code class="docutils literal notranslate"><span class="pre">track_dipole_fringe.h</span></code> 第 37 行 <code class="docutils literal notranslate"><span class="pre">fh</span> <span class="pre">=</span> <span class="pre">hgap</span> <span class="pre">*</span> <span class="pre">fint</span></code> 完全一致。Xsuite 的 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> 参数也是半气隙。因此 <span class="math notranslate nohighlight">\(f_h\)</span> 的物理含义是”半气隙 x 边缘场积分”，而非”全气隙 x 边缘场积分”。</p>
-<p>在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 <span class="math notranslate nohighlight">\(g\)</span> 通常指全气隙。Xsuite/MAD-NG 的实现中已将 <span class="math notranslate nohighlight">\(g\)</span> 替换为半气隙 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> ，相应的系数已做调整（如 <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 \cdot f_h)\)</span> 中的因子 72 即来自此调整）。PASS 严格遵循 Xsuite 的实现，不做额外换算。</p>
+<p>在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 <span class="math notranslate nohighlight">\(g\)</span> 通常指全气隙。Xsuite/MAD-NG 的几何定义使用半气隙 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> ，相应的系数已做调整（如 <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 \cdot f_h)\)</span> 中的因子 72 即来自此调整）。PASS 保留这一半气隙约定，但生成函数采用与 MAD-X PTC 对比一致的 PTC-compatible 形式。</p>
 </div>
 <p><strong>生成函数</strong></p>
 <p>边缘场映射是一个正则变换（保辛映射），由生成函数 <span class="math notranslate nohighlight">\(\Phi_0\)</span> 生成：</p>
