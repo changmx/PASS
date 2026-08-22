@@ -613,7 +613,7 @@ where :math:`g_{\text{full}}` is the magnet full gap (:math:`g_{\text{full}} = 2
 
   This is fully consistent with Xsuite source code ``track_dipole_fringe.h`` line 37 ``fh = hgap * fint``. The ``hgap`` parameter in Xsuite is also the half gap. Therefore the physical meaning of :math:`f_h` is "half gap × fringe field integral", not "full gap × fringe field integral".
 
-  In the physics literature (e.g., Forest's original paper), :math:`g` in the fringe field integral formula typically refers to the full gap. The Xsuite/MAD-NG implementation has replaced :math:`g` with the half gap ``hgap``, with corresponding coefficient adjustments (e.g., the factor 72 in :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` comes from this adjustment). PASS strictly follows the Xsuite implementation without additional conversion.
+  In the physics literature (e.g., Forest's original paper), :math:`g` in the fringe field integral formula typically refers to the full gap. The Xsuite/MAD-NG geometry uses the half gap ``hgap``, with corresponding coefficient adjustments (e.g., the factor 72 in :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` comes from this adjustment). PASS keeps this half-gap convention while using the PTC-compatible generating-function form for comparison with MAD-X PTC.
 
 **Generating function**
 

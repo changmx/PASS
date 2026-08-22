@@ -613,7 +613,7 @@ Forest 定义边缘场积分：
 
   这与 Xsuite 源码 ``track_dipole_fringe.h`` 第 37 行 ``fh = hgap * fint`` 完全一致。Xsuite 的 ``hgap`` 参数也是半气隙。因此 :math:`f_h` 的物理含义是"半气隙 x 边缘场积分"，而非"全气隙 x 边缘场积分"。
 
-  在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 :math:`g` 通常指全气隙。Xsuite/MAD-NG 的实现中已将 :math:`g` 替换为半气隙 ``hgap`` ，相应的系数已做调整（如 :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` 中的因子 72 即来自此调整）。PASS 严格遵循 Xsuite 的实现，不做额外换算。
+  在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 :math:`g` 通常指全气隙。Xsuite/MAD-NG 的几何定义使用半气隙 ``hgap`` ，相应的系数已做调整（如 :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` 中的因子 72 即来自此调整）。PASS 保留这一半气隙约定，但生成函数采用与 MAD-X PTC 对比一致的 PTC-compatible 形式。
 
 **生成函数**
 
