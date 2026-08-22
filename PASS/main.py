@@ -58,7 +58,3 @@ def main(beam0_path: str, beam1_path: str | None = None, is_cal_phase: bool = Tr
 
     finally:
         pass
-
-
-if __name__ == "__main__":
-    main(r"C:\Users\changmx\Documents\PASS\input\beam0.json")
