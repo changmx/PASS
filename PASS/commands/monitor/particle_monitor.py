@@ -103,6 +103,13 @@ class ParticleMonitor(Command):
             # Edge case: nothing to record, use a tiny placeholder
             self.buffer = xp.zeros((1, 1, _NCOLS), dtype=xp.float64)
 
+        self._first_index = (
+            xp.empty(self.max_tag, dtype=xp.int32)
+            if self.max_tag >= 1 and self.num_record_turn > 0
+            and _is_cupy_array(beam.particles.x)
+            else None
+        )
+
         super().__init__()
 
     def print(self):
@@ -124,6 +131,33 @@ class ParticleMonitor(Command):
         start = bunch.start_idx
         end = bunch.end_idx
         tag_all = particles.tag[start:end]
+        is_gpu = _is_cupy_array(tag_all)
+
+        if is_gpu:
+            find_kernel, write_kernel = _get_monitor_kernels(particles.dtype)
+            threads = 256
+            find_blocks = ((end - start) + threads - 1) // threads
+            write_blocks = (self.max_tag + threads - 1) // threads
+
+            # Initialize to the exclusive end index.  A missing tag then
+            # remains unwritten, matching the zero-initialized CPU buffer.
+            self._first_index.fill(np.int32(end))
+            find_kernel(
+                (find_blocks,), (threads,),
+                (particles.tag, np.int32(start), np.int32(end),
+                 np.int32(self.max_tag), self._first_index),
+            )
+            write_kernel(
+                (write_blocks,), (threads,),
+                (particles.x, particles.px, particles.y, particles.py,
+                 particles.z, particles.dp, particles.tag,
+                 particles.lost_turn, particles.lost_position,
+                 self._first_index, self.buffer, np.int32(end),
+                 np.int32(self.max_tag),
+                 np.int32(record_idx), np.int32(self.num_record_turn),
+                 np.int32(turn), np.float64(bunch.z_center)),
+            )
+            return
 
         for tag_val in range(1, self.max_tag + 1):
             # |tag| matching: find particles whose |tag| == tag_val
@@ -263,3 +297,81 @@ def xp_get(arr):
 def _is_cupy_array(arr):
     """Detect a CuPy array without importing the optional CuPy package."""
     return arr.__class__.__module__.startswith("cupy")
+
+
+# GPU-only implementation is kept below the monitor class so the public
+# ParticleMonitor lifecycle remains easy to inspect.  The class methods resolve
+# these names when called, so their placement does not affect behavior.
+_MONITOR_SOURCE = r'''
+#if PASS_USE_FLOAT
+using pass_real_t = float;
+#else
+using pass_real_t = double;
+#endif
+
+extern "C" __global__ void particle_monitor_find(
+    const int* tag, int start, int end, int max_tag, int* first)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x + start;
+    if (i >= end) return;
+    int value = tag[i];
+    int abs_value = value < 0 ? -value : value;
+    if (abs_value >= 1 && abs_value <= max_tag)
+        atomicMin(&first[abs_value - 1], i);
+}
+
+extern "C" __global__ void particle_monitor_write(
+    const pass_real_t* x, const pass_real_t* px,
+    const pass_real_t* y, const pass_real_t* py,
+    const pass_real_t* z, const pass_real_t* dp,
+    const int* tag, const int* lost_turn, const float* lost_position,
+    const int* first, double* out, int end, int max_tag, int record_idx,
+    int num_record_turn, int turn, double z_center)
+{
+    int tag_index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tag_index >= max_tag) return;
+    int i = first[tag_index];
+    if (i < 0 || i >= end) return;
+    size_t base = ((size_t)tag_index * (size_t)num_record_turn
+                   + (size_t)record_idx) * 11;
+    out[base + 0] = (double)turn;
+    out[base + 1] = (double)x[i];
+    out[base + 2] = (double)px[i];
+    out[base + 3] = (double)y[i];
+    out[base + 4] = (double)py[i];
+    out[base + 5] = (double)z[i];
+    out[base + 6] = (double)dp[i];
+    out[base + 7] = (double)tag[i];
+    out[base + 8] = (double)lost_turn[i];
+    out[base + 9] = (double)lost_position[i];
+    out[base + 10] = z_center;
+}
+'''
+
+_monitor_kernels = {}
+
+
+def _get_monitor_kernels(dtype):
+    """Compile monitor indexing/writing kernels once per particle precision."""
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError(
+            "GPU ParticleMonitor requires the optional 'cuda' dependencies."
+        ) from exc
+
+    key = np.dtype(dtype)
+    if key not in _monitor_kernels:
+        _monitor_kernels[key] = (
+            cp.RawKernel(
+                _MONITOR_SOURCE,
+                "particle_monitor_find",
+                options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+            ),
+            cp.RawKernel(
+                _MONITOR_SOURCE,
+                "particle_monitor_write",
+                options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+            ),
+        )
+    return _monitor_kernels[key]
