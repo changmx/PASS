@@ -92,7 +92,7 @@ if __name__ == "__main__":
             num_neutron=0,
             num_electron=1,
             gamma_t=7.635,  # auto-filled from TFS if omitted
-            circumference=569.098,  # auto-filled from TFS if omitted
+            circumference=234.4,  # auto-filled from TFS if omitted
             num_turns=1024,
             backend="cpu",
             num_gpu=1,
