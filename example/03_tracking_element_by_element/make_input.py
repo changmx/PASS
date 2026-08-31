@@ -81,7 +81,10 @@ if __name__ == "__main__":
     output_path = str(input_path())
 
     insert_particles = make_test_particles()
-    num_particles = len(insert_particles)
+    
+    num_particles = 10000
+    num_turns = 1024
+    backend = "cpu"
 
     generate_from_tfs(
         twiss_file=twiss_file,
@@ -93,10 +96,8 @@ if __name__ == "__main__":
             num_electron=1,
             gamma_t=7.635,  # auto-filled from TFS if omitted
             circumference=234.4,  # auto-filled from TFS if omitted
-            num_turns=1024,
-            backend="cpu",
-            num_gpu=1,
-            gpu_id=[0],
+            num_turns=num_turns,
+            backend=backend,
             output_dir=str(script_dir / "output"),
             is_plot=False,
             is_space_charge=False,
@@ -172,7 +173,7 @@ if __name__ == "__main__":
             dict(
                 type="ParticleMonitor",
                 s=0.0,
-                max_tag=num_particles,
+                max_tag=len(insert_particles),
                 start_turn=0,
                 end_turn=-1,
             ),
@@ -183,4 +184,4 @@ if __name__ == "__main__":
     )
 
     print(f"\n[Done] {output_path}")
-    print(f"  {num_particles} particles, 1024 turns")
+    print(f"  {num_particles} particles, {num_turns} turns")
