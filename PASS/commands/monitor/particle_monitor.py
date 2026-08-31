@@ -189,14 +189,19 @@ class ParticleMonitor(Command):
         turn = state.turn
 
         # Record within [start_turn, end_turn)
+        did_execute = False
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
                     self._record_one_turn(beam.particles, bunch, turn)
+                did_execute = True
 
         # Write TFS files on the last recorded turn
         if turn == self.end_turn - 1:
             self._write_tfs(sim)
+            did_execute = self.max_tag >= 1 or did_execute
+
+        return did_execute
 
     def execute_gpu(self, sim: Simulation):
         cfg: Config = sim.cfg
@@ -207,14 +212,19 @@ class ParticleMonitor(Command):
         # Record within [start_turn, end_turn)
         # GPU: buffer stays on GPU, write directly from GPU arrays
         # No per-turn D2H copy; only one D2H copy at the end (_write_tfs)
+        did_execute = False
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
                     self._record_one_turn(beam.particles, bunch, turn)
+                did_execute = True
 
         # Write TFS files on the last recorded turn (single D2H transfer)
         if turn == self.end_turn - 1:
             self._write_tfs(sim)
+            did_execute = self.max_tag >= 1 or did_execute
+
+        return did_execute
 
     def _write_tfs(self, sim: Simulation):
         """Write each particle's TBT data to a separate TFS file."""

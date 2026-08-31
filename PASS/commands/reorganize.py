@@ -68,7 +68,7 @@ class ReorganizeBunch(Command):
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         if turn != self.start_turn:
-            return
+            return False
         set_simple_logging()
         logger.info(
             f"[ReorganizeBunch] {self.cmd_name}: switching harmonic "
@@ -82,6 +82,7 @@ class ReorganizeBunch(Command):
                 f"end_idx={b.end_idx}, Np={b.Np}"
             )
         set_normal_logging()
+        return True
 
     def execute_gpu(self, sim: Simulation):
-        self.execute_cpu(sim)
+        return self.execute_cpu(sim)

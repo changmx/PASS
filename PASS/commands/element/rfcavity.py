@@ -214,7 +214,7 @@ class RFCavity(Command):
 
     def execute_cpu(self, sim):
         if not self.is_enabled:
-            return
+            return False
 
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
@@ -230,15 +230,16 @@ class RFCavity(Command):
                 self.s,
                 turn,
             )
+        return True
 
     def execute_gpu(self, sim):
         if not self.is_enabled:
-            return
+            return False
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         voltage, harmonic, phase, phi_offset = self._get_rf_params(turn)
         if abs(voltage) < const.eps:
-            return
+            return False
         for bunch in beam.bunches:
             beta0 = bunch.beta
             gamma0 = bunch.gamma
@@ -266,6 +267,7 @@ class RFCavity(Command):
             p0_kg_new = gamma1 * (m0 * const.e / (const.c * const.c)) * beta1 * const.c
             bunch.p0_kg = p0_kg_new
             bunch.brho = p0_kg_new / (qm_ratio * const.e)
+        return True
 
     # ------------------------------------------------------------------
     # Core RF tracking (CPU)

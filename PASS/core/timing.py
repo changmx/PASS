@@ -123,8 +123,18 @@ class ExecutionProfiler:
 
         self._last_command_start = time.perf_counter()
 
-    def stop_command(self, cmd, sim, turn: int):
+    def stop_command(self, cmd, sim, turn: int, executed: bool = True):
         if self.mode == "off" or self.mode == "turn":
+            return
+
+        # Commands are called from the executor on every turn, but some of
+        # them intentionally do no work on most turns (for example,
+        # Injection between its configured injection turns).  A command may
+        # return ``False`` to exclude such a no-op invocation from command
+        # counts and elapsed time while preserving the existing ``None``
+        # return convention used by other commands.
+        if executed is False:
+            self._last_command_start = None
             return
 
         record = self.command_timings.setdefault(cmd.cmd_type, CommandTiming())

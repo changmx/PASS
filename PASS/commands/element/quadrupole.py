@@ -154,11 +154,12 @@ class Quadrupole(Command):
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
+        return True
 
     def execute_gpu(self, sim):
         if self.is_thick and self.model == "mat-kick-mat":
             launch_quadrupole_matrix(self, sim)
-            return
+            return True
         if self.is_thick:
             all_zero = (abs(self.k1l) < const.eps and
                         abs(self.k1sl) < const.eps)
@@ -171,6 +172,7 @@ class Quadrupole(Command):
             ksl = np.array([0.0, self.k1sl], dtype=np.float64)
         launch_multipole(self, sim, knl, ksl,
                          np.array([1.0, 1.0], dtype=np.float64), mode)
+        return True
 
     # ============================================================
     # Full quadrupole tracking (CPU)

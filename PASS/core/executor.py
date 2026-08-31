@@ -18,6 +18,24 @@ class Executor:
     def __init__(self):
         pass
 
+    @staticmethod
+    def _command_executed(result) -> bool:
+        """Normalize command return values during the bool-protocol migration.
+
+        Legacy commands commonly omit ``return`` and therefore produce
+        ``None``; those invocations retain the historical counted behavior.
+        New commands should return an explicit bool, where only ``False``
+        denotes a no-op.
+        """
+        if result is None:
+            return True
+        if isinstance(result, bool):
+            return result
+        raise TypeError(
+            "Command execute_cpu/execute_gpu must return bool or None, "
+            f"got {type(result).__name__}"
+        )
+
     def run(self, sim: Simulation, seqs: list[CommandSequence]):
 
         cfg = sim.cfg
@@ -42,15 +60,21 @@ class Executor:
                 for seq in seqs:
                     for cmd in seq.cmds:
                         profiler.start_command(cmd, sim)
+                        executed = True
                         try:
                             if cfg.use_cpu:
-                                cmd.execute_cpu(sim)
+                                result = cmd.execute_cpu(sim)
                             elif cfg.use_gpu:
-                                cmd.execute_gpu(sim)
+                                result = cmd.execute_gpu(sim)
                             else:
                                 raise ValueError(f"unknown backend {cfg.backend}")
+                            # Existing commands return None.  Only an
+                            # explicit False means that this invocation did
+                            # no work and should be omitted from command
+                            # timing statistics.
+                            executed = self._command_executed(result)
                         finally:
-                            profiler.stop_command(cmd, sim, turn)
+                            profiler.stop_command(cmd, sim, turn, executed=executed)
 
                 profiler.finish_turn(turn)
                 if profiler.should_log_turn(turn):

@@ -27,10 +27,26 @@ class Command(ABC):
 
     @abstractmethod
     def execute_cpu(self, sim):
+        """Execute this command.
+
+        Commands may return ``False`` when the invocation is an intentional
+        no-op for the current simulation state.  The executor uses that value
+        to omit the invocation from command timing statistics.  Existing
+        commands that return ``None`` retain the historical behavior and are
+        counted as executed.
+        """
         pass
 
     @abstractmethod
     def execute_gpu(self, sim):
+        """Execute this command.
+
+        Commands may return ``False`` when the invocation is an intentional
+        no-op for the current simulation state.  The executor uses that value
+        to omit the invocation from command timing statistics.  Existing
+        commands that return ``None`` retain the historical behavior and are
+        counted as executed.
+        """
         pass
 
     # future

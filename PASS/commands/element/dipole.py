@@ -161,9 +161,11 @@ class SBend(Command):
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
+        return True
 
     def execute_gpu(self, sim):
         launch_dipole(self, sim)
+        return True
 
     # ============================================================
     # Full bend tracking (CPU)

@@ -113,11 +113,11 @@ class Exciter(Command):
     def execute_cpu(self, sim):
 
         if not self.is_enabled:
-            return
+            return False
 
         turn = sim.state.turn
         if turn < self.start_turn or turn >= self.end_turn:
-            return
+            return False
 
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
@@ -126,13 +126,14 @@ class Exciter(Command):
         for i, bunch in enumerate(bunches):
             self._exciter_kick_cpu(beam, bunch, effective_turn, turn)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+        return True
 
     def execute_gpu(self, sim):
         if not self.is_enabled:
-            return
+            return False
         turn = sim.state.turn
         if turn < self.start_turn or turn >= self.end_turn:
-            return
+            return False
         beam = sim.beams[self.beam_id]
         effective_turn = turn - self.start_turn
         for bunch in beam.bunches:
@@ -154,6 +155,7 @@ class Exciter(Command):
             launch_exciter(self, sim, bunch, effective_turn,
                            (v0, kick_amplitude, cf, cfw, self.period,
                             self.fm_dual_frequency, am_factor, mode))
+        return True
 
     # ------------------------------------------------------------------
     # AM (amplitude modulation) helpers

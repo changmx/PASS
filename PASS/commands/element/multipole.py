@@ -151,6 +151,7 @@ class Multipole(Command):
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
+        return True
 
     def execute_gpu(self, sim):
         all_zero = (np.all(np.abs(self.knl) < const.eps) and
@@ -159,6 +160,7 @@ class Multipole(Command):
         launch_multipole(self, sim, self.knl if not self.is_thick else self.kn,
                          self.ksl if not self.is_thick else self.ks,
                          self.inv_fact, mode)
+        return True
 
     # ============================================================
     # Full multipole tracking (CPU)

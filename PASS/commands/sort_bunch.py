@@ -189,10 +189,10 @@ class SortBunch(Command):
         super().__init__()
 
     def execute_cpu(self, sim):
-        self._sort(sim)
+        return self._sort(sim)
 
     def execute_gpu(self, sim):
-        self._sort(sim)
+        return self._sort(sim)
 
     def _sort(self, sim):
         beam = sim.beams[self.beam_id]
@@ -201,6 +201,7 @@ class SortBunch(Command):
                     f"particles, h={beam.harmonic_number}")
         set_normal_logging()
         regroup_particles(beam)
+        return True
 
     def print(self):
         set_simple_logging()

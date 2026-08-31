@@ -116,6 +116,7 @@ class Octupole(Command):
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
+        return True
 
     def execute_gpu(self, sim):
         if self.is_thick:
@@ -130,6 +131,7 @@ class Octupole(Command):
             ksl = np.array([0.0, 0.0, 0.0, self.k3sl], dtype=np.float64)
         launch_multipole(self, sim, knl, ksl,
                          np.array([1.0, 1.0, 0.5, 1.0 / 6.0], dtype=np.float64), mode)
+        return True
 
     # ============================================================
     # Full octupole tracking (CPU)

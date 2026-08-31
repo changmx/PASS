@@ -76,6 +76,7 @@ class StatMonitor(Command):
         turn = state.turn
         total_turn = cfg.num_turn
 
+        did_execute = False
         for bunch in bunches:
             bunch_id = bunch.bunch_id
 
@@ -230,6 +231,9 @@ class StatMonitor(Command):
             if turn == (total_turn - 1):
                 is_last_turn = True
             self._write_row(output_path_csv, output_path_tfs, row_dict, is_last_turn)
+            did_execute = True
+
+        return did_execute
 
     def execute_gpu(self, sim):
         try:
@@ -247,6 +251,7 @@ class StatMonitor(Command):
         turn = state.turn
         total_turn = cfg.num_turn
 
+        did_execute = False
         for bunch in bunches:
             bunch_id = bunch.bunch_id
 
@@ -410,6 +415,9 @@ class StatMonitor(Command):
             if turn == (total_turn - 1):
                 is_last_turn = True
             self._write_row(output_path_csv, output_path_tfs, row_dict, is_last_turn)
+            did_execute = True
+
+        return did_execute
 
 
 CUDA_REAL_PREAMBLE = r'''

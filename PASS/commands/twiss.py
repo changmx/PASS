@@ -89,6 +89,7 @@ class Twiss(Command):
         for i, bunch in enumerate(bunches):
             twiss_transfer_cpu(self, beam, bunch)
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+        return True
 
     def execute_gpu(self, sim):
         beam = sim.beams[self.beam_id]
@@ -152,6 +153,7 @@ class Twiss(Command):
             )
             if abs(length) >= const.eps:
                 bunch.t0 += length / (bunch.beta * const.c)
+        return True
 
 
 def twiss_transfer_cpu(self, beam: Beam, bunch: BunchInfo):

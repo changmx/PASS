@@ -70,10 +70,10 @@ class Injection(Command):
         set_normal_logging()
 
     def execute_cpu(self, sim: Simulation):
-        self._execute(sim)
+        return self._execute(sim)
 
     def execute_gpu(self, sim: Simulation):
-        self._execute(sim)
+        return self._execute(sim)
 
     def _execute(self, sim: Simulation):
         cfg = sim.cfg
@@ -83,6 +83,7 @@ class Injection(Command):
 
         use_cpu = cfg.use_cpu
         turn = state.turn
+        did_execute = False
 
         for i in range(len(self.inj_bunchs)):
             inj_bunch = self.inj_bunchs[i]
@@ -95,6 +96,7 @@ class Injection(Command):
                 # no particles): skip generation; the reference parameters
                 # still evolve through the RF cavity each turn.
                 continue
+            did_execute = True
             total_inj_turns = len(inj_bunch.inj_turns)
             inj_bunch.Np_inj_curTurn = int(Np / total_inj_turns)
             logger.info(f"total injection turns = {total_inj_turns}, Np_inj_curTurn = {inj_bunch.Np_inj_curTurn}")
@@ -142,6 +144,8 @@ class Injection(Command):
             if turn == inj_bunch.inj_turns[-1]:
                 if inj_bunch.is_save_init_dist:
                     self._save_init_dist(inj_bunch, bunch_info, beam, cfg)
+
+        return did_execute
 
     def _load_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
 
