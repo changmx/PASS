@@ -290,7 +290,7 @@ class Config:
             )
 
         cp.cuda.Device(selected_gpu_id).use()
-        logger.info(f"Selected GPU device: {selected_gpu_id}")
+        # logger.info(f"Selected GPU device: {selected_gpu_id}")
 
     def get_stat_path(self, beam_name, bunch_id):
         return Path(self.output_dir_stat / f"{beam_name}_bunch{bunch_id}_stat_{self.output_hms}")
@@ -504,13 +504,14 @@ def print_cuda_device_info(selected_gpu_id: int | None = None):
         # Calculation Mode
         compute_modes = {0: "Default", 1: "Exclusive", 2: "Prohibited", 3: "Exclusive Process"}
         logger.info(f"Compute Mode : {compute_modes.get(props.compute_mode,'Unknown')}")
+        logger.info("")
+
+    set_normal_logging()
 
     if selected_gpu_id is not None:
         import cupy as cp
         cp.cuda.Device(int(selected_gpu_id)).use()
         logger.info(f"Restored selected GPU device: {selected_gpu_id}")
-
-    set_normal_logging()
 
 
 def bytes_to_gb(nbytes):
