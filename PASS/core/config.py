@@ -128,8 +128,20 @@ class Config:
                 self.particle_precision = "float64"
 
         if self.use_gpu:
-            self.num_gpu = data0.get("number of gpu devices")
-            self.gpu_id = data0.get("device id")
+            self.num_gpu = int(data0.get("number of gpu devices", 1))
+            configured_gpu_id = data0.get("device id", [0])
+            if isinstance(configured_gpu_id, int):
+                configured_gpu_id = [configured_gpu_id]
+            self.gpu_id = [int(device_id) for device_id in configured_gpu_id]
+            if not self.gpu_id:
+                raise ValueError("At least one GPU device id must be configured")
+            if self.num_gpu != len(self.gpu_id):
+                logger.warning(
+                    "Number of GPU devices (%s) does not match Device Id length (%s); "
+                    "using the first configured device for this single-process run.",
+                    self.num_gpu,
+                    len(self.gpu_id),
+                )
 
         self.is_plot = data0.get("is plot figure")
 
@@ -251,6 +263,35 @@ class Config:
         timing["include_io"] = include_io
         return timing
 
+    def select_gpu_device(self) -> None:
+        """Select the first configured CUDA device for this process.
+
+        PASS currently executes one process on one GPU.  ``num_gpu`` and
+        additional IDs are retained as input metadata, while the first ID is
+        the device used for particle allocation and kernel launches.
+        """
+        if not self.use_gpu:
+            return
+
+        try:
+            import cupy as cp
+        except (ImportError, OSError) as exc:
+            raise RuntimeError(
+                "The GPU backend was requested, but CuPy is unavailable. "
+                "Install PASS with the optional [cuda] extra."
+            ) from exc
+
+        selected_gpu_id = int(self.gpu_id[0])
+        device_count = cp.cuda.runtime.getDeviceCount()
+        if selected_gpu_id < 0 or selected_gpu_id >= device_count:
+            raise ValueError(
+                f"Configured GPU device id {selected_gpu_id} is out of range "
+                f"for {device_count} visible CUDA device(s)"
+            )
+
+        cp.cuda.Device(selected_gpu_id).use()
+        logger.info(f"Selected GPU device: {selected_gpu_id}")
+
     def get_stat_path(self, beam_name, bunch_id):
         return Path(self.output_dir_stat / f"{beam_name}_bunch{bunch_id}_stat_{self.output_hms}")
 
@@ -262,7 +303,7 @@ class Config:
 
         if self.use_gpu:
             print_cuda_system_info()
-            print_cuda_device_info()
+            print_cuda_device_info(self.gpu_id[0])
 
         set_simple_logging()
 
@@ -382,13 +423,12 @@ def print_cuda_system_info():
     set_normal_logging()
 
 
-def print_cuda_device_info():
+def print_cuda_device_info(selected_gpu_id: int | None = None):
     """
     GPU Device Information
     """
 
-    from cuda.core import Device, system
-    from cuda.bindings import driver as cuda, runtime as cudart
+    from cuda.core import Device
     import platform
 
     set_simple_logging()
@@ -400,7 +440,6 @@ def print_cuda_device_info():
 
     for idx, dev in enumerate(devices):
         props = dev.properties
-        dev.set_current()
         logger.info("")
         logger.info(center_string(f" GPU[{idx}] : {dev.name} "))
 
@@ -416,8 +455,11 @@ def print_cuda_device_info():
 
         # GPU Memory
         try:
-            err, free_mem, total_mem = cuda.cuMemGetInfo()
-            logger.info(f"Global memory total/free : {fmt_bytes(total_mem)}/{fmt_bytes(free_mem)}")
+            mem = dev.memory_info
+            logger.info(
+                f"Global memory total/free : "
+                f"{fmt_bytes(mem.total)}/{fmt_bytes(mem.total - mem.used)}"
+            )
         except Exception as e:
             logger.warning(f"Failed to get global memory: {e}")
         logger.info(f"Memory clock rate : {fmt_hz(props.memory_clock_rate)}")
@@ -462,6 +504,11 @@ def print_cuda_device_info():
         # Calculation Mode
         compute_modes = {0: "Default", 1: "Exclusive", 2: "Prohibited", 3: "Exclusive Process"}
         logger.info(f"Compute Mode : {compute_modes.get(props.compute_mode,'Unknown')}")
+
+    if selected_gpu_id is not None:
+        import cupy as cp
+        cp.cuda.Device(int(selected_gpu_id)).use()
+        logger.info(f"Restored selected GPU device: {selected_gpu_id}")
 
     set_normal_logging()
 

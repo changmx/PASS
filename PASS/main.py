@@ -30,6 +30,9 @@ def main(beam0_path: str, beam1_path: str | None = None, is_cal_phase: bool = Tr
     setup_logging(log_file=cfg.get_log_path())
 
     try:
+        if cfg.use_gpu:
+            cfg.select_gpu_device()
+
         beams = []
         for i in range(cfg.num_beam):
             beams.append(Beam(cfg.input_path[i], cfg, is_cal_phase))
