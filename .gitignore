@@ -6,7 +6,8 @@
 *.fatbin
 
 __pycache__/
-tests/
+tests/codex/
+tests/**/__pycache__/
 runs/
 
 .vscode/
