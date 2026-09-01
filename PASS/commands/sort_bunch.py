@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # Particle arrays that must be permuted together when sorting.
 _ARRAY_NAMES = [
     "x", "px", "y", "py", "z", "dp", "tag",
-    "lost_turn", "lost_position", "slice_id",
+    "lost_turn", "lost_position",
 ]
 _OPTIONAL_ARRAY_NAMES = [
     "last_x", "last_px", "last_y", "last_py",
@@ -61,6 +61,17 @@ def _permute_particle_arrays(beam, perm):
         arr = getattr(p, name, None)
         if arr is not None:
             setattr(p, name, arr[perm])
+
+
+def _invalidate_slice_sets(beam):
+    """Invalidate bunch-local slice results after particle regrouping."""
+    invalidate = getattr(beam, "invalidate_slice_sets", None)
+    if invalidate is not None:
+        invalidate()
+        return
+    for bunch in beam.bunches:
+        for slice_set in getattr(bunch, "slice_sets", {}).values():
+            slice_set.invalidate()
 
 
 def _source_bunch_for_center(old_bunches, z_center: float, circum: float):
@@ -114,6 +125,7 @@ def regroup_particles(beam, new_harmonic: int | None = None):
         if new_harmonic is not None:
             beam.harmonic_number = h_new
             _rebuild_bunches(beam, h_new)
+        _invalidate_slice_sets(beam)
         return
 
     # --- laboratory longitudinal positions (old bunch centers) ---
@@ -168,6 +180,8 @@ def regroup_particles(beam, new_harmonic: int | None = None):
             p.dp[start:end] = (
                 (1.0 + p.dp[start:end]) * ref_scale - 1.0
             )
+
+    _invalidate_slice_sets(beam)
 
 
 @Command.register("sortbunch")
