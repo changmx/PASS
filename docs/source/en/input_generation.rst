@@ -255,6 +255,8 @@ InjectionItem (Injection and Grouping)
 
 It does not constrain ``RFCavityElement.harmonic``. Represent an unfilled group with a declared bunch whose ``num_macro_particles`` is zero.
 
+Set ``random_seed`` (JSON key ``Random Seed``) to an integer when the generated particle distribution must be reproducible. Leave it unset, or use JSON ``null``, for the default non-deterministic seed. The seed belongs to the whole Injection command, so its random stream is shared by all declared bunches and injection turns.
+
 
 BunchConfig (Bunch Parameters)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
