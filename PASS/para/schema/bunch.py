@@ -8,7 +8,7 @@ The injection JSON node is nested inside Sequence as:
     "Injection": {"S (m)": 0.0, "Command": "Injection", "bunch0": {...}}
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 
 class OffsetConfig(BaseModel):
@@ -193,6 +193,12 @@ class InjectionItem(BaseModel):
                     "bunch dictionaries created at injection. It does not "
                     "restrict RF cavity harmonics.",
     )
+    random_seed: StrictInt | None = Field(
+        default=None,
+        alias="Random Seed",
+        description="Optional seed for Injection particle-distribution "
+                    "generation. Omit it for a non-deterministic seed.",
+    )
     bunches: list[BunchConfig] = Field(
         default_factory=lambda: [BunchConfig(
             kinetic_energy=33.2e6,
@@ -221,6 +227,7 @@ class InjectionItem(BaseModel):
             "S (m)": self.s,
             "Command": self.command,
             "Harmonic Number": self.harmonic_number,
+            "Random Seed": self.random_seed,
         }
         for i, bunch in enumerate(self.bunches):
             result[f"bunch{i}"] = bunch.model_dump(by_alias=True)

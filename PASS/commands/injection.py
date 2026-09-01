@@ -47,24 +47,33 @@ class Injection(Command):
         for bunch_id in range(self.harmonic_number):
             b_kwargs = kwargs.get(f"bunch{bunch_id}")
             if b_kwargs is None:
-                raise ValueError(
-                    f"Injection {self.cmd_name}: bunch{bunch_id} not "
-                    f"declared; harmonic number {self.harmonic_number} "
-                    f"requires {self.harmonic_number} bunch dicts (one per "
-                    f"group)."
-                )
+                raise ValueError(f"Injection {self.cmd_name}: bunch{bunch_id} not "
+                                 f"declared; harmonic number {self.harmonic_number} "
+                                 f"requires {self.harmonic_number} bunch dicts (one per "
+                                 f"group).")
             b_kwargs = copy.deepcopy(b_kwargs)
             b_kwargs["harmonic number"] = self.harmonic_number
             inj_bunch = InjectionBunchInfo(self.beam_id, bunch_id, sim, **b_kwargs)
             self.inj_bunchs.append(inj_bunch)
 
-        self.rng = random.Random()
+        self.random_seed = kwargs.get("random seed", None)
+        if self.random_seed is None:
+            self.rng = random.Random()
+        else:
+            if type(self.random_seed) is not int:
+                raise ValueError(f"Injection {self.cmd_name}: random seed must be an integer or null, but now is {self.random_seed}.")
+            if self.random_seed < 0:
+                logger.warning(
+                    f"Injection {self.cmd_name}: random seed must be a non-negative integer, but now is {self.random_seed}. Use its absolute value instead."
+                )
+                self.random_seed = abs(self.random_seed)
+            self.rng = random.Random(self.random_seed)
 
         super().__init__()
 
     def print(self):
         set_simple_logging()
-        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}")
+        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Random Seed={self.random_seed}")
         for inj_bunch in self.inj_bunchs:
             inj_bunch.print()
         set_normal_logging()
@@ -1025,10 +1034,8 @@ class InjectionBunchInfo:
         ddp = kwargs.get("momentum offset dp", 0.0)
         dde = kwargs.get("kinetic energy offset (ev)", 0.0)
         if ddp != 0.0 and dde != 0.0:
-            raise ValueError(
-                f"Bunch{bunch_id}: 'momentum offset dp' and 'kinetic energy offset (eV)' "
-                f"are mutually exclusive, please set only one to non-zero."
-            )
+            raise ValueError(f"Bunch{bunch_id}: 'momentum offset dp' and 'kinetic energy offset (eV)' "
+                             f"are mutually exclusive, please set only one to non-zero.")
         if dde != 0.0:
             # Convert kinetic energy offset to dp offset using exact E^2 = p^2 + m_0^2
             # E0 = Ek + m0, p0 = sqrt(E0^2 - m0^2)

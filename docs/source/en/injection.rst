@@ -42,6 +42,11 @@ The parameters of the ``Injection`` command are shown in the table below. Here `
     - int
     - -
     - Bunch-grouping count; declare the same number of ``bunch0``, ``bunch1``, ... dictionaries and use empty bunches for unfilled groups
+  * - ``random_seed``
+    - ``Random Seed``
+    - int or null
+    - -
+    - Optional seed for particle-distribution generation. Omit it, or set it to ``null``, for a non-deterministic seed; a supplied value, including 0, makes the generated distribution reproducible for the same input and execution order
   * - ``bunch0``
     - ``bunch0``
     - dict
