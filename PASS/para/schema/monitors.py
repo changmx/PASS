@@ -25,7 +25,10 @@ class DistMonitor(BaseModel):
     save_turns: list[list[int]] = Field(
         default_factory=list,
         alias="Save turns",
-        description="Each sub-list is [start, stop, step] or [turn1, turn2, ...]",
+        description=(
+            "Each item is [turn] or [start, end, step], with inclusive "
+            "endpoints; an empty list disables saving"
+        ),
     )
 
 
