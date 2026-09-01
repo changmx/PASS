@@ -862,7 +862,6 @@ class Injection(Command):
             "tag": p_cpu.tag[start_index:end_index],
             "lost_turn": p_cpu.lost_turn[start_index:end_index],
             "lost_position": p_cpu.lost_position[start_index:end_index],
-            "slice_id": p_cpu.slice_id[start_index:end_index],
         })
 
         headers = {}

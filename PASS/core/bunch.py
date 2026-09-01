@@ -12,6 +12,7 @@ class BunchInfo:
 
         self.start_idx: int = 0
         self.end_idx: int = 0
+        self.slice_sets: dict[str, object] = {}
         self._load_input(input_data, bunch_id)
 
     def _load_input(self, data: dict, bunch_id: int) -> None:
@@ -80,6 +81,54 @@ class BunchInfo:
         self.brho = self.p0_kg / (self.qm_ratio * const.e)
 
         self.t0 = 0.0
+
+        self._register_slice_sets(data)
+
+    def _register_slice_sets(self, data: dict) -> None:
+        """Register all Slice command configurations for this bunch.
+
+        Every bunch gets the same named configuration.  The resulting
+        SliceSet objects are independent so their runtime IDs and statistics
+        cannot overwrite another bunch or another collective effect.
+        """
+        # Delayed import avoids the commands package importing BunchInfo while
+        # the core beam/bunch modules are still being initialized.
+        from PASS.commands.slicer import SliceSet
+
+        sequence = data.get("sequence", {})
+        for command_name, command_data in sequence.items():
+            if not isinstance(command_data, dict):
+                continue
+            if str(command_data.get("command", "")).strip().lower() != "slice":
+                continue
+
+            name = command_data.get("slice set")
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(
+                    f"Slice command {command_name!r} requires a non-empty "
+                    "'Slice set' name"
+                )
+            name = name.strip()
+            candidate = SliceSet(
+                name=name,
+                model=command_data.get("slice model", "equal_length"),
+                num_slices=command_data.get("number of slices", 100),
+                z_range_mode=command_data.get("z range mode", "auto_sigma"),
+                z_min=command_data.get("z min"),
+                z_max=command_data.get("z max"),
+                num_sigma=command_data.get("number of sigma", 6.0),
+                source_command=command_name,
+            )
+            previous = self.slice_sets.get(name)
+            if previous is not None:
+                if previous.configuration() != candidate.configuration():
+                    raise ValueError(
+                        f"Slice set {name!r} is configured inconsistently by "
+                        f"commands {previous.source_command!r} and "
+                        f"{command_name!r}"
+                    )
+                continue
+            self.slice_sets[name] = candidate
 
     def print(self) -> None:
 

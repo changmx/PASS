@@ -37,7 +37,6 @@ class ParticlePool:
         self.tag = self.xp.arange(1, 1 + n_particles, dtype=self.xp.int32)
         self.lost_turn = self.xp.full(n_particles, -1, dtype=self.xp.int32)
         self.lost_position = self.xp.full(n_particles, -1, dtype=self.xp.float32)
-        self.slice_id = self.xp.full(n_particles, -1, dtype=self.xp.int32)
 
         self.last_x = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
         self.last_px = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None

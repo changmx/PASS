@@ -64,6 +64,12 @@ class Beam:
             bunch.end_idx = self.Np_total + bunch.Np
             self.Np_total += bunch.Np
 
+    def invalidate_slice_sets(self) -> None:
+        """Invalidate all bunch-local slice results after regrouping."""
+        for bunch in self.bunches:
+            for slice_set in getattr(bunch, "slice_sets", {}).values():
+                slice_set.invalidate()
+
     def _create_particles(self):
         if self.use_gpu:
             try:
