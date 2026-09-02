@@ -255,6 +255,8 @@ InjectionItem（注入与分组）
 
 它不限制 ``RFCavityElement.harmonic`` 。未填充的分组应使用 ``num_macro_particles=0`` 的空束团占位。
 
+当需要复现生成的粒子分布时，设置整数 ``random_seed`` （JSON 键 ``Random Seed`` ）。不设置或在 JSON 中设为 ``null`` 时采用默认的非确定性种子。该种子属于整个 Injection 命令，因此所有声明的束团和注入轮次共享同一随机数流。
+
 
 BunchConfig（束团参数）
 ~~~~~~~~~~~~~~~~~~~~~~~~

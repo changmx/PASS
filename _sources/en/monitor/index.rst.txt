@@ -7,4 +7,5 @@ This module introduces the various beam monitors supported in PASS.
    :maxdepth: 2
 
    statmonitor
+   distmonitor
    particlemonitor

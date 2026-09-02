@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ParticleMonitor &mdash; PASS  documentation</title>
+  <title>DistMonitor &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
@@ -17,12 +17,11 @@
       <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
       <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Bunch Regrouping (ReorganizeBunch)" href="../reorganize.html" />
-    <link rel="prev" title="DistMonitor" href="distmonitor.html" /> 
+    <link rel="next" title="ParticleMonitor" href="particlemonitor.html" />
+    <link rel="prev" title="StatMonitor" href="statmonitor.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -569,22 +568,22 @@
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="distmonitor.html">DistMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="distmonitor.html#turn-selection">Turn selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="distmonitor.html#interface">Interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="distmonitor.html#output">Output</a></li>
-<li class="toctree-l4"><a class="reference internal" href="distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">DistMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#turn-selection">Turn selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interface">Interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">ParticleMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#introduction">Introduction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#particle-selection-mechanism">Particle Selection Mechanism</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#recorded-turn-range">Recorded Turn Range</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pre-allocation-strategy">Pre-allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#output-files">Output Files</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#usage-example">Usage Example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
 </ul>
@@ -675,9 +674,9 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">PASS Documentation (English)</a></li>
           <li class="breadcrumb-item"><a href="index.html">Monitor</a></li>
-      <li class="breadcrumb-item active">ParticleMonitor</li>
+      <li class="breadcrumb-item active">DistMonitor</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/en/monitor/particlemonitor.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/en/monitor/distmonitor.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -685,90 +684,53 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="particlemonitor">
-<h1>ParticleMonitor<a class="headerlink" href="#particlemonitor" title="Link to this heading"></a></h1>
-<section id="introduction">
-<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> is a turn-by-turn particle coordinate monitor that records the 6D phase space coordinates of selected particles at a specified longitudinal position, once per turn. Unlike <code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> which records overall bunch statistics, <code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> focuses on the turn-by-turn trajectory of <strong>individual particles</strong>, and is the core tool for turn-by-turn (TBT) diagnostics such as tune measurement, chromaticity measurement, and amplitude-dependent effect analysis.</p>
+  <section id="distmonitor">
+<h1>DistMonitor<a class="headerlink" href="#distmonitor" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> saves a complete particle snapshot at selected turns and at
+one lattice position. It is intended for post-processing the full bunch
+distribution, including particles that have already been lost.</p>
 <ul class="simple">
-<li><p><strong>Code location</strong>: <code class="docutils literal notranslate"><span class="pre">PASS/commands/monitor/particle_monitor.py</span></code></p></li>
-<li><p><strong>Class name</strong>: <code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code>, registered name <code class="docutils literal notranslate"><span class="pre">&quot;particlemonitor&quot;</span></code></p></li>
-<li><p><strong>Key features</strong>:</p>
-<ul>
-<li><p>Selects recorded particles via the <code class="docutils literal notranslate"><span class="pre">max_tag</span></code> parameter, with the matching condition <span class="math notranslate nohighlight">\(1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}\)</span>;</p></li>
-<li><p>Supports setting a recorded turn range <code class="docutils literal notranslate"><span class="pre">[start_turn,</span> <span class="pre">end_turn)</span></code>, without needing to start tracking from turn 0;</p></li>
-<li><p>Pre-allocates buffer <code class="docutils literal notranslate"><span class="pre">(max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">11)</span></code>, avoiding runtime dynamic allocation;</p></li>
-<li><p>Records 11 columns per turn: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter;</p></li>
-<li><p>After simulation, each particle is written to a separate TFS file;</p></li>
-<li><p>Filenames include the monitor name and longitudinal position (3 decimal places), supporting multi-position deployment;</p></li>
-<li><p>CPU uses numpy, GPU uses cupy, with the buffer residing on GPU throughout; only a single D2H copy is performed at the end;</p></li>
+<li><p><strong>Code location</strong>: <code class="docutils literal notranslate"><span class="pre">PASS/commands/monitor/distribution.py</span></code></p></li>
+<li><p><strong>Registered command</strong>: <code class="docutils literal notranslate"><span class="pre">&quot;distmonitor&quot;</span></code></p></li>
+<li><p><strong>Output directory</strong>: <code class="docutils literal notranslate"><span class="pre">output_dir_dist</span></code> (the <code class="docutils literal notranslate"><span class="pre">distribution</span></code> subdirectory
+of the run output)</p></li>
 </ul>
-</li>
-</ul>
-</section>
-<section id="particle-selection-mechanism">
-<h2>Particle Selection Mechanism<a class="headerlink" href="#particle-selection-mechanism" title="Link to this heading"></a></h2>
-<p>Each particle in PASS has a globally unique <code class="docutils literal notranslate"><span class="pre">tag</span></code> (positive integer), and inserted test particles are incremented starting from <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">1</span></code>. <code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> specifies the recording range via the <code class="docutils literal notranslate"><span class="pre">max_tag</span></code> parameter:</p>
-<div class="math notranslate nohighlight">
-\[\text{recorded} = \{\, i \;\mid\; 1 \leq |\mathrm{tag}_i| \leq \mathrm{max\_tag} \,\}\]</div>
-<p>Note that the matching condition uses <span class="math notranslate nohighlight">\(|\mathrm{tag}|\)</span> (absolute value), therefore:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">2,</span> <span class="pre">\ldots,</span> <span class="pre">\mathrm{max\_tag}</span></code>: normal surviving particles</p></li>
-<li><p>Negative <code class="docutils literal notranslate"><span class="pre">tag</span></code>: lost particles are <strong>also recorded</strong>, with their coordinates retaining the last values before loss</p></li>
-</ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Test particles are inserted via the <code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code> parameter of <code class="docutils literal notranslate"><span class="pre">Injection</span></code>. After insertion, particle <code class="docutils literal notranslate"><span class="pre">tag</span></code> values increment starting from 1. <code class="docutils literal notranslate"><span class="pre">max_tag</span></code> should equal the number of inserted test particles.</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">max_tag</span> <span class="pre">&lt;</span> <span class="pre">1</span></code>, the monitor only outputs a warning log and records no particles, but does not affect the simulation run.</p>
+<section id="turn-selection">
+<h2>Turn selection<a class="headerlink" href="#turn-selection" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code> is a list of one-element or three-element lists. A one-element
+list selects one zero-based turn. A three-element list is
+<code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code> and selects <code class="docutils literal notranslate"><span class="pre">start,</span> <span class="pre">start</span> <span class="pre">+</span> <span class="pre">step,</span> <span class="pre">...</span></code> up to and
+including <code class="docutils literal notranslate"><span class="pre">end</span></code>. Multiple entries may be supplied; overlapping entries are
+merged automatically.</p>
+<p>For example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"distribution_1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DistMonitor"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Save turns"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">]]</span>
+<span class="p">}</span>
+</pre></div>
 </div>
+<p>An empty list, <code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">turns&quot;:</span> <span class="pre">[]</span></code>, disables saving. <code class="docutils literal notranslate"><span class="pre">step</span></code> must be positive.
+If a range extends beyond the simulation, an end above the last turn is clipped
+to <code class="docutils literal notranslate"><span class="pre">num_turns</span> <span class="pre">-</span> <span class="pre">1</span></code> with a warning. A range whose start is at or beyond
+<code class="docutils literal notranslate"><span class="pre">num_turns</span></code> is ignored with a warning; a negative start is clipped to zero.
+Malformed ranges and non-positive steps remain errors. The monitor compiles the
+selection into a byte table during initialization; checking the current turn is
+a single bounds check and table lookup.</p>
 </section>
-<section id="recorded-turn-range">
-<h2>Recorded Turn Range<a class="headerlink" href="#recorded-turn-range" title="Link to this heading"></a></h2>
-<p>The recorded turn range can be specified via <code class="docutils literal notranslate"><span class="pre">start_turn</span></code> and <code class="docutils literal notranslate"><span class="pre">end_turn</span></code>:</p>
-<div class="math notranslate nohighlight">
-\[\text{recorded turns} = \{\, n \;\mid\; \mathrm{start\_turn} \leq n &lt; \mathrm{end\_turn} \,\}\]</div>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code>: starting turn for recording (inclusive), default 0</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code>: ending turn for recording (exclusive), default -1 meaning up to and including the last turn</p></li>
-</ul>
-<p>The actual number of recorded turns is:</p>
-<div class="math notranslate nohighlight">
-\[N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}\]</div>
-<p>Typical use: let the beam stabilize for the first 200 turns (not recorded), then record 1000 turns starting from turn 200 for FFT analysis.</p>
-</section>
-<section id="pre-allocation-strategy">
-<h2>Pre-allocation Strategy<a class="headerlink" href="#pre-allocation-strategy" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> pre-allocates the complete buffer at initialization:</p>
-<div class="math notranslate nohighlight">
-\[\mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times 11}\]</div>
-<p>Memory overhead:</p>
-<div class="math notranslate nohighlight">
-\[M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times 11 \times 8 \;\text{bytes}\]</div>
-<p>Typical scenario (14 test particles, recording 1000 turns):</p>
-<div class="math notranslate nohighlight">
-\[M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}\]</div>
-<p>The buffer uses the same array backend as the beam (<code class="docutils literal notranslate"><span class="pre">beam.particles.xp</span></code>), numpy on CPU, cupy on GPU. Advantages of pre-allocation:</p>
-<ul class="simple">
-<li><p>Zero memory allocation at runtime, no impact on tracking performance;</p></li>
-<li><p>In GPU scenarios, the buffer resides in GPU memory throughout; each turn writes directly from the GPU particle array to the GPU buffer, with only a single D2H copy performed at the end of simulation;</p></li>
-<li><p>Fixed memory layout, facilitating post-processing analysis.</p></li>
-</ul>
-</section>
-<section id="interface-parameters">
-<h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
+<section id="interface">
+<h2>Interface<a class="headerlink" href="#interface" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 20.0%" />
-<col style="width: 10.0%" />
-<col style="width: 10.0%" />
-<col style="width: 40.0%" />
+<col style="width: 12.0%" />
+<col style="width: 48.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>Property</p></th>
+<tr class="row-odd"><th class="head"><p>Python field</p></th>
 <th class="head"><p>JSON key</p></th>
 <th class="head"><p>Type</p></th>
-<th class="head"><p>Default</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
@@ -776,224 +738,96 @@
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;</span></code></p></td>
 <td><p>float</p></td>
-<td><p>Required</p></td>
-<td><p>Longitudinal position of the monitor in the beamline</p></td>
+<td><p>Longitudinal position of the monitor.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cmd_name</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code></p></td>
-<td><p>str</p></td>
-<td><p>Required</p></td>
-<td><p>Monitor name (automatically filled from the sequence key name)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Command&quot;</span></code></p></td>
 <td><p>str</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ParticleMonitor&quot;</span></code></p></td>
-<td><p>Command type identifier</p></td>
+<td><p>Must be <code class="docutils literal notranslate"><span class="pre">&quot;DistMonitor&quot;</span></code> (case-insensitive at runtime).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_tag</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Max</span> <span class="pre">tag&quot;</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Required</p></td>
-<td><p>Maximum tag value of recorded particles, must be <span class="math notranslate nohighlight">\(\geq 1\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Start</span> <span class="pre">turn&quot;</span></code></p></td>
-<td><p>int</p></td>
-<td><p>0</p></td>
-<td><p>Starting turn for recording (inclusive, 0-based)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;End</span> <span class="pre">turn&quot;</span></code></p></td>
-<td><p>int</p></td>
-<td><p>-1</p></td>
-<td><p>Ending turn for recording (exclusive, -1 means up to and including the last turn)</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">turns&quot;</span></code></p></td>
+<td><p>list[list[int]]</p></td>
+<td><p>Single turns <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> or inclusive ranges <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">max_tag</span></code> should be consistent with the number of particles inserted via <code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code> in <code class="docutils literal notranslate"><span class="pre">Injection</span></code>. For example, if 14 test particles are inserted, then <code class="docutils literal notranslate"><span class="pre">max_tag</span> <span class="pre">=</span> <span class="pre">14</span></code>.</p>
-</div>
-</section>
-<section id="output-files">
-<h2>Output Files<a class="headerlink" href="#output-files" title="Link to this heading"></a></h2>
-<p>Each particle generates an independent TFS file:</p>
-<ul class="simple">
-<li><p><strong>Filename</strong>: <code class="docutils literal notranslate"><span class="pre">{hms}_particle_beam{bid}_{monitor_name}_s_{s:.3f}_tag_{tag}.tfs</span></code></p></li>
-<li><p><strong>Output directory</strong>: <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code></p></li>
-</ul>
-<p>TFS file header:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Particle</span> <span class="n">Monitor</span>
-<span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
-<span class="o">@</span> <span class="n">Monitor</span>          <span class="n">pm1</span>
-<span class="o">@</span> <span class="n">S</span>                <span class="mf">0.0</span>
-<span class="o">@</span> <span class="n">BeamId</span>           <span class="mi">0</span>
-<span class="o">@</span> <span class="n">Tag</span>              <span class="mi">1</span>
-<span class="o">@</span> <span class="n">NumTurn</span>          <span class="mi">1000</span>
-<span class="o">@</span> <span class="n">StartTurn</span>        <span class="mi">0</span>
-<span class="o">@</span> <span class="n">EndTurn</span>          <span class="mi">1000</span>
+<p>The sequence key supplies the monitor name. With the high-level API, the
+schema object can be used directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitor</span>
+
+<span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
 </pre></div>
 </div>
-<p>Output columns (11 columns total):</p>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<p>One TFS file is written for each selected turn and each bunch. The filename
+contains the run time, beam and bunch identifiers, monitor position, monitor
+name, and turn number. All particles in the bunch are written, regardless of
+the sign of <code class="docutils literal notranslate"><span class="pre">tag</span></code>.</p>
+<p>The data columns are:</p>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 20.0%" />
-<col style="width: 15.0%" />
-<col style="width: 65.0%" />
+<col style="width: 24.0%" />
+<col style="width: 16.0%" />
+<col style="width: 60.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>Column name</p></th>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
 <th class="head"><p>Unit</p></th>
 <th class="head"><p>Description</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">turn</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Actual turn number (<span class="math notranslate nohighlight">\(\mathrm{start\_turn}\)</span> to <span class="math notranslate nohighlight">\(\mathrm{end\_turn}-1\)</span>)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
-<td><p>m</p></td>
-<td><p>Horizontal position</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Normalized horizontal momentum</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
-<td><p>m</p></td>
-<td><p>Vertical position</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Normalized vertical momentum</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
+<td><p>m or normalized momentum</p></td>
+<td><p>Transverse phase-space coordinates.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
 <td><p>m</p></td>
-<td><p>Longitudinal coordinate relative to the owning bunch center, <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span></p></td>
+<td><p>Tracked bunch-relative coordinate <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
 <td><ul class="simple">
 <li></li>
 </ul>
 </td>
-<td><p>Relative momentum deviation <span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>Relative momentum deviation.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tag</span></code></p></td>
 <td><ul class="simple">
 <li></li>
 </ul>
 </td>
-<td><p>Particle tag (positive = surviving, negative = lost)</p></td>
+<td><p>Particle identifier; positive means alive and negative means lost.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lostTurn</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lost_turn</span></code></p></td>
 <td><ul class="simple">
 <li></li>
 </ul>
 </td>
-<td><p>Loss turn (-1 means not lost)</p></td>
+<td><p>Turn at which the particle was lost (<code class="docutils literal notranslate"><span class="pre">-1</span></code> if it was not lost).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lostPosition</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lost_position</span></code></p></td>
 <td><p>m</p></td>
-<td><p>Loss position <span class="math notranslate nohighlight">\(s\)</span> (-1 means not lost)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code></p></td>
-<td><p>m</p></td>
-<td><p>Laboratory longitudinal center of the owning bunch, <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
+<td><p>Longitudinal loss position (<code class="docutils literal notranslate"><span class="pre">-1</span></code> if it was not lost).</p></td>
 </tr>
 </tbody>
 </table>
-<p>The laboratory longitudinal position is recovered as</p>
-<div class="math notranslate nohighlight">
-\[z_{\mathrm{lab}} = z + zCenter.\]</div>
-<p>The tracked <code class="docutils literal notranslate"><span class="pre">z</span></code> value may extend beyond one circumference and should not be used by itself to determine bunch membership.</p>
+<p>Headers include <code class="docutils literal notranslate"><span class="pre">S</span></code>, command and monitor names, beam/bunch identifiers,
+<code class="docutils literal notranslate"><span class="pre">Turn</span></code>, particle counts, backend and precision, PASS version, timestamp,
+<code class="docutils literal notranslate"><span class="pre">ZCoordinate</span></code>, <code class="docutils literal notranslate"><span class="pre">ZCenter</span></code>, and <code class="docutils literal notranslate"><span class="pre">Circumference</span></code>. The <code class="docutils literal notranslate"><span class="pre">z</span></code> column is not
+folded or shifted while saving; use <code class="docutils literal notranslate"><span class="pre">ZCenter</span></code> when reconstructing a lab-frame
+coordinate.</p>
 </section>
-<section id="usage-example">
-<h2>Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h2>
-<section id="basic-usage">
-<h3>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h3>
-<p>The following JSON snippet places a particle monitor at <span class="math notranslate nohighlight">\(s = 0.0\)</span> m, recording particles with <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">1</span></code> through <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">3</span></code>:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Combined with inserting 3 test particles in <code class="docutils literal notranslate"><span class="pre">Injection</span></code>:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Injection"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"bunch0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"Insert Particle Coordinate"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">            </span><span class="p">[</span><span class="mf">0.001</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
-<span class="w">            </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.001</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span>
-<span class="w">            </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.001</span><span class="p">]</span>
-<span class="w">        </span><span class="p">]</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>The above configuration inserts 3 test particles:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">1</span></code>: <span class="math notranslate nohighlight">\(x = 1\)</span> mm horizontal offset particle, for horizontal tune measurement</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">2</span></code>: <span class="math notranslate nohighlight">\(y = 1\)</span> mm vertical offset particle, for vertical tune measurement</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">3</span></code>: <span class="math notranslate nohighlight">\(\delta = 10^{-3}\)</span> momentum offset particle, for dispersion and chromaticity measurement</p></li>
-</ul>
-<p>After simulation, 3 TFS files are generated in the <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code> directory, each containing the 6D coordinates of that particle for all recorded turns.</p>
-</section>
-<section id="delayed-recording">
-<h3>Delayed Recording<a class="headerlink" href="#delayed-recording" title="Link to this heading"></a></h3>
-<p>The following configuration does not record for the first 200 turns (to let the beam stabilize), then records from turn 200 to turn 1000:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Start turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"End turn"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>The buffer size is allocated for <span class="math notranslate nohighlight">\(1000 - 200 = 800\)</span> turns, and the <code class="docutils literal notranslate"><span class="pre">turn</span></code> column in the output TFS file starts from 200.</p>
-</section>
-<section id="multi-position-monitoring">
-<h3>Multi-position Monitoring<a class="headerlink" href="#multi-position-monitoring" title="Link to this heading"></a></h3>
-<p>Multiple particle monitors can be placed at different positions on the ring to compare the phase space coordinates of particles at different locations:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM_start"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span>
-<span class="p">},</span>
-<span class="nt">"PM_mid"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">284.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">14</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="application-scenarios">
-<h2>Application Scenarios<a class="headerlink" href="#application-scenarios" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p><strong>Tune measurement</strong>: Perform FFT or NAFF on TBT coordinates to extract the betatron oscillation frequencies, which are the tunes <span class="math notranslate nohighlight">\(Q_x\)</span>, <span class="math notranslate nohighlight">\(Q_y\)</span></p></li>
-<li><p><strong>Chromaticity measurement</strong>: Measure the tune at different momentum deviations <span class="math notranslate nohighlight">\(\delta\)</span>; the slope of the linear fit of <span class="math notranslate nohighlight">\(Q(\delta)\)</span> gives the chromaticity <span class="math notranslate nohighlight">\(DQ_x\)</span>, <span class="math notranslate nohighlight">\(DQ_y\)</span></p></li>
-<li><p><strong>Amplitude-dependent tune shift (ADTS)</strong>: Measure the tune for particles with different initial amplitudes to analyze the nonlinear tune shift with amplitude</p></li>
-<li><p><strong>Dispersion function measurement</strong>: Take the time average of the TBT centroid orbit of the momentum-offset particle, divided by <span class="math notranslate nohighlight">\(\delta\)</span>, to obtain the dispersion function <span class="math notranslate nohighlight">\(D(s)\)</span></p></li>
-<li><p><strong>Slip-factor measurement</strong>: Record the bunch-relative coordinate <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> of a momentum-offset particle turn-by-turn. For comparisons across bunches or after regrouping, combine it with <code class="docutils literal notranslate"><span class="pre">zCenter</span></code> to recover <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}\)</span></p></li>
-<li><p><strong>Closed orbit verification</strong>: The TBT coordinates of an initially un-offset particle should remain unchanged, verifying closed orbit stability</p></li>
-<li><p><strong>Particle loss tracking</strong>: Locate the time and position of particle loss through <code class="docutils literal notranslate"><span class="pre">tag</span></code> sign changes and <code class="docutils literal notranslate"><span class="pre">lostTurn</span></code> / <code class="docutils literal notranslate"><span class="pre">lostPosition</span></code></p></li>
-</ul>
+<section id="cpu-and-gpu-behavior">
+<h2>CPU and GPU behavior<a class="headerlink" href="#cpu-and-gpu-behavior" title="Link to this heading"></a></h2>
+<p>On CPU, the monitor writes directly from the NumPy particle arrays. On GPU,
+only the nine output fields are copied to host memory at a selected turn and
+the host copy is passed to the TFS writer. No history buffer is retained
+between turns, so memory use is proportional to one particle snapshot rather
+than to <code class="docutils literal notranslate"><span class="pre">num_turns</span></code> snapshots.</p>
 </section>
 </section>
 
@@ -1001,8 +835,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="distmonitor.html" class="btn btn-neutral float-left" title="DistMonitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../reorganize.html" class="btn btn-neutral float-right" title="Bunch Regrouping (ReorganizeBunch)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="statmonitor.html" class="btn btn-neutral float-left" title="StatMonitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="particlemonitor.html" class="btn btn-neutral float-right" title="ParticleMonitor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
