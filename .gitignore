@@ -8,6 +8,9 @@
 __pycache__/
 tests/codex/
 tests/**/__pycache__/
+tests/**/output/
+.pytest_tmp_verify/
+.slicer_run_output/
 runs/
 
 .vscode/
