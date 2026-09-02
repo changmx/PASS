@@ -76,9 +76,31 @@ class DistMonitor(Command):
             start, end, step = int(start), int(end), int(step)
             if step <= 0:
                 raise ValueError(f"DistMonitor '{self.cmd_name}': Save turns step must be > 0")
-            if start < 0 or end < start or end >= self.num_turn:
-                raise ValueError(f"DistMonitor '{self.cmd_name}': turn range [{start}, "
-                                 f"{end}, {step}] is outside [0, {self.num_turn})")
+
+            original_start, original_end = start, end
+            if self.num_turn <= 0:
+                logger.warning(f"DistMonitor '{self.cmd_name}': num_turn={self.num_turn}; "
+                               f"ignoring Save turns range [{start}, {end}, {step}]")
+                continue
+            if start >= self.num_turn:
+                logger.warning(f"DistMonitor '{self.cmd_name}': start turn {start} is "
+                               f"outside [0, {self.num_turn}); ignoring range "
+                               f"[{original_start}, {original_end}, {step}]")
+                continue
+            if end < 0:
+                logger.warning(f"DistMonitor '{self.cmd_name}': end turn {end} is before "
+                               f"turn 0; ignoring range [{original_start}, {original_end}, {step}]")
+                continue
+            if start < 0:
+                logger.warning(f"DistMonitor '{self.cmd_name}': clipping start turn {start} to 0")
+                start = 0
+            if end >= self.num_turn:
+                logger.warning(f"DistMonitor '{self.cmd_name}': clipping end turn {end} "
+                               f"to {self.num_turn - 1}")
+                end = self.num_turn - 1
+            if end < start:
+                raise ValueError(f"DistMonitor '{self.cmd_name}': turn range [{original_start}, "
+                                 f"{original_end}, {step}] has end before start")
 
             count = ((end - start) // step) + 1
             self._selected_turns[start:end + 1:step] = b"\x01" * count
@@ -154,4 +176,4 @@ class DistMonitor(Command):
         filepath = self.output_dir / filename
         table = tfs.TfsDataFrame(df, headers=headers)
         tfs.write(str(filepath), table)
-        logger.info("DistMonitor '%s': saved %s", self.cmd_name, filepath)
+        logger.info(f"DistMonitor '{self.cmd_name}': saved {filepath}")

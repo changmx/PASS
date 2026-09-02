@@ -29,10 +29,13 @@ For example:
        "Save turns": [[0], [100, 200, 10], [500, 1000, 100]]
    }
 
-An empty list, ``"Save turns": []``, disables saving. Turns must be within
-``[0, num_turns)`` and ``step`` must be positive. The monitor compiles the
-selection into a byte table during initialization; checking the current turn
-is a single bounds check and table lookup.
+An empty list, ``"Save turns": []``, disables saving. ``step`` must be positive.
+If a range extends beyond the simulation, an end above the last turn is clipped
+to ``num_turns - 1`` with a warning. A range whose start is at or beyond
+``num_turns`` is ignored with a warning; a negative start is clipped to zero.
+Malformed ranges and non-positive steps remain errors. The monitor compiles the
+selection into a byte table during initialization; checking the current turn is
+a single bounds check and table lookup.
 
 Interface
 ---------
