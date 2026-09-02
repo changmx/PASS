@@ -2,6 +2,7 @@ COMMAND_PRIORITY = {
     "Injection": 0,
     "SortBunch": 100,
     "ReorganizeBunch": 150,
+    "Slicer": 160,
     "Twiss": 200,
     "Marker": 300,
     "Drift": 300,
@@ -39,6 +40,7 @@ from .twiss import Twiss
 from .injection import Injection
 from .reorganize import ReorganizeBunch
 from .sort_bunch import SortBunch
+from .slicer import Slicer, SliceSet
 from .element.marker import Marker
 from .element.drift import Drift
 from .element.dipole import SBend
@@ -52,6 +54,7 @@ from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
 from .element.rfcavity import RFCavity
 from .monitor.statistic import StatMonitor
+from .monitor.distribution import DistMonitor
 from .monitor.particle_monitor import ParticleMonitor
 
 __all__ = [
@@ -62,6 +65,8 @@ __all__ = [
     "Injection",
     "SortBunch",
     "ReorganizeBunch",
+    "Slicer",
+    "SliceSet",
     "Marker",
     "Drift",
     "SBend",
@@ -75,5 +80,6 @@ __all__ = [
     "Exciter",
     "RFCavity",
     "StatMonitor",
+    "DistMonitor",
     "ParticleMonitor",
 ]
