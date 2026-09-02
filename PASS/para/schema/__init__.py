@@ -20,6 +20,7 @@ Models:
 from PASS.para.schema.main import MainConfig, TimingConfig
 from PASS.para.schema.bunch import BunchConfig, OffsetConfig, InjectionItem
 from PASS.para.schema.twiss import TwissPoint
+from PASS.para.schema.slicer import Slicer
 from PASS.para.schema.elements import (
     ElementBase,
     DriftElement,
@@ -52,6 +53,7 @@ __all__ = [
     "OffsetConfig",
     "InjectionItem",
     "TwissPoint",
+    "Slicer",
     "ElementBase",
     "DriftElement",
     "MarkerElement",
