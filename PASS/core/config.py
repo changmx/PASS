@@ -51,6 +51,7 @@ class Config:
     output_dir_chargeDensity: str = ""
     output_dir_plot: str = ""
     output_dir_particle: str = ""
+    output_dir_slice: str = ""
     output_dir_slowExt_particle: str = ""
 
     def load_input(self, beam0_path: str, beam1_path: str | None = None) -> None:
@@ -187,6 +188,7 @@ class Config:
         self.output_dir_chargeDensity = str(Path(output_base) / self.output_ymd / self.output_hms / "chargeDensity")
         self.output_dir_plot = str(Path(output_base) / self.output_ymd / self.output_hms / "plot")
         self.output_dir_particle = str(Path(output_base) / self.output_ymd / self.output_hms / "particle")
+        self.output_dir_slice = str(Path(output_base) / self.output_ymd / self.output_hms / "slice")
         self.output_dir_slowExt_particle = str(Path(output_base) / self.output_ymd / self.output_hms / "slowExt_particle")
 
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)

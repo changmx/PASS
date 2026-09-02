@@ -15,3 +15,4 @@ PASS 文档（中文）
    reorganize
    aperture
    twiss
+   slicer

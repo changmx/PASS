@@ -85,7 +85,7 @@ class BunchInfo:
         self._register_slice_sets(data)
 
     def _register_slice_sets(self, data: dict) -> None:
-        """Register all Slice command configurations for this bunch.
+        """Register all Slicer command configurations for this bunch.
 
         Every bunch gets the same named configuration.  The resulting
         SliceSet objects are independent so their runtime IDs and statistics
@@ -99,31 +99,24 @@ class BunchInfo:
         for command_name, command_data in sequence.items():
             if not isinstance(command_data, dict):
                 continue
-            if str(command_data.get("command", "")).strip().lower() != "slice":
+            if str(command_data.get("command", "")).strip().lower() != "slicer":
                 continue
 
             name = command_data.get("slice set")
             if not isinstance(name, str) or not name.strip():
                 raise ValueError(
-                    f"Slice command {command_name!r} requires a non-empty "
-                    "'Slice set' name"
+                    f"Slicer command {command_name!r} requires a non-empty "
+                    "'slice set' name"
                 )
             name = name.strip()
-            candidate = SliceSet(
-                name=name,
-                model=command_data.get("slice model", "equal_length"),
-                num_slices=command_data.get("number of slices", 100),
-                z_range_mode=command_data.get("z range mode", "auto_sigma"),
-                z_min=command_data.get("z min"),
-                z_max=command_data.get("z max"),
-                num_sigma=command_data.get("number of sigma", 6.0),
-                source_command=command_name,
+            candidate = SliceSet.from_command(
+                name, command_data, source_command=command_name
             )
             previous = self.slice_sets.get(name)
             if previous is not None:
                 if previous.configuration() != candidate.configuration():
                     raise ValueError(
-                        f"Slice set {name!r} is configured inconsistently by "
+                        f"SliceSet {name!r} is configured inconsistently by "
                         f"commands {previous.source_command!r} and "
                         f"{command_name!r}"
                     )

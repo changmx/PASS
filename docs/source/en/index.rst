@@ -14,3 +14,4 @@ Welcome to PASS, the Particle Accelerator Simulation Studio.
    reorganize
    aperture
    twiss
+   slicer
