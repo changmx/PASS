@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Beam:
 
-    def __init__(self, input_file: str, cfg: Config, is_cal_phase: bool = True):
+    def __init__(self, input_file: str, cfg: Config):
 
         self.cfg = cfg
         self.use_gpu = cfg.use_gpu
@@ -19,7 +19,6 @@ class Beam:
         self.beam_name = cfg.beam_name[self.beam_id]
         self.harmonic_number = cfg.harmonic_number[self.beam_id]
         self.bunches = []
-        self.is_cal_phase = is_cal_phase
 
         self._load_input()
         self._create_bunch_info()
@@ -89,7 +88,6 @@ class Beam:
             self.Np_total,
             xp,
             dtype=dtype,
-            is_cal_phase=self.is_cal_phase,
         )
 
     def print(self) -> None:

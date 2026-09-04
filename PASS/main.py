@@ -22,7 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def main(beam0_path: str, beam1_path: str | None = None, is_cal_phase: bool = True):
+def main(beam0_path: str, beam1_path: str | None = None):
 
     cfg = Config()
     cfg.load_input(beam0_path, beam1_path)
@@ -35,7 +35,7 @@ def main(beam0_path: str, beam1_path: str | None = None, is_cal_phase: bool = Tr
 
         beams = []
         for i in range(cfg.num_beam):
-            beams.append(Beam(cfg.input_path[i], cfg, is_cal_phase))
+            beams.append(Beam(cfg.input_path[i], cfg))
 
         state = State()
 

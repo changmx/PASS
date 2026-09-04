@@ -4,14 +4,15 @@ import numpy as np
 class ParticlePool:
 
     real_fields = frozenset((
-        "x", "px", "y", "py", "z", "dp",
-        "last_x", "last_px", "last_y", "last_py",
-        "last_phasex", "last_phasey",
+        "x",
+        "px",
+        "y",
+        "py",
+        "z",
+        "dp",
     ))
 
-    def __init__(self, n_particles: int, xp, dtype=np.float64,
-                 is_cal_phase: bool = True):
-
+    def __init__(self, n_particles: int, xp, dtype=np.float64):
         """
         px = Px/P0
         py = Py/P0
@@ -22,10 +23,8 @@ class ParticlePool:
         self.xp = xp
         self.dtype = np.dtype(dtype)
         if self.dtype not in {np.dtype(np.float32), np.dtype(np.float64)}:
-            raise ValueError(
-                "ParticlePool dtype must be float32 or float64, but got "
-                f"{self.dtype}"
-            )
+            raise ValueError("ParticlePool dtype must be float32 or float64, but got "
+                             f"{self.dtype}")
         self.real = self.dtype.type
 
         self.x = self.xp.zeros(n_particles, dtype=self.dtype)
@@ -38,25 +37,16 @@ class ParticlePool:
         self.lost_turn = self.xp.full(n_particles, -1, dtype=self.xp.int32)
         self.lost_position = self.xp.full(n_particles, -1, dtype=self.xp.float32)
 
-        self.last_x = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
-        self.last_px = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
-        self.last_y = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
-        self.last_py = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
-        self.last_phasex = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
-        self.last_phasey = self.xp.zeros(n_particles, dtype=self.dtype) if is_cal_phase else None
-
     def copy(self, xp_target, fields=None, dtype=None):
         """Copy to another backend and, optionally, another particle dtype.
 
-        ``dtype`` changes six-dimensional state and phase-history arrays only.
-        Integer metadata and float32 ``lost_position`` remain unchanged.
+        ``dtype`` changes only the six-dimensional particle state. Integer
+        metadata and float32 ``lost_position`` remain unchanged.
         """
         target_dtype = self.dtype if dtype is None else np.dtype(dtype)
         if target_dtype not in {np.dtype(np.float32), np.dtype(np.float64)}:
-            raise ValueError(
-                "ParticlePool copy dtype must be float32 or float64, but got "
-                f"{target_dtype}"
-            )
+            raise ValueError("ParticlePool copy dtype must be float32 or float64, but got "
+                             f"{target_dtype}")
 
         def convert(name, value):
             value_dtype = target_dtype if name in self.real_fields else None
