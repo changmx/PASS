@@ -29,6 +29,24 @@ python -m pip install --editable ".[cuda]"
 
 CUDA 后端还需要 CUDA 工具包和兼容的 GPU；CPU 追踪不依赖 CUDA。
 
+## 图形界面
+
+PASS 提供可选的跨平台图形界面，包含独立的配置、运行和绘图页面。安装方式：
+
+```bash
+python -m pip install --editable ".[gui]"
+```
+
+随后可在仓库目录或已安装的环境中启动：
+
+```bash
+python -m PASS.gui
+# 或
+pass-gui
+```
+
+配置页面可加载、编辑、校验和导出 PASS JSON 输入文件。运行页面以独立进程调用现有PASS 追踪入口。绘图页面可加载 CSV 或 TFS 结果文件，并选择数值列进行基础曲线查看。
+
 ## 主要功能
 
 - 在加速器束中进行六维粒子追踪；

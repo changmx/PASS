@@ -29,6 +29,24 @@ python -m pip install --editable ".[cuda]"
 
 The CUDA toolkit and a compatible GPU are required for the CUDA backend. CPU tracking does not require CUDA.
 
+## Graphical Interface
+
+The optional cross-platform PASS interface provides separate configuration, run, and plotting pages. Install it with:
+
+```bash
+python -m pip install --editable ".[gui]"
+```
+
+Then launch it from the repository or any installed environment:
+
+```bash
+python -m PASS.gui
+# or
+pass-gui
+```
+
+The configuration page loads, edits, validates, and exports PASS JSON input. The run page starts the existing PASS tracking entry point in a separate process. The plotting page loads CSV or TFS result files and lets the user select a numeric column for a first-pass curve view.
+
 ## Functionality
 
 - six-dimensional particle tracking through accelerator lattices;

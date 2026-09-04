@@ -37,6 +37,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+gui = [
+    "PySide6>=6.6",
+]
 cuda = [
     "numba-cuda",
     "cuda-python>=13.0.0",
@@ -45,6 +48,9 @@ cuda = [
     "cuda-cccl[cu13]>=1.0.0",
     "nvmath-python[cu13]==0.9.0",
 ]
+
+[project.scripts]
+pass-gui = "PASS.gui.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/changmx/PASS"
