@@ -8,4 +8,5 @@
 
    statmonitor
    distmonitor
+   phaseadvancemonitor
    particlemonitor
