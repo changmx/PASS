@@ -170,6 +170,54 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
     return result_items, result_names
 
 
+def merge_drift_twiss_points(
+    items: list[TwissPoint], names: list[str], keywords: list[str]
+) -> tuple[list[TwissPoint], list[str]]:
+    """Collapse consecutive MAD-X DRIFT rows into one Twiss transport point.
+
+    The last point in each drift run is retained so its optical functions remain
+    the values at the end of the run.  Its previous values and ``S previous``
+    are taken from the first point, making the resulting transfer span the
+    complete merged drift interval.
+    """
+    if not items:
+        return [], []
+    result_items: list[TwissPoint] = []
+    result_names: list[str] = []
+    i = 0
+    while i < len(items):
+        if str(keywords[i]).casefold() != "drift":
+            result_items.append(items[i])
+            result_names.append(names[i])
+            i += 1
+            continue
+        j = i + 1
+        while j < len(items) and str(keywords[j]).casefold() == "drift":
+            j += 1
+        last = items[j - 1]
+        if j - i > 1:
+            first = items[i]
+            last = last.model_copy(update={
+                "s_previous": first.s_previous,
+                "alpha_x_previous": first.alpha_x_previous,
+                "alpha_y_previous": first.alpha_y_previous,
+                "beta_x_previous": first.beta_x_previous,
+                "beta_y_previous": first.beta_y_previous,
+                "mu_x_previous": first.mu_x_previous,
+                "mu_y_previous": first.mu_y_previous,
+                "mu_z_previous": first.mu_z_previous,
+                "dx_previous": first.dx_previous,
+                "dpx_previous": first.dpx_previous,
+            })
+            result_names.append("_".join(names[i:j]))
+        else:
+            result_names.append(names[i])
+        result_items.append(last)
+        i = j
+    print(f"[Read MADX Twiss] Merged drifts: {len(items)} -> {len(result_items)}")
+    return result_items, result_names
+
+
 def read_madx_elements(
     twiss_file: str,
     error_file: str = "",
@@ -339,6 +387,7 @@ def read_madx_twiss(
     is_field_error: bool = False,
     insert_patterns: list[str] | None = None,
     longitudinal_transfer: str = "off",
+    is_merge_drift: bool = False,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (twiss_items, item_names, circumference).
 
@@ -355,6 +404,7 @@ def read_madx_twiss(
         dqx: chromaticity Qx. Float or "from_file" to read from headers.
         dqy: chromaticity Qy. Float or "from_file" to read from headers.
         is_field_error: if True, read field errors and attach as multipole elements.
+        is_merge_drift: merge consecutive Drift elements if present in the result.
         insert_patterns: regex patterns to match element names for thin-lens insertion.
         longitudinal_transfer: "off" / "drift" / "matrix".
 
@@ -398,6 +448,7 @@ def read_madx_twiss(
 
     items = []
     names = []
+    keywords = []
     name_count = {}
 
     for i in range(num_elem):
@@ -462,9 +513,13 @@ def read_madx_twiss(
             )
         items.append(tp)
         names.append(name)
+        keywords.append(str(twiss_table.iloc[i].get("KEYWORD", "")))
         tp._match_key = match_key
 
     print(f"[Read MADX Twiss] {len(items)} twiss points created")
+
+    if is_merge_drift:
+        items, names = merge_drift_twiss_points(items, names, keywords)
 
     # --- Insert thin-lens elements ---
     if insert_patterns:
