@@ -27,7 +27,7 @@ class Beam:
     def _load_input(self) -> None:
         data = self.cfg.input_data[self.beam_id]
         self.is_beambeam = data.get("is beam-beam", False)
-        self.is_spaceCharge = data.get("is space charge", False)
+        self.is_spaceCharge = bool(self.cfg.space_charge[self.beam_id].enabled)
         self._data = data
 
     def _create_bunch_info(self) -> None:

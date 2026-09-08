@@ -33,6 +33,8 @@ class Config:
     is_plot: bool = False
     input_path: list[str] = field(default_factory=list)
     input_data: list[dict] = field(default_factory=list)
+    space_charge: list = field(default_factory=list)
+    space_charge_configuration_counts: list[int] = field(default_factory=list)
     timing: dict = field(default_factory=lambda: {
         "mode": "command",
         "log_interval": 10,
@@ -49,6 +51,7 @@ class Config:
     output_dir_dist: str = ""
     output_dir_tuneSpread: str = ""
     output_dir_chargeDensity: str = ""
+    output_dir_space_charge: str = ""
     output_dir_plot: str = ""
     output_dir_particle: str = ""
     output_dir_slice: str = ""
@@ -59,21 +62,25 @@ class Config:
         self.harmonic_number.clear()
         self.input_path.clear()
         self.input_data.clear()
+        self.space_charge.clear()
+        self.space_charge_configuration_counts.clear()
 
         path0 = Path(beam0_path)
         if not path0.exists():
             raise FileNotFoundError(f"Input beam0 file not found: {path0}")
         with open(path0, 'r', encoding='utf-8') as f:
-            data0 = json.load(f)
-            data0 = convert_keys_to_lower(data0)
+            raw0 = json.load(f)
+            space_charge0, space_charge_count0 = self._load_space_charge(raw0)
+            data0 = convert_keys_to_lower(raw0)
 
         if beam1_path is not None:
             path1 = Path(beam1_path)
             if not path1.exists():
                 raise FileNotFoundError(f"Input beam1 file not found: {path1}")
             with open(path1, 'r', encoding='utf-8') as f:
-                data1 = json.load(f)
-                data1 = convert_keys_to_lower(data1)
+                raw1 = json.load(f)
+                space_charge1, space_charge_count1 = self._load_space_charge(raw1)
+                data1 = convert_keys_to_lower(raw1)
 
         if beam1_path is None:
             self.num_beam = 1
@@ -84,6 +91,8 @@ class Config:
             self.beam_name.append(data0.get("beam name"))
             self.input_path.append(beam0_path)
             self.input_data.append(data0)
+            self.space_charge.append(space_charge0)
+            self.space_charge_configuration_counts.append(space_charge_count0)
             h0 = int(data0["sequence"]["injection"]["harmonic number"])
             self.harmonic_number.append(h0)
         else:
@@ -93,6 +102,10 @@ class Config:
             self.input_path.append(beam1_path)
             self.input_data.append(data0)
             self.input_data.append(data1)
+            self.space_charge.append(space_charge0)
+            self.space_charge.append(space_charge1)
+            self.space_charge_configuration_counts.append(space_charge_count0)
+            self.space_charge_configuration_counts.append(space_charge_count1)
             h0 = int(data0["sequence"]["injection"]["harmonic number"])
             h1 = int(data1["sequence"]["injection"]["harmonic number"])
             self.harmonic_number.append(h0)
@@ -186,6 +199,7 @@ class Config:
         self.output_dir_dist = str(Path(output_base) / self.output_ymd / self.output_hms / "distribution")
         self.output_dir_tuneSpread = str(Path(output_base) / self.output_ymd / self.output_hms / "tuneSpread")
         self.output_dir_chargeDensity = str(Path(output_base) / self.output_ymd / self.output_hms / "chargeDensity")
+        self.output_dir_space_charge = str(Path(output_base) / self.output_ymd / self.output_hms / "space_charge")
         self.output_dir_plot = str(Path(output_base) / self.output_ymd / self.output_hms / "plot")
         self.output_dir_particle = str(Path(output_base) / self.output_ymd / self.output_hms / "particle")
         self.output_dir_slice = str(Path(output_base) / self.output_ymd / self.output_hms / "slice")
@@ -200,6 +214,69 @@ class Config:
         shutil.copy(beam0_path, Path(self.output_dir_para) / f"{self.output_hms}_beam0.json")
         if beam1_path is not None:
             shutil.copy(beam1_path, Path(self.output_dir_para) / f"{self.output_hms}_beam1.json")
+
+    @staticmethod
+    def _load_space_charge(data: dict):
+        """Parse the new top-level block, skipping configurations when disabled."""
+        from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
+
+        keys = {str(key).casefold(): key for key in data}
+        obsolete = [
+            keys[name]
+            for name in ("is space charge", "space-charge simulation parameters")
+            if name in keys
+        ]
+        if obsolete:
+            raise ValueError(
+                "obsolete space-charge input key(s) "
+                f"{obsolete}; use the top-level 'Space charge' block"
+            )
+
+        actual_key = keys.get("space charge")
+        if actual_key is None:
+            return SpaceChargeConfig(enabled=False), 0
+        raw = data[actual_key]
+        if not isinstance(raw, dict):
+            raise TypeError("top-level 'Space charge' must be an object")
+
+        raw_keys = {str(key).casefold(): key for key in raw}
+        unknown = set(raw_keys) - {"enabled", "configurations"}
+        if unknown:
+            names = [raw_keys[name] for name in sorted(unknown)]
+            raise ValueError(f"unknown field(s) in 'Space charge': {names}")
+        enabled_key = raw_keys.get("enabled")
+        enabled = False if enabled_key is None else raw[enabled_key]
+        if not isinstance(enabled, bool):
+            raise TypeError("Space charge.Enabled must be boolean")
+
+        configurations_key = raw_keys.get("configurations")
+        raw_configurations = {} if configurations_key is None else raw[configurations_key]
+        configuration_count = len(raw_configurations) if isinstance(raw_configurations, dict) else 0
+        if not enabled:
+            return SpaceChargeConfig(enabled=False), configuration_count
+
+        # Enabled configurations are validated strictly, using the documented
+        # fields. New-format key matching remains case-insensitive like the
+        # rest of the engine. Disabled configuration contents are ignored.
+        if not isinstance(raw_configurations, dict):
+            raise TypeError("Space charge.Configurations must be an object")
+        resource_keys = {}
+        for field_name, field_info in SpaceChargeResourceConfig.model_fields.items():
+            alias = field_info.alias or field_name
+            resource_keys[field_name.casefold()] = alias
+            resource_keys[str(alias).casefold()] = alias
+        canonical_configurations = {}
+        for name, configuration in raw_configurations.items():
+            if not isinstance(configuration, dict):
+                canonical_configurations[name] = configuration
+                continue
+            canonical_configurations[name] = {
+                resource_keys.get(str(key).casefold(), key): value
+                for key, value in configuration.items()
+            }
+        return SpaceChargeConfig.model_validate(
+            {"Enabled": enabled, "Configurations": canonical_configurations}
+        ), configuration_count
 
     def get_log_path(self):
         return Path(self.output_dir_log) / f"{self.output_hms}.log"

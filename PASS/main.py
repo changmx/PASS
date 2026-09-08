@@ -42,6 +42,9 @@ def main(beam0_path: str, beam1_path: str | None = None):
         sim = Simulation(cfg, beams, state)
         sim.print()
 
+        from PASS.commands.space_charge import initialize_space_charge_resources
+        initialize_space_charge_resources(sim)
+
         seqs = []
         for i in range(cfg.num_beam):
             seqs.append(CommandSequence(cfg.input_data[i], i, sim))
