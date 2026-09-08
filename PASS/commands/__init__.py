@@ -22,7 +22,7 @@ COMMAND_PRIORITY = {
     "BeamBeam": 600,
     "ElectronCloud": 700,
     "LumiMonitor": 800,
-    "PhaseMonitor": 800,
+    "PhaseAdvanceMonitor": 800,
     "DistMonitor": 800,
     "StatMonitor": 800,
     "ParticleMonitor": 800,
@@ -53,8 +53,10 @@ from .element.kicker import Kicker
 from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
 from .element.rfcavity import RFCavity
+from .space_charge import SpaceCharge
 from .monitor.statistic import StatMonitor
 from .monitor.distribution import DistMonitor
+from .monitor.phase_advance import PhaseAdvanceMonitor
 from .monitor.particle_monitor import ParticleMonitor
 
 __all__ = [
@@ -79,7 +81,9 @@ __all__ = [
     "ElSeparator",
     "Exciter",
     "RFCavity",
+    "SpaceCharge",
     "StatMonitor",
     "DistMonitor",
+    "PhaseAdvanceMonitor",
     "ParticleMonitor",
 ]
