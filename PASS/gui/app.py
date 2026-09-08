@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QCheckBox,
     QDialog,
+    QInputDialog,
     QFormLayout,
     QGroupBox,
     QLineEdit,
@@ -82,9 +83,9 @@ ENUM_OPTIONS = {
     "Longitudinal dist": ("gaussian", "coasting", "matchz", "matchdp"),
     "Particle Precision": ("float32", "float64"),
     "Longitudinal transfer": ("off", "drift", "matrix"),
-    "Field solver": ("PIC_FD_CUDSS", "fd", "dst_rectangle", "fft_green"),
+    "Field solver": ("fd", "dst_rectangle", "fft_green"),
     "Method": ("fd", "dst_rectangle", "fft_green"),
-    "Particle Deposition Method": ("CIC", "NGP"),
+    "Particle Deposition Method": ("CIC", "TSC"),
     "File Time Kind": ("turn", "second"),
 }
 
@@ -364,6 +365,11 @@ class ConfigPage(QWidget):
         self._madx_preview: tuple[list, list[str], float] | None = None
         self._madx_preview_signature: tuple | None = None
         self._timing_fields: dict[str, QWidget] = {}
+        self._space_charge_fields: dict[str, QWidget] = {}
+        self._space_charge_selector: PropertyComboBox | None = None
+        self._space_charge_name_field: QLineEdit | None = None
+        self._space_charge_enabled_field: QCheckBox | None = None
+        self._active_space_charge_configuration: str | None = None
         self._editor_syncing = False
         self._json_dirty = False
         self._form_dirty = False
@@ -462,8 +468,8 @@ class ConfigPage(QWidget):
         add_section(
             "物理模块",
             (
-                ("空间电荷配置", "编辑顶层空间电荷模拟参数，不属于 Sequence 元件。", self.configure_space_charge),
-                ("SpaceCharge command", "浏览并插入 Sequence 中的空间电荷计算 command。", lambda: self.select_command("SpaceCharge")),
+                ("空间电荷全局配置", "编辑顶层 Space charge 及其命名资源配置。", self.configure_space_charge),
+                ("空间电荷计算点", "浏览并插入引用全局配置的 SpaceCharge command。", lambda: self.select_command("SpaceCharge")),
                 ("束束效应（待实现）", "束束效应模块尚未接入。", lambda checked=False: None),
             ),
         )
@@ -774,7 +780,10 @@ class ConfigPage(QWidget):
         if command == "SpaceCharge":
             from PASS.para.schema.space_charge import SpaceCharge
 
-            return SpaceCharge(s=position).model_dump(by_alias=True)
+            block = self.data.get("Space charge", {})
+            configurations = block.get("Configurations", {}) if isinstance(block, dict) else {}
+            configuration = next(iter(configurations), "default") if isinstance(configurations, dict) else "default"
+            return SpaceCharge(s=position, configuration=configuration).model_dump(by_alias=True)
         if command in monitor_models:
             model, required = monitor_models[command]
             return model(**({"S (m)": position} | required)).model_dump(by_alias=True)
@@ -1152,23 +1161,295 @@ class ConfigPage(QWidget):
         return candidate
 
     def configure_space_charge(self) -> None:
-        """Create the documented top-level space-charge configuration."""
+        """Create or edit the top-level named space-charge configurations."""
         if not self._confirm_form_navigation():
             return
-        self.data["Is space charge"] = True
-        self.data.setdefault(
-            "Space-charge simulation parameters",
-            {
-                "Is enable space charge": True,
-                "Number of slices": 100,
-                "Slice model": "Equal particle",
-                "Field solver": "PIC_FD_CUDSS",
-            },
-        )
+        if not isinstance(self.data.get("Space charge"), dict):
+            from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
+
+            self.data["Space charge"] = SpaceChargeConfig(
+                enabled=True,
+                configurations={"default": SpaceChargeResourceConfig()},
+            ).model_dump(by_alias=True)
         self._sync_editor()
         self._data_dirty = True
         self._refresh_tree()
-        self._select_top_level_item("__root__", "Space-charge simulation parameters")
+        self._select_top_level_item("__root__", "Space charge")
+
+    @staticmethod
+    def _default_space_charge_resource() -> dict:
+        from PASS.para.schema.space_charge import SpaceChargeResourceConfig
+
+        return SpaceChargeResourceConfig().model_dump(by_alias=True)
+
+    def _populate_space_charge_configuration(self, active_name: str | None = None) -> None:
+        """Render the top-level block and one named PIC resource as typed fields."""
+        block = self.data.get("Space charge")
+        if not isinstance(block, dict):
+            return
+        self._clear_form()
+        self._selected_mapping = block
+        self._selected_path = ("__root__", "Space charge")
+        self.form_title.setText("空间电荷全局配置")
+        self.form_hint.setText(
+            "顶层配置负责共享的切片集、PIC 网格和求解器；Sequence 中的计算点按名称引用这里的配置。"
+        )
+
+        enabled = QCheckBox("启用空间电荷模块")
+        enabled.setObjectName("booleanField")
+        enabled.setChecked(block.get("Enabled", False) is True)
+        enabled.setToolTip("关闭时所有 SpaceCharge 配置和计算点均被忽略。")
+        self._track_field(enabled)
+        self._space_charge_enabled_field = enabled
+        self.form_layout.addRow(self._field_label("Enabled", False), enabled)
+
+        configurations = block.get("Configurations")
+        if not isinstance(configurations, dict):
+            configurations = block["Configurations"] = {}
+        names = list(configurations)
+        if active_name not in configurations:
+            active_name = names[0] if names else None
+        self._active_space_charge_configuration = active_name
+
+        selector_box = QGroupBox("命名资源配置")
+        selector_box.setObjectName("configGroup")
+        selector_layout = QVBoxLayout(selector_box)
+        selector_row = QHBoxLayout()
+        selector_row.addWidget(QLabel("当前配置"))
+        self._space_charge_selector = PropertyComboBox()
+        self._space_charge_selector.setObjectName("choiceField")
+        self._space_charge_selector.addItems(names)
+        if active_name:
+            self._space_charge_selector.setCurrentText(active_name)
+        self._space_charge_selector.currentTextChanged.connect(self._select_space_charge_configuration)
+        selector_row.addWidget(self._space_charge_selector, 1)
+        add = button("添加")
+        add.clicked.connect(self.add_space_charge_configuration)
+        selector_row.addWidget(add)
+        copy_button = button("复制")
+        copy_button.clicked.connect(self.copy_space_charge_configuration)
+        copy_button.setEnabled(active_name is not None)
+        selector_row.addWidget(copy_button)
+        delete = button("删除")
+        delete.clicked.connect(self.delete_space_charge_configuration)
+        delete.setEnabled(active_name is not None)
+        selector_row.addWidget(delete)
+        selector_layout.addLayout(selector_row)
+
+        if active_name is not None and isinstance(configurations.get(active_name), dict):
+            name_row = QHBoxLayout()
+            name_row.addWidget(QLabel("配置名称"))
+            self._space_charge_name_field = QLineEdit(active_name)
+            self._space_charge_name_field.setObjectName("valueField")
+            self._space_charge_name_field.setToolTip("SpaceCharge command 的 Configuration 字段引用此名称。")
+            self._track_field(self._space_charge_name_field)
+            self._space_charge_name_field.textChanged.connect(self._preview_space_charge_configuration_name)
+            name_row.addWidget(self._space_charge_name_field, 1)
+            selector_layout.addLayout(name_row)
+
+            resource = configurations[active_name]
+            resource_form = QFormLayout()
+            resource_form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+            resource_form.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
+            resource_form.setHorizontalSpacing(12)
+            resource_form.setVerticalSpacing(7)
+            for key, default_value in self._default_space_charge_resource().items():
+                value = resource.get(key, default_value)
+                field = self._make_field(key, value)
+                self._space_charge_fields[key] = field
+                resource_form.addRow(self._field_label(key, value), field)
+            selector_layout.addLayout(resource_form)
+        else:
+            empty = QLabel("尚无资源配置。点击“添加”创建一个配置后，SpaceCharge 计算点才能引用它。")
+            empty.setObjectName("muted")
+            empty.setWordWrap(True)
+            selector_layout.addWidget(empty)
+        self.form_layout.addRow(selector_box)
+        self.form_apply.setEnabled(True)
+
+    def _preview_space_charge_configuration_name(self, name: str) -> None:
+        """Keep the current-configuration selector in sync while its name is edited."""
+        selector = self._space_charge_selector
+        if selector is None or selector.currentIndex() < 0:
+            return
+        selector.blockSignals(True)
+        selector.setItemText(selector.currentIndex(), name)
+        selector.blockSignals(False)
+
+    def _refresh_after_space_charge_change(self, active_name: str | None) -> None:
+        """Synchronize every configuration view after a structural change."""
+        self._form_dirty = False
+        self._data_dirty = True
+        self._sync_editor()
+        self._refresh_tree()
+        self._populate_space_charge_configuration(active_name)
+        self._set_sync_status("空间电荷配置已更新，尚未保存", "warning")
+
+    def _write_space_charge_configuration(self) -> str | None:
+        """Validate and write the currently displayed top-level resource."""
+        from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
+
+        block = self.data.get("Space charge")
+        if not isinstance(block, dict) or self._space_charge_enabled_field is None:
+            raise ValueError("Space charge 顶层配置无效。")
+        configurations = block.get("Configurations")
+        if not isinstance(configurations, dict):
+            raise ValueError("Space charge.Configurations 必须是对象。")
+        old_name = self._active_space_charge_configuration
+        new_name = old_name
+        candidate_configurations = deepcopy(configurations)
+        if old_name is not None:
+            if self._space_charge_name_field is None:
+                raise ValueError("空间电荷配置名称控件缺失。")
+            new_name = self._space_charge_name_field.text().strip()
+            if not new_name:
+                raise ValueError("空间电荷配置名称不能为空。")
+            if new_name != old_name and new_name in candidate_configurations:
+                raise ValueError(f"空间电荷配置名称 {new_name!r} 已存在。")
+            original = configurations.get(old_name)
+            if not isinstance(original, dict):
+                raise ValueError(f"Space charge.Configurations.{old_name} 必须是对象。")
+            resource = {
+                key: self._read_field_value(key, field, original.get(key))
+                for key, field in self._space_charge_fields.items()
+            }
+            canonical_resource = SpaceChargeResourceConfig.model_validate(resource).model_dump(by_alias=True)
+            candidate_configurations.pop(old_name, None)
+            candidate_configurations[new_name] = canonical_resource
+        enabled = self._space_charge_enabled_field.isChecked()
+        candidate = {"Enabled": enabled, "Configurations": candidate_configurations}
+        if enabled:
+            SpaceChargeConfig.model_validate(candidate)
+        block.clear()
+        block.update(candidate)
+        if old_name is not None and new_name != old_name:
+            sequence = self.data.get("Sequence")
+            if isinstance(sequence, dict):
+                for item in sequence.values():
+                    if (
+                        isinstance(item, dict)
+                        and item.get("Command") == "SpaceCharge"
+                        and item.get("Configuration") == old_name
+                    ):
+                        item["Configuration"] = new_name
+        self._active_space_charge_configuration = new_name
+        return new_name
+
+    def _select_space_charge_configuration(self, name: str) -> None:
+        if not name or name == self._active_space_charge_configuration:
+            return
+        try:
+            self._write_space_charge_configuration()
+        except ValueError as exc:
+            QMessageBox.warning(self, "空间电荷配置无效", str(exc))
+            if self._space_charge_selector:
+                self._space_charge_selector.blockSignals(True)
+                self._space_charge_selector.setCurrentText(self._active_space_charge_configuration or "")
+                self._space_charge_selector.blockSignals(False)
+            return
+        self._refresh_after_space_charge_change(name)
+
+    def add_space_charge_configuration(self) -> None:
+        block = self.data.get("Space charge")
+        configurations = block.get("Configurations") if isinstance(block, dict) else None
+        if not isinstance(configurations, dict):
+            return
+        if self._active_space_charge_configuration is not None:
+            try:
+                self._write_space_charge_configuration()
+            except ValueError as exc:
+                QMessageBox.warning(self, "空间电荷配置无效", str(exc))
+                return
+            block = self.data.get("Space charge")
+            configurations = block.get("Configurations") if isinstance(block, dict) else None
+            if not isinstance(configurations, dict):
+                return
+        index = 1
+        name = "configuration_1"
+        while name in configurations:
+            index += 1
+            name = f"configuration_{index}"
+        configurations[name] = self._default_space_charge_resource()
+        self._refresh_after_space_charge_change(name)
+
+    def copy_space_charge_configuration(self) -> None:
+        block = self.data.get("Space charge")
+        configurations = block.get("Configurations") if isinstance(block, dict) else None
+        source_name = self._active_space_charge_configuration
+        if not isinstance(configurations, dict) or source_name not in configurations:
+            return
+        try:
+            source_name = self._write_space_charge_configuration()
+        except ValueError as exc:
+            QMessageBox.warning(self, "空间电荷配置无效", str(exc))
+            return
+        block = self.data.get("Space charge")
+        configurations = block.get("Configurations") if isinstance(block, dict) else None
+        if not isinstance(configurations, dict) or source_name not in configurations:
+            return
+        base = f"{source_name}_copy"
+        name, suffix = base, 2
+        while name in configurations:
+            name = f"{base}{suffix}"
+            suffix += 1
+        configurations[name] = deepcopy(configurations[source_name])
+        self._refresh_after_space_charge_change(name)
+
+    def delete_space_charge_configuration(self) -> None:
+        block = self.data.get("Space charge")
+        configurations = block.get("Configurations") if isinstance(block, dict) else None
+        name = self._active_space_charge_configuration
+        if not isinstance(configurations, dict) or name not in configurations:
+            return
+        sequence = self.data.get("Sequence")
+        references = [
+            str(command_name)
+            for command_name, item in sequence.items()
+            if (
+                isinstance(sequence, dict)
+                and isinstance(item, dict)
+                and item.get("Command") == "SpaceCharge"
+                and item.get("Configuration") == name
+            )
+        ] if isinstance(sequence, dict) else []
+        replacement = None
+        alternatives = [configuration_name for configuration_name in configurations if configuration_name != name]
+        if references:
+            reference_text = "、".join(references[:8])
+            if len(references) > 8:
+                reference_text += f" 等 {len(references)} 项"
+            if not alternatives:
+                QMessageBox.warning(
+                    self,
+                    "无法删除空间电荷配置",
+                    f"配置 {name} 正被计算点 {reference_text} 引用，且没有其他配置可供替换。\n"
+                    "请先新增一个全局配置，或删除这些空间电荷计算点。",
+                )
+                return
+            replacement, accepted = QInputDialog.getItem(
+                self,
+                "重新分配空间电荷计算点",
+                f"配置 {name} 正被以下计算点引用：\n{reference_text}\n\n删除前请选择替代配置：",
+                alternatives,
+                0,
+                False,
+            )
+            if not accepted:
+                return
+            if QMessageBox.question(
+                self,
+                "确认替换并删除",
+                f"将 {len(references)} 个计算点改为引用 {replacement}，然后删除 {name}。是否继续？",
+            ) != QMessageBox.Yes:
+                return
+        elif QMessageBox.question(self, "删除空间电荷配置", f"确定删除配置 {name}？") != QMessageBox.Yes:
+            return
+        if references and isinstance(sequence, dict):
+            for command_name in references:
+                sequence[command_name]["Configuration"] = replacement
+        configurations.pop(name)
+        next_name = replacement if replacement is not None else alternatives[0] if alternatives else None
+        self._refresh_after_space_charge_change(next_name)
 
     def configure_global(self) -> None:
         """Open the complete root input schema from the left-side library."""
@@ -1227,15 +1508,33 @@ class ConfigPage(QWidget):
         try:
             from PASS.para.schema.main import MainConfig
 
-            MainConfig.model_validate({key: value for key, value in self.data.items() if key != "Sequence"})
-        except Exception as exc:  # Pydantic's error includes the exact field path.
-            detail = str(exc).splitlines()[0] if str(exc) else "根配置校验失败"
-            issues.append(detail)
+            MainConfig.model_validate(
+                {key: value for key, value in self.data.items() if key not in {"Sequence", "Space charge"}}
+            )
+        except Exception as exc:
+            issues.append(f"全局配置: {self._validation_detail(exc)}")
+        space_charge = None
+        try:
+            from PASS.core.config import Config
+
+            space_charge, _ = Config._load_space_charge(self.data)
+        except Exception as exc:
+            issues.append(f"Space charge: {self._validation_detail(exc)}")
         if isinstance(sequence, dict):
             for name, item in sequence.items():
                 issue = self._validate_sequence_item(str(name), item)
                 if issue:
                     issues.append(issue)
+            if space_charge is not None and space_charge.enabled:
+                configured = set(space_charge.configurations)
+                for name, item in sequence.items():
+                    if not isinstance(item, dict) or item.get("Command") != "SpaceCharge":
+                        continue
+                    reference = item.get("Configuration")
+                    if reference not in configured:
+                        issues.append(
+                            f"Sequence.{name}: 未定义 Space charge configuration {reference!r}"
+                        )
         if issues:
             self._validation_issues = issues
             detail = "配置检查未通过：\n" + "\n".join(f"• {issue}" for issue in issues)
@@ -1433,6 +1732,9 @@ class ConfigPage(QWidget):
     def _populate_root_field(self, key: str) -> None:
         if key not in self.data:
             return
+        if key == "Space charge" and isinstance(self.data[key], dict):
+            self._populate_space_charge_configuration()
+            return
         if key == "Timing" and isinstance(self.data[key], dict):
             self._populate_timing_configuration()
             return
@@ -1464,7 +1766,7 @@ class ConfigPage(QWidget):
             ("模拟控制", ("Number of turns", "Particle Precision")),
             ("计算后端", ("Backend (gpu/cpu)", "Number of GPU devices", "Device Id")),
             ("输出与文件", ("Output directory", "Is plot figure")),
-            ("物理模型开关", ("Is space charge", "Is beam-beam")),
+            ("物理模型开关", ("Is beam-beam",)),
         )
         shown = set()
         for section_name, keys in sections:
@@ -1488,7 +1790,7 @@ class ConfigPage(QWidget):
             if has_fields:
                 self.form_layout.addRow(box)
         for key, value in self.data.items():
-            if key == "Sequence" or key in shown or key == "Timing":
+            if key in {"Sequence", "Timing", "Space charge"} or key in shown:
                 continue
             field = self._make_field(key, value)
             self.form_layout.addRow(self._field_label(key, value), field)
@@ -1535,6 +1837,23 @@ class ConfigPage(QWidget):
             return field
         return self._make_field(key, value)
 
+    def _make_space_charge_reference_field(self, value: str) -> PropertyComboBox:
+        """Create a command reference selector from top-level configuration names."""
+        field = PropertyComboBox()
+        field.setObjectName("choiceField")
+        block = self.data.get("Space charge")
+        configurations = block.get("Configurations") if isinstance(block, dict) else None
+        names = list(configurations) if isinstance(configurations, dict) else []
+        if value and value not in names:
+            names.insert(0, value)
+        field.addItems(names)
+        if value:
+            field.setCurrentText(value)
+        field.setMinimumWidth(220)
+        field.setToolTip("选择顶层 Space charge.Configurations 中的命名配置。")
+        self._track_field(field)
+        return field
+
     def _populate_form(self, title: str, target: dict, pending: bool = False, name_value: str | None = None) -> None:
         if target.get("Command") == "Injection":
             self._populate_injection_form(title, target, pending, name_value)
@@ -1549,7 +1868,10 @@ class ConfigPage(QWidget):
             self._name_field.setToolTip("Sequence 中的唯一名称")
             self.form_layout.addRow(QLabel("名称"), self._name_field)
         for key, value in target.items():
-            field = self._make_field(str(key), value)
+            if target.get("Command") == "SpaceCharge" and key == "Configuration":
+                field = self._make_space_charge_reference_field(str(value))
+            else:
+                field = self._make_field(str(key), value)
             self.form_layout.addRow(self._field_label(str(key), value), field)
             self._form_fields[key] = field
         self.form_apply.setEnabled(bool(self._form_fields) or self._name_field is not None)
@@ -1772,13 +2094,17 @@ class ConfigPage(QWidget):
             from PASS.para.schema.elements import ELEMENT_REGISTRY
             from PASS.para.schema.main import MainConfig, TimingConfig
             from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
-            from PASS.para.schema.space_charge import SpaceCharge, SpaceChargeConfig
+            from PASS.para.schema.space_charge import (
+                SpaceCharge,
+                SpaceChargeConfig,
+                SpaceChargeResourceConfig,
+            )
             from PASS.para.schema.slicer import Slicer
             from PASS.para.schema.twiss import TwissPoint
 
             models = [
                 MainConfig, TimingConfig, BunchConfig, InjectionItem, OffsetConfig,
-                SpaceChargeConfig, SpaceCharge, Slicer, TwissPoint,
+                SpaceChargeConfig, SpaceChargeResourceConfig, SpaceCharge, Slicer, TwissPoint,
                 StatMonitor, DistMonitor, ParticleMonitor, PhaseAdvanceMonitor,
                 *ELEMENT_REGISTRY.values(),
             ]
@@ -1824,7 +2150,7 @@ class ConfigPage(QWidget):
             field.setToolTip(self._field_help(key, value))
             self._track_field(field)
             return field
-        if isinstance(value, (list, dict)):
+        if isinstance(value, (list, dict)) or key == "Aperture":
             field = QPlainTextEdit(json.dumps(value, indent=2, ensure_ascii=False))
             field.setObjectName("jsonField")
             field.setFont(QFont("Cascadia Code", 10))
@@ -1946,7 +2272,11 @@ class ConfigPage(QWidget):
                 sequence[new_name] = sequence.pop(old_name)
                 self._selected_path = ("Sequence", new_name)
         try:
-            self._write_form_values(self._selected_mapping)
+            if self._selected_path == ("__root__", "Space charge"):
+                active_space_charge_name = self._write_space_charge_configuration()
+            else:
+                active_space_charge_name = None
+                self._write_form_values(self._selected_mapping)
         except ValueError as exc:
             QMessageBox.warning(self, "字段无效", str(exc))
             return
@@ -1955,6 +2285,8 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         if self._selected_path and self._selected_path[0] == "Sequence":
             self._select_sequence_item(self._selected_path[1])
+        elif self._selected_path == ("__root__", "Space charge"):
+            self._populate_space_charge_configuration(active_space_charge_name)
         self.file_changed.emit(self.path)
         self._data_dirty = True
         self._set_sync_status("表单修改已确认，尚未保存", "warning")
@@ -2037,6 +2369,11 @@ class ConfigPage(QWidget):
         self._madx_preview = None
         self._madx_preview_signature = None
         self._timing_fields = {}
+        self._space_charge_fields = {}
+        self._space_charge_selector = None
+        self._space_charge_name_field = None
+        self._space_charge_enabled_field = None
+        self._active_space_charge_configuration = None
         self._pending_command = None
         self.form_title.setText("参数配置")
         self.form_hint.setText(hint)
