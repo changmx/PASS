@@ -2,7 +2,7 @@
 
 Consumed by:
     - PASS.core.config.Config.load_input  (root-level keys)
-    - PASS.core.beam.Beam._load_input     (is_space_charge, is_beambeam)
+    - PASS.core.beam.Beam._load_input     (is_beambeam)
     - PASS.core.bunch.BunchInfo._load_input  (gamma_t, protons, neutrons, charges, circumference)
 
 All aliases must match the JSON keys the engine expects (case-insensitive).
@@ -10,7 +10,7 @@ All aliases must match the JSON keys the engine expects (case-insensitive).
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 
 class TimingConfig(BaseModel):
@@ -49,6 +49,18 @@ class MainConfig(BaseModel):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_obsolete_space_charge_switch(cls, value):
+        if isinstance(value, dict) and (
+            "is_space_charge" in value or "Is space charge" in value
+        ):
+            raise ValueError(
+                "the MainConfig space-charge switch was removed; use SpaceChargeConfig "
+                "and the top-level 'Space charge' block"
+            )
+        return value
 
     # --- particle identity ---
     beam_name: str = Field(
@@ -126,12 +138,7 @@ class MainConfig(BaseModel):
         description="Execution timing and progress reporting settings",
     )
 
-    # --- optional module flags (read by Beam._load_input) ---
-    is_space_charge: bool = Field(
-        default=False,
-        alias="Is space charge",
-        description="Whether space-charge module is active",
-    )
+    # --- optional module flags ---
     is_beambeam: bool = Field(
         default=False,
         alias="Is beam-beam",

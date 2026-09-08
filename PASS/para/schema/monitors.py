@@ -32,21 +32,35 @@ class DistMonitor(BaseModel):
     )
 
 
-class PhaseMonitor(BaseModel):
-    """Phase monitor: records phase advance."""
+class PhaseAdvanceMonitor(BaseModel):
+    """Measure uncoupled fractional tunes from consecutive-turn coordinates."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     s: float = Field(alias="S (m)")
-    command: str = Field(default="PhaseMonitor", alias="Command")
-    is_enabled: bool = Field(default=True, alias="Is enable phase monitor")
+    command: str = Field(default="PhaseAdvanceMonitor", alias="Command")
+    enable: bool = Field(default=True, alias="Enable")
     beta_x: float = Field(alias="Beta x (m)")
     beta_y: float = Field(alias="Beta y (m)")
     alpha_x: float = Field(alias="Alpha x")
     alpha_y: float = Field(alias="Alpha y")
-    save_turns: list[list[int]] = Field(
-        default_factory=list,
-        alias="Save turns",
+    dx: float = Field(default=0.0, alias="Dx (m)")
+    dpx: float = Field(default=0.0, alias="Dpx")
+    x_co: float = Field(default=0.0, alias="X CO (m)")
+    px_co: float = Field(default=0.0, alias="PX CO")
+    y_co: float = Field(default=0.0, alias="Y CO (m)")
+    py_co: float = Field(default=0.0, alias="PY CO")
+    turn_ranges: list[list[int]] | int = Field(
+        default=0,
+        alias="Turn ranges",
+        description=(
+            "Each item is [start, end) with zero-based turns; 0 disables analysis"
+        ),
+    )
+    min_action: float | None = Field(
+        default=None,
+        alias="Min action",
+        description="Minimum normalized Courant-Snyder action; defaults by particle precision",
     )
 
 

@@ -46,7 +46,11 @@ from pathlib import Path
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, InjectionItem
 from PASS.para.schema.sequence import Sequence
-from PASS.para.schema.space_charge import SpaceChargeConfig
+from PASS.para.schema.space_charge import (
+    SpaceChargeConfig,
+    SpaceChargeResourceConfig,
+    SpaceCharge,
+)
 
 # ============================================================
 # Low-level: schema objects → JSON
@@ -76,8 +80,7 @@ def generate_input(
 
     if space_charge is not None:
         sc_dict = space_charge.model_dump(by_alias=True)
-        result["Space-charge simulation parameters"] = sc_dict
-        result["Is space charge"] = space_charge.is_enabled
+        result["Space charge"] = sc_dict
 
     if extra_modules:
         result.update(extra_modules)
@@ -105,8 +108,10 @@ def load_input(path: str) -> tuple[MainConfig, dict]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
+    from PASS.core.config import Config
+    Config._load_space_charge(data)
     sequence_data = data.pop("Sequence", {})
-    data.pop("Space-charge simulation parameters", None)
+    data.pop("Space charge", None)
 
     main = MainConfig.model_validate(data)
     return main, sequence_data
@@ -122,6 +127,7 @@ def build_sequence(
     names: list[str],
     bunches: list,
     monitors: list | None = None,
+    random_seed: int | None = None,
 ) -> Sequence:
     """Assemble a Sequence from lattice items + bunches + monitors.
 
@@ -131,6 +137,9 @@ def build_sequence(
         bunches: list of BunchConfig objects (injected at s=0).
         monitors: optional list of monitor objects (StatMonitor,
             ParticleMonitor, etc.).
+        random_seed: optional Injection particle-distribution random seed.
+            Use an integer for reproducible generation or None for the
+            default non-deterministic stream.
 
     Returns:
         A Sequence ready for generate_input().
@@ -151,7 +160,15 @@ def build_sequence(
     # One bunch per bucket: the harmonic number equals the number of
     # declared bunches (declare empty 0-particle bunches for unfilled
     # buckets).
-    seq.add("injection", InjectionItem(s=0.0, harmonic_number=len(prepared_bunches), bunches=prepared_bunches))
+    seq.add(
+        "injection",
+        InjectionItem(
+            s=0.0,
+            harmonic_number=len(prepared_bunches),
+            random_seed=random_seed,
+            bunches=prepared_bunches,
+        ),
+    )
 
     for name, item in zip(names, items):
         seq.add(name, item)
@@ -180,6 +197,7 @@ def generate_from_tfs(
     is_merge_drift: bool = True,
     error_file: str = "",
     is_field_error: bool = False,
+    random_seed: int | None = None,
 ) -> str:
     """Generate a PASS input JSON from a MADX twiss TFS file.
 
@@ -207,6 +225,7 @@ def generate_from_tfs(
         is_merge_drift: merge consecutive drift elements (default True).
         error_file: path to MADX error TFS file.
         is_field_error: attach field errors to matching elements.
+        random_seed: optional Injection particle-distribution random seed.
 
     Returns:
         The output file path.
@@ -260,7 +279,13 @@ def generate_from_tfs(
     monitor_objs = _build_monitors(monitors) if monitors else None
 
     # --- Assemble + write ---
-    seq = build_sequence(items, names, bunches=bunch_objs, monitors=monitor_objs)
+    seq = build_sequence(
+        items,
+        names,
+        bunches=bunch_objs,
+        monitors=monitor_objs,
+        random_seed=random_seed,
+    )
     return generate_input(main_cfg, seq, output_path)
 
 
@@ -323,7 +348,7 @@ def _build_monitors(monitors: list[dict]) -> list:
     from PASS.para.schema.monitors import (
         StatMonitor,
         DistMonitor,
-        PhaseMonitor,
+        PhaseAdvanceMonitor,
         ParticleMonitor,
     )
 
@@ -332,8 +357,8 @@ def _build_monitors(monitors: list[dict]) -> list:
         "stat": StatMonitor,
         "distmonitor": DistMonitor,
         "dist": DistMonitor,
-        "phasemonitor": PhaseMonitor,
-        "phase": PhaseMonitor,
+        "phaseadvancemonitor": PhaseAdvanceMonitor,
+        "phaseadvance": PhaseAdvanceMonitor,
         "particlemonitor": ParticleMonitor,
         "particle": ParticleMonitor,
     }
@@ -356,4 +381,6 @@ __all__ = [
     "MainConfig",
     "Sequence",
     "SpaceChargeConfig",
+    "SpaceChargeResourceConfig",
+    "SpaceCharge",
 ]

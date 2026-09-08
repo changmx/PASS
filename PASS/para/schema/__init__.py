@@ -40,11 +40,15 @@ from PASS.para.schema.elements import (
 from PASS.para.schema.monitors import (
     StatMonitor,
     DistMonitor,
-    PhaseMonitor,
+    PhaseAdvanceMonitor,
     ParticleMonitor,
 )
 from PASS.para.schema.sequence import Sequence
-from PASS.para.schema.space_charge import SpaceChargeConfig
+from PASS.para.schema.space_charge import (
+    SpaceChargeConfig,
+    SpaceChargeResourceConfig,
+    SpaceCharge,
+)
 
 __all__ = [
     "MainConfig",
@@ -70,8 +74,10 @@ __all__ = [
     "ReorganizeBunchElement",
     "StatMonitor",
     "DistMonitor",
-    "PhaseMonitor",
+    "PhaseAdvanceMonitor",
     "ParticleMonitor",
     "Sequence",
     "SpaceChargeConfig",
+    "SpaceChargeResourceConfig",
+    "SpaceCharge",
 ]
