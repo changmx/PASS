@@ -27,16 +27,6 @@ from PASS.utils.logger import set_simple_logging, set_normal_logging
 
 logger = logging.getLogger(__name__)
 
-# Particle arrays that must be permuted together when sorting.
-_ARRAY_NAMES = [
-    "x", "px", "y", "py", "z", "dp", "tag",
-    "lost_turn", "lost_position",
-]
-_OPTIONAL_ARRAY_NAMES = [
-    "last_x", "last_px", "last_y", "last_py",
-    "last_phasex", "last_phasey",
-]
-
 
 def _fold_by_ring(z, circumference):
     """Return the ring-period representative in [-C/2, C/2)."""
@@ -56,8 +46,21 @@ def bucket_id_from_key(key, h, circum):
 
 def _permute_particle_arrays(beam, perm):
     """Reorder every particle array by the sorting permutation."""
+    # Particle arrays that must be permuted together when sorting.
+    array_names = [
+        "x",
+        "px",
+        "y",
+        "py",
+        "z",
+        "dp",
+        "tag",
+        "lost_turn",
+        "lost_position",
+    ]
+
     p = beam.particles
-    for name in _ARRAY_NAMES + _OPTIONAL_ARRAY_NAMES:
+    for name in array_names:
         arr = getattr(p, name, None)
         if arr is not None:
             setattr(p, name, arr[perm])
@@ -177,9 +180,7 @@ def regroup_particles(beam, new_harmonic: int | None = None):
             ref_scale = p0_sorted[start:end] / b.p0
             p.px[start:end] *= ref_scale
             p.py[start:end] *= ref_scale
-            p.dp[start:end] = (
-                (1.0 + p.dp[start:end]) * ref_scale - 1.0
-            )
+            p.dp[start:end] = ((1.0 + p.dp[start:end]) * ref_scale - 1.0)
 
     _invalidate_slice_sets(beam)
 
