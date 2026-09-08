@@ -83,6 +83,7 @@ RF_PHASE = 0.1               # rad, synchronous phase (eta < 0 -> 0 < phi_s < pi
 RF_PHI_OFFSET = 0.0          # rad
 NUM_TURNS = 2048
 NUM_DIST = 5000
+RANDOM_SEED = 2026
 
 # Distribution (matched to the RF bucket; dp spread is the binding constraint)
 SIGMA_Z = 5.0                # m
@@ -340,7 +341,6 @@ def build_case(name: str, script_dir: Path) -> str:
         gpu_id=[0],
         output_dir=str(script_dir / "output" / name),
         is_plot=False,
-        is_space_charge=False,
         is_beambeam=False,
     )
 
@@ -408,8 +408,13 @@ def build_case(name: str, script_dir: Path) -> str:
         empty.harmonic_id = i
         bunches.append(empty)
 
-    seq = build_sequence(items=items, names=names, bunches=bunches,
-                         monitors=monitors)
+    seq = build_sequence(
+        items=items,
+        names=names,
+        bunches=bunches,
+        monitors=monitors,
+        random_seed=RANDOM_SEED,
+    )
 
     output_path = str(input_path(name))
     generate_input(main, seq, output_path)

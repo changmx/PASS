@@ -34,6 +34,7 @@ from pathlib import Path
 from PASS.para.api import generate_from_tfs
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+RANDOM_SEED = 2026
 
 
 def input_path() -> Path:
@@ -100,7 +101,6 @@ if __name__ == "__main__":
             backend=backend,
             output_dir=str(script_dir / "output"),
             is_plot=False,
-            is_space_charge=False,
             is_beambeam=False,
         ),
         bunches=[
@@ -181,6 +181,7 @@ if __name__ == "__main__":
         is_merge_drift=True,
         error_file="",
         is_field_error=False,
+        random_seed=RANDOM_SEED,
     )
 
     print(f"\n[Done] {output_path}")

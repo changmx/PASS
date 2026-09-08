@@ -48,6 +48,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 
 NUM_TURNS = 1024
 NUM_DIST = 10000
+RANDOM_SEED = 2026
 
 # Longitudinal transfer: "off" keeps dp fixed → chromaticity measurable via FFT.
 # See 02_oneturn_map README for the Qs/chromaticity FFT incompatibility.
@@ -144,7 +145,6 @@ if __name__ == "__main__":
         gpu_id=[0],
         output_dir=str(script_dir / "output"),
         is_plot=False,
-        is_space_charge=False,
         is_beambeam=False,
     )
 
@@ -192,6 +192,7 @@ if __name__ == "__main__":
         names=names,
         bunches=[bunch],
         monitors=monitors,
+        random_seed=RANDOM_SEED,
     )
 
     # --- Write ---

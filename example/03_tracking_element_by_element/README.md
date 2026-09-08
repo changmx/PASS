@@ -12,6 +12,9 @@ The workflow consists of four steps:
 4. **Analyze results** (`analyze.py`) — extract tunes via FFT (Hanning window + zero padding + parabolic interpolation), fit chromaticity, compare with MADX PTC reference
 5. **Compare with PTC** (`compare_ptc_tracking.py`) — run MADX PTC tracking with identical initial coordinates and produce comparison plots
 
+`make_input.py` fixes the Injection random seed to `2026`, making the generated
+distribution particles reproducible between runs.
+
 ## Lattice
 
 The FODO ring (`fodo.seq`) contains:

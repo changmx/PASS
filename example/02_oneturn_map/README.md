@@ -10,6 +10,9 @@ The workflow consists of three steps:
 2. **Run simulation** (`run.py`) — execute PASS tracking for 1024 turns
 3. **Analyze results** (`analyse.py`) — five verification modules: tune FFT, CS invariant, analytic matrix comparison, chromaticity, beam statistics
 
+`make_input.py` fixes the Injection random seed to `2026`, making the generated
+distribution particles reproducible between runs.
+
 ## Lattice
 
 A single Twiss point acting as a one-turn map (no element-by-element tracking):

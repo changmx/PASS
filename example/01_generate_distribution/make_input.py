@@ -29,6 +29,7 @@ GAMMA_T = 4.8
 NUM_TURNS = 1
 NUM_MACRO_PARTICLES = 100000
 NUM_REAL_PARTICLES = int(1e11)
+RANDOM_SEED = 2026
 
 KINETIC_ENERGY = 45e6
 ALPHA_X = -2.614303952
@@ -102,7 +103,6 @@ def make_main(case_name: str) -> MainConfig:
         gpu_id=[0],
         output_dir=str(SCRIPT_DIR / "output" / case_name),
         is_plot=True,
-        is_space_charge=False,
         is_beambeam=False,
     )
 
@@ -146,7 +146,9 @@ def make_case(case_name: str) -> Path:
     """Generate the named PASS input JSON."""
     case = CASES[case_name]
     bunches = [make_bunch(spec) for spec in case["bunches"]]
-    sequence = build_sequence(items=[], names=[], bunches=bunches)
+    sequence = build_sequence(
+        items=[], names=[], bunches=bunches, random_seed=RANDOM_SEED
+    )
     path = input_path(case_name)
 
     generate_input(make_main(case_name), sequence, str(path))

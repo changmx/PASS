@@ -75,6 +75,7 @@ EMIT_Y = 100e-6           # m'rad
 
 # Distribution particles for statistics
 NUM_DIST = 10000
+RANDOM_SEED = 2026
 
 
 def make_test_particles():
@@ -127,7 +128,6 @@ if __name__ == "__main__":
         gpu_id=[0],
         output_dir=str(script_dir / "output"),
         is_plot=False,
-        is_space_charge=False,
         is_beambeam=False,
     )
 
@@ -202,6 +202,7 @@ if __name__ == "__main__":
         names=["twiss1"],
         bunches=[bunch],
         monitors=monitors,
+        random_seed=RANDOM_SEED,
     )
 
     # --- write ---

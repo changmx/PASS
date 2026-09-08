@@ -14,6 +14,9 @@ the injection and then stop. It is therefore intended to verify that input
 parameters reach the distribution generators correctly, rather than to study
 transport through magnets, RF cavities, or space charge.
 
+`make_input.py` fixes the Injection random seed to `2026`, so regenerating and
+running the same case produces the same initial particle distribution.
+
 ## Run A Minimal Workflow
 
 From the repository root, run:

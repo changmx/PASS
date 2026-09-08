@@ -13,6 +13,9 @@ Four cases are covered. They are driven from a single `CASES` source in `make_in
 | `twiss_h1_ramping` | same | TFS waveform file (one row per turn) | h=1 | turn-by-turn parameter loading + clamping |
 | `element_h1_fixed` | real FODO ring (`fodo.tfs` elements) | fixed scalar | h=1 | exact element-by-element longitudinal transport / momentum compaction emergence |
 
+`make_input.py` fixes the Injection random seed to `2026`, so every case uses a
+reproducible generated particle distribution.
+
 ### Optics and transition
 
 For the FODO ring with gamma_t = 3.3746, the 17 MeV/u ion has gamma = 1.01825, far below gamma_t. The slip factor is eta = 1/gamma_t^2 - 1/gamma^2 = -0.8767, so the machine is below transition and the stable accelerating phase satisfies 0 < phi_s < pi/2. After 2048 turns, gamma only rises to about 1.019, still far from transition. Crossing would require about 2.2 GeV/u and a phase shift into (pi/2, pi), which is a different test scenario.

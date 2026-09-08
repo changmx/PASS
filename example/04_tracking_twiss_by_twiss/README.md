@@ -11,6 +11,9 @@ Compared to Example 03 (element-by-element tracking with drift-kick-drift integr
 - Distributes the **natural chromaticity** across all Twiss points proportional to phase advance
 - The total chromaticity = natural (from TwissPoint DQx) + multipole correction (from kicks)
 
+`make_input.py` fixes the Injection random seed to `2026`, making the generated
+distribution particles reproducible between runs.
+
 ## Method
 
 ### Two-step MADX workflow
