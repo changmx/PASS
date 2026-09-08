@@ -13,7 +13,7 @@ extensions = [
 html_theme = "sphinx_rtd_theme"
 
 # ⭐ logo（注意 assets 在 docs/assets）
-html_logo = "../assets/logo_blue.png"
+html_logo = "../assets/logo.png"
 
 html_static_path = ['_static']
 
