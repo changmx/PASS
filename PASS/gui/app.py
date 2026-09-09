@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QInputDialog,
+    QLayout,
     QFormLayout,
     QGroupBox,
     QLineEdit,
@@ -83,8 +84,10 @@ ENUM_OPTIONS = {
     "Longitudinal dist": ("gaussian", "coasting", "matchz", "matchdp"),
     "Particle Precision": ("float32", "float64"),
     "Longitudinal transfer": ("off", "drift", "matrix"),
-    "Field solver": ("fd", "dst_rectangle", "fft_green"),
-    "Method": ("fd", "dst_rectangle", "fft_green"),
+    "Method": ("pic", "frozen", "quasi-frozen"),
+    "Solver": ("fd_dirichlet", "dst_dirichlet", "fft_free_space",
+               "gaussian_round_free_space", "gaussian_ellipse_free_space",
+               "uniform_round_free_space", "uniform_ellipse_free_space"),
     "Particle Deposition Method": ("CIC", "TSC"),
     "File Time Kind": ("turn", "second"),
 }
@@ -99,6 +102,19 @@ _SCHEMA_HELP: dict[str, str] | None = None
 FIELD_HELP = {
     "S (m)": "Command 在环中的纵向位置，单位为 m。",
     "S previous (m)": "Twiss 传输矩阵的上一光学点位置，单位为 m。",
+    "Grid Width X (m)": "水平网格全宽，单位 m；与水平半宽二选一。",
+    "Grid Width Y (m)": "垂直网格全宽，单位 m；与垂直半宽二选一。",
+    "Grid Half Width X (m)": "水平网格半宽，范围为 [-半宽, +半宽]，单位 m。",
+    "Grid Half Width Y (m)": "垂直网格半宽，范围为 [-半宽, +半宽]，单位 m。",
+    "Center X (m)": "frozen 解析源分布的水平中心，单位 m；留空取 0。不是 PIC 网格中心。",
+    "Center Y (m)": "frozen 解析源分布的垂直中心，单位 m；留空取 0。不是 PIC 网格中心。",
+    "Angle (rad)": "frozen 椭圆分布局部 x 主轴相对实验室 x 轴的逆时针角度，单位 rad；留空取 0。",
+    "Sigma (m)": "圆形高斯分布的单轴 RMS 尺寸 σ，单位 m；必须大于 0。",
+    "Sigma X (m)": "椭圆高斯分布局部 x 主轴的 RMS 尺寸，单位 m；必须大于 0。",
+    "Sigma Y (m)": "椭圆高斯分布局部 y 主轴的 RMS 尺寸，单位 m；必须大于 0。",
+    "Radius (m)": "均匀圆盘源分布的外半径，单位 m；不是管壁半径，必须大于 0。",
+    "Semi-axis A (m)": "均匀椭圆源分布局部 x 方向的半轴，单位 m；必须大于 0。",
+    "Semi-axis B (m)": "均匀椭圆源分布局部 y 方向的半轴，单位 m；必须大于 0。",
     "Harmonic Number": "束团分组数；添加或删除 bunch 时由界面自动保持一致。",
     "Harmonic ID of this bunch": "该 bunch 的零起始分组编号，由界面按顺序维护。",
     "Random Seed": "分布生成随机种子。留空（null）时每次运行使用非确定性随机数。",
@@ -159,7 +175,7 @@ class CollapsibleSection(QWidget):
 
     def _set_expanded(self, expanded: bool) -> None:
         self.header.setArrowType(Qt.DownArrow if expanded else Qt.RightArrow)
-        self.body.setVisible(expanded)
+        self.body.setVisible(expanded and self.body_layout.count() > 0)
 
 
 class BusyProgressBar(QWidget):
@@ -364,6 +380,9 @@ class ConfigPage(QWidget):
         self._madx_fields: dict[str, QWidget] = {}
         self._madx_preview: tuple[list, list[str], float] | None = None
         self._madx_preview_signature: tuple | None = None
+        self._optics_mode: str | None = None
+        self._optics_fields: dict[str, QWidget] = {}
+        self._optics_preview: dict | None = None
         self._timing_fields: dict[str, QWidget] = {}
         self._space_charge_fields: dict[str, QWidget] = {}
         self._space_charge_selector: PropertyComboBox | None = None
@@ -408,6 +427,7 @@ class ConfigPage(QWidget):
 
         splitter = QSplitter(Qt.Horizontal)
         left_frame = QFrame()
+        left_frame.setMinimumWidth(280)
         left_layout = QVBoxLayout(left_frame)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(QLabel("配置与组件库"))
@@ -423,13 +443,13 @@ class ConfigPage(QWidget):
 
         def add_section(title: str, entries: tuple[tuple[str, str, object], ...], expanded: bool = False) -> None:
             section = CollapsibleSection(title)
+            section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             self.library_sections[title] = section
             for text, tip, handler in entries:
                 item = button(text)
                 item.setToolTip(tip)
                 item.clicked.connect(handler)
                 section.body_layout.addWidget(item)
-            section.body_layout.addStretch()
             section.header.setChecked(expanded)
             library_layout.addWidget(section)
 
@@ -445,7 +465,9 @@ class ConfigPage(QWidget):
             "Twiss 与光学",
             (
                 ("从 MAD-X 文件导入 Twiss 点", "读取 MAD-X 导出的 Twiss/TFS 文件，转换为 Twiss command 并追加到 Sequence。", self.configure_madx_twiss),
-                ("Twiss", "浏览 Twiss 光学传输参数；确认后才插入 Sequence。", lambda checked=False: self.select_command("Twiss")),
+                ("插入单圈传输矩阵", "输入一组周期光学参数和单圈 tune，生成一圈 Twiss 传输。", lambda: self.configure_optics_generator("one_turn")),
+                ("生成平滑近似 Twiss 序列", "按一圈分段数生成等间距 Twiss 传输点。", lambda: self.configure_optics_generator("smooth")),
+                ("插入 Twiss 传输点", "填写起点与终点光学参数，手动插入一段 Twiss 传输。", lambda: self.select_command("Twiss")),
             ),
         )
         add_section(
@@ -465,15 +487,23 @@ class ConfigPage(QWidget):
             tuple((command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
                   for command in ("StatMonitor", "ParticleMonitor", "DistMonitor", "PhaseAdvanceMonitor")),
         )
-        add_section(
-            "物理模块",
-            (
-                ("空间电荷全局配置", "编辑顶层 Space charge 及其命名资源配置。", self.configure_space_charge),
-                ("空间电荷计算点", "浏览并插入引用全局配置的 SpaceCharge command。", lambda: self.select_command("SpaceCharge")),
-                ("束束效应（待实现）", "束束效应模块尚未接入。", lambda checked=False: None),
-            ),
-        )
-        self.library_sections["物理模块"].body_layout.itemAt(2).widget().setEnabled(False)
+        add_section("物理模块", ())
+        physics_layout = self.library_sections["物理模块"].body_layout
+        self.space_charge_menu = CollapsibleSection("空间电荷")
+        self.space_charge_menu.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        for text, tip, handler in (
+            ("计算配置", "管理模块开关、切片集、网格和求解器。", self.configure_space_charge),
+            ("插入计算点", "手动插入引用命名计算配置的 SpaceCharge command。", lambda: self.select_command("SpaceCharge")),
+        ):
+            item = button(text)
+            item.setToolTip(tip)
+            item.clicked.connect(handler)
+            self.space_charge_menu.body_layout.addWidget(item)
+        physics_layout.addWidget(self.space_charge_menu)
+        for title in ("尾场", "束束效应", "电子云"):
+            section = CollapsibleSection(title)
+            section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            physics_layout.addWidget(section)
         library_layout.addStretch()
         library_scroll.setWidget(library_body)
         left_layout.addWidget(library_scroll, 1)
@@ -530,6 +560,19 @@ class ConfigPage(QWidget):
         self.sequence_section.body_layout.addWidget(self.sequence_table, 1)
         self.sequence_section.header.setChecked(True)
         overview_layout.addWidget(self.sequence_section, 1)
+        overview_layout.addStretch()
+
+        def update_overview_stretch():
+            tree_open = self.tree_section.header.isChecked()
+            sequence_open = self.sequence_section.header.isChecked()
+            overview_layout.setStretch(0, int(tree_open))
+            overview_layout.setStretch(1, int(sequence_open))
+            # Leave unused space below the headers when both panels are closed.
+            overview_layout.setStretch(2, int(not (tree_open or sequence_open)))
+
+        self.tree_section.header.toggled.connect(update_overview_stretch)
+        self.sequence_section.header.toggled.connect(update_overview_stretch)
+        update_overview_stretch()
         self.editor_tabs.addTab(overview_panel, "配置概览")
         self.editor = LineNumberEditor()
         self.editor.setLineWrapMode(QPlainTextEdit.NoWrap)
@@ -567,6 +610,7 @@ class ConfigPage(QWidget):
         self.form_layout.setFormAlignment(Qt.AlignTop)
         self.form_layout.setHorizontalSpacing(12)
         self.form_layout.setVerticalSpacing(8)
+        self.form_layout.setSizeConstraint(QLayout.SetMinimumSize)
         scroll.setWidget(self.form_body)
         form_layout.addWidget(scroll, 1)
         actions = QHBoxLayout()
@@ -584,6 +628,14 @@ class ConfigPage(QWidget):
         self.madx_preview_button.setVisible(False)
         self.madx_preview_button.clicked.connect(self.preview_madx_import)
         actions.addWidget(self.madx_preview_button)
+        self.optics_preview_button = button("预览生成")
+        self.optics_preview_button.hide()
+        self.optics_preview_button.clicked.connect(self.preview_optics)
+        actions.addWidget(self.optics_preview_button)
+        self.optics_insert_button = button("插入到 Sequence", "primary")
+        self.optics_insert_button.hide()
+        self.optics_insert_button.clicked.connect(self.insert_optics)
+        actions.addWidget(self.optics_insert_button)
         self.insert_button = button("插入到 Sequence", "primary")
         self.insert_button.setVisible(False)
         self.insert_button.clicked.connect(self.insert_pending_command)
@@ -802,6 +854,12 @@ class ConfigPage(QWidget):
         self._populate_form(f"预览 · {command}", template, pending=True)
         self._pending_command = command
         self.form_hint.setText("这是默认参数预览。修改参数后点击“插入到 Sequence”才会写入项目。")
+        if command == "Twiss":
+            self.form_title.setText("插入 Twiss 传输点")
+            self.form_hint.setText("填写起点与终点的光学参数，插入从起点到终点的一段 Twiss 传输。Mu 的单位为周（2π）。")
+        elif command == "SpaceCharge":
+            self.form_title.setText("空间电荷 · 插入计算点")
+            self.form_hint.setText("引用共享计算配置；孔径默认与网格同尺寸，壁上和壁外粒子在求场前损失。Aperture type/value 在 FD/DST 中同时定义导体边界；DST 必须使用完整网格矩形，自由空间方法仅用孔径判断损失。")
 
     def add_command(self, command: str) -> None:
         """Compatibility alias for browsing a command template."""
@@ -837,6 +895,221 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         self._pending_command = None
         self._select_sequence_item(name)
+
+    def configure_optics_generator(self, mode: str) -> None:
+        """Open a non-mutating generator with explicit preview and insertion."""
+        if not self._confirm_form_navigation():
+            return
+        if self._json_dirty and not self.apply_json():
+            return
+        self._clear_form()
+        self._optics_mode = mode
+        smooth = mode == "smooth"
+        self.form_title.setText("生成平滑近似 Twiss 序列" if smooth else "插入单圈传输矩阵")
+        self.form_hint.setText(
+            "N 段传输生成 N＋1 个 Twiss 点，包含 0 和 C；仅生成光学传输，不插入空间电荷计算点。"
+            if smooth else
+            "只需一组周期光学参数。自动设置起点 S=0、终点 S=C，以及一圈的相位推进。"
+        )
+        self.form_apply.hide()
+        self.optics_preview_button.show()
+        self.optics_insert_button.show()
+        self.optics_insert_button.setEnabled(False)
+
+        def add_field(layout: QFormLayout, key: str, label: str, default, tip: str = "") -> QWidget:
+            field = self._make_field("Longitudinal transfer" if key == "longitudinal_transfer" else key, default)
+            field.setAccessibleName(label)
+            if tip:
+                field.setToolTip(tip)
+            self._optics_fields[key] = field
+            layout.addRow(label, field)
+            signal = field.currentTextChanged if isinstance(field, QComboBox) else field.textChanged
+            signal.connect(self._optics_changed)
+            return field
+
+        add_field(self.form_layout, "name", "名称前缀" if smooth else "名称", "smooth" if smooth else "one_turn")
+        circumference = self.data.get("Circumference (m)", 1.0)
+        add_field(self.form_layout, "circumference", "周长 C (m)", str(circumference), "默认读取全局周长；插入时将全局周长同步为此值。")
+        tune_tip = "平滑近似应填写包含整数部分的完整工作点，例如 9.47，而不是 0.47。"
+        add_field(self.form_layout, "qx", "Qx（完整工作点）" if smooth else "Qx", 1.0, "单圈水平 tune，单位为周（2π）；" + tune_tip)
+        add_field(self.form_layout, "qy", "Qy（完整工作点）" if smooth else "Qy", 1.0, "单圈垂直 tune，单位为周（2π）；" + tune_tip)
+        if smooth:
+            add_field(self.form_layout, "num_segments", "一圈分段数 N", 100, "正整数；生成 N 段传输、N＋1 个 Twiss 点。")
+        else:
+            for key, label, default in (
+                ("alpha_x", "αx", 0.0), ("alpha_y", "αy", 0.0),
+                ("beta_x", "βx (m)", 1.0), ("beta_y", "βy (m)", 1.0),
+            ):
+                add_field(self.form_layout, key, label, default)
+        add_field(self.form_layout, "longitudinal_transfer", "纵向传输", "off")
+        add_field(self.form_layout, "muz", "Qs", 0.0, "matrix 模式的单圈纵向 tune，单位为周（2π）。")
+        if smooth:
+            add_field(self.form_layout, "alpha_x", "αx", 0.0, "标准平滑近似取 0。")
+            add_field(self.form_layout, "alpha_y", "αy", 0.0, "标准平滑近似取 0。")
+        for key, label in (("dx", "Dx (m)"), ("dpx", "Dpx"), ("dqx", "单圈色品 DQx"), ("dqy", "单圈色品 DQy")):
+            add_field(self.form_layout, key, label, 0.0)
+        self._optics_summary = QLabel()
+        self._optics_summary.setWordWrap(True)
+        self.form_layout.addRow(self._optics_summary)
+        self._optics_details = QPlainTextEdit()
+        self._optics_details.setReadOnly(True)
+        self._optics_details.setMaximumHeight(150)
+        self._optics_details.hide()
+        self.form_layout.addRow(self._optics_details)
+        self._optics_table = QTableWidget(0, 4)
+        self._optics_table.setHorizontalHeaderLabels(["名称", "起点 S (m)", "终点 S (m)", "ΔMu x / y"])
+        self._optics_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._optics_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self._optics_table.setMaximumHeight(220)
+        self._optics_table.hide()
+        self.form_layout.addRow(self._optics_table)
+        self._optics_changed()
+
+    def _read_optics_parameters(self):
+        from pydantic import ValidationError
+        from PASS.gui.optics import OpticsParameters
+
+        values = {"mode": self._optics_mode}
+        for key, field in self._optics_fields.items():
+            text = field.currentText() if isinstance(field, QComboBox) else field.text().strip()
+            try:
+                if key in ("name", "longitudinal_transfer"):
+                    values[key] = text
+                elif key == "num_segments":
+                    values[key] = int(text)
+                elif key == "muz" and self._optics_fields["longitudinal_transfer"].currentText() != "matrix":
+                    values[key] = 0.0
+                else:
+                    values[key] = float(text)
+            except ValueError as exc:
+                expected = "正整数" if key == "num_segments" else "数值"
+                raise ValueError(f"{field.accessibleName()}：请输入{expected}。") from exc
+        try:
+            return OpticsParameters.model_validate(values)
+        except ValidationError as exc:
+            messages = []
+            for error in exc.errors(include_url=False):
+                key = error["loc"][0] if error["loc"] else None
+                field = self._optics_fields.get(key)
+                label = field.accessibleName() if field is not None else "生成参数"
+                explanation = {
+                    "finite_number": "请输入有限数值。",
+                    "greater_than": "必须大于 0。",
+                    "greater_than_equal": "必须至少为 1。",
+                    "string_too_short": "不能为空。",
+                }.get(error["type"], str(error.get("ctx", {}).get("error", "请检查输入参数。")))
+                messages.append(f"{label}：{explanation}")
+            raise ValueError("\n".join(messages)) from exc
+
+    def _optics_changed(self) -> None:
+        """Invalidate previews immediately; derive beta and step without allocating points."""
+        self._optics_preview = None
+        self.optics_insert_button.setEnabled(False)
+        self._optics_table.hide()
+        self._optics_details.hide()
+        self.form_layout.setRowVisible(
+            self._optics_fields["muz"],
+            self._optics_fields["longitudinal_transfer"].currentText() == "matrix",
+        )
+        try:
+            parameters = self._read_optics_parameters()
+        except (ValueError, OverflowError) as exc:
+            self._optics_summary.setText(f"请完善有效参数：{exc}")
+            return
+        bx, by = parameters.betas
+        segments = parameters.num_segments if parameters.mode == "smooth" else 1
+        points = segments + 1 if parameters.mode == "smooth" else 1
+        self._optics_summary.setText(
+            f"βx = {bx:.8g} m，βy = {by:.8g} m\n"
+            f"{segments} 段传输，{points} 个 Twiss 点；Δs = {parameters.circumference / segments:.8g} m\n"
+            f"总相位推进：Qx = {parameters.qx:.8g}，Qy = {parameters.qy:.8g}，Qs = {parameters.muz:.8g}\n"
+            "填写完成后点击“预览生成”。"
+        )
+
+    def preview_optics(self) -> None:
+        if not self._optics_mode:
+            return
+        if self._json_dirty:
+            QMessageBox.warning(self, "JSON 有未确认修改", "请先确认 JSON 修改，再重新打开生成器并预览。")
+            return
+        try:
+            parameters = self._read_optics_parameters()
+            sequence = self.data.get("Sequence")
+            if not isinstance(sequence, dict):
+                raise ValueError("Sequence 必须是对象。")
+            items, proposed_names = parameters.generate()
+        except (ValueError, OverflowError) as exc:
+            self._optics_preview = None
+            self.optics_insert_button.setEnabled(False)
+            QMessageBox.warning(self, "生成参数无效", str(exc))
+            return
+        reserved = dict(sequence)
+        names = []
+        for name in proposed_names:
+            unique = self._unique_sequence_name(name, reserved)
+            reserved[unique] = None
+            names.append(unique)
+        renamed = sum(a != b for a, b in zip(proposed_names, names))
+        overlaps = []
+        transport_commands = {"twiss", "drift", "sbend", "quadrupole", "sextupole", "octupole", "multipole", "solenoid"}
+        for name, item in sequence.items():
+            if not isinstance(item, dict) or str(item.get("Command", "")).lower() not in transport_commands:
+                continue
+            try:
+                end = float(item.get("S (m)", 0))
+                start = float(item.get("S previous (m)", end))
+            except (ValueError, TypeError):
+                continue
+            if min(start, end) <= parameters.circumference and max(start, end) >= 0:
+                overlaps.append(name)
+        lines = [
+            f"位置范围：0 ～ {parameters.circumference:.8g} m；插入时同步全局周长。",
+            f"将插入 {len(items)} 个 Twiss 点；表格显示前 {min(100, len(items))} 项。",
+            f"名称冲突自动添加后缀：{renamed} 项；最终名称见表格。",
+        ]
+        if overlaps:
+            lines.append(f"注意：此范围已有 {len(overlaps)} 个光学传输命令（{', '.join(overlaps[:5])}）。新增传输会叠加，请核对。")
+        lines.append("预览未修改项目。确认后点击“插入到 Sequence”。")
+        self._optics_details.setPlainText("\n".join(lines))
+        self._optics_details.show()
+        self._optics_table.setRowCount(min(100, len(items)))
+        for row, (name, item) in enumerate(zip(names[:100], items[:100])):
+            values = [name, f"{item.s_previous:.8g}", f"{item.s:.8g}",
+                      f"{item.mu_x - item.mu_x_previous:.8g} / {item.mu_y - item.mu_y_previous:.8g}"]
+            for column, value in enumerate(values):
+                self._optics_table.setItem(row, column, QTableWidgetItem(value))
+        self._optics_table.show()
+        self._optics_preview = {
+            "parameters": parameters, "items": items, "names": names,
+            "sequence": deepcopy(sequence), "circumference": self.data.get("Circumference (m)"),
+        }
+        self._optics_summary.setText(self._optics_summary.text().replace(
+            "填写完成后点击“预览生成”。", "预览已就绪，可核对下方结果并插入。"
+        ))
+        self.optics_insert_button.setEnabled(True)
+
+    def insert_optics(self) -> None:
+        preview = self._optics_preview
+        if preview is None:
+            return
+        if (self._json_dirty or self.data.get("Sequence") != preview["sequence"]
+                or self.data.get("Circumference (m)") != preview["circumference"]):
+            self.optics_insert_button.setEnabled(False)
+            self._optics_preview = None
+            QMessageBox.warning(self, "预览已失效", "项目已发生变化，请重新预览后插入。")
+            return
+        sequence = self.data["Sequence"]
+        sequence.update({name: item.model_dump(by_alias=True)
+                         for name, item in zip(preview["names"], preview["items"])})
+        self.data["Circumference (m)"] = preview["parameters"].circumference
+        count = len(preview["items"])
+        self._form_dirty = False
+        self._data_dirty = True
+        self._sync_editor()
+        self._refresh_tree()
+        self._select_sequence_item(preview["names"][0])
+        self.file_changed.emit(self.path)
+        self._set_sync_status(f"已插入 {count} 个 Twiss 点，尚未保存", "warning")
 
     def configure_madx_elements(self) -> None:
         """Open the MAD-X element importer with element mode selected."""
@@ -879,6 +1152,24 @@ class ConfigPage(QWidget):
         merge.setToolTip("是否将导入结果中的连续 Drift 合并为一个项目。")
         self._madx_fields["merge_drift"] = merge
         self.form_layout.addRow(self._field_label("是否合并连续 Drift", ""), merge)
+        if source_kind == "twiss":
+            sampling = PropertyComboBox()
+            sampling.setObjectName("choiceField")
+            sampling.addItems(("保留原始位置", "等间距插值"))
+            self._madx_fields["sampling"] = sampling
+            self.form_layout.addRow("采样方式", sampling)
+            segments = QLineEdit("100")
+            segments.setObjectName("valueField")
+            segments.setToolTip("正整数 N：一圈 N 段，包含 0 和 C 的 N＋1 个基础点；薄元件、场误差和光学跳变处另行拆分。")
+            self._madx_fields["num_segments"] = segments
+            self.form_layout.addRow("一圈分段数 N", segments)
+            grid_summary = QLabel("五次 Hermite（相位约束）；Δs=C/N。预览后显示实际间距与点数。")
+            grid_summary.setWordWrap(True)
+            self._madx_fields["grid_summary"] = grid_summary
+            self.form_layout.addRow(grid_summary)
+            sampling.currentTextChanged.connect(self._madx_sampling_changed)
+            segments.textChanged.connect(self._madx_sampling_changed)
+            self._madx_sampling_changed()
         errors = QCheckBox("附加场误差")
         errors.setObjectName("booleanField")
         errors.setToolTip("根据误差 TFS 为匹配元件附加场误差。")
@@ -911,6 +1202,15 @@ class ConfigPage(QWidget):
         self.madx_import_button.setVisible(True)
         self.madx_preview_button.setVisible(True)
         self.form_apply.setEnabled(False)
+
+    def _madx_sampling_changed(self) -> None:
+        interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
+        self.form_layout.setRowVisible(self._madx_fields["merge_drift"], not interpolation)
+        self.form_layout.setRowVisible(self._madx_fields["num_segments"], interpolation)
+        self.form_layout.setRowVisible(self._madx_fields["grid_summary"], interpolation)
+        self._madx_fields["grid_summary"].setText(
+            "五次 Hermite（相位约束）；Δs=C/N。预览后显示实际间距与点数。")
+        self._madx_preview = self._madx_preview_signature = None
 
     def _add_madx_path_field(self, key: str, title: str, required: bool = False, directory: bool = False) -> None:
         row = QWidget()
@@ -965,12 +1265,23 @@ class ConfigPage(QWidget):
                 return field.currentText()
             if isinstance(field, QCheckBox):
                 return field.isChecked()
+            if isinstance(field, str):
+                return field
             return default
 
+        def file_signature(key: str) -> tuple:
+            path = Path(str(value(key)))
+            try:
+                stat = path.stat()
+                return str(path), stat.st_size, stat.st_mtime_ns
+            except OSError:
+                return (str(path),)
+
         return (
-            value("source_kind"), value("Twiss TFS 文件"), value("误差 TFS 文件"),
+            value("source_kind"), file_signature("Twiss TFS 文件"), file_signature("误差 TFS 文件"),
             value("merge_drift"), value("field_errors"), value("longitudinal_transfer"),
             value("muz"), value("dqx"), value("dqy"), value("patterns"),
+            value("sampling"), value("num_segments"),
         )
 
     def _read_madx_import(self) -> tuple[list, list[str], float] | None:
@@ -990,7 +1301,7 @@ class ConfigPage(QWidget):
             return None
         error_file = self._madx_fields["误差 TFS 文件"].text().strip()
         try:
-            from PASS.para.madx import read_madx_elements, read_madx_twiss
+            from PASS.para.madx import read_madx_elements, read_madx_twiss, read_madx_twiss_interpolated
 
             element_mode = self._madx_fields.get("source_kind") != "twiss"
             merge_drift = self._madx_fields["merge_drift"].currentText() == "是"
@@ -1003,7 +1314,19 @@ class ConfigPage(QWidget):
                 )
             else:
                 patterns = [part.strip() for part in self._madx_fields["patterns"].text().split(",") if part.strip()]
-                items, names, circumference = read_madx_twiss(
+                interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
+                options = {"is_merge_drift": merge_drift}
+                reader = read_madx_twiss
+                if interpolation:
+                    try:
+                        segments = int(self._madx_fields["num_segments"].text().strip())
+                    except ValueError as exc:
+                        raise ValueError("一圈分段数 N 必须是正整数。") from exc
+                    if segments < 1:
+                        raise ValueError("一圈分段数 N 必须是正整数。")
+                    options = {"num_interp_slice": segments+1}
+                    reader = read_madx_twiss_interpolated
+                items, names, circumference = reader(
                     source,
                     error_file=error_file,
                     muz=float(self._madx_fields["muz"].text().strip()),
@@ -1012,8 +1335,16 @@ class ConfigPage(QWidget):
                     is_field_error=self._madx_fields["field_errors"].isChecked(),
                     insert_patterns=patterns or None,
                     longitudinal_transfer=self._madx_fields["longitudinal_transfer"].currentText(),
-                    is_merge_drift=merge_drift,
+                    **options,
                 )
+                if interpolation:
+                    twiss = [item for item in items if item.command == "Twiss"]
+                    positions = len({item.s for item in twiss})
+                    self._madx_fields["grid_summary"].setText(
+                        f"五次 Hermite（相位约束）\nΔs = {circumference/segments:.10g} m；"
+                        f"基础点 {segments+1}，附加位置 {positions-segments-1}，Twiss command {len(twiss)}\n"
+                        f"累计相位差：Qx = {twiss[-1].mu_x-twiss[0].mu_x_previous:.12g}，"
+                        f"Qy = {twiss[-1].mu_y-twiss[0].mu_y_previous:.12g}")
         except (OSError, ValueError, KeyError, RuntimeError) as exc:
             QMessageBox.critical(self, "导入失败", str(exc))
             return None
@@ -1098,6 +1429,12 @@ class ConfigPage(QWidget):
         source = str(self._madx_fields["Twiss TFS 文件"].text().strip())
         source_kind = "Twiss 光学点" if self._madx_fields.get("source_kind") == "twiss" else "元件"
         merge = self._madx_fields["merge_drift"].currentText() == "是"
+        sampling = self._madx_fields.get("sampling")
+        interpolation = isinstance(sampling, QComboBox) and sampling.currentText() == "等间距插值"
+        sampling_summary = (
+            "采样方式：等间距插值（替换原始 Twiss 点）\n"
+            + self._madx_fields["grid_summary"].text() + "\n"
+            if interpolation else f"合并连续 Drift：{'是' if merge else '否'}\n")
         preview_names = ", ".join(str(name) for name in names[:8])
         if len(names) > 8:
             preview_names += f" 等 {len(names)} 项"
@@ -1114,7 +1451,7 @@ class ConfigPage(QWidget):
             f"类型：MAD-X {source_kind}\n"
             f"最终导入项目：{len(items)}\n"
             f"环周长：{circumference:.6g} m\n"
-            f"合并连续 Drift：{'是' if merge else '否'}\n"
+            f"{sampling_summary}"
             f"\n{source_heading}\n{source_summary}\n"
             f"\n最终 PASS command：\n{command_summary}\n"
             f"\n项目示例：{preview_names or '（无项目）'}\n\n"
@@ -1169,7 +1506,7 @@ class ConfigPage(QWidget):
 
             self.data["Space charge"] = SpaceChargeConfig(
                 enabled=True,
-                configurations={"default": SpaceChargeResourceConfig()},
+                configurations={"default": SpaceChargeResourceConfig(deposition_method="CIC")},
             ).model_dump(by_alias=True)
         self._sync_editor()
         self._data_dirty = True
@@ -1180,7 +1517,7 @@ class ConfigPage(QWidget):
     def _default_space_charge_resource() -> dict:
         from PASS.para.schema.space_charge import SpaceChargeResourceConfig
 
-        return SpaceChargeResourceConfig().model_dump(by_alias=True)
+        return SpaceChargeResourceConfig(deposition_method="CIC").model_dump(by_alias=True)
 
     def _populate_space_charge_configuration(self, active_name: str | None = None) -> None:
         """Render the top-level block and one named PIC resource as typed fields."""
@@ -1190,9 +1527,9 @@ class ConfigPage(QWidget):
         self._clear_form()
         self._selected_mapping = block
         self._selected_path = ("__root__", "Space charge")
-        self.form_title.setText("空间电荷全局配置")
+        self.form_title.setText("空间电荷 · 计算配置")
         self.form_hint.setText(
-            "顶层配置负责共享的切片集、PIC 网格和求解器；Sequence 中的计算点按名称引用这里的配置。"
+            "共享切片集、网格和场模型；计算点按名称引用配置，并可独立设置粒子损失孔径。"
         )
 
         enabled = QCheckBox("启用空间电荷模块")
@@ -1249,16 +1586,32 @@ class ConfigPage(QWidget):
 
             resource = configurations[active_name]
             resource_form = QFormLayout()
+            self._space_charge_resource_form = resource_form
             resource_form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
             resource_form.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
             resource_form.setHorizontalSpacing(12)
             resource_form.setVerticalSpacing(7)
+            self._space_charge_extent_mode = PropertyComboBox()
+            self._space_charge_extent_mode.addItems(["全宽", "半宽"])
+            self._space_charge_extent_mode.setCurrentText(
+                "半宽" if resource.get("Grid Half Width X (m)") is not None else "全宽")
+            self._track_field(self._space_charge_extent_mode)
+            resource_form.addRow("网格范围输入", self._space_charge_extent_mode)
             for key, default_value in self._default_space_charge_resource().items():
                 value = resource.get(key, default_value)
+                if key == "Particle Deposition Method":
+                    value = value or "CIC"
                 field = self._make_field(key, value)
                 self._space_charge_fields[key] = field
                 resource_form.addRow(self._field_label(key, value), field)
             selector_layout.addLayout(resource_form)
+            self._space_charge_method_hint = QLabel()
+            self._space_charge_method_hint.setWordWrap(True)
+            selector_layout.addWidget(self._space_charge_method_hint)
+            self._space_charge_fields["Method"].currentTextChanged.connect(self._update_space_charge_fields)
+            self._space_charge_fields["Solver"].currentTextChanged.connect(self._update_space_charge_fields)
+            self._space_charge_extent_mode.currentTextChanged.connect(self._change_space_charge_extent_mode)
+            self._update_space_charge_fields()
         else:
             empty = QLabel("尚无资源配置。点击“添加”创建一个配置后，SpaceCharge 计算点才能引用它。")
             empty.setObjectName("muted")
@@ -1266,6 +1619,68 @@ class ConfigPage(QWidget):
             selector_layout.addWidget(empty)
         self.form_layout.addRow(selector_box)
         self.form_apply.setEnabled(True)
+
+    def _change_space_charge_extent_mode(self) -> None:
+        """Convert the current extent when switching its input convention."""
+        half = self._space_charge_extent_mode.currentText() == "半宽"
+        target_prefix = "Grid Half Width" if half else "Grid Width"
+        source_prefix = "Grid Width" if half else "Grid Half Width"
+        for axis in ("X", "Y"):
+            target = self._space_charge_fields[f"{target_prefix} {axis} (m)"]
+            source = self._space_charge_fields[f"{source_prefix} {axis} (m)"]
+            try:
+                value = float(source.text())
+                target.setText(str(value / 2 if half else value * 2))
+            except ValueError:
+                target.clear()
+        self._update_space_charge_fields()
+
+    def _update_space_charge_fields(self) -> None:
+        """Limit solver choices and expose only inputs used by the chosen method."""
+        method = self._space_charge_fields["Method"].currentText()
+        solver_field = self._space_charge_fields["Solver"]
+        choices = (
+            ("fft_free_space", "fd_dirichlet", "dst_dirichlet") if method == "pic" else
+            ("gaussian_round_free_space", "gaussian_ellipse_free_space",
+             "uniform_round_free_space", "uniform_ellipse_free_space")
+        )
+        solver = solver_field.currentText()
+        if solver not in choices:
+            solver = "fd_dirichlet" if method == "pic" else choices[0]
+        solver_field.blockSignals(True)
+        solver_field.clear()
+        solver_field.addItems(choices)
+        solver_field.setCurrentText(solver)
+        solver_field.blockSignals(False)
+        prefix = "Grid Half Width" if self._space_charge_extent_mode.currentText() == "半宽" else "Grid Width"
+        other = "Grid Width" if prefix == "Grid Half Width" else "Grid Half Width"
+        for axis in ("X", "Y"):
+            target = self._space_charge_fields[f"{prefix} {axis} (m)"]
+            if not target.text().strip():
+                try:
+                    value = float(self._space_charge_fields[f"{other} {axis} (m)"].text())
+                    target.setText(str(value / 2 if prefix == "Grid Half Width" else value * 2))
+                except ValueError:
+                    pass
+        active = {"Slice set", "Nx", "Ny", f"{prefix} X (m)", f"{prefix} Y (m)", "Method", "Solver"}
+        if method == "pic":
+            active.add("Particle Deposition Method")
+            hint = "PIC 从粒子沉积电荷并求场，沉积方式默认 CIC。导体边界由各 SpaceCharge command 的 Aperture type/value 定义；DST 要求与网格重合的矩形。网格仅接受全宽或半宽，步长由节点数计算。"
+        elif method == "frozen":
+            active.update({"Center X (m)", "Center Y (m)"})
+            active.update({
+                "gaussian_round_free_space": {"Sigma (m)"},
+                "gaussian_ellipse_free_space": {"Sigma X (m)", "Sigma Y (m)", "Angle (rad)"},
+                "uniform_round_free_space": {"Radius (m)"},
+                "uniform_ellipse_free_space": {"Semi-axis A (m)", "Semi-axis B (m)", "Angle (rad)"},
+            }[solver])
+            hint = "frozen 使用固定的源分布中心和尺寸；对应尺寸必须填写，中心和角度留空取零。网格用于诊断采样及 command 缺省矩形孔径，公式场为自由空间。"
+        else:
+            hint = "quasi-frozen 每次按切片粒子重新计算中心、尺寸和方向，无需输入固定分布参数。网格用于诊断采样及 command 缺省矩形孔径，公式场为自由空间。"
+        self._space_charge_active_fields = active
+        for key, field in self._space_charge_fields.items():
+            self._space_charge_resource_form.setRowVisible(field, key in active)
+        self._space_charge_method_hint.setText(hint)
 
     def _preview_space_charge_configuration_name(self, name: str) -> None:
         """Keep the current-configuration selector in sync while its name is edited."""
@@ -1311,6 +1726,7 @@ class ConfigPage(QWidget):
                 raise ValueError(f"Space charge.Configurations.{old_name} 必须是对象。")
             resource = {
                 key: self._read_field_value(key, field, original.get(key))
+                if key in self._space_charge_active_fields else None
                 for key, field in self._space_charge_fields.items()
             }
             canonical_resource = SpaceChargeResourceConfig.model_validate(resource).model_dump(by_alias=True)
@@ -1423,7 +1839,7 @@ class ConfigPage(QWidget):
                     self,
                     "无法删除空间电荷配置",
                     f"配置 {name} 正被计算点 {reference_text} 引用，且没有其他配置可供替换。\n"
-                    "请先新增一个全局配置，或删除这些空间电荷计算点。",
+                    "请先新增一个计算配置，或删除这些空间电荷计算点。",
                 )
                 return
             replacement, accepted = QInputDialog.getItem(
@@ -1862,17 +2278,40 @@ class ConfigPage(QWidget):
         self._selected_mapping = target
         self.form_title.setText(title)
         self.form_hint.setText("字段会写回当前配置。列表和嵌套对象使用 JSON 编辑器；Command 为只读。")
+        if target.get("Command") == "SpaceCharge":
+            self.form_hint.setText("Aperture type/value 定义本点孔径，边界上及孔径外的粒子先损失。default 使用配置网格大小的矩形；FD/DST 同时将它作为导体边界，自由空间 solver 仅用它处理损失。")
         if pending or name_value is not None:
             default_name = "injection" if target.get("Command") == "Injection" else f"{str(target.get('Command', 'command')).lower()}_1"
             self._name_field = QLineEdit(name_value or default_name)
             self._name_field.setToolTip("Sequence 中的唯一名称")
             self.form_layout.addRow(QLabel("名称"), self._name_field)
+            self._track_field(self._name_field)
+        twiss_layouts = {}
+        if target.get("Command") == "Twiss":
+            self.form_hint.setText("使用起点与终点光学参数构造一段传输；Mu 为累计相位，单位为周（2π）。")
+            for group in ("起点光学参数", "终点光学参数", "传输设置"):
+                box = QGroupBox(group)
+                layout = QFormLayout(box)
+                layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+                layout.setSizeConstraint(QLayout.SetMinimumSize)
+                twiss_layouts[group] = layout
+                self.form_layout.addRow(box)
         for key, value in target.items():
             if target.get("Command") == "SpaceCharge" and key == "Configuration":
                 field = self._make_space_charge_reference_field(str(value))
             else:
                 field = self._make_field(str(key), value)
-            self.form_layout.addRow(self._field_label(str(key), value), field)
+            label = self._field_label(str(key), value)
+            layout = self.form_layout
+            if twiss_layouts:
+                if "previous" in key.casefold():
+                    layout = twiss_layouts["起点光学参数"]
+                    label.setText(re.sub(r" previous", "", str(key), flags=re.IGNORECASE))
+                elif key in {"S (m)", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Mu x", "Mu y", "Mu z", "Dx (m)", "Dpx"}:
+                    layout = twiss_layouts["终点光学参数"]
+                else:
+                    layout = twiss_layouts["传输设置"]
+            layout.addRow(label, field)
             self._form_fields[key] = field
         self.form_apply.setEnabled(bool(self._form_fields) or self._name_field is not None)
         self.insert_button.setVisible(pending)
@@ -2188,7 +2627,7 @@ class ConfigPage(QWidget):
             field.textChanged.connect(self._mark_form_dirty)
 
     def _mark_form_dirty(self) -> None:
-        if self._selected_mapping is None:
+        if self._selected_mapping is None and self._optics_mode is None:
             return
         self._form_dirty = True
         self._set_sync_status("表单有未确认修改", "warning")
@@ -2198,7 +2637,7 @@ class ConfigPage(QWidget):
         if isinstance(field, QCheckBox):
             return field.isChecked()
         if isinstance(field, QComboBox):
-            return field.currentText()
+            return None if old_value is None and not field.currentText() else field.currentText()
         if isinstance(field, QPlainTextEdit):
             try:
                 value = json.loads(field.toPlainText())
@@ -2368,6 +2807,9 @@ class ConfigPage(QWidget):
         self._madx_fields = {}
         self._madx_preview = None
         self._madx_preview_signature = None
+        self._optics_mode = None
+        self._optics_fields = {}
+        self._optics_preview = None
         self._timing_fields = {}
         self._space_charge_fields = {}
         self._space_charge_selector = None
@@ -2378,6 +2820,9 @@ class ConfigPage(QWidget):
         self.form_title.setText("参数配置")
         self.form_hint.setText(hint)
         self.form_apply.setEnabled(False)
+        self.form_apply.show()
+        self.optics_preview_button.hide()
+        self.optics_insert_button.hide()
         self.madx_import_button.setVisible(False)
         self.madx_preview_button.setVisible(False)
         self.insert_button.setVisible(False)
@@ -2624,7 +3069,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"PASS v{__version__}")
         self.resize(1440, 900)
-        self.setMinimumSize(1100, 700)
+        # Three panes need enough width for the component names and form actions.
+        self.setMinimumSize(1320, 700)
         self.setStyleSheet(
             """
             QWidget { background: #282c34; color: #d7dae0; font-size: 14px; }
@@ -2668,6 +3114,7 @@ class MainWindow(QMainWindow):
             QGroupBox#configGroup::title { color: #61afef; subcontrol-origin: margin; left: 10px; padding: 0 4px; }
             QTreeWidget::item:selected, QListWidget::item:selected { background: #263b50; color: #d7dae0; }
             QTableWidget::item:selected { background: #263b50; color: #d7dae0; }
+            QTableWidget { alternate-background-color: #20252d; }
             QScrollBar:vertical { background: #11151a; width: 12px; margin: 0; border: 1px solid #3b4350; }
             QScrollBar::handle:vertical { background: #6b7788; min-height: 24px; border-radius: 4px; }
             QScrollBar::handle:vertical:hover { background: #8b93a1; }
