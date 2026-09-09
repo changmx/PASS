@@ -6,7 +6,7 @@ from copy import deepcopy
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QInputDialog, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton
 
 from PASS.gui.app import ConfigPage, PropertyComboBox
 
@@ -203,8 +203,10 @@ def test_new_project_uses_complete_main_config_and_global_form():
     page = ConfigPage()
 
     assert {
-        "Beam Name", "Circumference (m)", "Number of turns", "Timing", "Is space charge", "Sequence",
+        "Beam Name", "Circumference (m)", "Number of turns", "Timing", "Sequence",
     } <= set(page.data)
+    assert "Is space charge" not in page.data
+    assert "Space-charge simulation parameters" not in page.data
     page._populate_root_configuration()
     assert "Beam Name" in page._form_fields
     assert "Sequence" not in page._form_fields
@@ -228,6 +230,112 @@ def test_global_config_is_a_required_left_library_entry_and_timing_is_typed():
         "Mode": "turn", "Log Interval": 25, "Warmup Turns": 1, "Include IO": True,
     }
     assert "配置检查" in page.validation_label.text()
+
+
+def test_space_charge_global_editor_uses_new_named_configuration_schema():
+    page = ConfigPage()
+    page.configure_space_charge()
+
+    assert page.form_title.text() == "空间电荷 · 计算配置"
+    assert page.data["Space charge"]["Enabled"] is True
+    assert page._active_space_charge_configuration == "default"
+    assert set(page._space_charge_fields) == {
+        "Slice set", "Nx", "Ny", "Grid Width X (m)", "Grid Width Y (m)",
+        "Method", "Solver", "Particle Deposition Method",
+        "Grid Half Width X (m)", "Grid Half Width Y (m)",
+        "Center X (m)", "Center Y (m)", "Angle (rad)", "Sigma (m)",
+        "Sigma X (m)", "Sigma Y (m)", "Radius (m)", "Semi-axis A (m)", "Semi-axis B (m)",
+    }
+    assert page._space_charge_fields["Solver"].itemText(0) == "fft_free_space"
+    assert [
+        page._space_charge_fields["Particle Deposition Method"].itemText(index)
+        for index in range(page._space_charge_fields["Particle Deposition Method"].count())
+    ] == ["CIC", "TSC"]
+
+    page.data["Sequence"]["sc_ip"] = page._command_template("SpaceCharge")
+    page._space_charge_name_field.setText("round_pipe")
+    assert page._space_charge_selector.currentText() == "round_pipe"
+    page._space_charge_fields["Nx"].setText("65")
+    page._space_charge_fields["Solver"].setCurrentText("dst_dirichlet")
+    page.apply_form()
+
+    configuration = page.data["Space charge"]["Configurations"]["round_pipe"]
+    assert configuration["Nx"] == 65
+    assert configuration["Solver"] == "dst_dirichlet"
+    assert page.data["Sequence"]["sc_ip"]["Configuration"] == "round_pipe"
+    assert "default" not in page.data["Space charge"]["Configurations"]
+
+
+def test_space_charge_command_only_contains_point_parameters_and_named_reference():
+    page = ConfigPage()
+    assert any(item.text() == "插入计算点" for item in page.space_charge_menu.findChildren(QPushButton))
+    page.configure_space_charge()
+    page._space_charge_name_field.setText("round_pipe")
+    page.apply_form()
+    page.select_command("SpaceCharge")
+
+    assert isinstance(page._form_fields["Configuration"], PropertyComboBox)
+    assert page._form_fields["Configuration"].currentText() == "round_pipe"
+    assert set(page._form_fields) == {
+        "S (m)", "Command", "Configuration", "SC length (m)",
+        "Aperture type", "Aperture value",
+        "Save field", "Save potential", "Save density", "Save turns",
+    }
+    assert "Nx" not in page._form_fields
+    assert "Field solver" not in page._form_fields
+
+    page.configure_global()
+    assert "Space charge" not in page._form_fields
+
+
+def test_space_charge_named_configurations_can_be_added_copied_and_deleted(monkeypatch):
+    page = ConfigPage()
+    page.configure_space_charge()
+
+    page.add_space_charge_configuration()
+    assert page._active_space_charge_configuration == "configuration_1"
+    assert set(page.data["Space charge"]["Configurations"]) == {"default", "configuration_1"}
+
+    page.copy_space_charge_configuration()
+    assert page._active_space_charge_configuration == "configuration_1_copy"
+    monkeypatch.setattr(QMessageBox, "question", lambda *args, **kwargs: QMessageBox.Yes)
+    page.delete_space_charge_configuration()
+    assert "configuration_1_copy" not in page.data["Space charge"]["Configurations"]
+
+
+def test_deleting_referenced_space_charge_configuration_requires_replacement(monkeypatch):
+    page = ConfigPage()
+    page.configure_space_charge()
+    page.add_space_charge_configuration()
+    page.data["Sequence"]["sc_a"] = page._command_template("SpaceCharge")
+    page.data["Sequence"]["sc_b"] = page._command_template("SpaceCharge")
+    page._space_charge_selector.setCurrentText("default")
+
+    monkeypatch.setattr(QInputDialog, "getItem", lambda *args, **kwargs: ("configuration_1", True))
+    monkeypatch.setattr(QMessageBox, "question", lambda *args, **kwargs: QMessageBox.Yes)
+    page.delete_space_charge_configuration()
+
+    assert "default" not in page.data["Space charge"]["Configurations"]
+    assert page.data["Sequence"]["sc_a"]["Configuration"] == "configuration_1"
+    assert page.data["Sequence"]["sc_b"]["Configuration"] == "configuration_1"
+    page._select_sequence_item("sc_a")
+    assert [
+        page._form_fields["Configuration"].itemText(index)
+        for index in range(page._form_fields["Configuration"].count())
+    ] == ["configuration_1"]
+
+
+def test_deleting_only_referenced_space_charge_configuration_is_blocked(monkeypatch):
+    page = ConfigPage()
+    page.configure_space_charge()
+    page.data["Sequence"]["sc_a"] = page._command_template("SpaceCharge")
+    messages = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args, **kwargs: messages.append(args[2]))
+
+    page.delete_space_charge_configuration()
+
+    assert "default" in page.data["Space charge"]["Configurations"]
+    assert "sc_a" in messages[0]
 
 
 def test_validation_status_uses_tooltip_for_missing_injection_detail():
