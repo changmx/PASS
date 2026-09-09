@@ -16,3 +16,5 @@ PASS 文档（中文）
    aperture
    twiss
    slicer
+   space_charge
+   field_solver

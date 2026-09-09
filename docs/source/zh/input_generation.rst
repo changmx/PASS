@@ -30,8 +30,8 @@ PASS 采用 **JSON 文件** 作为仿真输入。引擎（ ``Config`` 、 ``Beam
    │   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
    │   ├── twiss.py        TwissPoint：twiss 传输点
    │   ├── elements.py     12 种元件（Drift→RFCavity）
-   │   ├── monitors.py     StatMonitor / DistMonitor / PhaseMonitor
-   │   ├── space_charge.py SpaceChargeConfig
+   │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
+   │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
    │   └── sequence.py     Sequence：有序容器 + 自动排序
    ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
    ├── smooth.py      解析平滑近似 twiss
@@ -108,7 +108,7 @@ PASS 采用 **JSON 文件** 作为仿真输入。引擎（ ``Config`` 、 ``Beam
    main.circumference = circum
 
    seq = Sequence()
-   seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
+   seq.add("injection", InjectionItem(s=0.0, random_seed=2026, bunches=[bunch]))
    for i, item in enumerate(items):
        seq.add(f"twiss_{i:04d}", item)
    seq.add("stat1", StatMonitor(s=0.0))
@@ -145,12 +145,13 @@ JSON 文件结构
        "Device Id": [0],
        "Output directory": "./output",
        "Is plot figure": true,
-       "Is space charge": false,
        "Is beam-beam": false,
        "Sequence": {
            "injection": {
                "S (m)": 0.0,
                "Command": "Injection",
+               "Harmonic Number": 1,
+               "Random Seed": 2026,
                "bunch0": {}
            },
            "twiss_0000": {
@@ -235,14 +236,15 @@ MainConfig（全局参数）
      - ``Is plot figure``
      - bool
      - 是否生成图表
-   * - ``is_space_charge``
-     - ``Is space charge``
-     - bool
-     - 是否启用空间电荷
    * - ``is_beambeam``
      - ``Is beam-beam``
      - bool
      - 是否启用束流-束流相互作用
+
+空间电荷不再由 ``MainConfig`` 开关控制，而是使用独立的顶层 ``Space charge``
+配置块。命名资源 schema 和 Sequence command 引用方式参见 :doc:`space_charge`。
+每个资源通过 ``Method``（``pic``、``frozen``、``quasi-frozen``）和 ``Solver``
+选择计算方式；Solver 名称包含边界条件，导体几何通过 ``Chamber`` 提供。
 
 InjectionItem（注入与分组）
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -353,7 +355,7 @@ Sequence（序列容器）
 - ``InjectionItem`` — 注入点（必须 ``s=0`` ）
 - ``TwissPoint`` — twiss 传输点
 - ``DriftElement`` 、 ``QuadrupoleElement`` 、 ``SBendElement`` 等 — 物理元件
-- ``StatMonitor`` 、 ``DistMonitor`` 、 ``PhaseMonitor`` — 监测器
+- ``StatMonitor`` 、 ``DistMonitor`` 、 ``PhaseAdvanceMonitor`` — 监测器
 
 
 Lattice来源
@@ -509,7 +511,27 @@ API 参考
 
 .. code-block:: python
 
-   from PASS.para.api import generate_input, load_input
+   from PASS.para.api import (
+       build_sequence, generate_from_tfs, generate_input, load_input,
+   )
+
+   # 组装序列，并使 Injection 分布可复现
+   sequence = build_sequence(
+       items=items,
+       names=names,
+       bunches=bunches,
+       monitors=monitors,
+       random_seed=2026,
+   )
+
+   # MADX 高层辅助函数接受相同的 Injection 种子参数
+   generate_from_tfs(
+       twiss_file="lattice.tfs",
+       output_path="beam0.json",
+       main=main_dict,
+       bunches=bunch_dicts,
+       random_seed=2026,
+   )
 
    # 生成 JSON
    generate_input(

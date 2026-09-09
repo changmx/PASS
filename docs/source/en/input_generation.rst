@@ -30,8 +30,8 @@ The parameter system is divided into five layers, each with clear responsibiliti
    │   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
    │   ├── twiss.py        TwissPoint: twiss transfer point
    │   ├── elements.py     12 element types (Drift→RFCavity)
-   │   ├── monitors.py     StatMonitor / DistMonitor / PhaseMonitor
-   │   ├── space_charge.py SpaceChargeConfig
+   │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
+   │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
    │   └── sequence.py     Sequence: ordered container + auto-sorting
    ├── madx.py        MADX TFS → schema objects (element / twiss / error)
    ├── smooth.py      Analytical smooth approximation twiss
@@ -108,7 +108,7 @@ The following script generates a complete input file containing injection + smoo
    main.circumference = circum
 
    seq = Sequence()
-   seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
+   seq.add("injection", InjectionItem(s=0.0, random_seed=2026, bunches=[bunch]))
    for i, item in enumerate(items):
        seq.add(f"twiss_{i:04d}", item)
    seq.add("stat1", StatMonitor(s=0.0))
@@ -145,12 +145,13 @@ The generated JSON file has the following structure:
        "Device Id": [0],
        "Output directory": "./output",
        "Is plot figure": true,
-       "Is space charge": false,
        "Is beam-beam": false,
        "Sequence": {
            "injection": {
                "S (m)": 0.0,
                "Command": "Injection",
+               "Harmonic Number": 1,
+               "Random Seed": 2026,
                "bunch0": {}
            },
            "twiss_0000": {
@@ -235,14 +236,16 @@ MainConfig (Global Parameters)
      - ``Is plot figure``
      - bool
      - Whether to generate plots
-   * - ``is_space_charge``
-     - ``Is space charge``
-     - bool
-     - Whether to enable space charge
    * - ``is_beambeam``
      - ``Is beam-beam``
      - bool
      - Whether to enable beam-beam interaction
+
+Space charge is configured by the separate top-level ``Space charge`` block,
+not by ``MainConfig``. See :doc:`space_charge` for its named resource schema
+and sequence-command references. Each resource selects ``Method`` (``pic``,
+``frozen``, ``quasi-frozen``) and ``Solver``; the latter includes the boundary
+condition in its name. Conducting geometry is supplied by ``Chamber``.
 
 InjectionItem (Injection and Grouping)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -353,7 +356,7 @@ Supported sequence item types:
 - ``InjectionItem`` — injection point (must have ``s=0`` )
 - ``TwissPoint`` — twiss transfer point
 - ``DriftElement`` , ``QuadrupoleElement`` , ``SBendElement`` , etc. — physical elements
-- ``StatMonitor`` , ``DistMonitor`` , ``PhaseMonitor`` — monitors
+- ``StatMonitor`` , ``DistMonitor`` , ``PhaseAdvanceMonitor`` — monitors
 
 
 Lattice Sources
@@ -509,7 +512,27 @@ API Reference
 
 .. code-block:: python
 
-   from PASS.para.api import generate_input, load_input
+   from PASS.para.api import (
+       build_sequence, generate_from_tfs, generate_input, load_input,
+   )
+
+   # Assemble a sequence with a reproducible Injection distribution
+   sequence = build_sequence(
+       items=items,
+       names=names,
+       bunches=bunches,
+       monitors=monitors,
+       random_seed=2026,
+   )
+
+   # The high-level MADX helper accepts the same Injection seed
+   generate_from_tfs(
+       twiss_file="lattice.tfs",
+       output_path="beam0.json",
+       main=main_dict,
+       bunches=bunch_dicts,
+       random_seed=2026,
+   )
 
    # Generate JSON
    generate_input(

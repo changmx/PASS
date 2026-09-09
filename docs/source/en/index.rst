@@ -15,3 +15,5 @@ Welcome to PASS, the Particle Accelerator Simulation Studio.
    aperture
    twiss
    slicer
+   space_charge
+   field_solver
