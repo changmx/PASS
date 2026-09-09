@@ -64,6 +64,14 @@ pass-gui
 python -m pytest
 ```
 
+默认发现范围为 `tests/unit` 和 `tests/integration`，包含完整的空间电荷仿真。
+分类批量运行、单例调用、保存场的分析复用和显式本地 Codex 回归命令，见
+[空间电荷测试指南](tests/integration/space_charge/README.md)。
+
+空间电荷通过 `Method` / `Solver` 支持 `pic`、`frozen` 和 `quasi-frozen` 跟踪。
+运行 `python -m tests.integration.space_charge analytic` 可验证解析场、粒子 kick
+与参数演化，并生成对照图。
+
 欢迎通过 [GitHub issue 跟踪器](https://github.com/changmx/PASS/issues) 报告问题或提出功能建议。提交代码时请在适当情况下同时补充测试和文档。
 
 ## 许可证
