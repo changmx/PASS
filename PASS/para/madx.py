@@ -14,7 +14,6 @@ Element naming convention:
 import re
 import numpy as np
 import tfs
-from scipy import interpolate
 
 from PASS.para.schema.twiss import TwissPoint
 from PASS.para.schema.elements import (
@@ -642,162 +641,27 @@ def read_madx_twiss_interpolated(
     twiss_file: str,
     num_interp_slice: int,
     error_file: str = "",
-    muz: float = 0.001,
-    dqx: float = 0.0,
-    dqy: float = 0.0,
+    muz: float = 0.0,
+    dqx: float | str = "from_file",
+    dqy: float | str = "from_file",
     is_field_error: bool = False,
     insert_patterns: list[str] | None = None,
     longitudinal_transfer: str = "off",
-    interp_kind: str = "cubic",
+    interp_kind: str = "phase_hermite",
 ) -> tuple[list, list[str], float]:
-    """Read MADX twiss and interpolate onto a uniform s-grid.
+    """Resample a full ring using phase-constrained quintic Hermite optics.
 
-    Produces num_interp_slice TwissPoints evenly spaced along the ring.
-    Insert elements (if any) are placed at their original s positions.
+    ``num_interp_slice`` counts base points including 0 and C: N segments
+    require N+1 points. Original rows are replaced; kicks, field errors and
+    optical discontinuities add split points. Source phases and their full
+    tune are preserved. No extrapolation is allowed. Only
+    ``interp_kind='phase_hermite'`` is supported. DQx/DQy default to TFS headers.
     """
-    twiss_table = tfs.read(twiss_file)
-    headers = twiss_table.headers
-    circumference = headers["LENGTH"]
-    qx = headers["Q1"]
-    qy = headers["Q2"]
+    from PASS.para.twiss_interpolation import resample_madx_twiss
 
-    if dqx == "from_file":
-        dqx = headers["DQ1"]
-    if dqy == "from_file":
-        dqy = headers["DQ2"]
-
-    print(f"[Read MADX Twiss] Interpolated: {num_interp_slice} slices, "
-          f"C={circumference}, Qx={qx}, Qy={qy}")
-
-    s = twiss_table["S"].to_numpy()
-    betx = twiss_table["BETX"].to_numpy()
-    bety = twiss_table["BETY"].to_numpy()
-    alfx = twiss_table["ALFX"].to_numpy()
-    alfy = twiss_table["ALFY"].to_numpy()
-    dx = twiss_table["DX"].to_numpy()
-    dpx = twiss_table["DPX"].to_numpy()
-    mux = twiss_table["MUX"].to_numpy()
-    muy = twiss_table["MUY"].to_numpy()
-
-    # Remove duplicate s-points
-    keep_mask = np.ones(len(s), dtype=bool)
-    for i in range(1, len(s)):
-        if abs(s[i] - s[i - 1]) <= 1e-10:
-            keep_mask[i] = False
-    s, betx, bety = s[keep_mask], betx[keep_mask], bety[keep_mask]
-    alfx, alfy = alfx[keep_mask], alfy[keep_mask]
-    dx, dpx = dx[keep_mask], dpx[keep_mask]
-    mux, muy = mux[keep_mask], muy[keep_mask]
-
-    def _interp(arr):
-        return interpolate.interp1d(s, arr, kind=interp_kind, fill_value="extrapolate")
-
-    f_betx, f_bety = _interp(betx), _interp(bety)
-    f_alfx, f_alfy = _interp(alfx), _interp(alfy)
-    f_dx, f_dpx = _interp(dx), _interp(dpx)
-    f_mux, f_muy = _interp(mux), _interp(muy)
-
-    s_uniform = np.linspace(0, circumference, num_interp_slice, endpoint=True)
-
-    items = []
-    names = []
-
-    for i in range(len(s_uniform)):
-        si = s_uniform[i]
-        name = f"twiss_interp_s{si:.3f}"
-
-        if i == 0:
-            tp = TwissPoint(
-                s=si,
-                s_previous=si,
-                alpha_x=f_alfx(si),
-                alpha_y=f_alfy(si),
-                beta_x=f_betx(si),
-                beta_y=f_bety(si),
-                mu_x=f_mux(si),
-                mu_y=f_muy(si),
-                mu_z=0.0,
-                dx=f_dx(si),
-                dpx=f_dpx(si),
-                alpha_x_previous=f_alfx(si),
-                alpha_y_previous=f_alfy(si),
-                beta_x_previous=f_betx(si),
-                beta_y_previous=f_bety(si),
-                mu_x_previous=f_mux(si),
-                mu_y_previous=f_muy(si),
-                mu_z_previous=0.0,
-                dx_previous=f_dx(si),
-                dpx_previous=f_dpx(si),
-                dqx=0.0,
-                dqy=0.0,
-                longitudinal_transfer=longitudinal_transfer,
-            )
-        else:
-            s_prev = s_uniform[i - 1]
-            tp = TwissPoint(
-                s=si,
-                s_previous=s_prev,
-                alpha_x=f_alfx(si),
-                alpha_y=f_alfy(si),
-                beta_x=f_betx(si),
-                beta_y=f_bety(si),
-                mu_x=f_mux(si),
-                mu_y=f_muy(si),
-                mu_z=si / circumference * muz,
-                dx=f_dx(si),
-                dpx=f_dpx(si),
-                alpha_x_previous=f_alfx(s_prev),
-                alpha_y_previous=f_alfy(s_prev),
-                beta_x_previous=f_betx(s_prev),
-                beta_y_previous=f_bety(s_prev),
-                mu_x_previous=f_mux(s_prev),
-                mu_y_previous=f_muy(s_prev),
-                mu_z_previous=s_prev / circumference * muz,
-                dx_previous=f_dx(s_prev),
-                dpx_previous=f_dpx(s_prev),
-                dqx=dqx * (f_mux(si) - f_mux(s_prev)) / qx,
-                dqy=dqy * (f_muy(si) - f_muy(s_prev)) / qy,
-                longitudinal_transfer=longitudinal_transfer,
-            )
-        items.append(tp)
-        names.append(name)
-
-    print(f"[Read MADX Twiss] {len(items)} interpolated twiss points created")
-
-    # Insert elements
-    if insert_patterns:
-        insert_items, insert_names = _insert_elements(twiss_table, insert_patterns)
-        items.extend(insert_items)
-        names.extend(insert_names)
-        print(f"[Read MADX Twiss] {len(insert_items)} thin-lens elements inserted")
-
-    # Field errors
-    if is_field_error and error_file:
-        error_dict = read_madx_errors(error_file)
-        error_items = []
-        error_names = []
-        key_to_idx = {}
-        for idx, item in enumerate(items):
-            mk = getattr(item, "_match_key", None)
-            if mk is not None:
-                key_to_idx[mk] = idx
-        for key, errs in error_dict.items():
-            if key in key_to_idx:
-                idx = key_to_idx[key]
-                s_val = items[idx].s
-                err_item = MultipoleElement(
-                    s=s_val,
-                    length=0.0,
-                    knl=errs["knl"],
-                    ksl=errs["ksl"],
-                )
-                error_items.append(err_item)
-                error_names.append(f"{key}_error")
-        items.extend(error_items)
-        names.extend(error_names)
-        print(f"[Read MADX Twiss] {len(error_items)} field error multipoles added")
-
-    return items, names, circumference
+    return resample_madx_twiss(
+        twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
+        is_field_error, insert_patterns, longitudinal_transfer, interp_kind)
 
 
 # ============================================================
