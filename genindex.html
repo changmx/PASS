@@ -31,7 +31,7 @@
           
           <a href="index.html" class="icon icon-home">
             PASS
-              <img src="_static/logo_blue.png" class="logo" alt="Logo"/>
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -75,6 +75,17 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="zh/input_generation.html#api">API 参考</a></li>
 <li class="toctree-l3"><a class="reference internal" href="zh/input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="zh/gui.html">图形界面配置流程</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="zh/gui.html#id2">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/gui.html#twiss">Twiss 与光学</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/gui.html#mad-x">MAD-X 采样方式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/gui.html#id3">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/gui.html#id4">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/gui.html#id5">手动传输点与后续编辑</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="zh/injection.html">注入粒子生成（Injection）</a><ul>
@@ -267,6 +278,11 @@
 <li class="toctree-l4"><a class="reference internal" href="zh/monitor/distmonitor.html#cpu-gpu">CPU 与 GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="zh/monitor/phaseadvancemonitor.html">相位推进监视器（PhaseAdvanceMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/monitor/phaseadvancemonitor.html#id1">配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/monitor/phaseadvancemonitor.html#id2">输出</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="zh/monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="zh/monitor/particlemonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="zh/monitor/particlemonitor.html#id2">粒子选择机制</a></li>
@@ -346,6 +362,69 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="zh/space_charge.html">空间电荷效应（SpaceCharge）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id1">概念介绍</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id2">物理模型</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/space_charge.html#id3">宏粒子电荷与横向源项</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/space_charge.html#id4">积分电势与积分场</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/space_charge.html#id5">相对论横向踢</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id6">执行流程</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id7">跟踪方法与解析分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id8">配置示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id9">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/space_charge.html#space-charge">顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 配置块</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/space_charge.html#id10">命名资源配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/space_charge.html#id11"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id12">网格范围与孔径校验</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id13">配置与校验规则</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id14">诊断输出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id15">验证文件组织</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id16">运行验证套件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/space_charge.html#id17">解析诊断与验证</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="zh/field_solver.html">横向场求解器</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id2">概念介绍</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#pic">PIC 数据流</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id3">网格与源项</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id4">均匀节点网格</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id5">电荷沉积</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#poisson">Poisson 方程与单位</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id6">场求解器选择</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#fd">有限差分：<code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#dst-rectangle">正弦变换：<code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#green-fft-free-space">自由空间 Green 函数：<code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id7">场梯度</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id8">孔径接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#python">Python 接口</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id9">网格与 PIC 流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id10">求解器构建器与一次性封装</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id11">结果对象</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id12">解析跟踪与参考场</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id13">源电荷、坐标与单位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#gaussian-round-free-space">圆高斯：gaussian_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id14">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="zh/field_solver.html#id15">Python 接口与数值稳定性</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id16">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="zh/field_solver.html#id17">选择建议与限制</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="en/index.html">PASS Documentation (English)</a><ul>
@@ -380,6 +459,17 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="en/input_generation.html#api-reference">API Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="en/input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="en/gui.html">Graphical configuration workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="en/gui.html#space-charge">Space charge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/gui.html#twiss-and-optics">Twiss and optics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/gui.html#mad-x-sampling">MAD-X sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/gui.html#one-turn-transfer">One-turn transfer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/gui.html#smooth-approximation">Smooth approximation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="en/injection.html">Injection / Particle Generation</a><ul>
@@ -572,6 +662,11 @@
 <li class="toctree-l4"><a class="reference internal" href="en/monitor/distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="en/monitor/phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/monitor/phaseadvancemonitor.html#configuration">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/monitor/phaseadvancemonitor.html#output">Output</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="en/monitor/particlemonitor.html">ParticleMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="en/monitor/particlemonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="en/monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
@@ -649,6 +744,69 @@
 <li class="toctree-l4"><a class="reference internal" href="en/slicer.html#configuration-validation">Configuration validation</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="en/space_charge.html">Space-Charge Effect (SpaceCharge)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#physical-model">Physical Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/space_charge.html#macroparticle-charge-and-transverse-source">Macroparticle charge and transverse source</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/space_charge.html#integrated-potential-and-field">Integrated potential and field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/space_charge.html#relativistic-transverse-kick">Relativistic transverse kick</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#execution-workflow">Execution Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#tracking-methods-and-analytic-profiles">Tracking Methods and Analytic Profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#configuration-example">Configuration Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/space_charge.html#top-level-space-charge-block">Top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/space_charge.html#named-resource-configuration">Named resource configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/space_charge.html#spacecharge-sequence-command"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> sequence command</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#configuration-rules">Configuration Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#diagnostic-output">Diagnostic Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#validation-layout">Validation Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="en/field_solver.html">Transverse Field Solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#pic-data-flow">PIC Data Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#grid-and-source-definition">Grid and Source Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#uniform-nodal-grid">Uniform nodal grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#charge-deposition">Charge deposition</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#poisson-equation-and-units">Poisson Equation and Units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#field-solver-selection">Field-Solver Selection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#finite-difference-fd">Finite difference: <code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#sine-transform-dst-rectangle">Sine transform: <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#free-space-green-function-fft-free-space">Free-space Green function: <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#field-gradients">Field gradients</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#aperture-interface">Aperture Interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#python-interfaces">Python Interfaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#geometry-and-pic-pipeline">Geometry and PIC pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#solver-builders-and-one-shot-wrappers">Solver builders and one-shot wrappers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#result-objects">Result Objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#analytic-tracking-and-reference-fields">Analytic Tracking and Reference Fields</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#source-charge-coordinates-and-units">Source charge, coordinates, and units</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#round-gaussian-gaussian-round-free-space">Round Gaussian: gaussian_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#direct-formula-example">Direct formula example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="en/field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="en/field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
 </ul>
 </li>
 </ul>

@@ -8,4 +8,5 @@ This module introduces the various beam monitors supported in PASS.
 
    statmonitor
    distmonitor
+   phaseadvancemonitor
    particlemonitor

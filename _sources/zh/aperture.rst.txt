@@ -7,6 +7,16 @@
 
 孔径检查仅在粒子的横向坐标 :math:`(x, y)` 上进行，不涉及纵向坐标。每个元件可独立设置孔径类型和参数，支持 10 种孔径几何形状。
 
+几何构造和损失处理统一放在本文件中。``build_aperture({"Type": ..., "Value": ...})``
+构造几何对象；``mask(x, y)`` 包含管壁，``strict_mask(x, y)`` 排除管壁。
+这些判断函数接受 NumPy 或 CuPy 坐标数组，在相同后端返回 mask，不修改粒子。
+``aperture_bounds(geometry)`` 返回几何范围，供初始化校验使用。
+
+``check_aperture_gpu`` 支持下列全部类型及 float32、float64 粒子坐标，直接在设备上
+记录损失。CUDA 核启动前校验几何参数，尺寸可输入整数或浮点数，空束团不启动核。
+已损失粒子保留原损失位置和圈数，不属于当前束团范围的粒子不受影响。
+CPU 执行不依赖 CuPy。这里的 GPU 支持仅指孔径模块，PIC 与 SpaceCharge 跟踪仍仅支持 CPU。
+
 
 接口参数
 --------
@@ -37,6 +47,9 @@
 
 丢失粒子处理
 ------------
+
+CPU 和 GPU 均只保留严格位于孔径内部的粒子。接触任意物理壁即损失，包括多边形
+边和顶点；矩形并不要求 x、y 同时达到边界。
 
 当粒子被判定为丢失时，系统执行以下操作：
 
@@ -80,13 +93,14 @@ default（默认矩形）
 
 **参数** ：无 （ ``aperture_value`` 被忽略）
 
-**说明** ：使用默认的 ±1m 矩形孔径，等价于 ``rectangle`` 类型且 ``aperture_value = [1.0, 1.0]`` 。
+**说明** ：普通元件默认使用 ±1m 矩形；``SpaceCharge`` 则将 default 解析为
+其配置网格同尺寸的矩形，见 :doc:`space_charge`。
 
 **丢失条件** ：
 
 .. math::
 
-  |x| > 1.0 \quad \text{或} \quad |y| > 1.0
+  |x| \ge 1.0 \quad \text{或} \quad |y| \ge 1.0
 
 .. raw:: html
 
@@ -113,7 +127,7 @@ circle（圆形）
 
 .. math::
 
-  x^2 + y^2 > r^2
+  x^2 + y^2 \ge r^2
 
 .. raw:: html
 
@@ -140,11 +154,11 @@ rectangle（矩形）
 
 .. math::
 
-  |x| > w
+  |x| \ge w
 
 .. math::
 
-  |y| > h
+  |y| \ge h
 
 .. raw:: html
 
@@ -173,7 +187,7 @@ ellipse（椭圆）
 
 .. math::
 
-  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 > 1
+  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \ge 1
 
 .. raw:: html
 
@@ -204,11 +218,11 @@ rectcircle（矩形内切圆）
 
 .. math::
 
-  |x| > w \quad \text{或} \quad |y| > h
+  |x| \ge w \quad \text{或} \quad |y| \ge h
 
 .. math::
 
-  x^2 + y^2 > r^2
+  x^2 + y^2 \ge r^2
 
 .. raw:: html
 
@@ -246,11 +260,11 @@ rectellipse（矩形内切椭圆）
 
 .. math::
 
-  |x| > w \quad \text{或} \quad |y| > h
+  |x| \ge w \quad \text{或} \quad |y| \ge h
 
 .. math::
 
-  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 > 1
+  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \ge 1
 
 .. raw:: html
 
@@ -292,15 +306,16 @@ racetrack（跑道形）
 
 .. math::
 
-  |x| \le w \quad \text{且} \quad |y| \le h
+  |x| < w \quad \text{且} \quad |y| < h
 
 椭圆端区域内 （ :math:`|x| > w` 时）：
 
 .. math::
 
-  \left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \le 1
+  \left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 < 1
 
-**丢失条件** ：不在矩形内且不在椭圆端内。
+内部接缝 :math:`|x|=w` 处仅当 :math:`|y|<\min(h,b)` 时存活；接缝不是物理壁。
+其他不在严格内部区域的粒子均损失。
 
 .. raw:: html
 
@@ -341,11 +356,11 @@ octagon（八角形）
 
 .. math::
 
-  |x| > w \quad \text{或} \quad |y| > h
+  |x| \ge w \quad \text{或} \quad |y| \ge h
 
 .. math::
 
-  |x| + |y| > w + h - d
+  |x| + |y| \ge w + h - d
 
 .. raw:: html
 
@@ -372,7 +387,8 @@ polygon（多边形）
 
 **参数** ： ``aperture_value = [[x1, y1], [x2, y2], ...]`` ，顶点列表，自动闭合 （最后一个顶点连接回第一个顶点）。
 
-**丢失条件** ：点在多边形外部。
+**丢失条件** ：点位于边、顶点或多边形外部。射线法前先用 CPU/GPU 一致的
+小浮点容差检查边界。
 
 使用 **射线法** （ ray casting ）判断点是否在多边形内部：从待测点出发沿水平方向发射射线，统计与多边形边的交点数：
 

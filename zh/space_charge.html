@@ -1,0 +1,1538 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>空间电荷效应（SpaceCharge） &mdash; PASS  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="横向场求解器" href="field_solver.html" />
+    <link rel="prev" title="切片器（Slicer）" href="slicer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id2">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id3">架构概览</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id4">快速开始</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id5">最简示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#json">JSON 文件结构</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id6">核心组件</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence">Sequence（序列容器）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#lattice">Lattice来源</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id8">混合模式</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id9">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id10">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id11">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id12">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id13">分步调用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#api">API 参考</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gui.html">图形界面配置流程</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gui.html#id2">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui.html#twiss">Twiss 与光学</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#mad-x">MAD-X 采样方式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#id3">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#id4">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#id5">手动传输点与后续编辑</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="injection.html">注入粒子生成（Injection）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id2">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id3">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id4">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id5">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id6">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id7">偏移参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id8">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id9">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id10">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">多束团纵向坐标</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id12">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id13">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="injection.html#id14">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id15">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#d">1D 投影理论曲线</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id17">模拟结果</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="element/marker.html">标记（Marker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id1">物理说明</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id4">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/marker.html#id8">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id3">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id4">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#yrotation">入口边缘：YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id20">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id21">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id24">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id28">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html">四极铁（Quadrupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id2">四极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id6">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id9">追踪模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id14">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id15">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id23">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id24">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html">六极铁（Sextupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id2">六极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id6">色品校正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id8">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id17">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/octupole.html">八极铁（Octupole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id2">八极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#tune">振幅依赖 tune 移</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id7">自然包含的高阶效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id15">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id16">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/multipole.html">多极铁（Multipole）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id2">多极磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id3">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id4">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#horner">Horner 嵌套求值</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id8">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id9">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id10">自然包含的效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#xsuite-hxl">与 Xsuite 的差异：hxl 曲率修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id11">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id12">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id17">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id18">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html">螺线管（Solenoid）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id2">螺线管磁场与归一化强度</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id3">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id6">为什么螺线管没有薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#sks">多极场叠加与 SKS 积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id7">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id8">色品效应</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id16">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/kicker.html">冲击磁铁（Kicker）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id5">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id6">精确漂移映射</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id7">辛积分器</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id8">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id9">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id14">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id15">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id6">薄透镜模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#dkd">厚透镜模式（DKD）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#kick">薄透镜与厚透镜的 kick 一致性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#septum">Septum 逻辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#tilt">Tilt 旋转</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id9">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id10">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id11">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id19">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id20">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id1">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id2">粒子到达时间</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id3">频率输入模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id4">激励模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id5">各模式完整公式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#kick">Kick 的施加</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id6">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">物理推导</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id8">跟踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id9">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping">Ramping 数据文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id10">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id13">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id14">验证测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id10">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html">分布监视器（DistMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id1">圈数选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id2">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id3">输出内容</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#cpu-gpu">CPU 与 GPU</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/phaseadvancemonitor.html">相位推进监视器（PhaseAdvanceMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/phaseadvancemonitor.html#id1">配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/phaseadvancemonitor.html#id2">输出</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id2">粒子选择机制</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id3">记录圈数范围</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id4">预分配策略</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id5">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id6">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id7">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id11">应用场景</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">功能说明</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">分组边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id3">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id5">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#polygon">polygon（多边形）</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id5">使用示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss 传输（Twiss）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id1">简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id2">物理推导</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id3">纵向传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id4">色散处理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id5">横向传输矩阵</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id6">色品修正</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id7">纵向坐标连续性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0">t0 更新</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">位置参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">色散与色品</a></li>
+<li class="toctree-l4"><a class="reference internal" href="twiss.html#id13">孔径参数</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="twiss.html#id15">应用场景</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="slicer.html">切片器（Slicer）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#id1">职责边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#id2">配置格式</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#id3">切片模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#sliceset">SliceSet 数据</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#id4">快照输出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#id5">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="slicer.html#id6">通用命令参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="slicer.html#id7">范围模式参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="slicer.html#id8">SliceSet 运行时接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="slicer.html#id9">配置校验</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">空间电荷效应（SpaceCharge）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">概念介绍</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">物理模型</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">宏粒子电荷与横向源项</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">积分电势与积分场</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">相对论横向踢</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">执行流程</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">跟踪方法与解析分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">配置示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#space-charge">顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 配置块</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">命名资源配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">网格范围与孔径校验</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">配置与校验规则</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">诊断输出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">验证文件组织</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16">运行验证套件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">解析诊断与验证</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="field_solver.html">横向场求解器</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id2">概念介绍</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#pic">PIC 数据流</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id3">网格与源项</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id4">均匀节点网格</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id5">电荷沉积</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#poisson">Poisson 方程与单位</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id6">场求解器选择</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#fd">有限差分：<code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#dst-rectangle">正弦变换：<code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#green-fft-free-space">自由空间 Green 函数：<code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id7">场梯度</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id8">孔径接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#python">Python 接口</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id9">网格与 PIC 流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id10">求解器构建器与一次性封装</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id11">结果对象</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id12">解析跟踪与参考场</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id13">源电荷、坐标与单位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-round-free-space">圆高斯：gaussian_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id14">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id15">Python 接口与数值稳定性</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id16">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id17">选择建议与限制</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../en/index.html">PASS Documentation (English)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../en/input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#minimal-example">Minimal Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#mixed-mode">Mixed Mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/gui.html">Graphical configuration workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#space-charge">Space charge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#twiss-and-optics">Twiss and optics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#mad-x-sampling">MAD-X sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#one-turn-transfer">One-turn transfer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#smooth-approximation">Smooth approximation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/injection.html">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#bunch-parameters">Bunch parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#transverse-parameters">Transverse parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#beam-parameters">Beam parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#distribution-parameters">Distribution parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#dispersion-coupling">Dispersion coupling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#momentum-deviation">Momentum deviation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#input-file">Input file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#simulation-results">Simulation results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/element/index.html">Element</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/marker.html">Marker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html#physical-description">Physical Description</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/drift.html">Drift</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#body-model-comparison">Body Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/quadrupole.html">Quadrupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/sextupole.html">Sextupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/octupole.html">Octupole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/multipole.html">Multipole</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/solenoid.html">Solenoid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/kicker.html">Kicker</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#exact-drift-map">Exact Drift Map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#septum-logic">Septum Logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#tilt-rotation">Tilt Rotation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/exciter.html">Exciter</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#particle-arrival-time">Particle Arrival Time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#frequency-input-modes">Frequency Input Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#excitation-modes">Excitation Modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#kick-application">Kick Application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#parameter-list">Parameter List</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html#usage-examples">Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/element/rfcavity.html">RFCavity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/statmonitor.html">StatMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/distmonitor.html">DistMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#turn-selection">Turn selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#interface">Interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#output">Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html#configuration">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html#output">Output</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/particlemonitor.html">ParticleMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#introduction">Introduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#output-files">Output Files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#usage-example">Usage Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation">Operation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#applications">Applications</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/aperture.html">Aperture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#off-disabled">off (Disabled)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#circle-circular">circle (Circular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#polygon-polygon">polygon (Polygon)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#usage-example">Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/twiss.html">Twiss Transport (Twiss)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#physics-derivation">Physics Derivation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#dispersion-handling">Dispersion Handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#t0-update">t0 Update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#position-parameters">Position Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#transverse-parameters">Transverse Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#aperture-parameters">Aperture Parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#usage-example">Usage Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#application-scenarios">Application Scenarios</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/slicer.html">Slicer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#responsibilities">Responsibilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#slice-models">Slice models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#sliceset-data">SliceSet data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#snapshots">Snapshots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#common-command-parameters">Common command parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#range-mode-parameters">Range-mode parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#sliceset-runtime-interface">SliceSet runtime interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#configuration-validation">Configuration validation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/space_charge.html">Space-Charge Effect (SpaceCharge)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#physical-model">Physical Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#macroparticle-charge-and-transverse-source">Macroparticle charge and transverse source</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#integrated-potential-and-field">Integrated potential and field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#relativistic-transverse-kick">Relativistic transverse kick</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#execution-workflow">Execution Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#tracking-methods-and-analytic-profiles">Tracking Methods and Analytic Profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-example">Configuration Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#top-level-space-charge-block">Top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#named-resource-configuration">Named resource configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#spacecharge-sequence-command"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> sequence command</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-rules">Configuration Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#diagnostic-output">Diagnostic Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#validation-layout">Validation Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/field_solver.html">Transverse Field Solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#pic-data-flow">PIC Data Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#grid-and-source-definition">Grid and Source Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-nodal-grid">Uniform nodal grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#charge-deposition">Charge deposition</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#poisson-equation-and-units">Poisson Equation and Units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#field-solver-selection">Field-Solver Selection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#finite-difference-fd">Finite difference: <code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#sine-transform-dst-rectangle">Sine transform: <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#free-space-green-function-fft-free-space">Free-space Green function: <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#field-gradients">Field gradients</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#aperture-interface">Aperture Interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#python-interfaces">Python Interfaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#geometry-and-pic-pipeline">Geometry and PIC pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#solver-builders-and-one-shot-wrappers">Solver builders and one-shot wrappers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#result-objects">Result Objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#analytic-tracking-and-reference-fields">Analytic Tracking and Reference Fields</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#source-charge-coordinates-and-units">Source charge, coordinates, and units</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#round-gaussian-gaussian-round-free-space">Round Gaussian: gaussian_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#direct-formula-example">Direct formula example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
+      <li class="breadcrumb-item active">空间电荷效应（SpaceCharge）</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/zh/space_charge.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="spacecharge">
+<h1>空间电荷效应（SpaceCharge）<a class="headerlink" href="#spacecharge" title="Link to this heading"></a></h1>
+<section id="id1">
+<h2>概念介绍<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 使用 PIC、frozen 解析分布或 quasi-frozen 解析分布施加横向
+2.5D 薄踢，读取用户提供的束团级切片数据。所有方法使用 <span class="math notranslate nohighlight">\(1/\gamma^2\)</span>
+处理电场力与磁场力的抵消，均不计算纵向空间电荷力。</p>
+<ul class="simple">
+<li><p><strong>代码位置</strong>：<code class="docutils literal notranslate"><span class="pre">PASS/commands/space_charge.py</span></code></p></li>
+<li><p><strong>类名</strong>：<code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code>，注册名称为 <code class="docutils literal notranslate"><span class="pre">&quot;SpaceCharge&quot;</span></code></p></li>
+<li><p><strong>Schema 位置</strong>：<code class="docutils literal notranslate"><span class="pre">PASS/para/schema/space_charge.py</span></code></p></li>
+<li><p><strong>计算后端</strong>：仅 CPU</p></li>
+<li><p><strong>主要功能</strong>：</p>
+<ul>
+<li><p>在每个 beam 输入文件顶层定义可复用的命名空间电荷配置；</p></li>
+<li><p>纵向切片、横向网格、粒子沉积方法和场求解器相互独立配置；</p></li>
+<li><p>支持 CIC 或 TSC 电荷沉积，并自动配对相应的场回插方法；</p></li>
+<li><p>三种场求解器分别提供导体边界或自由空间边界；</p></li>
+<li><p>可选保存电荷密度、电势和电场的 HDF5 快照。</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h2>物理模型<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="id3">
+<h3>宏粒子电荷与横向源项<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>每个存活宏粒子代表 <code class="docutils literal notranslate"><span class="pre">bunch.ratio</span></code> 个真实粒子，其带符号源电荷为</p>
+<div class="math notranslate nohighlight">
+\[q_{\mathrm{macro}} = R\,Z e,\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(R\)</span> 为 <code class="docutils literal notranslate"><span class="pre">bunch.ratio</span></code>，<span class="math notranslate nohighlight">\(Z\)</span> 为带符号电荷数
+<code class="docutils literal notranslate"><span class="pre">bunch.num_charge</span></code>，<span class="math notranslate nohighlight">\(e\)</span> 为元电荷。对第 <span class="math notranslate nohighlight">\(k\)</span> 个切片，沉积步骤构造
+沿纵向积分后的横向电荷密度</p>
+<div class="math notranslate nohighlight">
+\[\Sigma_k(x_i,y_j)
+= \frac{1}{\Delta x\,\Delta y}
+  \sum_{n\in k} q_{\mathrm{macro},n} W_{ij,n},\]</div>
+<p>单位为 C/m<sup>2</sup>。<code class="docutils literal notranslate"><span class="pre">CIC</span></code> 使用 4 个网格节点，<code class="docutils literal notranslate"><span class="pre">TSC</span></code> 使用 9 个节点。
+已损失粒子和切片 ID 为 -1 的粒子不进入源项，其他非法切片编号报错。
+命令先将孔径上或孔径外的粒子标记为损失；此后仍存活并参与 PIC 的粒子若超出网格则报错。</p>
+</section>
+<section id="id4">
+<h3>积分电势与积分场<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>场求解器把每个切片作为二维 Poisson 问题：</p>
+<div class="math notranslate nohighlight">
+\[-\nabla_\perp^2 \Psi_k = \frac{\Sigma_k}{\epsilon_0},
+\qquad
+\boldsymbol{\mathcal E}_{\perp,k} = -\nabla_\perp\Psi_k.\]</div>
+<p>这里 <span class="math notranslate nohighlight">\(\Psi_k\)</span> 是单位为 V m 的纵向积分电势，
+<span class="math notranslate nohighlight">\(\boldsymbol{\mathcal E}_{\perp,k}\)</span> 是单位为 V 的横向积分场。网格场回插到
+粒子后，<code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 仅在计算踢量时使用相应的 <code class="docutils literal notranslate"><span class="pre">SliceSet.delta_z</span></code>，把积分场
+转换为平均场：</p>
+<div class="math notranslate nohighlight">
+\[\overline{E}_{x,k}=\frac{\mathcal E_{x,k}}{\Delta z_k},
+\qquad
+\overline{E}_{y,k}=\frac{\mathcal E_{y,k}}{\Delta z_k}.\]</div>
+<p>因此场求解器本身不需要 <code class="docutils literal notranslate"><span class="pre">delta_z</span></code>。离散格式、边界条件和求解器接口参见
+<a class="reference internal" href="field_solver.html"><span class="doc">横向场求解器</span></a>。</p>
+</section>
+<section id="id5">
+<h3>相对论横向踢<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>PASS 使用归一化横向动量 <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span> 和 <span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>。
+对有效作用长度 <span class="math notranslate nohighlight">\(L_{\mathrm{sc}}\)</span>，命令施加</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x =
+\frac{\operatorname{sgn}(Z)L_{\mathrm{sc}}}
+     {\beta c\,B\rho\,\gamma^2}\,\overline{E}_x,
+\qquad
+\Delta p_y =
+\frac{\operatorname{sgn}(Z)L_{\mathrm{sc}}}
+     {\beta c\,B\rho\,\gamma^2}\,\overline{E}_y.\]</div>
+<p>电场已经包含带符号的源电荷；额外的 <span class="math notranslate nohighlight">\(\operatorname{sgn}(Z)\)</span> 表示被跟踪
+粒子的受力符号。<span class="math notranslate nohighlight">\(1/\gamma^2\)</span> 表示共速束流横向电场力与磁场力的抵消。</p>
+<p>踢动只更新 <code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code>，不修改 <code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code>、<code class="docutils literal notranslate"><span class="pre">z</span></code>、<code class="docutils literal notranslate"><span class="pre">dp</span></code>。
+每个 SC 命令可设置独立的 <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code>，在求场前
+检查粒子损失：更新 tag、损失位置和圈数，刚损失的粒子不再参与源项和踢动。
+已损失粒子的损失记录不被后续计算点覆盖。也可继续使用 <code class="docutils literal notranslate"><span class="pre">Marker</span></code> 等上游元件处理损失。
+PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错。只有严格位于孔径内部
+的粒子存活，接触任意一处管壁即损失。所有方法中，省略孔径或使用 <code class="docutils literal notranslate"><span class="pre">default</span></code>
+均解析为配置网格同尺寸的矩形。解析方法显式指定孔径或 <code class="docutils literal notranslate"><span class="pre">off</span></code> 后，跟踪不受诊断
+网格范围限制；采样不会截断源分布。</p>
+</section>
+</section>
+<section id="id6">
+<h2>执行流程<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>用户独立控制切片和命令顺序。SpaceCharge 不检查 Slicer 是否存在于序列、
+是否执行、执行圈数、位置或粒子状态版本。它直接使用 <code class="docutils literal notranslate"><span class="pre">slice_id</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">slice_table.delta_z</span></code>，不根据 z 重新分配粒子。仅检查数据有效性：
+每个束团粒子对应一个整数编号，编号为 -1 或有效范围内值，切片宽度有限且严格为正。
+程序不自动切片，现有同位置命令优先级保持不变。</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>当前计算点的粒子损失孔径检查
+    -&gt; 输入切片数据 + 当前 x、y、更新后的存活标记
+    -&gt; PIC 沉积/求解/回插 或 解析粒子位置处直接求场
+    -&gt; 除以切片 delta_z
+    -&gt; 共用横向 kick 并按需保存快照
+</pre></div>
+</div>
+</section>
+<section id="id7">
+<h2>跟踪方法与解析分布<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Method</span></code> 为 <code class="docutils literal notranslate"><span class="pre">pic``（默认）、``frozen</span></code> 或 <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code>。
+<code class="docutils literal notranslate"><span class="pre">Solver</span></code> 同时指定场算法或分布模型及其边界条件：</p>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">支持的组合</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 48.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>Solver</p></th>
+<th class="head"><p>模型</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></p></td>
+<td><p>开放边界 Green 函数 PIC。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code></p></td>
+<td><p>零电势导体；支持已实现的连续边界几何。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code></p></td>
+<td><p>零电势导体；仅完整且与网格对齐的矩形。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code>、<code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">gaussian_ellipse_free_space</span></code></p></td>
+<td><p>圆形高斯或椭圆高斯（Bassetti–Erskine）。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code>、<code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code></p></td>
+<td><p>均匀圆盘或椭圆，包括束流外部场。</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 中，同一配置的所有切片共用固定的横向中心、尺寸和方向。
+省略中心和角度时取零；对应 solver 的尺寸参数必填。不同作用位置可以引用不同配置。
+切片电荷和 <code class="docutils literal notranslate"><span class="pre">delta_z</span></code> 仍采用当前输入，因此冻结的是横向形状，并非完整电磁场。</p>
+<p><code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code> 在每次 kick 前，对每个切片当前存活且具有有效切片编号的粒子，
+重新统计质心和总体协方差。统计分母使用 <span class="math notranslate nohighlight">\(N\)</span>，不是 <span class="math notranslate nohighlight">\(N-1\)</span>；
+同一束团宏粒子的物理权重相同。源电荷为 <span class="math notranslate nohighlight">\(Q_k=N_k R Z e\)</span>。</p>
+<p>椭圆模型的协方差特征向量确定主轴。高斯尺寸为特征值平方根；均匀分布半轴为
+这些 RMS 尺寸的两倍。输出的第一个主轴尺寸为较大者，主轴逆时针角度按 pi 周期
+报告到 <span class="math notranslate nohighlight">\([-\pi/2,\pi/2)\)</span>。先平移、旋转到主轴坐标计算场，再转回原横向坐标。</p>
+<p>圆形模型采用等径向二阶矩规则：</p>
+<div class="math notranslate nohighlight">
+\[\sigma^2=\frac{\operatorname{Var}(x)+\operatorname{Var}(y)}{2},
+\qquad R=2\sigma.\]</div>
+<p><code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code> 使用 sigma，<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code> 使用 R。
+此规则保留相对质心的径向二阶矩；对于非圆分布，它是用户选择的圆对称近似，
+不保证重建实际电场。选择均匀模型也不表示粒子已成为 KV 分布。程序不自动切换模型。</p>
+<p>空切片的电荷和场为零。非空 quasi-frozen 圆形切片至少需要两个粒子且径向方差为正；
+椭圆切片至少需要三个粒子且协方差非退化。具体要求为较小特征值严格大于
+<code class="docutils literal notranslate"><span class="pre">64</span> <span class="pre">*</span> <span class="pre">float64_epsilon</span> <span class="pre">*</span> <span class="pre">较大特征值</span></code>。尺寸或协方差无效时报告切片编号，
+不会静默跳过带电切片或代入最小尺寸。这只是数值有效性检查，并不保证统计采样充分。</p>
+<p>当前仅实现自由空间解析分布和横向 2.5D 力，不包含导体壁解析修正或纵向空间电荷力。
+明显的晕、多峰或非高斯结构通常不能由这些少量横向矩完整表示。</p>
+<p>例如，可在 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge.Configurations</span></code> 中加入：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"fixed_gaussian"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"frozen"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gaussian_ellipse_free_space"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"space_charge"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Center X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Center Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Sigma X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.004</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Sigma Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Angle (rad)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"updated_gaussian"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"quasi-frozen"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gaussian_ellipse_free_space"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"space_charge"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>普通 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令通过 <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> 引用其中一个配置。
+解析粒子 kick 不沉积电荷、不回插场。网格几何定义默认损失孔径以及可选的场和
+密度采样范围。显式指定孔径或 <code class="docutils literal notranslate"><span class="pre">off</span></code> 后，改变诊断网格不会改变跟踪；使用默认
+孔径时，改变网格范围可能改变粒子损失。</p>
+</section>
+<section id="id8">
+<h2>配置示例<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>空间电荷配置在顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 块中声明一次，Sequence 命令通过名称引用：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Backend (gpu/cpu)"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cpu"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Space charge"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Configurations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"round_pipe"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"space_charge"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Nx"</span><span class="p">:</span><span class="w"> </span><span class="mi">129</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Ny"</span><span class="p">:</span><span class="w"> </span><span class="mi">129</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Grid Width X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.08</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Grid Width Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.08</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pic"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fd_dirichlet"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Particle Deposition Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CIC"</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"sc_slicer"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Slicer"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"space_charge"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Slice model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"equal_length"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Number of slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Z range mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"auto"</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">"sc_kick"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SpaceCharge"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"round_pipe"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"SC length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.10</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Aperture value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.035</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">"Save field"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save potential"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save density"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save turns"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>程序只构建被 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列项引用的配置。同一 beam 内，相同配置名的
+多个命令共享网格。Dirichlet 求解器按配置和解析后的命令孔径缓存：相同管壁复用
+分解，不同管壁创建独立求解器。FFT 核不随损失孔径改变，可以共享。不同配置名
+始终拥有独立资源，即使字段相同。配置中不再包含 <code class="docutils literal notranslate"><span class="pre">Chamber</span></code>。</p>
+<p>每个命令定义自己的孔径，例如：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"sc_wide"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SpaceCharge"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">2.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"default"</span><span class="p">,</span><span class="w"> </span><span class="nt">"SC length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Aperture value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.006</span><span class="p">]</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"sc_narrow"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SpaceCharge"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">7.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"default"</span><span class="p">,</span><span class="w"> </span><span class="nt">"SC length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Aperture value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.003</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>以上是 Sequence 片段，两个点引用同一个已定义的 <code class="docutils literal notranslate"><span class="pre">default</span></code> 配置，
+半径分别为 6 mm 和 3 mm。对于 <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>，它们也是不同的导体壁，因此
+两个求解器共享同一网格。对于 FFT 或解析方法，它们仅影响损失。这些圆孔径
+不能用于 <code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code>。</p>
+</section>
+<section id="id9">
+<h2>接口参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="space-charge">
+<h3>顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 配置块<a class="headerlink" href="#space-charge" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>默认值 / 是否必填</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Enabled&quot;</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>是否为该 beam 输入启用空间电荷。为 false 时忽略配置内容和序列命令，
+且不构建资源。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configurations</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Configurations&quot;</span></code></p></td>
+<td><p>object</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>从非空用户配置名到 <code class="docutils literal notranslate"><span class="pre">SpaceChargeResourceConfig</span></code> 对象的映射。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id10">
+<h3>命名资源配置<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">space_charge</span></code></p></td>
+<td><p>输入的束团级 SliceSet 名称，不检查 Slicer 序列或执行历史。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code></p></td>
+<td><p>pic、frozen 或 quasi-frozen。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">solver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code></p></td>
+<td><p>上述 Method/Solver 支持组合之一。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">/</span> <span class="pre">ny</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Nx</span> <span class="pre">/</span> <span class="pre">Ny</span></code></p></td>
+<td><p>int</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">128</span></code></p></td>
+<td><p>PIC 或诊断网格节点数，各至少为 3。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grid_width_x</span> <span class="pre">/</span> <span class="pre">grid_width_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p>两组均省略时为 <code class="docutils literal notranslate"><span class="pre">0.02</span></code></p></td>
+<td><p>正的网格全宽，中心为零；两个方向必须成对提供。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_half_width_x</span> <span class="pre">/</span> <span class="pre">grid_half_width_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>正的网格半宽；与全宽二选一，不可混用，两个方向必须成对提供。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">deposition_method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code></p></td>
+<td><p>str or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>仅 PIC：null 使用 CIC；支持 CIC/TSC 及配对回插。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">center_x</span> <span class="pre">/</span> <span class="pre">center_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>仅 frozen；null 表示零；所有切片共用固定中心。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>frozen 椭圆局部 x 轴的逆时针角度；null 表示零；圆形只允许零或 null。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigma</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>frozen 圆形高斯必填的正 RMS 尺寸。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_x</span> <span class="pre">/</span> <span class="pre">sigma_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Sigma</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>frozen 椭圆高斯必填的正主轴 RMS 尺寸。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">radius</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>frozen 均匀圆盘必填的正半径。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">/</span> <span class="pre">b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code></p></td>
+<td><p>float or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>frozen 均匀椭圆必填的正半轴。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id11">
+<h3><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>参数名</p></th>
+<th class="head"><p>键名</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>默认值 / 是否必填</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Command&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;SpaceCharge&quot;</span></code></p></td>
+<td><p>选择空间电荷命令实现。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>0.0 m</p></td>
+<td><p>薄踢的环上纵向位置，必须为有限值。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Sequence 对象键名</p></td>
+<td><p>str</p></td>
+<td><p>作为 Sequence 键必填</p></td>
+<td><p>命令实例名，用于日志和输出路径。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Configuration&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p>必填</p></td>
+<td><p>顶层 <code class="docutils literal notranslate"><span class="pre">Configurations</span></code> 中的精确名称；禁止首尾空白。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sc_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;SC</span> <span class="pre">length</span> <span class="pre">(m)&quot;</span></code></p></td>
+<td><p>float</p></td>
+<td><p>0.0 m</p></td>
+<td><p>非负有效作用长度。为零时该命令不施加踢，也不产生快照。
+若损失孔径开启，仍进行局部损失检查；此时不需要切片数据。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Aperture</span> <span class="pre">type&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;default&quot;</span></code></p></td>
+<td><p>默认解析为网格矩形；支持 off、circle、rectangle、ellipse、rectcircle、
+rectellipse、racetrack、octagon、polygon。Dirichlet 中同时定义导体壁，禁止 off。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Aperture</span> <span class="pre">value&quot;</span></code></p></td>
+<td><p>list</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>单位 m；circle 为 [半径]，rectangle 为 [半宽, 半高]，ellipse 为
+[半轴 a, 半轴 b]，polygon 为顶点列表。完整格式见 <a class="reference internal" href="aperture.html"><span class="doc">孔径（Aperture）</span></a>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">save_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">field&quot;</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>选中圈数时保存 <code class="docutils literal notranslate"><span class="pre">integrated_Ex</span></code> 和 <code class="docutils literal notranslate"><span class="pre">integrated_Ey</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_potential</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">potential&quot;</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>仅 PIC；解析方法在初始化时拒绝此请求。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">save_density</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">density&quot;</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>保存 PIC 沉积密度或解析模型采样密度。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">turns&quot;</span></code></p></td>
+<td><p>整数列表的列表或整数列表</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>快照圈数选择，使用 <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>，端点均包含；
+单个 <code class="docutils literal notranslate"><span class="pre">[0]</span></code> 也可作为简写。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="id12">
+<h2>网格范围与孔径校验<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">X/Y</span> <span class="pre">(m)</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">X/Y</span> <span class="pre">(m)</span></code> 必须完整选一组，
+另一组省略或为 null。宽度必须有限且为正；两组均省略时全宽默认为 0.02 m。
+不再接受 <code class="docutils literal notranslate"><span class="pre">Dx</span></code>/<code class="docutils literal notranslate"><span class="pre">Dy</span></code> 间距输入或显式上下界映射输入。网格中心固定为零。
+例如两个方向半宽为 0.04 m、0.02 m，节点数均为 129，则范围分别为
+[-0.04, 0.04] m、[-0.02, 0.02] m，节点间距分别为 0.000625 m、0.0003125 m。
+<code class="docutils literal notranslate"><span class="pre">SpaceCharge.print()</span></code> 输出范围、节点数、节点间距，以及解析后的孔径与作用。</p>
+<p>初始化时对每个被引用的命令检查：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>：必须提供有限的受支持孔径，且完整位于网格内。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code>：孔径必须为轴对齐矩形，且与完整网格范围相同；
+较小矩形和其他形状均报错。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>：有限损失孔径必须位于网格内；允许 <code class="docutils literal notranslate"><span class="pre">off</span></code>，
+但参与计算的粒子仍必须位于网格内。</p></li>
+<li><p>解析方法：显式损失孔径不受诊断网格范围约束，允许 <code class="docutils literal notranslate"><span class="pre">off</span></code>；
+缺省孔径仍为网格同尺寸矩形。</p></li>
+</ul>
+<p>PIC 孔径中没有有效网格节点时在初始化阶段报错；沉积时若存活参与粒子的 stencil
+没有任何有效节点，则报告网格分辨率错误，不静默丢弃源电荷。</p>
+</section>
+<section id="id13">
+<h2>配置与校验规则<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>未提供 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 等价于 <code class="docutils literal notranslate"><span class="pre">&quot;Enabled&quot;:</span> <span class="pre">false</span></code>。</p></li>
+<li><p>禁用时不会校验嵌套配置内容，所有 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列项均不执行。</p></li>
+<li><p>初始化时拒绝未定义配置；执行 kick 时拒绝缺失或结构无效的 SliceSet 数据。</p></li>
+<li><p>未被引用的配置仅记录 warning，不分配计算资源。</p></li>
+<li><p>配置名和命令引用必须为非空字符串，且不得包含首尾空白。</p></li>
+<li><p>旧根级字段 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">space</span> <span class="pre">charge</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Space-charge</span> <span class="pre">simulation</span> <span class="pre">parameters</span></code>
+会被拒绝；网格与求解器字段也不能内联到 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令中。</p></li>
+<li><p>GPU 后端执行已启用且有非零长度或开启损失孔径的空间电荷命令时会报错；应使用
+<code class="docutils literal notranslate"><span class="pre">&quot;Backend</span> <span class="pre">(gpu/cpu)&quot;:</span> <span class="pre">&quot;cpu&quot;</span></code>。</p></li>
+</ul>
+</section>
+<section id="id14">
+<h2>诊断输出<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<p>只有命令成功执行、至少一个保存开关为 true，且当前 turn 命中 <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code>
+时才写出快照。<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code> 为空时不写文件。输出路径为</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output_dir&gt;/space_charge/&lt;command_name&gt;/turn_NNNNNN/
+</pre></div>
+</div>
+<p>每个束团写入一个独立 HDF5 文件，网格数据的数组顺序为
+<code class="docutils literal notranslate"><span class="pre">(slice,</span> <span class="pre">y,</span> <span class="pre">x)</span></code>。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>数据集</p></th>
+<th class="head"><p>形状</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(nx,)</span></code>、<code class="docutils literal notranslate"><span class="pre">(ny,)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>水平和垂直网格节点坐标。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(n_slice,)</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p>保存的切片编号。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">delta_z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(n_slice,)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>把积分场转换为平均场时使用的切片宽度。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_charge</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(n_slice,)</span></code></p></td>
+<td><p>C</p></td>
+<td><p>每切片的 PIC 沉积电荷或当前解析源电荷。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">charge_density</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(n_slice,</span> <span class="pre">ny,</span> <span class="pre">nx)</span></code></p></td>
+<td><p>C/m<sup>2</sup></p></td>
+<td><p>PIC 沉积源项或解析采样密度；<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">density</span></code> 为 true 时存在。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">potential</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(n_slice,</span> <span class="pre">ny,</span> <span class="pre">nx)</span></code></p></td>
+<td><p>V m</p></td>
+<td><p>积分电势；<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">potential</span></code> 为 true 时存在。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">integrated_Ex</span></code>、<code class="docutils literal notranslate"><span class="pre">integrated_Ey</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(n_slice,</span> <span class="pre">ny,</span> <span class="pre">nx)</span></code></p></td>
+<td><p>V</p></td>
+<td><p>积分场；<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">field</span></code> 为 true 时存在。除以 <code class="docutils literal notranslate"><span class="pre">delta_z</span></code> 后得到 V/m
+单位的平均场。</p></td>
+</tr>
+</tbody>
+</table>
+<p>文件 attributes 还记录求解器、沉积方法、网格范围和间距、turn、beam 与 bunch
+标识、harmonic 元数据、命令位置与长度、宏粒子电荷、粒子数、精度和随机种子。
+<code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 和 JSON 编码的 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 记录解析后的孔径。
+<code class="docutils literal notranslate"><span class="pre">aperture_role</span></code> 对 Dirichlet 为 <code class="docutils literal notranslate"><span class="pre">loss_and_conductor</span></code>，自由空间方法为 <code class="docutils literal notranslate"><span class="pre">loss_only</span></code>。
+<code class="docutils literal notranslate"><span class="pre">potential_gauge</span></code> 对 <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code> 和 <code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code> 为 <code class="docutils literal notranslate"><span class="pre">boundary_zero</span></code>，
+对 <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code> 为 <code class="docutils literal notranslate"><span class="pre">kernel_reference</span></code>。</p>
+</section>
+<section id="id15">
+<h2>验证文件组织<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<p>积分测试文件名同时写明束团分布与边界模型。<code class="docutils literal notranslate"><span class="pre">*_free_space_fft</span></code> 覆盖圆形/椭圆
+高斯与 KV 束团，使用开放边界 Green 函数；对应的
+<code class="docutils literal notranslate"><span class="pre">*_rectangular_fd_dst</span></code> 会用相同种子重新生成这四种束团，在 257×257 接地矩形
+网格上让 FD 和 DST 求解完全相同的沉积电荷。每个分析目录都输出三者同图
+<code class="docutils literal notranslate"><span class="pre">free_space_fft_vs_rectangular_fd_dst_field.png</span></code>、CSV 数据，以及把 FD/DST 两个
+方向逐点相对差同时画出的 <code class="docutils literal notranslate"><span class="pre">fd_dst_relative_error_same_plot.png</span></code>。FD/DST 与
+FFT 的差异同时包含物理边界条件变化，不能把它解释为 FD/DST 离散误差。</p>
+<p>仅适用于 FD 的测试在文件名中注明物理边界，包括较大圆导体内的圆 KV 束团、填满
+椭圆导体的 KV 束团，以及高斯源和 KV 均匀投影源在
+<code class="docutils literal notranslate"><span class="pre">PASS.utils.aperture</span></code> 全部孔径上的求解（含椭圆、跑道、八边形和用户 polygon）。
+<code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code> 只能对完整矩形 Dirichlet 网格对角化，因此不用于这些曲线或
+不规则区域。</p>
+</section>
+<section id="id16">
+<h2>运行验证套件<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<p>全部空间电荷积分测试默认自动执行，包括十个完整的生成输入工作流。在仓库根目录运行：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tests.integration.space_charge</span>
+<span class="go">python -m tests.integration.space_charge regression</span>
+</pre></div>
+</div>
+<p>第一条命令选择全部 25 个积分测试。第二条命令显式执行相关单元测试和本地 Codex
+回归文件，包括已恢复的切片隔离以及切片宽度、作用长度缩放检查。本地 Codex 文件
+必须存在；它们不属于默认 pytest 发现范围。仓库级 pytest 默认发现 <code class="docutils literal notranslate"><span class="pre">tests/unit</span></code>
+和 <code class="docutils literal notranslate"><span class="pre">tests/integration</span></code>。</p>
+<p>可用 <code class="docutils literal notranslate"><span class="pre">analytic</span></code>、<code class="docutils literal notranslate"><span class="pre">fft</span></code>、<code class="docutils literal notranslate"><span class="pre">rectangle</span></code>、<code class="docutils literal notranslate"><span class="pre">aperture</span></code>、<code class="docutils literal notranslate"><span class="pre">checks</span></code> 或 <code class="docutils literal notranslate"><span class="pre">workflows</span></code> 替换默认的
+<code class="docutils literal notranslate"><span class="pre">all</span></code>，按类别选择测试。重复 <code class="docutils literal notranslate"><span class="pre">--case</span> <span class="pre">&lt;case_name&gt;</span></code> 可选择多个完整工作流；
+<code class="docutils literal notranslate"><span class="pre">--collect-only</span></code> 列出选中的 pytest 条目。不会因积分测试复杂而默认跳过。</p>
+<p>工作流串行执行。矩形对比会在同一批运行内自动准备并复用对应 FFT 参考。每次新的
+积分测试在 <code class="docutils literal notranslate"><span class="pre">tests/codex/space_charge_runs</span></code> 下创建唯一目录，终端汇总打印其路径；
+<code class="docutils literal notranslate"><span class="pre">--output-dir</span></code> 可指定新的或空的批次目录。运行器不会删除旧结果。
+<code class="docutils literal notranslate"><span class="pre">--mode</span> <span class="pre">ana</span> <span class="pre">--output-dir</span> <span class="pre">&lt;existing_batch&gt;</span></code> 复用保存快照并更新分析产物，不重新跟踪。
+非 test 模式只处理完整工作流，不执行纯数值检查。</p>
+<p>普通 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pytest</span> <span class="pre">tests/integration/space_charge</span></code> 命令执行相同的积分测试。
+原有各模块的 <code class="docutils literal notranslate"><span class="pre">sim</span></code>、<code class="docutils literal notranslate"><span class="pre">ana</span></code>、<code class="docutils literal notranslate"><span class="pre">simana</span></code>、<code class="docutils literal notranslate"><span class="pre">--run-dir</span></code> 接口继续保留。完整分组表、
+单例调用、输出结构以及批次目录与单例目录的区别，见
+<code class="docutils literal notranslate"><span class="pre">tests/integration/space_charge/README.md</span></code>。</p>
+</section>
+<section id="id17">
+<h2>解析诊断与验证<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<p>HDF5 的 <code class="docutils literal notranslate"><span class="pre">schema_version</span></code> 为 <code class="docutils literal notranslate"><span class="pre">3</span></code>，attributes 包含 <code class="docutils literal notranslate"><span class="pre">method</span></code>、完整 <code class="docutils literal notranslate"><span class="pre">solver</span></code>
+名称和 <code class="docutils literal notranslate"><span class="pre">grid_role``（``tracking</span></code> 或 <code class="docutils literal notranslate"><span class="pre">diagnostic</span></code>）。解析快照额外保存每切片的
+<code class="docutils literal notranslate"><span class="pre">macro_count</span></code>、<code class="docutils literal notranslate"><span class="pre">center_x</span></code>、<code class="docutils literal notranslate"><span class="pre">center_y</span></code>、<code class="docutils literal notranslate"><span class="pre">size_x</span></code>、<code class="docutils literal notranslate"><span class="pre">size_y</span></code>、<code class="docutils literal notranslate"><span class="pre">angle</span></code>。
+高斯的 <code class="docutils literal notranslate"><span class="pre">size_convention</span></code> 为 <code class="docutils literal notranslate"><span class="pre">principal_rms</span></code>，均匀模型为 <code class="docutils literal notranslate"><span class="pre">uniform_semi_axes</span></code>。
+<code class="docutils literal notranslate"><span class="pre">parameter_source</span></code> 为 <code class="docutils literal notranslate"><span class="pre">configuration</span></code> 或 <code class="docutils literal notranslate"><span class="pre">current_slice_population_moments</span></code>。
+空切片参数为 NaN，电荷和采样场、密度为零。frozen 椭圆保留用户的轴顺序，
+quasi-frozen 椭圆将长轴放在首位。</p>
+<p>解析 <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">potential</span></code> 尚未实现，即使未选择保存圈数也会拒绝该请求；
+<code class="docutils literal notranslate"><span class="pre">potential_gauge</span></code> 为 <code class="docutils literal notranslate"><span class="pre">not_computed</span></code>。密度网格是解析采样，不是沉积电荷，
+有限网格积分不一定等于 <code class="docutils literal notranslate"><span class="pre">slice_charge</span></code>。诊断不会改变源电荷或粒子 kick。</p>
+<p>运行 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.integration.space_charge</span> <span class="pre">analytic</span></code>，执行四个生成输入的
+比较案例（每个 180,000 粒子、三个切片、全部三种方法）和两个重复 kick 参数演化测试。
+独立高斯/均匀场积分核对实际动量增量，相对 L2 容差为 <code class="docutils literal notranslate"><span class="pre">2e-8</span></code>；PIC 在有充分
+分辨率的中心区域比较，相对 L2 容差为 <code class="docutils literal notranslate"><span class="pre">0.06</span></code>，包含有限粒子噪声和离散化误差。
+电荷对照采用随粒子数变化的浮点累加误差界。演化测试使用指定仿射输运，
+不代表已经验证长期环跟踪稳定性。</p>
+<p>输出包含输入 JSON、HDF5、粒子 kick NPZ、CSV/JSON 测量，以及
+<code class="docutils literal notranslate"><span class="pre">pic_frozen_quasi_frozen_field_comparison.png</span></code>、
+<code class="docutils literal notranslate"><span class="pre">analytic_kick_vs_independent_integral.png</span></code>、
+<code class="docutils literal notranslate"><span class="pre">frozen_vs_quasi_frozen_parameter_evolution.png</span></code>。
+生成输入的解析案例可调用
+<code class="docutils literal notranslate"><span class="pre">tests.integration.space_charge.test_analytic_free_space_tracking</span></code> 中的
+<code class="docutils literal notranslate"><span class="pre">analyse(run_dir)</span></code>，复用保存结果更新图形。解析组目前使用 <code class="docutils literal notranslate"><span class="pre">--mode</span> <span class="pre">test</span></code>；
+原有 batch 非测试模式的 workflow 选择保持不变。</p>
+<p>旧资源键 <code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">solver</span></code>、<code class="docutils literal notranslate"><span class="pre">Aperture</span></code>、<code class="docutils literal notranslate"><span class="pre">Chamber</span></code> 和旧公开 solver 值会被拒绝。
+配置使用 <code class="docutils literal notranslate"><span class="pre">Method</span></code>、<code class="docutils literal notranslate"><span class="pre">Solver</span></code>，各命令使用 <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type/value</span></code>。固定横向参数
+仅用于 <code class="docutils literal notranslate"><span class="pre">frozen</span></code>，且必须匹配所选分布；沉积设置仅用于 PIC。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="slicer.html" class="btn btn-neutral float-left" title="切片器（Slicer）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="field_solver.html" class="btn btn-neutral float-right" title="横向场求解器" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

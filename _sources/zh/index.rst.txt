@@ -9,6 +9,7 @@ PASS 文档（中文）
    :caption: 模块介绍
 
    input_generation
+   gui
    injection
    element/index
    monitor/index
@@ -16,3 +17,5 @@ PASS 文档（中文）
    aperture
    twiss
    slicer
+   space_charge
+   field_solver

@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="注入粒子生成（Injection）" href="injection.html" />
+    <link rel="next" title="图形界面配置流程" href="gui.html" />
     <link rel="prev" title="PASS 文档（中文）" href="index.html" /> 
 </head>
 
@@ -35,7 +35,7 @@
           
           <a href="../index.html" class="icon icon-home">
             PASS
-              <img src="../_static/logo_blue.png" class="logo" alt="Logo"/>
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -79,6 +79,17 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#api">API 参考</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id14">完整示例</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gui.html">图形界面配置流程</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gui.html#id2">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui.html#twiss">Twiss 与光学</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#mad-x">MAD-X 采样方式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#id3">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#id4">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gui.html#id5">手动传输点与后续编辑</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="injection.html">注入粒子生成（Injection）</a><ul>
@@ -271,6 +282,11 @@
 <li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#cpu-gpu">CPU 与 GPU</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/phaseadvancemonitor.html">相位推进监视器（PhaseAdvanceMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/phaseadvancemonitor.html#id1">配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/phaseadvancemonitor.html#id2">输出</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id2">粒子选择机制</a></li>
@@ -350,6 +366,69 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id1">概念介绍</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id2">物理模型</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id3">宏粒子电荷与横向源项</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id4">积分电势与积分场</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id5">相对论横向踢</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id6">执行流程</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id7">跟踪方法与解析分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id8">配置示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id9">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#space-charge">顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 配置块</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id10">命名资源配置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id11"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id12">网格范围与孔径校验</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id13">配置与校验规则</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id14">诊断输出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id15">验证文件组织</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id16">运行验证套件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id17">解析诊断与验证</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="field_solver.html">横向场求解器</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id2">概念介绍</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#pic">PIC 数据流</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id3">网格与源项</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id4">均匀节点网格</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id5">电荷沉积</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#poisson">Poisson 方程与单位</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id6">场求解器选择</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#fd">有限差分：<code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#dst-rectangle">正弦变换：<code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#green-fft-free-space">自由空间 Green 函数：<code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id7">场梯度</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id8">孔径接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#python">Python 接口</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id9">网格与 PIC 流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id10">求解器构建器与一次性封装</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id11">结果对象</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id12">解析跟踪与参考场</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id13">源电荷、坐标与单位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-round-free-space">圆高斯：gaussian_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id14">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id15">Python 接口与数值稳定性</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id16">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id17">选择建议与限制</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../en/index.html">PASS Documentation (English)</a><ul>
@@ -384,6 +463,17 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#api-reference">API Reference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/gui.html">Graphical configuration workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#space-charge">Space charge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#twiss-and-optics">Twiss and optics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#mad-x-sampling">MAD-X sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#one-turn-transfer">One-turn transfer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#smooth-approximation">Smooth approximation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/injection.html">Injection / Particle Generation</a><ul>
@@ -576,6 +666,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html#configuration">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html#output">Output</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../en/monitor/particlemonitor.html">ParticleMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
@@ -655,6 +750,69 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../en/space_charge.html">Space-Charge Effect (SpaceCharge)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#physical-model">Physical Model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#macroparticle-charge-and-transverse-source">Macroparticle charge and transverse source</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#integrated-potential-and-field">Integrated potential and field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#relativistic-transverse-kick">Relativistic transverse kick</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#execution-workflow">Execution Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#tracking-methods-and-analytic-profiles">Tracking Methods and Analytic Profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-example">Configuration Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#top-level-space-charge-block">Top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#named-resource-configuration">Named resource configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#spacecharge-sequence-command"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> sequence command</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-rules">Configuration Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#diagnostic-output">Diagnostic Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#validation-layout">Validation Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/field_solver.html">Transverse Field Solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#pic-data-flow">PIC Data Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#grid-and-source-definition">Grid and Source Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-nodal-grid">Uniform nodal grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#charge-deposition">Charge deposition</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#poisson-equation-and-units">Poisson Equation and Units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#field-solver-selection">Field-Solver Selection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#finite-difference-fd">Finite difference: <code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#sine-transform-dst-rectangle">Sine transform: <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#free-space-green-function-fft-free-space">Free-space Green function: <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#field-gradients">Field gradients</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#aperture-interface">Aperture Interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#python-interfaces">Python Interfaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#geometry-and-pic-pipeline">Geometry and PIC pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#solver-builders-and-one-shot-wrappers">Solver builders and one-shot wrappers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#result-objects">Result Objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#analytic-tracking-and-reference-fields">Analytic Tracking and Reference Fields</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#source-charge-coordinates-and-units">Source charge, coordinates, and units</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#round-gaussian-gaussian-round-free-space">Round Gaussian: gaussian_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#direct-formula-example">Direct formula example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -694,11 +852,11 @@
 <li><p><strong>类型安全</strong> ：参数类型、范围在 schema 中声明，非法值在生成时即被拦截；</p></li>
 <li><p><strong>别名映射</strong> ：Python 代码使用简洁属性名（如 <code class="docutils literal notranslate"><span class="pre">circumference</span></code> ），JSON 输出自动使用引擎期望的 key（如 <code class="docutils literal notranslate"><span class="pre">&quot;Circumference</span> <span class="pre">(m)&quot;</span></code> ）；</p></li>
 <li><p><strong>可复用</strong> ：schema 对象可 <code class="docutils literal notranslate"><span class="pre">model_copy(update={...})</span></code> 快速派生变体，适合参数扫描；</p></li>
-<li><p><strong>GUI 可扩展</strong> ：schema 自带 JSON Schema 导出，未来 GUI 可自动渲染表单。</p></li>
+<li><p><strong>GUI 支持</strong> ：类型化 schema 同时支持图形界面的配置流程。</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>本文档介绍命令行模式下的输入文件生成方式。GUI 模式将在未来版本中提供。</p>
+<p>本文档介绍命令行模式下的输入文件生成方式。图形界面的操作流程参见 <a class="reference internal" href="gui.html"><span class="doc">图形界面配置流程</span></a>。</p>
 </div>
 </section>
 <section id="id3">
@@ -710,8 +868,8 @@
 │   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
 │   ├── twiss.py        TwissPoint：twiss 传输点
 │   ├── elements.py     12 种元件（Drift→RFCavity）
-│   ├── monitors.py     StatMonitor / DistMonitor / PhaseMonitor
-│   ├── space_charge.py SpaceChargeConfig
+│   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
+│   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
 │   └── sequence.py     Sequence：有序容器 + 自动排序
 ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
 ├── smooth.py      解析平滑近似 twiss
@@ -782,7 +940,7 @@
 <span class="n">main</span><span class="o">.</span><span class="n">circumference</span> <span class="o">=</span> <span class="n">circum</span>
 
 <span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
     <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">"twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
 <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"stat1"</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
@@ -815,12 +973,13 @@
 <span class="w">    </span><span class="nt">"Device Id"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
 <span class="w">    </span><span class="nt">"Output directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./output"</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Is plot figure"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Is space charge"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Is beam-beam"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Injection"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Harmonic Number"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Random Seed"</span><span class="p">:</span><span class="w"> </span><span class="mi">2026</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"bunch0"</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
 <span class="w">        </span><span class="p">},</span>
 <span class="w">        </span><span class="nt">"twiss_0000"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -922,18 +1081,19 @@
 <td><p>bool</p></td>
 <td><p>是否生成图表</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_space_charge</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">space</span> <span class="pre">charge</span></code></p></td>
-<td><p>bool</p></td>
-<td><p>是否启用空间电荷</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
 <td><p>bool</p></td>
 <td><p>是否启用束流-束流相互作用</p></td>
 </tr>
 </tbody>
 </table>
+<p>空间电荷不再由 <code class="docutils literal notranslate"><span class="pre">MainConfig</span></code> 开关控制，而是使用独立的顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code>
+配置块。命名资源 schema 和 Sequence command 引用方式参见 <a class="reference internal" href="space_charge.html"><span class="doc">空间电荷效应（SpaceCharge）</span></a>。
+每个资源通过 <code class="docutils literal notranslate"><span class="pre">Method``（``pic</span></code>、<code class="docutils literal notranslate"><span class="pre">frozen</span></code>、<code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code>）和 <code class="docutils literal notranslate"><span class="pre">Solver</span></code>
+选择计算方式；Solver 名称包含边界条件。命令中的 <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type/value</span></code>
+定义粒子损失孔径，并在 Dirichlet 中同时定义导体壁，配置不再包含 <code class="docutils literal notranslate"><span class="pre">Chamber</span></code>。
+网格输入必须完整选择全宽或半宽一组；省略命令孔径时默认使用网格同尺寸矩形。</p>
 </section>
 <section id="injectionitem">
 <h3>InjectionItem（注入与分组）<a class="headerlink" href="#injectionitem" title="Link to this heading"></a></h3>
@@ -1061,7 +1221,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">InjectionItem</span></code> — 注入点（必须 <code class="docutils literal notranslate"><span class="pre">s=0</span></code> ）</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">TwissPoint</span></code> — twiss 传输点</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">DriftElement</span></code> 、 <code class="docutils literal notranslate"><span class="pre">QuadrupoleElement</span></code> 、 <code class="docutils literal notranslate"><span class="pre">SBendElement</span></code> 等 — 物理元件</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PhaseMonitor</span></code> — 监测器</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 、 <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> 、 <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> — 监测器</p></li>
 </ul>
 </section>
 </section>
@@ -1073,7 +1233,7 @@
 <p>读取 MADX 生成的 twiss TFS 文件，每个元件转为一个 <code class="docutils literal notranslate"><span class="pre">TwissPoint</span></code> 传输点。适用于 <strong>逐 twiss 传输</strong> 模式。</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss</span>
 
-<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss</span><span class="p">(</span>
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss</span><span class="p">(</span>
     <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
     <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>       <span class="c1"># 可选</span>
     <span class="n">muz</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>                      <span class="c1"># 纵向 tune</span>
@@ -1084,6 +1244,44 @@
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>如需均匀基础网格，改用重采样读取函数：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss_interpolated</span>
+
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss_interpolated</span><span class="p">(</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
+    <span class="n">num_interp_slice</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span>          <span class="c1"># 100 段，包含 0 和 C 两个端点</span>
+    <span class="n">dqx</span><span class="o">=</span><span class="s2">"from_file"</span><span class="p">,</span> <span class="n">dqy</span><span class="o">=</span><span class="s2">"from_file"</span><span class="p">,</span>
+    <span class="n">longitudinal_transfer</span><span class="o">=</span><span class="s2">"off"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>该函数使用唯一支持的 <code class="docutils literal notranslate"><span class="pre">interp_kind=&quot;phase_hermite&quot;</span></code>，替换旧的逐列三次插值及外推。
+<code class="docutils literal notranslate"><span class="pre">num_interp_slice</span></code> 表示 <strong>基础点数</strong> 而非分段数，必须是至少为二的整数。
+DQx/DQy 现默认 <code class="docutils literal notranslate"><span class="pre">&quot;from_file&quot;</span></code>，Mu z 默认零；纵向相位仅在
+<code class="docutils literal notranslate"><span class="pre">longitudinal_transfer=&quot;matrix&quot;</span></code> 时使用。</p>
+<p>对长度为 <span class="math notranslate nohighlight">\(h\)</span> 的每个源区间，令 <span class="math notranslate nohighlight">\(t=(s-s_i)/h\)</span>，用五次 Hermite 多项式
+插值 <span class="math notranslate nohighlight">\(p(t)=\mu(s)-\mu(s_i)\)</span>。以周为相位单位，两端导数约束为：</p>
+<div class="math notranslate nohighlight">
+\[p_t = \frac{h}{2\pi\beta}, \qquad
+p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
+<p>插值光学函数由此计算：</p>
+<div class="math notranslate nohighlight">
+\[\beta(s)=\frac{h}{2\pi p_t},\qquad
+\alpha(s)=\frac{p_{tt}}{4\pi p_t^2}.\]</div>
+<p>这在每个区间内保持 <span class="math notranslate nohighlight">\(\beta'=-2\alpha\)</span>、<span class="math notranslate nohighlight">\(\mu'=1/(2\pi\beta)\)</span>，
+同时在端点匹配源 beta、alpha 和累计相位。相位导数在两端及全部内部极值点接受检查，
+排除非正 beta。DX/DPX 使用成对的三次 Hermite 插值，沿用无耦合、参考轨道近轴约定
+及 TFS 色散归一化，不引入新的耦合或闭轨坐标转换。源数据精度与间距限制插值精度。</p>
+<p>表中必须包含 S=0、S=LENGTH，光学量有限、beta 为正、相位保持展开。
+完整相位差与 Q1/Q2 的核对允许 TFS 输出舍入误差：相对容差
+<span class="math notranslate nohighlight">\(2\times10^{-8}\)</span>，绝对容差 <span class="math notranslate nohighlight">\(2\times10^{-9}\)</span>。
+输出相位保留源值，不按舍入后的头信息重新缩放。分段色品按源相位差的比例分配，
+保持用户指定的 DQx/DQy 总和。</p>
+<p>原始行不作为额外点保留。匹配的薄元件、场误差和重复 S 处的光学跳变增加必要拆分位置。
+场误差名称在重采样前与原始表匹配。光学跳变通过零长度 Twiss 传输连接入端和出端状态。
+同一位置的附加薄元件或场误差在 Twiss 之后执行，与 command 优先级一致。
+若显式插入源光学已包含的设计聚焦，会再次叠加该作用；插入误差不会自动保持受扰机器
+的工作点。对应导入控件见 <a class="reference internal" href="gui.html"><span class="doc">图形界面配置流程</span></a>。</p>
 </section>
 <section id="id7">
 <h3>方式二：从 MADX twiss 文件读取为元件<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
@@ -1198,7 +1396,27 @@
 </section>
 <section id="api">
 <h2>API 参考<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_input</span><span class="p">,</span> <span class="n">load_input</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">build_sequence</span><span class="p">,</span> <span class="n">generate_from_tfs</span><span class="p">,</span> <span class="n">generate_input</span><span class="p">,</span> <span class="n">load_input</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># 组装序列，并使 Injection 分布可复现</span>
+<span class="n">sequence</span> <span class="o">=</span> <span class="n">build_sequence</span><span class="p">(</span>
+    <span class="n">items</span><span class="o">=</span><span class="n">items</span><span class="p">,</span>
+    <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+    <span class="n">bunches</span><span class="o">=</span><span class="n">bunches</span><span class="p">,</span>
+    <span class="n">monitors</span><span class="o">=</span><span class="n">monitors</span><span class="p">,</span>
+    <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># MADX 高层辅助函数接受相同的 Injection 种子参数</span>
+<span class="n">generate_from_tfs</span><span class="p">(</span>
+    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="s2">"beam0.json"</span><span class="p">,</span>
+    <span class="n">main</span><span class="o">=</span><span class="n">main_dict</span><span class="p">,</span>
+    <span class="n">bunches</span><span class="o">=</span><span class="n">bunch_dicts</span><span class="p">,</span>
+    <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># 生成 JSON</span>
 <span class="n">generate_input</span><span class="p">(</span>
@@ -1230,7 +1448,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="PASS 文档（中文）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="injection.html" class="btn btn-neutral float-right" title="注入粒子生成（Injection）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="gui.html" class="btn btn-neutral float-right" title="图形界面配置流程" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

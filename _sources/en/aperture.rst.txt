@@ -7,6 +7,21 @@ The aperture module is located at ``PASS/utils/aperture.py`` and provides both C
 
 Aperture checking is performed only on the transverse coordinates :math:`(x, y)` of particles and does not involve longitudinal coordinates. Each element can independently set its aperture type and parameters, supporting 10 aperture geometries.
 
+Geometry construction and loss handling are both defined in this one file.
+``build_aperture({"Type": ..., "Value": ...})`` constructs a geometry object;
+``mask(x, y)`` includes the wall, while ``strict_mask(x, y)`` excludes it.
+These predicates accept NumPy or CuPy coordinate arrays and return a mask on
+the same backend without modifying particles. ``aperture_bounds(geometry)``
+returns the geometric extents for initialization checks.
+
+``check_aperture_gpu`` supports all types below with float32 or float64 particle
+coordinates and records losses on the device. It validates shape parameters
+before launching a CUDA kernel, accepts integer or floating-point dimensions,
+and does nothing for an empty bunch. Previously lost particles retain their
+original loss position and turn; particles outside the requested bunch range
+are untouched. CPU execution does not require CuPy. This GPU support concerns
+the aperture module; PIC and SpaceCharge tracking remain CPU-only.
+
 
 Interface Parameters
 --------------------
@@ -37,6 +52,10 @@ The aperture system is controlled by two parameters:
 
 Lost Particle Handling
 ----------------------
+
+Only strict aperture interiors survive on both CPU and GPU. Particles touching
+any physical wall are lost, including polygon edges and vertices; rectangular
+loss does not require both coordinates to reach their limits.
 
 When a particle is determined to be lost, the system performs the following operations:
 
@@ -80,13 +99,15 @@ default (Default Rectangle)
 
 **Parameters** : none ( ``aperture_value`` is ignored)
 
-**Description** : Uses the default ±1m rectangular aperture, equivalent to the ``rectangle`` type with ``aperture_value = [1.0, 1.0]`` .
+**Description** : Ordinary elements use the default ±1m rectangle, equivalent
+to ``aperture_value = [1.0, 1.0]``. ``SpaceCharge`` instead resolves default
+to the rectangle defined by its configuration's grid extent; see :doc:`space_charge`.
 
 **Loss condition** :
 
 .. math::
 
-  |x| > 1.0 \quad \text{or} \quad |y| > 1.0
+  |x| \ge 1.0 \quad \text{or} \quad |y| \ge 1.0
 
 .. raw:: html
 
@@ -113,7 +134,7 @@ circle (Circular)
 
 .. math::
 
-  x^2 + y^2 > r^2
+  x^2 + y^2 \ge r^2
 
 .. raw:: html
 
@@ -140,11 +161,11 @@ rectangle (Rectangular)
 
 .. math::
 
-  |x| > w
+  |x| \ge w
 
 .. math::
 
-  |y| > h
+  |y| \ge h
 
 .. raw:: html
 
@@ -173,7 +194,7 @@ ellipse (Elliptical)
 
 .. math::
 
-  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 > 1
+  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \ge 1
 
 .. raw:: html
 
@@ -204,11 +225,11 @@ The aperture region is the **intersection** of the rectangle and the circle (par
 
 .. math::
 
-  |x| > w \quad \text{or} \quad |y| > h
+  |x| \ge w \quad \text{or} \quad |y| \ge h
 
 .. math::
 
-  x^2 + y^2 > r^2
+  x^2 + y^2 \ge r^2
 
 .. raw:: html
 
@@ -246,11 +267,11 @@ The aperture region is the **intersection** of the rectangle and the ellipse (pa
 
 .. math::
 
-  |x| > w \quad \text{or} \quad |y| > h
+  |x| \ge w \quad \text{or} \quad |y| \ge h
 
 .. math::
 
-  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 > 1
+  \left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \ge 1
 
 .. raw:: html
 
@@ -288,19 +309,21 @@ The racetrack aperture consists of a central rectangle and two semi-elliptical e
 
 **Survival condition** (particle survives if either condition is met):
 
-Inside the rectangular region:
+Strictly inside the rectangular region:
 
 .. math::
 
-  |x| \le w \quad \text{and} \quad |y| \le h
+  |x| < w \quad \text{and} \quad |y| < h
 
 Inside the elliptical end region (when :math:`|x| > w` ):
 
 .. math::
 
-  \left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \le 1
+  \left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 < 1
 
-**Loss condition** : Not inside the rectangle and not inside the elliptical end.
+At the internal seams :math:`|x|=w`, a particle survives only when
+:math:`|y|<\min(h,b)`; these seams are not physical walls. All other points
+outside the strict regions are lost.
 
 .. raw:: html
 
@@ -341,11 +364,11 @@ The octagon is the shape obtained by cutting 45° corners off a rectangle. The l
 
 .. math::
 
-  |x| > w \quad \text{or} \quad |y| > h
+  |x| \ge w \quad \text{or} \quad |y| \ge h
 
 .. math::
 
-  |x| + |y| > w + h - d
+  |x| + |y| \ge w + h - d
 
 .. raw:: html
 
@@ -372,7 +395,9 @@ polygon (Polygon)
 
 **Parameters** : ``aperture_value = [[x1, y1], [x2, y2], ...]`` , a list of vertices, automatically closed (the last vertex connects back to the first vertex).
 
-**Loss condition** : The point is outside the polygon.
+**Loss condition** : The point lies on an edge or vertex, or outside the polygon.
+The edge check precedes ray casting; it uses a small floating-point tolerance
+shared by CPU and GPU.
 
 The **ray casting** method is used to determine whether a point is inside the polygon: a ray is cast from the test point in the horizontal direction, and the number of intersections with the polygon edges is counted:
 
