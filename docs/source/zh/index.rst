@@ -9,6 +9,7 @@ PASS 文档（中文）
    :caption: 模块介绍
 
    input_generation
+   gui
    injection
    element/index
    monitor/index
