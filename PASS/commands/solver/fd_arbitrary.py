@@ -20,7 +20,7 @@ from PASS.utils.constants import const
 from .field_result import FieldResult
 
 
-from PASS.utils.aperture_geometry import (
+from PASS.utils.aperture import (
     RectangleAperture, EllipticAperture, AllSpaceAperture, IntersectionAperture, RacetrackAperture, OctagonAperture, PolygonAperture, build_aperture
 )
 

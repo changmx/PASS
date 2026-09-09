@@ -27,7 +27,7 @@ from PASS.commands.solver.pic import (
     gather_quadratic,
     solve_pic,
 )
-from PASS.utils.aperture_geometry import build_aperture, aperture_bounds, RectangleAperture
+from PASS.utils.aperture import build_aperture, aperture_bounds, RectangleAperture
 from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
 from PASS.para.schema.space_charge import validate_loss_aperture
