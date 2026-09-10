@@ -15,7 +15,7 @@
 ``check_aperture_gpu`` 支持下列全部类型及 float32、float64 粒子坐标，直接在设备上
 记录损失。CUDA 核启动前校验几何参数，尺寸可输入整数或浮点数，空束团不启动核。
 已损失粒子保留原损失位置和圈数，不属于当前束团范围的粒子不受影响。
-CPU 执行不依赖 CuPy。这里的 GPU 支持仅指孔径模块，PIC 与 SpaceCharge 跟踪仍仅支持 CPU。
+CPU 执行不依赖 CuPy。孔径模块及 PIC、SpaceCharge 跟踪均支持 CPU/GPU。
 
 
 接口参数

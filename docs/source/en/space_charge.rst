@@ -13,7 +13,7 @@ calculate a longitudinal force.
 - **Code location**: ``PASS/commands/space_charge.py``
 - **Class name**: ``SpaceCharge``, registered name ``"SpaceCharge"``
 - **Schema location**: ``PASS/para/schema/space_charge.py``
-- **Execution backend**: CPU only
+- **Execution backend**: CPU and NVIDIA GPU
 - **Main features**:
 
   - named, reusable space-charge configurations at the top level of each beam
@@ -552,8 +552,33 @@ Configuration Rules
 - Legacy root keys ``Is space charge`` and
   ``Space-charge simulation parameters`` are rejected.  Mesh and solver
   fields are not accepted inline in a ``SpaceCharge`` sequence command.
-- GPU execution with an enabled module and either nonzero length or an active loss aperture raises an error;
-  use ``"Backend (gpu/cpu)": "cpu"``.
+- ``"Backend (gpu/cpu)": "gpu"`` supports PIC, frozen and quasi-frozen methods,
+  including loss apertures, with the configured particle precision.
+
+GPU initialization and reuse
+----------------------------
+
+The existing named configuration schema also controls GPU resources. Each
+referenced configuration/aperture combination is prepared during initialization:
+FD owns its cuDSS analysis and numerical factors; DST owns transform data and
+plans; free-space FFT owns Green spectra and plans. Known SliceSet counts
+preallocate the batch workspace. Commands sharing the same resource reuse it.
+List distinct apertures in the sequence/internal-element configuration before
+tracking so initialization builds their separate entries.
+
+A fixed node count and grid width do not make an FD operator invariant under
+aperture changes: active nodes, sparsity and Shortley--Weller wall distances
+can change. Switch to the entry prepared for that aperture. Even when the
+active-node mask stays unchanged, changed wall distances require new numerical
+factors. DST requires the full grid-aligned rectangle; a changing interior
+aperture cannot be represented by masking a rectangular DST solution.
+
+Particle and grid arrays remain on the GPU through deposition, field solution,
+gather and kick. Validation and loss handling still read small status values;
+this command is not an entirely asynchronous CUDA Graph. Selected HDF5 output
+transfers diagnostic arrays to the CPU. Initialization, compilation and first
+batch preparation should be timed separately from repeated tracking. See
+:doc:`field_solver` for automatic DST selection and standalone GPU controls.
 
 Diagnostic Output
 -----------------
@@ -744,7 +769,7 @@ it does not transport particles through that length.
 Supported elements
 ~~~~~~~~~~~~~~~~~~
 
-Internal SC requires positive body length and a CPU backend. Supported runtime
+Internal SC requires positive body length and supports CPU and GPU. Supported runtime
 commands are ``Drift``, ``SBend``, ``Quadrupole``, ``Sextupole``, ``Octupole``,
 ``Multipole``, ``Kicker``, ``Solenoid`` and ``ElSeparator``.
 
@@ -767,8 +792,10 @@ commands are ``Drift``, ``SBend``, ``Quadrupole``, ``Sextupole``, ``Octupole``,
 Thin elements retain their thin kicks and cannot request internal SC. Place
 explicit SC commands nearby for ``RFCavity`` and ``Exciter``. Newly supported
 external slicing of Drift and ElSeparator defaults to one slice. Without
-internal SC, external slicing also works on the GPU; internal SC raises an
-explicit error on the GPU before tracking.
+internal SC, external slicing also works on the GPU. GPU internal nodes follow
+the same physical placements and positive SC weights, including signed Yoshida
+external stages. Polar bend calculations use double intermediates with FP32
+particle storage to reduce cancellation error.
 
 Scheduling rule
 ~~~~~~~~~~~~~~~
@@ -1138,6 +1165,30 @@ evolution is compared with numerical refinement and an independent grid-free
 axisymmetric mean-field reference. That reference excludes non-axisymmetric
 modes and has its own finite sampling and time-step errors.
 
+Periodic KV envelope matching establishes second-moment periodicity, not the
+stability of all higher-order distribution modes. Cases with collective growth
+retain failed static-KV gates and include high-order moment diagnostics.
+The optional ``strong.retuned`` module adds a separately recorded FODO working
+point control; it does not replace original results. Initial internal KV fields
+are compared with an analytic uniform-ellipse field after independent partial
+quadrupole transport.
+The elliptic Gaussian initial field uses an independent continuous Poisson
+integral, with quadrature refinement, circular-limit and off-axis field-equation
+checks in the reference tests.
+
+The optional ``strong.linear_fodo`` diagnostic reuses a completed FODO case's
+particles, charge and SC locations, replacing production element maps with
+independent linear matrices and retaining nonlinear PIC. It isolates external
+geometric nonlinearities and element scheduling; it does not by itself identify
+a physical Vlasov instability.
+
+The finisher also compares the initial grid field over a two-dimensional beam
+region with an independent continuum field. It uses a normalized elliptical
+radius below 4 sigma and excludes the outer 5% of the grid extent. Each component
+has a predeclared 3% relative L2 tolerance. The case-local
+``initial_field_2d`` files contain figures, metrics, reference/PIC grids and the
+region mask; this regional norm is not a pointwise or long-term error bound.
+
 .. code-block:: console
 
    python -m pytest tests/integration/space_charge/test_strong_references.py -v
@@ -1161,5 +1212,10 @@ The smooth ring disables longitudinal Twiss transport. The FODO experiment
 uses a local test hook to freeze z after each element and checks unchanged dp;
 the generated JSON alone does not enable this hook. These are CPU transverse
 tests, not validation of longitudinal SC, RF, GPU, or frequency-dependent wall
-response. ``tests/integration/space_charge/strong/README.md`` documents all
+response. The FODO strong-current cases use two external slices per SC interval,
+placing SC between complete external maps; they do not establish strong-current
+accuracy of the odd-group internal center callback.
+SC-off controls use absolute bare-tune errors; shift-normalized metrics are
+``null`` because the SC shift is zero.
+``tests/integration/space_charge/strong/README.md`` documents all
 settings, independent references, predeclared gates, and flat output files.

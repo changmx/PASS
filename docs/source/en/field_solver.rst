@@ -15,7 +15,7 @@ standalone field studies.
 - **Low-level PIC solver identifiers**: ``fd``, ``dst_rectangle``, ``fft_free_space``
 - **Analytic tracking entry point**: ``PASS/commands/solver/analytic.py``
 - **Array order**: ``(slice, y, x)`` for batched grid data
-- **Execution backend**: NumPy/SciPy on CPU
+- **Execution backend**: NumPy/SciPy on CPU; CuPy and CUDA libraries on GPU
 
 The numerical package solves only the transverse field problem.  It does not
 know the interaction length, bunch rigidity, relativistic kick factor, or
@@ -822,5 +822,127 @@ Selection Guidance and Limitations
   converge.
 - CIC is cheaper and more local; TSC gives smoother coupling but uses a wider
   stencil.  The deposition and gather methods must remain paired.
-- The current solver package is CPU-only.  A nonzero enabled ``SpaceCharge``
-  command on the GPU backend is not supported.
+- CPU and GPU implement the same boundary models and units. Floating-point
+  reductions and sparse factorizations need not be bitwise identical.
+
+GPU resources and execution
+---------------------------
+
+Install ``python -m pip install --editable ".[cuda]"`` with a compatible CUDA
+toolkit and driver. GPU imports are lazy; CPU use does not require CuPy.
+The implementation uses CuPy device arrays and ``RawKernel`` for deposition,
+gather and field processing. Host-side Python calls the cuDSS bindings and
+cuFFT plans; these host library APIs are not called inside a CUDA kernel.
+
+CPU and GPU implementations live in the same module for each function. CUDA
+source is embedded in that module and compiled lazily; there are no separate
+``gpu_*.py`` implementations or external ``.cu`` source files for these solvers.
+The previous GPU module import paths have been removed.
+
+.. list-table:: Source modules under ``PASS.commands.solver``
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Module
+     - CPU and GPU entry points
+   * - ``pic.py``
+     - ``pic_cpu`` / ``pic_gpu``, resource builders, deposition and gather.
+   * - ``fd_rectangle.py``
+     - ``FDSolver`` / ``GPUFDSolver(geometry, dtype="float64")``.
+   * - ``fd_arbitrary.py``
+     - ``ArbitraryFDSolver`` / ``GPUArbitraryFDSolver(geometry, aperture, dtype="float64")``.
+   * - ``dst_rectangle.py``
+     - ``DSTRectangleSolver`` / ``GPUDSTRectangleSolver``, including cuFFTDx compilation.
+   * - ``fft_free_space.py``
+     - ``FFTFreeSpaceSolver`` / ``GPUFFTFreeSpaceSolver``.
+   * - ``analytic.py``
+     - ``solve_analytic`` / ``solve_analytic_gpu``.
+
+``field_result.py`` provides the shared result type and GPU buffer/compilation
+utilities. Both SpaceCharge execution paths live in ``PASS.commands.space_charge``;
+internal-element scheduling lives in ``PASS.utils.slicing``. GPU libraries are
+imported only inside GPU entry points, so co-location does not add a CUDA
+requirement to CPU execution.
+
+.. list-table:: GPU solver implementations
+   :header-rows: 1
+   :widths: 22 78
+
+   * - Solver
+     - Resident computation
+   * - ``fd``
+     - cuDSS factorization at initialization and batched dense right-hand-side
+       solves during tracking. Full rectangles use SPD mode; Shortley--Weller
+       matrices use general mode because unequal boundary distances can break symmetry.
+   * - ``dst_rectangle``
+     - General DST-I uses odd extension, real cuFFT transforms and fused
+       packing, transpose and normalization kernels. Suitable power-of-two
+       extensions also support a cuFFTDx implementation that fuses both
+       transverse-y transforms with the eigenvalue division.
+   * - ``fft_free_space``
+     - Batched real cuFFT linear convolution with cached Green-function spectra,
+       small-prime padding and bounded slice chunks. One source transform is
+       reused for both field components and optional potential.
+
+``build_pic_resources_gpu`` accepts the same geometry and low-level solver
+names as ``build_pic_resources``, plus ``dtype``, ``num_slices``,
+``dst_implementation``, ``fft_batch_size`` and ``deposition_strategy``.
+The defaults are ``float64``, automatic DST selection, 16-slice FFT chunks and
+direct atomic deposition. ``num_slices`` should be supplied at initialization.
+For example, given device arrays ``x``, ``y`` and integer ``slice_id``:
+
+.. code-block:: python
+
+   from PASS.commands.solver import (
+       GridGeometry, build_pic_resources_gpu, pic_gpu, gather_fields_gpu,
+   )
+
+   grid = GridGeometry(513, 513, -0.02, 0.02, -0.02, 0.02)
+   resources = build_pic_resources_gpu(
+       grid, field_solver="dst_rectangle", dtype=x.dtype, num_slices=100,
+   )
+   result = pic_gpu(x, y, slice_id, 1.0e-15, geometry=grid,
+                    resources=resources, num_slices=100, method="CIC")
+   ex, ey = gather_fields_gpu(result.ex, result.ey, {"x": x, "y": y},
+                             grid, resources, slice_id, method="CIC")
+   resources.close()
+
+Arrays and reduction diagnostics remain on the GPU. Results own their grid
+arrays by default. ``copy=False`` borrows grid buffers until the next call on
+the same resources. ``validate=False`` skips finite-value checks for validated
+inputs; metadata checks still apply. Supplying ``num_slices`` avoids a device
+maximum read. Reuse requires the creation device and stream, serialized calls,
+unchanged geometry, boundary operator and precision. ``close()`` releases
+workspaces and cuDSS handles; further use raises an error. A different slice
+count rebuilds the batch workspace, retaining the FD factorization.
+
+Automatic DST selection first checks numerical agreement and then interleaves
+CUDA-event timings of cuFFT and cuFFTDx. It selects cuFFTDx only when its median
+is at least 5 percent lower. The decision is cached in the process by device,
+precision, grid dimensions and slice count. Tuning and first-time NVRTC
+compilation belong to initialization. Explicit choices are ``cufft``,
+``cufftdx`` and ``fused`` (the ordinary CUDA radix-two implementation).
+cuFFTDx headers come from ``nvidia-mathdx``. Automatic mode warns and retains
+cuFFT if this optional implementation cannot compile; a numerical discrepancy
+raises an error. Explicit cuFFTDx requests report dependency/compiler failures.
+
+Node counts include boundary nodes: 513 nodes give 511 interior nodes and a
+1024-point DST-I extension; 512 nodes give a 1022-point extension. Counts
+``2**k + 1`` are useful candidates. The fused implementations currently accept
+extension lengths 8 through 2048; all other legal sizes use cuFFT without
+changing the configured grid. Benchmark on the actual target GPU and precision.
+
+``deposition_strategy="warp"`` combines same-node contributions within a warp;
+``sorted_warp`` first sorts temporary particle indices by slice and cell, then
+uses the same aggregation. Neither changes the particle pool ordering. Sorting
+cost must be included in comparisons: clustered input alone does not guarantee
+a gain. Both CIC and TSC normalize retained wall stencils and use matching
+gather weights. Geometry and aperture comparisons use double intermediates,
+including with FP32 particles, to avoid rounding a near-wall point onto a
+different node. Density, potential, fields and kicks retain the selected precision.
+
+GPU analytic tracking is provided by ``analytic.solve_analytic_gpu`` for
+all four round/elliptical Gaussian/uniform profiles in frozen and quasi-frozen
+mode. Centered slice statistics and special-function intermediates use FP64;
+particle fields follow the configured dtype. Diagnostic analytic-grid sampling
+may use the CPU on selected output turns.

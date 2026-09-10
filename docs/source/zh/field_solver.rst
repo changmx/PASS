@@ -13,7 +13,7 @@
 - **底层 PIC 求解器标识**：``fd``、``dst_rectangle``、``fft_free_space``
 - **解析跟踪入口**：``PASS/commands/solver/analytic.py``
 - **数组顺序**：批量网格数据使用 ``(slice, y, x)``
-- **计算后端**：CPU 上的 NumPy/SciPy
+- **计算后端**：CPU 使用 NumPy/SciPy；GPU 使用 CuPy 与 CUDA 库
 
 数值层只负责横向场问题，不读取作用长度、束流磁刚度、相对论踢因子或模拟圈数；
 这些属于 :doc:`space_charge` 的职责。
@@ -738,4 +738,113 @@ PASS 保留用户显式配置的节点数。
   直到场和踢的观测量收敛。
 - CIC 更局部、计算量较小；TSC 使用更宽 stencil，耦合更平滑。沉积与回插方法
   必须配对。
-- 当前 solver 包仅支持 CPU；GPU 后端不能执行非零且已启用的 ``SpaceCharge``。
+- CPU 和 GPU 使用相同的边界模型与单位；浮点归约和稀疏分解不保证逐位一致。
+
+GPU 资源与执行
+--------------
+
+在具备兼容 CUDA 工具包和驱动的环境中，运行
+``python -m pip install --editable ".[cuda]"`` 安装依赖。
+GPU 模块采用延迟导入，CPU 使用不依赖 CuPy。粒子沉积、回插与场处理使用
+CuPy 设备数组和 ``RawKernel``；Python 主机端调用 cuDSS 绑定与 cuFFT plan，
+不会在 CUDA kernel 内调用这些主机库接口。
+
+每项功能的 CPU 和 GPU 实现位于同一个模块中。CUDA 源码内嵌在对应模块，
+首次使用时编译；这些求解器不再使用独立的 ``gpu_*.py`` 实现文件或外部
+``.cu`` 源码文件。原有 GPU 模块导入路径已移除。
+
+.. list-table:: ``PASS.commands.solver`` 下的源码模块
+   :header-rows: 1
+   :widths: 25 75
+
+   * - 模块
+     - CPU 与 GPU 入口
+   * - ``pic.py``
+     - ``pic_cpu`` / ``pic_gpu``，资源构建、沉积与回插。
+   * - ``fd_rectangle.py``
+     - ``FDSolver`` / ``GPUFDSolver(geometry, dtype="float64")``。
+   * - ``fd_arbitrary.py``
+     - ``ArbitraryFDSolver`` / ``GPUArbitraryFDSolver(geometry, aperture, dtype="float64")``。
+   * - ``dst_rectangle.py``
+     - ``DSTRectangleSolver`` / ``GPUDSTRectangleSolver``，包括 cuFFTDx 编译。
+   * - ``fft_free_space.py``
+     - ``FFTFreeSpaceSolver`` / ``GPUFFTFreeSpaceSolver``。
+   * - ``analytic.py``
+     - ``solve_analytic`` / ``solve_analytic_gpu``。
+
+``field_result.py`` 提供共享结果类型以及 GPU 缓冲区、编译工具。
+空间电荷的两条执行路径都位于 ``PASS.commands.space_charge``，元件内部切片调度
+位于 ``PASS.utils.slicing``。GPU 库仅在 GPU 入口内部导入，代码合并不会让
+CPU 执行依赖 CUDA。
+
+.. list-table:: GPU 求解实现
+   :header-rows: 1
+   :widths: 22 78
+
+   * - 求解器
+     - 常驻 GPU 的计算
+   * - ``fd``
+     - 初始化执行 cuDSS 分解，跟踪时批量求解多个稠密右端。
+       完整矩形使用 SPD 模式；Shortley--Weller 的不等壁距可破坏矩阵对称性，
+       因此使用 general 模式。
+   * - ``dst_rectangle``
+     - 通用 DST-I 使用奇延拓、实数 cuFFT，以及融合的打包、转置和归一化 kernel。
+       合适的二次幂延拓还支持 cuFFTDx，将 y 方向正逆变换与特征值除法融合。
+   * - ``fft_free_space``
+     - 使用批量实数 cuFFT 线性卷积，缓存格林函数频谱，以小素因子尺寸补零，
+       按有限切片批量控制工作区。一次源变换复用于两个场分量和可选电势。
+
+``build_pic_resources_gpu`` 使用与 ``build_pic_resources`` 相同的几何和底层
+求解器名称，另提供 ``dtype``、``num_slices``、``dst_implementation``、
+``fft_batch_size`` 与 ``deposition_strategy``。默认精度为 ``float64``，
+DST 自动择优，FFT 每批 16 个切片，沉积使用直接原子加。
+建议初始化时提供 ``num_slices``。假定 ``x``、``y`` 和整数 ``slice_id``
+已经是设备数组：
+
+.. code-block:: python
+
+   from PASS.commands.solver import (
+       GridGeometry, build_pic_resources_gpu, pic_gpu, gather_fields_gpu,
+   )
+
+   grid = GridGeometry(513, 513, -0.02, 0.02, -0.02, 0.02)
+   resources = build_pic_resources_gpu(
+       grid, field_solver="dst_rectangle", dtype=x.dtype, num_slices=100,
+   )
+   result = pic_gpu(x, y, slice_id, 1.0e-15, geometry=grid,
+                    resources=resources, num_slices=100, method="CIC")
+   ex, ey = gather_fields_gpu(result.ex, result.ey, {"x": x, "y": y},
+                             grid, resources, slice_id, method="CIC")
+   resources.close()
+
+数值数组和归约诊断量保留在 GPU。默认返回的网格数组由结果独立持有；
+``copy=False`` 借用资源工作区，在相同资源的下一次调用后失效。
+对于已校验输入，``validate=False`` 可跳过有限值检查，仍保留元数据检查。
+显式指定 ``num_slices`` 可以避免读取设备上的最大切片编号。
+复用要求串行调用、创建时的 device 和 stream，以及相同的几何、边界算子和精度。
+``close()`` 释放工作区与 cuDSS 句柄，关闭后再次使用会报错。
+切片数改变会重建批量工作区，但保留 FD 分解。
+
+DST 自动模式先校验 cuFFT/cuFFTDx 数值一致性，再交错进行 CUDA event 计时；
+cuFFTDx 中位耗时至少低 5% 才选用它。选择结果按设备、精度、网格尺寸与切片数
+缓存在进程中。择优与首次 NVRTC 编译属于初始化工作。
+也可显式选择 ``cufft``、``cufftdx`` 或普通 CUDA 二次幂实现 ``fused``。
+cuFFTDx 头文件由 ``nvidia-mathdx`` 提供。自动模式遇到该可选实现的依赖或编译
+问题时警告并保留 cuFFT；若数值检查失败则报错。
+显式请求 cuFFTDx 时直接报告依赖或编译错误。
+
+节点数包含边界：513 个节点对应 511 个内部节点和 1024 点 DST-I 延拓，
+512 个节点对应 1022 点延拓。可优先比较 ``2**k + 1`` 节点。
+融合实现目前支持 8 至 2048 点的二次幂延拓；其他合法尺寸使用 cuFFT，
+不会修改配置中的网格数。应在实际目标显卡和精度下测量性能。
+
+``deposition_strategy="warp"`` 合并 warp 内指向同一节点的贡献；
+``sorted_warp`` 先按切片和网格单元排序临时粒子索引，再进行相同的合并。
+两者均不改变粒子池顺序。性能比较必须包含排序成本，粒子集中本身并不保证排序
+有收益。CIC/TSC 都对壁面保留 stencil 归一化，并采用匹配的回插权重。
+即使粒子采用 FP32，几何和孔径判断仍使用双精度中间量，避免近壁粒子因舍入
+落入不同节点。密度、电势、场与踢量保留配置指定的精度。
+
+``analytic.solve_analytic_gpu`` 提供四种圆形/椭圆 Gaussian/uniform
+分布的 frozen 与 quasi-frozen GPU 跟踪。切片中心矩和特殊函数中间量使用 FP64，
+粒子场遵循配置精度。选定输出圈的解析场诊断网格采样可使用 CPU。

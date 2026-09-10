@@ -20,7 +20,7 @@ before launching a CUDA kernel, accepts integer or floating-point dimensions,
 and does nothing for an empty bunch. Previously lost particles retain their
 original loss position and turn; particles outside the requested bunch range
 are untouched. CPU execution does not require CuPy. This GPU support concerns
-the aperture module; PIC and SpaceCharge tracking remain CPU-only.
+the aperture module and the CPU/GPU PIC and SpaceCharge tracking paths.
 
 
 Interface Parameters
