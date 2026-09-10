@@ -42,6 +42,8 @@ class Executor:
         state = sim.state
         beams = sim.beams
         total_turns = cfg.num_turn
+        from PASS.utils.sc_coverage import validate_sc_coverage
+        validate_sc_coverage(sim, seqs)
         profiler = ExecutionProfiler(sim)
         profiler.start_run()
 

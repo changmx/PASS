@@ -23,7 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 def main(beam0_path: str, beam1_path: str | None = None):
-
+    from PASS.validation import validate_files
+    report = validate_files([beam0_path] + ([beam1_path] if beam1_path is not None else []))
+    if not report.ok:
+        raise ValueError("JSON preflight failed before initialization:\n" + report.text())
+    for issue in report.warnings:
+        logger.warning("JSON preflight: %s", issue)
     cfg = Config()
     cfg.load_input(beam0_path, beam1_path)
 

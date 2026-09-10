@@ -57,7 +57,15 @@ class Config:
     output_dir_slice: str = ""
     output_dir_slowExt_particle: str = ""
 
-    def load_input(self, beam0_path: str, beam1_path: str | None = None) -> None:
+    def load_input(self, beam0_path: str, beam1_path: str | None = None, *,
+                   flat_output: bool = False) -> None:
+        """Load inputs; optionally write a caller-managed run into one directory.
+
+        ``flat_output`` is a runtime option for isolated verification workflows.
+        The caller must provide a separate output directory for every run.
+        Normal application runs retain the dated output layout.
+        """
+        self.flat_output = flat_output
         self.beam_name.clear()
         self.harmonic_number.clear()
         self.input_path.clear()
@@ -68,8 +76,10 @@ class Config:
         path0 = Path(beam0_path)
         if not path0.exists():
             raise FileNotFoundError(f"Input beam0 file not found: {path0}")
-        with open(path0, 'r', encoding='utf-8') as f:
+        with open(path0, 'r', encoding='utf-8-sig') as f:
             raw0 = json.load(f)
+            from PASS.validation.files import resolve_input_paths
+            resolve_input_paths(raw0, path0.resolve().parent)
             space_charge0, space_charge_count0 = self._load_space_charge(raw0)
             data0 = convert_keys_to_lower(raw0)
 
@@ -77,8 +87,9 @@ class Config:
             path1 = Path(beam1_path)
             if not path1.exists():
                 raise FileNotFoundError(f"Input beam1 file not found: {path1}")
-            with open(path1, 'r', encoding='utf-8') as f:
+            with open(path1, 'r', encoding='utf-8-sig') as f:
                 raw1 = json.load(f)
+                resolve_input_paths(raw1, path1.resolve().parent)
                 space_charge1, space_charge_count1 = self._load_space_charge(raw1)
                 data1 = convert_keys_to_lower(raw1)
 
@@ -167,6 +178,21 @@ class Config:
         else:
             output_base = (Path(beam0_path).resolve().parent / Path(output_base)).resolve()
 
+        if flat_output:
+            self.output_ymd = ""
+            self.output_hms = "run"
+            for name in self.__dataclass_fields__:
+                if name == "output_dir" or name.startswith("output_dir_"):
+                    setattr(self, name, str(output_base))
+            Path(output_base).mkdir(parents=True, exist_ok=True)
+            for index, source in enumerate([beam0_path, beam1_path]):
+                if source is not None:
+                    destination = Path(output_base) / f"run_beam{index}_snapshot.json"
+                    if destination.exists():
+                        raise FileExistsError(f"Flat run snapshot already exists: {destination}")
+                    shutil.copy(source, destination)
+            return
+
         now = datetime.now()
         self.output_ymd = f"{now.year}_{now.month:02d}{now.day:02d}"
 
@@ -240,7 +266,8 @@ class Config:
             raise TypeError("top-level 'Space charge' must be an object")
 
         raw_keys = {str(key).casefold(): key for key in raw}
-        unknown = set(raw_keys) - {"enabled", "configurations"}
+        coverage_fields = {"coverage check", "coverage mode", "expected sc length (m)"}
+        unknown = set(raw_keys) - {"enabled", "configurations", *coverage_fields}
         if unknown:
             names = [raw_keys[name] for name in sorted(unknown)]
             raise ValueError(f"unknown field(s) in 'Space charge': {names}")
@@ -275,7 +302,10 @@ class Config:
                 for key, value in configuration.items()
             }
         return SpaceChargeConfig.model_validate(
-            {"Enabled": enabled, "Configurations": canonical_configurations}
+            {"Enabled": enabled, "Configurations": canonical_configurations,
+             **{SpaceChargeConfig.model_fields[field].alias: raw[raw_keys[key]]
+                for key, field in (("coverage check", "coverage_check"), ("coverage mode", "coverage_mode"),
+                                   ("expected sc length (m)", "expected_sc_length")) if key in raw_keys}}
         ), configuration_count
 
     def get_log_path(self):
