@@ -1,7 +1,7 @@
 from PASS.commands.command import Command
 from PASS.utils.slicing import (
     print_element_slicing,
-    configure_element_slicing, guard_internal_sc_gpu, run_body_slices,
+    configure_element_slicing, run_body_slices,
 )
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -155,7 +155,9 @@ class ElSeparator(Command):
         return True
 
     def execute_gpu(self, sim):
-        guard_internal_sc_gpu(self)
+        if self._sc_nodes:
+            from PASS.utils.slicing import execute_internal_sc_gpu
+            return execute_internal_sc_gpu(self, sim)
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         p = beam.particles
@@ -528,7 +530,7 @@ void transfer_elseparator(
     if (sliced_center) {
         elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
                           beta_gamma, inv_gamma, length * (pass_real_t)0.5,
-                          s_position - length * (pass_real_t)0.5, turn);
+                          sliced_center == 3 ? s_position : s_position - length * (pass_real_t)0.5, turn);
     }
 
     pass_real_t co = cos(tilt), si = sin(tilt);
@@ -601,7 +603,7 @@ void transfer_elseparator(
         pass_real_t tpy = -pxi * si + pyi * co;
         xi = tx; yi = ty; pxi = tpx; pyi = tpy;
     }
-    if (sliced_center) {
+    if (sliced_center == 1 || sliced_center == 3) {
         elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
                           beta_gamma, inv_gamma, length * (pass_real_t)0.5,
                           s_position, turn);

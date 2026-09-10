@@ -1,7 +1,7 @@
 from PASS.commands.command import Command
 from PASS.utils.slicing import (
     print_element_slicing,
-    configure_element_slicing, guard_internal_sc_gpu, run_body_slices,
+    configure_element_slicing, run_body_slices,
 )
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -170,7 +170,9 @@ class SBend(Command):
         return True
 
     def execute_gpu(self, sim):
-        guard_internal_sc_gpu(self)
+        if self._sc_nodes:
+            from PASS.utils.slicing import execute_internal_sc_gpu
+            return execute_internal_sc_gpu(self, sim)
         launch_dipole(self, sim)
         return True
 
