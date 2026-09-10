@@ -1,7 +1,7 @@
-"""CPU 2.5-D particle-in-cell transverse space-charge pipeline.
+"""CPU/GPU 2.5-D particle-in-cell transverse space-charge pipeline.
 
 The public pipeline is intentionally independent of PASS ``Simulation`` and
-particle classes.  Inputs may be NumPy arrays or an object exposing ``x``,
+particle classes.  Inputs may be NumPy/CuPy arrays or an object exposing ``x``,
 ``y`` and optionally ``tag``.  A single call deposits every longitudinal slice
 into a density stack and solves all slices as batched right-hand sides.
 """
@@ -15,14 +15,16 @@ import logging
 import numpy as np
 
 from .fd_arbitrary import (
+    GPUArbitraryFDSolver,
     RectangleAperture,
     build_aperture,
     build_aperture_mask as _build_continuous_aperture_mask,
     build_fd_arbitrary_resources,
 )
-from .dst_rectangle import build_dst_rectangle_resources
-from .fft_free_space import build_fft_free_space_resources
-from .fd_rectangle import FDSolver, build_fd_resources
+from .dst_rectangle import GPUDSTRectangleSolver, build_dst_rectangle_resources
+from .fft_free_space import GPUFFTFreeSpaceSolver, build_fft_free_space_resources
+from .fd_rectangle import FDSolver, GPUFDSolver, build_fd_resources
+from .field_result import _gpu_module, _launch_gpu
 
 
 logger = logging.getLogger(__name__)
@@ -745,3 +747,525 @@ def pic_cpu(
         num_slices=num_slices,
         compute_potential=compute_potential,
     )
+
+
+@dataclass
+class GPUPICResources:
+    """Device-resident PIC resources with one reusable particle/grid workspace.
+
+    Supply ``num_slices`` to avoid reading a device maximum during tracking.
+    Calls must be serialized on the field solver's creation stream. Returned
+    grids are owned unless ``copy=False`` explicitly borrows the workspace.
+    """
+
+    geometry: GridGeometry
+    aperture: object
+    field_solver: object
+    solver_name: str
+    active: object
+    deposition_strategy: str = "atomic"
+    _workspace: dict = field(default_factory=dict)
+
+    @property
+    def aperture_mask(self):
+        return self.field_solver.aperture_mask
+
+    @property
+    def dtype(self):
+        return self.field_solver.dtype
+
+    @property
+    def fd_solver(self):
+        return self.field_solver
+
+    def prepare(self, num_slices, num_particles=0):
+        import cupy as cp
+
+        self.field_solver.prepare(num_slices)
+        w = self._workspace
+        g = self.geometry
+        shape = (int(num_slices), g.ny, g.nx)
+        if "density" not in w or w["density"].shape != shape:
+            w["density"] = cp.empty(shape, self.dtype)
+        if "status" not in w or w["status"].size != num_particles:
+            for name in ("status", "bins"):
+                w[name] = cp.empty(num_particles, cp.int32)
+            for name in ("q", "retained"):
+                w[name] = cp.empty(num_particles, self.dtype)
+
+    def close(self):
+        self.field_solver.stream.synchronize()
+        if hasattr(self.field_solver, "close"):
+            self.field_solver.close()
+        self._workspace.clear()
+
+
+def build_pic_resources_gpu(
+    geometry,
+    aperture_mask=None,
+    *,
+    aperture=None,
+    field_solver="fd",
+    dtype="float64",
+    num_slices=None,
+    fft_batch_size=16,
+    deposition_strategy="atomic",
+    dst_implementation="auto",
+):
+    """Build one cached GPU solver, without constructing a CPU LU factorization."""
+    import cupy as cp
+
+    name = str(field_solver).strip().lower().replace("-", "_")
+    if name not in ("fd", "dst_rectangle", "fft_free_space"):
+        raise ValueError(
+            "field_solver must be 'fd', 'dst_rectangle', or 'fft_free_space'"
+        )
+    g = geometry
+    if deposition_strategy not in ("atomic", "warp", "sorted_warp"):
+        raise ValueError(
+            "deposition_strategy must be 'atomic', 'warp', or 'sorted_warp'"
+        )
+    spec = (
+        RectangleAperture(g.x_min, g.x_max, g.y_min, g.y_max)
+        if aperture is None
+        else build_aperture(aperture)
+    )
+    mask = spec.mask(*np.meshgrid(g.x, g.y))
+    if aperture_mask is not None:
+        given = np.asarray(aperture_mask, dtype=bool)
+        if (
+            given.shape != mask.shape
+            or not given.all()
+            or not np.array_equal(given, mask)
+        ):
+            raise ValueError(
+                "provide continuous aperture geometry instead of a non-rectangular Boolean mask"
+            )
+    full = isinstance(spec, RectangleAperture) and (
+        spec.x_min,
+        spec.x_max,
+        spec.y_min,
+        spec.y_max,
+    ) == (g.x_min, g.x_max, g.y_min, g.y_max)
+    if name != "fd" and not full:
+        raise ValueError(f"{name} requires the full grid-aligned rectangular aperture")
+    solver = (
+        (GPUFDSolver(g, dtype) if full else GPUArbitraryFDSolver(g, aperture, dtype))
+        if name == "fd"
+        else GPUDSTRectangleSolver(g, dtype, implementation=dst_implementation)
+        if name == "dst_rectangle"
+        else GPUFFTFreeSpaceSolver(g, dtype, batch_size=fft_batch_size)
+    )
+    result = GPUPICResources(
+        g, spec, solver, name, cp.asarray(solver.interior_mask), deposition_strategy
+    )
+    # Compile once during initialization, before the first particle snapshot.
+    _gpu_module(_PIC_CUDA, solver.dtype.str, solver.device).get_function("deposit")
+    if num_slices is not None:
+        result.prepare(num_slices)
+    return result
+
+
+def _particles_gpu(particles, slice_id, resources, tag, validate):
+    import cupy as cp
+
+    resources.field_solver._check_context()
+    get = (
+        particles.get
+        if isinstance(particles, Mapping)
+        else lambda k, default=None: getattr(particles, k, default)
+    )
+    x, y = (cp.asarray(get(k), dtype=resources.dtype, order="C") for k in ("x", "y"))
+    if x.shape != y.shape:
+        raise ValueError("x and y must have the same shape")
+    tags = get("tag", tag)
+    if tags is not None:
+        tags = cp.asarray(tags)
+        if tags.shape != x.shape:
+            raise ValueError("tag must have the same shape as x and y")
+    sid = cp.asarray(slice_id)
+    if sid.dtype.kind not in "iu":
+        raise TypeError("slice_id must be an integer array")
+    if sid.size != x.size:
+        raise ValueError("slice_id must have one entry per particle")
+    sid = cp.ascontiguousarray(
+        sid,
+        dtype=cp.int32
+        if sid.dtype.itemsize <= 4 and sid.dtype.kind == "i"
+        else cp.int64,
+    ).ravel()
+    if validate and not bool(cp.all(cp.isfinite(x) & cp.isfinite(y))):
+        raise ValueError("particle coordinates must be finite")
+    x, y = x.ravel(), y.ravel()
+    valid = resources.aperture.mask(
+        x.astype(cp.float64, copy=False), y.astype(cp.float64, copy=False)
+    )
+    if tags is not None:
+        valid &= tags.ravel() > 0
+    return x, y, sid, valid
+
+
+def _slice_count_gpu(sid, num_slices):
+    if num_slices is None:
+        num_slices = int(sid.max()) + 1 if sid.size else 0
+    if isinstance(num_slices, bool) or int(num_slices) != num_slices or num_slices < 1:
+        raise ValueError("num_slices must be a positive integer")
+    return int(num_slices)
+
+
+def _stencil_args_gpu(resources, n, ns, method, sid):
+    method = str(method).upper()
+    if method not in ("CIC", "TSC"):
+        raise ValueError("method must be 'CIC' or 'TSC'")
+    g = resources.geometry
+    t = np.float64
+    return (
+        np.int64(n),
+        np.int32(ns),
+        np.int32(g.nx),
+        np.int32(g.ny),
+        t(g.x_min),
+        t(g.y_min),
+        t(g.dx),
+        t(g.dy),
+        np.int32(method == "TSC"),
+        np.int32(sid.dtype.itemsize == 8),
+    )
+
+
+def deposit_particles_gpu(
+    particles,
+    slice_id,
+    geometry,
+    resources=None,
+    method="CIC",
+    *,
+    charge_per_macro=1.0,
+    num_slices=None,
+    tag=None,
+    validate=True,
+    copy=True,
+):
+    import cupy as cp
+
+    if resources is None:
+        get = (
+            particles.get
+            if isinstance(particles, Mapping)
+            else lambda k: getattr(particles, k)
+        )
+        dtype = cp.asarray(get("x")).dtype
+        resources = build_pic_resources_gpu(geometry, dtype=dtype)
+    if not isinstance(resources, GPUPICResources) or resources.geometry != geometry:
+        raise ValueError("matching GPUPICResources are required")
+    x, y, sid, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
+    ns = _slice_count_gpu(sid, num_slices)
+    q = cp.asarray(charge_per_macro, dtype=resources.dtype, order="C").ravel()
+    if q.size not in (1, x.size):
+        raise ValueError("charge_per_macro must be scalar or match particle shape")
+    if validate and not bool(cp.all(cp.isfinite(q))):
+        raise ValueError("charge_per_macro must be finite")
+    resources.prepare(ns, x.size)
+    w = resources._workspace
+    w["density"].fill(0)
+    if resources.deposition_strategy == "sorted_warp" and x.size:
+        g = geometry
+        cx = cp.clip(
+            cp.floor((x.astype(cp.float64) - g.x_min) / g.dx), 0, g.nx - 1
+        ).astype(cp.int64)
+        cy = cp.clip(
+            cp.floor((y.astype(cp.float64) - g.y_min) / g.dy), 0, g.ny - 1
+        ).astype(cp.int64)
+        keys = cp.where(
+            valid & (sid >= 0) & (sid < ns),
+            (cp.clip(sid, 0, ns) * g.ny + cy) * g.nx + cx,
+            ns * g.ny * g.nx,
+        )
+        order = cp.argsort(keys)
+        x, y, sid, valid = x[order], y[order], sid[order], valid[order]
+        if q.size != 1:
+            q = q[order]
+    args = _stencil_args_gpu(resources, x.size, ns, method, sid)
+    _launch_gpu(
+        _PIC_CUDA,
+        "deposit",
+        x.size,
+        (
+            x,
+            y,
+            sid,
+            valid,
+            resources.active,
+            q,
+            np.int32(q.size == 1),
+            w["density"],
+            w["status"],
+            w["bins"],
+            w["q"],
+            w["retained"],
+            *args,
+            np.int32(resources.deposition_strategy != "atomic"),
+        ),
+        resources.dtype,
+    )
+    # Invalid particles occupy bin zero, keeping arbitrary invalid slice IDs
+    # from increasing the histogram allocation. Counters stay on the device.
+    counts = cp.zeros(ns, cp.uint64)
+    charges = cp.zeros(ns, resources.dtype)
+    if x.size:
+        _gpu_module(_PIC_CUDA, resources.dtype.str, resources.field_solver.device).get_function(
+            "deposition_totals"
+        )(
+            ((x.size + 255) // 256,),
+            (256,),
+            (w["bins"], w["q"], counts, charges, np.int64(x.size), np.int32(ns)),
+            shared_mem=ns * (resources.dtype.itemsize + 4) if ns <= 1024 else 0,
+        )
+    boundary = cp.count_nonzero(
+        (w["status"] > 0) & (~cp.isclose(w["retained"], 1.0, rtol=1e-5, atol=1e-8))
+    )
+    minimum = w["retained"].min() if x.size else cp.asarray(1.0, dtype=resources.dtype)
+    return DepositResult(
+        w["density"].copy() if copy else w["density"],
+        charges,
+        counts,
+        x.size - counts.sum(),
+        boundary,
+        minimum,
+        cp.count_nonzero(w["status"] < 0),
+    )
+
+
+def gather_fields_gpu(
+    ex,
+    ey,
+    particles,
+    geometry,
+    resources,
+    slice_id,
+    *,
+    method="CIC",
+    tag=None,
+    validate=True,
+    out=None,
+):
+    """Interpolate both field components in one CUDA kernel."""
+    import cupy as cp
+
+    if resources.geometry != geometry:
+        raise ValueError(
+            "GPUPICResources geometry does not match the supplied geometry"
+        )
+    x, y, sid, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
+    ex, ey = (cp.asarray(a, dtype=resources.dtype, order="C") for a in (ex, ey))
+    if (
+        ex.shape != ey.shape
+        or ex.ndim not in (2, 3)
+        or ex.shape[-2:] != (geometry.ny, geometry.nx)
+    ):
+        raise ValueError("fields must have matching (n_slice, ny, nx) shapes")
+    if validate and not bool(cp.all(cp.isfinite(ex) & cp.isfinite(ey))):
+        raise ValueError("fields must be finite")
+    ns = ex.shape[0] if ex.ndim == 3 else 1
+    if out is None:
+        out = (cp.empty_like(x), cp.empty_like(y))
+    elif any(
+        a.shape != x.shape or a.dtype != resources.dtype or not a.flags.c_contiguous
+        for a in out
+    ):
+        raise ValueError(
+            "gather output must be contiguous and match particle shape and precision"
+        )
+    _launch_gpu(
+        _PIC_CUDA,
+        "gather_pair",
+        x.size,
+        (
+            x,
+            y,
+            sid,
+            valid,
+            resources.active,
+            ex,
+            ey,
+            *out,
+            *_stencil_args_gpu(resources, x.size, ns, method, sid),
+        ),
+        resources.dtype,
+    )
+    return out
+
+
+def pic_gpu(
+    x,
+    y,
+    slice_id,
+    charge_per_macro,
+    delta_z=None,
+    geometry=None,
+    *,
+    mesh=None,
+    tag=None,
+    method="CIC",
+    num_slices=None,
+    resources=None,
+    compute_potential=True,
+    validate=True,
+    copy=True,
+):
+    """GPU counterpart of pic_cpu: C/m^2 density, V m potential, V fields.
+
+    ``validate=False`` skips device finite-value checks for a trusted tracking
+    pipeline. Shape and resource checks still run. Diagnostics are device scalars.
+    """
+    import cupy as cp
+
+    if geometry is None and isinstance(delta_z, GridGeometry):
+        geometry, delta_z = delta_z, None
+    if geometry is None:
+        if mesh is None:
+            raise TypeError("pic_gpu requires geometry or mesh")
+        geometry = build_grid_geometry(mesh)
+    if num_slices is None and delta_z is not None:
+        num_slices = int(cp.asarray(delta_z).size)
+    if resources is None:
+        resources = build_pic_resources_gpu(geometry, dtype=cp.asarray(x).dtype)
+    deposited = deposit_particles_gpu(
+        {"x": x, "y": y, "tag": tag},
+        slice_id,
+        geometry,
+        resources,
+        method,
+        charge_per_macro=charge_per_macro,
+        num_slices=num_slices,
+        validate=validate,
+        copy=False,
+    )
+    solved = resources.field_solver.solve(
+        deposited.density,
+        compute_potential=compute_potential,
+        validate=False,
+        copy=copy,
+    )
+    return PICResult(
+        deposited.density.copy() if copy else deposited.density,
+        solved.potential,
+        solved.integrated_ex,
+        solved.integrated_ey,
+        geometry,
+        deposited.deposited_charge,
+        dict(
+            n_slices=deposited.density.shape[0],
+            deposited_count=deposited.deposited_count.sum(),
+            ignored_count=deposited.ignored_count,
+            lost_count=deposited.lost_count,
+            boundary_count=deposited.boundary_count,
+            min_retained_weight=deposited.min_retained_weight,
+        ),
+    )
+
+_PIC_CUDA = r"""
+__device__ long long read_sid(const void* ids, long long i, int wide) {
+    return wide ? ((const long long*)ids)[i] : ((const int*)ids)[i];
+}
+__device__ double tsc_weight(double u, int node) {
+    double d=fabs(u-node), outer=fmax(0.,1.5-d);
+    return d<0.5 ? 0.75-d*d : 0.5*outer*outer;
+}
+
+__device__ void deposit_add(T* address,T value,int strategy) {
+    if(strategy==0) {atomicAdd(address,value);return;}
+    unsigned active=__activemask();
+    unsigned group=__match_any_sync(active,(unsigned long long)address);
+    if(__popc(group)==1) {atomicAdd(address,value);return;}
+    T sum=0;
+    for(unsigned peers=group;peers;peers&=peers-1)
+        sum+=__shfl_sync(group,value,__ffs(peers)-1);
+    if((threadIdx.x&31)==__ffs(group)-1) atomicAdd(address,sum);
+}
+// Only active nodes enter either stencil; deposition and gathering use the
+// same renormalization, including fractional Shortley-Weller boundaries.
+__device__ int stencil(T x,T y,int nx,int ny,double xmin,double ymin,double dx,double dy,
+    const bool* active,int quadratic,int* nodes,T* weights,T* norm) {
+    // Geometry retains host FP64 bounds even for FP32 particles. Rounding a
+    // near-wall coordinate onto the wall would otherwise erase its stencil.
+    double u=((double)x-xmin)/dx,v=((double)y-ymin)/dy;
+    if(!isfinite(u)||!isfinite(v)||u<0||u>nx-1||v<0||v>ny-1) return -1;
+    int ix=quadratic ? (int)floor(u+(T)0.5) : min((int)floor(u),nx-2);
+    int iy=quadratic ? (int)floor(v+(T)0.5) : min((int)floor(v),ny-2);
+    int count=0; *norm=0;
+    for(int ox=quadratic?-1:0;ox<=1;++ox) {
+        int gx=ix+ox;
+        double wx=quadratic?tsc_weight(u,gx):(ox?u-ix:1-(u-ix));
+        for(int oy=quadratic?-1:0;oy<=1;++oy) {
+            int gy=iy+oy;
+            if(gx<0||gx>=nx||gy<0||gy>=ny||!active[gy*nx+gx]) continue;
+            double wy=quadratic?tsc_weight(v,gy):(oy?v-iy:1-(v-iy));
+            nodes[count]=gy*nx+gx; weights[count]=wx*wy; *norm+=weights[count]; ++count;
+        }
+    }
+    return count;
+}
+
+extern "C" __global__ void deposit(const T* x,const T* y,const void* sid,
+    const bool* valid,const bool* active,const T* charge,int scalar_charge,
+    T* rho,int* status,int* bins,T* deposited_q,T* retained,long long size,
+    int ns,int nx,int ny,double xmin,double ymin,double dx,double dy,int quadratic,int wide,int strategy) {
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
+    if(i>=size) return;
+    status[i]=0; bins[i]=0; deposited_q[i]=0; retained[i]=1;
+    long long s=read_sid(sid,i,wide);
+    if(!valid[i]||s<0||s>=ns) return;
+    int nodes[9]; T weights[9],norm;
+    int count=stencil(x[i],y[i],nx,ny,xmin,ymin,dx,dy,active,quadratic,nodes,weights,&norm);
+    if(count<0) return;
+    if(norm<=(T)2.2204460492503131e-16) { status[i]=-1; return; }
+    status[i]=1; bins[i]=s+1; retained[i]=norm;
+    T q=charge[scalar_charge?0:i],scale=q/(norm*dx*dy);
+    deposited_q[i]=q;
+    for(int k=0;k<count;++k) deposit_add(rho+s*nx*ny+nodes[k],weights[k]*scale,strategy);
+}
+
+extern "C" __global__ void gather_pair(const T* x,const T* y,const void* sid,
+    const bool* valid,const bool* active,const T* ex,const T* ey,T* outx,T* outy,
+    long long size,int ns,int nx,int ny,double xmin,double ymin,double dx,double dy,int quadratic,int wide) {
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
+    if(i>=size) return;
+    outx[i]=0;outy[i]=0;
+    long long s=read_sid(sid,i,wide);
+    if(!valid[i]||s<0||s>=ns) return;
+    int nodes[9]; T weights[9],norm;
+    int count=stencil(x[i],y[i],nx,ny,xmin,ymin,dx,dy,active,quadratic,nodes,weights,&norm);
+    if(count<0||norm<=(T)2.2204460492503131e-16) return;
+    T a=0,b=0;
+    for(int k=0;k<count;++k) {
+        long long j=s*nx*ny+nodes[k];
+        a+=weights[k]*ex[j];b+=weights[k]*ey[j];
+    }
+    outx[i]=a/norm;outy[i]=b/norm;
+}
+
+extern "C" __global__ void deposition_totals(const int* bins,const T* q,
+    unsigned long long* counts,T* charges,long long size,int ns) {
+    extern __shared__ double storage[];
+    T* local_q=(T*)storage;
+    unsigned int* local_n=(unsigned int*)(local_q+ns);
+    bool shared=ns<=1024;
+    if(shared) {
+        for(int j=threadIdx.x;j<ns;j+=blockDim.x) {local_q[j]=0;local_n[j]=0;}
+        __syncthreads();
+    }
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
+    if(i<size && bins[i]>0) {
+        int s=bins[i]-1;
+        if(shared) {atomicAdd(local_q+s,q[i]);atomicAdd(local_n+s,1u);}
+        else {atomicAdd(charges+s,q[i]);atomicAdd(counts+s,1ull);}
+    }
+    if(shared) {
+        __syncthreads();
+        for(int j=threadIdx.x;j<ns;j+=blockDim.x) if(local_n[j]) {
+            atomicAdd(charges+j,local_q[j]);atomicAdd(counts+j,(unsigned long long)local_n[j]);
+        }
+    }
+}
+"""

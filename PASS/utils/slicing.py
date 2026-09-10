@@ -5,6 +5,9 @@ Yoshida's signed internal stages never determine the SC integration weight.
 """
 
 from dataclasses import dataclass
+from functools import lru_cache
+
+import numpy as np
 import logging
 import math
 from numbers import Integral
@@ -108,10 +111,6 @@ def configure_element_slicing(element, sim, values):
     element.slice_plan = make_slice_plan(element.length, requested, config.num_kicks)
     if not math.isfinite(element.s):
         raise ValueError("Element S (m) must be finite")
-    # Existing PIC and analytic SC implementations are CPU-only. Fail before
-    # any particle transport rather than silently omitting collective kicks.
-    if getattr(sim.cfg, "use_gpu", False) or str(getattr(sim.cfg, "backend", "cpu")).lower() == "gpu":
-        raise RuntimeError("Internal SpaceCharge GPU execution is not implemented; use backend='cpu'")
     from PASS.commands.space_charge import SpaceCharge
     command_values = config.model_dump(by_alias=True)
     command_values.pop("Num kicks")
@@ -153,12 +152,7 @@ def print_element_slicing(element):
                 first.save_field, first.save_potential, first.save_density, first._save_turn_ranges)
 
 
-def guard_internal_sc_gpu(element):
-    if element._sc_nodes:
-        raise RuntimeError("Internal SpaceCharge GPU execution is not implemented; use backend='cpu'")
-
-
-def run_body_slices(element, beam, bunch, turn, transport):
+def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
     """Call transport(ds, on_center) for a whole bunch, then boundary SC.
 
     No reference clock advancement and no longitudinal rebinning occurs here.
@@ -182,9 +176,15 @@ def run_body_slices(element, beam, bunch, turn, transport):
                 p.lost_position[region][unrecorded] = command.s
                 p.lost_turn[region][unrecorded] = turn
                 entry_alive[lost] = False
-                check_aperture_cpu(beam, bunch, element.aperture_type,
-                                   element.aperture_value, command.s, turn)
-                command.apply_bunch_cpu(element._sc_sim, beam, bunch)
+                if gpu:
+                    from PASS.utils.aperture import check_aperture_gpu
+                    check_aperture_gpu(beam, bunch, element.aperture_type,
+                                       element.aperture_value, command.s, turn)
+                    command.apply_bunch_gpu(element._sc_sim, beam, bunch)
+                else:
+                    check_aperture_cpu(beam, bunch, element.aperture_type,
+                                       element.aperture_value, command.s, turn)
+                    command.apply_bunch_cpu(element._sc_sim, beam, bunch)
                 entry_alive[p.tag[region] <= 0] = False
 
         transport(plan.slice_length, callback if pair and node.placement == "center" else None)
@@ -203,3 +203,393 @@ def transport_with_center(advance, ds, on_center):
         advance(ds / 2)
         on_center()
         advance(ds / 2)
+
+
+_GPU_STAGE_HEADER = r"""
+extern "C" __global__ void internal_stage(
+    pass_particle_t* x,pass_particle_t* px,pass_particle_t* y,pass_particle_t* py,pass_particle_t* z,
+    const pass_particle_t* dp,int* tag,float* lp,int* lt,int start,int end,
+    pass_real_t beta0,pass_real_t bg0,pass_real_t invgamma,pass_real_t L,
+    pass_real_t s0,int turn,const pass_real_t* params,const pass_real_t* kn,
+    const pass_real_t* ks,const pass_real_t* inv,int order,int action) {
+    int i=blockIdx.x*blockDim.x+threadIdx.x+start;
+    if(i>=end||tag[i]<=0) return;
+    pass_real_t xi=x[i],pxi=px[i],yi=y[i],pyi=py[i],zi=z[i],dpi=dp[i];
+    int ti=tag[i];bool alive=true;
+"""
+_GPU_STAGE_FOOTER = r"""
+    x[i]=xi;px[i]=pxi;y[i]=yi;py[i]=pyi;z[i]=zi;tag[i]=ti;
+}
+"""
+_GPU_STAGE_MULTIPOLE = r"""
+    if(action!=2) {
+        alive=pass_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,bg0,invgamma,s0,turn);
+        if(alive) pass_kick(pxi,pyi,xi,yi,kn,ks,inv,order,L);
+    }
+    if(action!=1 && alive) pass_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,bg0,invgamma,s0,turn);
+"""
+_GPU_STAGE_SOLENOID = r"""
+    if(action==3) sol_exact(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L,params[0],beta0,bg0,s0,turn);
+    else {
+        if(action!=2) {
+            alive=sol_exact(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,params[0],beta0,bg0,s0,turn);
+            if(alive) sol_kick(pxi,pyi,xi,yi,kn,ks,inv,order,L);
+        }
+        if(action!=1 && alive) sol_exact(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,params[0],beta0,bg0,s0,turn);
+    }
+"""
+
+_GPU_STAGE_BEND = r"""
+    pass_real_t h=params[0],k0=params[1],opd=1+dpi;
+    pass_real_t bg=opd*bg0,beta_ratio=beta0*sqrt(1+bg*bg)/bg;
+    pass_real_t time_factor=sqrt(opd*opd+1/(bg0*bg0));
+    if(action==3 || action==4) {
+        pass_real_t e=params[action==3?2:3],sn=sin(-e),cs=cos(-e);
+        if(action==3) {
+            if(fabs(e)>PASS_EPS) alive=d_yrot(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,sn,cs,beta0,time_factor,s0,turn);
+            if(alive && fabs(k0)>PASS_EPS) alive=d_fringe(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,params[5],params[4],k0,beta0,time_factor,s0,turn);
+            if(alive && fabs(e)>PASS_EPS) alive=d_wedge(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,k0,sn,cs,beta0,beta_ratio,time_factor,s0,turn);
+        } else {
+            if(fabs(e)>PASS_EPS) alive=d_wedge(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,k0,sn,cs,beta0,beta_ratio,time_factor,s0,turn);
+            if(alive && fabs(k0)>PASS_EPS) alive=d_fringe(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,params[6],params[4],-k0,beta0,time_factor,s0,turn);
+            if(alive && fabs(e)>PASS_EPS) alive=d_yrot(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,sn,cs,beta0,time_factor,s0,turn);
+        }
+    } else if(params[7]==0) {
+        if(action!=2) {
+            alive=d_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,beta_ratio,bg0,s0,turn);
+            if(alive) d_kick(pxi,zi,xi,dpi,L,h,k0,beta0,beta_ratio);
+        }
+        if(action!=1 && alive) d_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,beta_ratio,bg0,s0,turn);
+    } else {
+        pass_real_t rho=fabs(h)>PASS_EPS?1/h:0,base=h*L/4;
+        pass_real_t z1=1.3512071919596578,z0=-1.7024143839193155;
+        pass_real_t sf=sin(base*z1),cf=cos(base*z1),sm=sin(base*(z1+z0)),cm=cos(base*(z1+z0));
+        if(action!=2) {
+            alive=d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,sm,cm,s0,turn);
+            if(alive) pxi-=L*k0*h*xi;
+        }
+        if(action!=1 && alive) d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,sm,cm,s0,turn);
+    }
+"""
+
+
+@lru_cache(maxsize=None)
+def _stage_kernel(kind, dtype, device):
+    import cupy as cp
+
+    if kind == "multipole":
+        from PASS.commands.element.multipole import (
+            CUDA_REAL_PREAMBLE,
+            MULTIPOLE_KERNEL_BODY,
+        )
+
+        source = CUDA_REAL_PREAMBLE + MULTIPOLE_KERNEL_BODY
+        body = _GPU_STAGE_MULTIPOLE
+    elif kind == "solenoid":
+        from PASS.commands.element.solenoid import CUDA_REAL_PREAMBLE, SOLENOID_BODY
+
+        source = CUDA_REAL_PREAMBLE + SOLENOID_BODY
+        body = _GPU_STAGE_SOLENOID
+    elif kind == "bend":
+        from PASS.commands.element.dipole import CUDA_REAL_PREAMBLE, DIPOLE_BODY
+
+        source = CUDA_REAL_PREAMBLE + DIPOLE_BODY
+        body = _GPU_STAGE_BEND
+    else:
+        raise ValueError(f"unknown internal GPU transport {kind}")
+    with cp.cuda.Device(device):
+        particle_type = "float" if np.dtype(dtype).itemsize == 4 else "double"
+        # Polar bend maps subtract a macroscopic radius from a small transverse
+        # position. Keep those intermediates double even for float particles.
+        return cp.RawKernel(
+            f"typedef {particle_type} pass_particle_t;\n"
+            + source
+            + _GPU_STAGE_HEADER
+            + body
+            + _GPU_STAGE_FOOTER,
+            "internal_stage",
+            options=(
+                "--std=c++17",
+                f"-DPASS_USE_FLOAT={int(np.dtype(dtype).itemsize == 4 and kind != 'bend')}",
+            ),
+        )
+
+
+def _dkd(launch, integrator, ds, on_center):
+    weights = (
+        (1.0,)
+        if integrator == "uniform"
+        else (1.3512071919596578, -1.7024143839193155, 1.3512071919596578)
+    )
+    for index, weight in enumerate(weights):
+        length = ds * weight
+        if on_center is not None and index == len(weights) // 2:
+            launch(length, 1)
+            on_center()
+            launch(length, 2)
+        else:
+            launch(length, 0)
+
+
+def execute_internal_sc_gpu(element, sim):
+    """Schedule shared element device maps around physical internal SC nodes.
+
+    A center SC kick splits at the integrator's central kick, including the
+    negative Yoshida stage; the positive SC integration weight is unchanged.
+    """
+    import cupy as cp
+
+    from PASS.utils.aperture import check_aperture_gpu
+
+    name = type(element).__name__.lower()
+    supported = {
+        "drift",
+        "quadrupole",
+        "sextupole",
+        "octupole",
+        "multipole",
+        "kicker",
+        "solenoid",
+        "sbend",
+        "elseparator",
+    }
+    if name not in supported:
+        raise RuntimeError(
+            f"{name} internal GPU space charge transport is not yet supported"
+        )
+    beam = sim.beams[element.beam_id]
+    p = beam.particles
+    real = p.real
+    turn = sim.state.turn
+    kind = (
+        "solenoid" if name == "solenoid" else "bend" if name == "sbend" else "multipole"
+    )
+    kn = ks = np.zeros(1)
+    params = np.zeros(1)
+    inv = np.ones(1)
+    if name == "solenoid":
+        params = np.array([element.ks])
+        if element.has_multipoles:
+            kn, ks, inv = element.kn, element.ksp, element.inv_fact
+    elif name == "sbend":
+        params = np.array(
+            [
+                element.h,
+                element.k0,
+                element.e1,
+                element.e2,
+                element.hgap,
+                element.fint,
+                element.fintx,
+                int(element.model == "rot-kick-rot"),
+            ]
+        )
+    elif name == "multipole":
+        kn, ks, inv = element.kn, element.ks, element.inv_fact
+    elif name == "kicker":
+        kn, ks = np.array([-element.hk]), np.array([element.vk])
+    elif name in ("quadrupole", "sextupole", "octupole"):
+        order = {"quadrupole": 1, "sextupole": 2, "octupole": 3}[name]
+        kn = np.zeros(order + 1)
+        ks = kn.copy()
+        kn[order] = getattr(element, f"k{order}")
+        ks[order] = getattr(element, f"k{order}s")
+        import math
+
+        inv = np.array([1 / math.factorial(i) for i in range(order + 1)])
+    cache = getattr(element, "_gpu_internal_resources", None)
+    if cache is None:
+        cache = element._gpu_internal_resources = tuple(
+            cp.asarray(a, dtype=np.float64 if kind == "bend" else p.dtype)
+            for a in (params, kn, ks, inv)
+        )
+    for bunch in beam.bunches:
+        start, end = bunch.start_idx, bunch.end_idx
+        n = end - start
+        if n <= 0:
+            continue
+        blocks = ((n + 255) // 256,)
+        threads = (256,)
+        position = element.s - element.length
+
+        def drift(length):
+            from PASS.commands.element.drift import _get_transfer_drift_kernel
+
+            _get_transfer_drift_kernel(p.dtype)(
+                blocks,
+                threads,
+                (
+                    p.x,
+                    p.y,
+                    p.z,
+                    p.px,
+                    p.py,
+                    p.dp,
+                    p.tag,
+                    p.lost_position,
+                    p.lost_turn,
+                    np.int32(start),
+                    np.int32(end),
+                    real(bunch.beta * bunch.gamma),
+                    real(1 / bunch.gamma),
+                    real(length),
+                    real(position),
+                    np.int32(turn),
+                ),
+            )
+
+        def launch(length, action):
+            stage_real = np.float64 if kind == "bend" else real
+            _stage_kernel(kind, np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())(
+                blocks,
+                threads,
+                (
+                    p.x,
+                    p.px,
+                    p.y,
+                    p.py,
+                    p.z,
+                    p.dp,
+                    p.tag,
+                    p.lost_position,
+                    p.lost_turn,
+                    np.int32(start),
+                    np.int32(end),
+                    stage_real(bunch.beta),
+                    stage_real(bunch.beta * bunch.gamma),
+                    stage_real(1 / bunch.gamma),
+                    stage_real(length),
+                    stage_real(position),
+                    np.int32(turn),
+                    *cache,
+                    np.int32(len(kn) - 1),
+                    np.int32(action),
+                ),
+            )
+
+        def matrix(length):
+            key = (np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())
+            kernel = _matrix_kernel(*key)
+            kernel(
+                blocks,
+                threads,
+                (
+                    p.x,
+                    p.px,
+                    p.y,
+                    p.py,
+                    p.z,
+                    p.dp,
+                    p.tag,
+                    np.int32(start),
+                    np.int32(end),
+                    real(bunch.beta),
+                    real(bunch.beta * bunch.gamma),
+                    real(1 / bunch.gamma),
+                    real(length),
+                    real(element.cos_theta),
+                    real(element.sin_theta),
+                    real(element.k_eff_base),
+                    np.int32(1),
+                ),
+            )
+
+        def separator(ds, on_center):
+            from PASS.commands.element.elseparator import _get_elseparator_kernel
+
+            denom = bunch.beta * const.c * bunch.brho
+            kx = element.exl / denom if abs(denom) > const.eps else 0.0
+            ky = element.eyl / denom if abs(denom) > const.eps else 0.0
+            _get_elseparator_kernel(p.dtype)(
+                blocks,
+                threads,
+                (
+                    p.x,
+                    p.px,
+                    p.y,
+                    p.py,
+                    p.z,
+                    p.dp,
+                    p.tag,
+                    p.lost_position,
+                    p.lost_turn,
+                    np.int32(start),
+                    np.int32(end),
+                    real(bunch.beta * bunch.gamma),
+                    real(1 / bunch.gamma),
+                    real(ds),
+                    real(kx * ds / element.length),
+                    real(ky * ds / element.length),
+                    real(element.tilt),
+                    np.int32(
+                        element.septum_x_position is not None
+                        and abs(element.exl) > const.eps
+                    ),
+                    real(element.septum_x_position or 0.0),
+                    np.int32(
+                        element.septum_y_position is not None
+                        and abs(element.eyl) > const.eps
+                    ),
+                    real(element.septum_y_position or 0.0),
+                    real(element.septum_thickness),
+                    np.int32(1),
+                    np.int32(2 if on_center else 3),
+                    real(position + ds / 2 if on_center else position),
+                    np.int32(turn),
+                ),
+            )
+            if on_center is not None:
+                on_center()
+                drift(ds / 2)
+
+        def transport(ds, on_center):
+            nonlocal position
+            end_position = position + ds
+            position += ds / 2 if on_center is not None else ds
+            callback = None
+            if on_center is not None:
+
+                def callback():
+                    nonlocal position
+                    on_center()
+                    position = end_position
+
+            if name == "drift":
+                transport_with_center(drift, ds, callback)
+            elif name == "elseparator":
+                separator(ds, callback)
+            elif name == "quadrupole" and element.model == "mat-kick-mat":
+                transport_with_center(matrix, ds, callback)
+            elif name == "solenoid" and not element.has_multipoles:
+                transport_with_center(lambda length: launch(length, 3), ds, callback)
+            else:
+                _dkd(launch, element.integrator, ds, callback)
+            position = end_position
+
+        if name == "sbend":
+            launch(0.0, 3)
+        run_body_slices(element, beam, bunch, turn, transport, gpu=True)
+        if name == "sbend":
+            launch(0.0, 4)
+        check_aperture_gpu(
+            beam, bunch, element.aperture_type, element.aperture_value, element.s, turn
+        )
+        bunch.t0 += element.length / (bunch.beta * const.c)
+    return True
+
+
+@lru_cache(maxsize=None)
+def _matrix_kernel(dtype, device):
+    import cupy as cp
+
+    from PASS.commands.element.quadrupole import CUDA_REAL_PREAMBLE, QUAD_MATRIX_BODY
+
+    with cp.cuda.Device(device):
+        return cp.RawKernel(
+            CUDA_REAL_PREAMBLE + QUAD_MATRIX_BODY,
+            "track_quadrupole_matrix",
+            options=(
+                "--std=c++17",
+                f"-DPASS_USE_FLOAT={int(np.dtype(dtype).itemsize == 4)}",
+            ),
+        )

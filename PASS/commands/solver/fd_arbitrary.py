@@ -17,7 +17,8 @@ from scipy.sparse import csc_matrix, lil_matrix
 from scipy.sparse.linalg import splu
 
 from PASS.utils.constants import const
-from .field_result import FieldResult
+from .fd_rectangle import GPUFDSolver
+from .field_result import FieldResult, _launch_gpu
 
 
 from PASS.utils.aperture import (
@@ -119,6 +120,8 @@ class ArbitraryFDSolver:
 def build_fd_arbitrary_resources(
     geometry,
     aperture: Mapping[str, Any],
+    *,
+    factorize=True,
 ):
     """Build cached FD resources for a continuous arbitrary aperture.
 
@@ -182,10 +185,82 @@ def build_fd_arbitrary_resources(
             if column >= 0:
                 matrix[row, column] = coefficient
     sparse = csc_matrix(matrix)
-    lu = splu(sparse) if indices.size else None
+    lu = splu(sparse) if indices.size and factorize else None
     return ArbitraryFDSolver(geometry, mask, interior, sparse, lu, h_left, h_right, h_bottom, h_top)
 
 
 def solve_poisson_fd_arbitrary(density, geometry, aperture):
     """One-shot wrapper around :func:`build_fd_arbitrary_resources`."""
     return build_fd_arbitrary_resources(geometry, aperture).solve(density)
+
+
+class GPUArbitraryFDSolver(GPUFDSolver):
+    """cuDSS solves with continuous-aperture Shortley-Weller coefficients."""
+
+    arbitrary = True
+
+    def __init__(self, geometry, aperture, dtype="float64"):
+        self._initialize(
+            geometry, dtype, build_fd_arbitrary_resources(geometry, aperture, factorize=False)
+        )
+
+    def _prepare_geometry(self, reference):
+        import cupy as cp
+
+        indices = reference.interior_indices.astype(np.int32)
+        hl, hr, hb, ht = (
+            a.ravel()[indices]
+            for a in (
+                reference.h_left,
+                reference.h_right,
+                reference.h_bottom,
+                reference.h_top,
+            )
+        )
+        self.coefficients = cp.asarray(
+            np.stack(
+                (
+                    -hr / (hl * (hl + hr)),
+                    (hr - hl) / (hl * hr),
+                    hl / (hr * (hl + hr)),
+                    -ht / (hb * (hb + ht)),
+                    (ht - hb) / (hb * ht),
+                    hb / (ht * (hb + ht)),
+                )
+            ),
+            dtype=self.dtype,
+        )
+
+    def _gradient(self):
+        g, w = self.geometry, self._work
+        w["ex"].fill(0)
+        w["ey"].fill(0)
+        _launch_gpu(
+            _SW_GRADIENT_CUDA,
+            "sw_gradient",
+            w["slices"] * self.n,
+            (
+                w["phi"],
+                w["ex"],
+                w["ey"],
+                self.indices,
+                self.coefficients,
+                np.int32(self.n),
+                np.int32(g.nx),
+                np.int32(g.nx * g.ny),
+                np.int64(w["slices"] * self.n),
+            ),
+            self.dtype,
+        )
+
+_SW_GRADIENT_CUDA = r"""
+extern "C" __global__ void sw_gradient(const T* phi, T* ex, T* ey,
+    const int* indices, const T* coeff, int n, int nx, int grid, long long size) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= size) return;
+    int k = i%n;
+    long long j = (i/n)*grid + indices[k];
+    ex[j] = -(coeff[k]*phi[j-1] + coeff[n+k]*phi[j] + coeff[2*n+k]*phi[j+1]);
+    ey[j] = -(coeff[3*n+k]*phi[j-nx] + coeff[4*n+k]*phi[j] + coeff[5*n+k]*phi[j+nx]);
+}
+"""

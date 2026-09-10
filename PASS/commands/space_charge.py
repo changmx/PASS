@@ -1,4 +1,4 @@
-"""Transverse space-charge command using CPU PIC or analytic free-space fields.
+"""Transverse space-charge command using CPU/GPU PIC or analytic fields.
 
 The command consumes a previously computed bunch-local ``SliceSet``.  PIC
 itself remains a pure particle-snapshot operation; this layer owns the
@@ -91,6 +91,9 @@ class SpaceChargeConfiguredResources:
     configuration: Any
     geometry: GridGeometry
     pic: dict = field(default_factory=dict)
+    backend: str = 'cpu'
+    dtype: str = 'float64'
+    num_slices: int | None = None
 
 
 def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeConfiguredResources]:
@@ -162,7 +165,14 @@ def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeC
             configuration = configurations[name]
             try:
                 geometry = build_grid_geometry(configuration.model_dump())
-                configured = SpaceChargeConfiguredResources(name, configuration.slice_set, configuration, geometry)
+                backend = 'gpu' if (getattr(cfg, 'use_gpu', False) or getattr(cfg, 'backend', 'cpu') == 'gpu') else 'cpu'
+                slice_counts = {ss.num_slices for beam in getattr(sim, 'beams', [])[beam_id:beam_id+1]
+                                for bunch in beam.bunches
+                                if (ss := bunch.slice_sets.get(configuration.slice_set)) is not None
+                                and hasattr(ss, 'num_slices')}
+                configured = SpaceChargeConfiguredResources(name, configuration.slice_set, configuration, geometry,
+                    backend=backend, dtype=getattr(cfg, 'particle_precision', 'float64'),
+                    num_slices=next(iter(slice_counts)) if len(slice_counts) == 1 else None)
                 # Validate every referenced command, even before allocating a
                 # Poisson matrix for any of its apertures.
                 apertures = []
@@ -219,7 +229,13 @@ def _pic_resources(configured, kind, dimensions):
     key = "free_space" if solver == "fft_free_space" else json.dumps([kind, dimensions], separators=(",", ":"))
     if key not in configured.pic:
         aperture = None if solver == "fft_free_space" else {"Type": kind, "Value": dimensions}
-        resources = build_pic_resources(configured.geometry, aperture=aperture,
+        builder = build_pic_resources
+        extra = {}
+        if configured.backend == 'gpu':
+            from PASS.commands.solver.pic import build_pic_resources_gpu
+            builder = build_pic_resources_gpu
+            extra = dict(dtype=configured.dtype, num_slices=configured.num_slices)
+        resources = builder(configured.geometry, aperture=aperture, **extra,
             field_solver={"fft_free_space": "fft_free_space", "fd_dirichlet": "fd",
                           "dst_dirichlet": "dst_rectangle"}[solver])
         if not np.any(resources.field_solver.interior_mask):
@@ -561,8 +577,7 @@ class SpaceCharge(Command):
                 "num_real_particles":
                 int(getattr(bunch, "Nrp", 0)),
                 "num_alive_macro_particles":
-                int(np.count_nonzero(
-                    np.asarray(beam.particles.tag)[int(bunch.start_idx):int(bunch.end_idx)] > 0)) if hasattr(beam.particles, "tag") else 0,
+                int((beam.particles.tag[int(bunch.start_idx):int(bunch.end_idx)] > 0).sum()) if hasattr(beam.particles, "tag") else 0,
                 "particle_precision":
                 str(getattr(cfg, "particle_precision", getattr(beam.particles, "dtype", "float64"))),
                 "random_seed":
@@ -610,5 +625,187 @@ class SpaceCharge(Command):
     def execute_gpu(self, sim):
         if not self.is_enabled or (self.sc_length == 0.0 and self.aperture_type == "off"):
             return False
-        raise RuntimeError("SpaceCharge GPU execution is not implemented yet; use backend='cpu' "
-                           "for PIC, frozen, and quasi-frozen methods.")
+        beam = sim.beams[self.beam_id]
+        for bunch in beam.bunches:
+            self.apply_bunch_gpu(sim, beam, bunch)
+        return True
+
+    def apply_bunch_gpu(self, sim, beam, bunch):
+        """Apply the same integrated-field kick to a device-resident bunch."""
+        if not self.is_enabled:
+            return False
+        from PASS.utils.aperture import check_aperture_gpu
+        check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, int(sim.state.turn))
+        if self.sc_length == 0:
+            return False
+        import cupy as cp
+        from .solver.analytic import AnalyticResult, solve_analytic_gpu
+        from .solver.pic import PICResult, pic_gpu, gather_fields_gpu
+        from .solver.field_result import _launch_gpu
+
+        p = beam.particles
+        start, end = int(bunch.start_idx), int(bunch.end_idx)
+        if end <= start:
+            return False
+        try:
+            slices = bunch.slice_sets[self.slice_set_name]
+        except KeyError as exc:
+            raise KeyError(
+                f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}"
+            ) from exc
+        table = getattr(slices, "slice_table", None)
+        if (
+            getattr(slices, "slice_id", None) is None
+            or not isinstance(table, Mapping)
+            or "delta_z" not in table
+        ):
+            raise RuntimeError("SliceSet requires slice_id and slice_table.delta_z")
+        sid = cp.asarray(slices.slice_id)
+        if sid.ndim != 1 or sid.size != end - start or sid.dtype.kind not in "iu":
+            raise ValueError(
+                "SliceSet.slice_id must contain one integer per bunch particle"
+            )
+        sid = cp.ascontiguousarray(sid, dtype=cp.int64)
+        dz = cp.asarray(table["delta_z"], dtype=p.x.dtype)
+        if dz.ndim != 1 or not dz.size:
+            raise ValueError("SliceSet.delta_z must contain finite positive widths")
+        ns = dz.size
+        x, y, tag = p.x[start:end], p.y[start:end], p.tag[start:end]
+        valid = (tag > 0) & (sid >= 0)
+        checks = [
+            cp.any(~cp.isfinite(dz) | (dz <= 0)),
+            cp.any((sid < -1) | (sid >= ns)),
+            cp.any(valid & (~cp.isfinite(x) | ~cp.isfinite(y))),
+        ]
+        if self.method == "pic":
+            g = self.geometry
+            xx, yy = x.astype(cp.float64, copy=False), y.astype(cp.float64, copy=False)
+            inside = (
+                (xx >= g.x_min)
+                & (xx <= g.x_max)
+                & (yy >= g.y_min)
+                & (yy <= g.y_max)
+                & self._resources.aperture.mask(xx, yy)
+            )
+            checks.append(cp.any(valid & ~inside))
+        checks.append(cp.any(valid))
+        flags = cp.stack(checks).get()
+        messages = [
+            "SliceSet.delta_z must contain finite positive widths",
+            "SliceSet.slice_id must be -1 or a valid slice index",
+            "SpaceCharge requires finite transverse coordinates for participating particles",
+            "participating particles outside the PIC grid/aperture after the local loss check",
+        ]
+        for index, failed in enumerate(flags[:-1]):
+            if failed:
+                raise ValueError(messages[index])
+        q = float(bunch.ratio) * float(bunch.num_charge) * const.e
+        beta, gamma, brho = float(bunch.beta), float(bunch.gamma), float(bunch.brho)
+        if not np.isfinite(q):
+            raise ValueError("SpaceCharge macro-particle charge must be finite")
+        if (
+            beta <= 0
+            or gamma <= 1
+            or abs(brho) <= const.eps
+            or not np.isfinite(beta * gamma * brho)
+        ):
+            raise ValueError(
+                "Bunch relativistic parameters are invalid for SpaceCharge kick"
+            )
+        turn = int(sim.state.turn)
+        selected = self._turn_selected(turn)
+        save = selected and (
+            self.save_field or self.save_potential or self.save_density
+        )
+        analytic = None
+        if self.method == "pic":
+            result = pic_gpu(
+                x,
+                y,
+                sid,
+                q,
+                geometry=self.geometry,
+                tag=tag,
+                method=self.deposition_method,
+                num_slices=ns,
+                resources=self._resources,
+                compute_potential=selected and self.save_potential,
+                validate=False,
+                copy=False,
+            )
+            if int(result.diagnostics["lost_count"]):
+                raise ValueError(
+                    "participating particles have no active deposition nodes; increase grid resolution"
+                )
+            ex, ey = gather_fields_gpu(
+                result.ex,
+                result.ey,
+                {"x": x, "y": y, "tag": tag},
+                self.geometry,
+                self._resources,
+                sid,
+                method=self.deposition_method,
+                validate=False,
+            )
+        else:
+            analytic = solve_analytic_gpu(x, y, sid, valid, ns, q, self.configuration)
+            ex, ey = analytic.integrated_ex, analytic.integrated_ey
+        if save:
+            if analytic is None:
+                host = PICResult(
+                    cp.asnumpy(result.density),
+                    None if result.potential is None else cp.asnumpy(result.potential),
+                    cp.asnumpy(result.ex),
+                    cp.asnumpy(result.ey),
+                    self.geometry,
+                    cp.asnumpy(result.deposited_charge),
+                )
+            else:
+                # Diagnostic sampling has no effect on the resident particle path.
+                analytic = AnalyticResult(
+                    None,
+                    None,
+                    cp.asnumpy(analytic.slice_charge),
+                    cp.asnumpy(analytic.macro_count),
+                    cp.asnumpy(analytic.parameters),
+                )
+                host = sample_analytic_grid(
+                    analytic, self.configuration, self.geometry
+                )
+            self._save_hdf5(sim, beam, bunch, host, cp.asnumpy(dz), q, turn, analytic)
+        factor = (
+            np.sign(float(bunch.num_charge))
+            * self.sc_length
+            / (beta * const.c * brho * gamma * gamma)
+        )
+        _launch_gpu(
+            _SPACE_CHARGE_CUDA,
+            "space_charge_kick",
+            x.size,
+            (
+                p.px[start:end],
+                p.py[start:end],
+                ex,
+                ey,
+                sid,
+                tag,
+                dz,
+                np.int64(x.size),
+                np.int32(ns),
+                np.float64(factor),
+            ),
+            x.dtype,
+        )
+        return bool(flags[-1])
+
+_SPACE_CHARGE_CUDA = r"""
+extern "C" __global__ void space_charge_kick(T* px,T* py,const T* ex,const T* ey,
+    const long long* sid,const int* tag,const T* dz,long long n,int ns,double factor) {
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
+    if(i>=n || tag[i]<=0 || sid[i]<0 || sid[i]>=ns) return;
+    // Round the increment to the configured particle precision before adding,
+    // matching the CPU kick convention rather than silently widening px/py.
+    T kx=(T)(factor*(double)ex[i]/dz[sid[i]]),ky=(T)(factor*(double)ey[i]/dz[sid[i]]);
+    px[i]+=kx;py[i]+=ky;
+}
+"""

@@ -75,8 +75,6 @@ def check_relations(check):
             check.add((*root, "Configurations", ref, "Slice set"), "sc.slicer_missing", f"未定义 Slice set {slice_name!r}；请添加对应 Slicer")
         elif enabled and number(length) and length > 0 and slice_name not in valid_slices:
             check.add(cp, "sc.slicer_order", f"执行到此命令前 Slice set {slice_name!r} 尚未计算，或已被 SortBunch/ReorganizeBunch 失效；请在其后、SC 之前放置 Slicer")
-        if enabled and check.backend == "gpu":
-            check.add(cp, "sc.gpu", "当前显式及元件内 SpaceCharge 仅支持 CPU，请选择 cpu")
         if config.method != "pic" and values.get("Save potential"):
             check.add((*cp, "Save potential"), "sc.analytic_potential", "解析空间电荷不支持保存电势，可保存场或密度")
         if isinstance(internal, dict):

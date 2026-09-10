@@ -1,4 +1,4 @@
-"""CPU finite-difference Poisson solver for the transverse PIC pipeline.
+"""CPU/GPU finite-difference Poisson solver for the transverse PIC pipeline.
 
 The matrix is assembled and factorized once in :func:`build_fd_resources`.
 ``FDSolver.solve`` accepts a stack of slice densities and passes all right-hand
@@ -15,7 +15,7 @@ from scipy.sparse import csc_matrix, lil_matrix
 from scipy.sparse.linalg import splu
 
 from PASS.utils.constants import const
-from .field_result import FieldResult
+from .field_result import FieldResult, GPUFieldSolver, _launch_gpu
 
 
 EPSILON_0 = const.epsilon0
@@ -97,7 +97,7 @@ def _interior_mask(aperture_mask: np.ndarray) -> np.ndarray:
     return interior
 
 
-def build_fd_resources(geometry, aperture_mask=None):
+def build_fd_resources(geometry, aperture_mask=None, *, factorize=True):
     """Build reusable resources for a rectangular zero-Dirichlet domain.
 
     On an aligned rectangle, the Shortley-Weller distances are exactly ``dx``
@@ -136,7 +136,7 @@ def build_fd_resources(geometry, aperture_mask=None):
     sparse = csc_matrix(matrix)
     # splu does not accept a 0x0 matrix.  A None handle is equivalent to a
     # zero field for an aperture with no interior nodes.
-    lu = splu(sparse) if indices.size else None
+    lu = splu(sparse) if indices.size and factorize else None
     return FDSolver(geometry, aperture_mask.copy(), interior, sparse, lu)
 
 
@@ -175,3 +175,187 @@ def solve_poisson_fd(
             float(dy) * (ny - 1) / 2,
         )
     return build_fd_resources(geometry, aperture_mask).solve(source)
+
+
+class GPUFDSolver(GPUFieldSolver):
+    """cuDSS factorization and batched solves for a full rectangular chamber."""
+
+    arbitrary = False
+
+    def __init__(self, geometry, dtype="float64"):
+        self._initialize(geometry, dtype, build_fd_resources(geometry, factorize=False))
+
+    def _initialize(self, geometry, dtype, reference):
+        """Own the cuDSS lifecycle for either rectangular or Shortley-Weller FD."""
+        import cupy as cp
+
+        super().__init__(geometry, dtype)
+        from nvmath.bindings import cudss
+
+        self.api = d = cudss
+        self.handle = self.config = self.data = self.matrix_handle = None
+        self._dense_handles = []
+        self._factored = False
+        self.aperture_mask, self.interior_mask = (
+            reference.aperture_mask,
+            reference.interior_mask,
+        )
+        indices = reference.interior_indices.astype(np.int32)
+        self.indices = cp.asarray(indices)
+        self.n = indices.size
+        self.matrix = reference.matrix.tocsr().astype(self.dtype)
+        self.matrix.sort_indices()
+        self._prepare_geometry(reference)
+        if not self.n:
+            return
+        self.row = cp.asarray(self.matrix.indptr, dtype=cp.int32)
+        self.col = cp.asarray(self.matrix.indices, dtype=cp.int32)
+        self.values = cp.asarray(self.matrix.data)
+        self.value_type = (
+            0 if self.dtype.itemsize == 4 else 1
+        )  # CUDA_R_32F / CUDA_R_64F
+        try:
+            self.handle = d.create()
+            d.set_stream(self.handle, self.stream.ptr)
+            self.config = d.config_create()
+            self.data = d.data_create(self.handle)
+            self.matrix_handle = d.matrix_create_csr(
+                self.n,
+                self.n,
+                self.matrix.nnz,
+                self.row.data.ptr,
+                0,
+                self.col.data.ptr,
+                self.values.data.ptr,
+                10,  # CUDA_R_32I row offsets (cuDSS 0.8 has separate types)
+                10,  # CUDA_R_32I column indices
+                self.value_type,
+                d.MatrixType.GENERAL if self.arbitrary else d.MatrixType.SPD,
+                d.MatrixViewType.FULL,
+                d.IndexBase.ZERO,
+            )
+            self.prepare(1)
+        except Exception:
+            self.close()
+            raise
+
+    def _prepare_geometry(self, reference):
+        self.coefficients = None
+
+    def _prepare(self, ns):
+        import cupy as cp
+
+        if not self.n:
+            return
+        d, w = self.api, self._work
+        self.stream.synchronize()  # Batch resize only; never part of a stable solve.
+        for handle in self._dense_handles:
+            d.matrix_destroy(handle)
+        self._dense_handles = []
+        w["rhs"] = cp.empty((ns, self.n), self.dtype)
+        w["solution"] = cp.empty_like(w["rhs"])
+        for a in (w["solution"], w["rhs"]):
+            self._dense_handles.append(
+                d.matrix_create_dn(
+                    self.n, ns, self.n, a.data.ptr, self.value_type, d.Layout.COL_MAJOR
+                )
+            )
+        if not self._factored:
+            for phase in (d.Phase.ANALYSIS, d.Phase.FACTORIZATION):
+                d.execute(
+                    self.handle,
+                    phase,
+                    self.config,
+                    self.data,
+                    self.matrix_handle,
+                    *self._dense_handles,
+                )
+            self.stream.synchronize()
+            info = np.zeros(1, dtype=np.int32)
+            written = np.zeros(1, dtype=np.uintp)
+            d.data_get(
+                self.handle,
+                self.data,
+                d.DataParam.INFO,
+                info.ctypes.data,
+                info.nbytes,
+                written.ctypes.data,
+            )
+            if info[0]:
+                raise RuntimeError(f"cuDSS factorization failed: info={info[0]}")
+            self._factored = True
+
+    def solve(self, density, *, compute_potential=True, validate=True, copy=True):
+        src, squeeze = self._source(density, validate)
+        g, w = self.geometry, self._work
+        if self.n:
+            size = w["slices"] * self.n
+            args = (np.int32(self.n), np.int32(g.nx * g.ny), np.int64(size))
+            _launch_gpu(
+                _FD_CUDA,
+                "fd_rhs",
+                size,
+                (src, w["rhs"], self.indices, *args, self.scalar(1 / const.epsilon0)),
+                self.dtype,
+            )
+            d = self.api
+            d.execute(
+                self.handle,
+                d.Phase.SOLVE,
+                self.config,
+                self.data,
+                self.matrix_handle,
+                *self._dense_handles,
+            )
+            _launch_gpu(
+                _FD_CUDA,
+                "fd_scatter",
+                size,
+                (w["solution"], w["phi"], self.indices, *args),
+                self.dtype,
+            )
+        self._gradient()
+        return self._result(w["phi"], squeeze, copy)
+
+    def close(self):
+        import cupy as cp
+
+        if self.handle is None:
+            super().close()
+            return
+        with cp.cuda.Device(self.device):
+            self.stream.synchronize()
+            for handle in self._dense_handles:
+                self.api.matrix_destroy(handle)
+            self._dense_handles = []
+            if self.matrix_handle is not None:
+                self.api.matrix_destroy(self.matrix_handle)
+                self.matrix_handle = None
+            if self.data is not None:
+                self.api.data_destroy(self.handle, self.data)
+                self.data = None
+            if self.config is not None:
+                self.api.config_destroy(self.config)
+                self.config = None
+            self.api.destroy(self.handle)
+            self.handle = None
+        super().close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass  # Interpreter teardown; explicit close propagates errors.
+
+_FD_CUDA = r"""
+extern "C" __global__ void fd_rhs(const T* rho, T* rhs, const int* indices,
+    int n, int grid, long long size, T scale) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) rhs[i] = rho[(i/n)*grid + indices[i%n]] * scale;
+}
+extern "C" __global__ void fd_scatter(const T* values, T* phi, const int* indices,
+    int n, int grid, long long size) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) phi[(i/n)*grid + indices[i%n]] = values[i];
+}
+"""

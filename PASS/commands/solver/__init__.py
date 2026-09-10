@@ -4,10 +4,15 @@ from .pic import (
     DepositResult,
     GridGeometry,
     PICResources,
+    GPUPICResources,
     PICResult,
     build_aperture_mask,
     build_grid_geometry,
     build_pic_resources,
+    build_pic_resources_gpu,
+    deposit_particles_gpu,
+    gather_fields_gpu,
+    pic_gpu,
     deposit_cic,
     deposit_particles,
     deposit_tsc,
@@ -19,6 +24,7 @@ from .pic import (
 from .field_result import FieldResult
 from .fd_rectangle import (
     FDSolver,
+    GPUFDSolver,
     build_fd_rectangle_resources,
     build_fd_resources,
     solve_poisson_fd,
@@ -26,6 +32,7 @@ from .fd_rectangle import (
 from .fd_arbitrary import (
     AllSpaceAperture,
     ArbitraryFDSolver,
+    GPUArbitraryFDSolver,
     EllipticAperture,
     IntersectionAperture,
     OctagonAperture,
@@ -36,8 +43,8 @@ from .fd_arbitrary import (
     build_fd_arbitrary_resources,
     solve_poisson_fd_arbitrary,
 )
-from .dst_rectangle import DSTRectangleSolver, build_dst_rectangle_resources
-from .fft_free_space import FFTFreeSpaceSolver, build_fft_free_space_resources, solve_poisson_fft_free_space
+from .dst_rectangle import DSTRectangleSolver, GPUDSTRectangleSolver, build_dst_rectangle_resources
+from .fft_free_space import FFTFreeSpaceSolver, GPUFFTFreeSpaceSolver, build_fft_free_space_resources, solve_poisson_fft_free_space
 from .formula_common import macro_charge_to_physical
 from .formula_gaussian_round import gaussian_round_field
 from .formula_gaussian_ellipse import gaussian_ellipse_field, gaussian_elliptic_field
