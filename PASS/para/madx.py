@@ -122,7 +122,8 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
     """Merge consecutive DriftElements into one.
 
     Returns (merged_items, merged_names).
-    Merged name joins the original names with '_'.
+    Merged name joins the original names with '_'; S remains the exit position.
+    Drifts with local SC, slicing or aperture settings retain their boundaries.
     """
     if not items:
         return [], []
@@ -131,10 +132,15 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
     result_names = []
     i = 0
 
+    def mergeable(item):
+        return (item.command == "Drift" and item.space_charge is None
+                and item.num_slices == 1 and item.aperture_type == "off"
+                and not item.aperture_value)
+
     while i < len(items):
         current = items[i]
 
-        if current.command != "Drift":
+        if not mergeable(current):
             result_items.append(current)
             result_names.append(names[i])
             i += 1
@@ -147,9 +153,10 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
 
         j = i + 1
         while j < len(items):
-            if items[j].command == "Drift":
+            if mergeable(items[j]):
                 drift_indices.append(j)
                 drift_len += items[j].length
+                s_val = items[j].s
                 j += 1
             else:
                 break
