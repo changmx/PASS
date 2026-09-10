@@ -1269,3 +1269,11 @@ References
 - Forest, E. et al., "Edge Focusing Effects in Sector Bending Magnets"
 - Yoshida, H., "Construction of higher order symplectic integrators", Phys. Lett. A 150 (1990)
 - MAD-NG fringe field implementation: https://github.com/MethodicalAcceleratorDesign/MAD
+
+Internal Space Charge
+------------------------------------------
+
+A positive-length element may set ``space_charge`` (JSON ``Space charge``)
+to an ``ElementSpaceCharge`` object. ``Num slices`` controls external transport,
+while ``Space charge.Num kicks`` controls SC integration. See :ref:`en-internal-space-charge`
+for scheduling, shared resources, supported backends and examples.

@@ -741,3 +741,11 @@ References
 - Xsuite source code: ``xtrack/beam_elements/elements_src/quadrupole.h``, ``track_magnet.h``, ``track_magnet_kick.h``, ``track_magnet_drift.h``
 - Yoshida, H., "Construction of higher order symplectic integrators", Phys. Lett. A 150 (1990)
 - MAD-X Physics Manual: quadrupole field and linear transport
+
+Internal Space Charge
+------------------------------------------
+
+A positive-length element may set ``space_charge`` (JSON ``Space charge``)
+to an ``ElementSpaceCharge`` object. ``Num slices`` controls external transport,
+while ``Space charge.Num kicks`` controls SC integration. See :ref:`en-internal-space-charge`
+for scheduling, shared resources, supported backends and examples.

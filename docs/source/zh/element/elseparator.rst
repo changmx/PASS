@@ -662,3 +662,19 @@ Drift 本身是坐标无关的（自由空间传播不依赖横向坐标系方�
 - Xsuite 源码： ``xtrack/mad_loader.py`` （ ``convert_elseparator = convert_drift_like`` ， xsuite 暂未实现独立 elseparator ）
 - Wiedemann, H., "Particle Accelerator Physics", Ch. 4（电场偏转与磁偏转的等效关系）
 - Conte, M. & MacKay, W.W., "An Introduction to the Physics of Particle Accelerators", Ch. 7（静电偏转板在注入引出中的应用）
+
+元件内部空间电荷
+----------------
+
+正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
+``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
+支持的后端和示例见 :ref:`zh-internal-space-charge`。
+
+``num_slices``（JSON ``Num slices``）为正整数，默认 1。
+不启用内部 SC 时，CPU 与 GPU 均使用该数量的本体切片。
+
+多个外场切片或内部 SC 路径在每个外场切片中心判断 septum；
+默认单切片且无内部 SC 时保留原有入口判断。电场 kick 保留原有
+横向近似，不更新 ``dp``。切片细化这一模型，并不引入电场做功
+或完整三维场模型。

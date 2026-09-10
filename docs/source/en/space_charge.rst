@@ -285,7 +285,9 @@ Sequence commands refer to one configuration by name:
        }
    }
 
-Only configurations referenced by a ``SpaceCharge`` sequence entry are built.
+Only configurations referenced by a ``SpaceCharge`` sequence entry or an
+element's internal ``Space charge`` object are built. See :ref:`en-internal-space-charge`
+for internal configuration, midpoint scheduling, supported elements and examples.
 Within one beam, commands that reference the same configuration name share
 one grid. Dirichlet solver resources are cached by configuration and resolved
 command aperture: equal walls reuse the factorization, different walls require
@@ -463,6 +465,18 @@ Named resource configuration
      - Non-negative effective interaction length.  Zero disables the kick at
        this command and produces no snapshot.
        An enabled local loss aperture is still checked without requiring slices.
+   * - ``sc_start``
+     - ``"SC start (m)"``
+     - float or null
+     - null
+     - Start of the represented integration interval, used only by
+       :ref:`en-sc-coverage`. It does not move the kick or transport particles.
+   * - ``sc_start``
+     - ``"SC start (m)"``
+     - float or null
+     - null
+     - Start of the represented integration interval, used only by
+       :ref:`en-sc-coverage`. It does not move the kick or transport particles.
    * - ``aperture_type``
      - ``"Aperture type"``
      - str
@@ -615,6 +629,10 @@ and ``fd_dst_relative_error_same_plot.png`` with both directions of the
 pointwise FD/DST relative difference.  Differences from FFT include the
 physical boundary-condition change and are not an FD/DST discretization error.
 
+The three-way field plot shows radial scans at 0, 22.5, 45, 67.5, and 90 degrees.
+Colors identify angles; dotted, solid, and dashed lines identify free-space FFT,
+rectangular FD, and rectangular DST, respectively.
+
 FD-only aperture tests are named by their physical boundary.  They include a
 round KV beam inside a larger circular conductor, a KV beam filling an
 elliptic conductor, and Gaussian plus KV-uniform projected sources across all
@@ -702,3 +720,446 @@ public solver values are rejected. Use ``Method`` and ``Solver`` in the
 configuration and ``Aperture type/value`` in each command. Fixed transverse
 parameters are accepted only by ``frozen`` and must match the selected profile;
 deposition settings are PIC-only.
+
+.. _en-internal-space-charge:
+
+Element Slicing and Internal Space Charge
+------------------------------------------------------------
+
+Three independent resolutions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Num slices`` controls external-field body transport. The optional element
+``Space charge`` object controls SC integration along that body. The named
+``Slicer`` result controls longitudinal particle bins. These are three distinct
+quantities; changing one does not implicitly update either of the others.
+
+The implementation is in ``PASS/utils/slicing.py``. Internal nodes
+reuse the same named configurations, field solvers and kick normalization as
+``SpaceCharge``. An independent ``SpaceCharge`` sequence command remains
+available for Twiss-point tracking and explicit placement outside an element.
+That command uses the particle state when it executes and its own ``SC length (m)``;
+it does not transport particles through that length.
+
+Supported elements
+~~~~~~~~~~~~~~~~~~
+
+Internal SC requires positive body length and a CPU backend. Supported runtime
+commands are ``Drift``, ``SBend``, ``Quadrupole``, ``Sextupole``, ``Octupole``,
+``Multipole``, ``Kicker``, ``Solenoid`` and ``ElSeparator``.
+
+* Multipole strengths and kicker angles are integrated strengths: each external
+  substep uses its fraction of the original length. Signed Yoshida stages retain
+  their signed external strengths.
+* Drift, matrix quadrupole and pure-solenoid maps can advance through a partial
+  body length. They execute half a short map, SC, then the remaining half when
+  a midpoint is requested.
+* A solenoid retains its solenoidal body map; its body is not replaced by drift.
+  A solenoid with superimposed multipoles uses its existing Sol-Kick-Sol steps.
+* A sliced electrostatic separator uses drift--electric kick--drift. The electric
+  kick is scaled by substep length, and septum classification occurs at each
+  external slice center. The local tilted frame is used for the separator kick;
+  SC is evaluated in the beam frame for all surviving particles, including those
+  in the field-free region. Septum interception is sampled at those centers,
+  not continuously located along each trajectory.
+* Bend entrance and exit maps are executed once at the physical boundaries.
+
+Thin elements retain their thin kicks and cannot request internal SC. Place
+explicit SC commands nearby for ``RFCavity`` and ``Exciter``. Newly supported
+external slicing of Drift and ElSeparator defaults to one slice. Without
+internal SC, external slicing also works on the GPU; internal SC raises an
+explicit error on the GPU before tracking.
+
+Scheduling rule
+~~~~~~~~~~~~~~~
+
+For body length :math:`L`, requested external count :math:`N_e` and SC kick count
+:math:`N_c`, the scheduler computes
+
+.. math::
+
+   m=\left\lceil N_e/N_c\right\rceil,\qquad
+   N_{e,\mathrm{actual}}=mN_c,\qquad
+   h=L/N_{e,\mathrm{actual}},\qquad H=L/N_c.
+
+Thus each SC integration interval contains exactly :math:`m` external slices.
+The requested external resolution is never reduced. ``num_slice`` retains the
+requested count, while ``slice_plan.num_slices`` records the actual count.
+With SC disabled or absent, the actual count equals the external count.
+
+``S (m)`` is the element exit coordinate. Node :math:`j=0,\ldots,N_c-1` has
+
+.. math::
+
+   s_j=s_{\mathrm{exit}}-L+(j+1/2)H,\qquad L_{\mathrm{sc},j}=H>0.
+
+The sum of internal SC weights is :math:`L`. The SC weight is independent of
+the length of the external substep where it is evaluated. Internal configuration
+does not accept a separate ``SC length (m)``; the scheduler derives that value.
+
+* Odd :math:`m`: execute SC at the center of the middle external slice, after
+  its full central external kick.
+* Even :math:`m`: execute SC between the two middle complete external slices.
+
+.. list-table:: Examples
+   :header-rows: 1
+   :widths: 15 15 15 20 35
+
+   * - Requested external
+     - SC kicks
+     - Actual external
+     - Slices per SC
+     - Location
+   * - 4
+     - 10
+     - 10
+     - 1
+     - External slice center
+   * - 12
+     - 4
+     - 12
+     - 3
+     - Middle external slice center
+   * - 10
+     - 3
+     - 12
+     - 4
+     - Between middle complete slices
+
+For ``uniform``, the center hook follows the full central external kick. For
+``yoshida4``, the hook follows the central kick of the second, negative-length
+second-order stage, which is the algebraic midpoint of the complete positive
+external slice. Only this hook executes SC; the other Yoshida stages do not.
+Its SC weight is still positive :math:`H`, never a signed Yoshida stage length.
+The external central kick is not split into two half kicks.
+
+This is a midpoint SC coupling. Do not infer fourth-order accuracy of the coupled
+map from the external ``yoshida4`` setting. Validate external resolution and SC
+resolution separately; the smooth linear uniform-beam verification approaches
+second-order convergence for this coupling. Frozen longitudinal membership also
+does not imply arbitrary external and SC maps commute.
+
+Configuration and use
+~~~~~~~~~~~~~~~~~~~~~
+
+All supported element schemas expose ``num_slices`` (JSON ``Num slices``,
+default 1) and ``space_charge`` (JSON ``Space charge``, default null).
+``ElementSpaceCharge`` has the following interface:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 15 35
+
+   * - Python field
+     - JSON key
+     - Default
+     - Meaning
+   * - ``configuration``
+     - ``Configuration``
+     - Required
+     - Top-level named SC resource
+   * - ``num_kicks``
+     - ``Num kicks``
+     - 1
+     - Positive integer; bool, float and numeric strings are rejected
+   * - ``aperture_type`` / ``aperture_value``
+     - ``Aperture type`` / ``Aperture value``
+     - ``default`` / []
+     - Legacy request; defaults to the parent aperture and conflicts are overridden with a warning
+   * - ``save_field`` / ``save_potential`` / ``save_density``
+     - ``Save field`` / ``Save potential`` / ``Save density``
+     - false
+     - Same diagnostic support as the selected explicit SC solver
+   * - ``save_turns``
+     - ``Save turns``
+     - []
+     - Existing format: e.g. [[0]] or [[0, 100, 10]]
+
+For an existing sequence and named configuration ``sc_default``:
+
+.. code-block:: python
+
+   from PASS.para.schema.elements import QuadrupoleElement
+   from PASS.para.schema.space_charge import ElementSpaceCharge
+
+   sequence.add("q1", QuadrupoleElement(
+       s=1.0, length=0.4, k1l=0.12,
+       num_slices=10, integrator="yoshida4",
+       space_charge=ElementSpaceCharge(
+           configuration="sc_default", num_kicks=3,
+           save_density=True, save_turns=[[0]],
+       ),
+   ))
+
+This requests 10 external slices; tracking uses 12 slices and three SC kicks
+with weight 0.4/3 m. Enable the top-level ``Space charge.Enabled`` switch and
+define ``sc_default`` under ``Configurations``. Supply its named SliceSet
+before the element, normally by placing ``Slicer`` upstream.
+
+Internal nodes reuse existing ``slice_id`` and ``slice_table.delta_z`` without
+rebinning, modifying those widths, or folding ``p.z``. Fields use current
+transverse particle coordinates at each invocation, subject to the selected
+PIC/frozen/quasi-frozen model. The owning element advances ``bunch.t0`` once
+for its full length. Each node acts only on the bunch currently being tracked.
+
+Internal SC always uses the owning element's aperture, for both particle
+losses and Dirichlet conducting walls. Omit the nested aperture fields: their
+``default`` means inherit the element. Conflicting explicit nested aperture
+values produce one warning per element/configuration mismatch and are replaced
+by the element aperture before solver resources are built. The input object is
+preserved; printing reports the effective values with ``Source=element``.
+
+The generic element ``default`` remains the +/-1 m rectangle, not the SC grid
+rectangle. An element aperture of ``off`` stays off: free-space PIC and analytic
+methods permit it, while Dirichlet solvers require a finite element aperture.
+PIC grids must contain the inherited aperture, and DST requires exactly the
+full grid-aligned rectangle. Incompatible geometry is an initialization error;
+the program does not silently choose a different wall or solver. Particles
+outside a free-space PIC grid with losses disabled still cause the existing
+grid-domain error. Independent explicit SC commands retain their own apertures.
+
+The element aperture is checked at SC nodes and the usual element exit. Losses
+are excluded from sources and kicks; first recorded loss positions are preserved.
+Nodes share resources by configuration and effective aperture. Their snapshots
+are stored under
+``<space_charge_output>/<element>/internal_sc/node_000000/turn_000000/``.
+Filenames retain beam and bunch identifiers. HDF5 records ``parent_element``,
+``internal_node_index``, ``s``, ``sc_length`` and ``sc_start``. For explicit SC,
+``sc_start`` is written only when supplied. It describes the represented
+integration interval and does not modify the force calculation.
+
+Each supported element's ``print()`` includes requested/actual external slice
+counts, slice length, SC configuration/method/solver/SliceSet, kick count and
+placement, per-kick/total SC lengths, first/last node positions, effective
+aperture and output settings. Missing internal SC prints ``off``; global
+disabling prints ``disabled by top-level Space charge.Enabled``. Internal SC
+execution time remains included in the parent element timing.
+
+When importing MAD-X elements, merged plain drifts retain the final exit S;
+drifts with local SC, non-default slicing or apertures are not merged.
+
+.. _en-sc-coverage:
+
+Pre-tracking integration-length and coverage checks
+---------------------------------------------------
+
+``Executor.run`` checks each enabled beam's actual command sequence before any
+particle tracking. Internal weights and explicit command lengths are added once
+per pass, without multiplication by bunch count or number of simulation turns.
+Both total weight and interval coverage are checked: equal total length does
+not rule out a gap compensated by an overlapping interval.
+
+These fields belong to the top-level ``Space charge`` block, alongside
+``Enabled`` and ``Configurations``. They are also editable in the GUI SC form.
+
+.. list-table:: Coverage configuration
+   :header-rows: 1
+   :widths: 25 25 15 35
+
+   * - Python field
+     - JSON key
+     - Default
+     - Meaning
+   * - ``coverage_check``
+     - ``Coverage check``
+     - ``warn``
+     - ``warn`` reports issues and continues; ``error`` rejects mismatches or
+       incomplete checks before tracking; ``off`` skips this check.
+   * - ``coverage_mode``
+     - ``Coverage mode``
+     - ``full-ring``
+     - Full-ring mode compares weight with ``Circumference (m)`` and checks
+       gaps and overlaps. ``partial`` permits uncovered regions but checks overlaps.
+   * - ``expected_sc_length``
+     - ``Expected SC length (m)``
+     - null
+     - Optional non-negative total-weight target for ``partial`` only.
+       Full-ring mode always uses circumference and rejects this override.
+
+For strict full-ring validation, merge these settings into the existing
+top-level ``Space charge`` block:
+
+.. code-block:: json
+
+   {
+       "Coverage check": "error",
+       "Coverage mode": "full-ring"
+   }
+
+Internal intervals are known from their element bodies. An explicit SC command
+may supply optional ``SC start (m)`` (Python ``sc_start``): together with
+``SC length (m)`` it represents the half-open interval
+:math:`[s_{start},s_{start}+L_{sc})`. This start is independent of the kick's
+``S (m)``. For example, a kick at 0.7 m representing [0.5, 0.9) m can use:
+
+.. code-block:: json
+
+   {
+       "Command": "SpaceCharge",
+       "S (m)": 0.7,
+       "Configuration": "sc_default",
+       "SC start (m)": 0.5,
+       "SC length (m)": 0.4
+   }
+
+Intervals are compared periodically using the ring circumference, including
+intervals crossing s=0 and lengths covering multiple turns. Particle coordinates
+are not wrapped. The absolute comparison tolerance is
+``max(1e-12 m, 1e-10 * circumference)``.
+
+If ``SC start (m)`` is omitted for a positive-length explicit command, its
+weight still counts, but the checker does not invent an interval centered on
+the kick. The report is ``incomplete``. Uncovered regions of the known intervals
+then cannot be certified as physical gaps. Strict mode rejects incomplete
+coverage as well as mismatches; warning mode preserves existing workflows.
+Disabled and zero-weight explicit commands do not contribute.
+
+The log reports total and target lengths, kick counts, status and the first ten
+gap/overlap regions. Complete contributions and regions are stored in
+``<space_charge_output>/coverage_beam0.json`` (one file per enabled checked beam),
+and in ``sim.space_charge_coverage[beam_id]``. A strict failure writes the report
+before raising. Partial mode reports uncovered regions for information without
+treating them as errors. No lengths or user intervals are automatically adjusted
+to make the check pass. An invalid/missing circumference makes the periodic
+check incomplete. A globally disabled SC module bypasses these checks.
+
+FODO tune verification
+----------------------
+
+The explicitly invoked generated tests in ``tests/codex/sc_tune_fodo/`` use
+``example/03_tracking_element_by_element/fodo.tfs`` for multi-turn element
+tracking with internal SC. They preserve the source file and generate separate
+inputs with nonlinear multipole strengths disabled, 33.2 MeV protons, no RF,
+and strict full-ring SC coverage. Run from the repository root:
+
+.. code-block:: console
+
+   python -m pytest tests/codex/sc_tune_fodo/test_benchmark.py -v
+   python -m tests.codex.sc_tune_fodo.run --suite frozen --turns 256
+   python -m tests.codex.sc_tune_fodo.run --suite duration --turns 128
+   python -m tests.codex.sc_tune_fodo.run --suite collective --turns 256 --particles 4096
+
+The uniform frozen reference uses independent continuous linear matrices;
+the Gaussian reference uses a first-order action-averaged field integral.
+Each SC case has a baseline with identical initial coordinates and external
+slicing. PhaseAdvanceMonitor records all particles; 36 action probes also use
+independent complex-signal Fourier analysis of ParticleMonitor trajectories.
+The output contains tune footprints, beam evolution, CSV/JSON comparisons,
+coverage reports and refinement differences. Run cases serially.
+
+Frozen round sources are prescribed profiles, not matched self-consistent
+FODO beams. Quasi-frozen/PIC comparisons use an initial matched Gaussian
+reference and report mesh, population, seed and longitudinal-bin sensitivity;
+passing the frozen checks does not certify PIC convergence. The suite README
+documents formulas, tolerances and the longitudinally stationary slice model.
+
+Whole-population PIC tracking
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``tests.codex.sc_tune_fodo.long_pic`` extends this verification to genuine
+four-dimensional KV and Gaussian particle populations. Every particle deposits
+charge, receives the recomputed PIC field and has its four transverse
+coordinates saved each turn in one lossless HDF5 file. For example:
+
+.. code-block:: console
+
+   python -m tests.codex.sc_tune_fodo.long_pic --profile kv --turns 1024 --particles 8192 --grid 129 --kicks 2 --output tests/codex/sc_tune_fodo/output/my_kv_1024
+   python -m tests.codex.sc_tune_fodo.long_pic --profile gaussian --turns 1024 --particles 8192 --grid 129 --kicks 2 --output tests/codex/sc_tune_fodo/output/my_gaussian_1024
+   python -m tests.codex.sc_tune_fodo.long_pic --profile gaussian --turns 512 --particles 65536 --grid 129 --kicks 2 --output tests/codex/sc_tune_fodo/output/my_gaussian_refined_512
+
+Use new output directories and run cases serially. This experiment has local
+test hooks that fix longitudinal coordinates at zero and verify unchanged
+momentum deviation, with a single bin representing the line density ``N/C``.
+It is a transverse stationary-slice verification, not a longitudinal bunch
+simulation or a new public element parameter. Run through the module above;
+running its generated JSON alone does not enable those test hooks.
+
+The independent matched KV reference is a single depressed tune in each plane.
+The Gaussian reference is an initial weak-SC amplitude-dependent tune computed
+from phase-averaged field integrals. Fourier analysis covers the entire
+population and separate time windows. Outputs include particle-by-particle
+CSV comparisons, measured/theoretical footprint figures, emittance evolution,
+source hashes and full-ring coverage. ``LONG_PIC.md`` in the test directory
+describes matching, quiet sampling, formulas and numerical limitations.
+The complete serial workflow is available as
+``python -m tests.codex.sc_tune_fodo.run_long_pic --output <new-directory>``.
+An initially quiet particle sample does not guarantee low noise after many
+turns; the workflow retains the preliminary Gaussian run and checks a larger
+population over a shorter, independently tested frequency window.
+
+Multi-turn integration tests across boundaries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The reusable ``tests.integration.space_charge.multiturn`` package uses the
+production input, Twiss, Slicer and PIC commands for a smooth focusing
+benchmark. It tracks all charged KV/Gaussian particles for 512 turns through
+free-space FFT, circular Dirichlet FD, and rectangular Dirichlet FD/DST cases.
+Longitudinal Twiss transport is disabled; one fixed slice represents ``N/C``
+and positive midpoint kicks cover the full circumference.
+
+.. code-block:: console
+
+   python -m tests.integration.space_charge.multiturn --output tests/integration/space_charge/output/my_multiturn
+   python -m tests.integration.space_charge.multiturn --analyse-only --output tests/integration/space_charge/output/my_multiturn
+   python -m tests.integration.space_charge multiturn
+
+The last command runs the tracking acceptance cases and independent reference
+checks through pytest; the ``all`` group includes them. Default populations
+are 32,768 KV and 65,536 Gaussian particles. Use new output directories and
+run generated-input workflows serially. ``--resume`` reuses completed cases
+after checking settings; incomplete cases are retained and rejected.
+
+The rectangle reference is a continuum Poisson eigenfunction expansion with
+analytic source coefficients and Bessel phase averages, independent of PIC
+deposition and mesh solvers. The centered round-source circular-pipe reference
+equals the free-space radial field. Gaussian tune predictions assume an
+initial weak-SC source, not an exact nonlinear Vlasov equilibrium. These tests
+cover the transverse quasistatic boundary model, not longitudinal SC,
+frequency-dependent wall response or GPU execution.
+
+Outputs include full trajectories, per-particle theoretical/measured tunes,
+first/last-window frequency differences, rms size/emittance evolution,
+density/potential/field plots and independent midplane field comparisons.
+``tests/integration/space_charge/multiturn/README.md`` documents the formulas,
+acceptance tolerances, boundary dimensions and reproduction. This smooth
+focusing benchmark complements the element-by-element FODO tests above.
+
+Strong space-charge verification and flat case outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``tests.integration.space_charge.strong`` provides a separate serial campaign
+with matched KV tune-depression targets 0.9, 0.7 and 0.5, numerical refinement,
+periodic FODO tracking, and Gaussian evolution across open and conducting
+boundaries. Smooth KV uses the full self-consistent equilibrium, not a
+first-order tune shift. FODO matching uses an independent periodic KV envelope;
+cell-by-cell phase accumulation resolves the full tune, including its integer
+part. Gaussian rms matching is not an exact nonlinear equilibrium, so its
+evolution is compared with numerical refinement and an independent grid-free
+axisymmetric mean-field reference. That reference excludes non-axisymmetric
+modes and has its own finite sampling and time-step errors.
+
+.. code-block:: console
+
+   python -m pytest tests/integration/space_charge/test_strong_references.py -v
+   python -m tests.integration.space_charge.strong --output tests/integration/space_charge/output/my_strong_run
+   python -m tests.integration.space_charge.strong.finish tests/integration/space_charge/output/my_strong_run
+
+The final command completes independent references and diagnostics, regenerates
+reports, and audits the stored trajectories and flat artifacts without repeating
+PIC tracking. For an interim report during the serial campaign, use the
+``tests.integration.space_charge.strong.report`` module with the output directory.
+
+The campaign writes Chinese reports and scientific figures. Each independent
+case contains its inputs, trajectories, CSV files, images, and report directly
+in one directory. ``Config.load_input(path, flat_output=True)`` is the opt-in
+runtime Python option used for this layout; it is not a JSON field. The caller
+must isolate each run, and an existing run input snapshot is rejected. SC
+snapshot filenames include command, internal node where applicable, beam,
+bunch, and turn. Default application output keeps the dated layout.
+
+The smooth ring disables longitudinal Twiss transport. The FODO experiment
+uses a local test hook to freeze z after each element and checks unchanged dp;
+the generated JSON alone does not enable this hook. These are CPU transverse
+tests, not validation of longitudinal SC, RF, GPU, or frequency-dependent wall
+response. ``tests/integration/space_charge/strong/README.md`` documents all
+settings, independent references, predeclared gates, and flat output files.
