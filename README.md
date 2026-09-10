@@ -45,7 +45,11 @@ python -m PASS.gui
 pass-gui
 ```
 
-The configuration page loads, edits, validates, and exports PASS JSON input. The run page starts the existing PASS tracking entry point in a separate process. The plotting page loads CSV or TFS result files and lets the user select a numeric column for a first-pass curve view.
+The interface edits standalone JSON or single-file `.passproj` projects containing multiple input JSONs, source files, dependencies, and generation settings. The File menu separates JSON saving, project saving, and export. Project contents can be inspected and parameters or commands copied, including their dependencies. The compact interface offers dark/light/system themes, expanded property fields, and resizable sequence columns with optional columns in the header menu.
+
+The run page selects one or two inputs and creates a fixed input snapshot before starting PASS in a separate process. Exported input bundles include their dependencies and a `run.py` launcher. The plotting page loads CSV/TFS results and supports X/Y selection and zoom. See the [project workflow](docs/source/en/project_files.rst) for packaging, source reuse, and output locations.
+
+**Validate** checks the complete input, all sequence modules, cross-command dependencies and input TFS contents, with a filterable, exportable report. Errors block execution; warnings remain visible. The same preflight runs before initialization and is available without Qt as `python -m PASS.validation beam.json --report validation-report.json`. See the [validation guide](docs/source/en/input_validation.rst) for rules and limits.
 
 ## Functionality
 

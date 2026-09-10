@@ -45,7 +45,11 @@ python -m PASS.gui
 pass-gui
 ```
 
-配置页面可加载、编辑、校验和导出 PASS JSON 输入文件。运行页面以独立进程调用现有PASS 追踪入口。绘图页面可加载 CSV 或 TFS 结果文件，并选择数值列进行基础曲线查看。
+界面支持独立 JSON，也支持将多份输入 JSON、源文件、依赖和生成设置保存在单个 `.passproj` 项目中。文件菜单区分 JSON 保存、项目保存和导出。项目内容可以直接查看，参数或命令可连同依赖一起复制。紧凑界面提供深色/浅色/跟随系统主题、全部展开的属性字段，以及可拖动列宽和右键选择可选列的执行序列。
+
+运行页面选择一份或两份输入，先生成固定输入快照，再用独立进程启动 PASS。导出的可运行输入包包含依赖和 `run.py` 启动脚本。绘图页面可加载 CSV/TFS，选择 X/Y 列并缩放。打包、源文件复用和输出位置见[项目流程说明](docs/source/zh/project_files.rst)。
+
+**校验** 一键检查完整输入、全部序列模块、命令间依赖及输入 TFS 内容，并提供可筛选、定位和导出的报告。错误阻止运行，警告保留显示。初始化前也执行同一套检测；无 Qt 环境可运行 `python -m PASS.validation beam.json --report validation-report.json`。规则与范围见[输入检测说明](docs/source/zh/input_validation.rst)。
 
 ## 主要功能
 

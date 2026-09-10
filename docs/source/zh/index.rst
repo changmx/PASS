@@ -10,6 +10,8 @@ PASS 文档（中文）
 
    input_generation
    gui
+   project_files
+   input_validation
    injection
    element/index
    monitor/index
