@@ -1,4 +1,8 @@
 from PASS.commands.command import Command
+from PASS.utils.slicing import (
+    print_element_slicing,
+    configure_element_slicing, guard_internal_sc_gpu, run_body_slices,
+)
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -99,6 +103,7 @@ class Kicker(Command):
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
+        configure_element_slicing(self, sim, kwargs)
         super().__init__()
 
     def print(self):
@@ -108,6 +113,7 @@ class Kicker(Command):
                     f"Hkick={self.hkick:.6e}, Vkick={self.vkick:.6e}, "
                     f"NumSlice={self.num_slice:d}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        print_element_slicing(self)
         set_normal_logging()
 
     # ============================================================
@@ -127,6 +133,7 @@ class Kicker(Command):
         return True
 
     def execute_gpu(self, sim):
+        guard_internal_sc_gpu(self)
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         p = beam.particles
@@ -192,6 +199,14 @@ class Kicker(Command):
                                   px, py, tag, mask)
             return
 
+        if self._sc_nodes:
+            step = self._dkd_uniform_cpu if self.integrator == "uniform" else self._dkd_yoshida4_cpu
+            def transport(ds, on_center):
+                step(x, px, y, py, z, dp, tag, mask, ds,
+                     self.hk, self.vk, beta0, on_center=on_center)
+            run_body_slices(self, beam, bunch, turn, transport)
+            return
+
         # Thick lens
         if abs(self.hkick) < const.eps and abs(self.vkick) < const.eps:
             # No field: pure drift
@@ -216,7 +231,7 @@ class Kicker(Command):
     # ============================================================
 
     def _dkd_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
-                         ds, hk, vk, beta0):
+                         ds, hk, vk, beta0, on_center=None):
         """
         One DKD slice (uniform/leapfrog, 2nd order symplectic):
 
@@ -225,6 +240,8 @@ class Kicker(Command):
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._dipole_kick_cpu(hk * ds, vk * ds,
                               px, py, tag, mask)
+        if on_center is not None:
+            on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
 
     # ============================================================
@@ -232,7 +249,7 @@ class Kicker(Command):
     # ============================================================
 
     def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          ds, hk, vk, beta0):
+                          ds, hk, vk, beta0, on_center=None):
         """
         One Yoshida-4 slice:
 
@@ -243,16 +260,18 @@ class Kicker(Command):
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, hk, vk, beta0)
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z0, hk, vk, beta0)
+                           ds * _YOSHIDA_Z0, hk, vk, beta0, on_center=on_center)
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, hk, vk, beta0)
 
     def _dkd_step_cpu(self, x, px, y, py, z, dp, tag, mask,
-                      ds, hk, vk, beta0):
+                      ds, hk, vk, beta0, on_center=None):
         """Single DKD step with given effective length ds (can be negative)."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._dipole_kick_cpu(hk * ds, vk * ds,
                               px, py, tag, mask)
+        if on_center is not None:
+            on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
 
     # ============================================================
@@ -313,8 +332,9 @@ class Kicker(Command):
         For thin lens mode: hkick_eff = hkick, vkick_eff = vkick
         For DKD mode:       hkick_eff = hk * ds, vkick_eff = vk * ds
         """
-        px += hkick_eff * mask
-        py += vkick_eff * mask
+        active = mask * (tag > 0)
+        px += hkick_eff * active
+        py += vkick_eff * active
 
 
 # ============================================================

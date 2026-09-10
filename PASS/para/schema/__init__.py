@@ -48,6 +48,7 @@ from PASS.para.schema.space_charge import (
     SpaceChargeConfig,
     SpaceChargeResourceConfig,
     SpaceCharge,
+    ElementSpaceCharge,
 )
 
 __all__ = [
@@ -80,4 +81,5 @@ __all__ = [
     "SpaceChargeConfig",
     "SpaceChargeResourceConfig",
     "SpaceCharge",
+    "ElementSpaceCharge",
 ]

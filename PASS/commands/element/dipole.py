@@ -1,4 +1,8 @@
 from PASS.commands.command import Command
+from PASS.utils.slicing import (
+    print_element_slicing,
+    configure_element_slicing, guard_internal_sc_gpu, run_body_slices,
+)
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -136,6 +140,7 @@ class SBend(Command):
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
+        configure_element_slicing(self, sim, kwargs)
         super().__init__()
 
     def print(self):
@@ -145,6 +150,7 @@ class SBend(Command):
                     f"FInt={self.fint:.4f}, FIntX={self.fintx:.4f}, IsFieldError={self.is_field_error}, "
                     f"IsRamping={self.is_ramping}, NumSlice={self.num_slice:d}, Model={self.model:s}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        print_element_slicing(self)
         set_normal_logging()
 
     # ============================================================
@@ -164,6 +170,7 @@ class SBend(Command):
         return True
 
     def execute_gpu(self, sim):
+        guard_internal_sc_gpu(self)
         launch_dipole(self, sim)
         return True
 
@@ -207,23 +214,39 @@ class SBend(Command):
                              self.e1, self.fint, self.hgap,
                              self.k0, self.h, chi, beta0, gamma0)
 
-        # ---- Body: sliced tracking ----
-        ds = self.length / self.num_slice
-        for _ in range(self.num_slice):
-            if self.model == "drift-kick-drift-exact":
-                if self.integrator == "uniform":
-                    self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
-                                          ds, self.h, self.k0, chi, beta0)
-                elif self.integrator == "yoshida4":
-                    self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
-                                           ds, self.h, self.k0, chi, beta0)
-            elif self.model == "rot-kick-rot":
-                if self.integrator == "uniform":
-                    self._rkr_uniform_cpu(x, px, y, py, z, dp, tag, mask,
-                                          ds, self.h, self.k0, chi, beta0)
-                elif self.integrator == "yoshida4":
-                    self._rkr_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
-                                           ds, self.h, self.k0, chi, beta0)
+        if self._sc_nodes:
+            entry_lost = alive_before & (tag <= 0)
+            p.lost_position[start:end][entry_lost] = self.s - self.length
+            p.lost_turn[start:end][entry_lost] = turn
+            if self.model == "rot-kick-rot":
+                step = self._rkr_uniform_cpu if self.integrator == "uniform" else self._rkr_yoshida4_cpu
+            else:
+                step = self._dkd_uniform_cpu if self.integrator == "uniform" else self._dkd_yoshida4_cpu
+            def transport(ds, on_center):
+                step(x, px, y, py, z, dp, tag, mask, ds,
+                     self.h, self.k0, chi, beta0, on_center=on_center)
+            run_body_slices(self, beam, bunch, turn, transport)
+            # Preserve body/node loss coordinates; the final block records exit losses only.
+            alive_before = tag > 0
+        else:
+            # ---- Body: sliced tracking ----
+            ds = self.length / self.num_slice
+            for _ in range(self.num_slice):
+                if self.model == "drift-kick-drift-exact":
+                    if self.integrator == "uniform":
+                        self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
+                                              ds, self.h, self.k0, chi, beta0)
+                    elif self.integrator == "yoshida4":
+                        self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
+                                               ds, self.h, self.k0, chi, beta0)
+                elif self.model == "rot-kick-rot":
+                    if self.integrator == "uniform":
+                        self._rkr_uniform_cpu(x, px, y, py, z, dp, tag, mask,
+                                              ds, self.h, self.k0, chi, beta0)
+                    elif self.integrator == "yoshida4":
+                        self._rkr_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
+                                               ds, self.h, self.k0, chi, beta0)
+
 
         # ---- Exit edge ----
         self._edge_exit_cpu(x, px, y, py, z, dp, tag, mask,
@@ -563,7 +586,7 @@ class SBend(Command):
     # ============================================================
 
     def _dkd_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
-                         ds, h, k0, chi, beta0):
+                         ds, h, k0, chi, beta0, on_center=None):
         """
         One DKD slice (uniform/leapfrog, 2nd order symplectic):
 
@@ -580,6 +603,8 @@ class SBend(Command):
                               h, k0, chi, beta0)
 
         # ---- Half drift ----
+        if on_center is not None:
+            on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
 
     # ============================================================
@@ -587,7 +612,7 @@ class SBend(Command):
     # ============================================================
 
     def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          ds, h, k0, chi, beta0):
+                          ds, h, k0, chi, beta0, on_center=None):
         """
         One Yoshida-4 slice:
 
@@ -601,17 +626,19 @@ class SBend(Command):
                            ds * _YOSHIDA_Z1, h, k0, chi, beta0)
         # S2(z0 * ds)
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z0, h, k0, chi, beta0)
+                           ds * _YOSHIDA_Z0, h, k0, chi, beta0, on_center=on_center)
         # S2(z1 * ds)
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, h, k0, chi, beta0)
 
     def _dkd_step_cpu(self, x, px, y, py, z, dp, tag, mask,
-                      ds, h, k0, chi, beta0):
+                      ds, h, k0, chi, beta0, on_center=None):
         """Single DKD step with given effective length ds (can be negative)."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._dipole_kick_cpu(ds, x, px, y, py, z, dp, tag, mask,
                               h, k0, chi, beta0)
+        if on_center is not None:
+            on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
 
     # ============================================================
@@ -833,17 +860,19 @@ class SBend(Command):
         px -= L_mask * chi * k0 * h * x
 
     def _rkr_step_cpu(self, x, px, y, py, z, dp, tag, mask,
-                      ds, h, k0, chi, beta0):
+                      ds, h, k0, chi, beta0, on_center=None):
         """Single DKD step for rot-kick-rot model."""
         self._rkr_drift_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask,
                             beta0, h, k0, chi)
         self._rkr_kick_cpu(ds, x, px, y, py, z, dp, tag, mask,
                            h, k0, chi, beta0)
+        if on_center is not None:
+            on_center()
         self._rkr_drift_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask,
                             beta0, h, k0, chi)
 
     def _rkr_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
-                         ds, h, k0, chi, beta0):
+                         ds, h, k0, chi, beta0, on_center=None):
         """
         Uniform (leapfrog, 2nd order) integrator for rot-kick-rot:
 
@@ -853,10 +882,10 @@ class SBend(Command):
         Kick:  _rkr_kick_cpu  (k0·h·x weak focusing)
         """
         self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds, h, k0, chi, beta0)
+                           ds, h, k0, chi, beta0, on_center=on_center)
 
     def _rkr_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          ds, h, k0, chi, beta0):
+                          ds, h, k0, chi, beta0, on_center=None):
         """
         Yoshida-4th order integrator for rot-kick-rot:
 
@@ -869,7 +898,7 @@ class SBend(Command):
                            ds * _YOSHIDA_Z1, h, k0, chi, beta0)
         # S2(z0 * ds)
         self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z0, h, k0, chi, beta0)
+                           ds * _YOSHIDA_Z0, h, k0, chi, beta0, on_center=on_center)
         # S2(z1 * ds)
         self._rkr_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, h, k0, chi, beta0)

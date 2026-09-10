@@ -29,8 +29,11 @@ from PASS.commands.solver.pic import (
 )
 from PASS.utils.aperture import build_aperture, aperture_bounds, RectangleAperture
 from PASS.utils.constants import const
+from PASS.utils.slicing import resolve_internal_sc_aperture
 from PASS.utils.aperture import check_aperture_cpu
-from PASS.para.schema.space_charge import validate_loss_aperture
+from PASS.para.schema.space_charge import (
+    validate_loss_aperture, parse_element_space_charge, SLICED_ELEMENT_COMMANDS,
+)
 from PASS.utils.logger import set_simple_logging, set_normal_logging
 
 logger = logging.getLogger(__name__)
@@ -119,15 +122,29 @@ def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeC
             )
             continue
 
+        for name, command in sequence.items():
+            if not isinstance(command, Mapping) or command.get("space charge") is None:
+                continue
+            if str(command.get("command", "")).lower() not in SLICED_ELEMENT_COMMANDS:
+                raise ValueError(f"Command {name!r} does not support internal Space charge")
+            config = parse_element_space_charge(command["space charge"])
+            config = resolve_internal_sc_aperture(config, command.get("aperture type", "off"),
+                                                  command.get("aperture value", []), name, sim, beam_id)
+            length = float(command.get("length (m)", 0.0))
+            if not np.isfinite(length) or length <= const.eps:
+                raise ValueError(f"Internal Space charge in {name!r} requires a thick element")
+            values = _normalise_kwargs(config.model_dump(by_alias=True))
+            commands.append((f"{name} (internal)", values))
+
         configurations = settings.configurations
-        references: dict[str, list[str]] = {}
+        references: dict[str, list[tuple[str, Mapping]]] = {}
         for command_name, command in commands:
             configuration_name = command.get("configuration")
             if not isinstance(configuration_name, str) or not configuration_name.strip():
                 raise ValueError(f"SpaceCharge command {command_name!r} requires a non-empty 'Configuration'")
             if configuration_name != configuration_name.strip():
                 raise ValueError(f"SpaceCharge command {command_name!r} has surrounding whitespace in 'Configuration'")
-            references.setdefault(configuration_name, []).append(command_name)
+            references.setdefault(configuration_name, []).append((command_name, command))
 
         missing = sorted(set(references) - set(configurations))
         if missing:
@@ -149,8 +166,8 @@ def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeC
                 # Validate every referenced command, even before allocating a
                 # Poisson matrix for any of its apertures.
                 apertures = []
-                for command_name in command_names:
-                    values = _normalise_kwargs(sequence[command_name])
+                for command_name, command in command_names:
+                    values = _normalise_kwargs(command)
                     try:
                         apertures.append(_resolve_aperture(configured, values))
                     except (TypeError, ValueError) as exc:
@@ -234,6 +251,7 @@ class SpaceCharge(Command):
         self.configuration_name = str(values.get("configuration", "")).strip()
         self.aperture_type = "off"
         self.aperture_value = []
+        self.sc_start = None
         if not self.is_enabled:
             self.sc_length = 0.0
             self.slice_set_name = ""
@@ -255,6 +273,7 @@ class SpaceCharge(Command):
             "configuration",
             "sc length (m)",
             "sc_length",
+            "sc start (m)",
             "save field",
             "save potential",
             "save density",
@@ -276,6 +295,11 @@ class SpaceCharge(Command):
         self.sc_length = float(_first(values, "sc length (m)", "sc_length", default=0.0))
         if not np.isfinite(self.sc_length) or self.sc_length < 0:
             raise ValueError("SpaceCharge 'SC length (m)' must be finite and non-negative")
+        raw_start = values.get("sc start (m)")
+        if raw_start is not None:
+            self.sc_start = float(raw_start)
+            if not np.isfinite(self.sc_start):
+                raise ValueError("SpaceCharge 'SC start (m)' must be finite")
         self.slice_set_name = configured.slice_set_name
         self.save_field = _first(values, "save field", default=False)
         self.save_potential = _first(values, "save potential", default=False)
@@ -306,6 +330,7 @@ class SpaceCharge(Command):
             "S=%g m, Command=%s, Name=%s, Configuration=%s, SC length=%g m, Slice set=%s, Method=%s, Solver=%s",
             self.s, self.cmd_type, self.cmd_name, self.configuration_name, self.sc_length,
             self.slice_set_name, self.method, self.solver)
+        logger.info("SC integration interval start=%s m (coverage metadata)", self.sc_start)
         if self.geometry is not None:
             grid = self.geometry
             logger.info("%s grid=%dx%d nodes, x=[%g, %g] m, y=[%g, %g] m, dx=%g m, dy=%g m",
@@ -330,13 +355,24 @@ class SpaceCharge(Command):
         if not self.is_enabled or (self.sc_length == 0.0 and self.aperture_type == "off"):
             return False
         beam = sim.beams[self.beam_id]
-        p = beam.particles
-        turn = int(sim.state.turn)
         for bunch in beam.bunches:
-            check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
-            if self.sc_length != 0.0:
-                self._apply_bunch_cpu(beam, bunch, p, sim, turn)
+            self.apply_bunch_cpu(sim, beam, bunch)
         return True
+
+    def apply_bunch_cpu(self, sim, beam, bunch):
+        """Shared entry point for explicit commands and internal element nodes.
+
+        Consume the existing longitudinal bin membership and widths, while
+        evaluating fields at current transverse coordinates. Do not advance s
+        or the reference clock, rebin particles, or traverse other bunches.
+        """
+        if not self.is_enabled:
+            return False
+        turn = int(sim.state.turn)
+        check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+        if self.sc_length != 0.0:
+            return self._apply_bunch_cpu(beam, bunch, beam.particles, sim, turn)
+        return False
 
     def _turn_selected(self, turn: int) -> bool:
         return any(start <= turn <= end and (turn - start) % step == 0 for start, end, step in self._save_turn_ranges)
@@ -444,12 +480,26 @@ class SpaceCharge(Command):
         output_root = getattr(cfg, "output_dir_space_charge", None)
         if not output_root:
             output_root = str(Path(getattr(cfg, "output_dir", ".")) / "space_charge")
-        command_dir = Path(output_root) / _safe_name(self.cmd_name) / f"turn_{turn:06d}"
+        flat = getattr(cfg, "flat_output", False)
+        command_dir = Path(output_root) if flat else Path(output_root) / _safe_name(self.cmd_name)
+        node_suffix = ""
+        if hasattr(self, "internal_node_index"):
+            node_suffix = f"_node{self.internal_node_index:06d}"
+            if not flat:
+                command_dir /= f"internal_sc/node_{self.internal_node_index:06d}"
+        if not flat:
+            command_dir /= f"turn_{turn:06d}"
         command_dir.mkdir(parents=True, exist_ok=True)
-        filename = command_dir / (f"{_safe_name(getattr(cfg, 'output_hms', 'run'))}_"
+        prefix = f"sc_{_safe_name(self.cmd_name)}{node_suffix}_" if flat else ""
+        filename = command_dir / (prefix + f"{_safe_name(getattr(cfg, 'output_hms', 'run'))}_"
                                   f"beam{self.beam_id}_bunch{int(bunch.bunch_id)}_turn{turn:06d}.h5")
         geometry = self.geometry
         with h5py.File(filename, "w") as handle:
+            if self.sc_start is not None:
+                handle.attrs["sc_start"] = self.sc_start
+            if hasattr(self, "internal_node_index"):
+                handle.attrs["parent_element"] = self.parent_element
+                handle.attrs["internal_node_index"] = self.internal_node_index
             handle.attrs.update({
                 "schema_version":
                 "3",

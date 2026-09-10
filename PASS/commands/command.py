@@ -23,6 +23,11 @@ class Command(ABC):
         cmd_type = cmd_type.lower()
         if cmd_type not in cls._registry:
             raise ValueError(f"Unknown command type: {cmd_type}")
+        internal_sc = next((v for k, v in data.items() if k.lower() == "space charge"), None)
+        if internal_sc is not None:
+            from PASS.para.schema.space_charge import SLICED_ELEMENT_COMMANDS
+            if cmd_type not in SLICED_ELEMENT_COMMANDS:
+                raise ValueError(f"{cmd_type} does not support internal Space charge")
         return cls._registry[cmd_type](beam_id, sim, **data)
 
     @abstractmethod

@@ -1,4 +1,8 @@
 from PASS.commands.command import Command
+from PASS.utils.slicing import (
+    print_element_slicing,
+    configure_element_slicing, guard_internal_sc_gpu, run_body_slices, transport_with_center,
+)
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -155,6 +159,7 @@ class Solenoid(Command):
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
+        configure_element_slicing(self, sim, kwargs)
         super().__init__()
 
     def print(self):
@@ -166,6 +171,7 @@ class Solenoid(Command):
                     f"KsL={np.array2string(self.ksl, precision=6)}, "
                     f"NumSlice={self.num_slice:d}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        print_element_slicing(self)
         set_normal_logging()
 
     # ============================================================
@@ -185,6 +191,7 @@ class Solenoid(Command):
         return True
 
     def execute_gpu(self, sim):
+        guard_internal_sc_gpu(self)
         if not self.is_thick:
             mode = 0
         elif not self.has_multipoles:
@@ -223,6 +230,19 @@ class Solenoid(Command):
             # Thin lens: solenoid has no thin-lens limit, no effect
             return
 
+        if self._sc_nodes or (not self.has_multipoles and self.num_slice > 1):
+            def transport(ds, on_center):
+                if not self.has_multipoles:
+                    def advance(length):
+                        self._solenoid_exact_cpu(length, self.ks, x, px, y, py, z, dp, tag, mask, beta0)
+                    transport_with_center(advance, ds, on_center)
+                else:
+                    step = self._sks_uniform_cpu if self.integrator == "uniform" else self._sks_yoshida4_cpu
+                    step(x, px, y, py, z, dp, tag, mask, ds,
+                         self.ks, self.kn, self.ksp, chi, beta0, on_center=on_center)
+            run_body_slices(self, beam, bunch, turn, transport)
+            return
+
         if not self.has_multipoles:
             # Pure solenoid: single exact map (zero error)
             if abs(self.ks) < const.eps:
@@ -255,7 +275,7 @@ class Solenoid(Command):
     # ============================================================
 
     def _sks_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
-                         ds, ks, kn, ksp, chi, beta0):
+                         ds, ks, kn, ksp, chi, beta0, on_center=None):
         """
         One SKS slice (uniform/leapfrog, 2nd order symplectic):
 
@@ -265,6 +285,8 @@ class Solenoid(Command):
                                   x, px, y, py, z, dp, tag, mask, beta0)
         self._multipole_kick_cpu(kn * ds, ksp * ds,
                                   x, px, y, py, tag, mask, chi)
+        if on_center is not None:
+            on_center()
         self._solenoid_exact_cpu(ds * 0.5, ks,
                                   x, px, y, py, z, dp, tag, mask, beta0)
 
@@ -273,7 +295,7 @@ class Solenoid(Command):
     # ============================================================
 
     def _sks_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          ds, ks, kn, ksp, chi, beta0):
+                          ds, ks, kn, ksp, chi, beta0, on_center=None):
         """
         One Yoshida-4 slice:
 
@@ -284,17 +306,19 @@ class Solenoid(Command):
         self._sks_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, ks, kn, ksp, chi, beta0)
         self._sks_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z0, ks, kn, ksp, chi, beta0)
+                           ds * _YOSHIDA_Z0, ks, kn, ksp, chi, beta0, on_center=on_center)
         self._sks_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, ks, kn, ksp, chi, beta0)
 
     def _sks_step_cpu(self, x, px, y, py, z, dp, tag, mask,
-                      ds, ks, kn, ksp, chi, beta0):
+                      ds, ks, kn, ksp, chi, beta0, on_center=None):
         """Single SKS step with given effective length ds (can be negative)."""
         self._solenoid_exact_cpu(ds * 0.5, ks,
                                   x, px, y, py, z, dp, tag, mask, beta0)
         self._multipole_kick_cpu(kn * ds, ksp * ds,
                                   x, px, y, py, tag, mask, chi)
+        if on_center is not None:
+            on_center()
         self._solenoid_exact_cpu(ds * 0.5, ks,
                                   x, px, y, py, z, dp, tag, mask, beta0)
 
@@ -601,15 +625,13 @@ void track_solenoid(
 
     pass_real_t xi=x[index], pxi=px[index], yi=y[index], pyi=py[index];
     pass_real_t zi=z[index], dpi=dp[index]; int ti=tag[index]; bool alive=true;
-    if (mode == 1) {
-        alive = sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lost_position,
-                          lost_turn, index, L, ks, beta0, beta_gamma,
-                          s_position, turn);
-    } else if (mode == 2) {
-        alive = sol_drift(xi, pxi, yi, pyi, zi, dpi, ti, lost_position,
-                          lost_turn, index, L, beta0, beta_gamma,
-                          (pass_real_t)1 / sqrt((pass_real_t)1 + beta_gamma * beta_gamma),
-                          s_position, turn);
+    if (mode == 1 || mode == 2) {
+        pass_real_t ds = L / (pass_real_t)num_slice;
+        for (int slice=0; slice<num_slice && alive; ++slice) {
+            alive = sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lost_position,
+                              lost_turn, index, ds, mode == 1 ? ks : (pass_real_t)0,
+                              beta0, beta_gamma, s_position - L + (slice + 1) * ds, turn);
+        }
     } else {
         pass_real_t ds = L / (pass_real_t)num_slice;
         for (int slice=0; slice<num_slice && alive; ++slice) {

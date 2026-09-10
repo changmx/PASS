@@ -3,7 +3,7 @@
 import math
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator, model_validator
 
 
 class SpaceChargeResourceConfig(BaseModel):
@@ -89,6 +89,10 @@ class SpaceChargeConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     enabled: StrictBool = Field(default=False, alias="Enabled")
+    coverage_check: Literal["warn", "error", "off"] = Field(default="warn", alias="Coverage check")
+    coverage_mode: Literal["full-ring", "partial"] = Field(default="full-ring", alias="Coverage mode")
+    expected_sc_length: float | None = Field(default=None, ge=0, allow_inf_nan=False,
+                                             alias="Expected SC length (m)")
     configurations: dict[str, SpaceChargeResourceConfig] = Field(
         default_factory=dict,
         alias="Configurations",
@@ -122,6 +126,12 @@ class SpaceChargeConfig(BaseModel):
                     f"space-charge configuration name {name!r} must not have surrounding whitespace"
                 )
         return configurations
+
+    @model_validator(mode="after")
+    def validate_coverage_target(self):
+        if self.coverage_mode == "full-ring" and self.expected_sc_length is not None:
+            raise ValueError("Expected SC length (m) applies only to Coverage mode='partial'; full-ring uses circumference")
+        return self
 
 
 def validate_loss_aperture(aperture_type: str, value: list) -> list:
@@ -168,6 +178,8 @@ class SpaceCharge(BaseModel):
         description="Name in the top-level Space charge.Configurations mapping",
     )
     sc_length: float = Field(default=0.0, ge=0.0, alias="SC length (m)")
+    sc_start: float | None = Field(default=None, allow_inf_nan=False, alias="SC start (m)",
+                                  description="Optional start of the represented integration interval; does not transport particles")
     aperture_type: str = Field(
         default="default", alias="Aperture type",
         description="Particle aperture and Dirichlet conducting boundary; default is the configuration grid rectangle",
@@ -192,3 +204,53 @@ class SpaceCharge(BaseModel):
         if value != value.strip():
             raise ValueError("Configuration must not have surrounding whitespace")
         return value
+
+
+class ElementSpaceCharge(BaseModel):
+    """Internal SC placement; body length and aperture are owned by the element."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    configuration: str = Field(min_length=1, alias="Configuration")
+    num_kicks: StrictInt = Field(default=1, ge=1, alias="Num kicks")
+    aperture_type: str = Field(default="default", alias="Aperture type",
+        description="default inherits the parent element; conflicting explicit values warn and are overridden")
+    aperture_value: list = Field(default_factory=list, alias="Aperture value")
+    save_field: StrictBool = Field(default=False, alias="Save field")
+    save_potential: StrictBool = Field(default=False, alias="Save potential")
+    save_density: StrictBool = Field(default=False, alias="Save density")
+    save_turns: list[list[int]] | list[int] = Field(default_factory=list, alias="Save turns")
+
+    @field_validator("configuration")
+    @classmethod
+    def validate_configuration_name(cls, value):
+        if value != value.strip():
+            raise ValueError("Configuration must not have surrounding whitespace")
+        return value
+
+    @model_validator(mode="after")
+    def validate_aperture(self):
+        self.aperture_value = validate_loss_aperture(self.aperture_type, self.aperture_value)
+        return self
+
+
+SLICED_ELEMENT_COMMANDS = frozenset({
+    "drift", "sbend", "quadrupole", "sextupole", "octupole",
+    "multipole", "kicker", "solenoid", "elseparator",
+})
+
+
+def parse_element_space_charge(raw):
+    """Accept exported aliases or case-normalized runtime JSON, strictly."""
+    if isinstance(raw, ElementSpaceCharge):
+        return raw
+    if not isinstance(raw, dict):
+        raise ValueError("Element 'Space charge' must be an object or null")
+    fields = {field.alias.lower(): name for name, field in ElementSpaceCharge.model_fields.items()}
+    values = {}
+    for key, value in raw.items():
+        name = fields.get(str(key).lower(), str(key).lower())
+        if name in values:
+            raise ValueError(f"Duplicate element Space charge field: {key}")
+        values[name] = value
+    return ElementSpaceCharge.model_validate(values)

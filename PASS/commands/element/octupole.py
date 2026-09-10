@@ -1,4 +1,8 @@
 from PASS.commands.command import Command
+from PASS.utils.slicing import (
+    print_element_slicing,
+    configure_element_slicing, guard_internal_sc_gpu, run_body_slices,
+)
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -92,6 +96,7 @@ class Octupole(Command):
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
+        configure_element_slicing(self, sim, kwargs)
         super().__init__()
 
     def print(self):
@@ -100,6 +105,7 @@ class Octupole(Command):
                     f"IsThick={self.is_thick}, K3L={self.k3l:.6f}, K3SL={self.k3sl:.6f}, "
                     f"NumSlice={self.num_slice:d}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        print_element_slicing(self)
         set_normal_logging()
 
     # ============================================================
@@ -119,6 +125,7 @@ class Octupole(Command):
         return True
 
     def execute_gpu(self, sim):
+        guard_internal_sc_gpu(self)
         if self.is_thick:
             all_zero = (abs(self.k3l) < const.eps and
                         abs(self.k3sl) < const.eps)
@@ -167,6 +174,14 @@ class Octupole(Command):
                                      x, px, y, py, tag, mask, chi)
             return
 
+        if self._sc_nodes:
+            step = self._dkd_uniform_cpu if self.integrator == "uniform" else self._dkd_yoshida4_cpu
+            def transport(ds, on_center):
+                step(x, px, y, py, z, dp, tag, mask, ds,
+                     self.k3, self.k3s, chi, beta0, on_center=on_center)
+            run_body_slices(self, beam, bunch, turn, transport)
+            return
+
         # Thick lens
         if abs(self.k3l) < const.eps and abs(self.k3sl) < const.eps:
             # No field: pure drift
@@ -195,7 +210,7 @@ class Octupole(Command):
     # ============================================================
 
     def _dkd_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
-                         ds, k3, k3s, chi, beta0):
+                         ds, k3, k3s, chi, beta0, on_center=None):
         """
         One DKD slice (uniform/leapfrog, 2nd order symplectic):
 
@@ -204,6 +219,8 @@ class Octupole(Command):
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._octupole_kick_cpu(k3 * ds, k3s * ds,
                                  x, px, y, py, tag, mask, chi)
+        if on_center is not None:
+            on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
 
     # ============================================================
@@ -211,7 +228,7 @@ class Octupole(Command):
     # ============================================================
 
     def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          ds, k3, k3s, chi, beta0):
+                          ds, k3, k3s, chi, beta0, on_center=None):
         """
         One Yoshida-4 slice:
 
@@ -222,16 +239,18 @@ class Octupole(Command):
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, k3, k3s, chi, beta0)
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z0, k3, k3s, chi, beta0)
+                           ds * _YOSHIDA_Z0, k3, k3s, chi, beta0, on_center=on_center)
         self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
                            ds * _YOSHIDA_Z1, k3, k3s, chi, beta0)
 
     def _dkd_step_cpu(self, x, px, y, py, z, dp, tag, mask,
-                      ds, k3, k3s, chi, beta0):
+                      ds, k3, k3s, chi, beta0, on_center=None):
         """Single DKD step with given effective length ds (can be negative)."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._octupole_kick_cpu(k3 * ds, k3s * ds,
                                  x, px, y, py, tag, mask, chi)
+        if on_center is not None:
+            on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
 
     # ============================================================

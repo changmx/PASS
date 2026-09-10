@@ -352,6 +352,30 @@ def _deposit_stencil(
     """
     geometry = resources.geometry
     active = resources.field_solver.interior_mask
+    # Open rectangular grids have no conductor nodes to remove. Avoid the
+    # repeated aperture-mask/index construction for each CIC stencil entry.
+    # TSC stencils crossing the outer grid still use the normalized path below.
+    if np.all(active):
+        all_valid = bool(np.all(valid))
+        selected = slice(None) if all_valid else np.flatnonzero(valid)
+        selected_count = sid.size if all_valid else selected.size
+        stencil_inside = all(np.all((gx[selected] >= 0) & (gx[selected] < geometry.nx)
+                                    & (gy[selected] >= 0) & (gy[selected] < geometry.ny))
+                             for gx, gy, _ in entries)
+        normalizer = sum(weight[selected] for _, _, weight in entries)
+        if stencil_inside and np.all(normalizer > np.finfo(float).eps):
+            flat = density.ravel()
+            stride = geometry.ny * geometry.nx
+            scale = charge[selected] / (normalizer * geometry.dx * geometry.dy)
+            for gx, gy, weight in entries:
+                indices = sid[selected] * stride + gy[selected] * geometry.nx + gx[selected]
+                if flat.size <= 8 * selected_count:
+                    flat += np.bincount(indices, weights=scale * weight[selected], minlength=flat.size)
+                else:
+                    # Sparse stacks should not allocate a full-grid temporary
+                    # for every stencil node just to scatter a few particles.
+                    np.add.at(flat, indices, scale * weight[selected])
+            return valid.copy(), 0, float(normalizer.min()) if selected_count else 1.0
     normalizer = np.zeros(sid.size, dtype=float)
     for gx, gy, weight in entries:
         in_grid = (gx >= 0) & (gx < geometry.nx) & (gy >= 0) & (gy < geometry.ny)
@@ -594,6 +618,17 @@ def _gather(field, particles, geometry, slice_id, resources=None, quadratic=Fals
         & (sid >= 0)
         & (sid < values.shape[0])
     )
+    if not quadratic and np.all(resources.field_solver.interior_mask) and np.all(valid):
+        # In the usual loss-free open-grid run, Boolean/advanced indexing of
+        # every coordinate and every weight only makes full-size copies.
+        # Index the four field nodes directly instead, retaining normalization.
+        ix, iy, tx, ty, in_grid = geometry.locate(x, y)
+        if np.all(in_grid):
+            w00, w10 = (1-tx)*(1-ty), tx*(1-ty)
+            w01, w11 = (1-tx)*ty, tx*ty
+            normalizer = w00+w10+w01+w11
+            return (values[sid,iy,ix]*w00 + values[sid,iy,ix+1]*w10
+                    + values[sid,iy+1,ix]*w01 + values[sid,iy+1,ix+1]*w11)/normalizer
     if quadratic:
         ux, uy = (x - geometry.x_min) / geometry.dx, (y - geometry.y_min) / geometry.dy
         cx, cy = np.floor(ux + 0.5).astype(np.int64), np.floor(uy + 0.5).astype(np.int64)
@@ -614,6 +649,14 @@ def _gather(field, particles, geometry, slice_id, resources=None, quadratic=Fals
             (ix + 1, iy + 1, tx * ty),
         ]
     active = resources.field_solver.interior_mask
+    if not quadratic and np.all(active):
+        selected = np.flatnonzero(valid)
+        normalizer = sum(weight[selected] for _, _, weight in entries)
+        accumulated = np.zeros(selected.size)
+        for gx, gy, weight in entries:
+            accumulated += values[sid[selected], gy[selected], gx[selected]] * weight[selected]
+        out[selected] = accumulated / normalizer
+        return out
     normalizer = np.zeros(x.size, dtype=float)
     for gx, gy, weight in entries:
         in_grid = (gx >= 0) & (gx < geometry.nx) & (gy >= 0) & (gy < geometry.ny)

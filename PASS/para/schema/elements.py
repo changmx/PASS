@@ -9,8 +9,9 @@ Specific element types add their own physical parameters.
 Consumed by PASS.commands.element.* via Command.create(**kwargs).
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import ClassVar
+from PASS.para.schema.space_charge import ElementSpaceCharge
 
 
 class ElementBase(BaseModel):
@@ -29,12 +30,33 @@ class ElementBase(BaseModel):
     aperture_type: str = Field(default="off", alias="Aperture type")
     aperture_value: list = Field(default_factory=list, alias="Aperture value")
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_unsupported_internal_sc(cls, value):
+        if isinstance(value, dict) and "space_charge" not in cls.model_fields:
+            if value.get("Space charge", value.get("space_charge")) is not None:
+                raise ValueError(f"{cls.__name__} does not support internal Space charge")
+        return value
+
+
+class SlicedElementBase(ElementBase):
+    """Body transport with optional internally scheduled space charge."""
+
+    num_slices: int = Field(default=1, ge=1, alias="Num slices")
+    space_charge: ElementSpaceCharge | None = Field(default=None, alias="Space charge")
+
+    @model_validator(mode="after")
+    def validate_internal_sc_length(self):
+        if self.space_charge is not None and self.length <= 0:
+            raise ValueError("Internal Space charge requires a positive element length")
+        return self
+
 
 # ============================================================
 # Drift
 # ============================================================
 
-class DriftElement(ElementBase):
+class DriftElement(SlicedElementBase):
     command: str = Field(default="Drift", alias="Command")
 
 
@@ -52,7 +74,7 @@ class MarkerElement(ElementBase):
 # SBend (dipole)
 # ============================================================
 
-class SBendElement(ElementBase):
+class SBendElement(SlicedElementBase):
     command: str = Field(default="SBend", alias="Command")
     k0l: float = Field(default=0.0, alias="K0L")
     e1: float = Field(default=0.0, alias="E1 (rad)")
@@ -80,7 +102,7 @@ class SBendElement(ElementBase):
 # Quadrupole
 # ============================================================
 
-class QuadrupoleElement(ElementBase):
+class QuadrupoleElement(SlicedElementBase):
     command: str = Field(default="Quadrupole", alias="Command")
     k1l: float = Field(default=0.0, alias="K1L")
     k1sl: float = Field(default=0.0, alias="K1SL")
@@ -107,7 +129,7 @@ class QuadrupoleElement(ElementBase):
 # Sextupole
 # ============================================================
 
-class SextupoleElement(ElementBase):
+class SextupoleElement(SlicedElementBase):
     command: str = Field(default="Sextupole", alias="Command")
     k2l: float = Field(default=0.0, alias="K2L")
     k2sl: float = Field(default=0.0, alias="K2SL")
@@ -128,7 +150,7 @@ class SextupoleElement(ElementBase):
 # Octupole
 # ============================================================
 
-class OctupoleElement(ElementBase):
+class OctupoleElement(SlicedElementBase):
     command: str = Field(default="Octupole", alias="Command")
     k3l: float = Field(default=0.0, alias="K3L")
     k3sl: float = Field(default=0.0, alias="K3SL")
@@ -149,7 +171,7 @@ class OctupoleElement(ElementBase):
 # Multipole
 # ============================================================
 
-class MultipoleElement(ElementBase):
+class MultipoleElement(SlicedElementBase):
     command: str = Field(default="Multipole", alias="Command")
     knl: list[float] = Field(default_factory=list, alias="KiL")
     ksl: list[float] = Field(default_factory=list, alias="KiSL")
@@ -165,9 +187,11 @@ class MultipoleElement(ElementBase):
 # Solenoid
 # ============================================================
 
-class SolenoidElement(ElementBase):
+class SolenoidElement(SlicedElementBase):
     command: str = Field(default="Solenoid", alias="Command")
     ks: float = Field(default=0.0, alias="KS")
+    knl: list[float] = Field(default_factory=list, alias="KiL")
+    ksl: list[float] = Field(default_factory=list, alias="KiSL")
 
     is_field_error: bool = Field(default=False, alias="Is field error")
     field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
@@ -181,7 +205,7 @@ class SolenoidElement(ElementBase):
 # Kicker
 # ============================================================
 
-class KickerElement(ElementBase):
+class KickerElement(SlicedElementBase):
     command: str = Field(default="Kicker", alias="Command")
     hkick: float = Field(default=0.0, alias="HKICK")
     vkick: float = Field(default=0.0, alias="VKICK")
@@ -201,15 +225,15 @@ class KickerElement(ElementBase):
 # ElSeparator (electrostatic separator)
 # ============================================================
 
-class ElSeparatorElement(ElementBase):
+class ElSeparatorElement(SlicedElementBase):
     command: str = Field(default="ElSeparator", alias="Command")
     ex: float = Field(default=0.0, alias="EX (V/m)")
     ey: float = Field(default=0.0, alias="EY (V/m)")
-    exl: float = Field(default=None, alias="EXL (V)")
-    eyl: float = Field(default=None, alias="EYL (V)")
+    exl: float | None = Field(default=None, alias="EXL (V)")
+    eyl: float | None = Field(default=None, alias="EYL (V)")
     tilt: float = Field(default=0.0, alias="Tilt (rad)")
-    septum_x_position: float = Field(default=None, alias="Septum x position (m)")
-    septum_y_position: float = Field(default=None, alias="Septum y position (m)")
+    septum_x_position: float | None = Field(default=None, alias="Septum x position (m)")
+    septum_y_position: float | None = Field(default=None, alias="Septum y position (m)")
     septum_thickness: float = Field(default=0.0, alias="Septum thickness (m)")
 
 

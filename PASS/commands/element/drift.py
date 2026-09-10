@@ -1,4 +1,8 @@
 from PASS.commands.command import Command
+from PASS.utils.slicing import (
+    print_element_slicing,
+    configure_element_slicing, guard_internal_sc_gpu, run_body_slices, transport_with_center,
+)
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -34,12 +38,14 @@ class Drift(Command):
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
+        configure_element_slicing(self, sim, kwargs)
         super().__init__()
 
     def print(self):
         set_simple_logging()
         logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        print_element_slicing(self)
         set_normal_logging()
 
     def execute_cpu(self, sim):
@@ -56,6 +62,7 @@ class Drift(Command):
         return True
 
     def execute_gpu(self, sim):
+        guard_internal_sc_gpu(self)
         L = self.length
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
@@ -74,15 +81,16 @@ class Drift(Command):
                 threads = 256
                 blocks = (N + threads - 1) // threads
                 kernel = _get_transfer_drift_kernel(p.dtype)
-                kernel(
-                    (blocks, ),
-                    (threads, ),
-                    (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag,
-                     p.lost_position, p.lost_turn,
-                     np.int32(start), np.int32(end),
-                     p.real(beta * gamma), p.real(1.0 / gamma), p.real(L),
-                     p.real(self.s), np.int32(turn)),
-                )
+                ds = L / self.num_slice
+                for j in range(self.num_slice):
+                    kernel(
+                        (blocks, ), (threads, ),
+                        (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag,
+                         p.lost_position, p.lost_turn,
+                         np.int32(start), np.int32(end),
+                         p.real(beta * gamma), p.real(1.0 / gamma), p.real(ds),
+                         p.real(self.s - L + (j + 1) * ds), np.int32(turn)),
+                    )
             if N > 0:
                 check_aperture_gpu(
                     beam, bunch, self.aperture_type, self.aperture_value,
@@ -94,7 +102,22 @@ class Drift(Command):
 
 
     def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        if np.abs(self.length) < const.eps:
+        if self._sc_nodes or self.num_slice > 1:
+            offset = 0.0
+            def transport(ds, on_center):
+                nonlocal offset
+                def advance(length):
+                    nonlocal offset
+                    offset += length
+                    self._drift_segment_cpu(beam, bunch, turn, length,
+                                            self.s - self.length + offset)
+                transport_with_center(advance, ds, on_center)
+            run_body_slices(self, beam, bunch, turn, transport)
+        else:
+            self._drift_segment_cpu(beam, bunch, turn, self.length, self.s)
+
+    def _drift_segment_cpu(self, beam, bunch, turn, length, s_position):
+        if np.abs(length) < const.eps:
             return
 
         start = bunch.start_idx
@@ -102,8 +125,7 @@ class Drift(Command):
 
         p = beam.particles
         real = p.real
-        L = real(self.length)
-        s_position = self.s
+        L = real(length)
         beta0 = real(bunch.beta)
         gamma0 = real(bunch.gamma)
         x = p.x[start:end]

@@ -1,4 +1,8 @@
 from PASS.commands.command import Command
+from PASS.utils.slicing import (
+    print_element_slicing,
+    configure_element_slicing, guard_internal_sc_gpu, run_body_slices,
+)
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -121,6 +125,7 @@ class ElSeparator(Command):
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
+        configure_element_slicing(self, sim, kwargs)
         super().__init__()
 
     def print(self):
@@ -130,6 +135,7 @@ class ElSeparator(Command):
                     f"ExL={self.exl:.6e}, EyL={self.eyl:.6e}, Tilt={self.tilt:.6f}, "
                     f"SeptumXPosition={self.septum_x_position}, SeptumYPosition={self.septum_y_position}, SeptumThickness={self.septum_thickness:.6f}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        print_element_slicing(self)
         set_normal_logging()
 
     # ============================================================
@@ -149,6 +155,7 @@ class ElSeparator(Command):
         return True
 
     def execute_gpu(self, sim):
+        guard_internal_sc_gpu(self)
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         p = beam.particles
@@ -164,22 +171,25 @@ class ElSeparator(Command):
                 denom = bunch.beta * const.c * bunch.brho
                 kick_x = self.exl / denom if abs(denom) > const.eps else 0.0
                 kick_y = self.eyl / denom if abs(denom) > const.eps else 0.0
-                kernel(
-                    (blocks,), (threads,),
-                    (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
-                     p.lost_position, p.lost_turn,
-                     np.int32(start), np.int32(end),
-                     p.real(bunch.beta * bunch.gamma), p.real(1.0 / bunch.gamma),
-                     p.real(self.length), p.real(kick_x), p.real(kick_y),
-                     p.real(self.tilt),
-                     np.int32(1 if self.septum_x_position is not None and abs(self.exl) > const.eps else 0),
-                     p.real(self.septum_x_position or 0.0),
-                     np.int32(1 if self.septum_y_position is not None and abs(self.eyl) > const.eps else 0),
-                     p.real(self.septum_y_position or 0.0),
-                     p.real(self.septum_thickness),
-                     np.int32(1 if self.is_thick else 0),
-                     p.real(self.s), np.int32(turn)),
-                )
+                count = self.num_slice if self.is_thick else 1
+                ds = self.length / count
+                for j in range(count):
+                    kernel(
+                        (blocks,), (threads,),
+                        (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
+                         p.lost_position, p.lost_turn,
+                         np.int32(start), np.int32(end),
+                         p.real(bunch.beta * bunch.gamma), p.real(1.0 / bunch.gamma),
+                         p.real(ds), p.real(kick_x / count), p.real(kick_y / count),
+                         p.real(self.tilt),
+                         np.int32(1 if self.septum_x_position is not None and abs(self.exl) > const.eps else 0),
+                         p.real(self.septum_x_position or 0.0),
+                         np.int32(1 if self.septum_y_position is not None and abs(self.eyl) > const.eps else 0),
+                         p.real(self.septum_y_position or 0.0),
+                         p.real(self.septum_thickness),
+                         np.int32(1 if self.is_thick else 0), np.int32(count > 1),
+                         p.real(self.s - self.length + (j + 1) * ds), np.int32(turn)),
+                    )
                 check_aperture_gpu(
                     beam, bunch, self.aperture_type, self.aperture_value,
                     self.s, turn,
@@ -194,6 +204,10 @@ class ElSeparator(Command):
 
     def _track_elseparator_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
         """Track particles through the electrostatic separator."""
+
+        if self.is_thick and (self._sc_nodes or self.num_slice > 1):
+            self._track_sliced_elseparator_cpu(beam, bunch, turn)
+            return
 
         beta0 = bunch.beta
         gamma0 = bunch.gamma
@@ -301,6 +315,57 @@ class ElSeparator(Command):
             lost_turn = p.lost_turn[start:end]
             lost_position[newly_lost] = self.s
             lost_turn[newly_lost] = turn
+
+    def _track_sliced_elseparator_cpu(self, beam, bunch, turn):
+        """Advance all particles together; classify septum at each slice center.
+
+        The electric kick is evaluated in the tilted separator frame. SC is
+        evaluated after returning to the beam frame, including field-free particles.
+        """
+        p = beam.particles
+        region = slice(bunch.start_idx, bunch.end_idx)
+        x, px, y, py, z, dp, tag = (getattr(p, name)[region]
+                                    for name in ("x", "px", "y", "py", "z", "dp", "tag"))
+        denom = bunch.beta * const.c * bunch.brho
+        kx = self.exl / denom if abs(denom) > const.eps else 0.0
+        ky = self.eyl / denom if abs(denom) > const.eps else 0.0
+        slice_index = 0
+
+        def transport(ds, on_center):
+            nonlocal slice_index
+            mask = (tag > 0).astype(np.float64)
+            self._drift_exact_cpu(ds / 2, x, px, y, py, z, dp, tag, mask, bunch.beta)
+            frame_mask = (tag > 0).astype(np.float64)
+            if abs(self.tilt) > const.eps:
+                self._tilt_rotate_cpu(x, px, y, py, tag, frame_mask, self.tilt)
+            field = tag > 0
+            septum_lost = np.zeros_like(field)
+            for coordinate, position, strength in ((x, self.septum_x_position, self.exl),
+                                                    (y, self.septum_y_position, self.eyl)):
+                if position is None or abs(strength) <= const.eps:
+                    continue
+                if position > 0:
+                    field &= coordinate > position + self.septum_thickness
+                    septum_lost |= (coordinate > position) & (coordinate <= position + self.septum_thickness)
+                else:
+                    field &= coordinate < position - self.septum_thickness
+                    septum_lost |= (coordinate < position) & (coordinate >= position - self.septum_thickness)
+            septum_lost &= tag > 0
+            tag[septum_lost] = -np.abs(tag[septum_lost])
+            s_center = self.s - self.length + (slice_index + 0.5) * ds
+            p.lost_position[region][septum_lost] = s_center
+            p.lost_turn[region][septum_lost] = turn
+            self._kick_cpu(kx * ds / self.length, ky * ds / self.length,
+                           x, px, y, py, tag, (field & (tag > 0)).astype(float))
+            if abs(self.tilt) > const.eps:
+                self._tilt_rotate_cpu(x, px, y, py, tag, frame_mask, -self.tilt)
+            if on_center is not None:
+                on_center()
+            self._drift_exact_cpu(ds / 2, x, px, y, py, z, dp, tag,
+                                  (tag > 0).astype(float), bunch.beta)
+            slice_index += 1
+
+        run_body_slices(self, beam, bunch, turn, transport)
 
     # ============================================================
     # Kick: pure momentum translation
@@ -446,7 +511,7 @@ void transfer_elseparator(
     pass_real_t kick_x, pass_real_t kick_y, pass_real_t tilt,
     int has_x_septum, pass_real_t septum_x,
     int has_y_septum, pass_real_t septum_y, pass_real_t thickness,
-    int is_thick, pass_real_t s_position, int turn)
+    int is_thick, int sliced_center, pass_real_t s_position, int turn)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (i >= end_index || tag[i] <= 0) return;
@@ -457,6 +522,14 @@ void transfer_elseparator(
     int ti = tag[i];
     float lp = lost_position[i];
     int lt = lost_turn[i];
+
+    // Sliced bodies classify at the physical midpoint in the local frame.
+    // Keep the historical entry classification for the default single map.
+    if (sliced_center) {
+        elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
+                          beta_gamma, inv_gamma, length * (pass_real_t)0.5,
+                          s_position - length * (pass_real_t)0.5, turn);
+    }
 
     pass_real_t co = cos(tilt), si = sin(tilt);
     if (fabs(tilt) > PASS_EPS) {
@@ -488,14 +561,19 @@ void transfer_elseparator(
         }
     }
     septum_lost = septum_lost && !field;
-    if (septum_lost) {
+    if (septum_lost && ti > 0) {
         ti = -abs(ti);
-        lp = (float)s_position;
+        lp = (float)(s_position - (sliced_center ? length * (pass_real_t)0.5 : (pass_real_t)0));
         lt = turn;
     }
 
     if (ti > 0) {
-        if (is_thick) {
+        if (sliced_center) {
+            if (field) {
+                pxi += kick_x;
+                pyi += kick_y;
+            }
+        } else if (is_thick) {
             if (field) {
                 if (elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
                                       beta_gamma, inv_gamma, length * (pass_real_t)0.5,
@@ -516,12 +594,17 @@ void transfer_elseparator(
         }
     }
 
-    if (ti > 0 && fabs(tilt) > PASS_EPS) {
+    if ((ti > 0 || sliced_center) && fabs(tilt) > PASS_EPS) {
         pass_real_t tx = xi * co + yi * si;
         pass_real_t ty = -xi * si + yi * co;
         pass_real_t tpx = pxi * co + pyi * si;
         pass_real_t tpy = -pxi * si + pyi * co;
         xi = tx; yi = ty; pxi = tpx; pyi = tpy;
+    }
+    if (sliced_center) {
+        elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
+                          beta_gamma, inv_gamma, length * (pass_real_t)0.5,
+                          s_position, turn);
     }
     x[i] = xi; px[i] = pxi; y[i] = yi; py[i] = pyi; z[i] = zi;
     tag[i] = ti; lost_position[i] = lp; lost_turn[i] = lt;
