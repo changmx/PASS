@@ -8,17 +8,19 @@ control, and presentation.
 from __future__ import annotations
 
 import csv
+import codecs
 from collections import Counter
 from copy import deepcopy
-import ctypes
 import json
+import math
 import re
 import sys
 import time
 from pathlib import Path
+from uuid import uuid4
 
-from PySide6.QtCore import QProcess, QTimer, Qt, Signal
-from PySide6.QtGui import QColor, QDoubleValidator, QFont, QIntValidator, QPainter, QPalette, QPen, QTextFormat
+from PySide6.QtCore import QEvent, QProcess, QTimer, Qt, Signal, QSettings, QSize
+from PySide6.QtGui import QAction, QDoubleValidator, QIntValidator, QPainter, QPalette, QPen, QTextCursor, QTextFormat
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -46,6 +48,8 @@ from PySide6.QtWidgets import (
     QLayout,
     QFormLayout,
     QGroupBox,
+    QGridLayout,
+    QMenu,
     QLineEdit,
     QScrollArea,
     QSizePolicy,
@@ -58,12 +62,13 @@ from PySide6.QtWidgets import (
 )
 
 from PASS import __version__
-
-
-BLUE = "#61afef"
-PANEL = "#21252b"
-BASE = "#282c34"
-MUTED = "#8b93a1"
+from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
+from PASS.gui.project import FILE_FIELDS, missing_files, read_json
+from PASS.gui.structured import (
+    ApertureEditor, CoefficientsEditor, DevicesEditor, InternalSpaceChargeEditor,
+    ListEditor, NumericTable, ObjectEditor, ParticleEditor, RangeEditor,
+    StructuredField, TurnsEditor, Column,
+)
 
 
 # These values are constrained by PASS command implementations.  Unknown
@@ -89,6 +94,8 @@ ENUM_OPTIONS = {
                "gaussian_round_free_space", "gaussian_ellipse_free_space",
                "uniform_round_free_space", "uniform_ellipse_free_space"),
     "Particle Deposition Method": ("CIC", "TSC"),
+    "Coverage check": ("warn", "error", "off"),
+    "Coverage mode": ("full-ring", "partial"),
     "File Time Kind": ("turn", "second"),
 }
 
@@ -100,6 +107,10 @@ TIMING_MODE_OPTIONS = ("off", "turn", "command", "synchronized-command")
 _SCHEMA_HELP: dict[str, str] | None = None
 
 FIELD_HELP = {
+    "Coverage check": "跟踪前检查 SC 权重和区间：warn 警告，error 停止，off 不检查。",
+    "Coverage mode": "full-ring 要求覆盖全环；partial 允许仅覆盖部分区段。",
+    "Expected SC length (m)": "partial 模式可选的每圈 SC 总作用长度；full-ring 模式留空并使用环长。",
+    "SC start (m)": "该显式 SC command 代表的积分区间起点，仅用于覆盖检查；不改变踢的位置或粒子传输。",
     "S (m)": "Command 在环中的纵向位置，单位为 m。",
     "S previous (m)": "Twiss 传输矩阵的上一光学点位置，单位为 m。",
     "Grid Width X (m)": "水平网格全宽，单位 m；与水平半宽二选一。",
@@ -120,7 +131,7 @@ FIELD_HELP = {
     "Random Seed": "分布生成随机种子。留空（null）时每次运行使用非确定性随机数。",
     "Timing": "运行进度和 ETA 的输出方式。",
     "Device Id": "GPU 后端使用的设备编号列表。",
-    "Insert Particle Coordinate": "手动输入粒子坐标数组 [[x, px, y, py, z, dp], ...]。",
+    "Insert Particle Coordinate": "每行一个粒子：x、px、y、py、z_rel、dp/p。行数就是手动插入粒子数，包含在宏粒子总数内。",
 }
 
 
@@ -139,28 +150,39 @@ class PropertyComboBox(QComboBox):
         event.ignore()
 
 
+class CompactFormBody(QWidget):
+    """Use the form's natural height instead of distributing spare scroll space."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Let Qt recompute the size as sections are inserted or shown. Caching
+        # maximumHeight during LayoutRequest can freeze a new form at its empty
+        # height before nested sections have been polished.
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+
+
 class CollapsibleSection(QWidget):
     """A small independently toggled section for the vertical component library."""
 
-    def __init__(self, title: str, parent: QWidget | None = None) -> None:
+    def __init__(self, title: str, parent: QWidget | None = None, *, depth: int = 0) -> None:
         super().__init__(parent)
-        self.header = QToolButton()
+        self.title = title
+        self.header = QPushButton()
         self.header.setObjectName("librarySectionHeader")
+        self.header.setProperty("depth", depth)
         self.header.setText(title)
-        self.header.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.header.setLayoutDirection(Qt.LeftToRight)
         self.header.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.header.setStyleSheet("text-align: left;")
-        self.header.setArrowType(Qt.RightArrow)
         self.header.setCheckable(True)
         self.header.setChecked(False)
         self.header.toggled.connect(self._set_expanded)
 
         self.body = QWidget()
         self.body.setObjectName("librarySectionBody")
+        self.body.setAttribute(Qt.WA_StyledBackground, True)
         self.body_layout = QVBoxLayout(self.body)
-        self.body_layout.setContentsMargins(10, 3, 4, 8)
-        self.body_layout.setSpacing(4)
+        self.body_layout.setContentsMargins(14, 3, 0, 5)
+        self.body_layout.setSpacing(2)
         self.body.setVisible(False)
 
         layout = QVBoxLayout(self)
@@ -168,13 +190,21 @@ class CollapsibleSection(QWidget):
         layout.setSpacing(0)
         self.header_row = QHBoxLayout()
         self.header_row.setContentsMargins(0, 0, 0, 0)
-        self.header_row.setSpacing(6)
+        self.header_row.setSpacing(0)
         self.header_row.addWidget(self.header, 1)
+        self.toggle_button = QToolButton()
+        self.toggle_button.setObjectName("librarySectionToggle")
+        self.toggle_button.setProperty("depth", depth)
+        self.toggle_button.setFixedSize(22, 28)
+        self.toggle_button.setArrowType(Qt.RightArrow)
+        self.toggle_button.setAccessibleName(f"展开或收起{title}")
+        self.toggle_button.clicked.connect(self.header.toggle)
+        self.header_row.addWidget(self.toggle_button)
         layout.addLayout(self.header_row)
         layout.addWidget(self.body)
 
     def _set_expanded(self, expanded: bool) -> None:
-        self.header.setArrowType(Qt.DownArrow if expanded else Qt.RightArrow)
+        self.toggle_button.setArrowType(Qt.DownArrow if expanded else Qt.RightArrow)
         self.body.setVisible(expanded and self.body_layout.count() > 0)
 
 
@@ -209,11 +239,11 @@ class BusyProgressBar(QWidget):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor("#11151a"))
+        painter.setBrush(self.palette().base())
         painter.drawRect(self.rect())
         width = max(48, int(self.width() * 0.22))
         x = int((self.width() + width) * self._offset - width)
-        painter.fillRect(x, 0, width, self.height(), QColor("#8b93a1"))
+        painter.fillRect(x, 0, width, self.height(), self.palette().link())
 
 
 class LineNumberEditor(QPlainTextEdit):
@@ -250,14 +280,14 @@ class LineNumberEditor(QPlainTextEdit):
 
     def _paint_line_numbers(self, event) -> None:
         painter = QPainter(self.line_number_area)
-        painter.fillRect(event.rect(), QColor("#161a20"))
+        painter.fillRect(event.rect(), self.palette().color(QPalette.Base))
         block = self.firstVisibleBlock()
         block_number = block.blockNumber()
         top = int(self.blockBoundingGeometry(block).translated(self.contentOffset()).top())
         bottom = top + int(self.blockBoundingRect(block).height())
         while block.isValid() and top <= event.rect().bottom():
             if block.isVisible() and bottom >= event.rect().top():
-                painter.setPen(QColor("#6b7788"))
+                painter.setPen(self.palette().color(QPalette.PlaceholderText))
                 painter.drawText(0, top, self.line_number_area.width() - 6, self.fontMetrics().height(), Qt.AlignRight, str(block_number + 1))
             block = block.next()
             top = bottom
@@ -326,15 +356,15 @@ class PlotCanvas(QWidget):
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#1b1f24"))
+        painter.fillRect(self.rect(), self.palette().color(QPalette.Base))
         painter.setRenderHint(QPainter.Antialiasing)
         area = self._plot_area()
-        painter.setPen(QPen(QColor("#3b4350"), 1))
+        painter.setPen(QPen(self.palette().color(QPalette.Mid), 1))
         for fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
             y = area.bottom() - fraction * area.height()
             painter.drawLine(area.left(), int(y), area.right(), int(y))
         if len(self.values) < 2 or self._x_limits is None or self._y_limits is None:
-            painter.setPen(QColor(MUTED))
+            painter.setPen(self.palette().color(QPalette.PlaceholderText))
             painter.drawText(area, Qt.AlignCenter, "选择 X / Y 数值列以绘图")
             return
         x_low, x_high = self._expanded_range(*self._x_limits)
@@ -346,10 +376,10 @@ class PlotCanvas(QWidget):
             x = area.left() + (x_value - x_low) / x_span * area.width()
             y = area.bottom() - (value - low) / span * area.height()
             points.append((int(x), int(y)))
-        painter.setPen(QPen(QColor(BLUE), 2))
+        painter.setPen(QPen(self.palette().color(QPalette.Link), 2))
         for first, second in zip(points, points[1:]):
             painter.drawLine(*first, *second)
-        painter.setPen(QColor(MUTED))
+        painter.setPen(self.palette().color(QPalette.PlaceholderText))
         painter.drawText(8, area.top() + 5, f"max {high:.5g}")
         painter.drawText(8, area.bottom(), f"min {low:.5g}")
         painter.drawText(area.left(), self.height() - 12, f"{x_low:.5g}")
@@ -358,6 +388,7 @@ class PlotCanvas(QWidget):
 
 class ConfigPage(QWidget):
     file_changed = Signal(str)
+    changed = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -388,85 +419,86 @@ class ConfigPage(QWidget):
         self._space_charge_selector: PropertyComboBox | None = None
         self._space_charge_name_field: QLineEdit | None = None
         self._space_charge_enabled_field: QCheckBox | None = None
+        self._space_charge_coverage_fields: dict[str, QWidget] = {}
         self._active_space_charge_configuration: str | None = None
         self._editor_syncing = False
         self._json_dirty = False
         self._form_dirty = False
         self._data_dirty = False
         self._validation_issues: list[str] = []
+        self.recipes: list[dict] = []
+        self.base_dir = Path.cwd()
+        self._history: list[dict] = [deepcopy(self.data)]
+        self._history_index = 0
+        self._history_restoring = False
+        self._field_defaults: dict = {}
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 18, 18, 18)
-
+        root.setContentsMargins(10, 8, 10, 8)
+        root.setSpacing(8)
         toolbar = QHBoxLayout()
-        toolbar.addWidget(QLabel("配置"))
-        self.file_label = QLabel("尚未加载文件")
-        self.file_label.setObjectName("muted")
-        toolbar.addWidget(self.file_label, 1)
-        self.sync_status = QLabel("配置已同步")
+        self.file_label = QLabel("beam.json")
+        toolbar.addWidget(self.file_label)
+        self.input_selector = PropertyComboBox()
+        self.input_selector.setMinimumWidth(180)
+        self.input_selector.hide()
+        toolbar.addWidget(self.input_selector)
+        toolbar.addStretch()
+        self.sync_status = QLabel("JSON 输入")
         self.sync_status.setObjectName("syncStatus")
         toolbar.addWidget(self.sync_status)
-        self.validation_label = QPushButton()
-        self.validation_label.setObjectName("validationStatus")
-        self.validation_label.setToolTip("配置校验状态")
-        self.validation_label.setFlat(True)
-        self.validation_label.setCursor(Qt.PointingHandCursor)
-        self.validation_label.clicked.connect(self._show_validation_issues)
-        toolbar.addWidget(self.validation_label)
-        load = button("打开 JSON")
-        load.setToolTip("打开一个已有的 PASS JSON 配置")
-        load.clicked.connect(self.load_json)
-        save = button("保存 JSON", "primary")
-        save.setToolTip("将当前配置保存到已打开的 JSON 文件")
-        save.clicked.connect(self.save_json)
-        save_as = button("另存为")
-        save_as.clicked.connect(self.export_json)
-        toolbar.addWidget(load)
-        toolbar.addWidget(save)
-        toolbar.addWidget(save_as)
+        self.contents_button = button("项目内容")
+        self.contents_button.hide()
+        toolbar.addWidget(self.contents_button)
         root.addLayout(toolbar)
-
-        splitter = QSplitter(Qt.Horizontal)
+        self.splitter = splitter = QSplitter(Qt.Horizontal)
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(8)
         left_frame = QFrame()
-        left_frame.setMinimumWidth(280)
+        left_frame.setObjectName("libraryPanel")
+        left_frame.setMinimumWidth(164)
         left_layout = QVBoxLayout(left_frame)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(QLabel("配置与组件库"))
+        left_layout.setContentsMargins(8, 8, 6, 8)
         library_scroll = QScrollArea()
         library_scroll.setObjectName("libraryScroll")
         library_scroll.setWidgetResizable(True)
         library_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         library_body = QWidget()
         library_layout = QVBoxLayout(library_body)
-        library_layout.setContentsMargins(0, 4, 4, 4)
+        library_layout.setContentsMargins(0, 2, 0, 2)
         library_layout.setSpacing(2)
         self.library_sections: dict[str, CollapsibleSection] = {}
 
         def add_section(title: str, entries: tuple[tuple[str, str, object], ...], expanded: bool = False) -> None:
             section = CollapsibleSection(title)
+            if title == "输入配置":
+                section.header.setText("输入配置（必需）")
             section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             self.library_sections[title] = section
             for text, tip, handler in entries:
                 item = button(text)
                 item.setToolTip(tip)
+                item.setMinimumWidth(0)
+                item.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
                 item.clicked.connect(handler)
                 section.body_layout.addWidget(item)
             section.header.setChecked(expanded)
             library_layout.addWidget(section)
 
         add_section(
-            "必需项",
+            "输入配置",
             (
-                ("全局配置  · 必需", "编辑 PASS 输入 JSON 根对象中的全部全局配置。", self.configure_global),
-                ("Injection  · 必需", "必需项：Sequence 中需要一个 Injection command。", lambda: self.select_command("Injection")),
+                ("全局配置", "编辑 PASS 输入 JSON 根对象中的全部全局配置。", self.configure_global),
+                ("束流 / Injection", "编辑束流注入参数。", self.configure_injection),
+                ("执行序列", "查看执行序列。", lambda: self.editor_tabs.setCurrentIndex(0)),
             ),
             expanded=True,
         )
         add_section(
             "Twiss 与光学",
             (
-                ("从 MAD-X 文件导入 Twiss 点", "读取 MAD-X 导出的 Twiss/TFS 文件，转换为 Twiss command 并追加到 Sequence。", self.configure_madx_twiss),
+                ("导入 MAD-X Twiss…", "读取 MAD-X 导出的 Twiss/TFS 文件，转换为 Twiss command 并追加到 Sequence。", self.configure_madx_twiss),
                 ("插入单圈传输矩阵", "输入一组周期光学参数和单圈 tune，生成一圈 Twiss 传输。", lambda: self.configure_optics_generator("one_turn")),
-                ("生成平滑近似 Twiss 序列", "按一圈分段数生成等间距 Twiss 传输点。", lambda: self.configure_optics_generator("smooth")),
+                ("平滑近似 Twiss 序列", "按一圈分段数生成等间距 Twiss 传输点。", lambda: self.configure_optics_generator("smooth")),
                 ("插入 Twiss 传输点", "填写起点与终点光学参数，手动插入一段 Twiss 传输。", lambda: self.select_command("Twiss")),
             ),
         )
@@ -478,7 +510,7 @@ class ConfigPage(QWidget):
         add_section(
             "元件",
             (
-                ("从 MAD-X 文件导入元件", "读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件并追加到 Sequence。", self.configure_madx_elements),
+                ("导入 MAD-X 元件…", "读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件并追加到 Sequence。", self.configure_madx_elements),
             ) + tuple((command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
                   for command in ("Marker", "Drift", "SBend", "Quadrupole", "Sextupole", "Octupole", "Multipole", "Solenoid", "Kicker", "ElSeparator", "RFCavity", "Exciter")),
         )
@@ -487,9 +519,9 @@ class ConfigPage(QWidget):
             tuple((command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
                   for command in ("StatMonitor", "ParticleMonitor", "DistMonitor", "PhaseAdvanceMonitor")),
         )
-        add_section("物理模块", ())
-        physics_layout = self.library_sections["物理模块"].body_layout
-        self.space_charge_menu = CollapsibleSection("空间电荷")
+        add_section("物理效应", ())
+        physics_layout = self.library_sections["物理效应"].body_layout
+        self.space_charge_menu = CollapsibleSection("空间电荷", depth=1)
         self.space_charge_menu.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         for text, tip, handler in (
             ("计算配置", "管理模块开关、切片集、网格和求解器。", self.configure_space_charge),
@@ -501,214 +533,282 @@ class ConfigPage(QWidget):
             self.space_charge_menu.body_layout.addWidget(item)
         physics_layout.addWidget(self.space_charge_menu)
         for title in ("尾场", "束束效应", "电子云"):
-            section = CollapsibleSection(title)
+            section = CollapsibleSection(title, depth=1)
             section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            section.header.setEnabled(False)
+            section.toggle_button.setVisible(False)
+            section.header.setToolTip("尚未提供配置界面。")
             physics_layout.addWidget(section)
         library_layout.addStretch()
         library_scroll.setWidget(library_body)
         left_layout.addWidget(library_scroll, 1)
         splitter.addWidget(left_frame)
         editor_frame = QFrame()
+        editor_frame.setObjectName("editorPanel")
+        editor_frame.setMinimumWidth(350)
         editor_layout = QVBoxLayout(editor_frame)
+        editor_layout.setContentsMargins(10, 8, 10, 8)
+        title = QHBoxLayout()
+        sequence_title = QLabel("执行序列")
+        sequence_title.setObjectName("formTitle")
+        title.addWidget(sequence_title)
+        self.sequence_count = QLabel()
+        self.sequence_count.setObjectName("muted")
+        title.addWidget(self.sequence_count)
+        title.addStretch()
+        self.validation_label = button("未校验", "validationStatus")
+        self.validation_label.clicked.connect(self._show_validation_issues)
+        title.addWidget(self.validation_label)
+        self.validate_button = button("校验")
+        self.validate_button.clicked.connect(self.validate_input)
+        title.addWidget(self.validate_button)
+        editor_layout.addLayout(title)
         self.editor_tabs = QTabWidget()
         overview_panel = QWidget()
         overview_layout = QVBoxLayout(overview_panel)
-        overview_layout.setContentsMargins(0, 0, 0, 0)
-        self.tree_section = CollapsibleSection("全局配置与 Sequence")
-        self.tree_section.setObjectName("treeSection")
-        self.tree = QTreeWidget()
-        self.tree.setHeaderHidden(True)
+        overview_layout.setContentsMargins(0, 8, 0, 0)
+        # This internal tree remains an index for schema navigation. The sequence
+        # table is the single visible overview, avoiding duplicate command lists.
+        self.tree = QTreeWidget(self)
+        self.tree.hide()
         self.tree.itemClicked.connect(self._tree_clicked)
-        self.tree_section.body_layout.addWidget(self.tree)
-        self.tree_section.header.setChecked(False)
-        overview_layout.addWidget(self.tree_section)
-        self.sequence_section = CollapsibleSection("执行序列详情（Sequence）")
-        self.sequence_section.setObjectName("sequenceSection")
         sequence_toolbar = QHBoxLayout()
-        sequence_toolbar.addWidget(QLabel("过滤"))
         self.sequence_filter = QLineEdit()
-        self.sequence_filter.setPlaceholderText("名称或 Command")
+        self.sequence_filter.setPlaceholderText("搜索名称或 Command")
         self.sequence_filter.setClearButtonEnabled(True)
         self.sequence_filter.textChanged.connect(self._filter_sequence_table)
         sequence_toolbar.addWidget(self.sequence_filter, 1)
-        sequence_toolbar.addWidget(QLabel("Command"))
-        self.sequence_command_filter = QComboBox()
-        self.sequence_command_filter.setObjectName("sequenceCommandFilter")
+        self.sequence_command_filter = PropertyComboBox()
+        self.sequence_command_filter.setMaximumWidth(160)
         self.sequence_command_filter.addItem("全部 Command")
         self.sequence_command_filter.currentTextChanged.connect(self._filter_sequence_table)
         sequence_toolbar.addWidget(self.sequence_command_filter)
-        refresh_sequence = button("刷新")
-        refresh_sequence.setToolTip("根据当前 JSON 重新生成 Sequence 表格")
-        refresh_sequence.clicked.connect(self._refresh_sequence_table)
-        sequence_toolbar.addWidget(refresh_sequence)
-        delete_sequence = button("删除选中")
-        delete_sequence.setToolTip("删除执行序列中当前选中的一个或多个 command")
-        delete_sequence.clicked.connect(self.delete_selected_sequence_rows)
-        sequence_toolbar.addWidget(delete_sequence)
-        self.sequence_table = QTableWidget(0, 4)
-        self.sequence_table.setHorizontalHeaderLabels(["名称", "Command", "S (m)", "状态"])
+        self.delete_sequence_button = button("删除")
+        self.delete_sequence_button.clicked.connect(self.delete_selected_sequence_rows)
+        sequence_toolbar.addWidget(self.delete_sequence_button)
+        overview_layout.addLayout(sequence_toolbar)
+        self.sequence_table = QTableWidget(0, 8)
+        self.sequence_table.setHorizontalHeaderLabels(["名称", "Command", "s / m", "状态", "计算配置", "作用长度 / m", "孔径类型", "切片集"])
         self.sequence_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.sequence_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.sequence_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.sequence_table.setAlternatingRowColors(True)
-        self.sequence_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.sequence_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.sequence_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.sequence_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.sequence_table.setAlternatingRowColors(False)
+        self.sequence_table.verticalHeader().hide()
+        self.sequence_table.verticalHeader().setDefaultSectionSize(26)
+        header = self.sequence_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Interactive)
+        header.setMinimumSectionSize(50)
+        header.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        header.setContextMenuPolicy(Qt.CustomContextMenu)
+        header.customContextMenuRequested.connect(self._column_menu)
+        header.setToolTip("拖动分隔线调整列宽；右键选择可选列。")
+        self._restore_columns()
+        header.sectionResized.connect(self._save_columns)
         self.sequence_table.cellClicked.connect(self._sequence_row_clicked)
-        self.sequence_section.body_layout.addLayout(sequence_toolbar)
-        self.sequence_section.body_layout.addWidget(self.sequence_table, 1)
-        self.sequence_section.header.setChecked(True)
-        overview_layout.addWidget(self.sequence_section, 1)
-        overview_layout.addStretch()
-
-        def update_overview_stretch():
-            tree_open = self.tree_section.header.isChecked()
-            sequence_open = self.sequence_section.header.isChecked()
-            overview_layout.setStretch(0, int(tree_open))
-            overview_layout.setStretch(1, int(sequence_open))
-            # Leave unused space below the headers when both panels are closed.
-            overview_layout.setStretch(2, int(not (tree_open or sequence_open)))
-
-        self.tree_section.header.toggled.connect(update_overview_stretch)
-        self.sequence_section.header.toggled.connect(update_overview_stretch)
-        update_overview_stretch()
-        self.editor_tabs.addTab(overview_panel, "配置概览")
+        overview_layout.addWidget(self.sequence_table, 1)
+        self.editor_tabs.addTab(overview_panel, "执行序列")
         self.editor = LineNumberEditor()
         self.editor.setLineWrapMode(QPlainTextEdit.NoWrap)
-        self.editor.setFont(QFont("Cascadia Code", 10))
+        self.editor.setObjectName("codeEditor")
+        self.editor.setFont(code_font())
+        self.json_highlighter = JsonHighlighter(self.editor.document())
         self.editor.setPlainText(json.dumps(self.data, indent=4, ensure_ascii=False))
-        self.editor.textChanged.connect(self._mark_json_dirty)
+        self.editor.document().contentsChange.connect(self._mark_json_dirty)
         self.editor_tabs.addTab(self.editor, "JSON 源码")
         editor_layout.addWidget(self.editor_tabs)
         splitter.addWidget(editor_frame)
-        self.form_title = QLabel("参数配置")
+        self.form_title = QLabel("属性")
         self.form_title.setObjectName("formTitle")
-        form_frame = QFrame()
+        self.form_frame = form_frame = QFrame()
+        form_frame.setObjectName("propertyPanel")
         form_layout = QVBoxLayout(form_frame)
-        form_layout.setContentsMargins(8, 0, 0, 0)
-        form_layout.addWidget(self.form_title)
-        self.form_hint = QLabel("在配置概览中选择配置组或 Sequence command。")
+        form_layout.setContentsMargins(10, 10, 8, 8)
+        form_layout.setSpacing(6)
+        form_header = QHBoxLayout()
+        self.form_title.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        form_header.addWidget(self.form_title, 1)
+        self.form_command = QLineEdit()
+        self.form_command.setObjectName("commandBadge")
+        self.form_command.setReadOnly(True)
+        self.form_command.setFocusPolicy(Qt.NoFocus)
+        self.form_command.setToolTip("Command 类型（只读）")
+        self.form_command.hide()
+        form_header.addWidget(self.form_command)
+        form_layout.addLayout(form_header)
+        self.form_hint = QLabel("选择执行序列中的一项，或从组件库插入。")
         self.form_hint.setObjectName("muted")
         self.form_hint.setWordWrap(True)
+        self.form_hint.setMaximumHeight(44)
         form_layout.addWidget(self.form_hint)
-        legend = QHBoxLayout()
-        legend.setSpacing(6)
-        for text, object_name in (("只读", "legendReadonly"), ("选项", "legendChoice"), ("输入", "legendInput"), ("复合", "legendJson")):
-            marker = QLabel(text)
-            marker.setObjectName(object_name)
-            marker.setAlignment(Qt.AlignCenter)
-            legend.addWidget(marker)
-        legend.addStretch()
-        form_layout.addLayout(legend)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        self.form_body = QWidget()
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.form_body = CompactFormBody()
         self.form_layout = QFormLayout(self.form_body)
-        self.form_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
-        self.form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
+        self.form_layout.setContentsMargins(0, 4, 2, 4)
+        self.form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        self.form_layout.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.form_layout.setFormAlignment(Qt.AlignTop)
-        self.form_layout.setHorizontalSpacing(12)
-        self.form_layout.setVerticalSpacing(8)
-        self.form_layout.setSizeConstraint(QLayout.SetMinimumSize)
+        self.form_layout.setHorizontalSpacing(8)
+        self.form_layout.setVerticalSpacing(6)
         scroll.setWidget(self.form_body)
         form_layout.addWidget(scroll, 1)
-        actions = QHBoxLayout()
-        self.form_apply = button("确认修改", "primary")
+        actions = QGridLayout()
+        actions.setSpacing(5)
+        self.form_apply = button("应用修改", "primary")
         self.form_apply.setEnabled(False)
         self.form_apply.clicked.connect(self.apply_form)
-        actions.addWidget(self.form_apply)
-        self.madx_import_button = button("导入到 Sequence", "primary")
-        self.madx_import_button.setToolTip("读取所选 TFS，并把项目追加到当前 Sequence。已有项目不会被覆盖。")
-        self.madx_import_button.setVisible(False)
+        self.cancel_form_button = button("取消修改")
+        self.cancel_form_button.clicked.connect(self.cancel_form)
+        actions.addWidget(self.form_apply, 0, 0)
+        actions.addWidget(self.cancel_form_button, 0, 1)
+        self.madx_import_button = button("导入序列", "primary")
         self.madx_import_button.clicked.connect(self.import_madx_twiss)
-        actions.addWidget(self.madx_import_button)
         self.madx_preview_button = button("预览导入")
-        self.madx_preview_button.setToolTip("只读取并预览 MAD-X 文件，不修改当前 Sequence")
-        self.madx_preview_button.setVisible(False)
         self.madx_preview_button.clicked.connect(self.preview_madx_import)
-        actions.addWidget(self.madx_preview_button)
         self.optics_preview_button = button("预览生成")
-        self.optics_preview_button.hide()
         self.optics_preview_button.clicked.connect(self.preview_optics)
-        actions.addWidget(self.optics_preview_button)
-        self.optics_insert_button = button("插入到 Sequence", "primary")
-        self.optics_insert_button.hide()
+        self.optics_insert_button = button("插入序列", "primary")
         self.optics_insert_button.clicked.connect(self.insert_optics)
-        actions.addWidget(self.optics_insert_button)
-        self.insert_button = button("插入到 Sequence", "primary")
-        self.insert_button.setVisible(False)
+        self.insert_button = button("插入序列", "primary")
         self.insert_button.clicked.connect(self.insert_pending_command)
-        actions.addWidget(self.insert_button)
-        self.duplicate_button = button("复制")
-        self.duplicate_button.setVisible(False)
+        self.duplicate_button = button("复制此项")
         self.duplicate_button.clicked.connect(self.duplicate_selected)
-        actions.addWidget(self.duplicate_button)
-        self.delete_button = button("删除")
-        self.delete_button.setVisible(False)
+        self.delete_button = button("删除此项")
         self.delete_button.clicked.connect(self.delete_selected)
-        actions.addWidget(self.delete_button)
+        for item, row, column in [(self.madx_preview_button, 1, 0), (self.madx_import_button, 1, 1),
+                                  (self.optics_preview_button, 2, 0), (self.optics_insert_button, 2, 1),
+                                  (self.insert_button, 3, 0), (self.duplicate_button, 4, 0), (self.delete_button, 4, 1)]:
+            item.hide()
+            actions.addWidget(item, row, column)
         form_layout.addLayout(actions)
-        # Keep labels and editors readable while allowing the center overview
-        # to consume the remaining space on both desktop and small screens.
-        form_frame.setFixedWidth(500)
+        form_frame.setMinimumWidth(282)
         splitter.addWidget(form_frame)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setStretchFactor(2, 0)
-        splitter.setSizes([300, 680, 500])
+        splitter.setSizes([190, 658, 312])
         root.addWidget(splitter, 1)
         self._refresh_tree()
 
-    def load_json(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "加载 PASS JSON", "", "JSON files (*.json)")
-        if not path:
-            return
+    def configure_injection(self) -> None:
+        sequence = self.data.get("Sequence", {})
+        for name, item in sequence.items():
+            if isinstance(item, dict) and item.get("Command") == "Injection":
+                self._select_sequence_item(name)
+                return
+        self.select_command("Injection")
+
+    def _restore_columns(self, reset: bool = False) -> None:
+        settings = QSettings("PASS", "Editor")
+        self._restoring_columns = True
         try:
-            with open(path, encoding="utf-8") as stream:
-                data = json.load(stream)
-            if not isinstance(data, dict):
-                raise ValueError("JSON 根对象必须是 object")
-        except (OSError, ValueError, json.JSONDecodeError) as exc:
-            QMessageBox.critical(self, "加载失败", str(exc))
+            for index, width in enumerate((280, 230, 105, 80, 120, 110, 110, 110)):
+                if not reset:
+                    width = settings.value(f"sequence/width/{index}", width, type=int)
+                self.sequence_table.setColumnWidth(index, max(50, min(2000, width)))
+                visible = index < 3 or (not reset and settings.value(f"sequence/visible/{index}", False, type=bool))
+                self.sequence_table.setColumnHidden(index, not visible)
+        finally:
+            self._restoring_columns = False
+        if reset:
+            self._save_columns()
+
+    def _save_columns(self, *_args) -> None:
+        if getattr(self, "_restoring_columns", False):
             return
-        self.data, self.path = data, path
+        settings = QSettings("PASS", "Editor")
+        for index in range(self.sequence_table.columnCount()):
+            if not self.sequence_table.isColumnHidden(index):
+                settings.setValue(f"sequence/width/{index}", self.sequence_table.columnWidth(index))
+            settings.setValue(f"sequence/visible/{index}", not self.sequence_table.isColumnHidden(index))
+
+    def _column_menu(self, position) -> None:
+        menu = QMenu(self)
+        menu.addSection("显示的列")
+        for index in range(self.sequence_table.columnCount()):
+            label = self.sequence_table.horizontalHeaderItem(index).text()
+            action = menu.addAction(label + ("（必备）" if index < 3 else ""))
+            action.setCheckable(True)
+            action.setChecked(not self.sequence_table.isColumnHidden(index))
+            action.setEnabled(index >= 3)
+            action.toggled.connect(lambda checked, i=index: self._toggle_column(i, checked))
+        menu.addSeparator()
+        menu.addAction("恢复默认列与宽度", lambda: self._restore_columns(True))
+        menu.exec(self.sequence_table.horizontalHeader().mapToGlobal(position))
+
+    def _toggle_column(self, index: int, visible: bool) -> None:
+        if index < 3:
+            return
+        self.sequence_table.setColumnHidden(index, not visible)
+        self._save_columns()
+
+    def cancel_form(self) -> None:
+        selected = self._selected_path
+        self._form_dirty = False
+        if selected and selected[0] == "Sequence" and selected[1]:
+            self._select_sequence_item(selected[1])
+        elif selected == ("__root__", "Space charge"):
+            self._populate_space_charge_configuration(self._active_space_charge_configuration)
+        elif selected:
+            self.configure_global()
+        else:
+            self._clear_form()
+        self.changed.emit()
+
+    def commit_pending(self) -> bool:
+        if self._form_dirty and self._json_dirty:
+            QMessageBox.warning(self, "两处均有修改", "属性与 JSON 源码均有未应用修改。请先取消其中一处的修改，再应用另一处。")
+            return False
+        if self._json_dirty and not self.apply_json():
+            return False
+        if self._form_dirty:
+            self.apply_form()
+            if self._form_dirty:
+                return False
+        return True
+
+    def validate_input(self) -> None:
+        if self.commit_pending():
+            self._show_validation_issues(full=True)
+
+    def reset_history(self) -> None:
+        self._history = [deepcopy(self.data)]
+        self._history_index = 0
+
+    def _record_history(self) -> None:
+        if self._history_restoring or self._history[self._history_index] == self.data:
+            return
+        self._history = self._history[:self._history_index + 1]
+        self._history.append(deepcopy(self.data))
+        if len(self._history) > 40:
+            self._history.pop(0)
+        self._history_index = len(self._history) - 1
+
+    def undo_data(self, redo: bool = False) -> None:
+        index = self._history_index + (1 if redo else -1)
+        if not 0 <= index < len(self._history) or not self._confirm_form_navigation():
+            return
+        self._history_index = index
+        self.data = deepcopy(self._history[index])
+        self._history_restoring = True
         self._sync_editor()
-        self._data_dirty = self._json_dirty = self._form_dirty = False
-        self.file_label.setText(path)
-        self.file_changed.emit(path)
-        self._refresh_tree()
+        self._history_restoring = False
+        self._form_dirty = False
+        self._data_dirty = True
         self._clear_form()
+        self._refresh_tree()
+        self.changed.emit()
+
 
     def has_unsaved_changes(self) -> bool:
         """Return whether the current project has changes not written to disk."""
         return self._data_dirty or self._json_dirty or self._form_dirty
 
-    def save_json(self) -> bool:
-        """Validate the editor and save to the currently opened file."""
-        if not self.path:
-            return self.export_json()
-        if self._json_dirty and not self.apply_json():
-            return False
-        if self._form_dirty:
-            self._set_sync_status("存在未确认的表单修改", "warning")
-            return False
-        try:
-            with open(self.path, "w", encoding="utf-8") as stream:
-                json.dump(self.data, stream, indent=4, ensure_ascii=False)
-        except OSError as exc:
-            QMessageBox.critical(self, "保存失败", str(exc))
-            return False
-        self.file_changed.emit(self.path)
-        self._data_dirty = self._json_dirty = self._form_dirty = False
-        self._set_sync_status("已保存", "ok")
-        return True
 
     def apply_json(self) -> bool:
         try:
-            data = json.loads(self.editor.toPlainText())
-            if not isinstance(data, dict):
-                raise ValueError("JSON 根对象必须是 object")
+            data = read_json(self.editor.toPlainText().encode("utf-8"))
         except json.JSONDecodeError as exc:
             message = f"JSON 无效（第 {exc.lineno} 行，第 {exc.colno} 列）：{exc.msg}"
             self._set_validation_status("JSON 无效", "error", message)
@@ -722,6 +822,7 @@ class ConfigPage(QWidget):
             QMessageBox.warning(self, "JSON 无效", str(exc))
             return False
         self.data = data
+        self._record_history()
         self._json_dirty = False
         self._form_dirty = False
         self._data_dirty = True
@@ -731,42 +832,12 @@ class ConfigPage(QWidget):
         self._set_sync_status("JSON 修改已确认", "ok")
         return True
 
-    def export_json(self) -> bool:
-        if self._json_dirty and not self.apply_json():
-            return False
-        if self._form_dirty:
-            self._set_sync_status("存在未确认的表单修改", "warning")
-            return False
-        path, _ = QFileDialog.getSaveFileName(self, "导出 PASS JSON", self.path or "beam0.json", "JSON files (*.json)")
-        if not path:
-            return False
-        try:
-            with open(path, "w", encoding="utf-8") as stream:
-                json.dump(self.data, stream, indent=4, ensure_ascii=False)
-        except OSError as exc:
-            QMessageBox.critical(self, "导出失败", str(exc))
-            return False
-        self.path = path
-        self.file_label.setText(path)
-        self.file_changed.emit(path)
-        self._data_dirty = self._json_dirty = self._form_dirty = False
-        self._set_sync_status("已导出", "ok")
-        return True
 
-    def save_pending_changes(self) -> bool:
-        """Apply pending editors and persist the project, if possible."""
-        if self._json_dirty and not self.apply_json():
-            return False
-        if self._form_dirty:
-            self.apply_form()
-            if self._form_dirty:
-                return False
-        if not self._data_dirty:
-            return True
-        return self.save_json()
 
-    def _mark_json_dirty(self) -> None:
-        if self._editor_syncing:
+    def _mark_json_dirty(self, _position: int, removed: int, added: int) -> None:
+        # Syntax highlighting changes formats and emits textChanged even when
+        # the source is untouched. Only actual character edits dirty the JSON.
+        if self._editor_syncing or not (removed or added):
             return
         self._json_dirty = True
         self._set_sync_status("JSON 有未确认修改", "warning")
@@ -776,6 +847,7 @@ class ConfigPage(QWidget):
         self.sync_status.setProperty("state", state)
         self.sync_status.style().unpolish(self.sync_status)
         self.sync_status.style().polish(self.sync_status)
+        self.changed.emit()
 
     def _command_template(self, command: str) -> dict:
         """Return a safe preview template without changing project data."""
@@ -783,7 +855,8 @@ class ConfigPage(QWidget):
         if not isinstance(sequence, dict):
             return {}
         position = max(
-            (item.get("S (m)", 0.0) for item in sequence.values() if isinstance(item, dict)),
+            (item["S (m)"] for item in sequence.values() if isinstance(item, dict)
+             and type(item.get("S (m)")) in (int, float) and abs(item["S (m)"]) < 1e290),
             default=0.0,
         )
         if command == "Injection":
@@ -791,7 +864,11 @@ class ConfigPage(QWidget):
             from PASS.para.schema.bunch import InjectionItem
 
             template = InjectionItem().to_sequence_dict()
-            template["S (m)"] = position
+            template["S (m)"] = 0.0
+            # The Gaussian rejection sampler requires a non-degenerate ellipse.
+            # These are GUI starting values; the public physics schema is unchanged.
+            template["bunch0"]["Emittance x (m'rad)"] = 1e-6
+            template["bunch0"]["Emittance y (m'rad)"] = 1e-6
             return template
         if command == "Twiss":
             from PASS.para.schema.twiss import TwissPoint
@@ -1007,10 +1084,8 @@ class ConfigPage(QWidget):
         self.optics_insert_button.setEnabled(False)
         self._optics_table.hide()
         self._optics_details.hide()
-        self.form_layout.setRowVisible(
-            self._optics_fields["muz"],
-            self._optics_fields["longitudinal_transfer"].currentText() == "matrix",
-        )
+        self._optics_fields["muz"].setEnabled(
+            self._optics_fields["longitudinal_transfer"].currentText() == "matrix")
         try:
             parameters = self._read_optics_parameters()
         except (ValueError, OverflowError) as exc:
@@ -1102,6 +1177,8 @@ class ConfigPage(QWidget):
         sequence.update({name: item.model_dump(by_alias=True)
                          for name, item in zip(preview["names"], preview["items"])})
         self.data["Circumference (m)"] = preview["parameters"].circumference
+        self.recipes.append({"id": uuid4().hex, "kind": "optics", "pass_version": __version__,
+                             "parameters": preview["parameters"].model_dump(), "generated_names": preview["names"]})
         count = len(preview["items"])
         self._form_dirty = False
         self._data_dirty = True
@@ -1202,12 +1279,14 @@ class ConfigPage(QWidget):
         self.madx_import_button.setVisible(True)
         self.madx_preview_button.setVisible(True)
         self.form_apply.setEnabled(False)
+        for field in self._madx_fields.values():
+            if isinstance(field, QWidget):
+                self._track_field(field)
 
     def _madx_sampling_changed(self) -> None:
         interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
-        self.form_layout.setRowVisible(self._madx_fields["merge_drift"], not interpolation)
-        self.form_layout.setRowVisible(self._madx_fields["num_segments"], interpolation)
-        self.form_layout.setRowVisible(self._madx_fields["grid_summary"], interpolation)
+        self._madx_fields["merge_drift"].setEnabled(not interpolation)
+        self._madx_fields["num_segments"].setEnabled(interpolation)
         self._madx_fields["grid_summary"].setText(
             "五次 Hermite（相位约束）；Δs=C/N。预览后显示实际间距与点数。")
         self._madx_preview = self._madx_preview_signature = None
@@ -1475,12 +1554,32 @@ class ConfigPage(QWidget):
             QMessageBox.warning(self, "Sequence 无效", "请先修正 JSON 中的 Sequence 对象。")
             return
         first_name = ""
+        generated_names = []
         for name, item in zip(names, items):
             unique_name = self._unique_sequence_name(str(name), sequence)
             sequence[unique_name] = item.model_dump(by_alias=True)
             first_name = first_name or unique_name
+            generated_names.append(unique_name)
         if self._madx_fields["update_circumference"].isChecked():
             self.data["Circumference (m)"] = circumference
+        parameters, sources = {}, {}
+        for key, field in self._madx_fields.items():
+            if isinstance(field, QLineEdit):
+                value = field.text()
+                if key in ("Twiss TFS 文件", "误差 TFS 文件"):
+                    if value:
+                        sources[key] = str(Path(value).resolve())
+                    continue
+                parameters[key] = value
+            elif isinstance(field, QComboBox):
+                parameters[key] = field.currentText()
+            elif isinstance(field, QCheckBox):
+                parameters[key] = field.isChecked()
+            elif isinstance(field, str):
+                parameters[key] = field
+        self.recipes.append({"id": uuid4().hex, "kind": "madx", "pass_version": __version__,
+                             "parameters": parameters, "source_files": sources, "generated_names": generated_names})
+        self._form_dirty = False
         self._sync_editor()
         self._data_dirty = True
         self._refresh_tree()
@@ -1529,7 +1628,7 @@ class ConfigPage(QWidget):
         self._selected_path = ("__root__", "Space charge")
         self.form_title.setText("空间电荷 · 计算配置")
         self.form_hint.setText(
-            "共享切片集、网格和场模型；计算点按名称引用配置，并可独立设置粒子损失孔径。"
+            "共享切片集、网格和场模型，并设置覆盖检查；显式计算点独立设置孔径，元件内部 SC 使用元件孔径。"
         )
 
         enabled = QCheckBox("启用空间电荷模块")
@@ -1539,6 +1638,12 @@ class ConfigPage(QWidget):
         self._track_field(enabled)
         self._space_charge_enabled_field = enabled
         self.form_layout.addRow(self._field_label("Enabled", False), enabled)
+        for key, default in (("Coverage check", "warn"), ("Coverage mode", "full-ring"),
+                             ("Expected SC length (m)", None)):
+            value = block.get(key, default)
+            field = self._make_field(key, value)
+            self._space_charge_coverage_fields[key] = field
+            self.form_layout.addRow(self._field_label(key, value), field)
 
         configurations = block.get("Configurations")
         if not isinstance(configurations, dict):
@@ -1589,8 +1694,8 @@ class ConfigPage(QWidget):
             self._space_charge_resource_form = resource_form
             resource_form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
             resource_form.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-            resource_form.setHorizontalSpacing(12)
-            resource_form.setVerticalSpacing(7)
+            resource_form.setHorizontalSpacing(8)
+            resource_form.setVerticalSpacing(6)
             self._space_charge_extent_mode = PropertyComboBox()
             self._space_charge_extent_mode.addItems(["全宽", "半宽"])
             self._space_charge_extent_mode.setCurrentText(
@@ -1679,7 +1784,9 @@ class ConfigPage(QWidget):
             hint = "quasi-frozen 每次按切片粒子重新计算中心、尺寸和方向，无需输入固定分布参数。网格用于诊断采样及 command 缺省矩形孔径，公式场为自由空间。"
         self._space_charge_active_fields = active
         for key, field in self._space_charge_fields.items():
-            self._space_charge_resource_form.setRowVisible(field, key in active)
+            self._space_charge_resource_form.setRowVisible(field, True)
+            field.setEnabled(key in active)
+            field.setToolTip(self._field_help(key, None) + ("" if key in active else "\n当前方法、求解器或网格输入方式不使用此项。"))
         self._space_charge_method_hint.setText(hint)
 
     def _preview_space_charge_configuration_name(self, name: str) -> None:
@@ -1733,7 +1840,11 @@ class ConfigPage(QWidget):
             candidate_configurations.pop(old_name, None)
             candidate_configurations[new_name] = canonical_resource
         enabled = self._space_charge_enabled_field.isChecked()
-        candidate = {"Enabled": enabled, "Configurations": candidate_configurations}
+        coverage = {key: self._read_field_value(key, widget, block.get(key))
+                    for key, widget in self._space_charge_coverage_fields.items()}
+        canonical_coverage = SpaceChargeConfig.model_validate({"Enabled": enabled, **coverage}).model_dump(by_alias=True)
+        candidate = {"Enabled": enabled, "Configurations": candidate_configurations,
+                     **{key: canonical_coverage[key] for key in coverage}}
         if enabled:
             SpaceChargeConfig.model_validate(candidate)
         block.clear()
@@ -1748,6 +1859,9 @@ class ConfigPage(QWidget):
                         and item.get("Configuration") == old_name
                     ):
                         item["Configuration"] = new_name
+                    internal = item.get("Space charge") if isinstance(item, dict) else None
+                    if isinstance(internal, dict) and internal.get("Configuration") == old_name:
+                        internal["Configuration"] = new_name
         self._active_space_charge_configuration = new_name
         return new_name
 
@@ -1913,53 +2027,27 @@ class ConfigPage(QWidget):
         self._refresh_sequence_table()
         self._validate_configuration()
 
-    def _validate_configuration(self) -> list[str]:
-        issues: list[str] = []
-        sequence = self.data.get("Sequence")
-        injection = sequence.get("injection") if isinstance(sequence, dict) else None
-        if not isinstance(sequence, dict):
-            issues.append("Sequence 必须是对象")
-        if not isinstance(injection, dict) or injection.get("Command") != "Injection":
-            issues.append("未找到 Injection command，请在 Sequence 中添加 Injection")
-        try:
-            from PASS.para.schema.main import MainConfig
+    def collect_validation_issues(self, data: dict, base_dir: Path) -> list[str]:
+        from PASS.validation import validate_input
+        return [str(issue) for issue in validate_input(data, base_dir).errors]
 
-            MainConfig.model_validate(
-                {key: value for key, value in self.data.items() if key not in {"Sequence", "Space charge"}}
-            )
-        except Exception as exc:
-            issues.append(f"全局配置: {self._validation_detail(exc)}")
-        space_charge = None
-        try:
-            from PASS.core.config import Config
-
-            space_charge, _ = Config._load_space_charge(self.data)
-        except Exception as exc:
-            issues.append(f"Space charge: {self._validation_detail(exc)}")
-        if isinstance(sequence, dict):
-            for name, item in sequence.items():
-                issue = self._validate_sequence_item(str(name), item)
-                if issue:
-                    issues.append(issue)
-            if space_charge is not None and space_charge.enabled:
-                configured = set(space_charge.configurations)
-                for name, item in sequence.items():
-                    if not isinstance(item, dict) or item.get("Command") != "SpaceCharge":
-                        continue
-                    reference = item.get("Configuration")
-                    if reference not in configured:
-                        issues.append(
-                            f"Sequence.{name}: 未定义 Space charge configuration {reference!r}"
-                        )
-        if issues:
-            self._validation_issues = issues
-            detail = "配置检查未通过：\n" + "\n".join(f"• {issue}" for issue in issues)
-            self._set_validation_status(f"配置检查：{len(issues)} 项问题", "error", detail)
+    def _apply_validation_report(self, report) -> list[str]:
+        self._validation_report = report
+        self._validation_issues = [str(issue) for issue in report.errors]
+        label = "全面检测" if report.full else "参数预检"
+        if report.errors or report.warnings:
+            state = "error" if report.errors else "warning"
+            self._set_validation_status(
+                f"{label}：{len(report.errors)} 错误 · {len(report.warnings)} 警告", state, report.text())
         else:
-            self._validation_issues = []
-            self._set_validation_status("配置有效", "ok", "配置检查通过：全局配置和 Sequence 均有效。")
+            self._set_validation_status(
+                "全面检测通过" if report.full else "参数预检通过", "ok",
+                report.text() + ("" if report.full else "\n点击校验可进一步检查全部输入文件内容。"))
+        return self._validation_issues
 
-        return issues
+    def _validate_configuration(self, *, full=False) -> list[str]:
+        from PASS.validation import validate_input
+        return self._apply_validation_report(validate_input(self.data, self.base_dir, check_files=full))
 
     def _set_validation_status(self, text: str, state: str, detail: str) -> None:
         """Show a compact validation result without consuming overview space."""
@@ -1969,36 +2057,48 @@ class ConfigPage(QWidget):
         self.validation_label.style().unpolish(self.validation_label)
         self.validation_label.style().polish(self.validation_label)
 
-    def _show_validation_issues(self) -> None:
-        """Present validation findings without consuming permanent layout space."""
-        if not self._validation_issues:
-            QMessageBox.information(self, "配置检查", "配置检查通过。")
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle("配置检查")
-        dialog.setMinimumSize(520, 280)
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("双击问题可定位到相关配置。"))
-        issues = QListWidget()
-        issues.addItems(self._validation_issues)
-        issues.itemDoubleClicked.connect(lambda item: self._navigate_to_validation_issue(item.text(), dialog))
-        layout.addWidget(issues, 1)
-        close = button("关闭")
-        close.clicked.connect(dialog.accept)
-        layout.addWidget(close, alignment=Qt.AlignRight)
+    def _show_validation_issues(self, *, full=False) -> None:
+        from PASS.gui.validation import ValidationDialog
+        dialog = ValidationDialog(self, None if full else getattr(self, "_validation_report", None))
+        dialog.navigate.connect(lambda issue: self._navigate_to_validation_issue(issue, dialog))
+        if full:
+            dialog.start(self.data, self.base_dir)
         dialog.exec()
+        if dialog.report is not None:
+            self._apply_validation_report(dialog.report)
 
-    def _navigate_to_validation_issue(self, issue: str, dialog: QDialog) -> None:
-        """Open the input area most likely to resolve a validation issue."""
+    def _navigate_to_validation_issue(self, issue, dialog: QDialog) -> None:
         if not self._confirm_form_navigation():
             return
-        if issue.startswith("未找到 Injection command"):
-            self.select_command("Injection")
-        elif issue.startswith("Sequence."):
-            name = issue.removeprefix("Sequence.").split(":", 1)[0]
-            self._select_sequence_item(name)
+        path = issue.path
+        if len(path) >= 2 and path[0] == "Sequence":
+            if path[1] in self.data.get("Sequence", {}):
+                if len(path) >= 3 and re.fullmatch(r"bunch\d+", str(path[2])):
+                    self._active_bunch_key = path[2]
+                self._select_sequence_item(path[1])
+                if len(path) >= 3:
+                    if len(path) >= 4 and re.fullmatch(r"bunch\d+", str(path[2])):
+                        child = path[4] if len(path) >= 5 and isinstance(path[4], str) else None
+                        field = self._bunch_fields.get((path[3], child))
+                    else:
+                        field = self._form_fields.get(path[2])
+                    if field is not None:
+                        field.setFocus(Qt.OtherFocusReason)
+                        indices = [part for part in path[3:] if isinstance(part, int)]
+                        table = field.findChild(QTableWidget)
+                        if table is not None and indices and indices[0] < table.rowCount():
+                            column = min(indices[1] if len(indices) > 1 else 0, table.columnCount() - 1)
+                            table.setCurrentCell(indices[0], column)
+                            table.scrollTo(table.model().index(indices[0], column))
+            elif path[1] == "injection":
+                self.select_command("Injection")
+        elif path and path[0] == "Space charge":
+            name = path[2] if len(path) >= 3 and path[1] == "Configurations" else None
+            self._populate_space_charge_configuration(name)
         else:
             self.configure_global()
+            if path and path[0] in self._form_fields:
+                self._form_fields[path[0]].setFocus(Qt.OtherFocusReason)
         dialog.accept()
 
     @staticmethod
@@ -2016,54 +2116,19 @@ class ConfigPage(QWidget):
 
     @classmethod
     def _validate_sequence_item(cls, name: str, item: object) -> str | None:
-        if not isinstance(item, dict):
-            return f"Sequence.{name}: command 必须是对象"
-        command = item.get("Command")
-        if not isinstance(command, str) or not command:
-            return f"Sequence.{name}: 缺少 Command"
-        try:
-            from PASS.para.schema.bunch import BunchConfig, InjectionItem
-            from PASS.para.schema.elements import ELEMENT_REGISTRY
-            from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
-            from PASS.para.schema.slicer import Slicer
-            from PASS.para.schema.space_charge import SpaceCharge
-            from PASS.para.schema.twiss import TwissPoint
-
-            if command == "Injection":
-                bunches = []
-                for key in sorted(
-                    (str(key) for key, value in item.items()
-                     if re.fullmatch(r"bunch\d+", str(key)) and isinstance(value, dict)),
-                    key=lambda key: int(key[5:]),
-                ):
-                    bunches.append(BunchConfig.model_validate(item[key]))
-                injection_data = {key: value for key, value in item.items() if not re.fullmatch(r"bunch\d+", str(key))}
-                injection_data["bunches"] = bunches
-                InjectionItem.model_validate(injection_data).to_sequence_dict()
-                return None
-            if command == "Twiss":
-                TwissPoint.model_validate(item)
-                return None
-            if command == "SortBunch":
-                float(item["S (m)"])
-                return None
-            models = {
-                "StatMonitor": StatMonitor,
-                "DistMonitor": DistMonitor,
-                "ParticleMonitor": ParticleMonitor,
-                "PhaseAdvanceMonitor": PhaseAdvanceMonitor,
-                "Slicer": Slicer,
-                "SpaceCharge": SpaceCharge,
-            }
-            model = models.get(command) or ELEMENT_REGISTRY.get(command.casefold())
-            if model is None:
-                return f"Sequence.{name}: 未知 Command {command}"
-            model.model_validate(item)
-        except (KeyError, TypeError, ValueError) as exc:
-            return f"Sequence.{name}: {cls._validation_detail(exc)}"
-        return None
+        from PASS.validation.rules import Validator
+        from PASS.validation import ValidationReport
+        from PASS.para.schema.main import MainConfig
+        data = MainConfig().model_dump(by_alias=True)
+        validator = Validator(data, Path.cwd(), ValidationReport(full=False), False)
+        validator.globals()
+        validator.command(name, item)
+        return str(validator.report.errors[0]) if validator.report.errors else None
 
     def _refresh_sequence_table(self) -> None:
+        from PASS.commands import command_priority
+        from PASS.utils.constants import const
+
         sequence = self.data.get("Sequence", {})
         rows = []
         if isinstance(sequence, dict):
@@ -2075,8 +2140,15 @@ class ConfigPage(QWidget):
                     position = float(value.get("S (m)", 0.0))
                 except (TypeError, ValueError):
                     position = 0.0
+                if not math.isfinite(position):
+                    position = 0.0
                 rows.append((position, str(name), command, value))
-        rows.sort(key=lambda row: (row[0], row[1]))
+        # Match the engine's stable ordering, including positions in the same
+        # tolerance bin; names must not change the displayed execution order.
+        rows.sort(key=lambda row: (
+            round(row[0] / const.eps) if const.eps > 0 and abs(row[0]) < 1e290 else row[0],
+            command_priority(row[2]),
+        ))
         selected_command = self.sequence_command_filter.currentText()
         commands = sorted({command for _, _, command, _ in rows if command})
         self.sequence_command_filter.blockSignals(True)
@@ -2088,12 +2160,25 @@ class ConfigPage(QWidget):
         )
         self.sequence_command_filter.blockSignals(False)
         self.sequence_table.setRowCount(len(rows))
+        self.sequence_count.setText(f"{len(rows):,} 项")
         for row_index, (position, name, command, value) in enumerate(rows):
             self.sequence_table.setItem(row_index, 0, QTableWidgetItem(name))
             self.sequence_table.setItem(row_index, 1, QTableWidgetItem(command))
             self.sequence_table.setItem(row_index, 2, QTableWidgetItem(f"{position:.6g}"))
-            status = "禁用" if value.get("Is enable", True) is False else "启用"
+            enabled = True
+            if command == "RFCavity":
+                enabled = value.get("Is enabled", True)
+            elif command == "Exciter":
+                enabled = value.get("Enable", True)
+            elif command == "SpaceCharge":
+                block = self.data.get("Space charge", {})
+                enabled = block.get("Enabled", False) if isinstance(block, dict) else False
+            status = "启用" if enabled else "禁用"
             self.sequence_table.setItem(row_index, 3, QTableWidgetItem(status))
+            for column, field in [(4, "Configuration"), (5, "SC length (m)"), (6, "Aperture type"), (7, "Slice set")]:
+                cell = value.get(field, value.get("Length (m)", "") if column == 5 else "")
+                self.sequence_table.setItem(row_index, column, QTableWidgetItem(str(cell)))
+            self.sequence_table.item(row_index, 2).setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.sequence_table.item(row_index, 0).setData(Qt.UserRole, name)
         self._filter_sequence_table()
 
@@ -2191,15 +2276,15 @@ class ConfigPage(QWidget):
             section_layout = QFormLayout(box)
             section_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
             section_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-            section_layout.setHorizontalSpacing(12)
-            section_layout.setVerticalSpacing(7)
+            section_layout.setHorizontalSpacing(8)
+            section_layout.setVerticalSpacing(6)
             has_fields = False
             for key in keys:
                 if key not in self.data:
                     continue
                 value = self.data[key]
                 field = self._make_field(key, value)
-                section_layout.addRow(self._field_label(key, value), field)
+                self._add_property_row(section_layout, self._field_label(key, value), field)
                 self._form_fields[key] = field
                 shown.add(key)
                 has_fields = True
@@ -2209,8 +2294,9 @@ class ConfigPage(QWidget):
             if key in {"Sequence", "Timing", "Space charge"} or key in shown:
                 continue
             field = self._make_field(key, value)
-            self.form_layout.addRow(self._field_label(key, value), field)
+            self._add_property_row(self.form_layout, self._field_label(key, value), field)
             self._form_fields[key] = field
+        self._connect_structured_fields()
         timing = self.data.get("Timing")
         if isinstance(timing, dict):
             self._add_timing_section(timing)
@@ -2235,8 +2321,8 @@ class ConfigPage(QWidget):
         layout = QFormLayout(timing_box)
         layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-        layout.setHorizontalSpacing(12)
-        layout.setVerticalSpacing(7)
+        layout.setHorizontalSpacing(8)
+        layout.setVerticalSpacing(6)
         for key, value in timing.items():
             field = self._make_timing_field(str(key), value)
             self._timing_fields[str(key)] = field
@@ -2265,10 +2351,61 @@ class ConfigPage(QWidget):
         field.addItems(names)
         if value:
             field.setCurrentText(value)
-        field.setMinimumWidth(220)
+        field.setMinimumWidth(100)
         field.setToolTip("选择顶层 Space charge.Configurations 中的命名配置。")
         self._track_field(field)
         return field
+
+    @staticmethod
+    def _property_sections(values: dict) -> list[tuple[str | None, list[str]]]:
+        """Present command parameters by purpose, independently of schema inheritance."""
+        command = values.get("Command")
+        special = {
+            "Exciter": [
+                ("激励频率", ("Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)", "Period (s)", "FM dual frequency (Hz)")),
+                ("幅度调制", ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const")),
+            ],
+            "RFCavity": [("射频数据", ("RF data file",))],
+            "Slicer": [("切片范围", ("Z range mode", "Explicit"))],
+            "PhaseAdvanceMonitor": [
+                ("参考光学", ("Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Dx (m)", "Dpx", "X CO (m)", "PX CO", "Y CO (m)", "PY CO")),
+                ("分析范围", ("Turn ranges", "Min action")),
+            ],
+        }
+        definitions = [
+            *special.get(command, []),
+            ("场误差", ("Is field error", "Field error KNL", "Field error KSL")),
+            ("孔径", ("Aperture type", "Aperture value", "Dp aperture")),
+            ("Ramping", tuple(key for key in values if "ramping" in key.casefold())),
+            ("诊断输出", ("Save field", "Save potential", "Save density", "Save turns")),
+            ("内部空间电荷", ("Space charge",)),
+        ]
+        sections = [(title, [key for key in keys if key in values]) for title, keys in definitions]
+        grouped = {key for _, keys in sections for key in keys}
+        leading = ("S (m)", "Length (m)", "Enable", "Is enabled")
+        tracking = ("Model", "Integrator", "Num slices")
+        basic = [key for key in leading if key in values]
+        basic += [key for key in values if key not in grouped and key not in (*leading, *tracking, "Command")]
+        basic += [key for key in tracking if key in values]
+        return [(None, basic), *((title, keys) for title, keys in sections if keys)]
+
+    def _show_command_badge(self, command: str) -> None:
+        self.form_command.setText(command)
+        self.form_command.setFixedWidth(max(60, self.form_command.fontMetrics().horizontalAdvance(command) + 16))
+        self.form_command.show()
+        self._form_fields["Command"] = self.form_command
+
+    def _property_section(self, title: str) -> QFormLayout:
+        box = QGroupBox(title)
+        box.setObjectName("propertySection")
+        layout = QFormLayout(box)
+        layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        layout.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setHorizontalSpacing(8)
+        layout.setVerticalSpacing(6)
+        self.form_layout.addRow(box)
+        return layout
 
     def _populate_form(self, title: str, target: dict, pending: bool = False, name_value: str | None = None) -> None:
         if target.get("Command") == "Injection":
@@ -2277,9 +2414,9 @@ class ConfigPage(QWidget):
         self._clear_form()
         self._selected_mapping = target
         self.form_title.setText(title)
-        self.form_hint.setText("字段会写回当前配置。列表和嵌套对象使用 JSON 编辑器；Command 为只读。")
+        self.form_hint.setText("全部字段展开。数组按用途填写数值、范围或表格，无需输入括号和逗号。")
         if target.get("Command") == "SpaceCharge":
-            self.form_hint.setText("Aperture type/value 定义本点孔径，边界上及孔径外的粒子先损失。default 使用配置网格大小的矩形；FD/DST 同时将它作为导体边界，自由空间 solver 仅用它处理损失。")
+            self.form_hint.setText("default 孔径使用配置网格矩形；修改后点击应用。")
         if pending or name_value is not None:
             default_name = "injection" if target.get("Command") == "Injection" else f"{str(target.get('Command', 'command')).lower()}_1"
             self._name_field = QLineEdit(name_value or default_name)
@@ -2296,23 +2433,40 @@ class ConfigPage(QWidget):
                 layout.setSizeConstraint(QLayout.SetMinimumSize)
                 twiss_layouts[group] = layout
                 self.form_layout.addRow(box)
-        for key, value in target.items():
-            if target.get("Command") == "SpaceCharge" and key == "Configuration":
-                field = self._make_space_charge_reference_field(str(value))
-            else:
-                field = self._make_field(str(key), value)
-            label = self._field_label(str(key), value)
-            layout = self.form_layout
-            if twiss_layouts:
-                if "previous" in key.casefold():
-                    layout = twiss_layouts["起点光学参数"]
-                    label.setText(re.sub(r" previous", "", str(key), flags=re.IGNORECASE))
-                elif key in {"S (m)", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Mu x", "Mu y", "Mu z", "Dx (m)", "Dpx"}:
-                    layout = twiss_layouts["终点光学参数"]
+        try:
+            complete = self._command_template(str(target.get("Command", "")))
+        except (KeyError, ValueError, TypeError):
+            complete = {}
+        complete.update(target)
+        self._field_defaults = complete
+        self._field_context = complete
+        if "Command" in complete:
+            self._show_command_badge(str(complete["Command"]))
+        sections = [(None, [key for key in complete if key != "Command"])] if twiss_layouts else self._property_sections(complete)
+        for section, keys in sections:
+            section_layout = self._property_section(section) if section else self.form_layout
+            for key in keys:
+                value = complete[key]
+                if target.get("Command") == "SpaceCharge" and key == "Configuration":
+                    field = self._make_space_charge_reference_field(str(value))
                 else:
-                    layout = twiss_layouts["传输设置"]
-            layout.addRow(label, field)
-            self._form_fields[key] = field
+                    field = self._make_field(str(key), value)
+                label = self._field_label(str(key), value)
+                layout = section_layout
+                if twiss_layouts:
+                    if "previous" in key.casefold():
+                        layout = twiss_layouts["起点光学参数"]
+                        label.setText(re.sub(r" previous", "", str(key), flags=re.IGNORECASE))
+                    elif key in {"S (m)", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Mu x", "Mu y", "Mu z", "Dx (m)", "Dpx"}:
+                        layout = twiss_layouts["终点光学参数"]
+                    else:
+                        layout = twiss_layouts["传输设置"]
+                if key == "Space charge" and section == "内部空间电荷":
+                    layout.addRow(field)
+                else:
+                    self._add_property_row(layout, label, field)
+                self._form_fields[key] = field
+        self._connect_structured_fields()
         self.form_apply.setEnabled(bool(self._form_fields) or self._name_field is not None)
         self.insert_button.setVisible(pending)
         self._update_action_visibility(pending=pending)
@@ -2332,8 +2486,16 @@ class ConfigPage(QWidget):
             self._name_field.setObjectName("valueField")
             self._name_field.setToolTip("Sequence 中的唯一名称")
             self.form_layout.addRow(self._field_label("名称", ""), self._name_field)
-        for key, value in target.items():
+            self._track_field(self._name_field)
+        defaults = self._command_template("Injection")
+        complete = {key: value for key, value in defaults.items() if not re.fullmatch(r"bunch\d+", str(key))}
+        complete.update(target)
+        self._field_defaults = complete
+        for key, value in complete.items():
             if re.fullmatch(r"bunch\d+", str(key)):
+                continue
+            if key == "Command":
+                self._show_command_badge(str(value))
                 continue
             if key == "Harmonic Number":
                 field = QLineEdit(str(len(self._injection_keys(target))))
@@ -2379,9 +2541,13 @@ class ConfigPage(QWidget):
             fields = QFormLayout()
             fields.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
             fields.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-            fields.setHorizontalSpacing(12)
-            fields.setVerticalSpacing(7)
-            bunch = target[self._active_bunch_key]
+            fields.setHorizontalSpacing(8)
+            fields.setVerticalSpacing(6)
+            bunch = deepcopy(defaults["bunch0"])
+            bunch.update(target[self._active_bunch_key])
+            for offset in ("Offset x", "Offset y"):
+                if isinstance(bunch.get(offset), dict):
+                    bunch[offset] = defaults["bunch0"][offset] | bunch[offset]
             for key, value in bunch.items():
                 if key in ("Offset x", "Offset y") and isinstance(value, dict):
                     offset_box = QGroupBox(str(key))
@@ -2391,12 +2557,12 @@ class ConfigPage(QWidget):
                     for child_key, child_value in value.items():
                         field = self._make_field(str(child_key), child_value)
                         self._bunch_fields[(str(key), str(child_key))] = field
-                        offset_layout.addRow(self._field_label(str(child_key), child_value), field)
+                        self._add_property_row(offset_layout, self._field_label(str(child_key), child_value), field)
                     fields.addRow(offset_box)
                     continue
                 field = self._make_field(str(key), value)
                 self._bunch_fields[(str(key), None)] = field
-                fields.addRow(self._field_label(str(key), value), field)
+                self._add_property_row(fields, self._field_label(str(key), value), field)
             bunch_layout.addLayout(fields)
         self.form_layout.addRow(bunch_box)
         self.form_apply.setEnabled(True)
@@ -2433,6 +2599,8 @@ class ConfigPage(QWidget):
             num_real_particles=int(1e11),
             num_macro_particles=int(1e5),
             harmonic_id=index,
+            emit_x=1e-6,
+            emit_y=1e-6,
         ).model_dump(by_alias=True)
 
     def _rebuild_injection_form(self, active_key: str | None = None) -> None:
@@ -2465,7 +2633,8 @@ class ConfigPage(QWidget):
         target = self._selected_mapping
         if not isinstance(target, dict):
             return
-        self._write_bunch_values(target)
+        if not self._commit_bunch_fields(target):
+            return
         self._normalize_injection(target)
         self._add_default_bunch(target)
         self._normalize_injection(target)
@@ -2477,7 +2646,8 @@ class ConfigPage(QWidget):
         key = self._active_bunch_key
         if not isinstance(target, dict) or not key or not isinstance(target.get(key), dict):
             return
-        self._write_bunch_values(target)
+        if not self._commit_bunch_fields(target):
+            return
         self._normalize_injection(target)
         new_key = f"bunch{len(self._injection_keys(target))}"
         target[new_key] = deepcopy(target[key])
@@ -2490,20 +2660,71 @@ class ConfigPage(QWidget):
         key = self._active_bunch_key
         if not isinstance(target, dict) or not key or len(self._injection_keys(target)) <= 1:
             return
-        self._write_bunch_values(target)
+        if not self._commit_bunch_fields(target):
+            return
         target.pop(key, None)
         self._normalize_injection(target)
         self._data_dirty = True
         self._rebuild_injection_form("bunch0")
 
+    @staticmethod
+    def _add_property_row(layout, label, field):
+        if isinstance(field, StructuredField):
+            # Tables use the full property-pane width, with a permanent label.
+            label.setMaximumWidth(16777215)
+            layout.addRow(label)
+            layout.addRow(field)
+        else:
+            layout.addRow(label, field)
+
+    def _connect_structured_fields(self):
+        fields = self._form_fields
+        aperture = fields.get("Aperture value")
+        kind = fields.get("Aperture type")
+        if isinstance(aperture, ApertureEditor) and isinstance(kind, QComboBox):
+            kind.currentTextChanged.connect(aperture.set_kind)
+        explicit = fields.get("Explicit")
+        mode = fields.get("Z range mode")
+        if isinstance(explicit, RangeEditor) and isinstance(mode, QComboBox):
+            explicit.blockSignals(True)
+            explicit.set_active(mode.currentText() == "explicit")
+            explicit.blockSignals(False)
+            mode.currentTextChanged.connect(lambda text: explicit.set_active(text == "explicit"))
+        devices = fields.get("Device Id")
+        count = fields.get("Number of GPU devices")
+        backend = fields.get("Backend (gpu/cpu)")
+        if isinstance(devices, DevicesEditor) and isinstance(count, QLineEdit):
+            count.setReadOnly(True)
+            count.setToolTip("由 GPU 设备列表自动计算。")
+            def sync_devices():
+                count.setText(str(devices.table.rowCount()))
+            devices.changed.connect(sync_devices)
+            if isinstance(backend, QComboBox):
+                devices.setEnabled(backend.currentText() == "gpu")
+                backend.currentTextChanged.connect(lambda text: devices.setEnabled(text == "gpu"))
+
+    def _commit_bunch_fields(self, target):
+        try:
+            self._write_bunch_values(target)
+            return True
+        except ValueError as exc:
+            QMessageBox.warning(self, "粒子参数无效", str(exc))
+            return False
+
     def _field_label(self, key: str, value: object) -> QLabel:
-        label = QLabel(key)
-        label.setMinimumWidth(168)
-        label.setMaximumWidth(210)
+        short = {"S (m)": "位置 s / m", "SC length (m)": "作用长度 / m", "SC start (m)": "区间起点 / m",
+                 "Configuration": "计算配置", "Aperture type": "孔径类型", "Aperture value": "孔径参数 / m",
+                 "Save field": "保存电场", "Save potential": "保存电势", "Save density": "保存电荷密度", "Save turns": "保存圈数",
+                 "Turn ranges": "分析圈数范围", "Insert Particle Coordinate": "手动插入粒子", "Dp aperture": "动量接受范围",
+                 "Device Id": "GPU 设备列表", "Explicit": "显式切片范围", "Space charge": "内部空间电荷"}
+        label = QLabel(short.get(key, key))
+        label.setMinimumWidth(96)
+        label.setMaximumWidth(126)
         label.setWordWrap(True)
-        label.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        label.setAttribute(Qt.WA_LayoutUsesWidgetRect)
+        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         help_text = self._field_help(key, value)
-        label.setToolTip(help_text)
+        label.setToolTip(key + "\n" + help_text)
         return label
 
     @classmethod
@@ -2516,7 +2737,7 @@ class ConfigPage(QWidget):
         if isinstance(value, bool):
             return "布尔开关：勾选为启用，取消勾选为关闭。"
         if isinstance(value, (list, dict)):
-            return "复合参数：以 JSON 数组或对象编辑，应用时检查格式。"
+            return "按标签填写数值或表格；应用时检查范围和参数关系。"
         if key in ENUM_OPTIONS:
             return "受限选项：请从下拉列表中选择。"
         return f"输入参数，当前值类型为 {type(value).__name__}。"
@@ -2561,11 +2782,40 @@ class ConfigPage(QWidget):
         return result
 
     def _make_field(self, key: str, value: object) -> QWidget:
+        structured = None
+        total_turns = int(self.data.get("Number of turns", 100))
+        if key == "Save turns":
+            structured = TurnsEditor(value, total_turns)
+        elif key == "Turn ranges":
+            structured = TurnsEditor(value, total_turns, analysis=True)
+        elif key == "Insert Particle Coordinate":
+            structured = ParticleEditor(value)
+        elif key in {"KiL", "KiSL", "Field error KNL", "Field error KSL"}:
+            structured = CoefficientsEditor(value, key)
+        elif key == "Device Id":
+            structured = DevicesEditor(value)
+        elif key == "Aperture value":
+            context = getattr(self, "_field_context", {})
+            structured = ApertureEditor(context.get("Aperture type", "off"), value)
+        elif key in {"Explicit", "Dp aperture"}:
+            structured = RangeEditor(value, explicit=key == "Explicit")
+        elif key == "Space charge":
+            block = self.data.get("Space charge", {})
+            names = list(block.get("Configurations", {})) if isinstance(block, dict) else []
+            structured = InternalSpaceChargeEditor(value, names, total_turns)
+        elif isinstance(value, list):
+            structured = (NumericTable([Column(f"第 {i + 1} 列") for i in range(len(value[0]))], value)
+                          if value and isinstance(value[0], list) else ListEditor(value))
+        elif isinstance(value, dict):
+            structured = ObjectEditor(value, self._make_field, self._read_field_value)
+        if structured is not None:
+            self._track_field(structured)
+            return structured
         if key == "Command":
             field = QLineEdit(str(value))
             field.setObjectName("readonlyField")
             field.setReadOnly(True)
-            field.setMinimumWidth(220)
+            field.setMinimumWidth(100)
             field.setToolTip("Command 类型由组件库确定，不能在此修改。")
             self._track_field(field)
             return field
@@ -2585,23 +2835,25 @@ class ConfigPage(QWidget):
                 options.insert(0, value_text)
             field.addItems(options)
             field.setCurrentText(value_text)
-            field.setMinimumWidth(220)
-            field.setToolTip(self._field_help(key, value))
-            self._track_field(field)
-            return field
-        if isinstance(value, (list, dict)) or key == "Aperture":
-            field = QPlainTextEdit(json.dumps(value, indent=2, ensure_ascii=False))
-            field.setObjectName("jsonField")
-            field.setFont(QFont("Cascadia Code", 10))
-            field.setMinimumHeight(82)
-            field.setMinimumWidth(220)
+            field.setMinimumWidth(100)
+            field.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            field.setMinimumContentsLength(8)
             field.setToolTip(self._field_help(key, value))
             self._track_field(field)
             return field
         field = QLineEdit("" if value is None else str(value))
         field.setObjectName("valueField")
         field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        field.setMinimumWidth(220)
+        field.setMinimumWidth(100)
+        if key.casefold() in FILE_FIELDS:
+            choose = field.addAction(icon("folder", self.palette().color(QPalette.Text).name()), QLineEdit.TrailingPosition)
+            choose.setProperty("themeIcon", "folder")
+            choose.setToolTip("选择输入文件")
+            def browse():
+                path, _ = QFileDialog.getOpenFileName(self, key, str(self.base_dir), "All files (*)")
+                if path:
+                    field.setText(path)
+            choose.triggered.connect(browse)
         if isinstance(value, int) and not isinstance(value, bool):
             field.setValidator(QIntValidator(field))
         elif isinstance(value, float):
@@ -2617,7 +2869,10 @@ class ConfigPage(QWidget):
 
     def _track_field(self, field: QWidget) -> None:
         """Mark form edits without changing data until the user applies them."""
-        if isinstance(field, QLineEdit):
+        field.setAttribute(Qt.WA_LayoutUsesWidgetRect)
+        if isinstance(field, StructuredField):
+            field.changed.connect(self._mark_form_dirty)
+        elif isinstance(field, QLineEdit):
             field.textChanged.connect(lambda: self._mark_form_dirty())
         elif isinstance(field, QComboBox):
             field.currentTextChanged.connect(lambda: self._mark_form_dirty())
@@ -2627,32 +2882,34 @@ class ConfigPage(QWidget):
             field.textChanged.connect(self._mark_form_dirty)
 
     def _mark_form_dirty(self) -> None:
-        if self._selected_mapping is None and self._optics_mode is None:
+        if self._selected_mapping is None and self._optics_mode is None and not self._madx_fields:
             return
         self._form_dirty = True
         self._set_sync_status("表单有未确认修改", "warning")
 
     @staticmethod
     def _read_field_value(key: str, field: QWidget, old_value: object) -> object:
+        if isinstance(field, StructuredField):
+            try:
+                return field.get_value()
+            except (ValueError, TypeError) as exc:
+                raise ValueError(f"{key}：{exc}") from exc
         if isinstance(field, QCheckBox):
             return field.isChecked()
         if isinstance(field, QComboBox):
             return None if old_value is None and not field.currentText() else field.currentText()
-        if isinstance(field, QPlainTextEdit):
-            try:
-                value = json.loads(field.toPlainText())
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"{key} 的 JSON 无效：{exc.msg}") from exc
-            if isinstance(old_value, list) and not isinstance(value, list):
-                raise ValueError(f"{key} 必须是 JSON 数组。")
-            if isinstance(old_value, dict) and not isinstance(value, dict):
-                raise ValueError(f"{key} 必须是 JSON 对象。")
-            return value
         if not isinstance(field, QLineEdit):
             raise ValueError(f"{key} 使用了未知的编辑控件。")
         text = field.text().strip()
         if old_value is None:
-            return None if not text or text.casefold() == "null" else text
+            if not text or text.casefold() == "null":
+                return None
+            if key.casefold() not in FILE_FIELDS:
+                try:
+                    return json.loads(text)
+                except json.JSONDecodeError:
+                    pass
+            return text
         if isinstance(old_value, int) and not isinstance(old_value, bool):
             return int(text)
         if isinstance(old_value, float):
@@ -2661,7 +2918,7 @@ class ConfigPage(QWidget):
 
     def _write_form_values(self, target: dict) -> None:
         for key, field in self._form_fields.items():
-            target[key] = self._read_field_value(str(key), field, target.get(key))
+            target[key] = self._read_field_value(str(key), field, target.get(key, self._field_defaults.get(key)))
         if self._timing_fields:
             timing = target.setdefault("Timing", {})
             if not isinstance(timing, dict):
@@ -2671,13 +2928,19 @@ class ConfigPage(QWidget):
         if target.get("Command") == "Injection":
             self._write_bunch_values(target)
             self._normalize_injection(target)
+        if "Device Id" in self._form_fields:
+            devices = target["Device Id"]
+            if target.get("Backend (gpu/cpu)") == "gpu" and not devices:
+                raise ValueError("GPU 后端至少需要一个设备编号")
+            target["Number of GPU devices"] = max(1, len(devices))
 
     def _write_bunch_values(self, target: dict | None) -> None:
         if not isinstance(target, dict) or not self._active_bunch_key:
             return
-        bunch = target.get(self._active_bunch_key)
-        if not isinstance(bunch, dict):
+        original = target.get(self._active_bunch_key)
+        if not isinstance(original, dict):
             return
+        bunch = deepcopy(original)
         for (key, child_key), field in self._bunch_fields.items():
             if child_key is None:
                 bunch[key] = self._read_field_value(key, field, bunch.get(key))
@@ -2686,6 +2949,17 @@ class ConfigPage(QWidget):
             if not isinstance(nested, dict):
                 nested = bunch[key] = {}
             nested[child_key] = self._read_field_value(child_key, field, nested.get(child_key))
+        count = len(bunch.get("Insert Particle Coordinate", []))
+        # Manual coordinates replace particles in the first injection block.
+        turns = bunch.get("Total Injection Turns", 1)
+        maximum = bunch.get("Number of Macro Particles", 0)
+        interval = max(1, int(bunch.get("Injection Interval", 1)))
+        events = max(1, (turns + interval - 1) // interval)
+        first_injection = maximum // events + maximum % events
+        if count > first_injection:
+            raise ValueError(f"手动粒子为 {count} 个，不能超过首次注入的宏粒子数 {first_injection}")
+        original.clear()
+        original.update(bunch)
 
     def _update_action_visibility(self, pending: bool | None = None) -> None:
         if pending is None:
@@ -2695,8 +2969,13 @@ class ConfigPage(QWidget):
         self.delete_button.setVisible(is_sequence_item and not pending)
 
     def apply_form(self) -> None:
+        if self._json_dirty:
+            QMessageBox.warning(self, "JSON 源码有修改", "请先应用 JSON 修改，或撤销 JSON 编辑，再应用属性。")
+            return
         if self._selected_mapping is None:
             return
+        previous_data = deepcopy(self.data)
+        previous_path = self._selected_path
         if self._name_field is not None and self._selected_path and self._selected_path[0] == "Sequence":
             new_name = self._name_field.text().strip()
             old_name = self._selected_path[1]
@@ -2717,6 +2996,16 @@ class ConfigPage(QWidget):
                 active_space_charge_name = None
                 self._write_form_values(self._selected_mapping)
         except ValueError as exc:
+            # A bad later field must not leave earlier fields or a rename applied.
+            self.data.clear()
+            self.data.update(previous_data)
+            self._selected_path = previous_path
+            if previous_path and previous_path[0] == "Sequence":
+                self._selected_mapping = self.data["Sequence"][previous_path[1]]
+            elif previous_path and previous_path[1]:
+                self._selected_mapping = self.data.get(previous_path[1])
+            else:
+                self._selected_mapping = self.data
             QMessageBox.warning(self, "字段无效", str(exc))
             return
         self._form_dirty = False
@@ -2799,6 +3088,8 @@ class ConfigPage(QWidget):
         self._selected_mapping = None
         self._selected_path = None
         self._form_fields = {}
+        self.form_command.hide()
+        self.form_command.clear()
         self._bunch_fields = {}
         self._name_field = None
         self._bunch_selector = None
@@ -2815,6 +3106,7 @@ class ConfigPage(QWidget):
         self._space_charge_selector = None
         self._space_charge_name_field = None
         self._space_charge_enabled_field = None
+        self._space_charge_coverage_fields = {}
         self._active_space_charge_configuration = None
         self._pending_command = None
         self.form_title.setText("参数配置")
@@ -2847,6 +3139,7 @@ class ConfigPage(QWidget):
         return True
 
     def _sync_editor(self) -> None:
+        self._record_history()
         self._editor_syncing = True
         self.editor.setPlainText(json.dumps(self.data, indent=4, ensure_ascii=False))
         self._editor_syncing = False
@@ -2884,16 +3177,21 @@ class RunPage(QWidget):
     def __init__(self, config: ConfigPage) -> None:
         super().__init__()
         self.config = config
+        self.controller = None
         self.process: QProcess | None = None
         self.started_at = 0.0
+        self._stopped = False
+        self._input_project = None
+        self._refreshing = False
+        self._log_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        self._progress_tail = ""
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 18, 18, 18)
+        root.setContentsMargins(12, 10, 12, 10)
         header = QHBoxLayout()
         header.addWidget(QLabel("运行"))
-        header.addStretch()
-        self.run_path = QLabel("请先在配置页加载 JSON")
+        self.run_path = QLabel("使用当前输入")
         self.run_path.setObjectName("muted")
-        header.addWidget(self.run_path)
+        header.addWidget(self.run_path, 1)
         self.start_button = button("开始运行", "primary")
         self.start_button.clicked.connect(self.start_run)
         self.stop_button = button("停止")
@@ -2902,8 +3200,31 @@ class RunPage(QWidget):
         header.addWidget(self.start_button)
         header.addWidget(self.stop_button)
         root.addLayout(header)
+        inputs = QHBoxLayout()
+        inputs.addWidget(QLabel("Beam 0"))
+        self.beam0 = PropertyComboBox()
+        self.beam1 = PropertyComboBox()
+        inputs.addWidget(self.beam0, 1)
+        inputs.addWidget(QLabel("Beam 1（可选）"))
+        inputs.addWidget(self.beam1, 1)
+        self.beam0.currentIndexChanged.connect(self._settings_changed)
+        self.beam1.currentIndexChanged.connect(self._settings_changed)
+        root.addLayout(inputs)
+        output = QHBoxLayout()
+        output.addWidget(QLabel("输出目录"))
+        self.output_directory = QLineEdit()
+        self.output_directory.setPlaceholderText("output（相对于 JSON / 项目所在目录）")
+        self.output_directory.textChanged.connect(self._settings_changed)
+        output.addWidget(self.output_directory, 1)
+        browse = button("选择目录…")
+        browse.clicked.connect(self._choose_output)
+        output.addWidget(browse)
+        root.addLayout(output)
+        hint = QLabel("运行使用当前编辑内容的固定快照；继续编辑不会改变已经启动的任务。")
+        hint.setObjectName("muted")
+        root.addWidget(hint)
         self.progress = BusyProgressBar()
-        self.progress.setVisible(False)
+        self.progress.hide()
         root.addWidget(self.progress)
         stats = QHBoxLayout()
         self.elapsed = QLabel("耗时：--")
@@ -2916,55 +3237,172 @@ class RunPage(QWidget):
         root.addLayout(stats)
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
-        self.log.setFont(QFont("Cascadia Code", 10))
+        self.log.setMaximumBlockCount(20000)
+        self.log.setObjectName("codeEditor")
+        self.log.setFont(code_font())
         root.addWidget(self.log, 1)
-        config.file_changed.connect(self._path_changed)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._update_elapsed)
+        self.refresh_inputs()
 
-    def _path_changed(self, path: str) -> None:
-        self.run_path.setText(path or "请先在配置页加载 JSON")
+    def refresh_inputs(self) -> None:
+        owner = self.controller
+        project = owner.project if owner and hasattr(owner, "project") else None
+        changed = (project.id if project else None) != self._input_project
+        previous = self.input_settings()
+        settings = project.run_settings if project and changed else previous
+        self._refreshing = True
+        self.beam0.clear()
+        self.beam1.clear()
+        self.beam1.addItem("不使用第二束", "")
+        if project:
+            for entry in project.configs.values():
+                self.beam0.addItem(entry.name + ".json", entry.id)
+                self.beam1.addItem(entry.name + ".json", entry.id)
+            first = settings.get("beam0", project.active_config_id)
+            self.beam0.setCurrentIndex(max(0, self.beam0.findData(first)))
+            self.beam1.setCurrentIndex(max(0, self.beam1.findData(settings.get("beam1", ""))))
+        else:
+            self.beam0.addItem("当前 JSON", "")
+        self.beam0.setEnabled(project is not None)
+        self.beam1.setEnabled(project is not None)
+        if changed or not self.output_directory.text():
+            self.output_directory.setText(settings.get("output_directory", "output"))
+        self._input_project = project.id if project else None
+        self._refreshing = False
+
+    def _settings_changed(self, *_args):
+        if self._refreshing:
+            return
+        owner = self.controller
+        if owner and getattr(owner, "project", None):
+            owner.project.run_settings = self.input_settings()
+            owner.project.dirty = True
+            owner._update_document_ui()
+
+    def input_settings(self) -> dict:
+        return {"beam0": self.beam0.currentData() or "", "beam1": self.beam1.currentData() or "",
+                "output_directory": self.output_directory.text() or "output"}
+
+    def selected_input_ids(self) -> list[str]:
+        values = [self.beam0.currentData()]
+        if self.beam1.currentData():
+            values.append(self.beam1.currentData())
+        if not values[0] or len(set(values)) != len(values):
+            raise ValueError("请选择有效输入；双束运行使用两份独立 JSON。")
+        return values
+
+    def _choose_output(self):
+        directory = QFileDialog.getExistingDirectory(self, "选择运行输出目录", self.output_directory.text())
+        if directory:
+            self.output_directory.setText(directory)
 
     def start_run(self) -> None:
-        path = self.config.path
-        if not path or not Path(path).exists():
-            QMessageBox.information(self, "需要输入文件", "请先在配置页加载并导出一个 JSON 文件。")
+        from PASS.gui.project import Project, atomic_write, json_bytes
+        from uuid import uuid4
+        owner = self.controller
+        if self.process and self.process.state() != QProcess.NotRunning:
             return
+        if owner and not owner._commit_current():
+            return
+        if not owner and not self.config.commit_pending():
+            return
+        temporary = None
+        try:
+            project = owner.project if owner else None
+            if project:
+                ids = self.selected_input_ids()
+                base = project.path.parent if project.path else Path.cwd()
+                from PASS.validation.rules import validate_documents
+                report = validate_documents([(project.configs[cid].name, project.configs[cid].data,
+                                               project.config_base) for cid in ids])
+                if not report.ok:
+                    raise ValueError(report.text())
+            else:
+                issues = self.config._validate_configuration(full=True)
+                if issues:
+                    raise ValueError("\n".join(issues))
+                temporary = project = Project()
+                ids = [project.add_config("beam0", self.config.data, self.config.base_dir)]
+                base = self.config.base_dir
+            output = Path(self.output_directory.text() or "output").expanduser()
+            if not output.is_absolute():
+                output = base / output
+            output = output.resolve()
+            snapshot = output / "input_snapshots" / uuid4().hex
+            paths = project.materialize(ids, snapshot, output)
+            atomic_write(snapshot / "run.json", json_bytes({"pass_version": __version__, "input_ids": ids,
+                         "inputs": [p.name for p in paths], "output_directory": str(output)}))
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "无法运行", str(exc))
+            return
+        finally:
+            if temporary:
+                temporary.close()
         self.process = QProcess(self)
         self.process.setProgram(sys.executable)
-        code = "from PASS.main import main; main(sys.argv[1])"
-        self.process.setArguments(["-u", "-c", "import sys; " + code, path])
+        self.process.setArguments(["-u", "-X", "utf8", "-m", "PASS.gui.runner", *map(str, paths)])
+        self.process.setWorkingDirectory(str(Path(__file__).resolve().parents[2]))
         self.process.setProcessChannelMode(QProcess.MergedChannels)
         self.process.readyReadStandardOutput.connect(self._read_output)
         self.process.finished.connect(self._finished)
-        self.process.errorOccurred.connect(lambda _: self.log.appendPlainText("[PASS] 进程启动失败"))
+        self.process.errorOccurred.connect(self._process_error)
         self.log.clear()
+        self._log_decoder.reset()
+        self._progress_tail = ""
+        self.log.appendPlainText(f"输入快照：{snapshot}\n输出目录：{output}\n\n")
+        self.run_path.setText(" + ".join(project.configs[cid].name + ".json" for cid in ids))
         self.started_at = time.monotonic()
+        self._stopped = False
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-        self.progress.setVisible(True)
+        self.progress.show()
         self.state.setText("运行中")
+        self.timer.start(1000)
         self.process.start()
+
+    def _process_error(self, error):
+        if self.process:
+            self.log.appendPlainText(self.process.errorString())
+        if error == QProcess.FailedToStart:
+            self._finished(-1, QProcess.CrashExit)
+
+    def _update_elapsed(self):
+        self.elapsed.setText(f"耗时：{time.monotonic() - self.started_at:.1f} s")
 
     def _read_output(self) -> None:
         if self.process:
-            output = bytes(self.process.readAllStandardOutput()).decode(errors="replace")
-            self.log.appendPlainText(output.rstrip())
-            turns = re.findall(r"(?:turn|Turn)\s+(\d+)", output)
-            if turns:
-                self.state.setText(f"运行中 · turn {turns[-1]}")
+            self._append_output(self._log_decoder.decode(bytes(self.process.readAllStandardOutput())))
+
+    def _append_output(self, output: str) -> None:
+        if not output:
+            return
+        self.log.moveCursor(QTextCursor.End)
+        self.log.insertPlainText(output)
+        self._progress_tail = (self._progress_tail + output)[-4096:]
+        turns = re.findall(r"\b[Tt]urn[:\s]+(\d+)(?:/(\d+))?", self._progress_tail)
+        if turns:
+            current, total = turns[-1]
+            self.state.setText(f"运行中 · turn {current}" + (f"/{total}" if total else ""))
+        estimates = re.findall(r"\bETA:\s*([^|\r\n]+)", self._progress_tail)
+        if estimates:
+            self.eta.setText("预计剩余：" + estimates[-1].strip())
 
     def _finished(self, code: int, status: QProcess.ExitStatus) -> None:
         self._read_output()
-        self.progress.setVisible(False)
+        self._append_output(self._log_decoder.decode(b"", final=True))
+        self.timer.stop()
+        self.progress.hide()
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
-        self.state.setText("完成" if code == 0 else f"失败（退出码 {code}）")
-        self.elapsed.setText(f"耗时：{time.monotonic() - self.started_at:.1f} s")
+        self.state.setText("已停止" if self._stopped else "完成" if code == 0 and status == QProcess.NormalExit else f"失败（退出码 {code}）")
+        self._update_elapsed()
         self.eta.setText("预计剩余：--")
 
     def stop_run(self) -> None:
         if self.process and self.process.state() != QProcess.NotRunning:
+            self._stopped = True
             self.process.kill()
-            self.state.setText("已停止")
 
 
 class PlotPage(QWidget):
@@ -2994,7 +3432,7 @@ class PlotPage(QWidget):
         fit.setToolTip("恢复到当前数据的完整范围")
         fit.clicked.connect(self.canvas.fit_view)
         controls.addWidget(fit)
-        controls.addWidget(QLabel("滚轮缩放；StatMonitor、ParticleMonitor 和 tune 插件可继续接入"))
+        controls.addWidget(QLabel("滚轮缩放，适配视图恢复完整范围"))
         controls.addStretch()
         root.addLayout(controls)
         root.addWidget(self.canvas, 1)
@@ -3064,181 +3502,140 @@ class PlotPage(QWidget):
         )
 
 
-class MainWindow(QMainWindow):
+from PASS.gui.workspace import DocumentWindowMixin
+
+
+class MainWindow(DocumentWindowMixin, QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle(f"PASS v{__version__}")
-        self.resize(1440, 900)
-        # Three panes need enough width for the component names and form actions.
-        self.setMinimumSize(1320, 700)
-        self.setStyleSheet(
-            """
-            QWidget { background: #282c34; color: #d7dae0; font-size: 14px; }
-            QMainWindow { background: #282c34; }
-            QLabel { padding: 2px; }
-            QLabel#brand { color: #61afef; font-size: 22px; font-weight: 700; }
-            QLabel#muted, QLabel#runStat { color: #8b93a1; }
-            QPushButton { background: #2c313a; border: 1px solid #4b5564; border-radius: 4px; padding: 8px 14px; }
-            QPushButton:hover { border-color: #61afef; background: #263b50; }
-            QPushButton#primary { background: #2d5f91; border-color: #61afef; }
-            QPushButton#required { border-color: #e5c07b; color: #e5c07b; }
-            QPushButton#required:hover { border-color: #e5c07b; background: #3c3628; }
-            QScrollArea#libraryScroll { background: transparent; border: 0; }
-            QWidget#librarySectionBody { background: #20252d; border-left: 1px solid #3b4350; border-right: 1px solid #3b4350; border-bottom: 1px solid #3b4350; }
-            QToolButton#librarySectionHeader { background: #21252b; color: #d7dae0; border: 1px solid #3b4350; border-radius: 3px; padding: 8px 10px; text-align: left; font-weight: 600; }
-            QToolButton#librarySectionHeader:hover { background: #263b50; border-color: #61afef; }
-            QToolButton#librarySectionHeader:checked { color: #61afef; border-color: #61afef; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-            QLabel#syncStatus { color: #98c379; padding: 4px 8px; }
-            QLabel#syncStatus[state="warning"] { color: #e5c07b; }
-            QPushButton#validationStatus { background: #20252d; border: 1px solid #3b4350; padding: 7px 10px; border-radius: 4px; color: #98c379; }
-            QPushButton#validationStatus:hover { background: #263b50; border-color: #61afef; }
-            QPushButton#validationStatus[state="error"] { color: #e06c75; border-color: #7b3842; }
-            QComboBox#sequenceCommandFilter { min-width: 150px; }
-            QLabel#legendReadonly, QLabel#legendChoice, QLabel#legendInput, QLabel#legendJson { border: 1px solid #3b4350; border-radius: 3px; padding: 2px 7px; font-size: 11px; }
-            QLabel#legendReadonly { color: #a9b3c1; border-left: 3px solid #6b7788; }
-            QLabel#legendChoice { color: #c678dd; border-left: 3px solid #c678dd; }
-            QLabel#legendInput { color: #61afef; border-left: 3px solid #61afef; }
-            QLabel#legendJson { color: #e5c07b; border-left: 3px solid #e5c07b; }
-            QTreeWidget, QPlainTextEdit, QListWidget, QComboBox, QTableWidget { background: #1b1f24; border: 1px solid #3b4350; border-radius: 4px; }
-            QLineEdit { background: #1b1f24; border: 1px solid #3b4350; border-radius: 4px; padding: 6px; }
-            QLineEdit#valueField { border-left: 3px solid #61afef; }
-            QLineEdit#readonlyField { background: #20252d; color: #a9b3c1; border-left: 3px solid #6b7788; }
-            QComboBox#choiceField { border-left: 3px solid #c678dd; padding: 4px 6px; }
-            QCheckBox#booleanField { color: #98c379; padding: 5px 2px; }
-            QPlainTextEdit#jsonField { border-left: 3px solid #e5c07b; background: #1b1f24; }
-            QGroupBox#bunchBox { border: 1px solid #3b4350; border-radius: 4px; margin-top: 10px; padding: 8px; }
-            QGroupBox#bunchBox::title { color: #61afef; subcontrol-origin: margin; left: 10px; padding: 0 4px; }
-            QGroupBox { border: 1px solid #3b4350; border-radius: 4px; margin-top: 8px; padding: 6px; }
-            QGroupBox::title { color: #8b93a1; subcontrol-origin: margin; left: 8px; padding: 0 3px; }
-            QGroupBox#configGroup { border: 1px solid #3b4350; border-radius: 4px; margin-top: 10px; padding: 8px; }
-            QGroupBox#configGroup::title { color: #61afef; subcontrol-origin: margin; left: 10px; padding: 0 4px; }
-            QTreeWidget::item:selected, QListWidget::item:selected { background: #263b50; color: #d7dae0; }
-            QTableWidget::item:selected { background: #263b50; color: #d7dae0; }
-            QTableWidget { alternate-background-color: #20252d; }
-            QScrollBar:vertical { background: #11151a; width: 12px; margin: 0; border: 1px solid #3b4350; }
-            QScrollBar::handle:vertical { background: #6b7788; min-height: 24px; border-radius: 4px; }
-            QScrollBar::handle:vertical:hover { background: #8b93a1; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { background: #11151a; height: 0; }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: #11151a; }
-            QScrollBar:horizontal { background: #11151a; height: 12px; margin: 0; border: 1px solid #3b4350; }
-            QScrollBar::handle:horizontal { background: #6b7788; min-width: 24px; border-radius: 4px; }
-            QScrollBar::handle:horizontal:hover { background: #8b93a1; }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { background: #11151a; width: 0; }
-            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: #11151a; }
-            QHeaderView::section { background: #21252b; color: #8b93a1; border: 0; border-bottom: 1px solid #3b4350; padding: 6px; }
-            QTabWidget::pane { border: 1px solid #3b4350; border-radius: 4px; }
-            QTabBar::tab { background: #21252b; color: #8b93a1; padding: 7px 12px; border: 1px solid #3b4350; border-bottom: 0; }
-            QTabBar::tab:selected { background: #263b50; color: #d7dae0; border-color: #61afef; }
-            QSplitter::handle { background: #3b4350; }
-            QStatusBar { background: #21252b; color: #8b93a1; }
-            QWidget#lineNumberArea { background: #161a20; border-right: 1px solid #3b4350; }
-            """
-        )
+        self.settings = QSettings("PASS", "Editor")
+        self.resize(1200, 760)
+        self.setMinimumSize(1000, 650)
         central = QWidget()
         outer = QVBoxLayout(central)
         outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
         header = QHBoxLayout()
-        header.setContentsMargins(20, 14, 20, 14)
-        brand = QLabel(f"PASS v{__version__}")
+        header.setContentsMargins(20, 8, 18, 8)
+        header.setSpacing(12)
+        brand = QLabel("PASS")
         brand.setObjectName("brand")
         header.addWidget(brand)
-        header.addSpacing(24)
-        self.project_label = QLabel("未加载项目")
-        self.project_label.setObjectName("muted")
-        header.addWidget(self.project_label)
-        header.addStretch()
-        outer.addLayout(header)
-        nav = QHBoxLayout()
-        nav.setContentsMargins(20, 0, 20, 12)
+        version = QLabel(f"v{__version__}")
+        version.setObjectName("muted")
+        header.addWidget(version)
+        header.addSpacing(12)
+        self.file_button = QToolButton()
+        self.file_button.setText("文件")
+        self.file_button.setPopupMode(QToolButton.InstantPopup)
+        self.file_menu = QMenu(self.file_button)
+        self.file_button.setMenu(self.file_menu)
+        header.addWidget(self.file_button)
+        header.addSpacing(14)
         self.nav = []
         for index, label in enumerate(("配置", "运行", "绘图")):
-            item = button(label)
-            item.setMinimumWidth(92)
+            item = button(label, "nav")
+            item.setCheckable(True)
             item.clicked.connect(lambda checked=False, i=index: self._show_page(i))
-            nav.addWidget(item)
+            header.addWidget(item)
             self.nav.append(item)
-        nav.addStretch()
-        outer.addLayout(nav)
+        header.addStretch()
+        self.theme_button = QToolButton()
+        self.theme_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.theme_button.setPopupMode(QToolButton.InstantPopup)
+        theme_menu = QMenu(self.theme_button)
+        self.theme_actions = {}
+        for mode, label in (("dark", "深色 · One Dark Pro"), ("light", "浅色"), ("system", "跟随系统")):
+            action = theme_menu.addAction(label)
+            action.setCheckable(True)
+            action.triggered.connect(lambda checked=False, m=mode: self.apply_theme(m))
+            self.theme_actions[mode] = action
+        self.theme_button.setMenu(theme_menu)
+        header.addWidget(self.theme_button)
+        outer.addLayout(header)
         self.stack = QStackedWidget()
         self.config = ConfigPage()
         self.run = RunPage(self.config)
+        self.run.controller = self
         self.plot = PlotPage()
         for page in (self.config, self.run, self.plot):
             self.stack.addWidget(page)
         outer.addWidget(self.stack, 1)
         self.setCentralWidget(central)
         self.setStatusBar(QStatusBar())
-        self.config.file_changed.connect(self._project_changed)
+        self._init_documents()
         self._show_page(0)
+        geometry = self.settings.value("window/geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+        split = self.settings.value("window/splitter")
+        if split:
+            self.config.splitter.restoreState(split)
+        self.theme_preference = self.settings.value("theme", "dark", type=str)
+        self.apply_theme(self.theme_preference)
+        QApplication.instance().styleHints().colorSchemeChanged.connect(self._system_theme_changed)
+
+    def apply_theme(self, preference: str) -> None:
+        if preference not in ("dark", "light", "system"):
+            preference = "dark"
+        self.theme_preference = preference
+        theme = preference
+        if preference == "system":
+            theme = "light" if QApplication.instance().styleHints().colorScheme() == Qt.ColorScheme.Light else "dark"
+        self.current_theme = theme
+        self.settings.setValue("theme", preference)
+        apply_application_theme(theme)
+        self.config.json_highlighter.set_theme(theme)
+        self.theme_button.setText({"dark": "深色", "light": "浅色", "system": "跟随系统"}[preference])
+        self.theme_button.setIcon(icon("moon" if theme == "dark" else "sun", THEMES[theme]["muted"]))
+        for mode, action in self.theme_actions.items():
+            action.setChecked(mode == preference)
+        for name, glyph in [("输入配置", "settings"), ("Twiss 与光学", "optics"), ("元件", "box"),
+                            ("序列工具", "tools"), ("监测与诊断", "chart"), ("物理效应", "layers")]:
+            self.config.library_sections[name].header.setIcon(icon(glyph, THEMES[theme]["muted"]))
+        for widget, glyph in [(self.config.validate_button, "check"), (self.config.delete_sequence_button, "trash"),
+                              (self.config.contents_button, "folder"), (self.config.form_apply, "check")]:
+            widget.setIcon(icon(glyph, THEMES[theme]["muted"]))
+        for action in self.config.findChildren(QAction):
+            if glyph := action.property("themeIcon"):
+                action.setIcon(icon(glyph, THEMES[theme]["text"]))
+
+    def _system_theme_changed(self, _scheme):
+        if self.theme_preference == "system":
+            self.apply_theme("system")
 
     def _show_page(self, index: int) -> None:
         self.stack.setCurrentIndex(index)
         for i, item in enumerate(self.nav):
-            item.setObjectName("primary" if i == index else "")
-            item.style().unpolish(item)
-            item.style().polish(item)
-
-    def _project_changed(self, path: str) -> None:
-        self.project_label.setText(Path(path).name if path else "未加载项目")
-        self.statusBar().showMessage(f"已加载：{path}" if path else "配置已更新")
+            item.setChecked(i == index)
+        if index == 1:
+            self.run.refresh_inputs()
 
     def closeEvent(self, event) -> None:
-        """Prevent an accidental close from discarding a configuration edit."""
-        if not self.config.has_unsaved_changes():
-            event.accept()
-            return
-        dialog = QMessageBox(self)
-        dialog.setWindowTitle("未保存修改")
-        if self.config._form_dirty:
-            dialog.setText("当前配置包含未确认的属性表单修改。保存并退出会先确认当前表单。")
-        else:
-            dialog.setText("当前配置有未保存修改。")
-        save = dialog.addButton("保存并退出", QMessageBox.AcceptRole)
-        discard = dialog.addButton("放弃修改", QMessageBox.DestructiveRole)
-        dialog.addButton("取消", QMessageBox.RejectRole)
-        dialog.exec()
-        if dialog.clickedButton() is save:
-            if self.config.save_pending_changes():
-                event.accept()
-            else:
-                event.ignore()
-        elif dialog.clickedButton() is discard:
-            event.accept()
-        else:
+        if not self._confirm_replace():
             event.ignore()
+            return
+        if self.run.process and self.run.process.state() != QProcess.NotRunning:
+            answer = QMessageBox.question(self, "任务仍在运行", "停止当前运行并关闭窗口？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if answer != QMessageBox.Yes:
+                event.ignore()
+                return
+            self.run.stop_run()
+            self.run.process.waitForFinished(2000)
+        self.settings.setValue("window/geometry", self.saveGeometry())
+        self.settings.setValue("window/splitter", self.config.splitter.saveState())
+        self._release_project()
+        event.accept()
 
 
 def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("PASS")
-    palette = app.palette()
-    palette.setColor(QPalette.Window, QColor(BASE))
-    palette.setColor(QPalette.WindowText, QColor("#d7dae0"))
-    palette.setColor(QPalette.Base, QColor("#1b1f24"))
-    palette.setColor(QPalette.Text, QColor("#d7dae0"))
-    palette.setColor(QPalette.Button, QColor(PANEL))
-    palette.setColor(QPalette.ButtonText, QColor("#d7dae0"))
-    app.setPalette(palette)
+    app.setOrganizationName("PASS")
+    app.setStyle("Fusion")
     window = MainWindow()
     window.show()
-    QTimer.singleShot(0, lambda: _enable_dark_title_bar(window))
     sys.exit(app.exec())
-
-
-def _enable_dark_title_bar(window: QMainWindow) -> None:
-    """Use the native dark title bar where Windows supports it; no-op on Linux."""
-    if sys.platform != "win32":
-        return
-    try:
-        value = ctypes.c_int(1)
-        hwnd = ctypes.c_void_p(int(window.winId()))
-        for attribute in (20, 19):  # Windows 11, then older Windows 10 builds.
-            if ctypes.windll.dwmapi.DwmSetWindowAttribute(
-                hwnd, attribute, ctypes.byref(value), ctypes.sizeof(value),
-            ) == 0:
-                break
-    except (AttributeError, OSError):
-        pass
 
 
 __all__ = ["main", "MainWindow"]
