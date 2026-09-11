@@ -526,6 +526,9 @@ Application Scenarios
 Verification Tests
 ------------------
 
+The test files described here are maintained locally. The ``tests/`` directory
+is excluded from Git and is not included in fresh clones.
+
 ``tests/test_rf_verification.py`` — 18 groups totaling 28 tests, all passing:
 
 1. Bunch reference particle :math:`\delta \approx 0` (precision :math:`< 10^{-12}`)

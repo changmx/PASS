@@ -681,6 +681,9 @@ actual particle kicks against independent field integrals. Run
 ``python -m tests.integration.space_charge analytic`` for these comparisons
 and repeated-kick parameter-evolution checks, including generated plots.
 
+These validation commands require local test files: ``tests/`` is excluded
+from Git and is not included in fresh clones.
+
 Python interfaces and numerical stability
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
