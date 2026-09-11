@@ -64,6 +64,7 @@ from PySide6.QtWidgets import (
 from PASS import __version__
 from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
 from PASS.gui.project import FILE_FIELDS, missing_files, read_json
+from PASS.gui.tools import ToolsPage
 from PASS.gui.structured import (
     ApertureEditor, CoefficientsEditor, DevicesEditor, InternalSpaceChargeEditor,
     ListEditor, NumericTable, ObjectEditor, ParticleEditor, RangeEditor,
@@ -3533,7 +3534,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         header.addWidget(self.file_button)
         header.addSpacing(14)
         self.nav = []
-        for index, label in enumerate(("配置", "运行", "绘图")):
+        for index, label in enumerate(("配置", "运行", "绘图", "工具")):
             item = button(label, "nav")
             item.setCheckable(True)
             item.clicked.connect(lambda checked=False, i=index: self._show_page(i))
@@ -3558,7 +3559,8 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.run = RunPage(self.config)
         self.run.controller = self
         self.plot = PlotPage()
-        for page in (self.config, self.run, self.plot):
+        self.tools = ToolsPage()
+        for page in (self.config, self.run, self.plot, self.tools):
             self.stack.addWidget(page)
         outer.addWidget(self.stack, 1)
         self.setCentralWidget(central)
@@ -3585,6 +3587,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.current_theme = theme
         self.settings.setValue("theme", preference)
         apply_application_theme(theme)
+        self.tools.set_theme(theme)
         self.config.json_highlighter.set_theme(theme)
         self.theme_button.setText({"dark": "深色", "light": "浅色", "system": "跟随系统"}[preference])
         self.theme_button.setIcon(icon("moon" if theme == "dark" else "sun", THEMES[theme]["muted"]))
