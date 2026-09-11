@@ -26,8 +26,12 @@ Ek 等独立输入保留。大写 ``P``、``N`` 为磷、氮，小写 ``p``、``
 ``PASS/tool/particles.py`` 中的名称与便捷预设和质量数据是分开的。
 该模块负责 ``ParticleSpec``、A/Z/q 校验、别名与模糊搜索；
 ``PASS/tool/particle_masses.py`` 负责离线目录读取、电子质量与电离能修正及缺失数据检查。
-两者均不依赖 Qt，被 ``beam_calculator.py`` 及其他数值工具复用，因此保留在 ``PASS/tool``；
-窗口和控件属于 ``PASS/gui``。
+两者作为共用的粒子和质量查询模块，继续保留在 ``PASS/tool``，且不依赖 Qt。
+工具页专用的计算后端与页面一起放在 ``PASS/gui``：``beam_calculator.py``（运动学与功率）、
+``optics_calculator.py``（发射度与磁铁）、``exciter_calculator.py``（激励预览）和
+``rf_bucket.py``（RF bucket）。这些后端仍保持纯数值计算，不依赖 Qt；
+Python 调用可使用 ``from PASS.gui.beam_calculator import solve_kinematics`` 等新路径，
+原 ``PASS.tool`` 下的对应模块已移除。此次迁移仅调整代码归属，公式、能量定义和界面行为不变。
 
 质量固定采用离线数据，不再提供质量来源下拉框，也不再回退到 A×u。
 运行时文件是 ``PASS/tool/mass_catalog.json``；其中的 ``metadata`` 记录下载链接、

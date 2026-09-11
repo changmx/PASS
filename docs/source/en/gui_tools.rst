@@ -32,9 +32,15 @@ The names/presets in ``PASS/tool/particles.py`` remain separate from mass data.
 This module owns ``ParticleSpec``, A/Z/q validation, aliases and fuzzy lookup.
 ``PASS/tool/particle_masses.py`` loads the offline catalog and computes the
 charge-dependent mass, including electron and ionization-energy corrections.
-Both are independent of Qt and are reused by ``beam_calculator.py`` and the
-other numerical tools; they belong in ``PASS/tool``, while widgets belong in
-``PASS/gui``.
+Both are independent of Qt and remain in ``PASS/tool`` as shared particle and
+mass utilities. The Tools-specific calculation backends live alongside their
+pages in ``PASS/gui``: ``beam_calculator.py`` (kinematics and power),
+``optics_calculator.py`` (emittance and magnets), ``exciter_calculator.py``
+(excitation preview), and ``rf_bucket.py`` (RF bucket). These backends remain
+independent of Qt; Python callers use imports such as
+``from PASS.gui.beam_calculator import solve_kinematics``. Their previous
+``PASS.tool`` module paths have been removed. The move changes code organization
+only; formulas, energy definitions and GUI behavior are unchanged.
 
 Masses now use one fixed offline catalog, without a source selector or A*u
 fallback. The runtime file is ``PASS/tool/mass_catalog.json``; its ``metadata``
