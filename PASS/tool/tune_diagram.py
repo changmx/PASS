@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from math import gcd
+from dataclasses import dataclass
+from math import ceil, floor, gcd, isfinite
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,105 @@ _ORDER_COLORS = (
     "#8c564b",
     "#e377c2",
 )
+
+
+def _ranges(qx_range, qy_range):
+    values = tuple(float(v) for r in (qx_range, qy_range) for v in r)
+    if len(values) != 4 or not all(isfinite(v) for v in values):
+        raise ValueError("Tune ranges must contain two finite endpoints each.")
+    x0, x1, y0, y1 = values
+    if x0 >= x1 or y0 >= y1:
+        raise ValueError("Each tune range must be increasing.")
+    return values
+
+
+@dataclass(frozen=True)
+class ResonanceLine:
+    """Integer resonance m*Qx + n*Qy = l; geometry is deduplicated by key."""
+    m: int
+    n: int
+    l: int
+
+    def __post_init__(self):
+        if any(type(v) is not int for v in (self.m, self.n, self.l)) or (self.m == self.n == 0):
+            raise ValueError("m, n, l must be integers; m and n cannot both be zero.")
+
+    @property
+    def order(self):
+        return abs(self.m) + abs(self.n)
+
+    @property
+    def key(self):
+        divisor = gcd(gcd(abs(self.m), abs(self.n)), abs(self.l))
+        sign = -1 if self.m < 0 or (self.m == 0 and self.n < 0) else 1
+        return tuple(sign * v // divisor for v in (self.m, self.n, self.l))
+
+    @property
+    def kind(self):
+        return "single" if not self.m or not self.n else "sum" if self.m * self.n > 0 else "diff"
+
+    @property
+    def label(self):
+        return f"{self.m} Qx {'+' if self.n >= 0 else '-'} {abs(self.n)} Qy = {self.l}"
+
+    def segment(self, qx_range, qy_range):
+        x0, x1, y0, y1 = _ranges(qx_range, qy_range)
+        points = []
+        tolerance = 1e-12 * max(1., abs(x0), abs(x1), abs(y0), abs(y1))
+
+        def add(x, y):
+            if x0 - tolerance <= x <= x1 + tolerance and y0 - tolerance <= y <= y1 + tolerance:
+                point = (max(x0, min(x1, x)), max(y0, min(y1, y)))
+                if not any(abs(x - px) + abs(y - py) <= tolerance for px, py in points):
+                    points.append(point)
+
+        if self.n:
+            add(x0, (self.l - self.m * x0) / self.n)
+            add(x1, (self.l - self.m * x1) / self.n)
+        if self.m:
+            add((self.l - self.n * y0) / self.m, y0)
+            add((self.l - self.n * y1) / self.m, y1)
+        return tuple(points[:2]) if len(points) >= 2 else None
+
+
+def resonance_lines(orders, qx_range, qy_range, kinds=("single", "sum", "diff")):
+    """Visible lines, assigned to their lowest integer-coefficient order.
+
+    Order is |m|+|n| after reducing the *triple* (m,n,l). This retains lines
+    such as 2*Qx=1 while merging 2*Qx=2 with Qx=1. Work is bounded before
+    enumerating pathological tune windows. Supported orders are 1 through 12.
+    """
+    x0, x1, y0, y1 = _ranges(qx_range, qy_range)
+    orders = tuple(orders)
+    if any(type(order) is not int or not 1 <= order <= 12 for order in orders):
+        raise ValueError("Resonance orders must be integers from 1 to 12.")
+    kinds = set(kinds)
+    if not kinds <= {"single", "sum", "diff"}:
+        raise ValueError("Unknown resonance kind.")
+    lines, examined = {}, 0
+    for order in sorted(set(orders)):
+        for m in range(order + 1):
+            for n in sorted({order - m, m - order}):
+                if m == 0 and n <= 0:
+                    continue
+                direction = ResonanceLine(m, n, 0)
+                if direction.kind not in kinds:
+                    continue
+                corners = (m*x0+n*y0, m*x0+n*y1, m*x1+n*y0, m*x1+n*y1)
+                if not all(isfinite(v) for v in corners):
+                    raise ValueError("Tune range is too large.")
+                lo, hi = ceil(min(corners)), floor(max(corners))
+                examined += max(0, hi - lo + 1)
+                if examined > 25000:
+                    raise ValueError("Too many resonance lines; reduce the tune range or selected orders.")
+                for integer in range(lo, hi + 1):
+                    line = ResonanceLine(m, n, integer)
+                    key = line.key
+                    if abs(key[0]) + abs(key[1]) != order:
+                        continue
+                    if key not in lines and line.segment(qx_range, qy_range) is not None:
+                        lines[key] = line
+    return list(lines.values())
 
 
 def _farey(order: int) -> list[tuple[int, int]]:
