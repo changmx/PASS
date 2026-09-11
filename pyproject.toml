@@ -63,5 +63,8 @@ Issues = "https://github.com/changmx/PASS/issues"
 where = ["."]
 include = ["PASS*"]
 
+[tool.setuptools.package-data]
+"PASS.tool" = ["mass_catalog.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
