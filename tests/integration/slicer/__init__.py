@@ -1,1 +1,0 @@
-"""Longitudinal Slicer integration tests."""

@@ -62,7 +62,8 @@ pass-gui
 
 ## 开发
 
-以可编辑模式安装项目后，在仓库根目录运行测试：
+`tests/` 目录仅在本地维护，不纳入 Git 版本控制，新克隆的仓库不包含测试套件。
+如果本地已有测试文件，以可编辑模式安装项目后，在仓库根目录运行测试：
 
 ```bash
 python -m pytest
@@ -70,7 +71,7 @@ python -m pytest
 
 默认发现范围为 `tests/unit` 和 `tests/integration`，包含完整的空间电荷仿真。
 分类批量运行、单例调用、保存场的分析复用和显式本地 Codex 回归命令，见
-[空间电荷测试指南](tests/integration/space_charge/README.md)。
+本地空间电荷测试指南 `tests/integration/space_charge/README.md`。
 
 空间电荷通过 `Method` / `Solver` 支持 `pic`、`frozen` 和 `quasi-frozen` 跟踪。
 运行 `python -m tests.integration.space_charge analytic` 可验证解析场、粒子 kick

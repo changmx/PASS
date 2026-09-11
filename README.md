@@ -64,7 +64,9 @@ The run page selects one or two inputs and creates a fixed input snapshot before
 
 ## Development
 
-Install the package in editable mode, then run the test suite from the repository root:
+The `tests/` directory is maintained locally and excluded from Git. Fresh clones
+do not include the test suite. If you have the local test files, install the
+package in editable mode and run the suite from the repository root:
 
 ```bash
 python -m pytest
@@ -72,7 +74,8 @@ python -m pytest
 
 Default discovery includes `tests/unit` and `tests/integration`, including the full
 space-charge simulations. For grouped runs, individual cases, saved-field analysis,
-and explicit local Codex regressions, see the [space-charge test guide](tests/integration/space_charge/README.md).
+and explicit local Codex regressions, see the local guide at
+`tests/integration/space_charge/README.md`.
 
 Space charge supports `pic`, `frozen`, and `quasi-frozen` tracking through the
 `Method` / `Solver` configuration. Run `python -m tests.integration.space_charge analytic`
