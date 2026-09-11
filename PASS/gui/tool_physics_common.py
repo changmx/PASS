@@ -14,7 +14,7 @@ from PASS.gui.appearance import THEMES
 from PASS.gui.structured import IntegerSpinBox
 from PASS.gui.tool_beam import format_number, hint, number, output, ParticleEditor
 from PASS.gui.tool_formulas import FormulaDialog
-from PASS.tool.beam_calculator import solve_kinematics
+from PASS.gui.beam_calculator import solve_kinematics
 from PASS.tool.particles import ParticleSpec
 
 

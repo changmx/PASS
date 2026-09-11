@@ -7,7 +7,7 @@ from PySide6.QtCore import QSignalBlocker
 from PASS.gui.tool_beam import hint, number
 from PASS.gui.tool_optics_formulas import RF_FORMULAS
 from PASS.gui.tool_physics_common import PhysicsToolPage, ResultFields, integer
-from PASS.tool.rf_bucket import calculate_bucket
+from PASS.gui.rf_bucket import calculate_bucket
 
 
 class RFBucketPage(PhysicsToolPage):

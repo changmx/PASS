@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QGroupBox
 from PASS.gui.tool_beam import hint, number
 from PASS.gui.tool_optics_formulas import EXCITER_FORMULAS
 from PASS.gui.tool_physics_common import PhysicsToolPage, ResultFields
-from PASS.tool.exciter_calculator import ExciterSettings, calculate_exciter
+from PASS.gui.exciter_calculator import ExciterSettings, calculate_exciter
 
 
 class ExciterPage(PhysicsToolPage):

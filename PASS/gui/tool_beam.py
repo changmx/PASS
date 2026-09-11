@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QCombo
 
 from PASS.gui.structured import IntegerSpinBox, ScientificSpinBox
 from PASS.gui.tool_formulas import BEAM_FORMULAS, FormulaDialog
-from PASS.tool.beam_calculator import (beam_current, beam_power, circulating_beam,
+from PASS.gui.beam_calculator import (beam_current, beam_power, circulating_beam,
     particle_rate, pulsed_beam, solve_kinematics)
 from PASS.tool.particles import ParticleSpec, SPECIAL_PARTICLES, resolve_particle, search_particles
 from PASS.utils.constants import const

@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QComboBox, QFormLayout, QGroupBox, QLabel
 from PASS.gui.tool_beam import hint, number
 from PASS.gui.tool_optics_formulas import EMITTANCE_FORMULAS
 from PASS.gui.tool_physics_common import PhysicsToolPage, ResultFields
-from PASS.tool.optics_calculator import emittance_from, finite_number, twiss_from
+from PASS.gui.optics_calculator import emittance_from, finite_number, twiss_from
 
 
 class EmittancePage(PhysicsToolPage):

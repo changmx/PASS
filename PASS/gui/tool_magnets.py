@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QL
 from PASS.gui.tool_beam import format_number, hint, number, output
 from PASS.gui.tool_optics_formulas import MAGNET_FORMULAS
 from PASS.gui.tool_physics_common import PhysicsToolPage, ResultFields
-from PASS.tool.optics_calculator import dipole_from, quadrupole_from, signed_rigidity, finite_number, multipole_from, solenoid_from
+from PASS.gui.optics_calculator import dipole_from, quadrupole_from, signed_rigidity, finite_number, multipole_from, solenoid_from
 
 
 class MagnetSection(QWidget):
