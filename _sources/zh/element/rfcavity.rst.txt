@@ -526,6 +526,9 @@ TFS 文件中每行指定该圈的 ``HARMONIC`` 、 ``VOLTAGE`` 、 ``PHASE`` �
 验证测试
 --------
 
+此处所述测试文件仅在本地维护。``tests/`` 目录不纳入 Git 版本控制，
+新克隆的仓库不包含该目录。
+
 ``tests/test_rf_verification.py`` —— 18 组共 28 项测试，全部通过：
 
 1. 束团参考粒子 :math:`\delta \approx 0` （精度 :math:`< 10^{-12}` ）

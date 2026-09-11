@@ -1505,6 +1505,9 @@ Dirichlet grid.</p>
 </section>
 <section id="running-the-validation-suite">
 <h2>Running the Validation Suite<a class="headerlink" href="#running-the-validation-suite" title="Link to this heading"></a></h2>
+<p>The entire <code class="docutils literal notranslate"><span class="pre">tests/</span></code> directory is maintained locally and excluded from Git.
+Fresh clones do not include it. The test commands and test-file paths on this
+page require an existing local copy of the test suite.</p>
 <p>All space-charge integration cases run automatically, including the ten full
 generated-input workflows. From the repository root, run:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tests.integration.space_charge</span>

@@ -1450,6 +1450,8 @@ FFT 的差异同时包含物理边界条件变化，不能把它解释为 FD/DST
 </section>
 <section id="id16">
 <h2>运行验证套件<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<p>整个 <code class="docutils literal notranslate"><span class="pre">tests/</span></code> 目录仅在本地维护，不纳入 Git 版本控制，新克隆的仓库不包含该目录。
+本页的测试命令和测试文件路径均要求本地已有对应的测试套件。</p>
 <p>全部空间电荷积分测试默认自动执行，包括十个完整的生成输入工作流。在仓库根目录运行：</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tests.integration.space_charge</span>
 <span class="go">python -m tests.integration.space_charge regression</span>

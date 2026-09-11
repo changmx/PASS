@@ -626,6 +626,10 @@ Dirichlet grid.
 Running the Validation Suite
 ----------------------------
 
+The entire ``tests/`` directory is maintained locally and excluded from Git.
+Fresh clones do not include it. The test commands and test-file paths on this
+page require an existing local copy of the test suite.
+
 All space-charge integration cases run automatically, including the ten full
 generated-input workflows. From the repository root, run:
 
