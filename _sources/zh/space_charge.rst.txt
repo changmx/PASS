@@ -11,7 +11,7 @@
 - **代码位置**：``PASS/commands/space_charge.py``
 - **类名**：``SpaceCharge``，注册名称为 ``"SpaceCharge"``
 - **Schema 位置**：``PASS/para/schema/space_charge.py``
-- **计算后端**：仅 CPU
+- **计算后端**：CPU 与 NVIDIA GPU
 - **主要功能**：
 
   - 在每个 beam 输入文件顶层定义可复用的命名空间电荷配置；
@@ -252,7 +252,9 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
        }
    }
 
-程序只构建被 ``SpaceCharge`` 序列项引用的配置。同一 beam 内，相同配置名的
+程序只构建被 ``SpaceCharge`` 序列项或元件内部 ``Space charge`` 对象引用的配置。
+内部配置、中点调度、支持的元件和示例见 :ref:`zh-internal-space-charge`。
+同一 beam 内，相同配置名的
 多个命令共享网格。Dirichlet 求解器按配置和解析后的命令孔径缓存：相同管壁复用
 分解，不同管壁创建独立求解器。FFT 核不随损失孔径改变，可以共享。不同配置名
 始终拥有独立资源，即使字段相同。配置中不再包含 ``Chamber``。
@@ -423,6 +425,11 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
      - 0.0 m
      - 非负有效作用长度。为零时该命令不施加踢，也不产生快照。
        若损失孔径开启，仍进行局部损失检查；此时不需要切片数据。
+   * - ``sc_start``
+     - ``"SC start (m)"``
+     - float 或 null
+     - null
+     - 代表的积分区间起点，仅用于 :ref:`zh-sc-coverage`，不改变 kick 位置或粒子传输。
    * - ``aperture_type``
      - ``"Aperture type"``
      - str
@@ -490,8 +497,28 @@ PIC 孔径中没有有效网格节点时在初始化阶段报错；沉积时若�
 - 配置名和命令引用必须为非空字符串，且不得包含首尾空白。
 - 旧根级字段 ``Is space charge`` 和 ``Space-charge simulation parameters``
   会被拒绝；网格与求解器字段也不能内联到 ``SpaceCharge`` 序列命令中。
-- GPU 后端执行已启用且有非零长度或开启损失孔径的空间电荷命令时会报错；应使用
-  ``"Backend (gpu/cpu)": "cpu"``。
+- ``"Backend (gpu/cpu)": "gpu"`` 支持 PIC、frozen、quasi-frozen 方法与损失孔径，
+  使用配置中的粒子精度。
+
+GPU 初始化与复用
+----------------
+
+GPU 复用现有命名资源配置。初始化时准备每个被引用的配置/孔径组合：
+FD 持有 cuDSS 分析与数值分解；DST 持有变换数据与 plan；自由空间 FFT
+持有格林函数频谱与 plan。已知 SliceSet 数量用于预分配批量工作区。
+共享相同资源的命令直接复用。应在跟踪前通过序列或元件内部 SC 配置声明
+不同孔径，以便初始化时分别建立缓存项。
+
+网格数和宽度不变，并不意味着孔径变化后的 FD 算子不变：有效节点、稀疏结构
+与 Shortley--Weller 壁距都可能变化，因此必须切换到对应孔径的缓存项。
+即使有效节点 mask 不变，壁距改变也需要新的数值分解。
+DST 要求孔径等于完整网格矩形；不能通过对矩形 DST 解加 mask 来表示变化的内部孔径。
+
+从沉积、求场、回插到 kick，粒子与网格数组均保留在 GPU。
+校验和损失处理仍会读取少量状态量，整个命令目前不是完全异步的 CUDA Graph。
+选定的 HDF5 输出会将诊断数组传回 CPU。性能测量应将初始化、编译和首次
+批量工作区准备与重复跟踪分开。DST 自动择优与独立 GPU 接口参数见
+:doc:`field_solver`。
 
 诊断输出
 --------
@@ -561,6 +588,9 @@ PIC 孔径中没有有效网格节点时在初始化阶段报错；沉积时若�
 ``free_space_fft_vs_rectangular_fd_dst_field.png``、CSV 数据，以及把 FD/DST 两个
 方向逐点相对差同时画出的 ``fd_dst_relative_error_same_plot.png``。FD/DST 与
 FFT 的差异同时包含物理边界条件变化，不能把它解释为 FD/DST 离散误差。
+
+三者场对比图显示 0、22.5、45、67.5 和 90 度的径向扫描。颜色区分角度；
+点线、实线和虚线分别表示自由空间 FFT、矩形 FD 和矩形 DST。
 
 仅适用于 FD 的测试在文件名中注明物理边界，包括较大圆导体内的圆 KV 束团、填满
 椭圆导体的 KV 束团，以及高斯源和 KV 均匀投影源在
@@ -636,3 +666,410 @@ quasi-frozen 椭圆将长轴放在首位。
 旧资源键 ``Field solver``、``Aperture``、``Chamber`` 和旧公开 solver 值会被拒绝。
 配置使用 ``Method``、``Solver``，各命令使用 ``Aperture type/value``。固定横向参数
 仅用于 ``frozen``，且必须匹配所选分布；沉积设置仅用于 PIC。
+
+.. _zh-internal-space-charge:
+
+元件切片与内部空间电荷
+----------------------------------------
+
+三个独立的分辨率
+~~~~~~~~~~~~~~~~
+
+``Num slices`` 控制元件外场传输的切片数；元件内可选的 ``Space charge``
+对象控制沿元件长度的 SC 积分；命名的 ``Slicer`` 结果控制粒子的纵向分箱。
+这三个数量相互独立，修改其中一个不会隐式更新另外两个。
+
+实现位于 ``PASS/utils/slicing.py``。内部节点复用
+``SpaceCharge`` 的命名配置、场求解器和踢量归一化。
+逐 Twiss 或元件外显式布置仍可使用独立 ``SpaceCharge`` 序列命令：
+它使用命令执行时的粒子状态和自身 ``SC length (m)`` 计算踢量，
+不会把粒子传输该长度。
+
+支持的元件
+~~~~~~~~~~
+
+内部 SC 要求正的元件长度，支持 CPU 与 GPU 后端。支持的运行时命令为 ``Drift``、
+``SBend``、``Quadrupole``、``Sextupole``、``Octupole``、``Multipole``、
+``Kicker``、``Solenoid`` 和 ``ElSeparator``。
+
+* 多极场强和 kicker 角度是积分强度，每个外场子步使用相应长度比例。
+  Yoshida 内部带符号的子步保留其带符号的外场强度。
+* Drift、矩阵四极铁和纯 solenoid 可以传输部分长度。需要中点时，执行
+  半个短段映射、SC、剩余半个映射。
+* Solenoid 保留螺线管本体映射，其本体不替换成 drift。
+  叠加多极场时使用原有 Sol-Kick-Sol 步进。
+* 切片后的 ES 使用 drift、电场 kick、drift。电场 kick 按子步长度缩放，
+  在每个外场切片中心重新判断 septum 区域。电场 kick 在元件倾斜坐标系中执行，
+  SC 回到束流坐标系后，对包括无场区域在内的全部存活粒子计算。
+  Septum 截获按这些中心位置采样，并不连续求解轨迹与 septum 的交点。
+* 弯铁入口、出口映射仅在真实边界各执行一次。
+
+薄元件保留其薄 kick，不能配置内部 SC。``RFCavity`` 和 ``Exciter``
+可在附近放置独立 SC command。新增的 Drift、ElSeparator 外场切片默认值为 1。
+不启用内部 SC 时，外场切片也支持 GPU。GPU 内部节点遵循相同的物理位置
+与正 SC 权重，包括带符号的 Yoshida 外场子步。FP32 粒子存储下，极坐标弯铁
+计算使用双精度中间量以降低相消误差。
+
+调度规则
+~~~~~~~~
+
+设元件长度为 :math:`L`，请求的外场切片数为 :math:`N_e`，SC 次数为
+:math:`N_c`，调度器计算
+
+.. math::
+
+   m=\left\lceil N_e/N_c\right\rceil,\qquad
+   N_{e,\mathrm{actual}}=mN_c,\qquad
+   h=L/N_{e,\mathrm{actual}},\qquad H=L/N_c.
+
+每个 SC 积分区间恰好包含 :math:`m` 个外场切片，实际外场分辨率不低于请求值。
+``num_slice`` 保留请求值，``slice_plan.num_slices`` 记录实际值。
+未配置或关闭 SC 时，实际切片数等于外场切片数。
+
+``S (m)`` 表示元件出口坐标。第 :math:`j=0,\ldots,N_c-1` 个节点为
+
+.. math::
+
+   s_j=s_{\mathrm{exit}}-L+(j+1/2)H,\qquad L_{\mathrm{sc},j}=H>0.
+
+所有内部 SC 权重之和为 :math:`L`。SC 权重独立于执行它的外场子步长度。
+内部配置不接受单独的 ``SC length (m)``，该值由调度器推导。
+
+* :math:`m` 为奇数：在中间那个外场切片的中心、其完整中央外场 kick 之后执行 SC。
+* :math:`m` 为偶数：在中间两个完整外场切片之间执行 SC。
+
+.. list-table:: 示例
+   :header-rows: 1
+   :widths: 15 15 15 20 35
+
+   * - 请求外场数
+     - SC 次数
+     - 实际外场数
+     - 每个 SC 区间的切片数
+     - 位置
+   * - 4
+     - 10
+     - 10
+     - 1
+     - 外场切片中心
+   * - 12
+     - 4
+     - 12
+     - 3
+     - 中间外场切片的中心
+   * - 10
+     - 3
+     - 12
+     - 4
+     - 中间两个完整切片之间
+
+``uniform`` 的中心回调位于完整中央外场 kick 之后。
+``yoshida4`` 的中心回调位于第二个、负长度二阶子步的中央 kick 之后，
+它对应完整正长度外场切片的代数中点。只在这一个回调执行 SC，
+其他 Yoshida 子步不执行 SC。SC 权重始终是正的 :math:`H`，
+绝不使用带符号的 Yoshida 子步长度，也不把中央外场 kick 拆成两个半 kick。
+
+这是中点 SC 耦合，不能因为外场选择 ``yoshida4`` 就认为整体具有四阶精度。
+应分别检查外场与 SC 分辨率的收敛；平滑、线性均匀束流验证中，
+本耦合方案趋于二阶收敛。固定纵向分箱也不意味着任意外场映射与 SC 可交换。
+
+配置与使用
+~~~~~~~~~~
+
+所有支持的元件 schema 提供 ``num_slices``（JSON ``Num slices``，默认 1）
+和 ``space_charge``（JSON ``Space charge``，默认 null）。
+``ElementSpaceCharge`` 接口如下：
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 15 35
+
+   * - Python 字段
+     - JSON 键
+     - 默认值
+     - 含义
+   * - ``configuration``
+     - ``Configuration``
+     - 必填
+     - 顶层命名 SC 资源
+   * - ``num_kicks``
+     - ``Num kicks``
+     - 1
+     - 正整数，不接受 bool、浮点数或数字字符串
+   * - ``aperture_type`` / ``aperture_value``
+     - ``Aperture type`` / ``Aperture value``
+     - ``default`` / []
+     - 兼容原有配置；默认继承元件孔径，不一致时警告并替换
+   * - ``save_field`` / ``save_potential`` / ``save_density``
+     - ``Save field`` / ``Save potential`` / ``Save density``
+     - false
+     - 诊断支持范围与所选显式 SC 求解器相同
+   * - ``save_turns``
+     - ``Save turns``
+     - []
+     - 原有格式，例如 [[0]] 或 [[0, 100, 10]]
+
+对于已有的 sequence 和命名配置 ``sc_default``：
+
+.. code-block:: python
+
+   from PASS.para.schema.elements import QuadrupoleElement
+   from PASS.para.schema.space_charge import ElementSpaceCharge
+
+   sequence.add("q1", QuadrupoleElement(
+       s=1.0, length=0.4, k1l=0.12,
+       num_slices=10, integrator="yoshida4",
+       space_charge=ElementSpaceCharge(
+           configuration="sc_default", num_kicks=3,
+           save_density=True, save_turns=[[0]],
+       ),
+   ))
+
+此例请求 10 个外场切片，实际使用 12 个切片、3 次 SC，每次权重为 0.4/3 m。
+需要启用顶层 ``Space charge.Enabled``，并在 ``Configurations`` 定义
+``sc_default``。元件执行前必须已有该配置指定的 SliceSet，通常由上游
+``Slicer`` 提供。
+
+内部节点复用已有 ``slice_id`` 和 ``slice_table.delta_z``，不重新分箱、
+不修改这些宽度，也不折叠 ``p.z``。每次场计算使用当前横向粒子坐标，
+具体分布处理由所选 PIC/frozen/quasi-frozen 模型决定。
+元件只按总长度推进一次 ``bunch.t0``，每个节点只作用于当前跟踪的束团。
+
+内部 SC 始终使用所属元件的孔径，粒子损失检查和 Dirichlet 导体边界均以
+元件孔径为准。建议省略内部孔径字段：其 ``default`` 表示继承元件孔径。
+若内部显式指定的孔径不同，会对该元件的这一处不一致警告一次，并在建立求解器资源前
+替换为元件孔径。原始输入对象保持不变；打印输出实际生效值和 ``Source=element``。
+
+元件的通用 ``default`` 仍为 +/-1 m 矩形，不是 SC 网格矩形。
+元件孔径为 ``off`` 时内部 SC 也保持 off：自由空间 PIC 和解析模型允许这样设置，
+Dirichlet 求解器则要求元件具有有限孔径。PIC 网格必须包含继承后的孔径，
+DST 要求它恰好等于网格对齐的完整矩形。不兼容时初始化报错，不会静默更换管壁或求解器。
+关闭损失孔径时，自由空间 PIC 中粒子超出网格仍会触发原有网格范围错误。
+独立的显式 SC command 仍保留自己的孔径设置。
+
+SC 节点和元件出口均检查元件孔径。损失粒子不参与源项和踢量，首次损失记录得到保留。
+内部节点按配置名和实际孔径共享资源，快照保存在
+``<space_charge_output>/<element>/internal_sc/node_000000/turn_000000/``。
+文件名保留 beam 和 bunch 标识。HDF5 记录 ``parent_element``、
+``internal_node_index``、``s``、``sc_length`` 和 ``sc_start``。
+显式 SC 仅在填写了起点时保存 ``sc_start``；它描述代表的积分区间，不改变力的计算。
+
+各元件的 ``print()`` 输出请求和实际外场切片数、切片长度、SC 配置名、
+method、solver、SliceSet、SC 次数和放置方式、单次和总作用长度、首末节点位置、
+实际孔径和保存设置。未配置内部 SC 时打印 ``off``，全局关闭时打印
+``disabled by top-level Space charge.Enabled``。内部 SC 耗时仍计入母元件耗时。
+
+导入 MAD-X 元件时，合并后的普通 drift 使用末段出口 S；带局部 SC、
+非默认外场切片或孔径配置的 drift 保留原边界，不参与合并。
+
+.. _zh-sc-coverage:
+
+跟踪前的作用长度与覆盖检查
+--------------------------
+
+``Executor.run`` 在粒子跟踪前检查各启用 beam 的实际命令序列。
+每次经过 sequence 的内部 SC 权重与显式 command 长度各累计一次，
+不乘束团数，也不乘模拟圈数。除了总权重，还检查区间覆盖：
+总长度相等不能排除某处遗漏、另一处重复。
+
+以下字段位于顶层 ``Space charge`` 中，与 ``Enabled``、``Configurations``
+同级，也可通过 GUI 的空间电荷表单编辑。
+
+.. list-table:: 覆盖检查配置
+   :header-rows: 1
+   :widths: 25 25 15 35
+
+   * - Python 字段
+     - JSON 键
+     - 默认值
+     - 含义
+   * - ``coverage_check``
+     - ``Coverage check``
+     - ``warn``
+     - ``warn`` 警告后继续；``error`` 在不一致或无法完整检查时于跟踪前报错；
+       ``off`` 跳过这项检查。
+   * - ``coverage_mode``
+     - ``Coverage mode``
+     - ``full-ring``
+     - 全环模式比较总权重与 ``Circumference (m)``，并检查遗漏和重复。
+       ``partial`` 允许未覆盖区段，但仍检查重复。
+   * - ``expected_sc_length``
+     - ``Expected SC length (m)``
+     - null
+     - 仅 ``partial`` 可选的非负总权重目标；全环模式固定使用环长，禁止此覆盖值。
+
+要严格检查全环，可将以下设置合入已有顶层 ``Space charge`` 块：
+
+.. code-block:: json
+
+   {
+       "Coverage check": "error",
+       "Coverage mode": "full-ring"
+   }
+
+内部 SC 的积分区间由元件本体确定。显式 SC command 可选填
+``SC start (m)``（Python ``sc_start``），与 ``SC length (m)`` 一起表示
+半开区间 :math:`[s_{start},s_{start}+L_{sc})`。起点独立于 kick 的 ``S (m)``。
+例如在 0.7 m 处施加代表 [0.5, 0.9) m 区间的 SC：
+
+.. code-block:: json
+
+   {
+       "Command": "SpaceCharge",
+       "S (m)": 0.7,
+       "Configuration": "sc_default",
+       "SC start (m)": 0.5,
+       "SC length (m)": 0.4
+   }
+
+区间按环长周期比较，支持跨越 s=0 的区间和超过一圈的作用长度，不折叠粒子坐标。
+绝对比较容差为 ``max(1e-12 m, 1e-10 * circumference)``。
+
+正长度显式 command 未填写起点时，其权重仍参与求和，但检查器不会擅自假定
+区间以 kick 位置为中心，报告状态为 ``incomplete``。此时已知区间未覆盖的位置
+不能被认定为真实遗漏。严格模式拒绝检查不完整或不一致的配置，警告模式兼容原有工作流。
+关闭或零权重的显式 SC 不参与累计。
+
+日志输出总长度、目标长度、次数、状态及前十个遗漏或重复区段。
+完整区间和贡献项保存到 ``<space_charge_output>/coverage_beam0.json``，
+每个启用检查的 beam 各有一份，并可从 ``sim.space_charge_coverage[beam_id]`` 获取。
+严格模式失败时也先保存报告再抛出异常。partial 模式中的未覆盖区段仅作信息输出。
+程序不会自动修改长度或用户区间来满足检查。环长缺失或无效时周期检查不完整；
+全局关闭空间电荷时跳过检查。
+
+FODO 工作点验证
+----------------
+
+需显式运行的生成测试位于 ``tests/codex/sc_tune_fodo/``，使用
+``example/03_tracking_element_by_element/fodo.tfs`` 进行带元件内部 SC 的
+多圈逐元件跟踪。测试保留原文件，在独立生成的输入中关闭非线性多极强度，
+使用 33.2 MeV 质子束、无 RF，并开启严格的整环 SC 覆盖检查。在仓库根目录运行：
+
+.. code-block:: console
+
+   python -m pytest tests/codex/sc_tune_fodo/test_benchmark.py -v
+   python -m tests.codex.sc_tune_fodo.run --suite frozen --turns 256
+   python -m tests.codex.sc_tune_fodo.run --suite duration --turns 128
+   python -m tests.codex.sc_tune_fodo.run --suite collective --turns 256 --particles 4096
+
+均匀 frozen 模型采用独立的连续线性矩阵作为理论参考；高斯模型采用一阶
+作用量平均场积分。每组 SC 计算均有初始坐标与外场切片一致的无 SC 对照。
+PhaseAdvanceMonitor 记录全体粒子，另对 36 个作用量探针的 ParticleMonitor
+轨迹进行独立复信号傅里叶分析。输出包含工作点分布、束流演化、CSV/JSON
+对比、覆盖报告及加密差异。各组生成输入和跟踪应串行运行。
+
+Frozen 圆束是预设场源，并非与 FODO 匹配的自洽束流。
+Quasi-frozen/PIC 使用初始匹配高斯束理论作为参考，并报告网格、粒子数、
+随机种子和纵向分箱的敏感性；frozen 检查通过不代表 PIC 已收敛。
+测试目录 README 说明公式、容差和纵向静止的分箱模型。
+
+全粒子 PIC 跟踪
+~~~~~~~~~~~~~~~
+
+``tests.codex.sc_tune_fodo.long_pic`` 将验证扩展至真正的四维 KV 和高斯
+粒子分布。每个粒子均参与电荷沉积，接受重新求解的 PIC 场，其四个横向
+坐标逐圈保存到一个无损 HDF5 文件。例如：
+
+.. code-block:: console
+
+   python -m tests.codex.sc_tune_fodo.long_pic --profile kv --turns 1024 --particles 8192 --grid 129 --kicks 2 --output tests/codex/sc_tune_fodo/output/my_kv_1024
+   python -m tests.codex.sc_tune_fodo.long_pic --profile gaussian --turns 1024 --particles 8192 --grid 129 --kicks 2 --output tests/codex/sc_tune_fodo/output/my_gaussian_1024
+   python -m tests.codex.sc_tune_fodo.long_pic --profile gaussian --turns 512 --particles 65536 --grid 129 --kicks 2 --output tests/codex/sc_tune_fodo/output/my_gaussian_refined_512
+
+使用新的输出目录，并串行运行。该实验通过测试局部钩子将纵向坐标固定为零，
+逐圈检查动量偏差保持不变，用一个分箱表示线密度 ``N/C``。
+这是横向静止切片验证，不是纵向束团模拟，也没有新增公开元件参数。
+应通过上述模块运行；单独运行生成的 JSON 不会启用这些测试钩子。
+
+独立的匹配 KV 理论在每个平面给出一个下降后的工作点；高斯理论通过
+相位平均场积分计算初始弱空间电荷条件下随振幅变化的工作点。
+傅里叶分析覆盖全部粒子和不同时间窗口。输出包括逐粒子 CSV 对比、
+模拟与理论 tune spread 图、发射度演化、源文件哈希及整环覆盖检查。
+测试目录中的 ``LONG_PIC.md`` 说明匹配、低噪声采样、公式和数值限制。
+完整串行流程可通过
+``python -m tests.codex.sc_tune_fodo.run_long_pic --output <新目录>`` 运行。
+初始低噪声粒子采样不保证多圈后仍然低噪声；流程保留初始高斯长圈数结果，
+并在经过独立检查的较短频率窗口内验证更大的粒子数。
+
+不同边界的多圈集成测试
+~~~~~~~~~~~~~~~~~~~~~~
+
+可复用的 ``tests.integration.space_charge.multiturn`` 使用正式输入、Twiss、
+Slicer 和 PIC 命令构造均匀聚焦基准环。全部带电 KV/高斯粒子追踪 512 圈，
+覆盖自由空间 FFT、圆形接地边界 FD 和矩形接地边界 FD/DST。
+Twiss 纵向传输关闭；一个固定纵向切片表示 ``N/C`` 线密度，
+正权重中心 SC kick 的积分长度覆盖整环。
+
+.. code-block:: console
+
+   python -m tests.integration.space_charge.multiturn --output tests/integration/space_charge/output/my_multiturn
+   python -m tests.integration.space_charge.multiturn --analyse-only --output tests/integration/space_charge/output/my_multiturn
+   python -m tests.integration.space_charge multiturn
+
+最后一个命令通过 pytest 执行追踪验收及独立理论检查；``all`` 组包含这些测试。
+默认 KV 使用 32,768 个粒子，高斯使用 65,536 个粒子。
+请使用新的输出目录，并串行运行生成输入的工作流。
+``--resume`` 检查配置后复用已完成案例；未完成案例保留并报错。
+
+矩形管理论由连续 Poisson 方程的本征函数展开、解析源系数及 Bessel 相位平均得到，
+独立于 PIC 电荷沉积和网格求解器。圆形管内居中的圆对称源使用自由空间径向场。
+高斯 tune 预测采用初始弱空间电荷近似，并非精确的非线性 Vlasov 平衡解。
+测试覆盖横向准静态边界模型，不覆盖纵向空间电荷、管壁频率响应或 GPU。
+
+输出包括完整粒子轨迹、逐粒子理论/模拟 tune、前后半段频率差、
+rms 束斑及发射度演化、密度/势/场图和独立的中轴线场比较。
+``tests/integration/space_charge/multiturn/README.md`` 说明公式、验收误差、边界尺寸
+及复现方法。此均匀聚焦基准与上面的逐元件 FODO 测试互为补充。
+
+强空间电荷验证与扁平算例输出
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``tests.integration.space_charge.strong`` 提供独立的串行验证流程，包含
+匹配 KV 的 0.9、0.7、0.5 tune depression 扫描、数值加密、周期 FODO
+追踪，以及开放和导体边界下的高斯演化。均匀聚焦 KV 使用完整自洽平衡解，
+不采用一阶 tune shift；FODO 由独立周期 KV 包络匹配，逐晶胞相位累计确定
+包含整数部分的完整 tune。高斯 rms 匹配并非精确非线性平衡，因此需要通过
+数值加密及独立的无网格轴对称平均场参照比较其演化。此参照不包含非轴对称模，
+本身也有有限采样和时间步误差。
+
+周期 KV 包络匹配只保证二阶矩的周期性，并不保证所有高阶分布模稳定。
+发生集体增长的算例保留静态 KV 判据的未通过记录，并提供高阶矩诊断。
+可选的 ``strong.retuned`` 模块增加单独记录的 FODO 工作点控制，
+不会替代原始结果。首次内部 KV 场采用独立部分四极传输后的均匀椭圆解析场比较。
+
+.. code-block:: console
+
+   python -m pytest tests/integration/space_charge/test_strong_references.py -v
+   python -m tests.integration.space_charge.strong --output tests/integration/space_charge/output/my_strong_run
+   python -m tests.integration.space_charge.strong.finish tests/integration/space_charge/output/my_strong_run
+
+最后一个命令补齐独立参照及诊断，重新生成报告，并核查保存的轨迹及扁平输出文件，
+不会重复 PIC 追踪。串行批次运行期间需要中间报告时，可运行
+``tests.integration.space_charge.strong.report`` 模块并传入输出目录。
+
+后处理还会在二维束流区域内将首次网格场与独立连续场比较。区域采用小于 4 sigma
+的归一化椭圆半径，并排除网格外缘的 5%；各场分量的预设 L2 相对误差门限为 3%。
+各算例中的 ``initial_field_2d`` 文件包含图片、指标、理论/PIC 网格及区域掩码。
+这种区域范数不是逐网格点的误差上界，也不代表长期精度。
+椭圆高斯初始场采用独立连续 Poisson 积分解；参照测试检查积分加密、圆束极限
+以及轴线之外的场方程和零旋度条件。
+
+可选的 ``strong.linear_fodo`` 诊断复用已完成 FODO 算例的粒子、电荷和 SC 位置，
+以独立线性矩阵替换生产元件传输并保留非线性 PIC，用于隔离外场几何非线性和
+元件调度。它本身不能确定某种已证实的物理 Vlasov 不稳定性。
+
+流程输出中文报告和科学绘图。每个独立算例的输入、轨迹、CSV、图片和报告
+直接放在同一个目录。``Config.load_input(path, flat_output=True)`` 是本流程
+使用的可选 Python 运行时参数，不是 JSON 字段。调用方负责为每次运行隔离目录；
+已有运行输入快照时会报错。SC 快照文件名包含命令、内部节点（如适用）、beam、
+bunch 和圈数。应用程序默认输出仍采用日期目录布局。
+
+均匀聚焦环关闭 Twiss 纵向传输；FODO 实验通过测试局部钩子在元件末尾冻结 z，
+并检查 dp 不变。单独运行生成的 JSON 不会启用此钩子。这些是 CPU 横向测试，
+不验证纵向空间电荷、RF、GPU 或管壁频率响应。
+本轮 FODO 强流算例每次 SC 对应两个外场切片，SC 位于完整外场切片之间，
+不能据此验证奇数分组的内部中心回调强流精度。
+关闭 SC 的基线使用裸 tune 绝对误差；由于 SC shift 为零，按 shift 归一化的指标
+记录为 ``null``。
+``tests/integration/space_charge/strong/README.md`` 说明全部设置、独立参照、
+预先规定的门限和扁平输出文件。

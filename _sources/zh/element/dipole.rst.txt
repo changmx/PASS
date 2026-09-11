@@ -1269,3 +1269,11 @@ YRotation 的 :math:`p_x'` 公式为 :math:`p_x' = \cos\alpha \cdot p_x - \sin\a
 - Forest, E. et al., "Edge Focusing Effects in Sector Bending Magnets"
 - Yoshida, H., "Construction of higher order symplectic integrators", Phys. Lett. A 150 (1990)
 - MAD-NG fringe field implementation: https://github.com/MethodicalAcceleratorDesign/MAD
+
+元件内部空间电荷
+----------------
+
+正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
+``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
+支持的后端和示例见 :ref:`zh-internal-space-charge`。

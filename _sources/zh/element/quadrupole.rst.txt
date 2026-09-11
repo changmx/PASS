@@ -741,3 +741,11 @@ MKM 模型，精确线性传输，切片数 1 即可。速度优于 DKD-exact �
 - Xsuite 源码： ``xtrack/beam_elements/elements_src/quadrupole.h`` , ``track_magnet.h`` , ``track_magnet_kick.h`` , ``track_magnet_drift.h``
 - Yoshida, H., "Construction of higher order symplectic integrators", Phys. Lett. A 150 (1990)
 - MAD-X 物理手册：四极磁场与线性传输
+
+元件内部空间电荷
+----------------
+
+正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
+``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
+支持的后端和示例见 :ref:`zh-internal-space-charge`。

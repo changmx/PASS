@@ -539,3 +539,11 @@ DKD-exact 方案中，理想八极磁铁的所有非线性效应天然包含，�
 - Yoshida, H., "Construction of higher order symplectic integrators", Phys. Lett. A 150 (1990)
 - MAD-X 物理手册：八极磁场与非线性传输
 - Wiedemann, H., "Particle Accelerator Physics", Ch. 4 (非线性束流动力学)
+
+元件内部空间电荷
+----------------
+
+正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
+``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
+支持的后端和示例见 :ref:`zh-internal-space-charge`。

@@ -392,7 +392,7 @@ yoshida4 积分器（4阶辛）
     - ``num slices``
     - int
     - -
-    - 切片数，默认 1（仅多极场叠加时有效）
+    - 外场本体切片数，默认 1（纯螺线管也有效）
   * - ``integrator``
     - ``integrator``
     - str
@@ -411,7 +411,7 @@ yoshida4 积分器（4阶辛）
 
 .. note::
 
-  - ``knl`` / ``ksl`` 为可选参数。不指定或全零时，螺线管使用单段精确映射（零误差），忽略 ``num_slices`` 和 ``integrator``
+  - ``knl`` / ``ksl`` 为可选参数。不指定或全零时，每个螺线管切片使用精确本体映射；``num_slices`` 生效，``integrator`` 不参与计算
   - 指定非零 ``knl`` / ``ksl`` 时，启用 SKS 积分器， ``num_slices`` 和 ``integrator`` 生效
   - ``ks = 0`` 且有长度时，元件退化为纯漂移
   - ``length = 0`` 时，螺线管无效应（不提供薄透镜模式）
@@ -518,3 +518,11 @@ yoshida4 积分器（4阶辛）
 - **对撞机探测器螺线管** ：大型实验探测器（如 CMS、ATLAS）的螺线管磁场对束流光学有显著影响，需在 lattice 模型中精确计入
 - **超导螺线管** ：高场超导螺线管中的多极场误差可通过 ``knl`` / ``ksl`` 参数叠加建模
 - **旋转对称束流** ：螺线管的 Larmor 旋转可用于消除 :math:`x` - :math:`y` 耦合或产生特定旋转对称的束流分布
+
+元件内部空间电荷
+----------------
+
+正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
+``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
+支持的后端和示例见 :ref:`zh-internal-space-charge`。

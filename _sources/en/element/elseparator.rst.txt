@@ -662,3 +662,20 @@ References
 - Xsuite source code: ``xtrack/mad_loader.py`` (``convert_elseparator = convert_drift_like``, xsuite does not yet implement an independent elseparator)
 - Wiedemann, H., "Particle Accelerator Physics", Ch. 4 (equivalence between electric and magnetic deflection)
 - Conte, M. & MacKay, W.W., "An Introduction to the Physics of Particle Accelerators", Ch. 7 (electrostatic separators in injection and extraction)
+
+Internal Space Charge
+------------------------------------------
+
+A positive-length element may set ``space_charge`` (JSON ``Space charge``)
+to an ``ElementSpaceCharge`` object. ``Num slices`` controls external transport,
+while ``Space charge.Num kicks`` controls SC integration. See :ref:`en-internal-space-charge`
+for scheduling, shared resources, supported backends and examples.
+
+``num_slices`` (JSON ``Num slices``) is a positive integer, default 1.
+Without internal SC, that many body slices are used on both CPU and GPU.
+
+With multiple external slices or internal SC, septum classification is
+performed at each external slice center. The default one-slice map without
+internal SC retains entry classification. Electric kicks retain the existing
+transverse approximation and do not update ``dp``. Slicing refines that model;
+it does not introduce electric work or a full three-dimensional field model.

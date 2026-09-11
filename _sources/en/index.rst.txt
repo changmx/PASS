@@ -9,6 +9,8 @@ Welcome to PASS, the Particle Accelerator Simulation Studio.
 
    input_generation
    gui
+   project_files
+   input_validation
    injection
    element/index
    monitor/index

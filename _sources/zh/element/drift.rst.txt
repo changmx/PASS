@@ -154,3 +154,14 @@ Drift 不对更新后的 :math:`z_{\mathrm{rel}}` 做环周折叠。连续保存
 - **色散测量** ：在偏转磁铁后设置漂移段，利用色散效应测量束流动量分散
 - **束流传输** ：在注入线和引出线中传输束流，不施加任何场
 - **孔径检查** ：在关键位置设置带孔径检查的漂移节，监控束流损失
+
+元件内部空间电荷
+----------------
+
+正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
+``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
+支持的后端和示例见 :ref:`zh-internal-space-charge`。
+
+``num_slices``（JSON ``Num slices``）为正整数，默认 1。
+不启用内部 SC 时，CPU 与 GPU 均使用该数量的本体切片。

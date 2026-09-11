@@ -392,7 +392,7 @@ Interface Parameters
     - ``num slices``
     - int
     - -
-    - Number of slices, default 1 (effective only with multipole field overlay)
+    - Number of external body slices, default 1 (also used for a pure solenoid)
   * - ``integrator``
     - ``integrator``
     - str
@@ -411,7 +411,7 @@ Interface Parameters
 
 .. note::
 
-  - ``knl`` / ``ksl`` are optional parameters. When not specified or all zero, the solenoid uses a single-segment exact map (zero error), ignoring ``num_slices`` and ``integrator``
+  - ``knl`` / ``ksl`` are optional parameters. When not specified or all zero, each solenoid slice uses the exact body map; ``num_slices`` applies and ``integrator`` is unused
   - When nonzero ``knl`` / ``ksl`` are specified, the SKS integrator is enabled, and ``num_slices`` and ``integrator`` take effect
   - When ``ks = 0`` and the element has length, it degenerates to a pure drift
   - When ``length = 0``, the solenoid has no effect (thin lens mode is not provided)
@@ -518,3 +518,11 @@ Application Scenarios
 - **Collider detector solenoids**: The solenoid magnetic fields of large experimental detectors (e.g., CMS, ATLAS) have a significant impact on beam optics and must be accurately accounted for in the lattice model
 - **Superconducting solenoids**: Multipole field errors in high-field superconducting solenoids can be modeled through ``knl`` / ``ksl`` parameter overlay
 - **Rotationally symmetric beams**: The Larmor rotation of the solenoid can be used to eliminate :math:`x`-:math:`y` coupling or produce specific rotationally symmetric beam distributions
+
+Internal Space Charge
+------------------------------------------
+
+A positive-length element may set ``space_charge`` (JSON ``Space charge``)
+to an ``ElementSpaceCharge`` object. ``Num slices`` controls external transport,
+while ``Space charge.Num kicks`` controls SC integration. See :ref:`en-internal-space-charge`
+for scheduling, shared resources, supported backends and examples.

@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="注入粒子生成（Injection）" href="injection.html" />
+    <link rel="next" title="单文件项目" href="project_files.html" />
     <link rel="prev" title="输入文件生成（命令行模式）" href="input_generation.html" /> 
 </head>
 
@@ -82,14 +82,32 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">图形界面配置流程</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id2">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">主题与控件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">属性顺序与分区</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">模块职责</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">结构化数组参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">空间电荷</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id3">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id4">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id5">手动传输点与后续编辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">手动传输点与后续编辑</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="project_files.html">单文件项目</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id2">保存与打开</a></li>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id3">容器格式</a></li>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id4">查看和复用参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id5">导出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id6">运行</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="input_validation.html#id1">一键全面检测</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_validation.html#id2">检测范围</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_validation.html#python">命令行与 Python</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="injection.html">注入粒子生成（Injection）</a><ul>
@@ -130,6 +148,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#id2">接口参数</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#id3">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#id4">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id5">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -144,6 +163,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id21">参数列表</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id24">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id28">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#id29">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html">四极铁（Quadrupole）</a><ul>
@@ -157,6 +177,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id15">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id23">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id24">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html#id25">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/sextupole.html">六极铁（Sextupole）</a><ul>
@@ -170,6 +191,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id10">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id16">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id17">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html#id18">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/octupole.html">八极铁（Octupole）</a><ul>
@@ -183,6 +205,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id9">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id15">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id16">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/octupole.html#id17">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/multipole.html">多极铁（Multipole）</a><ul>
@@ -199,6 +222,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id12">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id17">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id18">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/multipole.html#id19">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/solenoid.html">螺线管（Solenoid）</a><ul>
@@ -212,6 +236,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id9">接口参数</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id10">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id16">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html#id17">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/kicker.html">冲击磁铁（Kicker）</a><ul>
@@ -224,6 +249,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id9">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id14">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id15">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/kicker.html#id16">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/elseparator.html">静电偏转板（ElSeparator）</a><ul>
@@ -239,6 +265,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id11">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id19">应用场景</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id20">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html#id21">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a><ul>
@@ -385,10 +412,25 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="space_charge.html#id12">网格范围与孔径校验</a></li>
 <li class="toctree-l3"><a class="reference internal" href="space_charge.html#id13">配置与校验规则</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#gpu">GPU 初始化与复用</a></li>
 <li class="toctree-l3"><a class="reference internal" href="space_charge.html#id14">诊断输出</a></li>
 <li class="toctree-l3"><a class="reference internal" href="space_charge.html#id15">验证文件组织</a></li>
 <li class="toctree-l3"><a class="reference internal" href="space_charge.html#id16">运行验证套件</a></li>
 <li class="toctree-l3"><a class="reference internal" href="space_charge.html#id17">解析诊断与验证</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#zh-internal-space-charge">元件切片与内部空间电荷</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id19">三个独立的分辨率</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id20">支持的元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id21">调度规则</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id22">配置与使用</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#zh-sc-coverage">跟踪前的作用长度与覆盖检查</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#fodo">FODO 工作点验证</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#pic">全粒子 PIC 跟踪</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id24">不同边界的多圈集成测试</a></li>
+<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="field_solver.html">横向场求解器</a><ul>
@@ -427,6 +469,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="field_solver.html#id16">高效网格数建议</a></li>
 <li class="toctree-l3"><a class="reference internal" href="field_solver.html#id17">选择建议与限制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
 </ul>
@@ -466,6 +509,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/gui.html">Graphical configuration workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#appearance-and-controls">Appearance and controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#property-ordering-and-sections">Property ordering and sections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#module-responsibilities">Module responsibilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#structured-array-parameters">Structured array parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui.html#space-charge">Space charge</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui.html#twiss-and-optics">Twiss and optics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../en/gui.html#mad-x-sampling">MAD-X sampling</a></li>
@@ -474,6 +521,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/project_files.html">Single-file projects</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#saving-and-opening">Saving and opening</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#container-format">Container format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#exporting">Exporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#running">Running</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/input_validation.html">JSON input validation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_validation.html#one-click-preflight">One-click preflight</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_validation.html#what-is-checked">What is checked</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/input_validation.html#command-line-and-python">Command line and Python</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/injection.html">Injection / Particle Generation</a><ul>
@@ -514,6 +575,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -528,6 +590,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#parameter-list">Parameter List</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/quadrupole.html">Quadrupole</a><ul>
@@ -541,6 +604,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/sextupole.html">Sextupole</a><ul>
@@ -554,6 +618,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/octupole.html">Octupole</a><ul>
@@ -567,6 +632,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/multipole.html">Multipole</a><ul>
@@ -583,6 +649,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/solenoid.html">Solenoid</a><ul>
@@ -596,6 +663,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/kicker.html">Kicker</a><ul>
@@ -608,6 +676,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/elseparator.html">ElSeparator</a><ul>
@@ -623,6 +692,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#references">References</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/exciter.html">Exciter</a><ul>
@@ -769,10 +839,25 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-rules">Configuration Rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#gpu-initialization-and-reuse">GPU initialization and reuse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#diagnostic-output">Diagnostic Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#validation-layout">Validation Layout</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#element-slicing-and-internal-space-charge">Element Slicing and Internal Space Charge</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#three-independent-resolutions">Three independent resolutions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#supported-elements">Supported elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#scheduling-rule">Scheduling rule</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#configuration-and-use">Configuration and use</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#pre-tracking-integration-length-and-coverage-checks">Pre-tracking integration-length and coverage checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#fodo-tune-verification">FODO tune verification</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#whole-population-pic-tracking">Whole-population PIC tracking</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#multi-turn-integration-tests-across-boundaries">Multi-turn integration tests across boundaries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/field_solver.html">Transverse Field Solvers</a><ul>
@@ -811,6 +896,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#gpu-resources-and-execution">GPU resources and execution</a></li>
 </ul>
 </li>
 </ul>
@@ -847,14 +933,95 @@
 <p>使用 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[gui]&quot;</span></code> 安装可选界面，再通过
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.gui</span></code> 或 <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> 启动。配置页编辑追踪引擎使用的输入文件；
 运行页和绘图页保持独立。</p>
-<p>中间配置概览中的全局配置与执行序列详情都折叠时，两个标题在顶部依次排列。
-展开任一面板后，其内容使用可用的垂直空间。</p>
+<p>顶部集中放置文件、配置、运行、绘图，以及深色/浅色/跟随系统的主题选择。
+默认窗口为 1200 × 760 逻辑像素，窗口和侧栏尺寸、主题及列偏好保存在本机。
+中间执行序列按引擎的位置分箱与命令优先级排序。名称、Command、位置为必备列；拖动表头分隔线调整列宽，
+右键选择其他列。校验放在执行序列工具栏，但检查完整当前输入及文件依赖。
+完整报告、规则与命令行检测参见 <a class="reference internal" href="input_validation.html"><span class="doc">JSON 输入文件检测</span></a>。
+属性字段全部展开，不适用字段保留显示并禁用，长表单在属性栏内滚动。
+JSON/项目保存、源文件打包、参数复用和固定运行快照参见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
 <p>左侧组件库的展开栏按选项数量占用高度，多余空间留在整个列表底部。
-<strong>物理模块</strong> 依次包含 <strong>空间电荷</strong>、<strong>尾场</strong>、<strong>束束效应</strong>、<strong>电子云</strong>，
-各栏可独立展开或折叠。后三项目前没有子选项，展开空栏目不会预留空白区域。</p>
+启动时仅 <strong>输入配置（必需）</strong> 展开，其余一级栏目以及空间电荷子菜单默认折叠。
+<strong>物理效应</strong> 依次包含 <strong>空间电荷</strong>、<strong>尾场</strong>、<strong>束束效应</strong>、<strong>电子云</strong>，
+空间电荷可独立展开或折叠。后三项尚无配置界面，显示为禁用的预留入口。</p>
 <section id="id2">
-<h2>空间电荷<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>在 <strong>物理模块</strong> 中点击 <strong>空间电荷</strong> 标题，可展开或折叠其子菜单，交互与外层模块一致。
+<h2>主题与控件<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>深色主题采用 <a class="reference external" href="https://github.com/Binaryify/OneDark-Pro">One Dark Pro 的配色</a>，
+以炭灰背景、蓝色强调和柔和灰色文字呈现；浅色主题使用相同的控件与层级结构。
+界面使用 12 逻辑像素字体，优先 Segoe UI Variable Text，中文回退至 Microsoft YaHei UI。
+JSON 源码和运行日志使用等宽字体：优先 JetBrains Mono，未安装时使用 Consolas 或 Cascadia Mono。
+源码的键、字符串、数值与布尔值分别着色。无需另外安装字体。</p>
+<p><strong>输入配置（必需）</strong> 标出输入配置入口。各级标题和选项均左对齐，
+子级逐层向右缩进，以细竖线连接，并用轻微底色区分主标题；不依赖颜色判断层级。
+下拉框右侧始终显示箭头和分隔线。复选框以对号表示选中，禁用时保留对号。</p>
+<p>校验、表格编辑、消息和文件选择窗口均跟随当前主题。Windows 11 使用系统接口设置
+原生标题栏的背景与文字颜色，Windows 10 使用系统支持的深色标题栏标志；
+窗口仍保留系统移动、缩放和贴靠功能。文件选择使用 Qt 对话框，以使内容区也保持主题一致。</p>
+</section>
+<section id="id3">
+<h2>属性顺序与分区<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>属性标题旁显示只读的 <code class="docutils literal notranslate"><span class="pre">Command</span></code> 类型，可编辑参数从名称、位置 <code class="docutils literal notranslate"><span class="pre">s</span></code>、长度开始。
+元件本身的场强和几何参数排在前面，随后是 <code class="docutils literal notranslate"><span class="pre">Model</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrator</span></code> 与切片数。
+界面的排列独立于 schema 的继承顺序与打开的 JSON 中键的排列。</p>
+<p>例如二极铁 <code class="docutils literal notranslate"><span class="pre">SBend</span></code> 的顺序为：名称、<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">K0L</span></code>、
+<code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Fint</span></code>、<code class="docutils literal notranslate"><span class="pre">Fintx</span></code>、<code class="docutils literal notranslate"><span class="pre">Model</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Integrator</span></code>、<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>，之后依次为 <strong>场误差</strong>、<strong>孔径</strong>、<strong>Ramping</strong>、
+<strong>内部空间电荷</strong> 分区。每个分区包含其开关与相关参数，使用轻边框保持整体感，
+全部常驻展开，不设折叠按钮。未启用的内部空间电荷参数仍显示并禁用。</p>
+<p>其他磁铁沿用相同次序与分区，只显示各自支持的参数。射频腔的射频数据、
+激励器的频率与幅度调制、Slicer 的切片范围、监测器的参考光学与分析范围，
+也按用途分区；保存电场、电势、电荷密度及保存圈数集中在 <strong>诊断输出</strong> 中。
+Twiss 保留起点光学、终点光学与传输设置分区，Injection 保留 bunch 编辑器。</p>
+</section>
+<section id="id4">
+<h2>模块职责<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PASS/validation</span></code> 是 GUI、<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.validation</span></code> 命令行检测及仿真启动前检查
+共用的校验模块，不依赖 Qt。<code class="docutils literal notranslate"><span class="pre">PASS/gui/validation.py</span></code> 仅负责后台检测线程与报告窗口。
+<code class="docutils literal notranslate"><span class="pre">app.py</span></code> 负责界面组装，<code class="docutils literal notranslate"><span class="pre">appearance.py</span></code> 负责主题、字体、图标与窗口外观，
+<code class="docutils literal notranslate"><span class="pre">structured.py</span></code> 提供结构化参数控件，<code class="docutils literal notranslate"><span class="pre">project.py</span></code> 处理项目打包与资源，
+<code class="docutils literal notranslate"><span class="pre">workspace.py</span></code> 处理文档工作流，<code class="docutils literal notranslate"><span class="pre">optics.py</span></code> 提供光学配置辅助，
+<code class="docutils literal notranslate"><span class="pre">runner.py</span></code> 提供独立运行入口。这些职责分开维护，避免将文件读写、校验和控件实现全部堆入主窗口文件。</p>
+</section>
+<section id="id5">
+<h2>结构化数组参数<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>属性栏中的数组和嵌套参数使用专门控件，不需要输入 JSON 括号、逗号或记忆数组排列。
+完整输入仍可通过 JSON 源码页编辑。</p>
+<ul class="simple">
+<li><p><strong>保存圈数</strong>：每行填写起始圈、结束圈（含上限）和正整数步长。
+<strong>添加单圈</strong> 使起止圈相同，<strong>添加区间</strong> 添加一段范围；<strong>全部圈</strong> 填入当前仿真范围。
+空表表示不保存。圈数从 0 开始，单圈写为 <code class="docutils literal notranslate"><span class="pre">[turn]</span></code>，区间写为 <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>。</p></li>
+<li><p>PhaseAdvanceMonitor 的 <strong>分析圈数范围</strong>：结束圈不包含在范围内，
+每段至少包含两圈，空表表示不分析。</p></li>
+<li><p><strong>手动插入粒子</strong>：六列数值表分别填写 x、px、y、py、束团相对 z 和 dp/p。
+每行一个粒子，界面显示行数对应的粒子数量，不能超过首次注入的宏粒子数。
+手动坐标替换该注入块内的粒子，不会额外增加配置中的粒子总数。</p></li>
+<li><p><strong>孔径参数</strong>：按形状显示带单位的尺寸输入。
+圆形、矩形、椭圆、矩形与圆/椭圆交集、跑道形和八边形分别显示半径、半宽、半轴或切角等参数，
+单位为 m；多边形使用有顺序的 x/y 顶点表。
+在同一表单内切换形状，会保留各形状已经填写的尺寸。
+应用时拒绝无效尺寸、退化多边形及无效的八边形切角。</p></li>
+<li><p><strong>动量接受范围</strong>：提供自定义开关，以及 dp/p 上下限；
+取消自定义时使用引擎默认的 -1 至 1。</p></li>
+<li><p><strong>KiL / KiSL / Field error KNL / Field error KSL</strong>：使用“阶次—数值”表。
+0 阶为二极，1 阶为四极，2 阶为六极；未列出的阶次补零，删除一行不会改变更高阶次。
+不允许重复阶次。积分强度的 n 阶单位为 m 的 -n 次方。</p></li>
+<li><p><strong>GPU 设备列表</strong>：逐行输入整数设备编号，检查重复，设备数量由列表自动计算；
+CPU 后端下禁用该列表。</p></li>
+<li><p>Slicer 的 <strong>显式切片范围</strong>：使用 z 上下限数值框，选择 <code class="docutils literal notranslate"><span class="pre">explicit</span></code> 后启用，
+<code class="docutils literal notranslate"><span class="pre">auto</span></code> 不写入显式范围。元件的 <strong>内部空间电荷</strong> 提供开关、命名配置选择、kick 数、
+孔径、输出开关与独立保存圈数表。</p></li>
+</ul>
+<p>表格支持数值单元格、增删行和较大的 <strong>表格窗口</strong>。
+右键可粘贴表格行、复制、调整行序或清空；表格获得焦点时也支持 <code class="docutils literal notranslate"><span class="pre">Ctrl+V</span></code>。
+可以直接粘贴制表符或逗号分隔的数值行，无需转换为 JSON；无效粘贴不会改变已有数据。
+表格窗口支持一次添加多行，点击 <strong>应用表格</strong> 前修改保留在窗口内；
+之后再应用属性表单以更新输入。数值编辑支持科学计数法并保留很小的浮点数。
+保存时也会提交正在编辑的数值单元格。即使打开的 JSON 省略了可选 bunch 参数，
+界面仍会显示这些参数的默认控件。</p>
+</section>
+<section id="id6">
+<h2>空间电荷<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>在 <strong>物理效应</strong> 中点击 <strong>空间电荷</strong> 标题，可展开或折叠其子菜单，交互与外层模块一致。
 折叠操作本身不修改项目，也不丢弃当前表单；没有返回菜单项。</p>
 <ul class="simple">
 <li><p><strong>计算配置</strong>：管理模块开关、命名配置、切片集引用、PIC 网格和求解器。
@@ -867,17 +1034,17 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">pic</span></code> 只列出 <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>、<code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code>，
 沉积方式默认 <strong>CIC</strong>，也可选 TSC。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 和 <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code> 只列出圆形高斯、椭圆高斯、均匀圆盘、均匀椭圆
-四个自由空间解析求解器，不显示沉积方式。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 显示固定源分布中心 <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X/Y</span></code>，并按公式只显示对应尺寸：
+四个自由空间解析求解器，沉积方式仍显示但禁用。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 启用固定源分布中心 <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X/Y</span></code>，并按公式启用对应尺寸：
 圆形高斯为 <code class="docutils literal notranslate"><span class="pre">Sigma</span></code>；椭圆高斯为 <code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X/Y</span></code>；均匀圆盘为 <code class="docutils literal notranslate"><span class="pre">Radius</span></code>；
-均匀椭圆为 <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A/B</span></code>。只有椭圆公式显示 <code class="docutils literal notranslate"><span class="pre">Angle</span></code>。</p></li>
+均匀椭圆为 <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A/B</span></code>。只有椭圆公式启用 <code class="docutils literal notranslate"><span class="pre">Angle</span></code>。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code> 根据每个切片当前粒子的统计量计算中心、尺寸和方向，
-不显示固定分布参数输入框。解析模式下网格参数用于诊断输出采样和默认孔径。</p></li>
+固定分布参数输入框仍显示但禁用。解析模式下网格参数用于诊断输出采样和默认孔径。</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X/Y</span></code> 是源分布中心；<code class="docutils literal notranslate"><span class="pre">Angle</span></code> 是局部 x 主轴的逆时针转角（rad）；
 <code class="docutils literal notranslate"><span class="pre">Sigma</span></code> 是高斯单轴 RMS 尺寸；<code class="docutils literal notranslate"><span class="pre">Radius</span></code> 是均匀圆盘的外半径；
 <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A/B</span></code> 是均匀椭圆的半轴。中心和尺寸单位均为 m。
-这些尺寸描述电荷源分布，不是管壁或粒子损失孔径。切换选项后，不适用字段会隐藏，
+这些尺寸描述电荷源分布，不是管壁或粒子损失孔径。切换选项后，不适用字段仍显示但禁用，
 保存时写为 null，避免将其他公式的参数带入当前配置。</p>
 <p><strong>网格范围输入</strong> 可选 <strong>全宽</strong> 或 <strong>半宽</strong>，两个方向均以 m 为单位填写；
 不使用的一组保存为 null。节点间距由范围和节点数计算。</p>
@@ -907,9 +1074,9 @@
 离开已修改的生成器时，界面会询问是否放弃尚未插入的草稿。</p>
 <section id="mad-x">
 <h3>MAD-X 采样方式<a class="headerlink" href="#mad-x" title="Link to this heading"></a></h3>
-<p><strong>采样方式</strong> 默认选择 <strong>保留原始位置</strong>。选择 <strong>等间距插值</strong> 后显示正整数
+<p><strong>采样方式</strong> 默认选择 <strong>保留原始位置</strong>。选择 <strong>等间距插值</strong> 后启用正整数
 <strong>一圈分段数 N</strong>，生成从 0 到 C、间距 C/N 的 N+1 个基础点。
-该模式隐藏并忽略 <strong>是否合并连续 Drift</strong>，不设高级插值参数菜单。</p>
+该模式禁用并忽略 <strong>是否合并连续 Drift</strong>，不设高级插值参数菜单。</p>
 <p>点击 <strong>预览导入</strong> 可查看实际间距、基础点数、附加拆分位置数、Twiss command 数量
 和水平、垂直两个平面的完整相位差，再点击 <strong>导入到 Sequence</strong>。
 导入结果仅包含重采样点及必要拆分点，不同时导入原始 Twiss 行。
@@ -929,8 +1096,8 @@
 源光学已包含设计线性聚焦，显式插入的薄元件是附加作用，不会从源光学中扣除或替换
 设计聚焦。因此，附加线性误差仍可能改变追踪工作点，而重采样的基础光学保持源工作点。</p>
 </section>
-<section id="id3">
-<h3>单圈传输<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<section id="id7">
+<h3>单圈传输<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <p>输入名称、周长 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和一组周期光学参数
 <span class="math notranslate nohighlight">\(\alpha_x,\alpha_y,\beta_x,\beta_y\)</span>，表单按此顺序排列。
 Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
@@ -940,13 +1107,13 @@ Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span> <span class="pre">=</span> <span class="pre">C</span></code>，起点的水平和垂直 <code class="docutils literal notranslate"><span class="pre">Mu</span></code> 为零，终点分别为 <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span>。
 因此，虽然两端周期光学函数相同，传输长度仍为 <span class="math notranslate nohighlight">\(C\)</span>，相位推进仍为
 <span class="math notranslate nohighlight">\(2\pi Q\)</span>。</p>
-<p>纵向传输支持 <code class="docutils literal notranslate"><span class="pre">off</span></code>、<code class="docutils literal notranslate"><span class="pre">drift</span></code> 和 <code class="docutils literal notranslate"><span class="pre">matrix</span></code>。只有 <code class="docutils literal notranslate"><span class="pre">matrix</span></code> 模式显示
+<p>纵向传输支持 <code class="docutils literal notranslate"><span class="pre">off</span></code>、<code class="docutils literal notranslate"><span class="pre">drift</span></code> 和 <code class="docutils literal notranslate"><span class="pre">matrix</span></code>。只有 <code class="docutils literal notranslate"><span class="pre">matrix</span></code> 模式启用
 纵向 tune <span class="math notranslate nohighlight">\(Q_s\)</span>；终点 <code class="docutils literal notranslate"><span class="pre">Mu</span> <span class="pre">z</span></code> 为 <span class="math notranslate nohighlight">\(Q_s\)</span>，起点为零。
 其他模式生成的纵向相位推进为零。引擎的 matrix 模式还使用束团纵向尺寸和动量展宽，
 drift 模式使用滑移因子和传输长度。追踪公式参见 <a class="reference internal" href="twiss.html"><span class="doc">Twiss 传输（Twiss）</span></a>。</p>
 </section>
-<section id="id4">
-<h3>平滑近似<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="id8">
+<h3>平滑近似<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
 <p>输入 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、正的完整 tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和正整数 <strong>一圈分段数</strong>
 <span class="math notranslate nohighlight">\(N\)</span>。计算平滑近似 beta 时，不应只填写 tune 的小数部分，例如应输入
 9.47，而不是 0.47；表单标签标明了“完整工作点”：</p>
@@ -963,14 +1130,15 @@ drift 模式使用滑移因子和传输长度。追踪公式参见 <a class="ref
 标准平滑光学使用零 alpha；非零常数对应自定义传输矩阵序列。
 纵向模式与单圈表单一致。该入口仅生成 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 命令，不生成 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 计算点。</p>
 </section>
-<section id="id5">
-<h3>手动传输点与后续编辑<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="id9">
+<h3>手动传输点与后续编辑<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <p>原 <strong>Twiss</strong> 入口改为 <strong>插入 Twiss 传输点</strong>。一个命令描述两端之间的传输，
 因此表单分为 <strong>起点光学参数</strong>、<strong>终点光学参数</strong> 和 <strong>传输设置</strong>。
 <code class="docutils literal notranslate"><span class="pre">Mu</span></code> 为累计相位，单位为周（<span class="math notranslate nohighlight">\(2\pi\)</span>），不是弧度。</p>
-<p>两个生成器均写入普通 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 命令，不单独保存生成器配置。
-插入后或重新加载 JSON 后，在序列中选择生成的命令，使用上述手动表单编辑两端参数。
-生成点可以逐个修改。插入或确认编辑后，使用 <strong>保存 JSON</strong> 或 <strong>另存为</strong> 保存项目。</p>
+<p>两个生成器均写入普通 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 命令；项目还会保存生成设置和 MAD-X 导入源文件。
+插入后或重新加载 JSON 后，在序列中选择生成的命令，逐个编辑两端参数。
+独立输入使用 <strong>保存 JSON</strong>，完整项目使用 <strong>保存项目</strong>。
+在 <strong>项目内容</strong> 中可以载入生成设置，重新预览和插入，不会自动覆盖已经手动修改的命令。</p>
 </section>
 </section>
 </section>
@@ -980,7 +1148,7 @@ drift 模式使用滑移因子和传输长度。追踪公式参见 <a class="ref
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="input_generation.html" class="btn btn-neutral float-left" title="输入文件生成（命令行模式）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="injection.html" class="btn btn-neutral float-right" title="注入粒子生成（Injection）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="project_files.html" class="btn btn-neutral float-right" title="单文件项目" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

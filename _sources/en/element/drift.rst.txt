@@ -154,3 +154,14 @@ Application Scenarios
 - **Dispersion measurement**: Sets up a drift section after a dipole magnet to measure beam momentum spread using the dispersion effect
 - **Beam transport**: Transports the beam in injection and extraction lines without applying any field
 - **Aperture checking**: Sets up drifts with aperture checking at key positions to monitor beam loss
+
+Internal Space Charge
+------------------------------------------
+
+A positive-length element may set ``space_charge`` (JSON ``Space charge``)
+to an ``ElementSpaceCharge`` object. ``Num slices`` controls external transport,
+while ``Space charge.Num kicks`` controls SC integration. See :ref:`en-internal-space-charge`
+for scheduling, shared resources, supported backends and examples.
+
+``num_slices`` (JSON ``Num slices``) is a positive integer, default 1.
+Without internal SC, that many body slices are used on both CPU and GPU.
