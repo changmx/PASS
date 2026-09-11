@@ -6,7 +6,7 @@ and launch it with ``python -m PASS.gui`` or ``pass-gui``. The configuration pag
 edits the same input used by the tracking engine; the run and plotting pages
 remain separate.
 
-The top bar contains File, Configuration, Run, Plot, and the dark/light/system
+The top bar contains File, Configuration, Run, Plot, Tools, and the dark/light/system
 theme selector. The initial window is 1200 by 760 logical pixels; window and pane
 sizes, theme, and column preferences are remembered locally. The sequence is the
 central overview, ordered by the engine's position bins and command priorities.
@@ -25,6 +25,15 @@ collapsed. **Physics effects** lists **Space charge**,
 **Wakefields**, **Beam-beam effects**, and **Electron cloud**, in that order.
 Space charge expands independently. The last three are disabled placeholders
 until their configuration interfaces are available.
+
+Tools
+-----
+
+**Tools** is a peer of Configuration, Run and Plot. Its left navigation contains
+the beam calculator, tune diagram, RF bucket, emittance/beam-size converter,
+magnet converter, and exciter preview. Calculations are independent of the active simulation
+input. Reference masses use fixed AME2020, NIST/CODATA and PDG data. Ek uses MeV/u for every species, normalized by actual rest mass in u.
+Formula references and clickable source websites open in separate windows. See :doc:`gui_tools` for units, conventions and workflows.
 
 Appearance and controls
 -----------------------

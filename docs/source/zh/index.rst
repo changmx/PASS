@@ -10,6 +10,7 @@ PASS 文档（中文）
 
    input_generation
    gui
+   gui_tools
    project_files
    input_validation
    injection
@@ -21,3 +22,4 @@ PASS 文档（中文）
    slicer
    space_charge
    field_solver
+   wake_implementation
