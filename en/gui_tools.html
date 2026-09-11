@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Input File Generation (Command-Line Mode) &mdash; PASS  documentation</title>
+  <title>GUI tools &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
@@ -21,8 +21,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Graphical configuration workflow" href="gui.html" />
-    <link rel="prev" title="PASS Documentation (English)" href="index.html" /> 
+    <link rel="next" title="Single-file projects" href="project_files.html" />
+    <link rel="prev" title="Graphical configuration workflow" href="gui.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -489,37 +489,37 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS Documentation (English)</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Input File Generation (Command-Line Mode)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#architecture-overview">Architecture Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#quick-start">Quick Start</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#minimal-example">Minimal Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#minimal-example">Minimal Example</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#json-file-structure">JSON File Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#core-components">Core Components</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#sequence-sequence-container">Sequence (Sequence Container)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#json-file-structure">JSON File Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#core-components">Core Components</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#lattice-sources">Lattice Sources</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#mixed-mode">Mixed Mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#lattice-sources">Lattice Sources</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mixed-mode">Mixed Mode</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#external-data-file-conversion">External Data File Conversion</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#four-step-pipeline">Four-Step Pipeline</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#one-step-conversion">One-Step Conversion</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#step-by-step-invocation">Step-by-Step Invocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#one-step-conversion">One-Step Conversion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#complete-example">Complete Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#api-reference">API Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="input_generation.html#complete-example">Complete Example</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="gui.html">Graphical configuration workflow</a><ul>
@@ -538,17 +538,17 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html">GUI tools</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#particles-and-authoritative-masses">Particles and authoritative masses</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#kinematics-units-and-precision">Kinematics, units and precision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#comparison-with-the-original-particle-table">Comparison with the original particle table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#current-power-and-stored-energy">Current, power and stored energy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#tune-diagram">Tune diagram</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#rf-bucket">RF bucket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#emittance-twiss-and-beam-size">Emittance, Twiss and beam size</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#magnet-conversion">Magnet conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">GUI tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#particles-and-authoritative-masses">Particles and authoritative masses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#kinematics-units-and-precision">Kinematics, units and precision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comparison-with-the-original-particle-table">Comparison with the original particle table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#current-power-and-stored-energy">Current, power and stored energy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tune-diagram">Tune diagram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-inputs-and-exports">Reference inputs and exports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rf-bucket">RF bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#emittance-twiss-and-beam-size">Emittance, Twiss and beam size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#magnet-conversion">Magnet conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="project_files.html">Single-file projects</a><ul>
@@ -946,9 +946,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">PASS Documentation (English)</a></li>
-      <li class="breadcrumb-item active">Input File Generation (Command-Line Mode)</li>
+      <li class="breadcrumb-item active">GUI tools</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/en/input_generation.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/en/gui_tools.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -956,616 +956,354 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="input-file-generation-command-line-mode">
-<h1>Input File Generation (Command-Line Mode)<a class="headerlink" href="#input-file-generation-command-line-mode" title="Link to this heading"></a></h1>
-<section id="introduction">
-<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
-<p>PASS uses <strong>JSON files</strong> as simulation input. The engine ( <code class="docutils literal notranslate"><span class="pre">Config</span></code> , <code class="docutils literal notranslate"><span class="pre">Beam</span></code> , <code class="docutils literal notranslate"><span class="pre">CommandSequence</span></code> ) reads all parameters from the JSON file, including particle species, bunch distribution, lattice sequence, monitors, etc.</p>
-<p>The parameter system <code class="docutils literal notranslate"><span class="pre">PASS/para/</span></code> provides a set of schema definitions based on <strong>pydantic v2</strong> . Users assemble parameter objects through Python scripts and call <code class="docutils literal notranslate"><span class="pre">generate_input()</span></code> to output an engine-compatible JSON file. Compared to hand-writing JSON, this approach offers the following advantages:</p>
+  <section id="gui-tools">
+<h1>GUI tools<a class="headerlink" href="#gui-tools" title="Link to this heading"></a></h1>
+<p>The <strong>Tools</strong> workspace contains the beam calculator, tune diagram,
+<strong>RF bucket绘制</strong>, emittance/beam-size conversion, magnet conversion, and
+Exciter preview. Its left section buttons share the configuration library’s
+style and have individual icons. Values persist while switching pages in the
+current window. Tools do not modify the active tracking input or saved project.
+Each page provides a separate <strong>Detailed formulas</strong> window and result copying.
+Formulas are typeset offline with fractions, radicals, sums and real subscripts;
+no web engine or online math assets are required. <strong>Copy formulas (LaTeX)</strong> retains
+access to their editable mathematical source.</p>
+<section id="particles-and-authoritative-masses">
+<h2>Particles and authoritative masses<a class="headerlink" href="#particles-and-authoritative-masses" title="Link to this heading"></a></h2>
+<p>Enter ion <strong>A</strong>, signed charge state <strong>q</strong>, and proton number <strong>Z</strong>, or choose a
+named particle. Non-ion choices include electrons/positrons, muons/antimuons,
+taus, charged/neutral pions and kaons, neutrons/antineutrons, and antiprotons.
+A/q/Z are disabled for these named species; A and Z alone cannot distinguish
+an electron, muon or pion. Neutral massive particles support kinematics but
+have no magnetic rigidity or current-to-power conversion.</p>
+<p>Search accepts Chinese/English names, symbols, isotope notation, and approximate
+English matches, for example <code class="docutils literal notranslate"><span class="pre">carbon</span></code>, <code class="docutils literal notranslate"><span class="pre">C-12</span></code>, <code class="docutils literal notranslate"><span class="pre">238U35+</span></code>, <code class="docutils literal notranslate"><span class="pre">muon</span></code>, <code class="docutils literal notranslate"><span class="pre">pi+</span></code>.
+Selecting a candidate or pressing Enter only previews it. <strong>Use search result</strong>
+replaces species, A, q and Z together. Omitted ion A uses a stated isotope preset;
+omitted q uses the fully stripped charge q=Z. Explicit invalid notation is
+rejected. Ek and other independent inputs retain their values. <code class="docutils literal notranslate"><span class="pre">P</span></code> and <code class="docutils literal notranslate"><span class="pre">N</span></code>
+are phosphorus and nitrogen; lowercase <code class="docutils literal notranslate"><span class="pre">p</span></code> and <code class="docutils literal notranslate"><span class="pre">n</span></code> are proton and neutron.
+The names/presets in <code class="docutils literal notranslate"><span class="pre">PASS/tool/particles.py</span></code> remain separate from mass data.
+This module owns <code class="docutils literal notranslate"><span class="pre">ParticleSpec</span></code>, A/Z/q validation, aliases and fuzzy lookup.
+<code class="docutils literal notranslate"><span class="pre">PASS/tool/particle_masses.py</span></code> loads the offline catalog and computes the
+charge-dependent mass, including electron and ionization-energy corrections.
+Both are independent of Qt and remain in <code class="docutils literal notranslate"><span class="pre">PASS/tool</span></code> as shared particle and
+mass utilities. The Tools-specific calculation backends live alongside their
+pages in <code class="docutils literal notranslate"><span class="pre">PASS/gui</span></code>: <code class="docutils literal notranslate"><span class="pre">beam_calculator.py</span></code> (kinematics and power),
+<code class="docutils literal notranslate"><span class="pre">optics_calculator.py</span></code> (emittance and magnets), <code class="docutils literal notranslate"><span class="pre">exciter_calculator.py</span></code>
+(excitation preview), and <code class="docutils literal notranslate"><span class="pre">rf_bucket.py</span></code> (RF bucket). These backends remain
+independent of Qt; Python callers use imports such as
+<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">PASS.gui.beam_calculator</span> <span class="pre">import</span> <span class="pre">solve_kinematics</span></code>. Their previous
+<code class="docutils literal notranslate"><span class="pre">PASS.tool</span></code> module paths have been removed. The move changes code organization
+only; formulas, energy definitions and GUI behavior are unchanged.</p>
+<p>Masses now use one fixed offline catalog, without a source selector or A*u
+fallback. The runtime file is <code class="docutils literal notranslate"><span class="pre">PASS/tool/mass_catalog.json</span></code>; its <code class="docutils literal notranslate"><span class="pre">metadata</span></code>
+records exact download URLs, hashes, and citations.
+The former user <code class="docutils literal notranslate"><span class="pre">PARTICLE_DATA.tsv</span></code> is neither read nor packaged.</p>
 <ul class="simple">
-<li><p><strong>Type safety</strong> : Parameter types and ranges are declared in the schema; invalid values are intercepted at generation time;</p></li>
-<li><p><strong>Alias mapping</strong> : Python code uses concise property names (e.g., <code class="docutils literal notranslate"><span class="pre">circumference</span></code> ), while the JSON output automatically uses the keys expected by the engine (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;Circumference</span> <span class="pre">(m)&quot;</span></code> );</p></li>
-<li><p><strong>Reusability</strong> : Schema objects can be quickly derived via <code class="docutils literal notranslate"><span class="pre">model_copy(update={...})</span></code> , suitable for parameter scans;</p></li>
-<li><p><strong>GUI support</strong> : Typed schemas also support the graphical configuration workflow.</p></li>
+<li><p><a class="reference external" href="https://www-nds.iaea.org/amdc/ame2020/mass_1.mas20.txt">AME2020 unrounded table</a>
+supplies 3,558 ground-state nuclide records, primarily <strong>neutral atomic mass</strong>
+in u plus a free-neutron record; 1,008 carry extrapolation flags. Cite W. J. Huang et al.,
+Chinese Physics C 45, 030002 (2021), and M. Wang et al., 030003 (2021).</p></li>
+<li><p><a class="reference external" href="https://physics.nist.gov/cuu/Constants/Table/allascii.txt">NIST CODATA 2022</a>
+supplies electron, muon, nucleon and light-nucleus masses and the u conversion.
+Proton, deuteron, triton, helion and alpha-particle ions use direct CODATA values.
+The proton mass is 938.27208943 MeV/c².</p></li>
+<li><p><a class="reference external" href="https://pdg.lbl.gov/2026/mcdata/mass_width_2026.txt">PDG 2026</a> supplies tau,
+pion and kaon masses. Particle and antiparticle use the corresponding same mass.</p></li>
+<li><p><a class="reference external" href="https://physics.nist.gov/PhysRefData/ASD/ionEnergy.html">NIST ASD</a> supplies
+successive ionization energies. The 2026-09-11 snapshot contains 6,019 stages,
+of which 172 have unknown energy. A missing required stage prevents that ion
+calculation. Original flags, reference codes and uncertainties are preserved.</p></li>
 </ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This document introduces input file generation in command-line mode. For the graphical workflow, see <a class="reference internal" href="gui.html"><span class="doc">Graphical configuration workflow</span></a>.</p>
-</div>
-</section>
-<section id="architecture-overview">
-<h2>Architecture Overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h2>
-<p>The parameter system is divided into five layers, each with clear responsibilities and no inter-dependencies:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PASS/para/
-├── schema/       Parameter definitions (single source of truth)
-│   ├── main.py         MainConfig: global simulation parameters
-│   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
-│   ├── twiss.py        TwissPoint: twiss transfer point
-│   ├── elements.py     12 element types (Drift→RFCavity)
-│   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
-│   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
-│   └── sequence.py     Sequence: ordered container + auto-sorting
-├── madx.py        MADX TFS → schema objects (element / twiss / error)
-├── smooth.py      Analytical smooth approximation twiss
-├── tools/        External data → PASS TFS
-│   ├── data_converter.py General data conversion pipeline
-│   ├── ramping.py         Element ramping file generation
-│   ├── rf_data.py         RF data file generation
-│   └── exciter_data.py    Exciter data file generation
-├── toolkit.py    sort_sequence + class_map + apply_element_settings + build_sequence
-└── api.py        High-level API (generate_input / load_input / generate_from_tfs)
-</pre></div>
-</div>
-<p>The data flow is as follows:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>MADX TFS / user parameters / external data files
-           │
-           ▼
-     madx.py / smooth.py + tools/  → schema objects / TFS files
-           │
-           ▼
-      schema/ (pydantic)     ← single source of truth: validation + aliases
-           │
-           ▼
-     api.py (generate_input) → beam0.json
-           │
-           ▼
-      PASS engine (Config → Beam → CommandSequence → Executor)
-</pre></div>
-</div>
-</section>
-<section id="quick-start">
-<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
-<section id="minimal-example">
-<h3>Minimal Example<a class="headerlink" href="#minimal-example" title="Link to this heading"></a></h3>
-<p>The following script generates a complete input file containing injection + smooth approximation twiss + statistical monitor:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_input</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.main</span><span class="w"> </span><span class="kn">import</span> <span class="n">MainConfig</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.bunch</span><span class="w"> </span><span class="kn">import</span> <span class="n">BunchConfig</span><span class="p">,</span> <span class="n">InjectionItem</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.sequence</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitor</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.smooth</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_smooth_twiss</span>
-
-<span class="c1"># 1. Global parameters</span>
-<span class="n">main</span> <span class="o">=</span> <span class="n">MainConfig</span><span class="p">(</span>
-    <span class="n">beam_name</span><span class="o">=</span><span class="s2">"proton"</span><span class="p">,</span>
-    <span class="n">num_proton</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_neutron</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_electron</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="n">gamma_t</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">circumference</span><span class="o">=</span><span class="mf">251.327</span><span class="p">,</span>
-    <span class="n">num_turns</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">"cpu"</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># 2. Bunch</span>
-<span class="n">bunch</span> <span class="o">=</span> <span class="n">BunchConfig</span><span class="p">(</span>
-    <span class="n">kinetic_energy</span><span class="o">=</span><span class="mf">45e6</span><span class="p">,</span>
-    <span class="n">num_real_particles</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e11</span><span class="p">),</span>
-    <span class="n">num_macro_particles</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e5</span><span class="p">),</span>
-    <span class="n">beta_x</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">beta_y</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-    <span class="n">alpha_x</span><span class="o">=-</span><span class="mf">2.61</span><span class="p">,</span> <span class="n">alpha_y</span><span class="o">=</span><span class="mf">1.57</span><span class="p">,</span>
-    <span class="n">emit_x</span><span class="o">=</span><span class="mf">200e-6</span><span class="p">,</span> <span class="n">emit_y</span><span class="o">=</span><span class="mf">100e-6</span><span class="p">,</span>
-    <span class="n">sigma_z</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">dp</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
-    <span class="n">dist_trans</span><span class="o">=</span><span class="s2">"gaussian"</span><span class="p">,</span> <span class="n">dist_longi</span><span class="o">=</span><span class="s2">"matchz"</span><span class="p">,</span>
-    <span class="n">rf_voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">rf_phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># 3. Lattice sequence</span>
-<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">generate_smooth_twiss</span><span class="p">(</span>
-    <span class="n">circumference</span><span class="o">=</span><span class="n">main</span><span class="o">.</span><span class="n">circumference</span><span class="p">,</span>
-    <span class="n">qx</span><span class="o">=</span><span class="mf">4.8</span><span class="p">,</span> <span class="n">qy</span><span class="o">=</span><span class="mf">4.4</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">main</span><span class="o">.</span><span class="n">circumference</span> <span class="o">=</span> <span class="n">circum</span>
-
-<span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
-    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">"twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"stat1"</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-
-<span class="c1"># 4. Generate JSON</span>
-<span class="n">generate_input</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="s2">"beam0.json"</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>How to run:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd C:\Users\changmx\Documents\PASS</span>
-<span class="go">python input/generate_beam0.py</span>
-</pre></div>
-</div>
-<p>Output file: <code class="docutils literal notranslate"><span class="pre">input/beam0.json</span></code></p>
-</section>
-</section>
-<section id="json-file-structure">
-<h2>JSON File Structure<a class="headerlink" href="#json-file-structure" title="Link to this heading"></a></h2>
-<p>The generated JSON file has the following structure:</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"Beam Name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"proton"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Number of Protons"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Number of Neutrons"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Number of Charges"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Transition Gamma"</span><span class="p">:</span><span class="w"> </span><span class="mf">4.8</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Circumference (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">251.327</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Number of turns"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Backend (gpu/cpu)"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cpu"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Number of GPU devices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Device Id"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-<span class="w">    </span><span class="nt">"Output directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./output"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Is plot figure"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Is beam-beam"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Injection"</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"Harmonic Number"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"Random Seed"</span><span class="p">:</span><span class="w"> </span><span class="mi">2026</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"bunch0"</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">"twiss_0000"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Twiss"</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"S previous (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"Beta x (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">8.333</span>
-<span class="w">        </span><span class="p">},</span>
-<span class="w">        </span><span class="nt">"stat1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span>
-<span class="w">        </span><span class="p">}</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The JSON key names are a hard contract of the engine. The schema layer automatically handles the mapping from Python property names to JSON keys through pydantic’s <code class="docutils literal notranslate"><span class="pre">alias</span></code> mechanism; users do not need to write them manually.</p>
-<p>When reading, the engine first calls <code class="docutils literal notranslate"><span class="pre">convert_keys_to_lower()</span></code> to convert all keys to lowercase, so the case of JSON keys does not affect reading.</p>
-</div>
-</section>
-<section id="core-components">
-<h2>Core Components<a class="headerlink" href="#core-components" title="Link to this heading"></a></h2>
-<section id="mainconfig-global-parameters">
-<h3>MainConfig (Global Parameters)<a class="headerlink" href="#mainconfig-global-parameters" title="Link to this heading"></a></h3>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25.0%" />
-<col style="width: 25.0%" />
-<col style="width: 10.0%" />
-<col style="width: 40.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Property</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beam_name</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">Name</span></code></p></td>
-<td><p>str</p></td>
-<td><p>Beam label</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_proton</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Protons</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of protons per particle (0 for electron/positron)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_neutron</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Neutrons</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of neutrons per particle (&gt;0 for ions)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_electron</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Charges</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of charges per particle (can be negative, cannot be 0)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gamma_t</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Transition</span> <span class="pre">Gamma</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Transition gamma</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">circumference</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Circumference</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Ring circumference (m)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_turns</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">turns</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of simulation turns</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">backend</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Backend</span> <span class="pre">(gpu/cpu)</span></code></p></td>
-<td><p>str</p></td>
-<td><p>Compute backend: <code class="docutils literal notranslate"><span class="pre">cpu</span></code> or <code class="docutils literal notranslate"><span class="pre">gpu</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_gpu</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">GPU</span> <span class="pre">devices</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of GPUs</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gpu_id</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Device</span> <span class="pre">Id</span></code></p></td>
-<td><p>list[int]</p></td>
-<td><p>GPU device ID list</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code></p></td>
-<td><p>str</p></td>
-<td><p>Output directory</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_plot</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">plot</span> <span class="pre">figure</span></code></p></td>
-<td><p>bool</p></td>
-<td><p>Whether to generate plots</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_beambeam</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
-<td><p>bool</p></td>
-<td><p>Whether to enable beam-beam interaction</p></td>
-</tr>
-</tbody>
-</table>
-<p>Space charge is configured by the separate top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block,
-not by <code class="docutils literal notranslate"><span class="pre">MainConfig</span></code>. See <a class="reference internal" href="space_charge.html"><span class="doc">Space-Charge Effect (SpaceCharge)</span></a> for its named resource schema
-and sequence-command references. Each resource selects <code class="docutils literal notranslate"><span class="pre">Method</span></code> (<code class="docutils literal notranslate"><span class="pre">pic</span></code>,
-<code class="docutils literal notranslate"><span class="pre">frozen</span></code>, <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code>) and <code class="docutils literal notranslate"><span class="pre">Solver</span></code>; the latter includes the boundary
-condition in its name. The command’s <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type/value</span></code> defines particle
-losses and, for Dirichlet solvers, the conducting wall. Configurations no longer
-contain <code class="docutils literal notranslate"><span class="pre">Chamber</span></code>. Supply a complete grid full-width or half-width pair;
-omitting the command aperture selects a rectangle equal to that grid.</p>
-</section>
-<section id="injectionitem-injection-and-grouping">
-<h3>InjectionItem (Injection and Grouping)<a class="headerlink" href="#injectionitem-injection-and-grouping" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">InjectionItem</span></code> declares <code class="docutils literal notranslate"><span class="pre">harmonic_number</span></code> (JSON key <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code>) once at the injection level. This value is the bunch-grouping count and determines:</p>
-<ul class="simple">
-<li><p>The number of bunch centers around the ring, separated by <span class="math notranslate nohighlight">\(C/h_{\mathrm{group}}\)</span></p></li>
-<li><p>The required number of <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> entries in <code class="docutils literal notranslate"><span class="pre">bunches</span></code></p></li>
-<li><p>The requirement that <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> values uniquely cover <span class="math notranslate nohighlight">\(0,\ldots,h_{\mathrm{group}}-1\)</span></p></li>
-</ul>
-<p>It does not constrain <code class="docutils literal notranslate"><span class="pre">RFCavityElement.harmonic</span></code>. Represent an unfilled group with a declared bunch whose <code class="docutils literal notranslate"><span class="pre">num_macro_particles</span></code> is zero.</p>
-<p>Set <code class="docutils literal notranslate"><span class="pre">random_seed</span></code> (JSON key <code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed</span></code>) to an integer when the generated particle distribution must be reproducible. Leave it unset, or use JSON <code class="docutils literal notranslate"><span class="pre">null</span></code>, for the default non-deterministic seed. The seed belongs to the whole Injection command, so its random stream is shared by all declared bunches and injection turns.</p>
-</section>
-<section id="bunchconfig-bunch-parameters">
-<h3>BunchConfig (Bunch Parameters)<a class="headerlink" href="#bunchconfig-bunch-parameters" title="Link to this heading"></a></h3>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25.0%" />
-<col style="width: 30.0%" />
-<col style="width: 10.0%" />
-<col style="width: 35.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Property</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">per</span> <span class="pre">Nucleon</span> <span class="pre">(eV/u)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Kinetic energy per nucleon (eV/u)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_real_particles</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Real</span> <span class="pre">Particles</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of real particles per bunch</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_macro_particles</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span> <span class="pre">Particles</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Number of macro particles per bunch</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">beta_x</span></code> / <code class="docutils literal notranslate"><span class="pre">beta_y</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">y</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Twiss β function</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alpha_x</span></code> / <code class="docutils literal notranslate"><span class="pre">alpha_y</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">x</span></code> / <code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">y</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Twiss α function</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">emit_x</span></code> / <code class="docutils literal notranslate"><span class="pre">emit_y</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Emittance</span> <span class="pre">x</span> <span class="pre">(m'rad)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Emittance</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_z</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">z</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Bunch length</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">dp/p</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Momentum spread</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dist_trans</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">dist</span></code></p></td>
-<td><p>str</p></td>
-<td><p>Transverse distribution: <code class="docutils literal notranslate"><span class="pre">kv</span></code> / <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> / <code class="docutils literal notranslate"><span class="pre">uniform</span></code> / <code class="docutils literal notranslate"><span class="pre">waterbag</span></code> / <code class="docutils literal notranslate"><span class="pre">parabolic</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dist_longi</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">dist</span></code></p></td>
-<td><p>str</p></td>
-<td><p>Longitudinal distribution: <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> / <code class="docutils literal notranslate"><span class="pre">coasting</span></code> / <code class="docutils literal notranslate"><span class="pre">matchz</span></code> / <code class="docutils literal notranslate"><span class="pre">matchdp</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rf_voltage</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Voltage</span> <span class="pre">(V)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>RF voltage (used in matchz/matchdp modes)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_phase</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>RF phase</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code></p></td>
-<td><p>int</p></td>
-<td><p>Bunch-group index; its center is <span class="math notranslate nohighlight">\(z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}\)</span></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rf_s_position</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">RF</span> <span class="pre">S</span> <span class="pre">Position</span> <span class="pre">Refer</span> <span class="pre">to</span> <span class="pre">Inj.</span> <span class="pre">Point</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>RF-cavity position relative to injection, used to linearly back-propagate a matched distribution to <span class="math notranslate nohighlight">\(s=0\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">momentum_offset_dp</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Momentum</span> <span class="pre">Offset</span> <span class="pre">dp</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Mean bunch relative-momentum offset; mutually exclusive with the kinetic-energy offset</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic_energy_offset</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">Energy</span> <span class="pre">Offset</span> <span class="pre">(eV)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>Mean bunch kinetic-energy offset, converted exactly to a relative-momentum offset internally</p></td>
-</tr>
-</tbody>
-</table>
-<p>All generated or manually inserted <code class="docutils literal notranslate"><span class="pre">z</span></code> values in <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> are bunch-relative coordinates <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span>, not absolute laboratory azimuths.</p>
-</section>
-<section id="sequence-sequence-container">
-<h3>Sequence (Sequence Container)<a class="headerlink" href="#sequence-sequence-container" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">Sequence</span></code> is an ordered container that stores all sequence items arranged by position <code class="docutils literal notranslate"><span class="pre">s</span></code> . The order of insertion does not affect the final result — items are automatically sorted by <code class="docutils literal notranslate"><span class="pre">(s,</span> <span class="pre">command</span> <span class="pre">priority)</span></code> upon export.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"qd1"</span><span class="p">,</span> <span class="n">QuadrupoleElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">k1l</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">0.5</span><span class="p">))</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"stat1"</span><span class="p">,</span> <span class="n">StatMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>Supported sequence item types:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">InjectionItem</span></code> — injection point (must have <code class="docutils literal notranslate"><span class="pre">s=0</span></code> )</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">TwissPoint</span></code> — twiss transfer point</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">DriftElement</span></code> , <code class="docutils literal notranslate"><span class="pre">QuadrupoleElement</span></code> , <code class="docutils literal notranslate"><span class="pre">SBendElement</span></code> , etc. — physical elements</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> , <code class="docutils literal notranslate"><span class="pre">DistMonitor</span></code> , <code class="docutils literal notranslate"><span class="pre">PhaseAdvanceMonitor</span></code> — monitors</p></li>
-</ul>
-</section>
-</section>
-<section id="lattice-sources">
-<h2>Lattice Sources<a class="headerlink" href="#lattice-sources" title="Link to this heading"></a></h2>
-<p>PASS supports three methods for generating lattice sequences, which can be selected or combined as needed:</p>
-<section id="method-1-read-from-madx-twiss-file">
-<h3>Method 1: Read from MADX twiss file<a class="headerlink" href="#method-1-read-from-madx-twiss-file" title="Link to this heading"></a></h3>
-<p>Reads a twiss TFS file generated by MADX, converting each element into a <code class="docutils literal notranslate"><span class="pre">TwissPoint</span></code> transfer point. Suitable for <strong>element-by-element twiss transport</strong> mode.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss</span>
-
-<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss</span><span class="p">(</span>
-    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
-    <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>       <span class="c1"># optional</span>
-    <span class="n">muz</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>                      <span class="c1"># longitudinal tune</span>
-    <span class="n">dqx</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>                        <span class="c1"># chromaticity (or "from_file")</span>
-    <span class="n">dqy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-    <span class="n">is_field_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>           <span class="c1"># whether to read field errors</span>
-    <span class="n">insert_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"QD.*"</span><span class="p">],</span>      <span class="c1"># regex matching, inserted as thin lens elements</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>For a uniform base grid, use the resampling reader instead:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss_interpolated</span>
-
-<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_twiss_interpolated</span><span class="p">(</span>
-    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
-    <span class="n">num_interp_slice</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span>          <span class="c1"># 100 segments, including both 0 and C</span>
-    <span class="n">dqx</span><span class="o">=</span><span class="s2">"from_file"</span><span class="p">,</span> <span class="n">dqy</span><span class="o">=</span><span class="s2">"from_file"</span><span class="p">,</span>
-    <span class="n">longitudinal_transfer</span><span class="o">=</span><span class="s2">"off"</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>This reader uses <code class="docutils literal notranslate"><span class="pre">interp_kind=&quot;phase_hermite&quot;</span></code> (the sole supported method),
-replacing the former independent cubic-column interpolation and extrapolation.
-<code class="docutils literal notranslate"><span class="pre">num_interp_slice</span></code> counts <strong>base points</strong>, not segments; it must be an integer
-at least two. DQx/DQy now default to <code class="docutils literal notranslate"><span class="pre">&quot;from_file&quot;</span></code> and Mu z defaults to zero.
-The longitudinal phase is used only for <code class="docutils literal notranslate"><span class="pre">longitudinal_transfer=&quot;matrix&quot;</span></code>.</p>
-<p>In each source interval of length <span class="math notranslate nohighlight">\(h\)</span>, define <span class="math notranslate nohighlight">\(t=(s-s_i)/h\)</span> and
-interpolate <span class="math notranslate nohighlight">\(p(t)=\mu(s)-\mu(s_i)\)</span> with a quintic Hermite polynomial. The
-endpoint constraints, in phase cycles, are:</p>
+<p>The catalog is a formatted conversion of full official AME/CODATA/PDG downloads
+and one ASD CSV export, not an official JSON release or individual-particle scrape.
+H-minus affinity is separately cited from WebBook. Stable lookup IDs are retained,
+but each record has readable identity fields and an original source line number.
+For example, PDG <code class="docutils literal notranslate"><span class="pre">20213</span></code> now shows <strong>a₁(1260)⁺</strong>, charge +1, mass 1230 MeV/c²,
+positive/negative errors 40 MeV/c² and width 420 MeV. The mass uncertainty of this
+broad resonance is present in the official PDG table, not a conversion defect.</p>
+<p>The file does <strong>not</strong> contain all possible isotopes or all charge-state masses.
+AME covers its listed ground states; PDG stores 319 IDs with numeric masses, of
+which the GUI exposes selected massive species. ASD stages stop at Z=110 in this
+snapshot, and missing required stages prevent ion-mass calculation. Ionic masses
+are computed on demand from neutral masses; nuclear isomers and negative ions
+other than H-minus are unsupported. Source uncertainties and estimates are retained,
+so authoritative provenance does not mean every entry has the same precision.</p>
+<p>For positive ground-state ions the conversion is</p>
 <div class="math notranslate nohighlight">
-\[p_t = \frac{h}{2\pi\beta}, \qquad
-p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
-<p>The interpolated optical functions are:</p>
+\[m_{ion}c^2=M_{atom}[u]\,(u c^2)-q m_e c^2+\sum_{j=0}^{q-1} I_j.\]</div>
+<p>Ionization work has a <strong>positive</strong> sign. Subtracting electrons alone would omit
+binding effects. ASD values are element-level, without isotope-dependent shifts;
+AME extrapolated masses are identified. Nuclear isomers are not represented.
+No combined uncertainty is claimed without the needed source covariances and
+isotope shifts. H-minus additionally uses the hydrogen electron affinity
+0.754195(18) eV reported by Lykke et al. (1991), as cited in
+<a class="reference external" href="https://webbook.nist.gov/cgi/cbook.cgi?ID=C12385136&amp;Mask=20">NIST WebBook</a>.
+Other negative ions currently lack the required affinity correction. Unspecified
+Z, absent isotopes and missing ionization energies produce explicit errors.</p>
+<p>For this purpose the original evaluations are preferable to a general library:
+<a class="reference external" href="https://www.atomdb.org/">AtomDB</a> targets X-ray plasma spectra;
+<a class="reference external" href="https://github.com/BlueObelisk/bodr">BODR</a> collects chemical element/isotope data;
+<a class="reference external" href="https://iniabu.readthedocs.io/en/latest/">iniabu</a> primarily exposes published
+solar abundances. Standard atomic weights averaged over isotope abundances are
+not the mass of a selected accelerator ion.</p>
+</section>
+<section id="kinematics-units-and-precision">
+<h2>Kinematics, units and precision<a class="headerlink" href="#kinematics-units-and-precision" title="Link to this heading"></a></h2>
+<p>Ions and atoms use <strong>AMeV</strong>, meaning kinetic energy per integer nucleon count:
+<code class="docutils literal notranslate"><span class="pre">Ek=K/A</span></code>. Electrons, muons, tau leptons and mesons (A=0) use <strong>MeV per particle</strong>.
+Neutrons and antinucleons have A=1, so the per-nucleon and per-particle values agree.
+Write <code class="docutils literal notranslate"><span class="pre">D=max(A,1)</span></code> for the common divisor. C-12 6+ at Ek=100 AMeV has complete
+kinetic energy K=1200 MeV. Its evaluated mass is still charge dependent;
+this convention does not approximate the rest mass by A*u.</p>
+<p>The read-only, dimensionless mass ratio <strong>mu</strong> follows <strong>Rest mass</strong> in the
+calculator results and the other tools’ reference-beam panels. It updates with
+particle/isotope/charge selection and is the numerical mass in u, not the integer
+nucleon number A; invalid mass data clear the field.
+For the same nuclide, changing charge leaves Z, N and A=Z+N unchanged, but changes
+the electron count and binding energy, hence the actual rest mass and mu:</p>
 <div class="math notranslate nohighlight">
-\[\beta(s)=\frac{h}{2\pi p_t},\qquad
-\alpha(s)=\frac{p_{tt}}{4\pi p_t^2}.\]</div>
-<p>This preserves <span class="math notranslate nohighlight">\(\beta'=-2\alpha\)</span> and <span class="math notranslate nohighlight">\(\mu'=1/(2\pi\beta)\)</span> within
-each interval, while matching source beta, alpha and cumulative phase at its
-endpoints. The full phase derivative is checked at its endpoints and all
-interior extrema to exclude nonpositive beta. DX/DPX use paired cubic Hermite
-interpolation in the existing uncoupled, on-reference paraxial convention;
-their TFS normalization is retained. No new coupling or closed-orbit coordinate
-conversion is introduced. Source precision and spacing limit accuracy.</p>
-<p>The table must include S=0 and S=LENGTH, with finite optics, positive beta and
-unwrapped phases. Its full phase spans must agree with Q1/Q2 within TFS output
-rounding (relative tolerance <span class="math notranslate nohighlight">\(2\times10^{-8}\)</span>, absolute tolerance
-<span class="math notranslate nohighlight">\(2\times10^{-9}\)</span>). Output phases retain the source values rather than
-being rescaled to rounded headers. Segment chromaticities are distributed in
-proportion to the source phase span, preserving the requested DQx/DQy sums.</p>
-<p>Original rows are not retained as additional output points. Matched thin
-elements, field errors and repeated-S optical jumps add required split
-positions. Error names are matched against the original table before
-resampling. At optical jumps, a zero-length Twiss map joins the incoming and
-outgoing states. Additional kicks/errors execute after the Twiss maps at that
-position, consistent with command priority. Explicitly inserting design
-focusing already represented by the source optics adds it again; error
-insertion does not preserve the perturbed machine’s tune by construction.
-See <a class="reference internal" href="gui.html"><span class="doc">Graphical configuration workflow</span></a> for the corresponding import controls.</p>
+\[m_{q+1}c^2=m_qc^2-m_ec^2+I_q.\]</div>
+<div class="math notranslate nohighlight">
+\[\mu=\frac{m_0}{u}=\frac{E_0}{uc^2},\qquad K=D E_k,\qquad D=\max(A,1).\]</div>
+<p>For ions, the displayed total energy, momentum and rest mass are <strong>E/A</strong> (MeV),
+<strong>p/A</strong> (GeV/c) and <strong>m0/A</strong> (MeV/c²). For A=0, the corresponding fields show
+complete-particle E, p and m0. The mass ratio mu always refers to the complete
+particle, remains visible after rest mass, and is not an energy divisor.
+At fixed A and Ek, changing charge keeps complete kinetic energy K fixed,
+but the evaluated mass correction changes gamma, beta and momentum, as well as
+rigidity. Numeric results use 12 significant digits without asserting extra
+measurement accuracy. Units follow names in parentheses.
+The equations below use complete-particle K, E and p internally.</p>
+<div class="math notranslate nohighlight">
+\[E=E_0+K,\quad \gamma=1+K/E_0,\quad
+\beta=\sqrt{1-\gamma^{-2}},\quad pc=\sqrt{K(K+2E_0)}.\]</div>
+<p>Known Ek, displayed total energy/momentum, rigidity, beta or gamma can be inverted.
+The beam calculator displays the magnitude <code class="docutils literal notranslate"><span class="pre">Bρ=p/(abs(q)*e)</span></code>. Neutral particles
+show no finite rigidity; selecting rigidity as their known quantity is rejected.
+Ek=0 gives beta=0, gamma=1 and momentum=0. Invalid inputs clear dependent results.
+The definition applies throughout Tools, including reference transfers, power,
+RF, emittance, magnets and Exciter. Copied reference data use <code class="docutils literal notranslate"><span class="pre">Ek_AMeV</span></code> for
+A&gt;0 or <code class="docutils literal notranslate"><span class="pre">Ek_MeV</span></code> for A=0, with an explicit <code class="docutils literal notranslate"><span class="pre">energy_normalization</span></code> field.
+The numerical <code class="docutils literal notranslate"><span class="pre">solve_kinematics</span></code> API takes normalized kinetic energy in eV,
+but complete-particle total energy (eV) and momentum (eV/c) for inverse inputs.
+Tracking APIs and their existing mass approximations are unchanged; match their
+documented units and mass convention when transferring values.</p>
 </section>
-<section id="method-2-read-from-madx-twiss-file-as-elements">
-<h3>Method 2: Read from MADX twiss file as elements<a class="headerlink" href="#method-2-read-from-madx-twiss-file-as-elements" title="Link to this heading"></a></h3>
-<p>Reads the twiss file, but converts each element into its corresponding physical element object ( <code class="docutils literal notranslate"><span class="pre">QuadrupoleElement</span></code> , <code class="docutils literal notranslate"><span class="pre">SBendElement</span></code> , etc.). Suitable for <strong>element-by-element tracking</strong> mode.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
-
-<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
-    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
-    <span class="n">is_merge_drift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># merge adjacent drift sections</span>
-    <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
+<section id="comparison-with-the-original-particle-table">
+<h2>Comparison with the original particle table<a class="headerlink" href="#comparison-with-the-original-particle-table" title="Link to this heading"></a></h2>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.gui_tools.compare_mass_tables</span></code> to reproduce the
+read-only comparison with <code class="docutils literal notranslate"><span class="pre">PASS/tool/PARTICLE_DATA.tsv</span></code>. It compares all
+159,032 rows (3,047 nuclides, Z=1–92) by A/Z/q, using the same evaluated masses
+as the GUI. All original rows are calculable. Results, a searchable offline HTML
+viewer and full CSV files are written to
+<code class="docutils literal notranslate"><span class="pre">tests/codex/gui_tools/artifacts/mass-comparison/</span></code>. Coverage files also list all
+3,558 AME nuclides (511 absent from the TSV), 319 PDG entries and the additional
+15 named GUI species. Original input hashes are recorded and neither mass file
+is modified. <code class="docutils literal notranslate"><span class="pre">test_mass_comparison.py</span></code> independently checks every row using
+decimal arithmetic and the tabulated atomic masses, electron mass and ionization energies.</p>
+<p>Differences mean <strong>current minus TSV</strong>, in whole-particle rest mass, not mass
+divided by A or mu. The median absolute difference is 32.424446 keV/c²; the
+maximum is 1.886586 MeV/c² for Al-42 13+, whose AME mass is itself estimated
+(atomic uncertainty about 0.500212 MeV/c²). The TSV’s nearly constant charge-step
+mass decrement omits the varying ionization correction. A different u conversion
+scale and nuclide mass baseline are also visible. Its source version and
+uncertainties are unknown, so these discrepancies are not certified measurement
+errors or statistical significance estimates. The reports distinguish AME
+estimates and original atomic uncertainties from combined ion-mass uncertainty.</p>
 </section>
-<section id="method-3-smooth-approximation-twiss">
-<h3>Method 3: Smooth approximation twiss<a class="headerlink" href="#method-3-smooth-approximation-twiss" title="Link to this heading"></a></h3>
-<p>No MADX file required; uses analytical formulas to generate twiss points with constant β function. <span class="math notranslate nohighlight">\(\beta = C / (2\pi Q)\)</span> . Suitable for quick testing.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.smooth</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_smooth_twiss</span>
-
-<span class="n">items</span><span class="p">,</span> <span class="n">circum</span> <span class="o">=</span> <span class="n">generate_smooth_twiss</span><span class="p">(</span>
-    <span class="n">circumference</span><span class="o">=</span><span class="mf">569.1</span><span class="p">,</span>
-    <span class="n">qx</span><span class="o">=</span><span class="mf">9.47</span><span class="p">,</span> <span class="n">qy</span><span class="o">=</span><span class="mf">9.43</span><span class="p">,</span>
-    <span class="n">num_points</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="n">muz</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
-<span class="p">)</span>
-</pre></div>
-</div>
+<section id="current-power-and-stored-energy">
+<h2>Current, power and stored energy<a class="headerlink" href="#current-power-and-stored-energy" title="Link to this heading"></a></h2>
+<p>The former separate average/instantaneous forward/reverse entries are consolidated
+into three physically distinct modes:</p>
+<ul class="simple">
+<li><p><strong>Current ↔ power</strong>: choose known current (mA), kinetic-energy transport power
+(kW), or particle rate (1/s), and a common average/instantaneous time basis.
+The known input is not repeated in results. <code class="docutils literal notranslate"><span class="pre">I=Ndot*abs(q)*e</span></code> and
+<code class="docutils literal notranslate"><span class="pre">P=Ndot*K[J]</span></code>; for charged particles <code class="docutils literal notranslate"><span class="pre">P[kW]=I[mA]*D*Ek/abs(q)</span></code>
+with Ek in AMeV for A&gt;0 or MeV for A=0 (<code class="docutils literal notranslate"><span class="pre">D=max(A,1)</span></code>).
+Circumference is unnecessary. Only particle-rate input works for neutral
+current/power conversion. A supplied peak is allowed; an average alone does
+not determine a peak. At zero Ek, power cannot uniquely determine current.</p></li>
+<li><p><strong>Pulsed beam</strong>: real particles per pulse and actual extraction/repetition
+frequency give average current, average power and kinetic energy per pulse.
+Optional duration gives pulse-averaged current/power. These are peaks only
+for flat pulses; duration times repetition frequency must not exceed one.</p></li>
+<li><p><strong>Stored/circulating beam</strong>: total real particles and circumference give
+<code class="docutils literal notranslate"><span class="pre">f0=beta*c/C</span></code>, period, <code class="docutils literal notranslate"><span class="pre">I=N*abs(q)*e*f0</span></code> and stored kinetic energy <code class="docutils literal notranslate"><span class="pre">N*K[J]</span></code>.
+Circulating current is not target power: the same particles circulate rather
+than being extracted every turn. Use pulsed delivery for actual extraction.</p></li>
+</ul>
+<p>Zero current or count is valid. Power excludes rest energy and electrical
+wall-plug consumption. Instantaneous current, Ek and power must refer to the
+same cross section and instant; for a spread, use flux-weighted kinetic energy.</p>
 </section>
-<section id="mixed-mode">
-<h3>Mixed Mode<a class="headerlink" href="#mixed-mode" title="Link to this heading"></a></h3>
-<p>Twiss transfer points and physical elements can be mixed within the same sequence. For example, inserting an RF cavity into a twiss sequence:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFCavityElement</span>
-
-<span class="n">seq</span> <span class="o">=</span> <span class="n">Sequence</span><span class="p">()</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"injection"</span><span class="p">,</span> <span class="n">InjectionItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bunches</span><span class="o">=</span><span class="p">[</span><span class="n">bunch</span><span class="p">]))</span>
-
-<span class="c1"># twiss transfer points</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">twiss_items</span><span class="p">):</span>
-    <span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="sa">f</span><span class="s2">"twiss_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">04d</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
-
-<span class="c1"># insert RF cavity (at s=0)</span>
-<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"rf1"</span><span class="p">,</span> <span class="n">RFCavityElement</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">voltage</span><span class="o">=</span><span class="mf">100e3</span><span class="p">,</span> <span class="n">harmonic</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="mf">0.5236</span><span class="p">))</span>
-</pre></div>
-</div>
+<section id="tune-diagram">
+<h2>Tune diagram<a class="headerlink" href="#tune-diagram" title="Link to this heading"></a></h2>
+<p>The condition is <code class="docutils literal notranslate"><span class="pre">m*Qx+n*Qy=l</span></code> with integer coefficients and order
+<code class="docutils literal notranslate"><span class="pre">abs(m)+abs(n)</span></code>; m and n cannot both be zero. Full tune ranges may cross
+integers or include negative values. Enable orders 1–12 independently and
+filter single-plane, sum or difference resonances. Difference lines are
+dashed. Custom lines have separate visibility and removal controls.</p>
+<p>Coincident lines are reduced using the full triple (m,n,l), assigned to their
+lowest geometric order, and drawn once. <code class="docutils literal notranslate"><span class="pre">2*Qx=1</span></code> remains second order;
+<code class="docutils literal notranslate"><span class="pre">2*Qx=2</span></code> is assigned to first order. Turning off a low order also removes its
+coincident higher-order representations. Excessive enumeration is rejected
+with a request to narrow the ranges or selected orders.</p>
+<p>The default ranges are <strong>9–10</strong> on both axes, with one unnamed point,
+<strong>(9.47, 9.43)</strong>. The plot fills the left area. The right pane holds
+the ranges and <strong>Working points</strong> / <strong>Resonance lines</strong> tabs; drag the splitter
+to adjust their widths. Double-click table cells to edit names and coordinates;
+select a row to change its color and marker below the table. Toggle visibility
+or add/remove rows; new names are blank. Names are optional, and whitespace-only
+names are treated as blank. Visible points with nonempty names appear in a
+compact legend inside the upper-right corner of the plot, using their own colors
+and markers. Names are not written beside the points. Unnamed points remain
+visible and selectable; hidden and out-of-range points do not enter the legend.
+The resonance-order legend remains above the plot. Hover/select
+a point to see coordinates. Out-of-range points are counted in the status
+text. The Matplotlib toolbar provides zoom, pan and home. <strong>Export plot</strong> saves
+SVG, PNG or PDF with the current theme and view.</p>
+<p><strong>Paste</strong> accepts CSV or tab-separated rows; <strong>Import CSV</strong> appends UTF-8
+CSV/TSV. Columns are <code class="docutils literal notranslate"><span class="pre">Qx,Qy</span></code> or <code class="docutils literal notranslate"><span class="pre">name,Qx,Qy[,color,marker]</span></code>, with optional
+headers. Two-column rows receive blank names; an empty name column is also valid.
+Markers are <code class="docutils literal notranslate"><span class="pre">o</span></code>, <code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">^</span></code>, <code class="docutils literal notranslate"><span class="pre">D</span></code> or <code class="docutils literal notranslate"><span class="pre">+</span></code>. Invalid imports append
+no rows. <strong>Export CSV</strong> includes all points, including hidden ones, with names,
+coordinates, colors and markers, preserving blank names. Visibility is a local presentation choice.
+The geometry does not calculate resonance strength or establish beam stability.</p>
 </section>
+<section id="reference-inputs-and-exports">
+<h2>Reference inputs and exports<a class="headerlink" href="#reference-inputs-and-exports" title="Link to this heading"></a></h2>
+<p>RF bucket, emittance, magnets and Exciter have independent reference particle
+and Ek inputs. <strong>Read beam calculator</strong> copies a valid particle/species and Ek
+as an explicit snapshot. Invalid source inputs do not replace the destination.
+RF needs mass, charge and energy for its slip factor, bucket height and frequencies.
+Emittance needs relativistic beta*gamma for normalization; magnets and Exciter
+need rigidity and/or speed. Formula references describe each approximation.</p>
+<p>Plots export SVG/PNG/PDF and CSV with explicit column units. Emittance and Exciter
+place parameters and results together in the right vertical scrolling column.
+The plot remains visible on the left. Formula windows list the local catalog path,
+clickable official source URLs, and the shared per-nucleon/per-particle normalization equations.</p>
 </section>
-<section id="external-data-file-conversion">
-<h2>External Data File Conversion<a class="headerlink" href="#external-data-file-conversion" title="Link to this heading"></a></h2>
-<p>PASS uses the <strong>TFS format</strong> as the unified format for all ramping/RF/exciter data files. <code class="docutils literal notranslate"><span class="pre">tools/data_converter.py</span></code> provides a general conversion pipeline that transforms various external files (CSV/TXT/TFS) into PASS TFS.</p>
-<section id="four-step-pipeline">
-<h3>Four-Step Pipeline<a class="headerlink" href="#four-step-pipeline" title="Link to this heading"></a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>External file → load_raw_data → time_to_turn → interpolate → write_tfs
-</pre></div>
-</div>
-<ol class="arabic simple">
-<li><p><strong>load_raw_data</strong> : Reads the external file, auto-detects turn/time columns</p></li>
-<li><p><strong>time_to_turn</strong> : If the external file provides time instead of turns, converts using the revolution frequency</p></li>
-<li><p><strong>interpolate_to_continuous_turns</strong> : Automatically interpolates when turns are non-contiguous</p></li>
-<li><p><strong>write_tfs_ramping</strong> : Writes to the PASS unified TFS format</p></li>
-</ol>
+<section id="rf-bucket">
+<h2>RF bucket<a class="headerlink" href="#rf-bucket" title="Link to this heading"></a></h2>
+<p>The navigation label is <strong>RF bucket绘制</strong>. Enter V, harmonic h, circumference C,
+effective synchronous phase phi_s, and either gamma_t or eta. The reference
+particle is retained. In this section E_r=E/D=m0*c²/D+Ek is in eV and q_r=abs(q)/D, with D=max(A,1). Defaults: 100 kV, h=4, C=100 m, phi_s=0 and gamma_t=6.</p>
+<div class="math notranslate nohighlight">
+\[\eta=\gamma_t^{-2}-\gamma^{-2},\quad \phi=\phi_s-2\pi h z_{rel}/C,
+\quad \frac{d\phi}{dN}=2\pi h\eta\delta,
+\quad \frac{d\delta}{dN}=\frac{q_r V}{\beta^2E_r}(\sin\phi-\sin\phi_s).\]</div>
+<p>These signs follow PASS RFCavity and the longitudinal Twiss drift. phi_s already
+includes cavity offset and bunch-center phase. RF h is independent of the
+Injection grouping harmonic. Stability requires eta*cos(phi_s)&lt;0; for positive
+eta a stable phase is 180 degrees. Zero charge, V, Ek or eta is rejected.</p>
+<p>The positive Hamiltonian is <code class="docutils literal notranslate"><span class="pre">H=pi*h*abs(eta)*delta²+U(theta)</span></code>, theta=phi-phi_s,
+with <code class="docutils literal notranslate"><span class="pre">U=sign(eta)*q_r*V/(beta²*E_r)*(cos(phi_s+theta)-cos(phi_s)+theta*sin(phi_s))</span></code>.
+The lower adjacent saddle defines the separatrix. Inner contours and turning
+points are solved numerically. Show phase or z_rel horizontally, delta or delta_E
+vertically; <code class="docutils literal notranslate"><span class="pre">delta_E≈beta²*E_r*delta</span></code>. The result tab gives half-heights, full
+widths, area, Qs, fs, revolution/RF frequencies and energy gain per turn.
+For A&gt;0, energy heights and plots show ΔE/A (MeV), gains are per nucleon,
+and bucket area uses eV s per nucleon. For A=0 these are per-particle quantities
+in MeV and eV s. CSV energy columns explicitly use <code class="docutils literal notranslate"><span class="pre">eV_per_nucleon</span></code> or
+<code class="docutils literal notranslate"><span class="pre">eV_per_particle</span></code>. The numeric core retains complete-particle energies,
+divided by D at the display/export boundary.</p>
+<div class="math notranslate nohighlight">
+\[Q_s=\sqrt{\frac{-h\eta q_r V\cos\phi_s}{2\pi\beta^2E_r}},\quad
+f_s=Q_s f_0,\quad f_0=\beta c/C,\quad f_{RF}=h f_0.\]</div>
+<p>This is a frozen, single-harmonic, small-delta smooth model. It excludes collective
+fields, radiation, multi-harmonic RF and capture ramps. Heights with <code class="docutils literal notranslate"><span class="pre">|delta|&gt;=1</span></code>
+are rejected. It does not replace tracking. Background:
+<a class="reference external" href="https://e-publishing.cern.ch/index.php/CYRSP/article/view/1586">CERN longitudinal beam dynamics</a>.</p>
 </section>
-<section id="one-step-conversion">
-<h3>One-Step Conversion<a class="headerlink" href="#one-step-conversion" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_external_to_tfs</span>
-
-<span class="n">convert_external_to_tfs</span><span class="p">(</span>
-    <span class="n">input_path</span><span class="o">=</span><span class="s2">"external_ramp.csv"</span><span class="p">,</span>     <span class="c1"># external file</span>
-    <span class="n">output_path</span><span class="o">=</span><span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span>      <span class="c1"># PASS TFS</span>
-    <span class="n">data_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">"k1l"</span><span class="p">,</span> <span class="s2">"k1sl"</span><span class="p">],</span>          <span class="c1"># data column names</span>
-    <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">,</span>             <span class="c1"># revolution frequency (Hz)</span>
-    <span class="n">num_turns</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>                     <span class="c1"># target number of turns</span>
-    <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>                    <span class="c1"># interpolation method</span>
-<span class="p">)</span>
-</pre></div>
-</div>
+<section id="emittance-twiss-and-beam-size">
+<h2>Emittance, Twiss and beam size<a class="headerlink" href="#emittance-twiss-and-beam-size" title="Link to this heading"></a></h2>
+<p>The unit <strong>π·mm·mrad</strong> uses the agreed area convention: input 1 means a geometric
+RMS emittance of 1e-6 m rad in the formulas, with ellipse area pi*1e-6 m rad for
+n=1. <strong>Do not multiply the input by pi again.</strong> No four-RMS factor is implied.
+Normalization is <code class="docutils literal notranslate"><span class="pre">epsilon_n=beta_rel*gamma_rel*epsilon</span></code> with the same convention.</p>
+<p>Twiss labels are <strong>Twiss beta</strong>, <strong>Twiss alpha</strong>, <strong>Twiss gamma</strong>. Gamma is in the
+parameter block. In alpha/beta mode it updates automatically; beta/gamma mode
+solves alpha and requires a positive/negative branch choice:</p>
+<div class="math notranslate nohighlight">
+\[\gamma=\frac{1+\alpha^2}{\beta},\qquad \alpha=\pm\sqrt{\beta\gamma-1}.\]</div>
+<p>Require beta&gt;0 and beta*gamma&gt;=1 for inversion. Gamma and beta cannot determine
+the sign of alpha. These Twiss quantities are distinct from relativistic factors.
+Parameters and results occupy one scrolling column, without a separate result tab.</p>
+<p>The one-plane model assumes uncorrelated betatron coordinates and momentum spread:</p>
+<div class="math notranslate nohighlight">
+\[\sigma_x^2=\beta\epsilon+D^2\sigma_\delta^2,\quad
+\sigma_{x'}^2=\gamma\epsilon+D'^2\sigma_\delta^2,\quad
+\operatorname{Cov}(x,x')=-\alpha\epsilon+DD'\sigma_\delta^2.\]</div>
+<p>The <strong>projected</strong> ellipse includes dispersive offsets of particles with different
+momenta; its emittance is sqrt(det Sigma). At D=Dprime=0 it equals the betatron
+ellipse. Cov is the average product of centered x and xprime, indicating their
+joint tilt/correlation; <code class="docutils literal notranslate"><span class="pre">r=Cov/(sigma_x*sigma_xprime)</span></code> is dimensionless and lies
+between -1 and 1 when defined. These do not represent another beam species.
+Cov has units mm mrad, without an area-convention pi prefix.</p>
+<p>Beam-size inversion subtracts the dispersion variance; an input below
+<code class="docutils literal notranslate"><span class="pre">abs(D)*sigma_delta</span></code> is inconsistent. At Ek=0 normalized-to-geometric inversion
+is underdetermined. An n-sigma covariance ellipse has area pi*n²*epsilon; for a
+nondegenerate 2D Gaussian it contains <code class="docutils literal notranslate"><span class="pre">1-exp(-n²/2)</span></code>, about 39.35% at n=1.</p>
 </section>
-<section id="pre-packaged-wrappers">
-<h3>Pre-packaged Wrappers<a class="headerlink" href="#pre-packaged-wrappers" title="Link to this heading"></a></h3>
-<p>Thin wrappers for common element types:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_k1l_ramping</span><span class="p">,</span> <span class="n">convert_k2l_ramping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
-
-<span class="c1"># Quadrupole ramping</span>
-<span class="n">convert_k1l_ramping</span><span class="p">(</span><span class="s2">"external.csv"</span><span class="p">,</span> <span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
-
-<span class="c1"># RF data</span>
-<span class="n">convert_rf_data</span><span class="p">(</span><span class="s2">"llrf.csv"</span><span class="p">,</span> <span class="s2">"rf_data.tfs"</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
-</pre></div>
-</div>
+<section id="magnet-conversion">
+<h2>Magnet conversion<a class="headerlink" href="#magnet-conversion" title="Link to this heading"></a></h2>
+<p>Choose particle-derived or directly entered <strong>signed</strong> B*rho=p/(q*e), positive
+length L, and one known magnet quantity. Direct mode ignores disabled reference
+inputs. Fields and strengths retain signs; beta/gamma normalization is not used
+for the magnet coefficients.</p>
+<ul class="simple">
+<li><p>Dipole: <code class="docutils literal notranslate"><span class="pre">k0=B/(Bρ)=1/rho</span></code>, <code class="docutils literal notranslate"><span class="pre">theta=K0L=k0*L</span></code>, <code class="docutils literal notranslate"><span class="pre">integral</span> <span class="pre">B</span> <span class="pre">dl=(Bρ)*theta</span></code>.
+L is effective arc length. Zero field has no finite radius.</p></li>
+<li><p>Quadrupole: <code class="docutils literal notranslate"><span class="pre">k1=G/(Bρ)</span></code>, <code class="docutils literal notranslate"><span class="pre">K1L=k1*L</span></code>, <code class="docutils literal notranslate"><span class="pre">fx≈1/K1L</span></code>, <code class="docutils literal notranslate"><span class="pre">fy≈-1/K1L</span></code>.
+G=dBy/dx. Focal lengths are thin-lens estimates.</p></li>
+<li><p>Sextupole and octupole: n=2 or 3, <code class="docutils literal notranslate"><span class="pre">G_n=d^n</span> <span class="pre">By/dx^n</span></code>, <code class="docutils literal notranslate"><span class="pre">k_n=G_n/(Bρ)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">K_nL=k_n*L</span></code>. At (x=r,y=0), <code class="docutils literal notranslate"><span class="pre">By=G_n*r^n/n!</span></code>. Enter derivative, normalized
+strength, integrated strength/derivative, or field at a chosen reference radius.
+The 2! and 3! factors match PASS’s actual kicks.</p></li>
+<li><p>Solenoid: <code class="docutils literal notranslate"><span class="pre">Ks=Bz/(Bρ)</span></code>, <code class="docutils literal notranslate"><span class="pre">kappa=Ks/2</span></code>, <code class="docutils literal notranslate"><span class="pre">theta=kappa*L</span></code> and
+<code class="docutils literal notranslate"><span class="pre">integral</span> <span class="pre">Bz</span> <span class="pre">dl=(Bρ)*Ks*L</span></code>. The reference paraxial Larmor parameter has the
+sign used by PASS’s rotation map. Focusing is kappa²; <code class="docutils literal notranslate"><span class="pre">f≈1/(kappa²*L)</span></code> is only
+a weak thin-lens estimate, not an exact finite-length focal distance.</p></li>
+</ul>
+<p>Quadrupole, sextupole, octupole and solenoid default to normalized k1, k2, k3
+and Ks respectively. For the three multipoles, enter the pole radius in mm:
+<code class="docutils literal notranslate"><span class="pre">Bp[Gauss]=10000*(Bρ)*k_n*r[m]^n/n!</span></code> with n=1,2,3. The signed ideal pole field
+and its inverse are supported; its magnitude is abs(Bp). The solenoid instead
+shows axial <code class="docutils literal notranslate"><span class="pre">Bz[Gauss]=10000*(Bρ)*Ks</span></code>. Bore radius and Ks alone do not determine
+an iron pole-face field; magnetic-circuit geometry and a field model are needed.
+No fringe fields, saturation, hysteresis or coil-current calibration is included.</p>
 </section>
-<section id="step-by-step-invocation">
-<h3>Step-by-Step Invocation<a class="headerlink" href="#step-by-step-invocation" title="Link to this heading"></a></h3>
-<p>When the external file format is non-standard, each function can be called step by step:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">interpolate_to_continuous_turns</span><span class="p">,</span> <span class="n">write_tfs_ramping</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="c1"># Prepare data manually</span>
-<span class="n">turn_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
-<span class="n">k2l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">4.4</span><span class="p">])</span>
-
-<span class="n">turn_cont</span><span class="p">,</span> <span class="n">data_cont</span> <span class="o">=</span> <span class="n">interpolate_to_continuous_turns</span><span class="p">(</span>
-    <span class="n">turn_arr</span><span class="p">,</span> <span class="p">{</span><span class="s2">"K2L"</span><span class="p">:</span> <span class="n">k2l</span><span class="p">},</span>
-    <span class="n">start_turn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">write_tfs_ramping</span><span class="p">(</span><span class="s2">"k2l_ramping.tfs"</span><span class="p">,</span> <span class="n">turn_cont</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_cont</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">build_sequence</span><span class="p">,</span> <span class="n">generate_from_tfs</span><span class="p">,</span> <span class="n">generate_input</span><span class="p">,</span> <span class="n">load_input</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Assemble a sequence with a reproducible Injection distribution</span>
-<span class="n">sequence</span> <span class="o">=</span> <span class="n">build_sequence</span><span class="p">(</span>
-    <span class="n">items</span><span class="o">=</span><span class="n">items</span><span class="p">,</span>
-    <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
-    <span class="n">bunches</span><span class="o">=</span><span class="n">bunches</span><span class="p">,</span>
-    <span class="n">monitors</span><span class="o">=</span><span class="n">monitors</span><span class="p">,</span>
-    <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># The high-level MADX helper accepts the same Injection seed</span>
-<span class="n">generate_from_tfs</span><span class="p">(</span>
-    <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
-    <span class="n">output_path</span><span class="o">=</span><span class="s2">"beam0.json"</span><span class="p">,</span>
-    <span class="n">main</span><span class="o">=</span><span class="n">main_dict</span><span class="p">,</span>
-    <span class="n">bunches</span><span class="o">=</span><span class="n">bunch_dicts</span><span class="p">,</span>
-    <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="c1"># Generate JSON</span>
-<span class="n">generate_input</span><span class="p">(</span>
-    <span class="n">main</span><span class="p">:</span> <span class="n">MainConfig</span><span class="p">,</span>
-    <span class="n">sequence</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">,</span>
-    <span class="n">output_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">space_charge</span><span class="p">:</span> <span class="n">SpaceChargeConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">extra_modules</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
-
-<span class="c1"># Load existing JSON (for modification and regeneration)</span>
-<span class="n">main</span><span class="p">,</span> <span class="n">seq_dict</span> <span class="o">=</span> <span class="n">load_input</span><span class="p">(</span><span class="s2">"beam0.json"</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="complete-example">
-<h2>Complete Example<a class="headerlink" href="#complete-example" title="Link to this heading"></a></h2>
-<p>The built-in example script is located at <code class="docutils literal notranslate"><span class="pre">input/generate_beam0.py</span></code> and can be run directly:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd C:\Users\changmx\Documents\PASS</span>
-<span class="go">python input/generate_beam0.py</span>
-</pre></div>
-</div>
-<p>This script demonstrates the complete end-to-end workflow: global parameters → multi-bunch configuration → smooth approximation twiss → lattice sequence assembly → JSON output. The generated <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> can be directly read and executed by the PASS engine.</p>
+<section id="exciter-calculation-and-plotting">
+<h2>Exciter calculation and plotting<a class="headerlink" href="#exciter-calculation-and-plotting" title="Link to this heading"></a></h2>
+<p>The page implements the four modes in <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/exciter.py</span></code>:
+single_fm, single_fm_am, dual_fm, dual_fm_am. Inputs include plate voltage, gap,
+effective plate length, circumference, tune or frequency, full sweep width,
+period and the original dual-frequency/AM parameters. Switching frequency input
+mode preserves the physical center frequency and width.</p>
+<div class="math notranslate nohighlight">
+\[A_0=\frac{VL}{d\beta c|B\rho|},\quad f_c=Q_{excite}f_0,\quad
+\Delta f=\Delta Q f_0,\quad
+t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}+z_{center}}{\beta c}.\]</div>
+<p>No z folding is performed. Only the waveform reduces arrival time modulo the
+sweep period. A0 follows the current PASS charge-magnitude convention. Single FM
+uses <code class="docutils literal notranslate"><span class="pre">phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T</span></code>. Dual FM uses the command’s two phase
+branches and <code class="docutils literal notranslate"><span class="pre">2*cos(pi*df*tau/2)</span></code> envelope; its amplitude can reach 2*A0.
+The formula window lists both phase derivatives and AM equations explicitly.</p>
+<p>AM updates by effective turn <code class="docutils literal notranslate"><span class="pre">floor(t_elapsed*f0)</span></code> and diverges at t_ext, so
+AM plot windows must end before t_ext. The fixed-parameter preview plots the
+external signal, not beam response, losses or emittance growth. Optional turn
+markers evaluate arrival-phase sampling separately. Views include kick/envelope,
+FM branches, AM factor and a one-sided Hann-window amplitude spectrum.</p>
+<p>Numeric results include base kick, sampled peak/RMS, electric field, transit time,
+frequencies, sampling rate and frequency-bin spacing. At least 24 samples per
+bounded smooth frequency cycle are used, with a 200000-point cap; overly long
+high-frequency windows are rejected. FM resets can generate additional broadband
+content. FFT bin spacing is 1/window duration; a sampled peak is not a global
+analytic bound. Waveform CSV columns use seconds, radians and Hz; spectrum CSV
+uses frequency_Hz and kick_amplitude_rad. Parameters/results share a vertical
+scrolling column and plots support the normal image/vector exports.</p>
 </section>
 </section>
 
@@ -1573,8 +1311,8 @@ See <a class="reference internal" href="gui.html"><span class="doc">Graphical co
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="PASS Documentation (English)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="gui.html" class="btn btn-neutral float-right" title="Graphical configuration workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="gui.html" class="btn btn-neutral float-left" title="Graphical configuration workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="project_files.html" class="btn btn-neutral float-right" title="Single-file projects" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="单文件项目" href="project_files.html" />
+    <link rel="next" title="GUI 工具" href="gui_tools.html" />
     <link rel="prev" title="输入文件生成（命令行模式）" href="input_generation.html" /> 
 </head>
 
@@ -82,18 +82,32 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">图形界面配置流程</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id2">主题与控件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">属性顺序与分区</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">模块职责</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">结构化数组参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">工具</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">主题与控件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">属性顺序与分区</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">模块职责</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">结构化数组参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">空间电荷</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id7">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id8">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id9">手动传输点与后续编辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">手动传输点与后续编辑</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gui_tools.html">GUI 工具</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id1">粒子输入与权威质量数据</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id2">运动学、单位与显示精度</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id3">与原始粒子表逐条比较</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id4">流强、功率与储能</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id5">共振线图</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id6">参考束流与导出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#rf-bucket">RF bucket绘制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#twiss">发射度、Twiss 与束斑</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id7">磁铁参数换算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id8">激励计算与绘制</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="project_files.html">单文件项目</a><ul>
@@ -509,6 +523,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/gui.html">Graphical configuration workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#tools">Tools</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui.html#appearance-and-controls">Appearance and controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui.html#property-ordering-and-sections">Property ordering and sections</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui.html#module-responsibilities">Module responsibilities</a></li>
@@ -521,6 +536,19 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../en/gui_tools.html">GUI tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#particles-and-authoritative-masses">Particles and authoritative masses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#kinematics-units-and-precision">Kinematics, units and precision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#comparison-with-the-original-particle-table">Comparison with the original particle table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#current-power-and-stored-energy">Current, power and stored energy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#tune-diagram">Tune diagram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#rf-bucket">RF bucket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#emittance-twiss-and-beam-size">Emittance, Twiss and beam size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#magnet-conversion">Magnet conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/project_files.html">Single-file projects</a><ul>
@@ -933,7 +961,7 @@
 <p>使用 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--editable</span> <span class="pre">&quot;.[gui]&quot;</span></code> 安装可选界面，再通过
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.gui</span></code> 或 <code class="docutils literal notranslate"><span class="pre">pass-gui</span></code> 启动。配置页编辑追踪引擎使用的输入文件；
 运行页和绘图页保持独立。</p>
-<p>顶部集中放置文件、配置、运行、绘图，以及深色/浅色/跟随系统的主题选择。
+<p>顶部集中放置文件、配置、运行、绘图、工具，以及深色/浅色/跟随系统的主题选择。
 默认窗口为 1200 × 760 逻辑像素，窗口和侧栏尺寸、主题及列偏好保存在本机。
 中间执行序列按引擎的位置分箱与命令优先级排序。名称、Command、位置为必备列；拖动表头分隔线调整列宽，
 右键选择其他列。校验放在执行序列工具栏，但检查完整当前输入及文件依赖。
@@ -945,7 +973,14 @@ JSON/项目保存、源文件打包、参数复用和固定运行快照参见 <a
 <strong>物理效应</strong> 依次包含 <strong>空间电荷</strong>、<strong>尾场</strong>、<strong>束束效应</strong>、<strong>电子云</strong>，
 空间电荷可独立展开或折叠。后三项尚无配置界面，显示为禁用的预留入口。</p>
 <section id="id2">
-<h2>主题与控件<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<h2>工具<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p><strong>工具</strong> 与配置、运行、绘图同级，左侧可选择束流参数计算器、共振线图、RF 桶、
+发射度与束斑换算、磁铁参数换算和激励计算。计算独立于当前仿真输入。
+粒子质量固定采用 AME2020、NIST/CODATA 和 PDG 数据；所有粒子的 Ek 均按实际静止质量的 u 数归一化，使用 MeV/u。
+详细公式窗口包含可点击的来源网站。单位、物理约定和使用流程参见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。</p>
+</section>
+<section id="id3">
+<h2>主题与控件<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
 <p>深色主题采用 <a class="reference external" href="https://github.com/Binaryify/OneDark-Pro">One Dark Pro 的配色</a>，
 以炭灰背景、蓝色强调和柔和灰色文字呈现；浅色主题使用相同的控件与层级结构。
 界面使用 12 逻辑像素字体，优先 Segoe UI Variable Text，中文回退至 Microsoft YaHei UI。
@@ -958,8 +993,8 @@ JSON 源码和运行日志使用等宽字体：优先 JetBrains Mono，未安装
 原生标题栏的背景与文字颜色，Windows 10 使用系统支持的深色标题栏标志；
 窗口仍保留系统移动、缩放和贴靠功能。文件选择使用 Qt 对话框，以使内容区也保持主题一致。</p>
 </section>
-<section id="id3">
-<h2>属性顺序与分区<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>属性顺序与分区<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <p>属性标题旁显示只读的 <code class="docutils literal notranslate"><span class="pre">Command</span></code> 类型，可编辑参数从名称、位置 <code class="docutils literal notranslate"><span class="pre">s</span></code>、长度开始。
 元件本身的场强和几何参数排在前面，随后是 <code class="docutils literal notranslate"><span class="pre">Model</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrator</span></code> 与切片数。
 界面的排列独立于 schema 的继承顺序与打开的 JSON 中键的排列。</p>
@@ -973,8 +1008,8 @@ JSON 源码和运行日志使用等宽字体：优先 JetBrains Mono，未安装
 也按用途分区；保存电场、电势、电荷密度及保存圈数集中在 <strong>诊断输出</strong> 中。
 Twiss 保留起点光学、终点光学与传输设置分区，Injection 保留 bunch 编辑器。</p>
 </section>
-<section id="id4">
-<h2>模块职责<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id5">
+<h2>模块职责<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">PASS/validation</span></code> 是 GUI、<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.validation</span></code> 命令行检测及仿真启动前检查
 共用的校验模块，不依赖 Qt。<code class="docutils literal notranslate"><span class="pre">PASS/gui/validation.py</span></code> 仅负责后台检测线程与报告窗口。
 <code class="docutils literal notranslate"><span class="pre">app.py</span></code> 负责界面组装，<code class="docutils literal notranslate"><span class="pre">appearance.py</span></code> 负责主题、字体、图标与窗口外观，
@@ -982,8 +1017,8 @@ Twiss 保留起点光学、终点光学与传输设置分区，Injection 保留 
 <code class="docutils literal notranslate"><span class="pre">workspace.py</span></code> 处理文档工作流，<code class="docutils literal notranslate"><span class="pre">optics.py</span></code> 提供光学配置辅助，
 <code class="docutils literal notranslate"><span class="pre">runner.py</span></code> 提供独立运行入口。这些职责分开维护，避免将文件读写、校验和控件实现全部堆入主窗口文件。</p>
 </section>
-<section id="id5">
-<h2>结构化数组参数<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id6">
+<h2>结构化数组参数<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
 <p>属性栏中的数组和嵌套参数使用专门控件，不需要输入 JSON 括号、逗号或记忆数组排列。
 完整输入仍可通过 JSON 源码页编辑。</p>
 <ul class="simple">
@@ -1019,8 +1054,8 @@ CPU 后端下禁用该列表。</p></li>
 保存时也会提交正在编辑的数值单元格。即使打开的 JSON 省略了可选 bunch 参数，
 界面仍会显示这些参数的默认控件。</p>
 </section>
-<section id="id6">
-<h2>空间电荷<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="id7">
+<h2>空间电荷<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
 <p>在 <strong>物理效应</strong> 中点击 <strong>空间电荷</strong> 标题，可展开或折叠其子菜单，交互与外层模块一致。
 折叠操作本身不修改项目，也不丢弃当前表单；没有返回菜单项。</p>
 <ul class="simple">
@@ -1096,8 +1131,8 @@ CPU 后端下禁用该列表。</p></li>
 源光学已包含设计线性聚焦，显式插入的薄元件是附加作用，不会从源光学中扣除或替换
 设计聚焦。因此，附加线性误差仍可能改变追踪工作点，而重采样的基础光学保持源工作点。</p>
 </section>
-<section id="id7">
-<h3>单圈传输<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<section id="id8">
+<h3>单圈传输<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
 <p>输入名称、周长 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和一组周期光学参数
 <span class="math notranslate nohighlight">\(\alpha_x,\alpha_y,\beta_x,\beta_y\)</span>，表单按此顺序排列。
 Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
@@ -1112,8 +1147,8 @@ Beta 必须为正，由用户独立输入，不使用平滑近似公式推导。
 其他模式生成的纵向相位推进为零。引擎的 matrix 模式还使用束团纵向尺寸和动量展宽，
 drift 模式使用滑移因子和传输长度。追踪公式参见 <a class="reference internal" href="twiss.html"><span class="doc">Twiss 传输（Twiss）</span></a>。</p>
 </section>
-<section id="id8">
-<h3>平滑近似<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<section id="id9">
+<h3>平滑近似<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
 <p>输入 <span class="math notranslate nohighlight">\(C&gt;0\)</span>、正的完整 tune <span class="math notranslate nohighlight">\(Q_x,Q_y\)</span> 和正整数 <strong>一圈分段数</strong>
 <span class="math notranslate nohighlight">\(N\)</span>。计算平滑近似 beta 时，不应只填写 tune 的小数部分，例如应输入
 9.47，而不是 0.47；表单标签标明了“完整工作点”：</p>
@@ -1130,8 +1165,8 @@ drift 模式使用滑移因子和传输长度。追踪公式参见 <a class="ref
 标准平滑光学使用零 alpha；非零常数对应自定义传输矩阵序列。
 纵向模式与单圈表单一致。该入口仅生成 <code class="docutils literal notranslate"><span class="pre">Twiss</span></code> 命令，不生成 <code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 计算点。</p>
 </section>
-<section id="id9">
-<h3>手动传输点与后续编辑<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<section id="id10">
+<h3>手动传输点与后续编辑<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
 <p>原 <strong>Twiss</strong> 入口改为 <strong>插入 Twiss 传输点</strong>。一个命令描述两端之间的传输，
 因此表单分为 <strong>起点光学参数</strong>、<strong>终点光学参数</strong> 和 <strong>传输设置</strong>。
 <code class="docutils literal notranslate"><span class="pre">Mu</span></code> 为累计相位，单位为周（<span class="math notranslate nohighlight">\(2\pi\)</span>），不是弧度。</p>
@@ -1148,7 +1183,7 @@ drift 模式使用滑移因子和传输长度。追踪公式参见 <a class="ref
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="input_generation.html" class="btn btn-neutral float-left" title="输入文件生成（命令行模式）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="project_files.html" class="btn btn-neutral float-right" title="单文件项目" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="gui_tools.html" class="btn btn-neutral float-right" title="GUI 工具" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
