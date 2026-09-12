@@ -14,13 +14,13 @@ class ToolNavigation(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("libraryPanel")
-        self.setFixedWidth(180)
+        self.setFixedWidth(220)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 10, 6, 8)
         layout.setSpacing(2)
         self.group = QButtonGroup(self)
         self.buttons = []
-        for index, title in enumerate(("束流参数计算器", "共振线图", "RF bucket绘制", "发射度与束斑换算", "磁铁参数换算", "激励计算")):
+        for index, title in enumerate(("束流参数计算器", "共振线图", "RF bucket绘制", "相空间绘制及发射度计算", "磁铁参数换算", "激励计算")):
             button = QPushButton(title)
             button.setObjectName("librarySectionHeader")
             button.setProperty("depth", 0)

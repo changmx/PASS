@@ -5,9 +5,9 @@ import re
 import sys
 
 from PySide6.QtCore import QByteArray, QEvent, QObject, QTemporaryDir, QTimer, Qt
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPalette, QPixmap, QSyntaxHighlighter, QTextCharFormat
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPalette, QPixmap, QSyntaxHighlighter, QTextCharFormat, QWheelEvent
 from PySide6.QtSvg import QSvgRenderer
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QAbstractScrollArea, QApplication, QComboBox, QWidget
 
 THEMES = {
     # Core colors from Binaryify/OneDark-Pro, themes/OneDark-Pro.json.
@@ -126,6 +126,24 @@ class _WindowThemeController(QObject):
         QTimer.singleShot(0, window, lambda: self.apply_window(window))
 
     def eventFilter(self, watched, event):
+        # Apply to every selector, including lazy pages and Qt dialog controls.
+        # Popup views still receive wheel events for browsing the open list.
+        if event.type() == QEvent.Wheel and isinstance(watched, QComboBox):
+            # An application filter stops Qt's normal parent propagation. Route
+            # the wheel to the surrounding form so scrolling over a field works.
+            parent = watched.parentWidget()
+            while parent is not None:
+                if isinstance(parent, QAbstractScrollArea):
+                    viewport = parent.viewport()
+                    forwarded = QWheelEvent(viewport.mapFromGlobal(event.globalPosition()),
+                        event.globalPosition(), event.pixelDelta(), event.angleDelta(),
+                        event.buttons(), event.modifiers(), event.phase(), event.inverted(),
+                        event.source(), event.pointingDevice())
+                    QApplication.sendEvent(viewport, forwarded)
+                    break
+                parent = parent.parentWidget()
+            event.ignore()
+            return True
         if (event.type() in (QEvent.Show, QEvent.WinIdChange, QEvent.PaletteChange, QEvent.ThemeChange)
                 and isinstance(watched, QWidget) and watched.isWindow()
                 and watched.testAttribute(Qt.WA_WState_Created)

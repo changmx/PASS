@@ -47,22 +47,23 @@ class EmittanceResult:
     geometric: float
     normalized: float
     projected: float
-    twiss_gamma: float
+    twiss_gamma: float | None
     sigma_betatron: float
     sigma_x: float
     sigma_xp: float
     covariance: float
     correlation: float | None
-    beta: float
-    alpha: float
+    beta: float | None
+    alpha: float | None
+    betatron_covariance: tuple[tuple[float, float], tuple[float, float]] | None = None
 
     def ellipse(self, n_sigma=1., *, projected=False, samples=361):
         """Covariance ellipse in (m, rad), not a 1D Gaussian confidence band."""
         n = finite_number(n_sigma, "椭圆倍数", positive=True)
         phase = np.linspace(0, 2 * np.pi, samples)
-        if projected:
+        if projected or self.betatron_covariance is not None:
             covariance = np.array([[self.sigma_x**2, self.covariance],
-                                   [self.covariance, self.sigma_xp**2]])
+                                   [self.covariance, self.sigma_xp**2]] if projected else self.betatron_covariance)
             values, vectors = np.linalg.eigh(covariance)
             return n * (vectors * np.sqrt(np.maximum(values, 0))) @ np.array([np.cos(phase), np.sin(phase)])
         x = math.sqrt(self.geometric * self.beta) * np.cos(phase)
@@ -108,10 +109,63 @@ def emittance_from(kinematics: Kinematics, known: str, value: float, beta: float
     result = EmittanceResult(emit, emit * kinematics.beta_gamma, projected, gamma,
                             math.sqrt(beta * emit), sigma_x, sigma_xp, cov,
                             correlation, beta, alpha)
-    for name in result.__dataclass_fields__:
-        number = getattr(result, name)
+    for name, number in result.__dict__.items():
+        if name == "betatron_covariance":
+            continue
         if number is not None:
             finite_number(number, "计算结果")
+    return result
+
+
+def _rms_matrix(a, b, c, name, scales=None):
+    """Validate a 2D covariance using coordinate-wise roundoff scales."""
+    a, b, c = (finite_number(v, name) for v in (a, b, c))
+    scale_a, scale_b = scales if scales is not None else (abs(a), abs(b))
+    if a < -1e-12 * scale_a or b < -1e-12 * scale_b:
+        raise ValueError(f"{name}不是半正定矩阵：方差不能为负。")
+    a, b = max(0., a), max(0., b)
+    bound = math.sqrt(a) * math.sqrt(b)
+    tolerance = 1e-12 * math.sqrt(scale_a) * math.sqrt(scale_b)
+    if abs(c) > bound + tolerance:
+        raise ValueError(f"{name}不是半正定矩阵：协方差超过 RMS 乘积。")
+    c = max(-bound, min(bound, c))
+    rho = c / bound if bound else None
+    emit = bound * math.sqrt(max(0., (1 - abs(rho)) * (1 + abs(rho)))) if bound else 0.
+    return a, b, c, emit, rho
+
+
+def emittance_from_rms(kinematics: Kinematics, sigma_x, sigma_xp, *, correlation=None,
+                       covariance=None, dispersion=0., dispersion_prime=0., sigma_delta=0.):
+    """Invert centered projected RMS statistics, subtracting uncorrelated dispersion.
+
+    All inputs use SI units. Exactly one of correlation or covariance is required.
+    A singular betatron covariance has zero emittance and undefined Twiss values,
+    but its point/line contour remains available through ``ellipse``.
+    """
+    sx = finite_number(sigma_x, "投影 σx", minimum=0)
+    sp = finite_number(sigma_xp, "投影 σx′", minimum=0)
+    d = finite_number(dispersion, "色散 D")
+    dp = finite_number(dispersion_prime, "色散 D′")
+    spread = finite_number(sigma_delta, "σδ", minimum=0)
+    if (correlation is None) == (covariance is None):
+        raise ValueError("需要且只能输入相关系数 r 或协方差。")
+    if correlation is not None:
+        rho = finite_number(correlation, "相关系数 r")
+        if abs(rho) > 1:
+            raise ValueError("相关系数 r 必须在 [-1, 1] 内。")
+        if sx == 0 or sp == 0:
+            raise ValueError("RMS 为零时相关系数未定义，请改用协方差输入 0。")
+        covariance = rho * sx * sp
+    a, b, c, projected, rho = _rms_matrix(sx*sx, sp*sp, covariance, "投影协方差")
+    da, db = d * spread, dp * spread
+    ba, bb, bc, emit, _ = _rms_matrix(a-da*da, b-db*db, c-da*db,
+        "扣除色散后的 betatron 协方差", (max(a, da*da), max(b, db*db)))
+    beta, alpha, gamma = (ba/emit, -bc/emit, bb/emit) if emit else (None, None, None)
+    result = EmittanceResult(emit, emit*kinematics.beta_gamma, projected, gamma,
+        math.sqrt(ba), math.sqrt(a), math.sqrt(b), c, rho, beta, alpha, ((ba, bc), (bc, bb)))
+    for name, value in result.__dict__.items():
+        if name != "betatron_covariance" and value is not None:
+            finite_number(value, "计算结果")
     return result
 
 

@@ -49,8 +49,18 @@ EMITTANCE_FORMULAS = MASS_REFERENCE_FORMULAS + r"""
 <p>投影包含不同动量粒子的色散位移。Cov 衡量位置和角度的共同变化，r 为归一化相关系数。
 D=D′=0 时，投影与 betatron 椭圆相同。</p>
 <eq>\varepsilon=\frac{\sigma_x^2-(D\sigma_\delta)^2}{\beta}</eq>
-<p>由束斑反算时，σ<sub>x</sub> 不得小于 |D|σ<sub>δ</sub>。一个束斑测量不能同时确定未知 Twiss 和色散。</p>
-<h3>相椭圆及包含比例</h3>
+  <p>由束斑反算时，σ<sub>x</sub> 不得小于 |D|σ<sub>δ</sub>。一个束斑测量不能同时确定未知 Twiss 和色散。</p>
+  <h3>由投影 RMS 与相关性反算</h3>
+  <p>输入 σx、σx′ 及 r 或 Cov；这些都是扣除质心后的投影统计量。r 模式要求两个 RMS 为正且 |r|≤1。
+  协方差模式允许零 RMS，但此时协方差必须为零，相关系数未定义。</p>
+  <eq>B_{11}=\sigma_x^2-D^2\sigma_\delta^2,\qquad B_{22}=\sigma_{x'}^2-D'^2\sigma_\delta^2</eq>
+  <eq>B_{12}=\mathrm{Cov}(x,x')-DD'\sigma_\delta^2,\qquad \mathrm{Cov}(x,x')=r\sigma_x\sigma_{x'}</eq>
+  <eq>\varepsilon=\sqrt{\det B},\quad \beta=\frac{B_{11}}{\varepsilon},\quad \alpha=-\frac{B_{12}}{\varepsilon},\quad \gamma=\frac{B_{22}}{\varepsilon}</eq>
+  <p>投影矩阵和扣除色散后的 B 均须半正定；不相容输入报错。ε=0 时反算 Twiss 未定义，
+  保留零发射度及退化为线段或点的曲线。输入 Twiss 的原有模式仍保留给定 Twiss。</p>
+  <p>每页独立计算，参考粒子和能量共用；多页叠加不计算合束发射度。
+  中心 x₀、x′₀ 同时平移 betatron 和投影曲线，不改变 RMS、协方差、发射度或 Twiss。</p>
+  <h3>相椭圆及包含比例</h3>
 <eq>\gamma x^2+2\alpha xx'+\beta x'^2=n^2\varepsilon</eq>
 <eq>\mathcal{A}=\pi n^2\varepsilon,\qquad F(n)=1-\exp\left(-\frac{n^2}{2}\right)</eq>
 <p>投影椭圆使用 ε<sub>proj</sub>。非退化二维高斯在 n=1 椭圆内约含 39.35%，不是 68%。
