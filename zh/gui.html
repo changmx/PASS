@@ -105,9 +105,9 @@
 <li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id5">共振线图</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id6">参考束流与导出</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gui_tools.html#rf-bucket">RF bucket绘制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#twiss">发射度、Twiss 与束斑</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id7">磁铁参数换算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id8">激励计算与绘制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id7">相空间绘制及发射度计算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id8">磁铁参数换算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id9">激励计算与绘制</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="project_files.html">单文件项目</a><ul>
@@ -546,7 +546,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#tune-diagram">Tune diagram</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#rf-bucket">RF bucket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#emittance-twiss-and-beam-size">Emittance, Twiss and beam size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#magnet-conversion">Magnet conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
 </ul>
@@ -975,7 +975,7 @@ JSON/项目保存、源文件打包、参数复用和固定运行快照参见 <a
 <section id="id2">
 <h2>工具<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p><strong>工具</strong> 与配置、运行、绘图同级，左侧可选择束流参数计算器、共振线图、RF 桶、
-发射度与束斑换算、磁铁参数换算和激励计算。计算独立于当前仿真输入。
+相空间绘制及发射度计算、磁铁参数换算和激励计算。计算独立于当前仿真输入。
 粒子质量固定采用 AME2020、NIST/CODATA 和 PDG 数据；所有粒子的 Ek 均按实际静止质量的 u 数归一化，使用 MeV/u。
 详细公式窗口包含可点击的来源网站。单位、物理约定和使用流程参见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。</p>
 </section>
@@ -988,7 +988,9 @@ JSON 源码和运行日志使用等宽字体：优先 JetBrains Mono，未安装
 源码的键、字符串、数值与布尔值分别着色。无需另外安装字体。</p>
 <p><strong>输入配置（必需）</strong> 标出输入配置入口。各级标题和选项均左对齐，
 子级逐层向右缩进，以细竖线连接，并用轻微底色区分主标题；不依赖颜色判断层级。
-下拉框右侧始终显示箭头和分隔线。复选框以对号表示选中，禁用时保留对号。</p>
+下拉框右侧始终显示箭头和分隔线。复选框以对号表示选中，禁用时保留对号。
+所有页面及对话框的下拉选项框均禁止用鼠标滚轮直接切换当前选项，包括获得焦点时；
+使用鼠标时先单击展开列表，再单击选择。展开的列表仍可用滚轮浏览。</p>
 <p>校验、表格编辑、消息和文件选择窗口均跟随当前主题。Windows 11 使用系统接口设置
 原生标题栏的背景与文字颜色，Windows 10 使用系统支持的深色标题栏标志；
 窗口仍保留系统移动、缩放和贴靠功能。文件选择使用 Qt 对话框，以使内容区也保持主题一致。</p>

@@ -105,9 +105,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#id5">共振线图</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id6">参考束流与导出</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rf-bucket">RF bucket绘制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#twiss">发射度、Twiss 与束斑</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">磁铁参数换算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id8">激励计算与绘制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">相空间绘制及发射度计算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">磁铁参数换算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">激励计算与绘制</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="project_files.html">单文件项目</a><ul>
@@ -546,7 +546,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#tune-diagram">Tune diagram</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#rf-bucket">RF bucket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#emittance-twiss-and-beam-size">Emittance, Twiss and beam size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#magnet-conversion">Magnet conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
 </ul>
@@ -959,7 +959,7 @@
   <section id="gui">
 <h1>GUI 工具<a class="headerlink" href="#gui" title="Link to this heading"></a></h1>
 <p><strong>工具</strong> 与配置、运行、绘图同级，左侧包含束流参数计算器、共振线图、
-<strong>RF bucket绘制</strong>、发射度与束斑换算、磁铁参数换算和激励计算。
+<strong>RF bucket绘制</strong>、相空间绘制及发射度计算、磁铁参数换算和激励计算。
 栏目采用配置库的一级分格样式，并有独立图标；切换工具保留本窗口中的输入。
 计算不会修改当前追踪配置或保存的项目。每页有独立的 <strong>详细公式</strong> 窗口和复制结果按钮。</p>
 <p>各物理工具的公式窗口列出本地数据文件路径、可点击的官方来源网站以及每核子/每粒子归一化方程。
@@ -1153,8 +1153,23 @@ f_s=Q_s f_0,\quad f_0=\beta c/C,\quad f_{RF}=h f_0.\]</div>
 <code class="docutils literal notranslate"><span class="pre">|delta|&gt;=1</span></code> 的桶高会报错，不能替代追踪。
 通用背景：<a class="reference external" href="https://e-publishing.cern.ch/index.php/CYRSP/article/view/1586">CERN 纵向束流动力学</a>。</p>
 </section>
-<section id="twiss">
-<h2>发射度、Twiss 与束斑<a class="headerlink" href="#twiss" title="Link to this heading"></a></h2>
+<section id="id7">
+<h2>相空间绘制及发射度计算<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>默认提供一页独立参数，标签栏旁的 <strong>＋</strong> 新增页面，<strong>复制当前页</strong> 复制参数、质心和绘制设置，
+自动分配新颜色；非空图例名称添加“副本”，空名称保持为空。页面可删除，但至少保留一页。
+页码是稳定标识，删除页面后不重编号。所有页面共用顶部参考粒子和能量，
+切换标签只切换编辑对象，勾选的各页曲线始终叠加在同一张图上；不计算多束合并发射度。</p>
+<p>每页 <strong>绘制相空间</strong> 默认开启，<strong>绘制投影椭圆（含色散）</strong> 默认关闭，后者受前者控制。
+不绘制的页面仍计算结果。各页自动使用不同颜色，可自行修改；同页 betatron 为实线，投影为虚线。
+工具栏的 <strong>显示图例</strong> 默认开启；两条曲线各有独立图例名称。
+空或纯空白名称不产生图例条目，但不隐藏曲线；没有有效条目时不显示图例框。
+页面标签独立于图例名称。中心 <strong>x₀ (mm)、x′₀ (mrad)</strong> 默认零，同时平移两种曲线，
+不改变扣除质心后的 RMS、协方差、发射度与 Twiss。</p>
+<p>每页的参数和结果位于同一滚动区域。单页错误会清除该页结果及曲线，并在标签标记错误，
+其他有效页面正常绘制。图片导出保持当前曲线和图例状态；CSV 导出所有有效页面的两种曲线，
+包括隐藏曲线，使用 <code class="docutils literal notranslate"><span class="pre">page_id</span></code>、<code class="docutils literal notranslate"><span class="pre">page_name</span></code>、图例名称和 <code class="docutils literal notranslate"><span class="pre">draw_betatron</span></code> / <code class="docutils literal notranslate"><span class="pre">draw_projected</span></code>
+区分来源及绘制状态，坐标使用 m、rad，包含质心偏移。无效页面不导出曲线数据；
+至少有一页有效时，复制结果包含全部页面的输入、有效结果及无效页面的错误原因。</p>
 <p>单位 <strong>π·mm·mrad</strong> 按确认的面积约定：输入 1，在公式中使用几何 rms 发射度
 1e-6 m rad，对应 n=1 椭圆面积 pi×1e-6 m rad，<strong>不再额外乘 π</strong>，也不隐含 4 倍 rms。
 归一化发射度满足 <code class="docutils literal notranslate"><span class="pre">epsilon_n=beta_rel*gamma_rel*epsilon</span></code>，采用同一 π 记法。</p>
@@ -1163,7 +1178,7 @@ f_s=Q_s f_0,\quad f_0=\beta c/C,\quad f_{RF}=h f_0.\]</div>
 <div class="math notranslate nohighlight">
 \[\gamma=\frac{1+\alpha^2}{\beta},\qquad \alpha=\pm\sqrt{\beta\gamma-1}.\]</div>
 <p>β 必须为正，反算要求 beta×gamma≥1，β、γ 不能决定 α 的符号。
-这些 Twiss 参数与相对论因子不同。参数与结果在同一竖列滚动，不再使用单独的结果标签页。</p>
+这些 Twiss 参数与相对论因子不同。</p>
 <p>单平面模型假设 betatron 坐标与动量偏差不相关：</p>
 <div class="math notranslate nohighlight">
 \[\sigma_x^2=\beta\epsilon+D^2\sigma_\delta^2,\quad
@@ -1178,9 +1193,22 @@ D=Dprime=0 时与 betatron 椭圆相同。
 Ek=0 时无法由归一化发射度唯一反算几何发射度。
 n 倍协方差椭圆面积为 pi×n²×epsilon；非退化二维高斯包含率为 <code class="docutils literal notranslate"><span class="pre">1-exp(-n²/2)</span></code>，
 n=1 为约 39.35%。</p>
+<p><strong>已知量</strong> 保留几何发射度、归一化发射度和投影 σx 输入，并增加
+<strong>投影 RMS 与相关性 → ε、Twiss</strong>：输入 σx、σx′，选择 r 或 Cov(x,x′)。
+这些输入均为含色散的投影统计量。程序构造投影矩阵，并扣除色散贡献：</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}\Sigma=\begin{pmatrix}\sigma_x^2 &amp; \operatorname{Cov}(x,x')\\
+\operatorname{Cov}(x,x') &amp; \sigma_{x'}^2\end{pmatrix},\quad
+B=\Sigma-\sigma_\delta^2\begin{pmatrix}D^2 &amp; DD'\\DD' &amp; D'^2\end{pmatrix},\end{split}\\\epsilon=\sqrt{\det B},\quad \beta=B_{11}/\epsilon,\quad
+\alpha=-B_{12}/\epsilon,\quad \gamma=B_{22}/\epsilon.\end{aligned}\end{align} \]</div>
+<p>投影矩阵和 B 均须半正定，否则输入不相容。r 模式要求两个 RMS 均为正且 <code class="docutils literal notranslate"><span class="pre">|r|≤1</span></code>；
+零 RMS 时须选择协方差模式且 Cov=0，结果中的 r 显示“未定义”。
+ε=0 时仍显示零发射度及可计算统计量，反算 Twiss 显示“未定义”，曲线可退化为线段或点。
+原有发射度/束斑输入模式仍保留给定的 Twiss。结果同时显示 betatron 与投影 RMS、发射度，
+即使投影曲线关闭也继续显示投影结果；Twiss 结果对应 betatron。</p>
 </section>
-<section id="id7">
-<h2>磁铁参数换算<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<section id="id8">
+<h2>磁铁参数换算<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <p>使用参考粒子或直接输入 <strong>带符号</strong> B*rho=p/(q*e)，要求有效磁长为正。
 直接模式忽略被禁用的参考输入。场与归一化强度保留符号，不额外作发射度式的 beta×gamma 归一化。</p>
 <ul class="simple">
@@ -1202,8 +1230,8 @@ G=dBy/dx，焦距为薄透镜估算。</p></li>
 螺线管显示轴向场 <code class="docutils literal notranslate"><span class="pre">Bz[Gauss]=10000*(Bρ)*Ks</span></code>；仅凭孔径半径和 Ks 无法确定铁芯极面场，
 后者需要磁路几何和场模型。不包含边缘场、饱和、磁滞或线圈电流标定。</p>
 </section>
-<section id="id8">
-<h2>激励计算与绘制<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="id9">
+<h2>激励计算与绘制<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
 <p>对应 <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/exciter.py</span></code> 中的 single_fm、single_fm_am、dual_fm、dual_fm_am。
 输入极板电压、间距、有效长、周长、激励 tune 或频率、扫频全宽、周期以及原模型的双频/AM 参数。
 切换 tune/频率输入方式时保留实际中心频率和宽度。</p>

@@ -105,9 +105,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id5">共振线图</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id6">参考束流与导出</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#rf-bucket">RF bucket绘制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#twiss">发射度、Twiss 与束斑</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id7">磁铁参数换算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id8">激励计算与绘制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id7">相空间绘制及发射度计算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id8">磁铁参数换算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/gui_tools.html#id9">激励计算与绘制</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/project_files.html">单文件项目</a><ul>
@@ -546,7 +546,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#tune-diagram">Tune diagram</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#reference-inputs-and-exports">Reference inputs and exports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#rf-bucket">RF bucket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#emittance-twiss-and-beam-size">Emittance, Twiss and beam size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#magnet-conversion">Magnet conversion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
 </ul>
@@ -959,7 +959,7 @@
   <section id="gui-tools">
 <h1>GUI tools<a class="headerlink" href="#gui-tools" title="Link to this heading"></a></h1>
 <p>The <strong>Tools</strong> workspace contains the beam calculator, tune diagram,
-<strong>RF bucket绘制</strong>, emittance/beam-size conversion, magnet conversion, and
+<strong>RF bucket绘制</strong>, phase-space plotting and emittance calculation, magnet conversion, and
 Exciter preview. Its left section buttons share the configuration library’s
 style and have individual icons. Values persist while switching pages in the
 current window. Tools do not modify the active tracking input or saved project.
@@ -1217,8 +1217,30 @@ fields, radiation, multi-harmonic RF and capture ramps. Heights with <code class
 are rejected. It does not replace tracking. Background:
 <a class="reference external" href="https://e-publishing.cern.ch/index.php/CYRSP/article/view/1586">CERN longitudinal beam dynamics</a>.</p>
 </section>
-<section id="emittance-twiss-and-beam-size">
-<h2>Emittance, Twiss and beam size<a class="headerlink" href="#emittance-twiss-and-beam-size" title="Link to this heading"></a></h2>
+<section id="phase-space-plotting-and-emittance-calculation">
+<h2>Phase-space plotting and emittance calculation<a class="headerlink" href="#phase-space-plotting-and-emittance-calculation" title="Link to this heading"></a></h2>
+<p>The tool <strong>相空间绘制及发射度计算</strong> starts with one independent parameter page.
+Use <strong>＋</strong> to add a page or <strong>复制当前页</strong> to copy parameters, centroids, and visibility settings.
+A copy receives a new color; nonblank legend names gain a “副本” suffix, while blank names remain blank.
+Pages can be removed, but at least one remains. Page IDs remain stable after deletion.
+All pages share the reference particle and energy at the top. Switching tabs changes only the editor;
+enabled curves from all pages remain overlaid on one plot. No combined-beam emittance is calculated.</p>
+<p>Each page enables <strong>绘制相空间</strong> (draw phase space) by default and disables
+<strong>绘制投影椭圆（含色散）</strong> (draw projected ellipse with dispersion) by default.
+The latter also requires the page’s draw switch. Hidden pages still calculate results.
+Pages receive different editable colors; betatron curves are solid and projected curves dashed.
+The toolbar’s <strong>显示图例</strong> (show legend) switch defaults to enabled. Each curve has its own editable name.
+Empty or whitespace-only names omit that legend entry without hiding the curve; no legend box appears
+when no entries remain. Tab labels are independent of legend names.
+Centroids <strong>x₀ (mm), x′₀ (mrad)</strong> default to zero and translate both curves without changing
+centered RMS statistics, covariance, emittance, or Twiss parameters.</p>
+<p>Each page keeps parameters and results in the same scrolling column. Invalid input clears only that
+page’s results and curves, with an error marker on its tab; other valid pages continue to plot.
+Image export preserves the displayed curves and legend. CSV exports both curves from every valid page,
+including hidden curves, with <code class="docutils literal notranslate"><span class="pre">page_id</span></code>, <code class="docutils literal notranslate"><span class="pre">page_name</span></code>, legend names, and
+<code class="docutils literal notranslate"><span class="pre">draw_betatron</span></code> / <code class="docutils literal notranslate"><span class="pre">draw_projected</span></code> visibility flags. Coordinates include centroid offsets and use m and rad.
+Invalid pages have no exported curve rows. When at least one page is valid, copied results include
+all page inputs, valid results, and error reasons for invalid pages.</p>
 <p>The unit <strong>π·mm·mrad</strong> uses the agreed area convention: input 1 means a geometric
 RMS emittance of 1e-6 m rad in the formulas, with ellipse area pi*1e-6 m rad for
 n=1. <strong>Do not multiply the input by pi again.</strong> No four-RMS factor is implied.
@@ -1229,8 +1251,7 @@ solves alpha and requires a positive/negative branch choice:</p>
 <div class="math notranslate nohighlight">
 \[\gamma=\frac{1+\alpha^2}{\beta},\qquad \alpha=\pm\sqrt{\beta\gamma-1}.\]</div>
 <p>Require beta&gt;0 and beta*gamma&gt;=1 for inversion. Gamma and beta cannot determine
-the sign of alpha. These Twiss quantities are distinct from relativistic factors.
-Parameters and results occupy one scrolling column, without a separate result tab.</p>
+the sign of alpha. These Twiss quantities are distinct from relativistic factors.</p>
 <p>The one-plane model assumes uncorrelated betatron coordinates and momentum spread:</p>
 <div class="math notranslate nohighlight">
 \[\sigma_x^2=\beta\epsilon+D^2\sigma_\delta^2,\quad
@@ -1246,6 +1267,22 @@ Cov has units mm mrad, without an area-convention pi prefix.</p>
 <code class="docutils literal notranslate"><span class="pre">abs(D)*sigma_delta</span></code> is inconsistent. At Ek=0 normalized-to-geometric inversion
 is underdetermined. An n-sigma covariance ellipse has area pi*n²*epsilon; for a
 nondegenerate 2D Gaussian it contains <code class="docutils literal notranslate"><span class="pre">1-exp(-n²/2)</span></code>, about 39.35% at n=1.</p>
+<p>The known-quantity selector retains geometric emittance, normalized emittance, and projected σx inputs,
+and adds <strong>投影 RMS 与相关性 → ε、Twiss</strong> (projected RMS and correlation): enter σx, σxprime,
+and either r or Cov(x,xprime). These inputs are projected, centered statistics including dispersion.
+The calculation constructs the projected covariance and subtracts the dispersive contribution:</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}\Sigma=\begin{pmatrix}\sigma_x^2 &amp; \operatorname{Cov}(x,x')\\
+\operatorname{Cov}(x,x') &amp; \sigma_{x'}^2\end{pmatrix},\quad
+B=\Sigma-\sigma_\delta^2\begin{pmatrix}D^2 &amp; DD'\\DD' &amp; D'^2\end{pmatrix},\end{split}\\\epsilon=\sqrt{\det B},\quad \beta=B_{11}/\epsilon,\quad
+\alpha=-B_{12}/\epsilon,\quad \gamma=B_{22}/\epsilon.\end{aligned}\end{align} \]</div>
+<p>Both the projected matrix and B must be positive semidefinite; otherwise the inputs are inconsistent.
+Correlation mode requires positive RMS values and <code class="docutils literal notranslate"><span class="pre">|r|≤1</span></code>. A zero RMS requires covariance mode with Cov=0,
+and the resulting r is displayed as undefined. At epsilon=0 the emittance and available statistics remain
+visible, inferred Twiss values are undefined, and the contour can degenerate to a line or point.
+The original emittance/beam-size modes retain their supplied Twiss values.
+Results distinguish betatron and projected RMS values and emittances; projected results remain available
+even when their curve is hidden. The reported Twiss parameters describe the betatron covariance.</p>
 </section>
 <section id="magnet-conversion">
 <h2>Magnet conversion<a class="headerlink" href="#magnet-conversion" title="Link to this heading"></a></h2>
