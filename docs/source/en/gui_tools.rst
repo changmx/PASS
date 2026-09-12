@@ -2,7 +2,7 @@ GUI tools
 =========
 
 The **Tools** workspace contains the beam calculator, tune diagram,
-**RF bucket绘制**, emittance/beam-size conversion, magnet conversion, and
+**RF bucket绘制**, phase-space plotting and emittance calculation, magnet conversion, and
 Exciter preview. Its left section buttons share the configuration library's
 style and have individual icons. Values persist while switching pages in the
 current window. Tools do not modify the active tracking input or saved project.
@@ -297,8 +297,33 @@ fields, radiation, multi-harmonic RF and capture ramps. Heights with ``|delta|>=
 are rejected. It does not replace tracking. Background:
 `CERN longitudinal beam dynamics <https://e-publishing.cern.ch/index.php/CYRSP/article/view/1586>`_.
 
-Emittance, Twiss and beam size
---------------------------------
+Phase-space plotting and emittance calculation
+------------------------------------------------
+
+The tool **相空间绘制及发射度计算** starts with one independent parameter page.
+Use **＋** to add a page or **复制当前页** to copy parameters, centroids, and visibility settings.
+A copy receives a new color; nonblank legend names gain a “副本” suffix, while blank names remain blank.
+Pages can be removed, but at least one remains. Page IDs remain stable after deletion.
+All pages share the reference particle and energy at the top. Switching tabs changes only the editor;
+enabled curves from all pages remain overlaid on one plot. No combined-beam emittance is calculated.
+
+Each page enables **绘制相空间** (draw phase space) by default and disables
+**绘制投影椭圆（含色散）** (draw projected ellipse with dispersion) by default.
+The latter also requires the page's draw switch. Hidden pages still calculate results.
+Pages receive different editable colors; betatron curves are solid and projected curves dashed.
+The toolbar's **显示图例** (show legend) switch defaults to enabled. Each curve has its own editable name.
+Empty or whitespace-only names omit that legend entry without hiding the curve; no legend box appears
+when no entries remain. Tab labels are independent of legend names.
+Centroids **x₀ (mm), x′₀ (mrad)** default to zero and translate both curves without changing
+centered RMS statistics, covariance, emittance, or Twiss parameters.
+
+Each page keeps parameters and results in the same scrolling column. Invalid input clears only that
+page's results and curves, with an error marker on its tab; other valid pages continue to plot.
+Image export preserves the displayed curves and legend. CSV exports both curves from every valid page,
+including hidden curves, with ``page_id``, ``page_name``, legend names, and
+``draw_betatron`` / ``draw_projected`` visibility flags. Coordinates include centroid offsets and use m and rad.
+Invalid pages have no exported curve rows. When at least one page is valid, copied results include
+all page inputs, valid results, and error reasons for invalid pages.
 
 The unit **π·mm·mrad** uses the agreed area convention: input 1 means a geometric
 RMS emittance of 1e-6 m rad in the formulas, with ellipse area pi*1e-6 m rad for
@@ -315,7 +340,6 @@ solves alpha and requires a positive/negative branch choice:
 
 Require beta>0 and beta*gamma>=1 for inversion. Gamma and beta cannot determine
 the sign of alpha. These Twiss quantities are distinct from relativistic factors.
-Parameters and results occupy one scrolling column, without a separate result tab.
 
 The one-plane model assumes uncorrelated betatron coordinates and momentum spread:
 
@@ -336,6 +360,28 @@ Beam-size inversion subtracts the dispersion variance; an input below
 ``abs(D)*sigma_delta`` is inconsistent. At Ek=0 normalized-to-geometric inversion
 is underdetermined. An n-sigma covariance ellipse has area pi*n²*epsilon; for a
 nondegenerate 2D Gaussian it contains ``1-exp(-n²/2)``, about 39.35% at n=1.
+
+The known-quantity selector retains geometric emittance, normalized emittance, and projected σx inputs,
+and adds **投影 RMS 与相关性 → ε、Twiss** (projected RMS and correlation): enter σx, σxprime,
+and either r or Cov(x,xprime). These inputs are projected, centered statistics including dispersion.
+The calculation constructs the projected covariance and subtracts the dispersive contribution:
+
+.. math::
+
+   \Sigma=\begin{pmatrix}\sigma_x^2 & \operatorname{Cov}(x,x')\\
+   \operatorname{Cov}(x,x') & \sigma_{x'}^2\end{pmatrix},\quad
+   B=\Sigma-\sigma_\delta^2\begin{pmatrix}D^2 & DD'\\DD' & D'^2\end{pmatrix},
+
+   \epsilon=\sqrt{\det B},\quad \beta=B_{11}/\epsilon,\quad
+   \alpha=-B_{12}/\epsilon,\quad \gamma=B_{22}/\epsilon.
+
+Both the projected matrix and B must be positive semidefinite; otherwise the inputs are inconsistent.
+Correlation mode requires positive RMS values and ``|r|≤1``. A zero RMS requires covariance mode with Cov=0,
+and the resulting r is displayed as undefined. At epsilon=0 the emittance and available statistics remain
+visible, inferred Twiss values are undefined, and the contour can degenerate to a line or point.
+The original emittance/beam-size modes retain their supplied Twiss values.
+Results distinguish betatron and projected RMS values and emittances; projected results remain available
+even when their curve is hidden. The reported Twiss parameters describe the betatron covariance.
 
 Magnet conversion
 -------------------

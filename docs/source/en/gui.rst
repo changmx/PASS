@@ -30,7 +30,7 @@ Tools
 -----
 
 **Tools** is a peer of Configuration, Run and Plot. Its left navigation contains
-the beam calculator, tune diagram, RF bucket, emittance/beam-size converter,
+the beam calculator, tune diagram, RF bucket, phase-space plotting and emittance calculation,
 magnet converter, and exciter preview. Calculations are independent of the active simulation
 input. Reference masses use fixed AME2020, NIST/CODATA and PDG data. Ek uses MeV/u for every species, normalized by actual rest mass in u.
 Formula references and clickable source websites open in separate windows. See :doc:`gui_tools` for units, conventions and workflows.
@@ -51,6 +51,9 @@ Headings and entries align left, with successive child indentation, thin vertica
 guides, and subtle main-heading backgrounds. Hierarchy does not depend on color.
 Dropdowns always show a right-hand arrow and divider. Checkboxes show a checkmark
 when selected, including when disabled.
+Dropdowns throughout all pages and dialogs ignore mouse-wheel changes to the current
+selection, even when focused. To select with the mouse, click to open the list and
+then click an item. The open list can still be scrolled to browse options.
 
 Validation, table editing, message, and file selection windows follow the current
 theme. Windows 11 uses system APIs to color native title-bar backgrounds and text;
