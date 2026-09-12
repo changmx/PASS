@@ -15,6 +15,7 @@ Priority order:
 
 ## Test organization
 
+- All the tests should be ignored by Git and not uploaded.
 - Human-maintained tests belong in `tests/unit/` or `tests/integration/`.
 - Codex-generated tests, exploratory scripts, verification reports, and generated
   result files belong in `tests/codex/`.
