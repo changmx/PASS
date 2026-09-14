@@ -62,6 +62,8 @@ class StatMonitor(Command):
             df = pd.read_csv(output_path_csv)
             headers = {}
             headers["Name"] = "PASS Statistic Data"
+            headers["ZCoordinate"] = "z_rel_folded_by_ring"
+            headers["ZInterval"] = "[-C/2,C/2)"
             headers["Time"] = get_current_time()
 
             table = tfs.TfsDataFrame(df, headers=headers)
@@ -106,8 +108,10 @@ class StatMonitor(Command):
 
             N = len(x)
             if N == 0:
-                # Empty bunch: no statistics row.
-                continue
+                if Np == 0:
+                    continue
+                # Keep an explicit zero-survival row during injection/loss.
+                x = px = y = py = z = dp = np.zeros(1, dtype=p.dtype)
 
             # z is stored bunch-relative and may remain unwrapped during
             # tracking. Statistics use one full-ring representative.
@@ -180,8 +184,9 @@ class StatMonitor(Command):
             else:
                 y_skew, y_kurt = 0.0, 0.0
 
-            beam_loss = Np - N
-            loss_percent = 100.0 * beam_loss / Np
+            injected = int(np.count_nonzero(tag))
+            beam_loss = injected - N
+            loss_percent = 100.0 * beam_loss / injected if injected else 0.0
 
             row_dict = {
                 'turn': turn,
@@ -213,6 +218,9 @@ class StatMonitor(Command):
                 'yzAverage': stat['yz'],
                 'xzDevideSigmaxSigmaz': xz_div,
                 'beamLossTotal': beam_loss,
+                'numAlive': N,
+                'numInjected': injected,
+                'numPending': Np - injected,
                 'lossPercent': loss_percent,
                 'xSkewness': x_skew,
                 'xKurtosis': x_kurt,
@@ -322,8 +330,9 @@ class StatMonitor(Command):
             y3_avg = out_cpu[19] * inv_count
             y4_avg = out_cpu[20] * inv_count
 
-            beam_loss = Np - count_alive
-            loss_percent = 100.0 * beam_loss / Np
+            injected = int((tag != 0).sum())
+            beam_loss = injected - count_alive
+            loss_percent = 100.0 * beam_loss / injected if injected else 0.0
 
             sigma_x = np.sqrt(x2_avg - x_avg**2)
             sigma_px = np.sqrt(px2_avg - px_avg**2)
@@ -397,6 +406,9 @@ class StatMonitor(Command):
                 'yzAverage': yz_avg,
                 'xzDevideSigmaxSigmaz': xz_div,
                 'beamLossTotal': beam_loss,
+                'numAlive': count_alive,
+                'numInjected': injected,
+                'numPending': Np - injected,
                 'lossPercent': loss_percent,
                 'xSkewness': x_skew,
                 'xKurtosis': x_kurt,
