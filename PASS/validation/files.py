@@ -6,7 +6,7 @@ import numpy as np
 
 
 INPUT_FILE_FIELDS = frozenset({
-    "distribution file path", "file path", "rf data file", "k0l ramping file",
+    "waveform file", "distribution file path", "file path", "file_path", "rf data file", "k0l ramping file",
     "k1l ramping file", "k1sl ramping file", "k2l ramping file", "k2sl ramping file",
     "k3l ramping file", "k3sl ramping file", "kl ramping file", "kick ramping file",
 })
@@ -25,6 +25,43 @@ def resolve_input_paths(data, base):
         for value in data:
             resolve_input_paths(value, base)
     return data
+
+
+def check_wake_files(check, values, path):
+    """Use the actual wake reader for file validation, never the TFS parser."""
+    if not check.check_files:
+        return
+    from copy import deepcopy
+    from PASS.para.schema.wake_field import WakeComponentConfig
+    from PASS.commands.wake_field import _build_component
+    groups = values.get("Groups", [])
+    if not isinstance(groups, list):
+        return
+    for gi, group in enumerate(groups):
+        if not isinstance(group, dict):
+            continue
+        entries = group.get("Components", [])
+        if not isinstance(entries, list):
+            continue
+        for ci, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                continue
+            try:
+                config = WakeComponentConfig.model_validate(entry)
+            except ValueError:
+                continue  # The schema validator already reports this entry.
+            if config.model.kind != "file":
+                continue
+            location = (*path, "Groups", gi, "Components", ci, "Model", "File path")
+            prepared = deepcopy(entry)
+            resolve_input_paths(prepared, check.base)
+            try:
+                loaded = _build_component(WakeComponentConfig.model_validate(prepared))
+                actual = loaded.model.input_metadata["path"]
+                if actual not in check.report.checked_files:
+                    check.report.checked_files.append(actual)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                check.add(location, "wake.file", f"Wake file validation failed: {exc}", not values.get("Is enabled", True))
 
 
 def check_table(check, value, path, kind, active, minimum_rows):

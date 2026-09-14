@@ -17,6 +17,7 @@ from PASS.para.schema.elements import ELEMENT_REGISTRY
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
 from PASS.para.schema.slicer import Slicer
+from PASS.para.schema.wake_field import WakeField
 from PASS.para.schema.space_charge import SpaceCharge, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
 from PASS.para.schema.twiss import TwissPoint
 from .report import ValidationReport, parse_json
@@ -36,7 +37,8 @@ class TwissModel(TwissPoint):
 MODELS = {model.model_fields["command"].default: model for model in ELEMENT_REGISTRY.values()}
 MODELS.update(Injection=InjectionItem, Twiss=TwissModel, SortBunch=SortBunchModel,
               StatMonitor=StatMonitor, DistMonitor=DistMonitor, ParticleMonitor=ParticleMonitor,
-              PhaseAdvanceMonitor=PhaseAdvanceMonitor, Slicer=Slicer, SpaceCharge=SpaceCharge)
+              PhaseAdvanceMonitor=PhaseAdvanceMonitor, Slicer=Slicer, SpaceCharge=SpaceCharge,
+              WakeField=WakeField)
 
 
 def number(value):
@@ -336,7 +338,7 @@ class Validator:
                 if number(energy) and energy + dde <= 0:
                     self.add((*p, "Kinetic Energy Offset (eV)"), "injection.energy", "偏移后的动能必须大于 0")
             self.bunch_models.append((p, b))
-            self.file(b, "Distribution File Path", p, "distribution", active=b.get("Is Load Distribution from File", False), minimum_rows=start_index + n)
+            self.file(b, "Distribution File Path", p, "distribution", active=b.get("Is Load Distribution from File", False), minimum_rows=first if b.get("Distribution File Mode") == "repeat" else n)
             start_index += n
             for axis in "xy":
                 offset = b.get(f"Offset {axis}")
@@ -402,6 +404,16 @@ class Validator:
                 self.file(v, key, p, "ramping", active=False)
         if "Is field error" in v and not v["Is field error"] and (v.get("Field error KNL") or v.get("Field error KSL")):
             self.add((*p, "Is field error"), "field_error.disabled", "场误差系数已填写，但场误差开关关闭", True)
+        if kind == "Bump":
+            from .files import resolve_input_paths
+            from PASS.utils.bump_waveform import read_bump_waveform
+            values = {"Waveform file": v.get("Waveform file", "")}
+            resolve_input_paths(values, self.base)
+            if self.check_files:
+                try:
+                    read_bump_waveform(values["Waveform file"])
+                except (ValueError, OSError, KeyError, TypeError) as exc:
+                    self.add((*p, "Waveform file"), "bump.waveform", str(exc))
         if kind == "ElSeparator":
             self.numeric(v, "Septum thickness (m)", p, minimum=0)
             for axis in "XY":
@@ -439,6 +451,9 @@ class Validator:
             self.exciter(v, p)
         if kind == "Slicer":
             self.slicer(v, p)
+        if kind == "WakeField":
+            from .files import check_wake_files
+            check_wake_files(self, v, p)
         internal = v.get("Space charge")
         if isinstance(internal, dict):
             self.aperture(internal, (*p, "Space charge"))
@@ -466,6 +481,7 @@ class Validator:
     def slicer(self, v, p):
         self.choice(v, "Slice model", {"equal_length", "equal_particle", "equal_charge"}, p)
         self.choice(v, "Z range mode", {"auto", "explicit"}, p)
+        self.choice(v, "Coordinate", {"z_rel", "ring_position", "arrival_phase"}, p)
         name = v.get("Slice set")
         if not isinstance(name, str) or not name.strip() or name != name.strip():
             self.add((*p, "Slice set"), "slicer.name", "Slice set 名称不能为空或包含首尾空白")
@@ -480,6 +496,11 @@ class Validator:
         try:
             from PASS.commands.slicer import SliceSet
             candidate = SliceSet.from_command(name, {k.lower(): value for k, value in v.items()})
+            if candidate.coordinate != "z_rel" and self.circumference:
+                from PASS.utils.coordinates import ring_interval
+                ring_interval(candidate.explicit.z_min, candidate.explicit.z_max, self.circumference)
+                if candidate.coordinate == "arrival_phase" and candidate.explicit.z_max != 0.:
+                    raise ValueError("arrival_phase requires Explicit [-circumference, 0]")
             if name in self.slice_sets and self.slice_sets[name] != candidate.configuration():
                 self.add(p, "slicer.conflict", f"多个 Slicer 对 Slice set {name!r} 的配置不一致")
             self.slice_sets[name] = candidate.configuration()
