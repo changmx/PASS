@@ -44,21 +44,39 @@ API/schema compatibility > testing, documentation, and style.
 
 ## Longitudinal-coordinate conventions
 
-- Particle `p.z` stores continuous bunch-relative `z_rel`; never wrap it during tracking.
+- Particle `p.z` stores continuous bunch-relative time coordinate
+  `z_rel = bunch.beta * c * (bunch.t0 - t_i)` in metres; positive z means earlier
+  passage at the same lattice position. Never wrap it during tracking.
+- `bunch.t0` is the ideal reference particle's actual passage time at the current
+  position. It is not an automatically measured centroid or necessarily an RF
+  synchronous particle. RFCavity/Exciter use `t_i = bunch.t0 - z_rel / (bunch.beta * c)`.
+  Do not introduce particle-level or bunch-level arrival correction state.
 - `harmonic_id` is per-bunch metadata in `[0, harmonic_number)`, from Injection's
   `Harmonic ID of this bunch`. Builders may default it to the bunch enumeration index.
   It is not a particle attribute and must not be inferred from tracked coordinates.
-- `z_center = harmonic_id * circumference / harmonic_number`.
-- `z_lab = z_rel + z_center`.
+- `z_center = harmonic_id * circumference / harmonic_number` is nominal grouping
+  metadata; adding it to tracked z does not reconstruct physical time or position.
 - Local periodic reduction is allowed for RF phase, regrouping/sorting, and
   statistics; never assign the folded value back to `p.z`.
-- RFCavity/Exciter use `t_i = bunch.t0 + arrival_offset_i - z_lab_i / (beta0 * c)`,
-  with `beta0 = bunch.beta`; retain nonzero arrival corrections.
-- `PASS/core/arrival.py` owns corrections in seconds, independently of wakes.
-  Preserve arrival time across zero-length reference-energy changes and regrouping;
-  retain `bunch.reference_arrival_offset` in RF reference-phase calculations.
-  Equations and lifecycle: [English](docs/source/en/arrival_time.rst),
-  [Chinese](docs/source/zh/arrival_time.rst).
+- Preserve physical time and mechanical momenta across pure reference changes and
+  regrouping. `PASS/core/reference.py` owns reference transformations and reference
+  state serialization. Restore it alongside matching particles, turn and wake state.
+- A zero-length RF kick keeps `bunch.t0` fixed, scales live z by `beta_new/beta_old`,
+  updates energy using the signed physical voltage kick and renormalizes transverse
+  momenta by `p0_old/p0_new`. Quadrupole strengths use normalized momentum; preserve
+  their current normalization and maps.
+- RF components sample one prescribed physical waveform at the entry particle
+  times, sum their gains, then update the reference and particles once. Integrate
+  frequency over physical time; do not substitute `f(t)*t` for its integral.
+  Harmonic RF uses the shared prescribed clock in `PASS/core/programs.py`,
+  independently of the instantaneous energies of tracked bunches.
+- The latest user-executed Slicer defines the saved z intervals, widths and
+  memberships. RF does not rescale or recompute them. Structural regrouping
+  invalidates old local indices and requires another explicit Slicer execution.
+  Historical wake sources retain their emitted physical times and widths.
+- Coordinate conventions: [English](docs/source/en/injection.rst),
+  [Chinese](docs/source/zh/injection.rst). Clock configuration is in input_generation;
+  slicing and state restoration are documented in slicer and monitor/index.
 - Injection-level `harmonic_number` describes bunch grouping. RF harmonics need not
   equal or be integer multiples of it; do not reject RF harmonics on this basis.
 
