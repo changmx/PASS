@@ -1,88 +1,83 @@
 # PASS Repository Instructions
 
-## Role and priorities
+## Priorities and execution
 
 Maintain PASS as a computational beam-dynamics and accelerator-physics codebase.
-Use the existing implementation, input schema, documented equations, and runnable
-tests as the source of truth. Do not replace repository evidence with assumptions.
+Priority: explicit user request > physical correctness and conventions below >
+API/schema compatibility > testing, documentation, and style.
 
-Priority order:
+- Inspect relevant code, schema, docs, tests, and configuration to establish current behavior.
+  Verify physics with stated conventions, equations, and independent checks;
+  existing code or test expectations alone do not prove correctness.
+- Preserve compatibility by default, but do not retain a demonstrated physics error
+  solely for compatibility. Explain any necessary compatibility impact.
+- Complete authorized work and relevant validation without repeated confirmation.
+  Fix clear implementation deviations; clarify unresolved physics/instruction
+  conflicts or API/schema breaks not already authorized. Identify the issue and
+  continue work that does not depend on the answer. Respect the file-safety rules below.
 
-1. The user's explicit request.
-2. Existing public APIs and input-schema compatibility.
-3. The physics conventions in this file.
-4. Testing, documentation, and style conventions.
+## Tests
 
-## Test organization
-
-- All the tests should be ignored by Git and not uploaded.
-- Human-maintained tests belong in `tests/unit/` or `tests/integration/`.
-- Codex-generated tests, exploratory scripts, verification reports, and generated
-  result files belong in `tests/codex/`.
-- Do not create new tests directly under `tests/`.
-- Put reviewed, reusable mocks and fixtures in `tests/support/`.
-- Do not modify human-maintained tests merely to make an implementation pass.
-  If an intentional behavior or API change requires test changes, explain the reason.
-
-## Test execution protocol
-
-- During development, run a targeted test file or test selection first, for example:
-  `python -m pytest tests/unit/test_<component>.py -v` or
-  `python -m pytest -k <related_test_name> -v`.
-- Run a broader suite only after targeted tests pass, when shared behavior is affected,
-  or when the user or CI workflow requests it.
-- If pytest discovery is configured, `testpaths` should normally include only
-  `tests/unit` and `tests/integration`; run `tests/codex` explicitly when needed.
-- Physics tests should use assertions with explicit tolerances and include measured,
-  theoretical, and error values in failure messages or test output.
-- Run generated-input workflows serially because generated inputs and output files
-  may be shared between cases.
-- GPU tests may be skipped when CUDA or CuPy is unavailable. RFCavity validation is
-  CPU-only unless the implementation explicitly supports another backend.
+- Ignore all tests in Git; do not upload them. Human-maintained tests belong in
+  `tests/unit/` or `tests/integration/`; reviewed mocks/fixtures in `tests/support/`.
+- Put Codex-generated tests, exploratory scripts, reports, and results in
+  `tests/codex/`. Do not create tests directly under `tests/`.
+- Do not change human-maintained tests merely to make code pass. Explain test
+  changes required by intentional behavior/API changes.
+- Default pytest discovery covers `tests/unit` and `tests/integration` only;
+  run `tests/codex` explicitly. Start with a targeted selection, e.g.
+  `python -m pytest tests/unit/test_<component>.py -v`.
+- Expand tests only for shared behavior, new failures, specific unresolved risks,
+  or user/CI requirements. After checks pass, repeat only for changes or new evidence.
+  Prose/formatting edits need no runtime tests unless executable content is affected.
+- Physics assertions need explicit tolerances and theoretical, measured, and error
+  values in output or failure messages.
+- Run generated-input workflows serially; cases may share inputs and outputs.
+- Use CPU tests as the RFCavity baseline. For GPU or shared CPU/GPU changes, test
+  supported GPU paths when CUDA/CuPy are available; otherwise report skipped scope and reason.
 
 ## Longitudinal-coordinate conventions
 
-- Particle `p.z` stores the continuous bunch-relative coordinate `z_rel`.
-- `harmonic_id` is per-bunch grouping metadata, not a particle attribute. It is the
-  zero-based bunch slot in `[0, harmonic_number)`, sourced from the Injection bunch
-  field `Harmonic ID of this bunch`. If omitted by a high-level input builder, it may
-  be assigned from the bunch enumeration index. It must not be recomputed from
-  particle coordinates during tracking.
+- Particle `p.z` stores continuous bunch-relative `z_rel`; never wrap it during tracking.
+- `harmonic_id` is per-bunch metadata in `[0, harmonic_number)`, from Injection's
+  `Harmonic ID of this bunch`. Builders may default it to the bunch enumeration index.
+  It is not a particle attribute and must not be inferred from tracked coordinates.
 - `z_center = harmonic_id * circumference / harmonic_number`.
 - `z_lab = z_rel + z_center`.
-- During normal tracking, do not fold or wrap `z_rel`, and do not assign a folded value
-  back to `p.z` (for example, do not replace it with `p.z % circumference`).
-- Temporary periodic reduction is allowed for local RF-phase evaluation, bunch
-  regrouping/sorting, and diagnostic statistics, but it must not replace stored
-  continuous `z_rel`.
-- RFCavity and Exciter use `z_lab` for arrival-phase or arrival-time calculations.
-- `harmonic_number` describes bunch grouping; it must not be used to reject RF
-  harmonics. The RF harmonic and grouping harmonic need not be equal or integer multiples.
+- Local periodic reduction is allowed for RF phase, regrouping/sorting, and
+  statistics; never assign the folded value back to `p.z`.
+- RFCavity/Exciter use `t_i = bunch.t0 + arrival_offset_i - z_lab_i / (beta0 * c)`,
+  with `beta0 = bunch.beta`; retain nonzero arrival corrections.
+- `PASS/core/arrival.py` owns corrections in seconds, independently of wakes.
+  Preserve arrival time across zero-length reference-energy changes and regrouping;
+  retain `bunch.reference_arrival_offset` in RF reference-phase calculations.
+  Equations and lifecycle: [English](docs/source/en/arrival_time.rst),
+  [Chinese](docs/source/zh/arrival_time.rst).
+- Injection-level `harmonic_number` describes bunch grouping. RF harmonics need not
+  equal or be integer multiples of it; do not reject RF harmonics on this basis.
 
-## Input and schema conventions
+## Schema and documentation
 
-- `harmonic_number` is declared at the Injection level and describes the number of
-  bunch groups.
-- Keep schema aliases, generated JSON layout, CLI options, code, tests, and docstrings
-  synchronized after schema changes.
-- Do not silently revive obsolete field names or old command-line examples.
-
-## Documentation conventions
-
-- Update the affected technical documentation under both `docs/source/en/` and
-  `docs/source/zh/` when behavior, APIs, schemas, equations, examples, or file layout
-  changes. Keep corresponding English and Chinese sections synchronized.
-- README files do not need to be changed after every code modification. Update
-  `README.md` and `README-zh.md` when installation, user workflow, public usage, or
-  other README-facing information changes.
-- Validate documentation builds and SVG/XML files when documentation is changed.
+- Synchronize schema aliases, generated JSON, CLI options, code, tests, and docstrings
+  after schema changes. Do not revive obsolete fields or command-line examples.
+- Keep affected `docs/source/en/` and `docs/source/zh/` sections synchronized for
+  behavior, API, schema, equation, example, or file-layout changes.
+- Update `README.md` and `README-zh.md` only for installation, workflow, public usage,
+  or other README-facing changes.
+- Build both languages when Sphinx sources/dependencies change; validate modified
+  SVG/XML and affected references. Instruction/README-only edits need Markdown,
+  link, and whitespace checks; build Sphinx only if its sources/dependencies are affected.
 
 ## Change safety
 
-- Inspect related code, tests, docs, and configuration before editing.
 - Keep changes focused on the requested behavior and preserve unrelated user changes.
 - Do not delete generated or user files without explicit confirmation.
 - Do not use destructive Git commands such as `git reset --hard` or `git clean -fd`
   unless explicitly requested.
-- Do not rewrite this `AGENTS.md` merely to resolve a conflict with the codebase.
-  Report the conflict and ask the user for clarification.
+- Do not rewrite this `AGENTS.md` merely to accommodate conflicting implementation.
+
+## Completion reporting
+
+- Report the result, key evidence, actual validation/results, and unverified scope
+  or blockers. Distinguish physics theory, measurements, and inferences; never claim
+  unrun checks passed.
