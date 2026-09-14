@@ -73,10 +73,10 @@ schema object can be used directly:
 Output
 ------
 
-One TFS file is written for each selected turn and each bunch. The filename
+One TFS file (or HDF5 file when selected) is written per selected turn and bunch. The filename
 contains the run time, beam and bunch identifiers, monitor position, monitor
-name, and turn number. All particles in the bunch are written, regardless of
-the sign of ``tag``.
+name, and turn number. All born particles in the bunch are written, including
+lost particles. Reserved slots with ``tag=0`` are omitted.
 
 The data columns are:
 
@@ -116,7 +116,16 @@ CPU and GPU behavior
 --------------------
 
 On CPU, the monitor writes directly from the NumPy particle arrays. On GPU,
-only the nine output fields are copied to host memory at a selected turn and
-the host copy is passed to the TFS writer. No history buffer is retained
+only the selected output fields (nine by default) are copied to host memory
+and passed to the selected writer. No history buffer is retained
 between turns, so memory use is proportional to one particle snapshot rather
 than to ``num_turns`` snapshots.
+
+Injection snapshots
+-------------------
+
+Include injection metadata (default false) adds particle_id, injection_turn and
+injection_batch. They survive sorting and loss. Output format accepts tfs
+(default) or hdf5; HDF5 uses compressed datasets and file attributes for the
+same columns and headers. Pending slots (tag=0) are omitted, with their count
+stored as NumPending. The GPU copies only the selected output fields.

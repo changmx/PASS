@@ -40,11 +40,11 @@ def is_turn_selected(turn: int, selected_turns: bytearray) -> bool:
 
 @Command.register("distmonitor")
 class DistMonitor(Command):
-    """Save all particles in every bunch at selected turns.
+    """Save born particles in every bunch at selected turns.
 
     ``Save turns`` is compiled once into a bytearray.  A snapshot contains
-    every particle, including lost particles, and is written as one TFS file
-    per bunch and turn.
+    every born particle, including lost particles, as one TFS or HDF5 file
+    per bunch and turn. Reserved particles are counted in NumPending.
     """
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
@@ -54,6 +54,11 @@ class DistMonitor(Command):
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
         self.cmd_name = str(kwargs["name"])
+        self._fields = _DATA_FIELDS + (("particle_id", "injection_turn", "injection_batch")
+            if kwargs.get("include injection metadata", False) else ())
+        self.output_format = kwargs.get("output format", "tfs")
+        if self.output_format not in {"tfs", "hdf5"}:
+            raise ValueError("DistMonitor Output format must be tfs or hdf5")
 
         cfg: Config = sim.cfg
         self.num_turn = int(cfg.num_turn)
@@ -132,7 +137,7 @@ class DistMonitor(Command):
         particles = beam.particles
         if backend == "gpu":
             # File I/O is host-side.  Copy only fields in the output schema.
-            particles = particles.copy(np, fields=list(_DATA_FIELDS))
+            particles = particles.copy(np, fields=list(self._fields))
 
         for bunch in beam.bunches:
             self._save_bunch(sim, beam, bunch, particles, turn, backend)
@@ -141,7 +146,9 @@ class DistMonitor(Command):
     def _save_bunch(self, sim, beam, bunch, particles, turn: int, backend: str):
         start = int(bunch.start_idx)
         end = int(bunch.end_idx)
-        df = pd.DataFrame({field: getattr(particles, field)[start:end] for field in _DATA_FIELDS})
+        df = pd.DataFrame({field: getattr(particles, field)[start:end] for field in self._fields})
+        pending = int(np.count_nonzero(np.asarray(df["tag"]) == 0))
+        df = df.loc[df["tag"] != 0].reset_index(drop=True)
 
         tags = np.asarray(df["tag"])
         headers = {
@@ -158,6 +165,7 @@ class DistMonitor(Command):
             "NumParticles": len(df),
             "NumAlive": int(np.count_nonzero(tags > 0)),
             "NumLost": int(np.count_nonzero(tags < 0)),
+            "NumPending": pending,
             "Backend": backend,
             "ParticlePrecision": str(beam.particles.dtype),
             "PASSVersion": __version__,
@@ -174,6 +182,16 @@ class DistMonitor(Command):
                     f"_bunch{int(bunch.bunch_id)}_Np_{int(bunch.Np)}"
                     f"_s_{self.s:.4f}_{safe_name}_turn_{turn}.tfs")
         filepath = self.output_dir / filename
+        if self.output_format == "hdf5":
+            import h5py
+            filepath = filepath.with_suffix(".h5")
+            with h5py.File(filepath, "w") as stream:
+                for key, value in headers.items():
+                    stream.attrs[key] = value
+                for field in self._fields:
+                    stream.create_dataset(field, data=df[field].to_numpy(), compression="gzip", compression_opts=1)
+            logger.info("DistMonitor '%s': saved %s", self.cmd_name, filepath)
+            return
         table = tfs.TfsDataFrame(df, headers=headers)
         tfs.write(str(filepath), table)
         logger.info(f"DistMonitor '{self.cmd_name}': saved {filepath}")
