@@ -63,11 +63,12 @@ from PySide6.QtWidgets import (
 
 from PASS import __version__
 from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
+from PASS.gui.help import HelpMenu
 from PASS.gui.project import FILE_FIELDS, missing_files, read_json
 from PASS.gui.tools import ToolsPage
 from PASS.gui.structured import (
     ApertureEditor, CoefficientsEditor, DevicesEditor, InternalSpaceChargeEditor,
-    ListEditor, NumericTable, ObjectEditor, ParticleEditor, RangeEditor,
+    ListEditor, NumericTable, ObjectEditor, ObjectListEditor, ParticleEditor, RangeEditor,
     StructuredField, TurnsEditor, Column,
 )
 
@@ -889,6 +890,8 @@ class ConfigPage(QWidget):
         element = ELEMENT_REGISTRY.get(command.casefold())
         if element is not None:
             required = {"S (m)": position}
+            if command == "RFCavity":
+                required["Components"] = [{"Voltage (V)": 0.0, "Harmonic": 1, "Phase (rad)": 0.0}]
             if command == "Exciter":
                 required.update({
                     "Mode": "single_fm", "Direction": "x", "Start turn": 0, "End turn": -1,
@@ -2366,7 +2369,7 @@ class ConfigPage(QWidget):
                 ("激励频率", ("Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)", "Period (s)", "FM dual frequency (Hz)")),
                 ("幅度调制", ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const")),
             ],
-            "RFCavity": [("射频数据", ("RF data file",))],
+            "RFCavity": [("射频波形", ("Components",))],
             "Slicer": [("切片范围", ("Z range mode", "Explicit"))],
             "PhaseAdvanceMonitor": [
                 ("参考光学", ("Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Dx (m)", "Dpx", "X CO (m)", "PX CO", "Y CO (m)", "PY CO")),
@@ -2804,6 +2807,11 @@ class ConfigPage(QWidget):
             block = self.data.get("Space charge", {})
             names = list(block.get("Configurations", {})) if isinstance(block, dict) else []
             structured = InternalSpaceChargeEditor(value, names, total_turns)
+        elif (key == "Components" and isinstance(value, list)
+              and getattr(self, "_field_context", {}).get("Command") == "RFCavity"):
+            from PASS.para.schema.rf import RFComponent
+            default = RFComponent(harmonic=1).model_dump(by_alias=True)
+            structured = ObjectListEditor(value, self._make_field, self._read_field_value, default)
         elif isinstance(value, list):
             structured = (NumericTable([Column(f"第 {i + 1} 列") for i in range(len(value[0]))], value)
                           if value and isinstance(value[0], list) else ListEditor(value))
@@ -2902,6 +2910,8 @@ class ConfigPage(QWidget):
         if not isinstance(field, QLineEdit):
             raise ValueError(f"{key} 使用了未知的编辑控件。")
         text = field.text().strip()
+        if key in {"Harmonic", "Frequency (Hz)", "Time (s)"} and (not text or text.casefold() == "null"):
+            return None
         if old_value is None:
             if not text or text.casefold() == "null":
                 return None
@@ -3553,6 +3563,12 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             self.theme_actions[mode] = action
         self.theme_button.setMenu(theme_menu)
         header.addWidget(self.theme_button)
+        self.help_button = QToolButton()
+        self.help_button.setText("帮助")
+        self.help_button.setPopupMode(QToolButton.InstantPopup)
+        self.help_menu = HelpMenu(self)
+        self.help_button.setMenu(self.help_menu)
+        header.addWidget(self.help_button)
         outer.addLayout(header)
         self.stack = QStackedWidget()
         self.config = ConfigPage()
@@ -3618,6 +3634,9 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         if not self._confirm_replace():
             event.ignore()
             return
+        if not self.help_menu.confirm_close():
+            event.ignore()
+            return
         if self.run.process and self.run.process.state() != QProcess.NotRunning:
             answer = QMessageBox.question(self, "任务仍在运行", "停止当前运行并关闭窗口？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if answer != QMessageBox.Yes:
@@ -3625,6 +3644,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
                 return
             self.run.stop_run()
             self.run.process.waitForFinished(2000)
+        self.help_menu.builder.shutdown()
         self.settings.setValue("window/geometry", self.saveGeometry())
         self.settings.setValue("window/splitter", self.config.splitter.saveState())
         self._release_project()

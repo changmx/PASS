@@ -112,8 +112,8 @@ V 为电压幅值，d 为极板间距，L 为极板有效长。</p>
 <eq>f_c=Q_{\mathrm{excite}}f_0,\qquad \Delta f=\Delta Q\,f_0</eq>
 <p>Δf 是扫频全宽；激励 tune 可以包含整数边带，例如 9.47。这里只预览设定信号，不预测共振响应。</p>
 <h3>到达时间</h3>
-<p>t<sub>elapsed</sub> 从激励开始计时，t<sub>0,start</sub> 是启动时参考钟。粒子坐标不折叠：</p>
-<eq>t_{\mathrm{arrive}}=t_{0,\mathrm{start}}+t_{\mathrm{elapsed}}-\frac{z_{\mathrm{rel}}+z_{\mathrm{center}}}{\beta c}</eq>
+<p>t<sub>elapsed</sub> 从激励开始计时，t<sub>0,start</sub> 是启动时该位置参考粒子的实际到达时间。粒子坐标不折叠：</p>
+<eq>t_{\mathrm{arrive}}=t_{0,\mathrm{start}}+t_{\mathrm{elapsed}}-\frac{z_{\mathrm{rel}}}{\beta c}</eq>
 <eq>\tau=t_{\mathrm{arrive}}\ \mathrm{mod}\ T</eq>
 <p>只有信号内部将到达时间对扫频周期 T 取余。</p>
 <h3>单频 FM</h3>

@@ -61,8 +61,8 @@ class ExciterPage(PhysicsToolPage):
         pf.addRow(self.show_turns)
         for key, label, value, scale in (("start_time", "起始时间 (ms)", 0, .001),
                 ("duration", "时间跨度 (ms)", 2, .001), ("reference_clock_start", "启动时参考钟 t0 (ms)", 0, .001),
-                ("z_rel", "z_rel (m)", 0, 1), ("z_center", "z_center (m)", 0, 1)):
-            self.add_input(pf, key, label, value, scale, -1e100 if key in ("reference_clock_start", "z_rel", "z_center") else 0)
+                ("z_rel", "z_rel (m)", 0, 1)):
+            self.add_input(pf, key, label, value, scale, -1e100 if key in ("reference_clock_start", "z_rel") else 0)
         self.controls.addWidget(plotting)
         self.results = ResultFields([
             ("f0", "回旋频率 f0 (kHz)", .001), ("cf", "中心频率 fc (kHz)", .001),

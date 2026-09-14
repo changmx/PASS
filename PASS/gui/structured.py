@@ -622,3 +622,42 @@ class ListEditor(NumericTable):
 
     def serialize(self, rows):
         return [row[0] for row in rows]
+
+
+class ObjectListEditor(StructuredField):
+    """An ordered list of labeled parameter objects, with explicit add/remove."""
+
+    def __init__(self, value, factory, reader, default):
+        super().__init__()
+        self.factory, self.reader, self.default = factory, reader, deepcopy(default)
+        self.entries = []
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.rows = QVBoxLayout()
+        layout.addLayout(self.rows)
+        add = QPushButton("添加分量")
+        add.clicked.connect(lambda: self.add_entry(self.default))
+        layout.addWidget(add)
+        for item in value:
+            self.add_entry(item)
+
+    def add_entry(self, value):
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        editor = ObjectEditor(value, self.factory, self.reader)
+        layout.addWidget(editor)
+        remove = QPushButton("移除此分量")
+        layout.addWidget(remove)
+        self.entries.append((panel, editor))
+        self.rows.addWidget(panel)
+        remove.clicked.connect(lambda: self.remove_entry(panel, editor))
+        self.changed.emit()
+
+    def remove_entry(self, panel, editor):
+        self.entries.remove((panel, editor))
+        self.rows.removeWidget(panel)
+        panel.deleteLater()
+        self.changed.emit()
+
+    def get_value(self):
+        return [editor.get_value() for _, editor in self.entries]

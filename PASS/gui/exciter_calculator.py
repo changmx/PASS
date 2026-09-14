@@ -1,7 +1,7 @@
 """GUI Exciter calculation backend using the CPU command's exact FM/AM formulas.
 
 Elapsed time controls the effective turn for AM. Absolute arrival time controls
-FM: t_arrive=t0_start+t_elapsed-(z_rel+z_center)/(beta*c), without folding z.
+FM: t_arrive=T_start+t_elapsed-z_rel/(beta*c), without folding z.
 The preview uses fixed reference kinematics; it does not track beam response.
 """
 from dataclasses import dataclass
@@ -34,7 +34,6 @@ class ExciterSettings:
     duration: float = .002
     reference_clock_start: float = 0.
     z_rel: float = 0.
-    z_center: float = 0.
 
 
 @dataclass(frozen=True)
@@ -88,7 +87,7 @@ def _am_factor(settings, elapsed, frequency_0):
 def exciter_waveform(settings, elapsed, frequency_0, velocity, amplitude, cf, width):
     """Return arrival time, kick, magnitude envelope, AM factor, two FM branches."""
     elapsed = np.asarray(elapsed, dtype=float)
-    arrival = settings.reference_clock_start + elapsed - (settings.z_rel+settings.z_center)/velocity
+    arrival = settings.reference_clock_start + elapsed - settings.z_rel/velocity
     tau = arrival - np.floor(arrival/settings.period)*settings.period
     am = _am_factor(settings, elapsed, frequency_0)
     if settings.mode.startswith("single"):
@@ -121,7 +120,7 @@ def calculate_exciter(kinematics: Kinematics, settings: ExciterSettings, *, max_
         finite_number(getattr(settings, key), key, positive=True)
     finite_number(settings.voltage, "电压", minimum=0)
     finite_number(settings.start_time, "绘图起始时间", minimum=0)
-    for key in ("reference_clock_start", "z_rel", "z_center"):
+    for key in ("reference_clock_start", "z_rel"):
         finite_number(getattr(settings, key), key)
     f0 = kinematics.velocity/settings.circumference
     if settings.frequency_mode == "tune":

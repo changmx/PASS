@@ -24,7 +24,7 @@ from PASS import __version__
 
 FORMAT_VERSION = 1
 FILE_FIELDS = frozenset({
-    "distribution file path", "file path", "rf data file",
+    "distribution file path", "file path", "program file",
     "k0l ramping file", "k1l ramping file", "k1sl ramping file",
     "k2l ramping file", "k2sl ramping file", "k3l ramping file",
     "k3sl ramping file", "kl ramping file", "kick ramping file",
