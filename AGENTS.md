@@ -16,6 +16,12 @@ API/schema compatibility > testing, documentation, and style.
   conflicts or API/schema breaks not already authorized. Identify the issue and
   continue work that does not depend on the answer. Respect the file-safety rules below.
 
+## Code organization
+
+- Avoid global variables whenever practical; prefer local variables, explicit
+  arguments, or instance attributes for state.
+- Keep CPU and GPU implementations of the same component in the same source file.
+
 ## Tests
 
 - Ignore all tests in Git; do not upload them. Human-maintained tests belong in
