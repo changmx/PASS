@@ -6,7 +6,7 @@ and launch it with ``python -m PASS.gui`` or ``pass-gui``. The configuration pag
 edits the same input used by the tracking engine; the run and plotting pages
 remain separate.
 
-The top bar contains File, Configuration, Run, Plot, Tools, and the dark/light/system
+The top bar contains File, Configuration, Run, Plot, Tools, Help, and the dark/light/system
 theme selector. The initial window is 1200 by 760 logical pixels; window and pane
 sizes, theme, and column preferences are remembered locally. The sequence is the
 central overview, ordered by the engine's position bins and command priorities.
@@ -25,6 +25,44 @@ collapsed. **Physics effects** lists **Space charge**,
 **Wakefields**, **Beam-beam effects**, and **Electron cloud**, in that order.
 Space charge expands independently. The last three are disabled placeholders
 until their configuration interfaces are available.
+
+Help and local documentation
+----------------------------
+
+The **Help** menu next to the theme selector provides **Online documentation**
+(Chinese / English), **Source code**, **Read local documentation** (Chinese /
+English), **Rebuild local documentation**, and **About PASS**. Web links and local
+HTML pages open in the system's default browser.
+
+To enable local builds, install the documentation dependencies in the same Python
+environment used to launch the GUI, from a complete PASS source checkout::
+
+   python -m pip install --editable ".[gui,docs]"
+
+Every click on **Rebuild local documentation** starts a full Sphinx HTML build of
+both languages, using the GUI's Python interpreter. The build runs in a separate
+process; the interface remains usable. The progress window shows live logs and a
+stop button. Closing that window leaves the build running; **View build log** in
+the Help menu reopens it. Repeated builds are disabled while one is running.
+Closing PASS during a build asks whether to stop it before exiting.
+
+Each build writes to a new ``docs/build/gui/<timestamp-id>/`` directory. Only a
+successful build with no Sphinx warnings and all language home pages present
+updates ``docs/build/gui/latest.json``, which identifies the result used for
+reading. Failed or stopped builds leave the previous successful result available.
+Build directories are retained; rebuilding does not delete older results.
+**Read local documentation** opens the saved result without rebuilding and falls
+back to the conventional ``docs/build/html/`` output if no saved GUI result is
+available. If no local page exists, it offers to compile or open online documentation.
+Missing sources or dependencies and filesystem errors are reported with guidance;
+the GUI does not install dependencies automatically. A regular package installation
+without the source checkout can use online documentation but cannot build locally.
+
+**About PASS** displays the installed version, project description, authors,
+institution, copyright and Apache License 2.0. Documentation, repository and issue
+tracker links are clickable. The license opens in a read-only window when available
+locally, with an online fallback. **Copy version and environment information**
+copies the PASS, Python and PySide6 versions, operating system and architecture.
 
 Tools
 -----
@@ -332,3 +370,5 @@ JSON, select a generated command to edit its two endpoints individually. Use
 **Save JSON** for an independent input or **Save project** for the complete project.
 Generation settings can be restored from **Project contents** for another preview
 and insertion; this does not automatically replace manually edited commands.
+
+The Exciter preview uses the actual local reference arrival time and continuous z: ``t = T_start + elapsed - z/(beta*c)``. Nominal bunch slots do not shift this preview. RF command properties now contain a Components list of prescribed physical-time waveforms.
