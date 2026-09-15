@@ -40,10 +40,11 @@ class Executor:
 
         cfg = sim.cfg
         state = sim.state
-        beams = sim.beams
         total_turns = cfg.num_turn
         from PASS.utils.sc_coverage import validate_sc_coverage
         validate_sc_coverage(sim, seqs)
+        from PASS.commands.wake.wake_timing import prepare_wake_tracking
+        prepare_wake_tracking(sim, seqs)
         profiler = ExecutionProfiler(sim)
         profiler.start_run()
 
