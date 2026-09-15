@@ -49,11 +49,6 @@ class BunchInfo:
                 f"bunch {bunch_id}: harmonic id {self.harmonic_id} out of "
                 f"range [0, {self.harmonic_number})"
             )
-        # Ideal-particle (bunch-center) longitudinal position in the machine
-        # reference frame.  Particle coordinates p.z are stored RELATIVE to
-        # this position (z_rel), so z_lab = p.z + z_center.
-        self.z_center = self.harmonic_id * self.circum / self.harmonic_number
-
         if self.num_proton == 0 and self.num_neutron == 0:  # electron or position
             if self.num_charge == -1:
                 self.particle_type = "Electron"
@@ -149,3 +144,16 @@ class BunchInfo:
         logger.info(f"BRho (T·m): {self.brho:.6f}")
 
         set_normal_logging()
+
+
+def set_reference_energy(bunch, total_energy):
+    """Set mutually consistent reference scalars; does not touch particles."""
+    if not np.isfinite(total_energy) or total_energy <= bunch.m0:
+        raise ValueError("Reference total energy must exceed rest energy")
+    momentum = np.sqrt((total_energy-bunch.m0)*(total_energy+bunch.m0))
+    bunch.Ek = float(total_energy-bunch.m0)
+    bunch.gamma = float(total_energy/bunch.m0)
+    bunch.beta = float(momentum/total_energy)
+    bunch.p0 = float(momentum)
+    bunch.p0_kg = float(momentum*const.e/const.c)
+    bunch.brho = bunch.p0_kg/(bunch.qm_ratio*const.e)
