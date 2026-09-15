@@ -34,8 +34,9 @@ The longitudinal momentum component (accounting for the projection of transverse
 
   p_z = \sqrt{(1 + \delta)^2 - p_x^2 - p_y^2}
 
-If :math:`p_z^2 \le 0`, there is no positive longitudinal momentum for forward
-transport through the element, and the particle is marked as lost.
+Forward transport requires :math:`1+\delta>0` and finite, strictly positive
+:math:`p_z^2`. Live particles that fail these conditions are marked lost;
+coordinates and first-loss records of previously lost particles stay unchanged.
 
 **Particle Velocity**
 
@@ -112,7 +113,7 @@ relativistic energy-momentum relation gives
   =\sqrt{a+(1-a)u^2}=\frac{E_i}{E_0}.
 
 Here :math:`E_i` and :math:`E_0` are total energies for particles of the same
-rest mass. ``energy_over_gamma`` in the implementation represents :math:`A`.
+rest mass. ``energy`` in the current ``drift_factors`` implementation represents :math:`A`.
 Since :math:`p_z^2=u^2-q_\perp`, rationalizing the difference gives
 
 .. math::
@@ -173,11 +174,19 @@ existing FP32 :math:`z=1\,\mathrm{m}` rounds back to one. The rewrite improves
 increment evaluation; it does not remove rounding during repeated accumulation
 or cancellation when the two physical contributions nearly balance.
 
-The exact derivation also presumes that :math:`p_z` is evaluated without a floor.
-The CPU currently applies :math:`p_z=\sqrt{\max(p_z^2,10^{-10})}` after checking
-for loss, while the GPU directly takes the square root for valid particles.
-Their results can therefore differ for :math:`0<p_z^2<10^{-10}`. This pre-existing
-boundary treatment is separate from the formula rewrite.
+The exact derivation also presumes that :math:`p_z` is evaluated without an
+artificial floor. The old CPU code applied
+:math:`p_z=\sqrt{\max(p_z^2,10^{-10})}` after checking for loss, altering flight
+times for very small positive longitudinal momenta and disagreeing with GPU.
+Both CPU and GPU now directly evaluate :math:`p_z=\sqrt{p_z^2}` for valid
+particles, without clamping positive values. CPU uses safe placeholder values
+only for invalid rows, which do not participate in coordinate updates. This also
+prevents a zero mask multiplied by NaN from corrupting frozen loss records.
+
+The CPU ``drift_factors`` and CUDA ``pass_drift_factors`` centralize the same
+forward conditions and stable formulas for Drift and straight transport inside
+finite electrostatic elements. This reorganizes the calculation without adding
+a new drift force or momentum kick.
 
 Computational Cost
 ~~~~~~~~~~~~~~~~~~
@@ -308,3 +317,14 @@ for scheduling, shared resources, supported backends and examples.
 
 ``num_slices`` (JSON ``Num slices``) is a positive integer, default 1.
 Without internal SC, that many body slices are used on both CPU and GPU.
+
+Shared numerical drift factors
+------------------------------
+
+Drift and the finite ElSeparator share the CPU factors and CUDA inline map.
+The longitudinal slip uses a rationalized expression to preserve tiny FP32
+increments. Nonpositive total momentum (delta <= -1), nonpositive longitudinal
+momentum and nonfinite longitudinal momentum are losses. Positive longitudinal
+momentum is no longer clamped to an arbitrary epsilon. Earlier loss records are
+preserved. This common map does not change Drift's exit/node aperture sampling;
+ElSeparator additionally computes continuous wall intersections along its segments.

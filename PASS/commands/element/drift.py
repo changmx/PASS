@@ -18,6 +18,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def drift_factors(px, py, dp, inv_gamma_sq):
+    """Forward straight-map factors shared with finite electrostatic septa.
+
+    Return (valid, 1/p_s, dz/ds), with safe zero-momentum substitutes for
+    invalid rows.  Do not clamp positive longitudinal momentum or fold z.
+    """
+    real = dp.dtype.type
+    with np.errstate(over="ignore", invalid="ignore"):
+        transverse = px*px + py*py
+        longitudinal = (real(1)+dp)**2 - transverse
+    valid = (dp > -1) & (longitudinal > 0) & np.isfinite(longitudinal)
+    delta = np.where(valid, dp, real(0))
+    transverse = np.where(valid, transverse, real(0))
+    ps = np.sqrt(np.where(valid, longitudinal, real(1)))
+    inv_g2 = real(inv_gamma_sq)
+    energy = np.sqrt(inv_g2 + (real(1)-inv_g2)*(real(1)+delta)**2)
+    slip = (delta*(real(2)+delta)*inv_g2-transverse)/(ps*(ps+energy))
+    return valid, real(1)/ps, slip
+
+
 @Command.register("drift")
 class Drift(Command):
 
@@ -61,6 +81,55 @@ class Drift(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
+    def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
+        if self._sc_nodes or self.num_slice > 1:
+            offset = 0.0
+            def transport(ds, on_center):
+                nonlocal offset
+                def advance(length):
+                    nonlocal offset
+                    offset += length
+                    self._drift_segment_cpu(beam, bunch, turn, length,
+                                            self.s - self.length + offset)
+                transport_with_center(advance, ds, on_center)
+            run_body_slices(self, beam, bunch, turn, transport)
+        else:
+            self._drift_segment_cpu(beam, bunch, turn, self.length, self.s)
+
+    def _drift_segment_cpu(self, beam, bunch, turn, length, s_position):
+        if np.abs(length) < const.eps:
+            return
+
+        start = bunch.start_idx
+        end = bunch.end_idx
+
+        p = beam.particles
+        real = p.real
+        L = real(length)
+        inv_gamma_sq = real(1.0 / bunch.gamma**2)
+        x = p.x[start:end]
+        px = p.px[start:end]
+        y = p.y[start:end]
+        py = p.py[start:end]
+        z = p.z[start:end]
+        dp = p.dp[start:end]
+        tag = p.tag[start:end]
+        lost_position = p.lost_position[start:end]
+        lost_turn = p.lost_turn[start:end]
+
+        valid, inv_ps, slip = drift_factors(px, py, dp, inv_gamma_sq)
+        # Only particles that are alive on entry can become newly lost here.
+        # Preserve the first loss location/turn for particles lost earlier.
+        alive = tag > 0
+        lost_mask = alive & ~valid
+        tag[lost_mask] = -np.abs(tag[lost_mask])
+        lost_position[lost_mask] = s_position
+        lost_turn[lost_mask] = turn
+        active = tag > 0
+        x[active] += L * px[active] * inv_ps[active]
+        y[active] += L * py[active] * inv_ps[active]
+        z[active] += L * slip[active]
+
     def execute_gpu(self, sim):
         if self._sc_nodes:
             from PASS.utils.slicing import execute_internal_sc_gpu
@@ -102,67 +171,22 @@ class Drift(Command):
         return True
 
 
-    def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        if self._sc_nodes or self.num_slice > 1:
-            offset = 0.0
-            def transport(ds, on_center):
-                nonlocal offset
-                def advance(length):
-                    nonlocal offset
-                    offset += length
-                    self._drift_segment_cpu(beam, bunch, turn, length,
-                                            self.s - self.length + offset)
-                transport_with_center(advance, ds, on_center)
-            run_body_slices(self, beam, bunch, turn, transport)
-        else:
-            self._drift_segment_cpu(beam, bunch, turn, self.length, self.s)
+def drift_cuda_factors():
+    """Same stable formula for inclusion in fused CUDA maps (pass_real_t)."""
+    return r'''
+__device__ inline bool pass_drift_factors(pass_real_t px,pass_real_t py,
+    pass_real_t dp,pass_real_t inv_g2,pass_real_t& inv_ps,pass_real_t& slip) {
+    pass_real_t transverse=px*px+py*py, ratio=(pass_real_t)1+dp;
+    pass_real_t longitudinal=ratio*ratio-transverse;
+    if (!(dp>(pass_real_t)-1) || !(longitudinal>(pass_real_t)0) || !isfinite(longitudinal)) return false;
+    pass_real_t ps=sqrt(longitudinal);
+    pass_real_t energy=sqrt(inv_g2+((pass_real_t)1-inv_g2)*ratio*ratio);
+    inv_ps=(pass_real_t)1/ps;
+    slip=(dp*((pass_real_t)2+dp)*inv_g2-transverse)/(ps*(ps+energy));
+    return true;
+}
+'''
 
-    def _drift_segment_cpu(self, beam, bunch, turn, length, s_position):
-        if np.abs(length) < const.eps:
-            return
-
-        start = bunch.start_idx
-        end = bunch.end_idx
-
-        p = beam.particles
-        real = p.real
-        L = real(length)
-        inv_gamma_sq = real(1.0 / bunch.gamma**2)
-        x = p.x[start:end]
-        px = p.px[start:end]
-        y = p.y[start:end]
-        py = p.py[start:end]
-        z = p.z[start:end]
-        dp = p.dp[start:end]
-        tag = p.tag[start:end]
-        lost_position = p.lost_position[start:end]
-        lost_turn = p.lost_turn[start:end]
-
-        one = real(1.0)
-        transverse_sq = px**2 + py**2
-        pz_sq = (one + dp)**2 - transverse_sq
-        # Only particles that are alive on entry can become newly lost here.
-        # Preserve the first loss location/turn for particles lost earlier.
-        valid = pz_sq > real(0.0)
-        alive = tag > 0
-        lost_mask = alive & ~valid
-        tag[lost_mask] = -np.abs(tag[lost_mask])
-        lost_position[lost_mask] = s_position
-        lost_turn[lost_mask] = turn
-        pz_sq_safe = np.maximum(pz_sq, real(const.eps))
-        pz = np.sqrt(pz_sq_safe)
-
-        mask = (tag > 0).astype(p.dtype, copy=False)
-        L_mask = L * mask
-
-        x += L_mask * (px / pz)
-        y += L_mask * (py / pz)
-        # Rationalize 1 - beta0 * (1 + dp) / (beta * pz). Direct
-        # subtraction loses the small longitudinal slip, especially in FP32.
-        energy_over_gamma = np.sqrt(inv_gamma_sq + (one - inv_gamma_sq) * (one + dp)**2)
-        slip = (dp * (real(2.0) + dp) * inv_gamma_sq - transverse_sq) / (
-            pz * (pz + energy_over_gamma))
-        z += L_mask * slip
 
 CUDA_REAL_PREAMBLE = r'''
 #ifndef PASS_USE_FLOAT
@@ -202,12 +226,10 @@ void transfer_drift(
         return;
     }
 
-    pass_real_t one_plus_delta = (pass_real_t)1 + dp[i];
     pass_real_t px_i = px[i];
     pass_real_t py_i = py[i];
-    pass_real_t transverse_sq = px_i * px_i + py_i * py_i;
-    pass_real_t pz_sq = one_plus_delta * one_plus_delta - transverse_sq;
-    bool valid = pz_sq > (pass_real_t)0;
+    pass_real_t inv_pz, slip;
+    bool valid = pass_drift_factors(px_i,py_i,dp[i],inv_gamma_sq,inv_pz,slip);
 
     if (!valid) {
         tag[i] = -abs(tag[i]);
@@ -216,21 +238,13 @@ void transfer_drift(
         return;
     }
 
-    pass_real_t pz = sqrt(pz_sq);
-    pass_real_t inv_pz = (pass_real_t)1 / pz;
-    pass_real_t energy_over_gamma = sqrt(inv_gamma_sq +
-        ((pass_real_t)1 - inv_gamma_sq) * one_plus_delta * one_plus_delta);
-    // Same rationalized exact drift as CPU, retaining small FP32 slips.
-    pass_real_t slip = (dp[i] * ((pass_real_t)2 + dp[i]) * inv_gamma_sq - transverse_sq)
-        / (pz * (pz + energy_over_gamma));
-
     x[i] += L * px_i * inv_pz;
     y[i] += L * py_i * inv_pz;
     z[i] += L * slip;
 
 }
 '''
-DRIFT_SOURCE = CUDA_REAL_PREAMBLE + DRIFT_KERNEL_BODY
+DRIFT_SOURCE = CUDA_REAL_PREAMBLE + drift_cuda_factors() + DRIFT_KERNEL_BODY
 _transfer_drift_kernels = {}
 
 
