@@ -172,7 +172,12 @@ class DistMonitor(Command):
             "Time": get_current_time(),
             "ZCoordinate": "z_rel",
             "ZCenter": float(bunch.z_center),
-            "Zlab": "Zlab=ZCenter+z_rel",
+            "ReferenceArrivalTime": float(bunch.t0),
+            "ReferenceBeta": float(bunch.beta),
+            "ReferenceMomentum": float(bunch.p0),
+            "CoordinateDefinition": "z=beta*c*(T-t)",
+            "ReferenceEvent": "element-exit",
+            "ReferenceAppliesTo": "live particles only",
             "Circumference": float(bunch.circum),
         }
 
@@ -193,5 +198,5 @@ class DistMonitor(Command):
             logger.info("DistMonitor '%s': saved %s", self.cmd_name, filepath)
             return
         table = tfs.TfsDataFrame(df, headers=headers)
-        tfs.write(str(filepath), table)
+        tfs.write(str(filepath), table, colwidth=25, headerswidth=25)
         logger.info(f"DistMonitor '{self.cmd_name}': saved {filepath}")
