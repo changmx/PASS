@@ -8,7 +8,7 @@ from typing import NamedTuple
 import numpy as np
 
 from PASS.commands.command import Command
-from PASS.core.config import LinearProgram
+from PASS.utils.program import LinearProgram
 from PASS.core.bunch import set_reference_energy
 from PASS.para.schema.rf import RFComponent
 from PASS.utils.constants import const
