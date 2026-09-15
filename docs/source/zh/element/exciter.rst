@@ -65,28 +65,11 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 粒子到达时间
 ------------
 
-粒子数组中的纵向坐标 :math:`z_{\mathrm{rel}}` 是相对各自束团中心的坐标。对于束团中心位置 :math:`z_{\mathrm{center}}`，粒子的实验室系纵向位置为：
-
-.. math::
-
-  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}
-
-因此，粒子到达激励器的时刻为：
-
-.. math::
-
-  t_{\text{arrive}} = t_0 - \frac{z_{\mathrm{lab}}}{\beta c}
-
-其中 :math:`t_0` 是机器坐标原点处参考粒子的时钟， :math:`z_{\mathrm{lab}} > 0` 表示粒子位于该参考点前方，因而更早到达。Exciter 直接使用 :math:`z_{\mathrm{lab}}` 计算信号相位，不会对 :math:`z_{\mathrm{rel}}` 进行折叠或回绕。这一到达时间差异使不同粒子看到不同相位的激励信号，是纵向-横向耦合的来源。
-
-回旋频率为：
-
-.. math::
-
-  f_0 = \frac{\beta c}{C}
-
-其中 :math:`C` 为环周长。回旋频率用于将圈数转换为真实时间。
-
+``bunch.t0`` 是参考粒子在当前激励位置的实际时刻，连续坐标满足
+:math:`z=\beta_b c(T_b-t_i)`。激励器直接计算
+:math:`t_i=T_b-z_i/(\beta_b c)`，不叠加名义槽位偏移，也不折叠存储 z。
+不同到达时间采样不同信号相位。RF 参考速度变化时的 z 缩放保持该时间连续，
+见 :ref:`zh-longitudinal-reference`。激励波形自身的周期约化规则保持不变。
 
 频率输入模式
 ------------

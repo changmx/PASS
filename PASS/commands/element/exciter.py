@@ -280,13 +280,8 @@ class Exciter(Command):
 
         alive = (tag > 0).astype(np.float64)
 
-        # Time when each particle arrives at the exciter.  p.z is the
-        # unwrapped bunch-relative coordinate, so z_lab = z + z_center.
-        # The reference clock bunch.t0 is shared for the machine origin;
-        # particle arrival time at this element is therefore
-        # t = t0 - z_lab / (beta*c). No folding is applied here.
-        z_lab = z + bunch.z_center
-        time_temp = bunch.t0 - z_lab / v0
+        # Local time coordinate: positive z arrives earlier.
+        time_temp = bunch.t0 - np.asarray(z, dtype=np.float64) / v0
 
         if self.mode == "single_fm":
             kick = self._kick_saw_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
@@ -322,35 +317,35 @@ extern "C" __global__
 void track_exciter(
     pass_real_t* __restrict__ px, pass_real_t* __restrict__ py,
     const pass_real_t* __restrict__ z, const int* __restrict__ tag,
-    int start_index, int end_index, pass_real_t z_center, pass_real_t t0,
-    pass_real_t v0, pass_real_t amplitude, pass_real_t cf,
-    pass_real_t cfw, pass_real_t period, pass_real_t fm_dual_frequency,
-    pass_real_t am_factor, int mode, int direction)
+    int start_index, int end_index, double t0,
+    double v0, double amplitude, double cf,
+    double cfw, double period, double fm_dual_frequency,
+    double am_factor, int mode, int direction)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (i >= end_index || tag[i] <= 0) return;
-    const pass_real_t pi = (pass_real_t)3.1415926535897932384626433832795;
-    pass_real_t t = t0 - (z[i] + z_center) / v0;
-    pass_real_t temp = t - floor(t / period) * period;
-    pass_real_t kick = (pass_real_t)0;
+    const double pi = (double)3.1415926535897932384626433832795;
+    double t = t0 - (double)z[i] / v0;
+    double temp = t - floor(t / period) * period;
+    double kick = (double)0;
     if (mode == 0 || mode == 1) {
-        pass_real_t theta = (pass_real_t)2 * pi * cf * temp
+        double theta = (double)2 * pi * cf * temp
             + pi * cfw / period * temp * (temp - period);
-        kick = amplitude * (mode == 1 ? am_factor : (pass_real_t)1) * sin(theta);
+        kick = amplitude * (mode == 1 ? am_factor : (double)1) * sin(theta);
     } else {
-        pass_real_t half = period * (pass_real_t)0.5;
-        if (temp >= (pass_real_t)0 && temp <= half) {
-            pass_real_t theta = (pass_real_t)2 * pi * cf * temp
-                + pi * cfw * (fm_dual_frequency * temp - (pass_real_t)0.5) * temp;
-            kick = (pass_real_t)2 * amplitude
-                * (mode == 3 ? am_factor : (pass_real_t)1)
-                * cos(pi * (pass_real_t)0.5 * cfw * temp) * sin(theta);
+        double half = period * (double)0.5;
+        if (temp >= (double)0 && temp <= half) {
+            double theta = (double)2 * pi * cf * temp
+                + pi * cfw * (fm_dual_frequency * temp - (double)0.5) * temp;
+            kick = (double)2 * amplitude
+                * (mode == 3 ? am_factor : (double)1)
+                * cos(pi * (double)0.5 * cfw * temp) * sin(theta);
         } else if (temp > half && temp <= period) {
-            pass_real_t theta = (pass_real_t)2 * pi * cf * temp
-                + pi * cfw * (temp - half) * (fm_dual_frequency * temp - (pass_real_t)1);
-            kick = (pass_real_t)2 * amplitude
-                * (mode == 3 ? am_factor : (pass_real_t)1)
-                * cos(pi * (pass_real_t)0.5 * cfw * temp) * sin(theta);
+            double theta = (double)2 * pi * cf * temp
+                + pi * cfw * (temp - half) * (fm_dual_frequency * temp - (double)1);
+            kick = (double)2 * amplitude
+                * (mode == 3 ? am_factor : (double)1)
+                * cos(pi * (double)0.5 * cfw * temp) * sin(theta);
         }
     }
     if (direction == 0) px[i] += kick; else py[i] += kick;
@@ -374,12 +369,12 @@ def launch_exciter(element, sim, bunch, effective_turn, params):
         )
     start, end = bunch.start_idx, bunch.end_idx; n=end-start
     if n <= 0: return
-    real=p.real; threads=256
+    real=np.float64; threads=256
     blocks = (n + threads - 1) // threads
     v0, amplitude, cf, cfw, period, fm_dual_frequency, am_factor, mode = params
     _kernels[key]((blocks,), (threads,),
                   (p.px,p.py,p.z,p.tag,np.int32(start),np.int32(end),
-                   real(bunch.z_center),real(bunch.t0),real(v0),real(amplitude),real(cf),
+                   real(bunch.t0),real(v0),real(amplitude),real(cf),
                    real(cfw),real(period),real(fm_dual_frequency),real(am_factor),
                    np.int32(mode),np.int32(0 if element.is_x else 1)))
     from PASS.utils.aperture import check_aperture_gpu

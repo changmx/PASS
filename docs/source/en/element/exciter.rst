@@ -65,28 +65,13 @@ This form is uniformly applicable to proton beams (:math:`Z=1, A=1`) and ion bea
 Particle Arrival Time
 ---------------------
 
-The longitudinal coordinate stored in the particle array, :math:`z_{\mathrm{rel}}`, is measured relative to the center of the particle's bunch. For a bunch-center position :math:`z_{\mathrm{center}}`, the longitudinal position in the laboratory frame is:
-
-.. math::
-
-  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}
-
-The particle arrival time at the exciter is therefore:
-
-.. math::
-
-  t_{\text{arrive}} = t_0 - \frac{z_{\mathrm{lab}}}{\beta c}
-
-Here :math:`t_0` is the reference-particle clock at the machine-coordinate origin. A particle with :math:`z_{\mathrm{lab}} > 0` is ahead of that reference point and therefore arrives earlier. Exciter uses :math:`z_{\mathrm{lab}}` directly to evaluate the signal phase; it does not fold or wrap :math:`z_{\mathrm{rel}}`. This arrival-time difference causes particles to sample different phases of the excitation signal and produces longitudinal-transverse coupling.
-
-The revolution frequency is:
-
-.. math::
-
-  f_0 = \frac{\beta c}{C}
-
-where :math:`C` is the ring circumference. The revolution frequency is used to convert turn number to real time.
-
+``bunch.t0`` is the reference particle's actual arrival at the current exciter
+location. The continuous coordinate is :math:`z=\beta_b c(T_b-t_i)`.
+Exciter directly evaluates :math:`t_i=T_b-z_i/(\beta_b c)` without adding
+nominal slot offsets or folding stored z. Different arrival times sample
+different signal phases. Scaling z when RF changes the reference velocity
+preserves this time; see :ref:`en-longitudinal-reference`. The excitation waveform's
+own periodic-reduction rule is unchanged.
 
 Frequency Input Modes
 ---------------------
