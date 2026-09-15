@@ -1,501 +1,381 @@
-from PASS.commands.command import Command
-from PASS.core.simulation import Simulation
-from PASS.core.beam import Beam
-from PASS.core.bunch import BunchInfo
-from PASS.core.particle import ParticlePool
-from PASS.core.config import Config
-from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-from PASS.utils.constants import const
-from PASS.utils.aperture import check_aperture_cpu
+"""Physical, shared RF waveforms and exact zero-length energy kicks.
 
-import numpy as np
+z = beta0*c*(t0-t). CPU arrays and a fused CUDA kernel implement the same
+map with FP64 intermediates; particle storage keeps its configured precision.
+"""
 import logging
+from typing import NamedTuple
+import numpy as np
+
+from PASS.commands.command import Command
+from PASS.core.config import LinearProgram
+from PASS.core.bunch import set_reference_energy
+from PASS.para.schema.rf import RFComponent
+from PASS.utils.constants import const
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 
 logger = logging.getLogger(__name__)
 
 
-@Command.register("rfcavity")
+def _component_parameters(raw):
+    if isinstance(raw, RFComponent):
+        return raw
+    aliases = {field.alias.lower(): name for name, field in RFComponent.model_fields.items()}
+    values = {aliases.get(k.lower(), k): v for k,v in raw.items()}
+    return RFComponent.model_validate(values)
+
+
+class _ReferenceKick(NamedTuple):
+    """Host reference scalars shared by the CPU and CUDA maps."""
+    charge: float
+    energy: float
+    momentum: float
+    scale: float
+    delta: float
+    z_scale: float
+
+
+class Waveform:
+    """One physical voltage component, shared by every bunch in this command."""
+    def __init__(self, raw, reference):
+        parameters = _component_parameters(raw)
+        if parameters.program_file:
+            import tfs
+            table = tfs.read(parameters.program_file)
+            table.columns = table.columns.str.lower()
+            required = {'time', 'voltage', 'phase'}
+            if parameters.harmonic is None:
+                required.add('frequency')
+            if not required.issubset(table.columns):
+                raise ValueError(f'RF program requires columns {sorted(required)}')
+            if parameters.harmonic is not None and 'frequency' in table.columns:
+                raise ValueError('Harmonic RF file must not also define FREQUENCY')
+            parameters = RFComponent(times=table.time.tolist(), voltage=table.voltage.tolist(),
+                phase=table.phase.tolist(), harmonic=parameters.harmonic,
+                frequency=table.frequency.tolist() if parameters.harmonic is None else None)
+        self.harmonic = parameters.harmonic or 1
+        self.frequency = reference if parameters.harmonic is not None else LinearProgram(
+            parameters.frequency, parameters.times, origin=reference.origin)
+        self.voltage = LinearProgram(parameters.voltage, parameters.times, origin=reference.origin)
+        self.phase = LinearProgram(parameters.phase, parameters.times, origin=reference.origin)
+
+    def value(self, reference_time, offset=0., xp=np):
+        cycles = self.frequency.phase_cycles(reference_time, offset, xp)
+        phase = (self.phase.values[0] if len(self.phase.values) == 1 else
+                 self.phase.value(reference_time, offset, xp))
+        angle = 2*np.pi*xp.remainder(self.harmonic*cycles, 1.)+phase
+        voltage = (self.voltage.values[0] if len(self.voltage.values) == 1 else
+                   self.voltage.value(reference_time, offset, xp))
+        return voltage*xp.sin(angle)
+
+
+@Command.register('rfcavity')
 class RFCavity(Command):
+    """Simultaneous effective-voltage components at one physical location.
+
+    Inputs: Components, S (m), Is enabled, Dp aperture, transverse aperture.
+    Scalar legacy RF inputs and turn-row RF tables are deliberately rejected.
+    Frequencies are prescribed physical functions, never inferred from the
+    instantaneous energy of a tracked bunch. Positive z means earlier arrival.
     """
-    RF cavity (高频加速腔).
-
-    Applies a longitudinal RF kick to particles.  The energy gain depends
-    on the particle's laboratory longitudinal position
-    z_lab = z_rel + z_center:
-
-        dE = (q/A) * V * sin(phase + phi_offset - h*z_lab/R)
-
-    where R = C/(2*pi) is the machine radius.  The synchronous particle
-    of each bunch (z_rel=0, z_lab=z_center) receives a bunch-dependent
-    reference kick:
-
-        dE_ref = (q/A) * V * sin(phase + phi_offset - h*z_center/R)
-
-    phi_offset:
-        A constant phase offset applied to all particles, shifting the
-        RF waveform in time.  This is useful when multiple RF cavities
-        share the same frequency but need different phase references
-        (e.g. cavity spacing not an integer multiple of the RF
-        wavelength, or multi-harmonic systems where each cavity needs
-        an independent phase trim).  phi_offset rotates the entire
-        sin curve; phase plus phi_offset defines the zero-azimuth
-        reference phase.
-
-    Moving reference frame:
-        After the kick each bunch reference energy is updated to include
-        dE_ref for that bunch center, so the bunch-center particle always
-        sits at delta ~ 0 even if the RF harmonic is not an integer
-        multiple of the beam grouping harmonic.
-        Transverse momenta px, py are rescaled by beta0*gamma0 /
-        (beta1*gamma1) to preserve the absolute transverse momentum
-        (adiabatic damping of geometric emittance).
-
-    The energy -> momentum -> delta conversion is exact (no linearisation):
-
-        E_particle' = E_total0 + dE0 + dE_kick
-        p'c         = sqrt(E_particle'^2 - (m0*c^2)^2)
-        delta'      = p'/p0_new - 1
-
-    Coordinate convention (PASS):
-        x, px, y, py, z, dp(=delta)
-        px = Px/P0,  py = Py/P0,  dp = (P-P0)/P0
-        z  = s - beta0*c*t  (zeta coordinate)
-    """
-
-    def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
-        kwargs = {k.lower(): v for k, v in command_kwargs.items()}
-
-        self.beam_id = beam_id
-        self.s = kwargs["s (m)"]
-        self.length = 0.0
-        self.cmd_type = self.__class__.__name__
-        self.cmd_name = kwargs["name"]
-
-        # --- RF parameters (two input modes) ---
-        # Mode 1 (fixed): voltage, harmonic, phase, phi_offset as scalars
-        # Mode 2 (file):  tfs file with columns HARMONIC, VOLTAGE, PHASE, PHI_OFFSET
-        #                 one row per turn (turn index starts from 0)
-        self.voltage = kwargs.get("voltage (v)", 0.0)
-        self.harmonic = int(kwargs.get("harmonic", 1))
-        if self.harmonic < 1:
-            raise ValueError(
-                f"RF harmonic of {self.cmd_name} must be a positive integer, "
-                f"got {self.harmonic}"
-            )
-        self.phase = kwargs.get("phase (rad)", 0.0)
-        self.phi_offset = kwargs.get("phi offset (rad)", 0.0)
-
-        # Beam harmonic_number is a bunch-grouping convention, not a
-        # restriction on the RF harmonic.  The RF kick below always uses the
-        # particle's laboratory azimuth z_lab = z_rel + z_center, so RF
-        # harmonics that are not integer multiples of the grouping harmonic
-        # are allowed and tracked bunch-by-bunch.
-
-        # RF data file (ramping): tfs file with columns VOLTAGE, HARMONIC, PHASE, PHI_OFFSET
-        rf_file = kwargs.get("rf data file", None)
-        self._rf_table = None
-        if rf_file is not None:
-            self._rf_table = self._load_rf_table(rf_file)
-
-        # --- switch ---
-        self.is_enabled: bool = kwargs.get("is enabled", True)
+    def __init__(self, beam_id, sim, **command_kwargs):
+        values = {k.lower():v for k,v in command_kwargs.items()}
+        obsolete = {'voltage (v)', 'harmonic', 'phase (rad)', 'phi offset (rad)', 'rf data file'} & values.keys()
+        if obsolete:
+            raise ValueError(f'RFCavity requires Components; removed scalar/turn inputs: {sorted(obsolete)}')
+        if float(values.get('length (m)', 0.)) != 0.:
+            raise ValueError('RFCavity is a zero-length effective-voltage kick')
+        self.beam_id, self.s = beam_id, float(values['s (m)'])
+        self.cmd_name, self.cmd_type, self.length = values['name'], 'RFCavity', 0.
+        self.is_enabled = values.get('is enabled', True)
         if not isinstance(self.is_enabled, bool):
-            raise ValueError(
-                f"is_enabled must be a boolean in {self.cmd_name}, "
-                f"got {type(self.is_enabled)}"
-            )
-
-        # --- dp acceptance (longitudinal aperture) ---
-        dp_aper = kwargs.get("dp aperture", None)
-        if dp_aper is not None:
-            self.dp_aperture_lower = float(dp_aper[0])
-            self.dp_aperture_upper = float(dp_aper[1])
-        else:
-            self.dp_aperture_lower = -1.0
-            self.dp_aperture_upper = 1.0
-
-        # --- transverse aperture ---
-        self.aperture_type: str = kwargs.get("aperture type", "off").lower()
-        self.aperture_value: list = kwargs.get("aperture value", [])
-        if not isinstance(self.aperture_value, list):
-            raise ValueError(
-                f"Aperture value of {self.cmd_name} must be a list, "
-                f"but got {type(self.aperture_value)}"
-            )
-
+            raise ValueError('Is enabled must be a boolean')
+        self.aperture_type = values.get('aperture type', 'off').lower()
+        self.aperture_value = values.get('aperture value', [])
+        limits = values.get('dp aperture')
+        self.dp_aperture_lower, self.dp_aperture_upper = (-np.inf, np.inf) if limits is None else limits
+        if (not np.isfinite(self.s) or (limits is not None and not np.all(np.isfinite(limits)))
+                or not self.dp_aperture_lower < self.dp_aperture_upper):
+            raise ValueError('RF position and ordered acceptance bounds must be finite')
+        raw = values.get('components')
+        if not isinstance(raw, (list, tuple)) or not raw:
+            raise ValueError('RFCavity requires a nonempty Components list')
+        beam = sim.beams[beam_id]
+        # Explicit-frequency components need only a common time origin. A
+        # harmonic component requires the prescribed machine reference program.
+        reference = getattr(beam, 'reference_program', None)
+        if reference is None:
+            if any(_component_parameters(v).harmonic is not None for v in raw):
+                raise ValueError('Harmonic RF requires beam.reference_program')
+            reference = LinearProgram(1., origin=0.)
+        self.components = tuple(Waveform(v, reference) for v in raw)
+        self._cuda = {}
         super().__init__()
 
-    # ------------------------------------------------------------------
-    # Load RF ramping table from TFS file
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _load_rf_table(filepath):
-        """Load RF ramping table from TFS file.
-
-        Required columns (by name, order-independent, case-insensitive):
-            HARMONIC, VOLTAGE, PHASE, PHI_OFFSET
-
-        One row per turn (turn 0 = first data row).
-        Column names are converted to lowercase internally, so any
-        case (e.g. ``Harmonic``, ``voltage``, ``PHASE``) is accepted.
-        The TFS file may also contain header metadata (title, etc.)
-        which is automatically handled by tfs-pandas.
-        """
-        import tfs
-
-        df = tfs.read(filepath)
-        df.columns = df.columns.str.lower()
-
-        required = ["harmonic", "voltage", "phase", "phi_offset"]
-        missing = [c for c in required if c not in df.columns]
-        if missing:
-            raise ValueError(
-                f"RF TFS file '{filepath}' missing required column(s): {missing}. "
-                f"Required: {required}. Found: {list(df.columns)}"
-            )
-        return {
-            "harmonic": df["harmonic"].to_numpy().astype(np.int64),
-            "voltage": df["voltage"].to_numpy().astype(np.float64),
-            "phase": df["phase"].to_numpy().astype(np.float64),
-            "phi_offset": df["phi_offset"].to_numpy().astype(np.float64),
-            "n_turns": len(df),
-        }
-
-    def _get_rf_params(self, turn):
-        """Get RF parameters for a given turn (0-indexed)."""
-        if self._rf_table is not None:
-            idx = min(turn, self._rf_table["n_turns"] - 1)
-            idx = max(idx, 0)
-            harmonic = int(self._rf_table["harmonic"][idx])
-            if harmonic < 1:
-                raise ValueError(
-                    f"RF data file harmonic at turn {idx} must be a positive "
-                    f"integer, got {harmonic}"
-                )
-            return (
-                self._rf_table["voltage"][idx],
-                harmonic,
-                self._rf_table["phase"][idx],
-                self._rf_table["phi_offset"][idx],
-            )
-        return self.voltage, self.harmonic, self.phase, self.phi_offset
-
-    # ------------------------------------------------------------------
-    # Print
-    # ------------------------------------------------------------------
-
     def print(self):
-        set_simple_logging()
-        if self._rf_table is not None:
-            logger.info(
-                f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
-                f"RFDataFile(turns={self._rf_table['n_turns']}), "
-                f"IsEnabled={self.is_enabled}, "
-                f"DpAperture=[{self.dp_aperture_lower}, {self.dp_aperture_upper}], "
-                f"ApertureType={self.aperture_type:s}, "
-                f"ApertureValue={self.aperture_value}"
-            )
-        else:
-            logger.info(
-                f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
-                f"Voltage={self.voltage:.6e} V, Harmonic={self.harmonic}, "
-                f"Phase={self.phase:.6f} rad, PhiOffset={self.phi_offset:.6f} rad, "
-                f"IsEnabled={self.is_enabled}, "
-                f"DpAperture=[{self.dp_aperture_lower}, {self.dp_aperture_upper}], "
-                f"ApertureType={self.aperture_type:s}, "
-                f"ApertureValue={self.aperture_value}"
-            )
-        set_normal_logging()
-
-    # ------------------------------------------------------------------
-    # Main execution
-    # ------------------------------------------------------------------
+        logger.info('S=%g, Command=RFCavity, Name=%s, Components=%d, Enabled=%s',
+                    self.s, self.cmd_name, len(self.components), self.is_enabled)
 
     def execute_cpu(self, sim):
-        if not self.is_enabled:
-            return False
-
-        beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
-        turn = sim.state.turn
-
-        for i, bunch in enumerate(bunches):
-            self._track_rf_cpu(beam, bunch, turn)
-            check_aperture_cpu(
-                beam,
-                bunch,
-                self.aperture_type,
-                self.aperture_value,
-                self.s,
-                turn,
-            )
-        return True
+        return self._execute(sim)
 
     def execute_gpu(self, sim):
+        return self._execute(sim)
+
+    def _execute(self, sim):
         if not self.is_enabled:
             return False
-        beam = sim.beams[self.beam_id]
-        turn = sim.state.turn
-        voltage, harmonic, phase, phi_offset = self._get_rf_params(turn)
-        if abs(voltage) < const.eps:
-            return False
+        beam, turn = sim.beams[self.beam_id], sim.state.turn
+        xp = beam.particles.xp
+        aperture = check_aperture_cpu if xp is np else check_aperture_gpu
         for bunch in beam.bunches:
-            beta0 = bunch.beta
-            gamma0 = bunch.gamma
-            m0 = bunch.m0
-            qm_ratio = bunch.qm_ratio
-            E_total0 = bunch.Ek + m0
-            radius = bunch.circum / (2.0 * const.pi)
-            rf_period = bunch.circum / harmonic
-            zc_phase = bunch.z_center - rf_period * np.rint(bunch.z_center / rf_period)
-            phi_center = phase + phi_offset - harmonic * zc_phase / radius
-            dE_ref = qm_ratio * voltage * np.sin(phi_center)
-            E_total1 = E_total0 + dE_ref
-            gamma1 = E_total1 / m0
-            beta1 = np.sqrt(1.0 - 1.0 / (gamma1 * gamma1))
-            p0_old = bunch.p0
-            p0_new = gamma1 * m0 * beta1
-            scale = p0_old / p0_new
-            launch_rf(self, sim, bunch,
-                      (voltage, harmonic, phase, phi_offset, p0_old,
-                       m0, qm_ratio, p0_new, scale), turn)
-            bunch.Ek = E_total1 - m0
-            bunch.gamma = gamma1
-            bunch.beta = beta1
-            bunch.p0 = p0_new
-            p0_kg_new = gamma1 * (m0 * const.e / (const.c * const.c)) * beta1 * const.c
-            bunch.p0_kg = p0_kg_new
-            bunch.brho = p0_kg_new / (qm_ratio * const.e)
+            self._track(beam, bunch, turn)
+            aperture(beam,bunch,self.aperture_type,self.aperture_value,self.s,turn)
         return True
 
-    # ------------------------------------------------------------------
-    # Core RF tracking (CPU)
-    # ------------------------------------------------------------------
+    def _track(self, beam, bunch, turn):
+        if beam.particles.xp is not np:
+            return self._track_gpu(beam, bunch, turn)
+        p, xp = beam.particles, beam.particles.xp
+        sl = slice(bunch.start_idx,bunch.end_idx)
+        px, py, z, dp, tag = (getattr(p,k)[sl] for k in ('px','py','z','dp','tag'))
+        alive = tag > 0
+        beta_old, p0_old = bunch.beta, bunch.p0
+        ref = self._reference_kick(bunch)
+        # All components sample the same entry event, before any coordinate or
+        # energy is changed. No full particle clock array is stored.
+        offset = -z.astype(xp.float64)/(beta_old*const.c)
+        gain = xp.zeros(z.shape,dtype=xp.float64)
+        for component in self.components:
+            gain += ref.charge*component.value(bunch.t0,offset,xp)
+        delta = dp.astype(xp.float64)
+        old_p = p0_old*(1.+delta)
+        old_e = xp.hypot(old_p,bunch.m0)
+        new_e = old_e+gain
+        momentum_sq = (new_e-bunch.m0)*(new_e+bunch.m0)
+        transverse_sq = p0_old**2*(px.astype(xp.float64)**2+py.astype(xp.float64)**2)
+        forward = xp.isfinite(new_e) & (new_e>bunch.m0) & (old_p>0) & (momentum_sq>transverse_sq)
+        active = alive & forward
+        stopped = alive & ~forward
+        tag[stopped] = -xp.abs(tag[stopped])
+        new_p = xp.sqrt(xp.where(active,momentum_sq,old_p**2))
+        applied = xp.where(active,gain,0.)
+        # Stable weak-kick conversion. Do not subtract nearly equal momenta.
+        kick_delta = applied*(2*old_e+applied)/(ref.momentum*xp.where(new_p+old_p>0,new_p+old_p,1.))
+        dp[:] = xp.where(active,delta*ref.scale+ref.delta+kick_delta,dp)
+        px[:] = xp.where(active,px.astype(xp.float64)*ref.scale,px)
+        py[:] = xp.where(active,py.astype(xp.float64)*ref.scale,py)
+        z[:] = xp.where(active,z.astype(xp.float64)*ref.z_scale,z)
+        set_reference_energy(bunch,ref.energy)
+        # The physical reference arrival time and every saved slice interval
+        # stay unchanged. A user Slicer command is the only rebinning operation.
+        outside = active & ((dp<self.dp_aperture_lower)|(dp>self.dp_aperture_upper))
+        tag[outside] = -xp.abs(tag[outside])
+        lost = alive & (tag<0)
+        p.lost_position[sl][lost] = self.s
+        p.lost_turn[sl][lost] = turn
 
-    def _track_rf_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        """Track particles through the RF cavity (thin-lens kick).
+    def _reference_kick(self, bunch):
+        """Validate and compute the reference kick before changing any state."""
+        beta_old, p0_old = bunch.beta, bunch.p0
+        if not 0 < beta_old < 1:
+            raise ValueError('RF requires a finite massive-particle reference velocity')
+        charge = np.sign(bunch.num_charge)*bunch.qm_ratio
+        reference_gain = sum(charge*float(c.value(bunch.t0)) for c in self.components)
+        old_total = bunch.Ek+bunch.m0
+        new_total = old_total+reference_gain
+        if not np.isfinite(new_total) or new_total <= bunch.m0:
+            raise ValueError(f'RFCavity {self.cmd_name}: reference total energy must exceed rest energy')
+        p0_new = np.sqrt((new_total-bunch.m0)*(new_total+bunch.m0))
+        scale = p0_old/p0_new
+        reference_delta = -reference_gain*(2*old_total+reference_gain)/(p0_new*(p0_new+p0_old))
+        return _ReferenceKick(charge, new_total, p0_new, scale,
+                              reference_delta, (p0_new/new_total)/beta_old)
 
-        Physics:
-          1. Each particle's RF phase depends on its longitudinal position z.
-          2. Energy kick is applied exactly (no linearisation).
-          3. The bunch reference is updated (moving frame).
-          4. Transverse momenta are rescaled (adiabatic damping).
-        """
-        voltage, harmonic, phase, phi_offset = self._get_rf_params(turn)
-
-        if abs(voltage) < const.eps:
-            return  # no RF, nothing to do
-
-        beta0 = bunch.beta
-        gamma0 = bunch.gamma
-        circum = bunch.circum
-        m0 = bunch.m0          # rest mass per nucleon (eV/c^2)
-        qm_ratio = bunch.qm_ratio   # |q|/A
-        Ek0 = bunch.Ek          # kinetic energy per nucleon (eV/u)
-        p0_old = bunch.p0       # old reference momentum per nucleon (eV/c)
-
-        E_total0 = Ek0 + m0     # old total energy per nucleon (eV)
-        radius = circum / (2.0 * const.pi)
-
-        start = bunch.start_idx
-        end = bunch.end_idx
+    def _track_gpu(self, beam, bunch, turn):
+        import cupy as cp
 
         p = beam.particles
-        x = p.x[start:end]
-        px = p.px[start:end]
-        y = p.y[start:end]
-        py = p.py[start:end]
-        z = p.z[start:end]
-        dp = p.dp[start:end]
-        tag = p.tag[start:end]
+        ref = self._reference_kick(bunch)
+        start, end = bunch.start_idx, bunch.end_idx
+        if end > start:
+            key = (cp.cuda.runtime.getDevice(), np.dtype(p.dtype))
+            if key not in self._cuda:
+                self._cuda[key] = _prepare_rf_kernel(self.components, p.dtype, cp)
+            kernel, template, tables = self._cuda[key]
+            # Pass the small waveform descriptors by value. No per-particle
+            # scratch arrays or device-to-host synchronization are required.
+            parameters = template.copy()
+            for j, component in enumerate(self.components):
+                if len(component.frequency.values) == 1:
+                    parameters['components']['frequency']['base'][0,j] = component.frequency.phase_cycles(bunch.t0)
+            if len(self.components) > 32:
+                # Large component lists exceed the portable 4 KiB argument
+                # bank. The same kernel reads one packed descriptor buffer.
+                parameters = cp.asarray(parameters.view(np.float64))
+            threads = 256
+            kernel(((end-start+threads-1)//threads,), (threads,), (
+                p.px, p.py, p.z, p.dp, p.tag, p.lost_position, p.lost_turn,
+                np.int32(start), np.int32(end), np.int32(turn), parameters,
+                np.float64(bunch.t0), np.float64(1/(bunch.beta*const.c)),
+                np.float64(ref.charge), np.float64(bunch.m0), np.float64(bunch.p0),
+                np.float64(ref.momentum), np.float64(ref.scale), np.float64(ref.delta),
+                np.float64(ref.z_scale),
+                np.float64(self.dp_aperture_lower), np.float64(self.dp_aperture_upper),
+                np.float64(self.s)))
+        set_reference_energy(bunch, ref.energy)
 
-        alive_before = tag > 0
 
-        # --- 1. RF phase for each particle ---
-        # phi = phase + phi_offset - h * z_lab / R
-        # This is equivalent to phase - omega*tau, since
-        #   omega*tau = 2*pi*f * z/(beta0*c) = 2*pi*h*z/C = h*z/R
-        #
-        # z is the bunch-relative coordinate; the laboratory position is
-        # z_lab = z + z_center (explicitly, like the Exciter).  The beam's
-        # harmonic_number is only a grouping convention; it does not need to
-        # divide this cavity's RF harmonic.  Therefore the bunch reference
-        # particle must use its own center phase below.
-        z_lab = z + bunch.z_center
-        # Reduce mod C/h before evaluating sin (robust with unwrapped z).
-        rf_period = circum / harmonic
-        z_phase = z_lab - rf_period * np.rint(z_lab / rf_period)
-        theta = z_phase / radius
-        phi_particle = phase + phi_offset - harmonic * theta
+def _prepare_rf_kernel(components, dtype, cp):
+    """Cache waveform tables on this device and compile the component count.
 
-        # --- 2. Energy kick ---
-        # dE_kick = (q/A) * V * sin(phi_particle)   [eV/u]
-        dE_kick = qm_ratio * voltage * np.sin(phi_particle)
+    Explicit 8-byte alignment matches the CUDA structs below. Tables are
+    immutable prescribed inputs, retained with the command for pointer life.
+    """
+    program_dtype = np.dtype([
+        ('data', np.uint64), ('count', np.int32), ('padding', np.int32),
+        ('base', np.float64), ('value', np.float64)], align=True)
+    component_dtype = np.dtype([
+        ('frequency', program_dtype), ('voltage', program_dtype),
+        ('phase', program_dtype), ('harmonic', np.float64)], align=True)
+    parameters = np.zeros(1, dtype=np.dtype([
+        ('components', component_dtype, (len(components),))], align=True))
+    tables, stored = [], {}
+    scalar = True
+    for j, component in enumerate(components):
+        row = parameters['components'][0,j]
+        row['harmonic'] = component.harmonic
+        for name in ('frequency', 'voltage', 'phase'):
+            program = getattr(component, name)
+            record = row[name]
+            record['count'] = len(program.values)
+            record['value'] = program.values[0]
+            record['base'] = program.integral_origin
+            if len(program.values) > 1:
+                scalar = False
+                if id(program) not in stored:
+                    table = cp.asarray(np.concatenate((program.times, program.values,
+                        program.slopes, program.integrals)))
+                    stored[id(program)] = table
+                    tables.append(table)
+                record['data'] = stored[id(program)].data.ptr
+    kernel = cp.RawKernel(_RF_CUDA, 'track_rf', options=(
+        '--std=c++14',
+        f'-DRF_FLOAT={int(np.dtype(dtype)==np.dtype(np.float32))}',
+        f'-DRF_COMPONENTS={len(components)}', f'-DRF_SCALAR={int(scalar)}',
+        f'-DRF_INDIRECT={int(len(components)>32)}'))
+    return kernel, parameters, tables
 
-        # --- 3. Bunch-reference energy gain ---
-        # The moving reference frame follows this bunch's ideal particle at
-        # z_rel=0, i.e. z_lab=z_center.  For non-integer relationships between
-        # the RF harmonic and the grouping harmonic, different bunch centers
-        # can see different RF phases, so dE_ref is bunch-dependent.
-        z_center_phase = bunch.z_center - rf_period * np.rint(
-            bunch.z_center / rf_period
-        )
-        phi_center = (
-            phase + phi_offset - harmonic * z_center_phase / radius
-        )
-        dE_ref = qm_ratio * voltage * np.sin(phi_center)  # scalar [eV/u]
 
-        # --- 4. New reference energy ---
-        E_total1 = E_total0 + dE_ref  # new total energy per nucleon (eV)
-        gamma1 = E_total1 / m0
-        beta1 = np.sqrt(1.0 - 1.0 / (gamma1 * gamma1))
-        p0_new = gamma1 * m0 * beta1  # new reference momentum per nucleon (eV/c)
-        Ek1 = E_total1 - m0           # new kinetic energy per nucleon (eV/u)
-
-        # --- 5. Exact energy -> momentum -> delta conversion ---
-        # All quantities in natural units (c=1): m0 [eV], p0 [eV], E [eV].
-        # E^2 = p^2 + m0^2  (exact relativistic energy-momentum relation)
-        #
-        # Before kick:  p_old = p0_old * (1 + delta)
-        #               E_old = sqrt(p_old^2 + m0^2)
-        # After kick:   E_new = E_old + dE_kick
-        #               p_new = sqrt(E_new^2 - m0^2)
-        #               delta_new = p_new / p0_new - 1
-
-        p_particle_old = p0_old * (1.0 + dp)  # eV (natural units)
-        E_particle_old = np.sqrt(p_particle_old**2 + m0**2)  # eV
-
-        # After kick
-        E_particle_new = E_particle_old + dE_kick * alive_before  # eV
-
-        # Guard against negative or unphysical energies
-        E_particle_new_safe = np.maximum(E_particle_new, const.eps)
-
-        # New momentum (exact relativistic)
-        p_particle_new = np.sqrt(
-            E_particle_new_safe**2 - m0**2
-        )  # eV/c (natural units)
-
-        # New delta relative to new reference
-        dp_new = p_particle_new / p0_new - 1.0
-
-        # Apply mask (dead particles unchanged)
-        dp[:] = np.where(alive_before, dp_new, dp)
-
-        # --- 6. Transverse momentum rescaling (adiabatic damping) ---
-        # px_new = px * (p0_old / p0_new) = px * (beta0*gamma0) / (beta1*gamma1)
-        trans_scale = p0_old / p0_new  # = beta0*gamma0 / (beta1*gamma1)
-        px[:] = np.where(alive_before, px * trans_scale, px)
-        py[:] = np.where(alive_before, py * trans_scale, py)
-
-        # z is unchanged (thin-lens kick, no drift)
-
-        # --- 7. Update bunch reference (moving frame) ---
-        bunch.Ek = Ek1
-        bunch.gamma = gamma1
-        bunch.beta = beta1
-        bunch.p0 = p0_new
-        p0_kg_new = gamma1 * (m0 * const.e / (const.c * const.c)) * beta1 * const.c
-        bunch.p0_kg = p0_kg_new
-        bunch.brho = p0_kg_new / (qm_ratio * const.e)
-
-        # --- 8. dp aperture check (longitudinal acceptance) ---
-        dp_outside = (dp < self.dp_aperture_lower) | (
-            dp > self.dp_aperture_upper
-        )
-        newly_lost_dp = alive_before & dp_outside
-        if np.any(newly_lost_dp):
-            tag[newly_lost_dp] = -np.abs(tag[newly_lost_dp])
-
-        # --- 9. Update lost particle info ---
-        newly_lost = alive_before & (tag < 0)
-        if np.any(newly_lost):
-            lost_position = p.lost_position[start:end]
-            lost_turn = p.lost_turn[start:end]
-            lost_position[newly_lost] = self.s
-            lost_turn[newly_lost] = turn
-CUDA_REAL_PREAMBLE = r'''
-#ifndef PASS_USE_FLOAT
-#define PASS_USE_FLOAT 0
-#endif
-#if PASS_USE_FLOAT
-using pass_real_t = float;
+_RF_CUDA = r'''
+#if RF_FLOAT
+using real_t = float;
 #else
-using pass_real_t = double;
+using real_t = double;
 #endif
-'''
+struct Program {
+    const double* data;
+    int count, padding;
+    double base, value;
+};
+struct Component { Program frequency, voltage, phase; double harmonic; };
+struct Components { Component components[RF_COMPONENTS]; };
+static_assert(sizeof(Program) == 32, "RF program ABI mismatch");
+static_assert(sizeof(Component) == 104, "RF component ABI mismatch");
 
+__device__ __forceinline__ double unit_cycle(double x) {
+    // Positive modulo, including negative arrival offsets.
+    return x-floor(x);
+}
 
-RF_BODY = r'''
-extern "C" __global__
-void track_rf(
-    pass_real_t* __restrict__ px, pass_real_t* __restrict__ py,
-    pass_real_t* __restrict__ z, pass_real_t* __restrict__ dp,
-    int* __restrict__ tag, float* __restrict__ lost_position,
-    int* __restrict__ lost_turn, int start_index, int end_index,
-    pass_real_t z_center, pass_real_t circum, pass_real_t radius,
-    pass_real_t p0_old, pass_real_t m0, pass_real_t qm_ratio,
-    pass_real_t voltage, pass_real_t harmonic, pass_real_t phase,
-    pass_real_t phi_offset, pass_real_t p0_new, pass_real_t trans_scale,
-    pass_real_t dp_lower, pass_real_t dp_upper, pass_real_t s_position,
-    int turn)
-{
-    int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (i >= end_index) return;
-    int ti = tag[i];
-    if (ti <= 0) return;
-
-    pass_real_t rf_period = circum / harmonic;
-    pass_real_t zlab = z[i] + z_center;
-    pass_real_t zphase = zlab - rf_period * rint(zlab / rf_period);
-    pass_real_t phi = phase + phi_offset - harmonic * zphase / radius;
-    pass_real_t dE = qm_ratio * voltage * sin(phi);
-    pass_real_t pold = p0_old * ((pass_real_t)1 + dp[i]);
-    pass_real_t Eold = sqrt(pold * pold + m0 * m0);
-    pass_real_t Enew = Eold + dE;
-    if (Enew < (pass_real_t)1e-10) Enew = (pass_real_t)1e-10;
-    pass_real_t pnew2 = Enew * Enew - m0 * m0;
-    pass_real_t pnew = sqrt(pnew2);
-    dp[i] = pnew / p0_new - (pass_real_t)1;
-    px[i] *= trans_scale;
-    py[i] *= trans_scale;
-    if (dp[i] < dp_lower || dp[i] > dp_upper) {
-        tag[i] = -abs(ti);
-        lost_position[i] = (float)s_position;
-        lost_turn[i] = turn;
+__device__ __forceinline__ double program_value(
+        const Program& p, double reference, double offset, bool integral) {
+    if (p.count == 1)
+        return integral ? unit_cycle(p.base+p.value*offset) : p.value;
+    const double* times = p.data;
+    const double* values = times+p.count;
+    const double* slopes = values+p.count;
+    const double* integrals = slopes+p.count;
+    int left = 0, right = p.count;
+    // Compare local offsets: never form reference+offset, which can erase
+    // intra-bunch times at large epochs. Use the right side at a knot.
+    while (left < right) {
+        int middle = left+(right-left)/2;
+        if (offset < times[middle]-reference) right = middle;
+        else left = middle+1;
     }
+    int index = left > 0 ? left-1 : 0;
+    double dx = (reference-times[index])+offset;
+    double slope = (reference-times[0])+offset < 0.0 ? 0.0 : slopes[index];
+    if (integral)
+        return unit_cycle(unit_cycle(integrals[index]-p.base)
+                          +dx*(values[index]+0.5*slope*dx));
+    return values[index]+slope*dx;
+}
+
+extern "C" __global__ void track_rf(
+    real_t* __restrict__ px, real_t* __restrict__ py,
+    real_t* __restrict__ z, real_t* __restrict__ dp,
+    int* __restrict__ tag, float* __restrict__ lost_position,
+    int* __restrict__ lost_turn, int start, int end, int turn,
+#if RF_INDIRECT
+    const Components* parameters_ptr,
+#else
+    const Components parameters,
+#endif
+    double reference, double inverse_velocity, double charge, double mass,
+    double p0_old, double p0_new, double scale, double reference_delta,
+    double z_scale, double lower, double upper, double position) {
+    int i = blockIdx.x*blockDim.x+threadIdx.x+start;
+    if (i >= end || tag[i] <= 0) return;
+#if RF_INDIRECT
+    const Components& parameters = *parameters_ptr;
+#endif
+    const double offset = -(double)z[i]*inverse_velocity;
+    double gain = 0.0;
+#if RF_COMPONENTS <= 8
+    #pragma unroll
+#endif
+    for (int j=0; j<RF_COMPONENTS; ++j) {
+        const Component& c = parameters.components[j];
+#if RF_SCALAR
+        double cycles = unit_cycle(c.frequency.base+c.frequency.value*offset);
+        double voltage = c.voltage.value, phase = c.phase.value;
+#else
+        double cycles = program_value(c.frequency, reference, offset, true);
+        double voltage = program_value(c.voltage, reference, offset, false);
+        double phase = program_value(c.phase, reference, offset, false);
+#endif
+        double angle = 6.283185307179586476925286766559*unit_cycle(c.harmonic*cycles)+phase;
+        // Round each component before summation, matching simultaneous CPU
+        // accumulation instead of fusing the last multiply into the sum.
+        gain = __dadd_rn(gain, charge*(voltage*sin(angle)));
+    }
+    double delta = (double)dp[i], old_p = p0_old*(1.0+delta);
+    // Direct squares are safe throughout the physical beam range. Retain
+    // scaled hypot for extreme inputs that could overflow either square.
+    double old_e = (fabs(old_p)<1e150 && mass<1e150)
+        ? sqrt(old_p*old_p+mass*mass) : hypot(old_p, mass);
+    double new_e = old_e+gain;
+    double momentum_sq = (new_e-mass)*(new_e+mass);
+    double px0 = (double)px[i], py0 = (double)py[i];
+    double transverse_sq = p0_old*p0_old*(px0*px0+py0*py0);
+    bool forward = isfinite(new_e) && new_e > mass && old_p > 0.0
+                   && momentum_sq > transverse_sq;
+    if (forward) {
+        double new_p = sqrt(momentum_sq);
+        double kick_delta = gain*(2.0*old_e+gain)/(p0_new*(new_p+old_p));
+        dp[i] = (real_t)(delta*scale+reference_delta+kick_delta);
+        px[i] = (real_t)(px0*scale);
+        py[i] = (real_t)(py0*scale);
+        z[i] = (real_t)((double)z[i]*z_scale);
+        // Acceptance uses the stored final delta, exactly as on CPU.
+        if (!((double)dp[i] < lower || (double)dp[i] > upper)) return;
+    }
+    // Stopped particles retain their entry coordinates; acceptance losses
+    // retain their post-kick coordinates. Earlier loss records are untouched.
+    tag[i] = -tag[i];
+    lost_position[i] = (float)position;
+    lost_turn[i] = turn;
 }
 '''
-
-_kernels = {}
-
-
-def launch_rf(element, sim, bunch, params, turn):
-    try:
-        import cupy as cp
-    except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU RFCavity tracking requires the optional 'cuda' dependencies.") from exc
-    p = sim.beams[element.beam_id].particles
-    key = np.dtype(p.dtype)
-    if key not in _kernels:
-        _kernels[key] = cp.RawKernel(
-            CUDA_REAL_PREAMBLE + RF_BODY, "track_rf",
-            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
-        )
-    voltage, harmonic, phase, phi_offset, p0_old, m0, qm_ratio, p0_new, scale = params
-    real = p.real; start, end = bunch.start_idx, bunch.end_idx; n = end - start
-    if n > 0:
-        threads=256
-        blocks = (n + threads - 1) // threads
-        _kernels[key]((blocks,), (threads,),
-                       (p.px,p.py,p.z,p.dp,p.tag,p.lost_position,p.lost_turn,
-                        np.int32(start),np.int32(end),real(bunch.z_center),
-                        real(bunch.circum),real(bunch.circum/(2*np.pi)),real(p0_old),
-                        real(m0),real(qm_ratio),real(voltage),real(harmonic),
-                        real(phase),real(phi_offset),real(p0_new),real(scale),
-                        real(element.dp_aperture_lower),real(element.dp_aperture_upper),
-                        real(element.s),np.int32(turn)))
-        from PASS.utils.aperture import check_aperture_gpu
-        check_aperture_gpu(sim.beams[element.beam_id], bunch, element.aperture_type,
-                           element.aperture_value, element.s, turn)
