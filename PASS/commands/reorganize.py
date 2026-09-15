@@ -74,7 +74,7 @@ class ReorganizeBunch(Command):
             f"[ReorganizeBunch] {self.cmd_name}: switching harmonic "
             f"{beam.harmonic_number} -> {self.new_harmonic}"
         )
-        regroup_particles(beam, new_harmonic=self.new_harmonic)
+        regroup_particles(beam, new_harmonic=self.new_harmonic, location=self.s)
         for k, b in enumerate(beam.bunches):
             logger.info(
                 f"[ReorganizeBunch] bunch{k}: harmonic_id={b.harmonic_id}, "

@@ -1,7 +1,7 @@
 Bunch Regrouping (ReorganizeBunch)
 ==================================
 
-This page describes the PASS **ReorganizeBunch** command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the laboratory longitudinal positions of the particles.
+This page describes the PASS **ReorganizeBunch** command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the physical arrival phases of the particles.
 
 **Code location**
 
@@ -12,58 +12,37 @@ This page describes the PASS **ReorganizeBunch** command. At a selected turn, th
 - Schema: ``ReorganizeBunchElement`` in ``PASS/para/schema/elements.py``
 
 
-Operation
----------
+Operation and group boundaries
+------------------------------
 
-Let the old and new grouping counts be :math:`h_{\mathrm{old}}` and :math:`h_{\mathrm{new}}`. The command runs once at ``Start turn`` and performs the following operations:
-
-1. Recover each particle's laboratory longitudinal position from its old bunch reference:
-
-   .. math::
-
-      z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center,old}}.
-
-2. Build a new grid of bunch centers separated by :math:`C/h_{\mathrm{new}}`:
-
-   .. math::
-
-      z_{\mathrm{center},k} = k\frac{C}{h_{\mathrm{new}}},
-      \qquad k=0,1,\ldots,h_{\mathrm{new}}-1.
-
-3. Assign particles to the nearest new group center around the ring and reorder every particle array so that each new bunch occupies a contiguous index range.
-4. Convert laboratory positions back to coordinates relative to the new bunch center:
-
-   .. math::
-
-      z_{\mathrm{rel,new}}
-      = \operatorname{fold}_C
-        \left(z_{\mathrm{lab}}-z_{\mathrm{center,new}}\right).
-
-5. Update the beam ``harmonic_number`` and each bunch's ``harmonic_id``, ``z_center``, particle count, and index range.
-6. If a new bunch inherits a different reference momentum, rebase :math:`p_x`, :math:`p_y`, and :math:`\delta` so that each particle's absolute mechanical momentum is preserved.
-
-ReorganizeBunch is therefore more than an index edit, but it is not itself a physical debunching, merging, capture, or compression process. Laboratory positions are preserved, while bunch reference centers, relative longitudinal coordinates, and normalized momenta may change.
-
-
-Group Boundaries
-----------------
-
-The algorithm uses the ring-azimuth sorting key
+At ``Start turn``, the new grouping count is h. With the prescribed reference
+clock phase :math:`\Psi(t)=\int_{t_*}^t f_{rev}(u)du`, the sorting key at s is
 
 .. math::
 
-   k_z = \left(z_{\mathrm{lab}}+\frac{C}{2h_{\mathrm{new}}}\right)\bmod C.
+   k_i=\left[-\Psi(t_i)+s/C+1/(2h)\right]\bmod1,\qquad
+   t_i=T_b-z_i/(\beta_b c).
 
-Group :math:`j` contains particles satisfying
+Group j owns :math:`j/h\le k_i<(j+1)/h`. The half-slot shift treats odd and
+even grouping counts identically. All particle arrays are permuted together.
+The periodic key is used only for grouping; the unwrapped time is retained.
+
+New reference events are chosen from the prescribed clock for the current
+passage and new slot IDs. Their reference velocities are :math:`C f_{rev}(T_b)`
+and must be subluminal. The reference energy follows from this velocity and
+rest mass. A different reference energy is a coordinate choice, not an RF kick:
 
 .. math::
 
-   j\frac{C}{h_{\mathrm{new}}}
-   \le k_z
-   < (j+1)\frac{C}{h_{\mathrm{new}}}.
+   z_i'=\beta_b'c(T_b'-t_i),\qquad
+   p_{x,y}'=p_{x,y}P_{0,b}/P_{0,b}',\qquad
+   1+\delta_i'=(1+\delta_i)P_{0,b}/P_{0,b}'.
 
-The half-group-width shift places each boundary midway between adjacent centers. The same rule applies to odd and even grouping counts.
-
+Physical time, energy and mechanical momenta remain unchanged. ``SortBunch``
+uses the same key and transformation while retaining the existing bunch
+references. Both commands invalidate old SliceSets because their local particle
+indices change. Users explicitly execute Slicer afterwards. No automatic
+centroid recentering, physical debunching, merging or compression is performed.
 
 Interface Parameters
 --------------------
@@ -121,8 +100,11 @@ Applications
 
 - Update diagnostic grouping after RF manipulations have changed the longitudinal distribution
 - Change the bunch-grouping count between simulation stages
-- Reclassify particles that have crossed old group boundaries according to their current laboratory azimuth
+- Reclassify particles that have crossed old group boundaries according to their current machine-clock phase
 
 .. note::
 
    ReorganizeBunch changes the PASS bunch-reference grouping only. It does not replace the physical debunching, capture, merging, or bunch-compression process produced by RF elements. First create the intended longitudinal distribution with the appropriate physical elements, then regroup at the selected turn.
+
+
+See :ref:`en-longitudinal-reference` and :doc:`slicer`。
