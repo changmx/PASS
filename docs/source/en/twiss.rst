@@ -132,7 +132,7 @@ where :math:`\Delta Q_x` and :math:`\Delta Q_y` are the horizontal and vertical 
 Longitudinal Coordinate Continuity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Twiss transport stores the updated bunch-relative coordinate :math:`z_{\mathrm{rel}}` without folding it into one circumference. This preserves accumulated multi-turn phase slip. When a laboratory azimuth is needed, use :math:`z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}` and apply a modulo operation only when required by the analysis.
+Stored z remains continuous, retaining multi-turn slip. Physical arrival time is :math:`t_i=T_b-z_i/(\beta_b c)` using the current reference event; nominal slot offsets do not enter this reconstruction.
 
 t0 Update
 ~~~~~~~~~
