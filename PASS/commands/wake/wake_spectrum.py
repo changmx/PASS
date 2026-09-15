@@ -240,7 +240,8 @@ class RationalWakeModel(WakeModel):
         tracking. expm1(p*width) retains that small interval exactly.
         """
         if backend == "gpu":
-            import cupy as xp
+            from .wake_models import averaged_gpu
+            return averaged_gpu(self, tau, width, longitudinal)
         else:
             require_cpu(backend)
             xp = np
@@ -348,69 +349,98 @@ def fit_spectrum(spectrum, initial_poles, *, optimize_poles=True, max_evaluation
 
 
 def spectrum_inverse_gpu(spectrum, times, primitive=False):
-    import cupy as cp
-    from .wake_models import device_arrays
-    from cupyx.scipy.special import sici
-    t = cp.asarray(times, dtype=cp.float64)
-    f, z = device_arrays(spectrum, "frequency_transfer", (spectrum.frequencies, spectrum.transfer))
-    a, b = f[:-1], f[1:]
-    df, mid = b-a, (b+a)/2
-    mean, difference = (z[1:]+z[:-1])/2, (z[1:]-z[:-1])/2
-    out = cp.empty(t.size, dtype=cp.float64)
-    block = max(1, 65536//len(a))
-    if primitive:
-        nodes, weights = device_arrays(spectrum, "gauss16", np.polynomial.legendre.leggauss(16))
-        slope = cp.diff(z)/df
-        intercept = z[:-1]-slope*a
-    def cin(x):
-        x = cp.abs(x)
-        safe = cp.where(x < .01, 1., x)
-        return cp.where(x < .01, -x*x/4+x**4/96-x**6/4320+x**8/322560,
-                        sici(safe)[1]-np.euler_gamma-cp.log(safe))
-    for start in range(0, t.size, block):
-        tau = t.ravel()[start:start+block, None]
-        if not primitive:
-            x = np.pi*tau*df
-            safe = cp.where(cp.abs(x) < .01, 1., x)
-            factor = cp.where(cp.abs(x) < .01, x*(1/3-x*x/30+x**4/840-x**6/45360),
-                              (cp.sin(x)-x*cp.cos(x))/(safe*safe))
-            value = df*cp.exp(2j*np.pi*tau*mid)*(mean*cp.sinc(tau*df)+1j*difference*factor)
-        else:
-            k = 2*np.pi*tau
-            exponential = df*(cp.exp(1j*k*mid)*cp.sinc(tau*df)-1)
-            logarithmic = cin(k*b)-cin(k*a)+1j*(sici(k*b)[0]-sici(k*a)[0])
-            value = (slope*exponential+intercept*logarithmic)/(2j*np.pi)
-            rows, cols = cp.nonzero(cp.abs(tau*df) < .5)
-            for j in range(0, len(rows), 8192):
-                rr, cc = rows[j:j+8192], cols[j:j+8192]
-                ff = mid[cc, None]+df[cc, None]*nodes/2
-                tt = tau[rr]
-                zz = z[:-1][cc, None]+slope[cc, None]*(ff-a[cc, None])
-                value[rr, cc] = df[cc]/2*cp.sum(weights*zz*tt*cp.exp(1j*np.pi*ff*tt)*cp.sinc(ff*tt), axis=1)
-        out[start:start+block] = 2*cp.real(cp.sum(value, axis=1))
-    return out.reshape(t.shape)
+    from .wake_models import response_gpu
+    model = spectrum.__dict__.get('_raw_inverse_model')
+    if model is None:
+        model = SpectrumWakeModel(spectrum)
+        spectrum.__dict__['_raw_inverse_model'] = model
+    return response_gpu(model, spectrum.longitudinal).evaluate(times, primitive=primitive)
 
 
 def evaluate_rational_gpu(model, tau, longitudinal=True, *, primitive=False):
-    import cupy as cp
-    t = cp.asarray(tau, dtype=cp.float64)
-    if longitudinal != model.longitudinal:
-        raise ValueError("Rational response plane does not match its component")
-    out = cp.zeros(t.shape, dtype=cp.float64)
-    for pole, residue in zip(model.poles, model.residues):
-        forward = pole.real < 0
-        local = cp.maximum(t, 0) if forward else cp.minimum(t, 0)
-        term = residue*cp.expm1(pole*local)/pole if primitive else residue*cp.exp(pole*local)
-        weight = 1 if primitive else cp.where(t == 0, .5, (t > 0 if forward else t < 0))
-        out += (1 if forward else -1)*weight*term.real
-    return out
+    from .wake_models import response_gpu
+    return response_gpu(model, longitudinal).evaluate(tau, primitive=primitive)
 
 
 def evaluate_spectrum_gpu(model, tau, longitudinal=True, *, primitive=False):
-    import cupy as cp
-    model._check_plane(longitudinal)
-    t = cp.asarray(tau, dtype=cp.float64)
-    value = spectrum_inverse_gpu(model.spectrum, cp.maximum(t, 0.) if model.causal else t, primitive)
-    if primitive or not model.causal:
-        return value
-    return cp.where(t < 0, 0., cp.where(t == 0, value/2, value))
+    from .wake_models import response_gpu
+    return response_gpu(model, longitudinal).evaluate(tau, primitive=primitive)
+
+
+def spectrum_response_code(model, longitudinal):
+    """Exact segment integrals and stable pole sums, fused in scalar CUDA code."""
+    prefix = r'''
+    #include <cupy/complex.cuh>
+    using C=complex<double>;
+    __device__ C wake_expm1(C z){
+        double h=sin(z.imag()*.5);
+        return C(expm1(z.real())*cos(z.imag())-2*h*h,exp(z.real())*sin(z.imag()));
+    }
+    '''
+    if isinstance(model, RationalWakeModel):
+        if longitudinal != model.longitudinal:
+            raise ValueError('Rational response plane does not match its component')
+        values = np.column_stack((model.poles.real,model.poles.imag,model.residues.real,model.residues.imag)).ravel()
+        body = f'#define NMODES {len(model.poles)}\n'+r'''
+        __device__ double response(double t,const double* d,bool primitive){
+            double out=0.;for(int j=0;j<NMODES;j++){
+                C p(d[4*j],d[4*j+1]),r(d[4*j+2],d[4*j+3]);bool forward=p.real()<0.;
+                double local=forward?fmax(t,0.):fmin(t,0.);
+                C term=primitive?r*wake_expm1(p*local)/p:r*exp(p*local);
+                double weight=primitive?1.:(t==0.?.5:(forward?t>0.:t<0.));
+                out+=(forward?1.:-1.)*weight*term.real();
+            }return out;
+        }
+        __device__ double averaged(double t,double w,const double* d,double horizon){
+            if(w<=0.)return t<=horizon?response(t,d,false):0.;
+            if(isfinite(horizon))return (response(fmin(t+w*.5,horizon),d,true)-response(fmin(t-w*.5,horizon),d,true))/w;
+            double out=0.;for(int j=0;j<NMODES;j++){
+                C p(d[4*j],d[4*j+1]),r(d[4*j+2],d[4*j+3]);bool forward=p.real()<0.;
+                double local=forward?t:-t;C pole=forward?p:-p;
+                double begin=fmax(local-w*.5,0.),span=fmin(w,fmax(local+w*.5,0.));
+                out+=(forward?1.:-1.)*(r*exp(pole*begin)*wake_expm1(pole*span)/pole/w).real();
+            }return out;
+        }
+        '''
+    else:
+        model._check_plane(longitudinal)
+        s=model.spectrum;n=len(s.frequencies)
+        nodes,weights=np.polynomial.legendre.leggauss(16)
+        values=np.r_[s.frequencies,s.transfer.real,s.transfer.imag,nodes,weights]
+        body=f'#define NPOINTS {n}\n#define CAUSAL {int(model.causal)}\n'+r'''
+        #include <cupy/xsf/sici.h>
+        __device__ double wake_sinc(double x){return x==0.?1.:sin(x)/x;}
+        __device__ double wake_cin(double x){
+            x=fabs(x);double q=x*x;
+            if(x<.01)return q*(-.25+q*(1./96.+q*(-1./4320.+q/322560.)));
+            double si,ci;xsf::sici(x,si,ci);return ci-0.5772156649015328606-log(x);
+        }
+        __device__ double response(double time,const double* d,bool primitive){
+            if(CAUSAL&&time<0.)return 0.;double t=CAUSAL?fmax(time,0.):time,out=0.;
+            const double *f=d,*zr=d+NPOINTS,*zi=d+2*NPOINTS,*nodes=d+3*NPOINTS,*weights=nodes+16;
+            for(int j=0;j<NPOINTS-1;j++){
+                double a=f[j],b=f[j+1],df=b-a,mid=(b+a)*.5;
+                C z0(zr[j],zi[j]),z1(zr[j+1],zi[j+1]);
+                C mean=(z0+z1)*.5,difference=(z1-z0)*.5,value;
+                double x=M_PI*t*df;
+                if(!primitive){
+                    double q=x*x,factor=fabs(x)<.01?x*(1./3.-q/30.+q*q/840.-q*q*q/45360.):(sin(x)-x*cos(x))/q;
+                    value=df*exp(C(0.,2*M_PI*t*mid))*(mean*wake_sinc(x)+C(0.,1.)*difference*factor);
+                }else if(fabs(t*df)<.5){
+                    value=C(0.,0.);C slope=(z1-z0)/df;
+                    for(int k=0;k<16;k++){double ff=mid+df*.5*nodes[k],phase=M_PI*ff*t;
+                        value+=weights[k]*(z0+slope*(ff-a))*t*exp(C(0.,phase))*wake_sinc(phase);}
+                    value*=df*.5;
+                }else{
+                    double k=2*M_PI*t,sa,ca,sb,cb;xsf::sici(k*a,sa,ca);xsf::sici(k*b,sb,cb);
+                    C slope=(z1-z0)/df,intercept=z0-slope*a;
+                    C exponential=df*(exp(C(0.,k*mid))*wake_sinc(x)-C(1.,0.));
+                    C logarithmic(wake_cin(k*b)-wake_cin(k*a),sb-sa);
+                    value=(slope*exponential+intercept*logarithmic)/C(0.,2*M_PI);
+                }out+=2*value.real();
+            }return out*(CAUSAL&&!primitive&&time==0.?.5:1.);
+        }
+        '''
+        from .wake_models import _AVERAGE_DEVICE
+        body+=_AVERAGE_DEVICE
+    return prefix+body,values

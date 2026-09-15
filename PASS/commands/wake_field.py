@@ -174,7 +174,8 @@ class WakeField(Command):
             updates.append(update)
             diagnostics.append(diagnostic)
         coefficients = results[0] if len(results) == 1 else xp.concatenate(results, axis=0)
-        if not bool(xp.all(xp.isfinite(coefficients))):
+        from .wake.wake_state import finite_gpu
+        if not (finite_gpu(self, coefficients) if gpu else bool(np.all(np.isfinite(coefficients)))):
             raise FloatingPointError("Wake solver returned a non-finite voltage; particle coordinates were not updated")
         if gpu:
             kick_gpu(self, beam, projection, coefficients, turn)

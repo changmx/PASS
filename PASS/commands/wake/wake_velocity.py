@@ -61,10 +61,36 @@ def factor_gpu(component, betas, witness=False):
     values = law.witness if witness else law.source
     if all(v == values[0] for v in values):
         return values[0]
-    knots, values = device_arrays(law, "witness" if witness else "source", (law.betas, values))
-    # Validity was checked using host reference beta before projection. Stored
-    # source beta belongs to that historical passage, never today's reference.
-    return cp.interp(betas, knots, values)
+    return apply_factor_gpu(component, betas, witness=witness)
+
+
+def velocity_gpu(component):
+    """Packed coupling data shared by fused response and transfer kernels."""
+    from .wake_models import device_arrays
+    law=component.velocity
+    if law is None or law.kind=='fixed':
+        return 0, device_arrays(component, 'empty_velocity', (np.empty(0),))[0]
+    if all(v==law.source[0] for v in law.source) and all(v==law.witness[0] for v in law.witness):
+        return 1, device_arrays(law,'constant_velocity',(np.array([law.source[0],law.witness[0]]),))[0]
+    return len(law.betas),device_arrays(law,'packed_velocity',(np.r_[law.betas,law.source,law.witness],))[0]
+
+
+def apply_factor_gpu(component, betas, values=None, *, witness=False, out=None, scale=1.):
+    import cupy as cp
+    from .wake_models import response_gpu
+    response=response_gpu(component.model,component.longitudinal)
+    nv,velocity=velocity_gpu(component)
+    if out is None:out=cp.empty(betas.shape,dtype=cp.float64)
+    if out.size:
+        response.kernel('apply_velocity',r'''
+        extern "C" __global__ void apply_velocity(const double* beta,const double* input,
+            const double* v,int nv,int side,int has_values,double scale,long long n,double* out){
+            long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)
+                out[i]=scale*coupling(beta[i],v,nv,side)*(has_values?input[i]:1.);
+        }''')(((out.size+255)//256,), (256,),
+            (betas,betas if values is None else values,velocity,np.int32(nv),np.int32(witness),
+             np.int32(values is not None),np.float64(scale),np.int64(out.size),out))
+    return out
 
 
 

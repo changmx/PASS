@@ -37,7 +37,7 @@ class GroupExecution:
         if cfg.source_shape == "point":
             if gpu:
                 source = Sources(source.times, xp.zeros_like(source.widths), source.moments, source.betas, True,
-                                 None if source.grid is None else (source.grid[0], 0.))
+                                 None if source.grid is None else (source.grid[0], 0.), source.increasing)
             else:
                 source = Sources(source.times, xp.zeros_like(source.widths), source.moments, source.betas)
         update = None
@@ -54,10 +54,18 @@ class GroupExecution:
         elif cfg.boundary == "periodic":
             if state.last_turn is not None and turn <= state.last_turn:
                 raise ValueError("Wake group turn did not advance")
-            if len(source.times) and float(xp.ptp(source.times)+xp.max(source.widths)) > cfg.period:
-                raise ValueError("Periodic source domain exceeds one declared period")
-            copies = [Sources(source.times+j*cfg.period, source.widths, source.moments, source.betas)
-                      for j in range(-cfg.periodic_images, cfg.periodic_images+1)]
+            if gpu:
+                from .wake_state import time_bounds_gpu,shifted_times_gpu
+                if len(source.times):
+                    lo,hi,width,_=time_bounds_gpu(self,source)
+                    if hi-lo+width>cfg.period:raise ValueError('Periodic source domain exceeds one declared period')
+                copies=[Sources(shifted_times_gpu(self,source.times,j*cfg.period),source.widths,source.moments,source.betas,source.point)
+                        for j in range(-cfg.periodic_images,cfg.periodic_images+1)]
+            else:
+                if len(source.times) and float(xp.ptp(source.times)+xp.max(source.widths)) > cfg.period:
+                    raise ValueError("Periodic source domain exceeds one declared period")
+                copies = [Sources(source.times+j*cfg.period, source.widths, source.moments, source.betas)
+                          for j in range(-cfg.periodic_images, cfg.periodic_images+1)]
             values = direct(components, copies, source.times, target_betas=source.betas)
             candidate = state.fork()
             candidate.last_turn = turn

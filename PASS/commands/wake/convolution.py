@@ -135,9 +135,13 @@ class HistoryUpdate:
         for value in self.additions:
             start = (n+1) % len(s.pending)
             first = min(len(value), len(s.pending)-start)
-            s.pending[start:start+first] += value[:first]
-            if first < len(value):
-                s.pending[:len(value)-first] += value[first:]
+            if isinstance(value,np.ndarray):
+                s.pending[start:start+first] += value[:first]
+                if first < len(value):s.pending[:len(value)-first] += value[first:]
+            else:
+                from .wake_state import add_gpu
+                add_gpu(s,s.pending[start:start+first].view(np.float64),value[:first].view(np.float64))
+                if first<len(value):add_gpu(s,s.pending[:len(value)-first].view(np.float64),value[first:].view(np.float64))
         s.count += 1
         self.additions = ()
         self.spectrum = None
@@ -430,7 +434,8 @@ class PartitionedConvolution:
             raise ValueError("Convolution block must be a float64 backend array with the declared channel/grid shape")
         if self.device is not None and density.device.id != self.device:
             raise ValueError("Convolution block belongs to another CUDA device")
-        if not bool(self.xp.all(self.xp.isfinite(density))):
+        from .wake_state import finite_gpu
+        if not (finite_gpu(self,density) if self.backend=='gpu' else bool(np.all(np.isfinite(density)))):
             raise ValueError("Convolution block must be finite")
         values, update = self._convolve_block(density, state)
         return values[:, :self.grid.slots, :self.grid.slices].copy(), update
@@ -438,7 +443,9 @@ class PartitionedConvolution:
     def _convolve_block(self, density, state):
         """Shared spectral core; validation and coordinate mapping live at the boundary."""
         xp = self.xp
-        spectrum = self.fft.rfft2(density, s=self.shape, axes=(-2, -1))
+        single_slot = self.backend == "gpu" and self.shape[0] == 1
+        spectrum = (self.fft.rfft(density, n=self.shape[1], axis=-1) if single_slot
+                    else self.fft.rfft2(density, s=self.shape, axes=(-2, -1)))
         n = state.count
         if self.backend == "gpu":
             accumulated = accumulate_gpu(self, state, spectrum)
@@ -448,7 +455,8 @@ class PartitionedConvolution:
                 for (length, count), kernel in zip(self.levels, self.filters):
                     if count == 1 and n >= length:
                         accumulated += kernel*state.inputs[(n-length) % len(state.inputs)][self.indices]
-        values = self.fft.irfft2(accumulated, s=self.shape, axes=(-2, -1))
+        values = (self.fft.irfft(accumulated, n=self.shape[1], axis=-1) if single_slot
+                  else self.fft.irfft2(accumulated, s=self.shape, axes=(-2, -1)))
         additions = []
         if self.method == "uniform" and self.backend == "cpu":
             # All prior lag contributions of this new source are scheduled once.
@@ -466,7 +474,7 @@ class PartitionedConvolution:
                         block[first:-1] = state.inputs[:length-1-first]
                 block[-1] = spectrum
                 transformed = self._time_forward(block, 2*length)
-                product = (transformed[:, self.indices] if self.backend == "cpu" else transformed[self.indices])*kernel
+                product = (transformed[:, self.indices]*kernel if self.backend == "cpu" else history_product_gpu(self, transformed, kernel))
                 contribution = self._time_inverse(product, length+count-1)
                 additions.append(contribution)
         return values, HistoryUpdate(state, spectrum, additions,
@@ -474,7 +482,8 @@ class PartitionedConvolution:
 
     def step(self, source, state=None, *, turn):
         values, update = self.preview(source, state, turn=turn)
-        if not bool(self.xp.all(self.xp.isfinite(values))):
+        from .wake_state import finite_gpu
+        if not (finite_gpu(self,values) if self.backend=='gpu' else bool(np.all(np.isfinite(values)))):
             raise FloatingPointError("Convolution produced nonfinite coefficients")
         update.commit()
         return values, update.state
@@ -491,95 +500,86 @@ class PartitionedConvolution:
 # ----------------------------------------------------------------------------
 
 
-_SCHEDULE = None
-_ACCUMULATE = None
-_GATHER = None
-
-
-def accumulate_gpu(plan, state, spectrum):
-    """Fuse channel selection, current response, pending field and delay lines."""
+def convolution_kernel(plan,name):
     import cupy as cp
-    global _ACCUMULATE
-    if _ACCUMULATE is None:
-        _ACCUMULATE = cp.ElementwiseKernel(
-            "raw complex128 head, raw complex128 source, raw complex128 pending, raw complex128 inputs, "
-            "raw complex128 singles, raw int64 lags, raw int32 channels, int64 nf, int64 span, int64 nu, "
-            "int64 count, int64 input_capacity, int64 pending_capacity, int32 nlags",
-            "complex128 value", r'''
-                long long src=(long long)channels[i/nf]*nf+i%nf;
-                value=head[i]*source[src]+pending[(count%pending_capacity)*span+i];
-                for(int j=0;j<nlags;j++)if(count>=lags[j])
-                    value+=singles[(long long)j*span+i]*inputs[((count-lags[j])%input_capacity)*nu*nf+src];
-            ''', "pass_wake_accumulate")
-    if not hasattr(plan, "_single_filters"):
-        singles = [(l, k) for (l, c), k in zip(plan.levels, plan.filters) if c == 1] if plan.method == "dyadic" else []
-        plan._single_lags = cp.asarray([l for l, _ in singles], dtype=cp.int64)
-        plan._single_filters = cp.stack([k for _, k in singles]) if singles else cp.empty(0, dtype=cp.complex128)
-    nf = int(np.prod(plan.frequency_shape))
-    result = _ACCUMULATE(plan.head, spectrum, state.pending, state.inputs, plan._single_filters,
-        plan._single_lags, plan.indices, np.int64(nf), np.int64(nf*len(plan.components)),
-        np.int64(len(plan.channels)), np.int64(state.count), np.int64(len(state.inputs)),
-        np.int64(len(state.pending)), np.int32(len(plan._single_lags)), size=nf*len(plan.components))
-    return result.reshape(len(plan.components), *plan.frequency_shape)
+    cache=plan.__dict__.setdefault('_convolution_kernels',{})
+    key=(cp.cuda.runtime.getDevice(),name)
+    if key not in cache:cache[key]=cp.RawKernel(_CODE,name,options=('--std=c++17',))
+    return cache[key]
 
 
-def gather_gpu(plan, source, values, index, fraction):
-    """Gather directly from padded FFT output, fusing constant witness factors."""
+def accumulate_gpu(plan,state,spectrum):
     import cupy as cp
-    global _GATHER
-    if _GATHER is None:
-        _GATHER = cp.ElementwiseKernel(
-            "raw float64 field, raw int64 index, raw float64 fraction, raw float64 factors, "
-            "int64 n, int64 slices, int64 padded_slices, int64 padded_span",
-            "float64 value", r'''
-                long long c=i/n, j=i%n, q=index[j];
-                long long offset=c*padded_span+(q/slices)*padded_slices+q%slices;
-                double part=fraction[j];
-                value=field[offset]*(1.-part);
-                if(part!=0.)value+=field[offset+1]*part;
-                value*=factors[c];
-            ''', "pass_wake_gather")
-    if not hasattr(plan, "_witness_constants"):
-        constants, varying = [], []
-        for ci, c in enumerate(plan.components):
-            law = c.velocity
-            if law is None or law.kind == "fixed": constants.append(1.)
-            elif all(v == law.witness[0] for v in law.witness): constants.append(law.witness[0])
-            else:
-                constants.append(1.)
-                varying.append(ci)
-        plan._witness_constants = cp.asarray(constants)
-        plan._varying_witnesses = varying
-    n = len(source.times)
-    result = _GATHER(values, index, fraction, plan._witness_constants, np.int64(n),
-        np.int64(plan.grid.slices), np.int64(plan.shape[1]), np.int64(np.prod(plan.shape)),
-        size=n*len(plan.components)).reshape(len(plan.components), n)
-    if plan._varying_witnesses:
-        from .wake_velocity import factor_gpu as factor
-        for ci in plan._varying_witnesses:
-            result[ci] *= factor(plan.components[ci], source.betas, True)
+    if not hasattr(plan,'_single_filters'):
+        singles=[(l,k) for (l,c),k in zip(plan.levels,plan.filters) if c==1] if plan.method=='dyadic' else []
+        plan._single_lags=cp.asarray([l for l,_ in singles],dtype=cp.int64)
+        plan._single_filters=cp.stack([k for _,k in singles]) if singles else cp.empty(0,dtype=cp.complex128)
+    nf=int(np.prod(plan.frequency_shape));span=nf*len(plan.components)
+    result=cp.empty((len(plan.components),*plan.frequency_shape),dtype=cp.complex128)
+    convolution_kernel(plan,'accumulate')(((span+255)//256,),(256,),
+        (plan.head,spectrum,state.pending,state.inputs,plan._single_filters,plan._single_lags,plan.indices,
+         np.int64(nf),np.int64(span),np.int64(len(plan.channels)),np.int64(state.count),np.int64(len(state.inputs)),
+         np.int64(len(state.pending)),np.int32(len(plan._single_lags)),result))
     return result
 
 
-def schedule_uniform_gpu(plan, state, spectrum):
-    """Fused delayed multiply/add and consumed-slot clearing; no H-sized temporary."""
+def gather_gpu(plan,source,values,index,fraction):
     import cupy as cp
-    global _SCHEDULE
-    if _SCHEDULE is None:
-        _SCHEDULE = cp.ElementwiseKernel(
-            "raw complex128 kernel, raw complex128 source, raw int32 channels, int64 nf, int64 span, int64 count, int64 history",
-            "raw complex128 pending", r'''
-                long long lag=i/span, cell=i%span;
-                long long out=((count+1+lag)%(history+1))*span+cell;
-                if(lag==history)pending[out]=complex<double>(0.,0.);
-                else pending[out]+=kernel[i]*source[(long long)channels[cell/nf]*nf+cell%nf];
-            ''', "pass_wake_schedule_uniform")
-    nf = int(np.prod(plan.frequency_shape))
-    span = len(plan.components)*nf
-    _SCHEDULE(plan.filters[0], spectrum, plan.indices, np.int64(nf), np.int64(span), np.int64(state.count),
-              np.int64(plan.memory_turns), state.pending, size=(plan.memory_turns+1)*span)
+    from .wake_velocity import apply_factor_gpu
+    n=len(source.times);result=cp.empty((len(plan.components),n),dtype=cp.float64)
+    if n:convolution_kernel(plan,'gather')(((result.size+255)//256,),(256,),
+        (values,index,fraction,np.int64(n),np.int64(plan.grid.slices),np.int64(plan.shape[1]),
+         np.int64(np.prod(plan.shape)),np.int64(result.size),result))
+    for ci,c in enumerate(plan.components):
+        law=c.velocity
+        if law is not None and law.kind!='fixed' and any(v!=1. for v in law.witness):
+            apply_factor_gpu(c,source.betas,result[ci],witness=True,out=result[ci])
+    return result
+
+
+def schedule_uniform_gpu(plan,state,spectrum):
+    nf=int(np.prod(plan.frequency_shape));span=len(plan.components)*nf
+    convolution_kernel(plan,'schedule_uniform')((((plan.memory_turns+1)*span+255)//256,),(256,),
+        (plan.filters[0],spectrum,plan.indices,np.int64(nf),np.int64(span),np.int64(state.count),
+         np.int64(plan.memory_turns),state.pending))
+
+
+def history_product_gpu(plan,transformed,kernel):
+    import cupy as cp
+    out=cp.empty(kernel.shape,dtype=cp.complex128)
+    convolution_kernel(plan,'history_product')(((out.size+255)//256,),(256,),
+        (transformed,kernel,plan.indices,np.int64(out.size//len(plan.components)),np.int64(out.size),out))
+    return out
+
 
 _CODE = r'''
+#include <cupy/complex.cuh>
+using C=complex<double>;
+extern "C" __global__ void accumulate(const C* head,const C* source,const C* pending,const C* inputs,
+    const C* singles,const long long* lags,const int* channels,long long nf,long long span,long long nu,
+    long long count,long long input_capacity,long long pending_capacity,int nlags,C* out){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=span)return;
+    long long src=(long long)channels[i/nf]*nf+i%nf;
+    C value=head[i]*source[src]+pending[(count%pending_capacity)*span+i];
+    for(int j=0;j<nlags;j++)if(count>=lags[j])value+=singles[(long long)j*span+i]*inputs[((count-lags[j])%input_capacity)*nu*nf+src];
+    out[i]=value;
+}
+extern "C" __global__ void gather(const double* field,const long long* index,const double* fraction,
+    long long n,long long slices,long long padded_slices,long long padded_span,long long size,double* out){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=size)return;
+    long long c=i/n,j=i%n,q=index[j],offset=c*padded_span+(q/slices)*padded_slices+q%slices;
+    double part=fraction[j],value=field[offset]*(1.-part);if(part!=0.)value+=field[offset+1]*part;out[i]=value;
+}
+extern "C" __global__ void schedule_uniform(const C* kernel,const C* source,const int* channels,
+    long long nf,long long span,long long count,long long history,C* pending){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=(history+1)*span)return;
+    long long lag=i/span,cell=i%span,out=((count+1+lag)%(history+1))*span+cell;
+    if(lag==history)pending[out]=C(0.,0.);else pending[out]+=kernel[i]*source[(long long)channels[cell/nf]*nf+cell%nf];
+}
+extern "C" __global__ void history_product(const C* source,const C* filter,const int* channels,long long row,long long n,C* out){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)out[i]=filter[i]*source[(long long)channels[i/row]*row+i%row];
+}
+
 extern "C" __global__ void scatter(const double* times,const double* widths,
     const double* betas,const double* values,int n,int channels,int slots,int slices,
     double origin,double gap,double step,double width,double tolerance,int linear,
@@ -613,7 +613,7 @@ extern "C" __global__ void scatter(const double* times,const double* widths,
 def deposit_gpu(plan, source, turn):
     """One scatter launch and one scalar validation transfer per passage."""
     import cupy as cp
-    from .wake_components import moment_gpu as moment
+    from .wake_components import moments_gpu
     g = plan.grid
     n = len(source.times)
     arrays = [source.times, source.widths, source.betas]
@@ -639,7 +639,7 @@ def deposit_gpu(plan, source, turn):
             lo, hi = ((law.beta*(1-1e-12), law.beta*(1+1e-12)) if law.kind == "fixed"
                       else (law.betas[0], law.betas[-1]))
             beta_min, beta_max = max(beta_min, lo), min(beta_max, hi)
-    values = cp.ascontiguousarray(cp.stack([moment(c, source) for c in plan.channels]), dtype=cp.float64)
+    values = cp.ascontiguousarray(moments_gpu(plan.channels, source), dtype=cp.float64)
     plan._invalid.fill(0)
     plan._scatter(((n+255)//256,), (256,), (times, widths, betas, values,
         np.int32(n), np.int32(len(plan.channels)), np.int32(g.slots), np.int32(g.slices),

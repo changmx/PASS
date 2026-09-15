@@ -86,5 +86,16 @@ class WakeComponent:
 
 
 def moment_gpu(component, source):
-    from .wake_velocity import factor_gpu
-    return source.moments[component.source_powers]*factor_gpu(component, source.betas)
+    from .wake_velocity import apply_factor_gpu
+    moment=source.moments[component.source_powers]
+    law=component.velocity
+    if law is None or law.kind=='fixed' or all(v==1. for v in law.source):
+        return moment
+    return apply_factor_gpu(component,source.betas,moment)
+
+
+def moments_gpu(components, source):
+    """Channel rows; a single channel is a view, not a device copy."""
+    import cupy as cp
+    rows = [moment_gpu(c, source) for c in components]
+    return rows[0][None, :] if len(rows) == 1 else cp.stack(rows)

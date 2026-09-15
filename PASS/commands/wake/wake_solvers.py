@@ -281,111 +281,211 @@ def solve_wake_cpu(components, current, state, *, turn, solver="direct", memory_
 from .wake_models import averaged_gpu, evaluate_gpu, device_arrays
 from .wake_state import DeviceSources
 from .wake_velocity import factor_gpu
-from .wake_components import moment_gpu
+from .wake_components import moment_gpu, moments_gpu
 
 
 def kernel_gpu(component, tau, width, point, memory_time):
-    import cupy as cp
-    if point:
-        value = evaluate_gpu(component.model, tau, component.longitudinal)
-        if memory_time is not None:
-            value = cp.where(tau <= memory_time, value, 0.)
-    else:
-        value = averaged_gpu(component.model, tau, width, component.longitudinal, memory_time)
-    return component.scale*value
+    from .wake_models import response_gpu
+    return response_gpu(component.model,component.longitudinal).evaluate(tau,
+        width=None if point else width,memory_time=memory_time,scale=component.scale)
 
 
 def direct_gpu(components, sources, targets, memory_time=None, target_betas=None):
+    """Warp-per-witness exact sums, without pair matrices or BLAS temporaries."""
     import cupy as cp
-    out = cp.zeros((len(components), len(targets)), dtype=cp.float64)
-    for source in sources:
-        coupled = [moment_gpu(c, source) for c in components]
-        for ti in range(0, len(targets), 128):
-            for si in range(0, len(source.times), 1024):
-                tau = targets[ti:ti+128, None]-source.times[None, si:si+1024]
-                for ci, component in enumerate(components):
-                    out[ci, ti:ti+128] += kernel_gpu(component, tau, source.widths[None, si:si+1024],
-                        source.point, memory_time) @ coupled[ci][si:si+1024]
-    if target_betas is not None:
-        for ci, component in enumerate(components):
-            out[ci] *= factor_gpu(component, target_betas, True)
+    from .wake_models import response_gpu
+    from .wake_velocity import velocity_gpu
+    out=cp.zeros((len(components),len(targets)),dtype=cp.float64)
+    targets=cp.ascontiguousarray(targets,dtype=cp.float64)
+    if not len(targets):return out
+    witness=target_betas is not None
+    target_beta=targets if not witness else cp.ascontiguousarray(target_betas,dtype=cp.float64)
+    for ci,c in enumerate(components):
+        response=response_gpu(c.model,c.longitudinal)
+        nv,velocity=velocity_gpu(c)
+        kernel=response.kernel('direct_response')
+        for s in sources:
+            if not len(s.times):continue
+            arrays=[cp.ascontiguousarray(v,dtype=cp.float64) for v in
+                    (s.times,s.widths,s.moments[c.source_powers],s.betas)]
+            kernel(((len(targets)+3)//4,), (128,),
+                (targets,*arrays,target_beta,velocity,np.int32(nv),np.int32(witness),response.data,
+                 np.int32(len(targets)),np.int32(len(s.times)),np.float64(c.scale),
+                 np.float64(np.inf if memory_time is None else memory_time),np.int32(s.point),out[ci]))
     return out
 
 
 def fft_gpu(components, source, memory_time=None, target_betas=None, *, resources=None):
+    """cuFFT transforms with fused CUDA validation, response, product and gather."""
     import cupy as cp
-    n = len(source.times)
-    target_betas = source.betas if target_betas is None else target_betas
-    if n < 2:
-        return direct_gpu(components, [source], source.times, memory_time, target_betas)
-    times = source.times
+    from .wake_models import response_gpu
+    from .wake_velocity import apply_factor_gpu
+    source=DeviceSources.upload(source)
+    n=len(source.times)
+    target_betas=source.betas if target_betas is None else target_betas
+    if n<2:return direct_gpu(components,[source],source.times,memory_time,target_betas)
+    owner=components[0].model
+    from .wake_state import array_kernel
     if source.grid is None:
-        step = (times[-1]-times[0])/(n-1)
-        largest = cp.max(cp.abs(times))
-        rounding = 8*(cp.nextafter(largest, cp.inf)-largest)
-        valid = ((step > 0) & cp.all(cp.diff(times) > 0)
-            & cp.all(cp.abs(cp.diff(times)-step) <= cp.maximum(abs(step)*1e-11, rounding)+1e-9*abs(step))
-            & cp.all(cp.abs(source.widths-source.widths[0]) <= abs(step)*1e-12+1e-10*abs(source.widths[0]))
-            & (source.widths[0] <= step*(1+1e-10)+rounding))
-        if not bool(valid):
-            raise ValueError("FFT wake requires one increasing uniform grid and common bin widths <= spacing")
-    else:
-        # A fresh equal-length Slicer with zero arrival correction supplies an
-        # exact grid contract. It is invalidated by intervening transport.
-        step = source.grid[0]
+        metadata=cp.empty(3,dtype=cp.float64)
+        response=response_gpu(owner,components[0].longitudinal)
+        response.kernel('fft_geometry',_FFT_CODE)((1,),(256,),(source.times,source.widths,np.int32(n),metadata))
+        valid,step,width=metadata.get()
+        if not valid:raise ValueError('FFT wake requires one increasing uniform grid and common bin widths <= spacing')
+    else:step,width=source.grid
     from .convolution import source_channels
-    result = cp.empty((len(components), n), dtype=cp.float64)
-    cache = {} if resources is None else resources
-    key = ("gpu", cp.cuda.runtime.getDevice(), tuple(id(c) for c in components), n, source.grid, source.point, memory_time)
-    if source.grid is None or cache.get("key") != key:
-        cache.clear()
-        cache["key"] = key
-    # Group equal FFT lengths, use batched transforms and share moment FFTs.
+    cache={} if resources is None else resources
+    key=(cp.cuda.runtime.getDevice(),tuple(id(c) for c in components),n,float(step),float(width),source.point,memory_time)
+    if cache.get('key')!=key:
+        cache.clear();cache['key']=key
+    result=cp.empty((len(components),n),dtype=cp.float64)
     for causal in {c.model.causal for c in components}:
-        ids = [i for i, c in enumerate(components) if c.model.causal == causal]
-        size = next_fast_len(2*n-1 if causal else 3*n-2)
-        offset = 0 if causal else n-1
-        selected = [components[i] for i in ids]
-        channels, channel_ids = source_channels(selected)
-        response = cache.get(causal)
-        if response is None:
-            delays = cp.arange(-offset, n, dtype=cp.float64)*step
-            response = cp.fft.rfft(cp.stack([kernel_gpu(c, delays, source.widths[0], source.point, memory_time)
-                                            for c in selected]), size, axis=1)
-            cache[causal] = response
-            cache[(causal, "channels")] = cp.asarray(channel_ids)
-        moments = cp.stack([moment_gpu(c, source) for c in channels])
-        spectra = cp.fft.rfft(moments, size, axis=1)
-        values = cp.fft.irfft(spectra[cache[(causal, "channels")]]*response, size, axis=1)[:, offset:offset+n]
-        for row, ci in enumerate(ids):
-            result[ci] = values[row]*factor_gpu(components[ci], target_betas, True)
+        ids=[i for i,c in enumerate(components) if c.model.causal==causal]
+        selected=[components[i] for i in ids]
+        channels,channel_ids=source_channels(selected)
+        size=next_fast_len(2*n-1 if causal else 3*n-2);offset=0 if causal else n-1
+        spectrum=cache.get(causal)
+        if spectrum is None:
+            response_values=cp.empty((len(selected),n+offset),dtype=cp.float64)
+            for row,c in enumerate(selected):
+                response=response_gpu(c.model,c.longitudinal)
+                response.kernel('response_grid')(((n+offset+255)//256,),(256,),
+                    (response.data,np.float64(step),np.float64(width),np.int32(offset),np.int32(n+offset),
+                     np.float64(np.inf if memory_time is None else memory_time),np.float64(c.scale),np.int32(source.point),response_values[row]))
+            spectrum=cache[causal]=cp.fft.rfft(response_values,size,axis=1)
+            cache[(causal,'channels')]=cp.asarray(channel_ids,dtype=cp.int32)
+        moments=moments_gpu(channels, source)
+        transformed=cp.fft.rfft(moments,size,axis=1)
+        product=cp.empty(spectrum.shape,dtype=cp.complex128)
+        response=response_gpu(owner,components[0].longitudinal)
+        response.kernel('fft_product',_FFT_CODE)(((product.size+255)//256,),(256,),
+            (transformed,spectrum,cache[(causal,'channels')],np.int32(product.shape[1]),np.int64(product.size),product))
+        values=cp.fft.irfft(product,size,axis=1)
+        for row,ci in enumerate(ids):
+            apply_factor_gpu(components[ci],target_betas,values[row,offset:offset+n],witness=True,out=result[ci])
     return result
 
 
-def event_arrays_gpu(source, components):
-    """Combine simultaneous impulses/edges before observing half self kicks."""
+_FFT_CODE=r'''
+extern "C" __global__ void fft_geometry(const double* t,const double* w,int n,double* out){
+    __shared__ int invalid;int k=threadIdx.x;if(k==0)invalid=0;__syncthreads();
+    double step=(t[n-1]-t[0])/(n-1),largest=fmax(fabs(t[0]),fabs(t[n-1]));
+    double rounding=8*(nextafter(largest,INFINITY)-largest),width=w[0];
+    // Full-width equal-length bins supply a translation-invariant spacing.
+    if(width>0.&&fabs(width-step)<=fmax(fabs(step)*1.e-11,rounding)+1.e-9*fabs(step))step=width;
+    for(int i=k;i<n;i+=256){
+        if(!isfinite(t[i])||!isfinite(w[i])||w[i]<0.||!(step>0.)||fabs(w[i]-width)>fabs(step)*1.e-12+1.e-10*fabs(width)
+            ||width>step*(1.+1.e-10)+rounding)atomicExch(&invalid,1);
+        if(i>0&&(!(t[i]>t[i-1])||fabs((t[i]-t[i-1])-step)>fmax(fabs(step)*1.e-11,rounding)+1.e-9*fabs(step)))atomicExch(&invalid,1);
+    }__syncthreads();if(k==0){out[0]=!invalid;out[1]=step;out[2]=width;}
+}
+extern "C" __global__ void fft_product(const C* source,const C* response,const int* channels,int nf,long long n,C* out){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)out[i]=response[i]*source[(long long)channels[i/nf]*nf+i%nf];
+}
+'''
+
+
+def event_arrays_gpu(source, components, geometry=None):
+    """CUDA event construction and atomic accumulation; sort with the GPU library."""
     import cupy as cp
-    n = len(source.times)
-    local = source.times-source.times[0]
-    if source.point:
-        times, center = cp.unique(local, return_inverse=True)
-        impulses = cp.stack([cp.bincount(center, weights=moment_gpu(c, source), minlength=len(times)) for c in components])
-        drives = cp.zeros_like(impulses)
-    else:
-        times, indices = cp.unique(cp.concatenate((local, local-source.widths/2,
-                                                   local+source.widths/2)), return_inverse=True)
-        center, begin, end = indices[:n], indices[n:2*n], indices[2*n:]
-        positive = source.widths > 0
-        width = cp.where(positive, source.widths, 1.)
-        impulses, drives = [], []
-        for c in components:
-            charge = moment_gpu(c, source)
-            impulses.append(cp.bincount(center, weights=cp.where(positive, 0., charge), minlength=len(times)))
-            rate = cp.where(positive, charge/width, 0.)
-            edges = cp.bincount(begin, weights=rate, minlength=len(times))-cp.bincount(end, weights=rate, minlength=len(times))
-            drives.append(cp.cumsum(edges))
-        impulses, drives = cp.stack(impulses), cp.stack(drives)
-    return times, center, cp.ascontiguousarray(impulses), cp.ascontiguousarray(drives)
+    from .wake_models import response_gpu
+    response=response_gpu(components[0].model,components[0].longitudinal)
+    n=len(source.times);ne=n if source.point else 3*n
+    moments = moments_gpu(components, source)
+    if geometry is not None and geometry[0]:
+        # Ordered centers with at most adjacent-bin overlap have an explicit
+        # event order. Equal edges may occur twice: their zero elapsed time
+        # makes the two drive changes exactly equivalent to a merged event.
+        times = cp.empty(ne, dtype=cp.float64)
+        centers = cp.empty(n, dtype=cp.int64)
+        impulses = cp.empty((len(components), ne), dtype=cp.float64)
+        drives = cp.empty_like(impulses)
+        response.kernel('regular_events', _EVENT_CODE)(((n+255)//256, len(components)), (256,),
+            (source.times, source.widths, moments, np.int32(n), np.int32(source.point),
+             times, centers, impulses, drives))
+        return times, centers, impulses, drives
+    events=cp.empty(ne,dtype=cp.float64)
+    response.kernel('event_times',_EVENT_CODE)(((n+255)//256,),(256,),
+        (source.times,source.widths,np.int32(n),np.int32(source.point),events))
+    # Device sort/unique is a library primitive, not Python elementwise work.
+    times,indices=cp.unique(events,return_inverse=True)
+    indices=cp.ascontiguousarray(indices,dtype=cp.int64)
+    impulses=cp.zeros((len(components),len(times)),dtype=cp.float64)
+    drives=cp.zeros_like(impulses)
+    response.kernel('event_deposit',_EVENT_CODE)(((n+255)//256,len(components)),(256,),
+        (indices,source.widths,moments,np.int32(n),np.int32(len(times)),np.int32(source.point),impulses,drives))
+    if not source.point:
+        response.kernel('event_prefix',_EVENT_CODE)((len(components),),(256,),
+            (drives,np.int32(len(times))))
+    return times,indices[:n],impulses,drives
+
+
+_EVENT_CODE=r'''
+#include <cub/block/block_scan.cuh>
+extern "C" __global__ void mode_geometry(const double* t,const double* w,int n,int point,double* out){
+    __shared__ double lo[256],hi[256];
+    int k=threadIdx.x,bad=0;double first=INFINITY,last=-INFINITY,origin=t[0];
+    for(int i=k;i<n;i+=256){
+        double u=t[i]-origin,h=point?0.:w[i]*.5,left=u-h,right=u+h;
+        first=fmin(first,left);last=fmax(last,right);
+        if(!isfinite(u)||!isfinite(w[i])||w[i]<0.)bad=1;
+        if(!point&&w[i]>0.&&!(left<u&&right>u))bad=1;
+        if(i){
+            double prev=t[i-1]-origin,prev_right=prev+(point?0.:w[i-1]*.5);
+            if(!(u>prev)||(!point&&(!(left>prev)||!(prev_right<u))))bad=1;
+        }
+    }
+    int irregular=__syncthreads_or(bad);lo[k]=first;hi[k]=last;__syncthreads();
+    for(int d=128;d;d/=2){if(k<d){lo[k]=fmin(lo[k],lo[k+d]);hi[k]=fmax(hi[k],hi[k+d]);}__syncthreads();}
+    if(k==0){out[0]=!irregular;out[1]=origin;out[2]=lo[0];out[3]=hi[0];}
+}
+extern "C" __global__ void regular_events(const double* t,const double* w,const double* q,int n,int point,
+    double* events,long long* centers,double* impulses,double* drives){
+    int i=blockIdx.x*blockDim.x+threadIdx.x,c=blockIdx.y;if(i>=n)return;
+    double u=t[i]-t[0],charge=q[(long long)c*n+i];
+    if(point){
+        if(c==0){events[i]=u;centers[i]=i;}
+        impulses[(long long)c*n+i]=charge;drives[(long long)c*n+i]=0.;return;
+    }
+    int j=3*i,ne=3*n;double h=w[i]*.5,left=u-h,right=u+h;
+    double rate=w[i]>0.?charge/w[i]:0.,after=0.;
+    if(i){double prev_right=(t[i-1]-t[0])+w[i-1]*.5;left=fmax(left,prev_right);}
+    if(i+1<n){
+        double next_left=(t[i+1]-t[0])-w[i+1]*.5;
+        if(next_left<right)after=rate+(w[i+1]>0.?q[(long long)c*n+i+1]/w[i+1]:0.);
+        right=fmin(right,next_left);
+    }
+    if(c==0){events[j]=left;events[j+1]=u;events[j+2]=right;centers[i]=j+1;}
+    long long base=(long long)c*ne+j;
+    impulses[base]=0.;impulses[base+1]=w[i]>0.?0.:charge;impulses[base+2]=0.;
+    drives[base]=rate;drives[base+1]=rate;drives[base+2]=after;
+}
+extern "C" __global__ void event_times(const double* t,const double* w,int n,int point,double* events){
+    int i=blockIdx.x*blockDim.x+threadIdx.x;if(i<n){double u=t[i]-t[0];events[i]=u;
+        if(!point){events[n+i]=u-w[i]*.5;events[2*n+i]=u+w[i]*.5;}}
+}
+extern "C" __global__ void event_deposit(const long long* ids,const double* widths,const double* moments,
+    int n,int ne,int point,double* impulses,double* drives){
+    int i=blockIdx.x*blockDim.x+threadIdx.x,c=blockIdx.y;if(i>=n)return;
+    double q=moments[(long long)c*n+i],w=widths[i];
+    if(point||w<=0.)atomicAdd(impulses+(long long)c*ne+ids[i],q);
+    else {double rate=q/w;atomicAdd(drives+(long long)c*ne+ids[n+i],rate);atomicAdd(drives+(long long)c*ne+ids[2*n+i],-rate);}
+}
+extern "C" __global__ void event_prefix(double* data,int n){
+    typedef cub::BlockScan<double,256> Scan;__shared__ Scan::TempStorage temp;__shared__ double base;
+    int j=threadIdx.x;if(j==0)base=0.;__syncthreads();data+=(long long)blockIdx.x*n;
+    for(int start=0;start<n;start+=256){double v=start+j<n?data[start+j]:0.,out,aggregate;
+        Scan(temp).InclusiveSum(v,out,aggregate);if(start+j<n)data[start+j]=base+out;
+        __syncthreads();if(j==0)base+=aggregate;__syncthreads();}
+}
+extern "C" __global__ void scan_gather(const C* modes,const double* real_output,const C* residues,
+    const long long* centers,const double* beta,const double* velocity,int nv,int nm,int nt,int ne,
+    int modal,double scale,double* out){
+    int i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=nt)return;long long j=centers[i];double sum=0.;
+    if(modal){for(int k=0;k<nm;k++)sum+=(residues[k]*modes[(long long)k*ne+j]).real();}
+    else sum=real_output[j];out[i]=sum*scale*coupling(beta[i],velocity,nv,1);
+}
+'''
 
 
 def solve_wake_gpu(components, current, state, *, turn, solver="direct", memory_turns=0, memory_time=None, fft_plan=None):
@@ -403,12 +503,15 @@ def solve_wake_gpu(components, current, state, *, turn, solver="direct", memory_
                 if c.velocity is not None:
                     c.velocity.validate(beta)
     current = DeviceSources.upload(current)
-    candidate = state.fork()
+    # advance_gpu allocates the next vectors and replaces the dictionary rows;
+    # borrowing here avoids copying every old mode vector twice per passage.
+    candidate = state.fork(copy_modes=False)
     candidate.history = deque((t, DeviceSources.upload(s)) for t, s in candidate.history)
     candidate.mode_amplitudes = {k: cp.asarray(v) for k, v in candidate.mode_amplitudes.items()}
     persistent = memory_turns is None or memory_turns > 0
     if len(current.times) and persistent:
-        start, end = cp.stack((cp.min(current.times-current.widths/2), cp.max(current.times+current.widths/2))).get()
+        from .wake_state import source_metadata_gpu
+        _, _, _, start, end = source_metadata_gpu(components[0].model, current)
         if state.last_source_end is not None:
             tolerance = 32*np.spacing(max(abs(start), abs(state.last_source_end), 1e-12))
             if start < state.last_source_end-tolerance:
@@ -425,19 +528,21 @@ def solve_wake_gpu(components, current, state, *, turn, solver="direct", memory_
             while candidate.history and memory_turns is not None and candidate.history[0][0] < turn-memory_turns:
                 candidate.history.popleft()
             if memory_time is not None and len(current.times):
-                cutoff = float(cp.min(current.times))-memory_time
-                while candidate.history and float(cp.max(candidate.history[0][1].times+candidate.history[0][1].widths/2)) < cutoff:
+                from .wake_state import time_bounds_gpu
+                cutoff = time_bounds_gpu(components[0].model,current)[0]-memory_time
+                while candidate.history and time_bounds_gpu(components[0].model,candidate.history[0][1])[3] < cutoff:
                     candidate.history.popleft()
         old = [s for _, s in candidate.history]
         if solver == "fft":
-            if current.grid is not None:
+            if current.grid is not None or current.increasing:
                 result = fft_gpu(components, current, memory_time, resources=None if fft_plan is None else fft_plan.resources)
             else:
                 order = cp.argsort(current.times)
                 result = cp.empty((len(components), len(order)), dtype=cp.float64)
                 result[:, order] = fft_gpu(components, current.ordered(order), memory_time, resources=None if fft_plan is None else fft_plan.resources)
             if old:
-                result += direct_gpu(components, old, current.times, memory_time, current.betas)
+                from .wake_state import add_gpu
+                add_gpu(components[0].model, result, direct_gpu(components, old, current.times, memory_time, current.betas))
         else:
             result = direct_gpu(components, [*old, current], current.times, memory_time, current.betas)
         if persistent:
@@ -542,8 +647,14 @@ def advance_gpu(components, source, state, solver):
         raise ValueError("Recursive solver requires only resonator components")
     if solver == "modal" and any(not isinstance(c.model, RationalWakeModel) or not c.model.causal for c in components):
         raise ValueError("Temporal modal recursion requires causal rational responses")
-    times, centers, impulses, drives = event_arrays_gpu(source, components)
-    origin, first, last = cp.stack((source.times[0], times[0], times[-1])).get()
+    from .wake_models import response_gpu
+    response = response_gpu(components[0].model, components[0].longitudinal)
+    metadata = cp.empty(4, dtype=cp.float64)
+    response.kernel('mode_geometry', _EVENT_CODE)((1,), (256,),
+        (source.times, source.widths, np.int32(len(source.times)), np.int32(source.point), metadata))
+    geometry = metadata.get()
+    _, origin, first, last = geometry
+    times, centers, impulses, drives = event_arrays_gpu(source, components, geometry)
     first += origin
     if state.last_time is not None and first < state.last_time-32*np.spacing(max(abs(first), abs(state.last_time), 1e-12)):
         raise ValueError("Mode events moved backwards in physical time")
@@ -560,23 +671,41 @@ def advance_gpu(components, source, state, solver):
         # including the complete tuple so distinct groups cannot alias.
         signature = tuple((c.model.omega, c.model.q, c.longitudinal) for c in components)
         omega, q, plane = device_arrays(components[0].model, ("scan", signature), params)
-        vectors = cp.stack([state.mode_amplitudes.get(ci, cp.zeros(2)) for ci in range(nc)])
+        vectors = cp.empty((nc, 2), dtype=cp.float64)
+        for ci in range(nc):
+            previous_vector = state.mode_amplitudes.get(ci)
+            if previous_vector is None:
+                vectors[ci].fill(0)
+            else:
+                vectors[ci] = previous_vector
         output = cp.empty((nc, n), dtype=cp.float64)
         _SCAN_KERNELS[key]((nc,), (128,), (times, impulses, drives, omega, q, vectors, output,
             np.int32(n), previous, has_previous, plane))
         out = cp.empty((nc, len(source.times)), dtype=cp.float64)
         for ci, c in enumerate(components):
-            out[ci] = output[ci, centers]*(c.model.omega*c.model.r/c.model.q*c.scale)*factor_gpu(c, source.betas, True)
-            state.mode_amplitudes[ci] = vectors[ci].copy()
+            scan_gather_gpu(c, source, centers, output[ci], out[ci], scale=c.model.omega*c.model.r/c.model.q*c.scale)
+            state.mode_amplitudes[ci] = vectors[ci]
     else:
         out = cp.empty((nc, len(source.times)), dtype=cp.float64)
         for ci, c in enumerate(components):
             poles, residues = device_arrays(c.model, "scan_modes", (c.model.poles, c.model.residues))
-            vector = state.mode_amplitudes.get(ci, cp.zeros(len(poles), dtype=cp.complex128)).copy()
+            previous_vector = state.mode_amplitudes.get(ci)
+            vector = (cp.zeros(len(poles), dtype=cp.complex128) if previous_vector is None
+                      else previous_vector.copy())
             output = cp.empty((len(poles), n), dtype=cp.complex128)
             _SCAN_KERNELS[key]((len(poles),), (128,), (times, impulses[ci], drives[ci], poles, vector,
                 output, np.int32(n), previous, has_previous))
-            out[ci] = cp.real(cp.sum(residues[:, None]*output[:, centers], axis=0))*c.scale*factor_gpu(c, source.betas, True)
+            scan_gather_gpu(c, source, centers, output, out[ci], residues=residues, scale=c.scale)
             state.mode_amplitudes[ci] = vector
     state.last_time = float(origin+last)
     return out
+
+
+def scan_gather_gpu(component,source,centers,values,out,*,residues=None,scale=1.):
+    from .wake_models import response_gpu
+    from .wake_velocity import velocity_gpu
+    response=response_gpu(component.model,component.longitudinal);nv,velocity=velocity_gpu(component)
+    modal=residues is not None;n=len(out)
+    if n:response.kernel('scan_gather',_EVENT_CODE)(((n+255)//256,),(256,),
+        (values,values,values if residues is None else residues,centers,source.betas,velocity,np.int32(nv),
+         np.int32(0 if residues is None else len(residues)),np.int32(n),np.int32(values.shape[-1]),np.int32(modal),np.float64(scale),out))

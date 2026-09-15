@@ -11,7 +11,7 @@ def signed_charge_per_mass_unit(bunch):
 def arrival_times(z_rel, bunch):
     if not 0 < bunch.beta <= 1:
         raise ValueError("WakeField requires 0 < reference beta <= 1")
-    return bunch.t0 - (np.asarray(z_rel, dtype=float) + bunch.z_center) / (bunch.beta * const.c)
+    return bunch.t0 - np.asarray(z_rel, dtype=float) / (bunch.beta * const.c)
 
 
 def require_cpu(backend):
@@ -63,26 +63,28 @@ def apply_kick_cpu(particles, bunch, indices, voltage, *, s, turn):
 
 
 def apply_kick_gpu(particles, bunch, indices, voltage, *, s, turn):
-    """Array-level API; WakeField uses its faster fused monomial/kick kernel."""
+    """Sparse array API sharing the command's mechanical CUDA kick formula."""
     import cupy as cp
-    indices = cp.asarray(indices)
-    voltage = cp.asarray(voltage, dtype=cp.float64)
-    za, p0 = signed_charge_per_mass_unit(bunch), bunch.p0
-    oldp = (1+particles.dp[indices].astype(cp.float64))*p0
-    olde = cp.hypot(oldp, bunch.m0)
-    de = -za*voltage[0]
-    energy = olde+de
-    momentum = cp.sqrt(cp.maximum((energy-bunch.m0)*(energy+bunch.m0), 0.))
-    beta = oldp/olde
-    inverse = cp.where(beta > 0, za/(cp.where(beta > 0, beta, 1.)*p0), 0.)
-    px = particles.px[indices]+voltage[1]*inverse
-    py = particles.py[indices]+voltage[2]*inverse
-    denominator = p0*(momentum+oldp)
-    delta = particles.dp[indices]+cp.where((voltage[0] != 0) & (denominator != 0),
-        de*(2*olde+de)/cp.where(denominator != 0, denominator, 1.), 0.)
-    valid = ((oldp > 0) & (energy > bunch.m0) & cp.isfinite(delta) & cp.isfinite(px)
-        & cp.isfinite(py) & ((1+delta)**2 > px*px+py*py))
-    good, bad = indices[valid], indices[~valid]
-    particles.dp[good], particles.px[good], particles.py[good] = delta[valid], px[valid], py[valid]
-    particles.tag[bad] = -cp.abs(particles.tag[bad])
-    particles.lost_position[bad], particles.lost_turn[bad] = s, turn
+    from PASS.commands.wake_field import _GPU_CODE
+    indices=cp.ascontiguousarray(cp.asarray(indices),dtype=cp.int64)
+    voltage=cp.ascontiguousarray(cp.asarray(voltage),dtype=cp.float64)
+    n=len(indices)
+    if voltage.shape!=(3,n):raise ValueError('Wake voltages must have shape (3, number of witnesses)')
+    cache=particles.__dict__.setdefault('_wake_sparse_kernels',{})
+    key=(cp.cuda.runtime.getDevice(),np.dtype(particles.dtype))
+    if key not in cache:cache[key]=cp.RawKernel(_GPU_CODE+_SPARSE_KICK,'sparse_kick',
+        options=('--std=c++17',f'-DFLOAT_PARTICLES={int(particles.dtype==np.float32)}'))
+    if n:cache[key](((n+255)//256,),(256,),
+        (particles.px,particles.py,particles.dp,particles.tag,particles.lost_turn,particles.lost_position,
+         indices,voltage,np.int64(n),np.float64(bunch.p0),np.float64(bunch.m0),
+         np.float64(signed_charge_per_mass_unit(bunch)),np.float64(s),np.int32(turn)))
+
+
+_SPARSE_KICK=r'''
+extern "C" __global__ void sparse_kick(R* px,R* py,R* dp,int* tag,int* lost_turn,float* lost_position,
+    const long long* indices,const double* voltage,long long n,double p0,double m0,double za,double position,int turn){
+    long long j=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(j>=n)return;
+    double v[3]={voltage[j],voltage[n+j],voltage[2*n+j]};
+    mechanical(indices[j],px,py,dp,tag,lost_turn,lost_position,v,p0,m0,za,position,turn);
+}
+'''

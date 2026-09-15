@@ -38,9 +38,8 @@ def _subset(source, index, xp):
     if xp is np:
         return WakeSources(source.times[index], source.widths[index],
                            {k: v[index] for k, v in source.moments.items()}, source.betas[index])
-    from .wake_state import DeviceSources
-    return DeviceSources(source.times[index].copy(), source.widths[index].copy(),
-                         {k: v[index].copy() for k, v in source.moments.items()}, source.betas[index].copy())
+    if index.dtype.kind=='b':index=xp.nonzero(index)[0]
+    return source.ordered(index)
 
 
 def _join(a, b, xp):
@@ -123,9 +122,9 @@ class TimeConvolutionState:
                 raise ValueError("Physical-time checkpoint clock and open block are inconsistent")
             if out.recent is None or not len(out.recent.times):
                 raise ValueError("Physical-time checkpoint is missing the causal correction sources")
-            ends = out.recent.times+out.recent.widths/2
+            ends = np.asarray(r["times"])+np.asarray(r["widths"])/2
             tolerance = 32*abs(np.spacing(out.last_end))
-            if not bool(plan.xp.all((ends <= out.last_end+tolerance) & (ends >= out.last_end-2*plan.grid.step-tolerance))):
+            if not bool(np.all((ends <= out.last_end+tolerance) & (ends >= out.last_end-2*plan.grid.step-tolerance))):
                 raise ValueError("Physical-time checkpoint recent sources are inconsistent with its clock")
         return out
 
@@ -191,11 +190,13 @@ class TimeConvolution:
         out = xp.zeros((len(self.blocks.channels), size), dtype=np.float64)
         if not len(source.times):
             return out
-        positions = (source.times-origin)/dt-start
-        moments = xp.stack([self._coupled(c, source) for c in self.blocks.channels])
         if self.backend == "gpu":
-            deposit_gpu(positions, source.widths/dt, moments, out)
+            from .wake_components import moments_gpu
+            moments = moments_gpu(self.blocks.channels, source)
+            deposit_gpu(source.times, source.widths, moments, out, origin=origin, step=dt, start=start)
             return out
+        moments = xp.stack([self._coupled(c, source) for c in self.blocks.channels])
+        positions = (source.times-origin)/dt-start
         widths = source.widths/dt
         point = widths == 0
         left = np.floor(positions[point]).astype(np.int64)
@@ -237,18 +238,17 @@ class TimeConvolution:
         return xp.where(x < -1, 0., xp.where(x < 0, h[0]*(x+1),
             xp.where(x >= len(h)-1, 0., value)))
 
-    def _near_correction(self, source, recent, origin, frame_bytes=0):
+    def _near_correction(self, source, recent, origin, frame_bytes=0, *, joined=None):
         xp, dt = self.xp, self.grid.step
-        result = xp.zeros((len(self.components), len(source.times)), dtype=np.float64)
-        joined = _join(recent, source, xp)
+        if joined is None:
+            joined = _join(recent, source, xp)
         if not len(source.times) or not len(joined.times):
-            return result
+            return xp.zeros((len(self.components), len(source.times)), dtype=np.float64)
         order = xp.argsort(joined.times)
         near = _subset(joined, order, xp)
         if self.backend == "gpu":
-            from .wake_models import TabulatedWakeModel
-            if all(isinstance(c.model, TabulatedWakeModel) for c in self.components):
-                return table_near_correction_gpu(self, source, near, origin)
+            return near_correction_gpu(self, source, near, origin)
+        result = xp.zeros((len(self.components), len(source.times)), dtype=np.float64)
         radius = float(xp.max(near.widths))/2+2*dt
         lo = xp.searchsorted(near.times, source.times-radius, side="left")
         hi = xp.searchsorted(near.times, source.times+radius, side="right")
@@ -338,15 +338,19 @@ class TimeConvolution:
                 state.recent, state.origin, state.last_end)
         if source.times.ndim != 1 or source.widths.shape != source.times.shape or source.betas.shape != source.times.shape:
             raise ValueError("Physical-time sources have incompatible shapes")
-        valid = xp.all(xp.isfinite(source.times) & xp.isfinite(source.widths) & (source.widths >= 0)
-                       & xp.isfinite(source.betas) & (source.betas > 0) & (source.betas <= 1))
-        valid &= all(v.shape == source.times.shape for v in source.moments.values())
-        for v in source.moments.values():
-            valid &= xp.all(xp.isfinite(v))
-        metadata = xp.stack((valid, xp.min(source.betas), xp.max(source.betas),
-            xp.min(source.times-source.widths/2), xp.max(source.times+source.widths/2)))
-        if self.backend == "gpu":
-            metadata = metadata.get()
+        if any(v.shape!=source.times.shape for v in source.moments.values()):
+            raise ValueError('Physical-time source moments have incompatible shapes')
+        if self.backend=='gpu':
+            from .wake_state import source_metadata_gpu
+            metadata=source_metadata_gpu(self,source)
+        else:
+            valid = xp.all(xp.isfinite(source.times) & xp.isfinite(source.widths) & (source.widths >= 0)
+                           & xp.isfinite(source.betas) & (source.betas > 0) & (source.betas <= 1))
+            valid &= all(v.shape == source.times.shape for v in source.moments.values())
+            for v in source.moments.values():
+                valid &= xp.all(xp.isfinite(v))
+            metadata = xp.stack((valid, xp.min(source.betas), xp.max(source.betas),
+                xp.min(source.times-source.widths/2), xp.max(source.times+source.widths/2)))
         valid, beta_min, beta_max, first, last = map(float, metadata)
         if not valid:
             raise ValueError("Physical-time sources must have finite times, widths, betas and moments")
@@ -391,33 +395,64 @@ class TimeConvolution:
         if self.estimated_bytes+frame_bytes > self.budget:
             raise MemoryError("Physical-time passage span and staged history exceed workspace; increase step/block size or budget")
         density = self._deposit(source, origin, start, nblocks*block)
-        density[:, :opened_before.shape[1]] += opened_before
+        if self.backend=='gpu':
+            if opened_before.size:
+                from .wake_models import response_gpu
+                response=response_gpu(self.components[0].model,self.components[0].longitudinal)
+                response.kernel('add_open_block',_CODE+_TIME_RESPONSE_CODE)(((opened_before.size+255)//256,),(256,),
+                    (density,opened_before,np.int64(density.shape[1]),np.int64(opened_before.shape[1]),np.int64(opened_before.size)))
+        else:density[:, :opened_before.shape[1]] += opened_before
         values = xp.empty((len(self.components), nblocks*block), dtype=np.float64)
         sealed = max(0, math.floor((last-origin)/dt)//block-block_state.start_turn-block_state.count)
         operations = []
+        if self.backend == 'gpu':
+            # This complete density was built on this plan's device. Validate
+            # it once before entering the transaction, rather than copying and
+            # synchronizing every strided sub-block independently.
+            from .wake_state import finite_gpu
+            self.blocks._validated_state(block_state, block_state.start_turn+block_state.count)
+            if not finite_gpu(self, density):
+                raise ValueError("Convolution block must be finite")
         with BlockPreviewTransaction(block_state) as transaction:
             for bi in range(nblocks):
-                row, update = self.blocks.preview_block(density[:, bi*block:(bi+1)*block][:, None, :],
-                    block_state, turn=block_state.start_turn+block_state.count)
+                block_density = density[:, bi*block:(bi+1)*block][:, None, :]
+                if self.backend == 'gpu':
+                    row, update = self.blocks._convolve_block(block_density, block_state)
+                    row = row[:, :1, :block]
+                else:
+                    row, update = self.blocks.preview_block(block_density, block_state,
+                        turn=block_state.start_turn+block_state.count)
                 values[:, bi*block:(bi+1)*block] = row[:, 0]
                 if bi < sealed:
                     operations.append((update.spectrum, tuple(update.additions), update.plan))
                 transaction.apply(update)
-        position = (source.times-origin)/dt-start
-        index = xp.floor(position).astype(np.int64)
-        fraction = position-index
-        result = values[:, index]*(1-fraction)+values[:, index+1]*fraction
-        result += self._near_correction(source, state.recent, origin, frame_bytes)
-        for ci, c in enumerate(self.components):
-            result[ci] *= self._coupled(c, source, True)
         joined = _join(state.recent, source, xp)
-        recent = _subset(joined, joined.times+joined.widths/2 >= last-2*dt, xp)
+        if self.backend=='gpu':
+            correction = self._near_correction(source, state.recent, origin, frame_bytes, joined=joined)
+            result=time_gather_gpu(self,source,values,correction,origin,start)
+        else:
+            position = (source.times-origin)/dt-start
+            index = xp.floor(position).astype(np.int64)
+            fraction = position-index
+            result = values[:, index]*(1-fraction)+values[:, index+1]*fraction
+            result += self._near_correction(source, state.recent, origin, frame_bytes, joined=joined)
+            for ci, c in enumerate(self.components):
+                result[ci] *= self._coupled(c, source, True)
+        if self.backend=='gpu':
+            mask=xp.empty(len(joined.times),dtype=xp.bool_)
+            from .wake_models import response_gpu
+            response=response_gpu(self.components[0].model,self.components[0].longitudinal)
+            response.kernel('recent_mask',_CODE+_TIME_RESPONSE_CODE)(((len(mask)+255)//256,),(256,),
+                (joined.times,joined.widths,np.int64(len(mask)),np.float64(last-2*dt),mask))
+            recent=_subset(joined,mask,xp)
+        else:recent = _subset(joined, joined.times+joined.widths/2 >= last-2*dt, xp)
         opened = density[:, sealed*block:size].copy()
         return result, TimeHistoryUpdate(state, operations, opened, recent, origin, last, block_state)
 
     def step(self, source, state=None, *, turn):
         values, update = self.preview(source, state, turn=turn)
-        if not bool(self.xp.all(self.xp.isfinite(values))):
+        from .wake_state import finite_gpu
+        if not (finite_gpu(self,values) if self.backend=='gpu' else bool(np.all(np.isfinite(values)))):
             raise FloatingPointError("Physical-time convolution produced nonfinite coefficients")
         update.commit()
         return values, update.state
@@ -444,10 +479,10 @@ __device__ double hat(double x) {
 }
 __device__ double tri(double x) { return fmax(1.-fabs(x), 0.); }
 extern "C" __global__ void deposit_time(const double* position, const double* width,
-    const double* moments, double* density, long long n, long long size, int channels) {
+    const double* moments, double* density, long long n, long long size, int channels,double origin,double step,long long start) {
     long long i = (long long)blockDim.x*blockIdx.x+threadIdx.x;
     if (i >= n) return;
-    double u = position[i], w = width[i];
+    double u = (position[i]-origin)/step-start, w = width[i]/step;
     if (w == 0.) {
         long long j = (long long)floor(u);
         double f = u-j;
@@ -526,50 +561,17 @@ extern "C" __global__ void exact_table_pairs(const double* tau, const double* wi
     } else value=t>horizon ? 0. : table_value(t,x,y,slope,primitive,n,false);
     output[i]=scale*value;
 }
-extern "C" __global__ void table_near(const double* target, const double* times,
-    const double* widths, const double* moments, const double* max_width,
-    const double* h, const double* p, long long nh,
-    const double* x, const double* y, const double* slope, const double* primitive,
-    int knots, double horizon, double scale, double dt, double origin,
-    long long sources, double* output) {
-    // One warp owns one witness. No pair list, atomics or host pair-count
-    // synchronization; broad overlapping bins also use bounded workspace.
-    int lane=threadIdx.x;
-    long long target_id=blockIdx.x, first=0, last=0;
-    double t=target[target_id], radius=*max_width/2.+2.*dt;
-    if(lane==0){
-        long long lo=0,hi=sources;
-        while(lo<hi){long long m=(lo+hi)/2;if(times[m]<t-radius)lo=m+1;else hi=m;}
-        first=lo;lo=0;hi=sources;
-        while(lo<hi){long long m=(lo+hi)/2;if(times[m]<=t+radius)lo=m+1;else hi=m;}
-        last=lo;
-    }
-    first=__shfl_sync(0xffffffff,first,0);last=__shfl_sync(0xffffffff,last,0);
-    double sum=0.;
-    for(long long i=first+lane;i<last;i+=32){
-        double tau=t-times[i],width=widths[i];
-        if(fabs(tau)>width/2.+2.*dt)continue;
-        double exact;
-        if(width>0.){
-            double a=fmin(tau-width/2.,horizon),b=fmin(tau+width/2.,horizon);
-            exact=(table_value(b,x,y,slope,primitive,knots,true)-table_value(a,x,y,slope,primitive,knots,true))/width;
-        }else exact=tau>horizon?0.:table_value(tau,x,y,slope,primitive,knots,false);
-        double approximate=mesh_pair((t-origin)/dt,(times[i]-origin)/dt,width/dt,h,p,nh);
-        sum+=(scale*exact-approximate)*moments[i];
-    }
-    for(int offset=16;offset>0;offset/=2)sum+=__shfl_down_sync(0xffffffff,sum,offset);
-    if(lane==0)output[target_id]=sum;
-}
 '''
 
 
-def deposit_gpu(position, widths, moments, density):
+def deposit_gpu(position, widths, moments, density, *, origin=0.,step=1.,start=0):
     import cupy as cp
     key = (cp.cuda.runtime.getDevice(), "deposit_time")
     if key not in _CACHE:
         _CACHE[key] = cp.RawKernel(_CODE, "deposit_time", options=("--std=c++17",))
     _CACHE[key](((len(position)+255)//256,), (256,),
-        (position, widths, moments, density, cp.int64(len(position)), cp.int64(density.shape[1]), cp.int32(len(moments))))
+        (position, widths, moments, density, cp.int64(len(position)), cp.int64(density.shape[1]), cp.int32(len(moments)),
+         np.float64(origin),np.float64(step),np.int64(start)))
 
 
 def projected_pair_gpu(target, position, width, response, primitive):
@@ -605,21 +607,70 @@ def exact_table_pairs_gpu(component, tau, width, horizon):
 
 
 def table_near_correction_gpu(plan, source, near, origin):
-    """Fused exact-minus-mesh correction for arbitrary causal tabulated wakes."""
+    """Compatibility entry for the fused correction shared by all models."""
+    return near_correction_gpu(plan,source,near,origin)
+
+
+def near_correction_gpu(plan,source,near,origin):
+    """Warp-per-witness correction for every supported model, bounded workspace."""
     import cupy as cp
-    from .wake_models import device_arrays
-    result = cp.empty((len(plan.components), len(source.times)), dtype=cp.float64)
-    maximum = cp.max(near.widths)
-    key = (cp.cuda.runtime.getDevice(), "table_near")
-    if key not in _CACHE:
-        _CACHE[key] = cp.RawKernel(_CODE, "table_near", options=("--std=c++17",))
-    for ci, component in enumerate(plan.components):
-        model = component.model
-        arrays = device_arrays(model, "table", (model.times, model.values, model.slopes, model.integrals))
-        moment = plan._coupled(component, near)
-        _CACHE[key]((len(source.times),), (32,),
-            (source.times, near.times, near.widths, moment, maximum, plan.response[ci], plan.primitive[ci],
-             cp.int64(plan.response.shape[1]), *arrays, cp.int32(len(model.times)),
-             cp.float64(plan.memory_time), cp.float64(component.scale), cp.float64(plan.grid.step),
-             cp.float64(origin), cp.int64(len(near.times)), result[ci]))
+    from .wake_models import response_gpu
+    result=cp.empty((len(plan.components),len(source.times)),dtype=cp.float64)
+    maximum=cp.zeros(1,dtype=cp.float64)
+    first=response_gpu(plan.components[0].model,plan.components[0].longitudinal)
+    if len(near.times):first.kernel('max_width',_CODE+_TIME_RESPONSE_CODE)((min(256,(len(near.times)+255)//256),),(256,),
+        (near.widths,np.int64(len(near.times)),maximum))
+    for ci,c in enumerate(plan.components):
+        response=response_gpu(c.model,c.longitudinal)
+        response.kernel('near_response',_CODE+_TIME_RESPONSE_CODE)((len(source.times),),(32,),
+            (source.times,near.times,near.widths,plan._coupled(c,near),maximum,plan.response[ci],plan.primitive[ci],
+             np.int64(plan.response.shape[1]),response.data,np.float64(plan.memory_time),np.float64(c.scale),
+             np.float64(plan.grid.step),np.float64(origin),np.int64(len(near.times)),result[ci]))
     return result
+
+
+def time_gather_gpu(plan,source,values,correction,origin,start):
+    import cupy as cp
+    from .wake_models import response_gpu
+    from .wake_velocity import velocity_gpu
+    result=cp.empty(correction.shape,dtype=cp.float64)
+    for ci,c in enumerate(plan.components):
+        response=response_gpu(c.model,c.longitudinal);nv,velocity=velocity_gpu(c)
+        response.kernel('time_gather',_CODE+_TIME_RESPONSE_CODE)(((len(source.times)+255)//256,),(256,),
+            (source.times,source.betas,values[ci],correction[ci],velocity,np.int32(nv),np.int64(len(source.times)),
+             np.float64(origin),np.float64(plan.grid.step),np.int64(start),result[ci]))
+    return result
+
+
+_TIME_RESPONSE_CODE=r'''
+// Forward declaration permits using the transport kernels without mesh code.
+__device__ double mesh_pair(double,double,double,const double*,const double*,long long);
+extern "C" __global__ void max_width(const double* w,long long n,double* out){
+    double v=0.;for(long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=(long long)blockDim.x*gridDim.x)v=fmax(v,w[i]);
+    if(v>0.)atomicMax((unsigned long long*)out,(unsigned long long)__double_as_longlong(v));
+}
+extern "C" __global__ void near_response(const double* target,const double* times,const double* widths,const double* moments,
+    const double* max_width,const double* h,const double* p,long long nh,const double* data,double horizon,double scale,
+    double dt,double origin,long long sources,double* out){
+    int lane=threadIdx.x;long long i=blockIdx.x,first=0,last=0;
+    double t=target[i],radius=*max_width*.5+2*dt;
+    if(lane==0){long long lo=0,hi=sources;while(lo<hi){long long m=(lo+hi)/2;if(times[m]<t-radius)lo=m+1;else hi=m;}first=lo;
+        lo=0;hi=sources;while(lo<hi){long long m=(lo+hi)/2;if(times[m]<=t+radius)lo=m+1;else hi=m;}last=lo;}
+    first=__shfl_sync(0xffffffff,first,0);last=__shfl_sync(0xffffffff,last,0);double sum=0.;
+    for(long long j=first+lane;j<last;j+=32){double tau=t-times[j],w=widths[j];if(fabs(tau)>w*.5+2*dt)continue;
+        sum+=(scale*averaged(tau,w,data,horizon)-mesh_pair((t-origin)/dt,(times[j]-origin)/dt,w/dt,h,p,nh))*moments[j];}
+    for(int k=16;k;k/=2)sum+=__shfl_down_sync(0xffffffff,sum,k);if(lane==0)out[i]=sum;
+}
+extern "C" __global__ void time_gather(const double* times,const double* beta,const double* field,const double* correction,
+    const double* velocity,int nv,long long n,double origin,double dt,long long start,double* out){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=n)return;
+    double u=(times[i]-origin)/dt-start,j=floor(u),f=u-j;
+    out[i]=(field[(long long)j]*(1.-f)+field[(long long)j+1]*f+correction[i])*coupling(beta[i],velocity,nv,1);
+}
+extern "C" __global__ void recent_mask(const double* t,const double* w,long long n,double cutoff,bool* out){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)out[i]=t[i]+w[i]*.5>=cutoff;
+}
+extern "C" __global__ void add_open_block(double* density,const double* open,long long stride,long long width,long long n){
+    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)density[(i/width)*stride+i%width]+=open[i];
+}
+'''
