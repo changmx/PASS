@@ -64,10 +64,11 @@ class StatMonitor(Command):
             headers["Name"] = "PASS Statistic Data"
             headers["ZCoordinate"] = "z_rel_folded_by_ring"
             headers["ZInterval"] = "[-C/2,C/2)"
+            headers["SigmaTimeCoordinate"] = "continuous z / (referenceBeta*c); no folding"
             headers["Time"] = get_current_time()
 
             table = tfs.TfsDataFrame(df, headers=headers)
-            tfs.write(output_path_tfs, table)
+            tfs.write(output_path_tfs, table, colwidth=25, headerswidth=25)
 
     def execute_cpu(self, sim):
         cfg: Config = sim.cfg
@@ -115,6 +116,7 @@ class StatMonitor(Command):
 
             # z is stored bunch-relative and may remain unwrapped during
             # tracking. Statistics use one full-ring representative.
+            sigma_time = float(np.std(z.astype(np.float64)))/(bunch.beta*const.c)
             z = _fold_by_ring(z, bunch.circum)
 
             stat = {
@@ -212,7 +214,11 @@ class StatMonitor(Command):
                 'gammay': gammay,
                 'invariantx': invx,
                 'invarianty': invy,
-                'zCenter': bunch.z_center,
+                'zCenter': bunch.harmonic_id*bunch.circum/bunch.harmonic_number,
+                'referenceTime': bunch.t0,
+                'referenceBeta': bunch.beta,
+                'referenceMomentum': bunch.p0,
+                'sigmaTime': sigma_time,
                 'xzAverage': stat['xz'],
                 'xyAverage': stat['xy'],
                 'yzAverage': stat['yz'],
@@ -284,6 +290,8 @@ class StatMonitor(Command):
             if N == 0:
                 # Empty bunch: no statistics row.
                 continue
+            live_z = z[tag > 0].astype(cp.float64)
+            sigma_time = float(cp.std(live_z))/(bunch.beta*const.c) if live_z.size else 0.
             threads = 256
             blocks = min((N + threads - 1) // threads, 512)
 
@@ -400,7 +408,11 @@ class StatMonitor(Command):
                 'gammay': gammay,
                 'invariantx': invx,
                 'invarianty': invy,
-                'zCenter': bunch.z_center,
+                'zCenter': bunch.harmonic_id*bunch.circum/bunch.harmonic_number,
+                'referenceTime': bunch.t0,
+                'referenceBeta': bunch.beta,
+                'referenceMomentum': bunch.p0,
+                'sigmaTime': sigma_time,
                 'xzAverage': xz_avg,
                 'xyAverage': xy_avg,
                 'yzAverage': yz_avg,

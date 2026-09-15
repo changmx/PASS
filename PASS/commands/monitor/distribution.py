@@ -54,8 +54,7 @@ class DistMonitor(Command):
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
         self.cmd_name = str(kwargs["name"])
-        self._fields = _DATA_FIELDS + (("particle_id", "injection_turn", "injection_batch")
-            if kwargs.get("include injection metadata", False) else ())
+        self.include_injection_metadata = kwargs.get("include injection metadata", False)
         self.output_format = kwargs.get("output format", "tfs")
         if self.output_format not in {"tfs", "hdf5"}:
             raise ValueError("DistMonitor Output format must be tfs or hdf5")
@@ -137,7 +136,7 @@ class DistMonitor(Command):
         particles = beam.particles
         if backend == "gpu":
             # File I/O is host-side.  Copy only fields in the output schema.
-            particles = particles.copy(np, fields=list(self._fields))
+            particles = particles.copy(np, fields=list(_DATA_FIELDS))
 
         for bunch in beam.bunches:
             self._save_bunch(sim, beam, bunch, particles, turn, backend)
@@ -146,9 +145,15 @@ class DistMonitor(Command):
     def _save_bunch(self, sim, beam, bunch, particles, turn: int, backend: str):
         start = int(bunch.start_idx)
         end = int(bunch.end_idx)
-        df = pd.DataFrame({field: getattr(particles, field)[start:end] for field in self._fields})
+        df = pd.DataFrame({field: getattr(particles, field)[start:end] for field in _DATA_FIELDS})
         pending = int(np.count_nonzero(np.asarray(df["tag"]) == 0))
         df = df.loc[df["tag"] != 0].reset_index(drop=True)
+        if self.include_injection_metadata:
+            injection = getattr(beam, "injection_state", None)
+            if injection is None:
+                raise ValueError("DistMonitor injection metadata requires the beam's Injection state")
+            for name, values in injection.snapshot(df["tag"].to_numpy()).items():
+                df[name] = values
 
         tags = np.asarray(df["tag"])
         headers = {
@@ -171,7 +176,7 @@ class DistMonitor(Command):
             "PASSVersion": __version__,
             "Time": get_current_time(),
             "ZCoordinate": "z_rel",
-            "ZCenter": float(bunch.z_center),
+            "ZCenter": float(bunch.harmonic_id*bunch.circum/bunch.harmonic_number),
             "ReferenceArrivalTime": float(bunch.t0),
             "ReferenceBeta": float(bunch.beta),
             "ReferenceMomentum": float(bunch.p0),
@@ -193,7 +198,7 @@ class DistMonitor(Command):
             with h5py.File(filepath, "w") as stream:
                 for key, value in headers.items():
                     stream.attrs[key] = value
-                for field in self._fields:
+                for field in df.columns:
                     stream.create_dataset(field, data=df[field].to_numpy(), compression="gzip", compression_opts=1)
             logger.info("DistMonitor '%s': saved %s", self.cmd_name, filepath)
             return

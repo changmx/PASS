@@ -19,26 +19,6 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Columns stored per particle per turn
-# 0:turn, 1:x, 2:px, 3:y, 4:py, 5:z, 6:dp, 7:tag, 8:lost_turn,
-# 9:lost_position, 10:zCenter
-_NCOLS = 11
-
-# Column names for output TFS
-_COL_NAMES = [
-    "turn",
-    "x",
-    "px",
-    "y",
-    "py",
-    "z",
-    "dp",
-    "tag",
-    "lostTurn",
-    "lostPosition",
-    "zCenter",
-]
-
 
 @Command.register("particlemonitor")
 class ParticleMonitor(Command):
@@ -47,6 +27,10 @@ class ParticleMonitor(Command):
     Records 6D coordinates (+ tag, lost_turn, lost_position) of particles
     with ``1 <= |tag| <= max_tag`` every turn within ``[start_turn, end_turn)``
     at the monitor's s-position.
+
+    ``Include reference`` defaults to False (11 columns). When enabled,
+    three per-row reference columns are appended for physical-time and
+    momentum reconstruction. Reference values are never stored in headers.
 
     A pre-allocated buffer ``(max_tag, num_record_turns, NCOLS)`` is filled
     each turn.  At the end of the simulation, each particle's TBT data is
@@ -63,6 +47,14 @@ class ParticleMonitor(Command):
         self.s = kwargs["s (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.include_reference: bool = kwargs.get("include reference", False)
+        self._column_names = (
+            "turn", "x", "px", "y", "py", "z", "dp", "tag", "lostTurn",
+            "lostPosition", "zCenter",
+        )
+        if self.include_reference:
+            self._column_names += ("referenceTime", "referenceBeta", "referenceMomentum")
+        self._num_columns = len(self._column_names)
 
         self.max_tag: int = int(kwargs.get("max tag", 0))
         if self.max_tag < 1:
@@ -98,10 +90,10 @@ class ParticleMonitor(Command):
         xp = beam.particles.xp  # np or cp
 
         if self.max_tag >= 1 and self.num_record_turn > 0:
-            self.buffer = xp.zeros((self.max_tag, self.num_record_turn, _NCOLS), dtype=xp.float64)
+            self.buffer = xp.zeros((self.max_tag, self.num_record_turn, self._num_columns), dtype=xp.float64)
         else:
             # Edge case: nothing to record, use a tiny placeholder
-            self.buffer = xp.zeros((1, 1, _NCOLS), dtype=xp.float64)
+            self.buffer = xp.zeros((1, 1, self._num_columns), dtype=xp.float64)
 
         self._first_index = (
             xp.empty(self.max_tag, dtype=xp.int32)
@@ -116,7 +108,7 @@ class ParticleMonitor(Command):
         set_simple_logging()
         logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
                     f"MaxTag={self.max_tag:d}, TurnRange=[{self.start_turn:d},{self.end_turn:d}), "
-                    f"NumRecordTurn={self.num_record_turn:d}")
+                    f"NumRecordTurn={self.num_record_turn:d}, IncludeReference={self.include_reference}")
         set_normal_logging()
 
     def _record_one_turn(self, particles, bunch, turn):
@@ -130,14 +122,18 @@ class ParticleMonitor(Command):
 
         start = bunch.start_idx
         end = bunch.end_idx
+        if end <= start:
+            return
         tag_all = particles.tag[start:end]
         is_gpu = _is_cupy_array(tag_all)
+        nominal_center = bunch.harmonic_id*bunch.circum/bunch.harmonic_number
 
         if is_gpu:
             find_kernel, write_kernel = _get_monitor_kernels(particles.dtype)
             threads = 256
             find_blocks = ((end - start) + threads - 1) // threads
             write_blocks = (self.max_tag + threads - 1) // threads
+            reference = (bunch.t0, bunch.beta, bunch.p0) if self.include_reference else (0., 0., 0.)
 
             # Initialize to the exclusive end index.  A missing tag then
             # remains unwritten, matching the zero-initialized CPU buffer.
@@ -154,8 +150,9 @@ class ParticleMonitor(Command):
                  particles.lost_turn, particles.lost_position,
                  self._first_index, self.buffer, np.int32(end),
                  np.int32(self.max_tag),
-                 np.int32(record_idx), np.int32(self.num_record_turn),
-                 np.int32(turn), np.float64(bunch.z_center)),
+                 np.int32(record_idx), np.int32(self.num_record_turn), np.int32(self._num_columns),
+                 np.int32(turn), np.float64(nominal_center),
+                 np.float64(reference[0]), np.float64(reference[1]), np.float64(reference[2])),
             )
             return
 
@@ -180,7 +177,13 @@ class ParticleMonitor(Command):
             buf_row[7] = float(particles.tag[idx])
             buf_row[8] = float(particles.lost_turn[idx])
             buf_row[9] = float(particles.lost_position[idx])
-            buf_row[10] = float(bunch.z_center)
+            buf_row[10] = float(nominal_center)
+            if self.include_reference:
+                # Frozen loss coordinates do not belong to the current live frame.
+                live = particles.tag[idx] > 0
+                buf_row[11] = float(bunch.t0) if live else np.nan
+                buf_row[12] = float(bunch.beta) if live else np.nan
+                buf_row[13] = float(bunch.p0) if live else np.nan
 
     def execute_cpu(self, sim: Simulation):
         cfg: Config = sim.cfg
@@ -245,7 +248,7 @@ class ParticleMonitor(Command):
             # Build DataFrame
             df_data = {}
             df_data["turn"] = tag_data[:, 0].astype(np.int32)
-            for i, name in enumerate(_COL_NAMES[1:], start=1):
+            for i, name in enumerate(self._column_names[1:], start=1):
                 df_data[name] = tag_data[:, i]
 
             df = pd.DataFrame(df_data)
@@ -261,14 +264,18 @@ class ParticleMonitor(Command):
                 "NumTurn": self.num_record_turn,
                 "StartTurn": self.start_turn,
                 "EndTurn": self.end_turn,
+                "CoordinateDefinition": "z=beta*c*(T-t)",
             }
+            if self.include_reference:
+                headers["ReferenceEvent"] = "element-exit"
+                headers["ReferenceAppliesTo"] = "live particles only; NaN for loss records"
 
             table = tfs.TfsDataFrame(df, headers=headers)
 
             filename = (f"{self.output_hms}_beam{self.beam_id}"
                         f"_{self.cmd_name}_s{self.s:.3f}_tag{tag_val}.tfs")
             filepath = os.path.join(output_dir, filename)
-            tfs.write(filepath, table)
+            tfs.write(filepath, table, colwidth=25, headerswidth=25)
 
         set_simple_logging()
         logger.info(f"ParticleMonitor '{self.cmd_name}': "
@@ -336,14 +343,14 @@ extern "C" __global__ void particle_monitor_write(
     const pass_real_t* z, const pass_real_t* dp,
     const int* tag, const int* lost_turn, const float* lost_position,
     const int* first, double* out, int end, int max_tag, int record_idx,
-    int num_record_turn, int turn, double z_center)
+    int num_record_turn, int num_columns, int turn, double z_center, double t0, double beta, double p0)
 {
     int tag_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (tag_index >= max_tag) return;
     int i = first[tag_index];
     if (i < 0 || i >= end) return;
     size_t base = ((size_t)tag_index * (size_t)num_record_turn
-                   + (size_t)record_idx) * 11;
+                   + (size_t)record_idx) * (size_t)num_columns;
     out[base + 0] = (double)turn;
     out[base + 1] = (double)x[i];
     out[base + 2] = (double)px[i];
@@ -355,6 +362,11 @@ extern "C" __global__ void particle_monitor_write(
     out[base + 8] = (double)lost_turn[i];
     out[base + 9] = (double)lost_position[i];
     out[base + 10] = z_center;
+    if (num_columns > 11) {
+        out[base + 11] = tag[i] > 0 ? t0 : nan("");
+        out[base + 12] = tag[i] > 0 ? beta : nan("");
+        out[base + 13] = tag[i] > 0 ? p0 : nan("");
+    }
 }
 '''
 

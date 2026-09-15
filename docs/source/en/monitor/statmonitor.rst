@@ -52,7 +52,7 @@ Beam size (standard deviation):
 
 Similarly, :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` are computed.
 
-Longitudinal statistics use the bunch-relative coordinate :math:`z_{\mathrm{rel}}`. Before calculating moments, the program folds a temporary copy into :math:`[-C/2,C/2)` to prevent equivalent ring-period representations from inflating the mean and variance. This statistical fold is not written back to the tracked particle coordinates. Under the ring-coordinate convention, the laboratory centroid can be reconstructed from :math:`z_{\mathrm{center}}+\langle z_{\mathrm{rel}}\rangle`.
+``sigmaZ`` and z moments retain a temporary ring-period projection, without changing stored continuous z. The new ``sigmaTime`` uses the standard deviation of unwrapped z divided by :math:`\beta_b c`, giving the physical passage-time spread. Rows include ``referenceTime``, ``referenceBeta`` and ``referenceMomentum``. Nominal zCenter cannot reconstruct a laboratory centroid.
 
 Emittance and Twiss Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -12,8 +12,8 @@
 
   - 通过 ``max_tag`` 参数选择记录粒子，匹配条件为 :math:`1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}` ；
   - 支持设置记录圈数范围 ``[start_turn, end_turn)`` ，不必从第 0 圈开始追踪；
-  - 预分配 buffer ``（max_tag, num_record_turn, 11）`` ，避免运行时动态分配；
-  - 每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；
+  - 预分配 buffer ``（max_tag, num_record_turn, num_columns）`` ，避免运行时动态分配；
+  - 默认每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；开启 ``Include reference`` 后增加三列参考量；
   - 模拟结束后每个粒子单独写入一个 TFS 文件；
   - 文件名含监视器名称和纵向位置（ 3 位小数），支持多位置部署；
   - CPU 使用 numpy ， GPU 使用 cupy ， buffer 全程驻留 GPU ，仅结束时做一次 D2H 拷贝；
@@ -68,19 +68,24 @@ PASS 中每个粒子拥有全局唯一的 ``tag`` （正整数），插入的测
 
 .. math::
 
-   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times 11}
+   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
+
+``Include reference`` 默认为 false，此时 :math:`N_{\mathrm{col}}=11`；
+开启后 :math:`N_{\mathrm{col}}=14`。关闭时 CPU 和 GPU 均不为参考列分配缓冲区。
 
 内存开销：
 
 .. math::
 
-   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times 11 \times 8 \;\text{bytes}
+   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
 
 典型场景（ 14 个测试粒子，记录 1000 圈） ：
 
 .. math::
 
    M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
+
+开启参考列后，该示例占用 1.568 MB，比默认模式增加 27.3%。
 
 buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 用 numpy ， GPU 用 cupy 。预分配的优势：
 
@@ -131,6 +136,11 @@ buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 
     - int
     - -1
     - 记录结束圈（不含， -1 表示至最后一圈含）
+  * - ``include_reference``
+    - ``"Include reference"``
+    - bool
+    - false
+    - 逐行追加参考时间、beta 和动量，用于物理时间/能量分析，例如 BLonD 对比
 
 .. note::
 
@@ -159,7 +169,7 @@ TFS 文件头：
    @ StartTurn        0
    @ EndTurn          1000
 
-输出列（共 11 列）：
+默认输出列（共 11 列）：
 
 .. list-table::
   :header-rows: 1
@@ -200,16 +210,37 @@ TFS 文件头：
     - 丢失位置 :math:`s` （ -1 表示未丢失）
   * - ``zCenter``
     - m
-    - 所属束团的实验室纵向中心 :math:`z_{\mathrm{center}}`
+    - 所属束团的名义槽位 :math:`z_{\mathrm{center}}`
 
-粒子的实验室纵向位置可由
+默认不保存参考量，数据列和 headers 中均不写入这三个值。
+仅在 ``"Include reference": true`` 时，每行额外保存 ``referenceTime`` （s）、
+``referenceBeta`` （无量纲）、 ``referenceMomentum`` （eV/c 每核子），合计 14 列。
+参考量与同行粒子坐标对应同一次记录事件，此时存活粒子时间为
 
 .. math::
 
-   z_{\mathrm{lab}} = z + zCenter
+   t_i=referenceTime-z/(referenceBeta\,c).
 
-恢复。 ``z`` 在跟踪过程中可以超出一个环周，不应仅凭 ``z`` 判断粒子属于哪个束团。
+``zCenter`` 仅表示名义槽位。连续 z 可以超过环周范围，不单独决定分组。
+开启参考列时，损失记录的参考量为 NaN，避免将冻结损失坐标误解为当前束团坐标。
+需要参考历史的分析必须在追踪前开启此选项；加速或重分组后，最终参考快照不能用于重建此前各圈。
 
+诊断运行可通过 schema API 开启：
+
+.. code-block:: python
+
+   ParticleMonitor(s=0.0, max_tag=5, include_reference=True)
+
+或在生成的 JSON 中设置：
+
+.. code-block:: json
+
+   "PM_reference": {
+       "S (m)": 0.0,
+       "Command": "ParticleMonitor",
+       "Max tag": 5,
+       "Include reference": true
+   }
 
 使用示例
 --------
@@ -294,6 +325,6 @@ buffer 大小按 :math:`1000 - 200 = 800` 圈分配，输出的 TFS 文件中 ``
 - **色品测量** ：在不同动量偏差 :math:`\delta` 下分别测量工作点，线性拟合 :math:`Q(\delta)` 的斜率即为色品 :math:`DQ_x` 、 :math:`DQ_y`
 - **振幅依赖 tune 偏移（ ADTS ）** ：以不同初始振幅的粒子测量 tune ，分析非线性 tune 随振幅的偏移
 - **色散函数测量** ：对动量偏移粒子的 TBT 质心轨道取时间平均，除以 :math:`\delta` 即得色散函数 :math:`D(s)`
-- **滑移因子测量** ：对同一束团内动量偏移粒子的相对纵向坐标 :math:`z_{\mathrm{rel}}` 逐圈记录；其每圈变化率可用于求滑移因子。跨束团比较或重分组后分析时，应同时使用 ``zCenter`` 恢复 :math:`z_{\mathrm{lab}}`
+- **滑移因子测量** ：对同一束团内动量偏移粒子的相对纵向坐标 :math:`z_{\mathrm{rel}}` 逐圈记录；其每圈变化率可用于求滑移因子。跨束团比较或重分组后分析时，应开启 ``Include reference``，使用同行 referenceTime 和 referenceBeta 重建物理到达时间
 - **闭合轨道验证** ：初始无偏移粒子的 TBT 坐标应保持不变，验证闭合轨道稳定性
 - **粒子损失追踪** ：通过 ``tag`` 符号变化和 ``lostTurn`` / ``lostPosition`` 定位粒子丢失的时刻和位置

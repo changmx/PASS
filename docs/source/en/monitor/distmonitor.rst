@@ -42,24 +42,38 @@ Interface
 
 .. list-table::
    :header-rows: 1
-   :widths: 20 20 12 48
+   :widths: 20 22 12 10 36
 
    * - Python field
      - JSON key
      - Type
+     - Default
      - Description
    * - ``s``
      - ``"S (m)"``
      - float
+     - Required
      - Longitudinal position of the monitor.
    * - ``command``
      - ``"Command"``
      - str
+     - ``"DistMonitor"``
      - Must be ``"DistMonitor"`` (case-insensitive at runtime).
    * - ``save_turns``
      - ``"Save turns"``
      - list[list[int]]
+     - ``[]``
      - Single turns ``[turn]`` or inclusive ranges ``[start, end, step]``.
+   * - ``include_injection_metadata``
+     - ``"Include injection metadata"``
+     - bool
+     - ``false``
+     - Append ``particle_id``, ``injection_turn`` and ``injection_batch``; requires the beam's Injection state when saving.
+   * - ``output_format``
+     - ``"Output format"``
+     - str
+     - ``"tfs"``
+     - Accepts ``"tfs"`` (text, ``.tfs``) or ``"hdf5"`` (compressed datasets, ``.h5``).
 
 The sequence key supplies the monitor name. With the high-level API, the
 schema object can be used directly:
@@ -70,6 +84,20 @@ schema object can be used directly:
 
    monitor = DistMonitor(s=12.5, save_turns=[[0], [100, 200, 10]])
 
+To save injection information in HDF5 snapshots:
+
+.. code-block:: python
+
+   injection_monitor = DistMonitor(
+       s=0.0,
+       save_turns=[[0], [10, 100, 10]],
+       include_injection_metadata=True,
+       output_format="hdf5",
+   )
+
+The two options serialize as ``"Include injection metadata": true`` and
+``"Output format": "hdf5"`` in the generated JSON.
+
 Output
 ------
 
@@ -78,7 +106,7 @@ contains the run time, beam and bunch identifiers, monitor position, monitor
 name, and turn number. All born particles in the bunch are written, including
 lost particles. Reserved slots with ``tag=0`` are omitted.
 
-The data columns are:
+The nine default data columns are:
 
 .. list-table::
    :header-rows: 1
@@ -109,14 +137,15 @@ The data columns are:
 Headers include ``S``, command and monitor names, beam/bunch identifiers,
 ``Turn``, particle counts, backend and precision, PASS version, timestamp,
 ``ZCoordinate``, ``ZCenter``, and ``Circumference``. The ``z`` column is not
-folded or shifted while saving; use ``ZCenter`` when reconstructing a lab-frame
-coordinate.
+folded or shifted while saving. For live particles reconstruct passage time as
+``t = ReferenceArrivalTime - z / (ReferenceBeta*c)``; ``ZCenter`` is grouping
+metadata and does not reconstruct physical arrival time.
 
 CPU and GPU behavior
 --------------------
 
 On CPU, the monitor writes directly from the NumPy particle arrays. On GPU,
-only the selected output fields (nine by default) are copied to host memory
+the nine tracking fields are copied to host memory
 and passed to the selected writer. No history buffer is retained
 between turns, so memory use is proportional to one particle snapshot rather
 than to ``num_turns`` snapshots.
@@ -124,8 +153,32 @@ than to ``num_turns`` snapshots.
 Injection snapshots
 -------------------
 
-Include injection metadata (default false) adds particle_id, injection_turn and
-injection_batch. They survive sorting and loss. Output format accepts tfs
-(default) or hdf5; HDF5 uses compressed datasets and file attributes for the
-same columns and headers. Pending slots (tag=0) are omitted, with their count
-stored as NumPending. The GPU copies only the selected output fields.
+``Include injection metadata`` defaults to ``false``. Enabling it appends
+three integer columns, giving twelve columns in either output format:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Column
+     - Description
+   * - ``particle_id``
+     - Particle identity within the beam, equal to ``abs(tag)``.
+   * - ``injection_turn``
+     - Zero-based simulation turn when the particle was injected.
+   * - ``injection_batch``
+     - Zero-based batch index within the original injection source bunch; regrouping does not renumber it.
+
+These columns are generated on the host from ``abs(tag)`` and the beam's
+Injection batch history; ``ParticlePool`` has no corresponding arrays.
+If the Injection state is absent, saving with this option raises ``ValueError``.
+If the state exists but a particle ID has no matching batch record,
+``injection_turn`` and ``injection_batch`` are ``-1`` (unknown).
+Sorting or loss does not change a born particle's identity or recorded birth
+event. Pending slots (``tag=0``) are omitted, with their count stored as
+``NumPending``.
+
+``Output format`` accepts ``"tfs"`` (default) or ``"hdf5"``. HDF5 uses
+gzip-compressed datasets and file attributes for the same columns and headers.
+The optional birth columns require no additional device-to-host particle-array
+copies.
