@@ -14,6 +14,7 @@ COMMAND_PRIORITY = {
     "Multipole": 300,
     "Solenoid": 300,
     "Kicker": 300,
+    "Bump": 300,
     "RFCavity": 300,
     "ElSeparator": 300,
     "Exciter": 300,
@@ -50,10 +51,12 @@ from .element.octupole import Octupole
 from .element.multipole import Multipole
 from .element.solenoid import Solenoid
 from .element.kicker import Kicker
+from .element.bump import Bump
 from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
 from .element.rfcavity import RFCavity
 from .space_charge import SpaceCharge
+from .wake_field import WakeField
 from .monitor.statistic import StatMonitor
 from .monitor.distribution import DistMonitor
 from .monitor.phase_advance import PhaseAdvanceMonitor
@@ -78,10 +81,12 @@ __all__ = [
     "Multipole",
     "Solenoid",
     "Kicker",
+    "Bump",
     "ElSeparator",
     "Exciter",
     "RFCavity",
     "SpaceCharge",
+    "WakeField",
     "StatMonitor",
     "DistMonitor",
     "PhaseAdvanceMonitor",
