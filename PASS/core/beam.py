@@ -1,6 +1,7 @@
-from PASS.core.config import Config
+from PASS.core.config import Config, LinearProgram
 from PASS.core.bunch import BunchInfo
 from PASS.core.particle import ParticlePool
+from PASS.utils.constants import const
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 
 import logging
@@ -22,6 +23,7 @@ class Beam:
 
         self._load_input()
         self._create_bunch_info()
+        initialize_reference_clock(self, self._data)
         self._create_particles()
 
     def _load_input(self) -> None:
@@ -89,6 +91,9 @@ class Beam:
             xp,
             dtype=dtype,
         )
+        # Beam storage reserves all planned particles; Injection activates each
+        # batch by identity. ParticlePool itself remains useful for live scratch data.
+        self.particles.tag.fill(0)
 
     def print(self) -> None:
 
@@ -108,3 +113,21 @@ class Beam:
 
         for bunch in self.bunches:
             bunch.print()
+
+
+def initialize_reference_clock(beam, data):
+    """One prescribed grouping/RF clock; never follows a tracked bunch's energy."""
+    values = {k.lower(): v for k,v in (data.get('reference clock') or {}).items()}
+    initial = min(beam.bunches, key=lambda b:b.harmonic_id)
+    frequency = values.get('revolution frequency (hz)', initial.beta*const.c/initial.circum)
+    beam.reference_program = LinearProgram(frequency, values.get('time (s)'), origin=values.get('time origin (s)',0.))
+    if (np.any(beam.reference_program.values <= 0)
+            or np.any(beam.reference_program.values*initial.circum >= const.c)):
+        raise ValueError("Reference clock must define a positive subluminal design velocity")
+    for b in beam.bunches:
+        item = data['sequence']['injection'][f'bunch{b.bunch_id}']
+        supplied = item.get('reference arrival time (s)')
+        b.t0 = (float(supplied) if supplied is not None else
+                beam.reference_program.inverse_integral(-b.harmonic_id/b.harmonic_number))
+        if not np.isfinite(b.t0):
+            raise ValueError("Reference arrival time must be finite")
