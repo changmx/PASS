@@ -59,8 +59,9 @@ API/schema compatibility > testing, documentation, and style.
 - Local periodic reduction is allowed for RF phase, regrouping/sorting, and
   statistics; never assign the folded value back to `p.z`.
 - Preserve physical time and mechanical momenta across pure reference changes and
-  regrouping. `PASS/core/reference.py` owns reference transformations and reference
-  state serialization. Restore it alongside matching particles, turn and wake state.
+  regrouping. `PASS/core/bunch.py` owns reference transformations;
+  `PASS/core/beam.py` initializes the prescribed clock and serializes/restores beam
+  reference state. Restore it alongside matching particles, turn and wake state.
 - A zero-length RF kick keeps `bunch.t0` fixed, scales live z by `beta_new/beta_old`,
   updates energy using the signed physical voltage kick and renormalizes transverse
   momenta by `p0_old/p0_new`. Quadrupole strengths use normalized momentum; preserve
@@ -68,8 +69,9 @@ API/schema compatibility > testing, documentation, and style.
 - RF components sample one prescribed physical waveform at the entry particle
   times, sum their gains, then update the reference and particles once. Integrate
   frequency over physical time; do not substitute `f(t)*t` for its integral.
-  Harmonic RF uses the shared prescribed clock in `PASS/core/programs.py`,
-  independently of the instantaneous energies of tracked bunches.
+  `LinearProgram` in `PASS/core/config.py` evaluates the prescribed time tables.
+  Harmonic RF uses the beam's shared prescribed clock independently of the
+  instantaneous energies of tracked bunches.
 - The latest user-executed Slicer defines the saved z intervals, widths and
   memberships. RF does not rescale or recompute them. Structural regrouping
   invalidates old local indices and requires another explicit Slicer execution.
