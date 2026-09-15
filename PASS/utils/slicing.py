@@ -342,6 +342,8 @@ def execute_internal_sc_gpu(element, sim):
     from PASS.utils.aperture import check_aperture_gpu
 
     name = type(element).__name__.lower()
+    if name == "elseparator":
+        return element.execute_gpu(sim)  # Own finite-geometry map and SC scheduling.
     supported = {
         "drift",
         "quadrupole",
@@ -351,7 +353,6 @@ def execute_internal_sc_gpu(element, sim):
         "kicker",
         "solenoid",
         "sbend",
-        "elseparator",
     }
     if name not in supported:
         raise RuntimeError(
@@ -430,8 +431,7 @@ def execute_internal_sc_gpu(element, sim):
                     p.lost_turn,
                     np.int32(start),
                     np.int32(end),
-                    real(bunch.beta * bunch.gamma),
-                    real(1 / bunch.gamma),
+                    real(1 / bunch.gamma**2),
                     real(length),
                     real(position),
                     np.int32(turn),
@@ -494,54 +494,6 @@ def execute_internal_sc_gpu(element, sim):
                 ),
             )
 
-        def separator(ds, on_center):
-            from PASS.commands.element.elseparator import _get_elseparator_kernel
-
-            denom = bunch.beta * const.c * bunch.brho
-            kx = element.exl / denom if abs(denom) > const.eps else 0.0
-            ky = element.eyl / denom if abs(denom) > const.eps else 0.0
-            _get_elseparator_kernel(p.dtype)(
-                blocks,
-                threads,
-                (
-                    p.x,
-                    p.px,
-                    p.y,
-                    p.py,
-                    p.z,
-                    p.dp,
-                    p.tag,
-                    p.lost_position,
-                    p.lost_turn,
-                    np.int32(start),
-                    np.int32(end),
-                    real(bunch.beta * bunch.gamma),
-                    real(1 / bunch.gamma),
-                    real(ds),
-                    real(kx * ds / element.length),
-                    real(ky * ds / element.length),
-                    real(element.tilt),
-                    np.int32(
-                        element.septum_x_position is not None
-                        and abs(element.exl) > const.eps
-                    ),
-                    real(element.septum_x_position or 0.0),
-                    np.int32(
-                        element.septum_y_position is not None
-                        and abs(element.eyl) > const.eps
-                    ),
-                    real(element.septum_y_position or 0.0),
-                    real(element.septum_thickness),
-                    np.int32(1),
-                    np.int32(2 if on_center else 3),
-                    real(position + ds / 2 if on_center else position),
-                    np.int32(turn),
-                ),
-            )
-            if on_center is not None:
-                on_center()
-                drift(ds / 2)
-
         def transport(ds, on_center):
             nonlocal position
             end_position = position + ds
@@ -556,8 +508,6 @@ def execute_internal_sc_gpu(element, sim):
 
             if name == "drift":
                 transport_with_center(drift, ds, callback)
-            elif name == "elseparator":
-                separator(ds, callback)
             elif name == "quadrupole" and element.model == "mat-kick-mat":
                 transport_with_center(matrix, ds, callback)
             elif name == "solenoid" and not element.has_multipoles:
