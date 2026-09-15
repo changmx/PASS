@@ -34,6 +34,14 @@ class BunchInfo:
 
         if self.Np == 0:
             self.ratio = 0.0
+            # An empty group inherits the input weight before receiving particles.
+            injection = data["sequence"]["injection"]
+            for i in range(int(injection["harmonic number"])):
+                source = injection[f"bunch{i}"]
+                count = int(source["number of macro particles"])
+                if count > 0:
+                    self.ratio = int(source["number of real particles"]) / count
+                    break
         else:
             self.ratio = self.Nrp / self.Np
 
