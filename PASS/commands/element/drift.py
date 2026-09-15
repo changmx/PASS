@@ -71,7 +71,6 @@ class Drift(Command):
         turn = sim.state.turn
 
         for i, bunch in enumerate(bunches):
-            beta = bunch.beta
             gamma = bunch.gamma
             start = bunch.start_idx
             end = bunch.end_idx
@@ -90,7 +89,7 @@ class Drift(Command):
                         (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag,
                          p.lost_position, p.lost_turn,
                          np.int32(start), np.int32(end),
-                         p.real(beta * gamma), p.real(1.0 / gamma), p.real(ds),
+                         p.real(1.0 / gamma**2), p.real(ds),
                          p.real(self.s - L + (j + 1) * ds), np.int32(turn)),
                     )
             if N > 0:
@@ -128,8 +127,7 @@ class Drift(Command):
         p = beam.particles
         real = p.real
         L = real(length)
-        beta0 = real(bunch.beta)
-        gamma0 = real(bunch.gamma)
+        inv_gamma_sq = real(1.0 / bunch.gamma**2)
         x = p.x[start:end]
         px = p.px[start:end]
         y = p.y[start:end]
@@ -141,8 +139,8 @@ class Drift(Command):
         lost_turn = p.lost_turn[start:end]
 
         one = real(1.0)
-        beta = (one + dp) * (gamma0 * beta0) / np.sqrt(one + ((one + dp) * (gamma0 * beta0))**2)
-        pz_sq = (one + dp)**2 - px**2 - py**2
+        transverse_sq = px**2 + py**2
+        pz_sq = (one + dp)**2 - transverse_sq
         # Only particles that are alive on entry can become newly lost here.
         # Preserve the first loss location/turn for particles lost earlier.
         valid = pz_sq > real(0.0)
@@ -159,7 +157,12 @@ class Drift(Command):
 
         x += L_mask * (px / pz)
         y += L_mask * (py / pz)
-        z += L_mask * (one - (beta0 / beta) * (one + dp) / pz)
+        # Rationalize 1 - beta0 * (1 + dp) / (beta * pz). Direct
+        # subtraction loses the small longitudinal slip, especially in FP32.
+        energy_over_gamma = np.sqrt(inv_gamma_sq + (one - inv_gamma_sq) * (one + dp)**2)
+        slip = (dp * (real(2.0) + dp) * inv_gamma_sq - transverse_sq) / (
+            pz * (pz + energy_over_gamma))
+        z += L_mask * slip
 
 CUDA_REAL_PREAMBLE = r'''
 #ifndef PASS_USE_FLOAT
@@ -187,8 +190,7 @@ void transfer_drift(
     int* __restrict__ lost_turn,
     int start_index,
     int end_index,
-    pass_real_t beta_gamma,
-    pass_real_t inv_gamma,
+    pass_real_t inv_gamma_sq,
     pass_real_t L,
     pass_real_t s_position,
     int turn)
@@ -203,7 +205,8 @@ void transfer_drift(
     pass_real_t one_plus_delta = (pass_real_t)1 + dp[i];
     pass_real_t px_i = px[i];
     pass_real_t py_i = py[i];
-    pass_real_t pz_sq = one_plus_delta * one_plus_delta - px_i * px_i - py_i * py_i;
+    pass_real_t transverse_sq = px_i * px_i + py_i * py_i;
+    pass_real_t pz_sq = one_plus_delta * one_plus_delta - transverse_sq;
     bool valid = pz_sq > (pass_real_t)0;
 
     if (!valid) {
@@ -213,15 +216,17 @@ void transfer_drift(
         return;
     }
 
-    // Algebraically equivalent to the CPU beta expression, but avoids a
-    // second division and keeps all particle work in registers.
-    pass_real_t inv_pz = (pass_real_t)1 / sqrt(pz_sq);
-    pass_real_t bg = one_plus_delta * beta_gamma;
-    pass_real_t dzeta_factor = sqrt((pass_real_t)1 + bg * bg) * inv_pz * inv_gamma;
+    pass_real_t pz = sqrt(pz_sq);
+    pass_real_t inv_pz = (pass_real_t)1 / pz;
+    pass_real_t energy_over_gamma = sqrt(inv_gamma_sq +
+        ((pass_real_t)1 - inv_gamma_sq) * one_plus_delta * one_plus_delta);
+    // Same rationalized exact drift as CPU, retaining small FP32 slips.
+    pass_real_t slip = (dp[i] * ((pass_real_t)2 + dp[i]) * inv_gamma_sq - transverse_sq)
+        / (pz * (pz + energy_over_gamma));
 
     x[i] += L * px_i * inv_pz;
     y[i] += L * py_i * inv_pz;
-    z[i] += L * ((pass_real_t)1 - dzeta_factor);
+    z[i] += L * slip;
 
 }
 '''

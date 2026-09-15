@@ -34,11 +34,12 @@ The longitudinal momentum component (accounting for the projection of transverse
 
   p_z = \sqrt{(1 + \delta)^2 - p_x^2 - p_y^2}
 
-If :math:`p_z^2 \le 0`, the particle is physically impossible (transverse momentum exceeds total momentum) and is marked as lost.
+If :math:`p_z^2 \le 0`, there is no positive longitudinal momentum for forward
+transport through the element, and the particle is marked as lost.
 
 **Particle Velocity**
 
-The particle's :math:`\beta` value is computed from the reference particle's :math:`\beta_0`, :math:`\gamma_0`, and the momentum deviation :math:`\delta`:
+The particle's :math:`\beta` value is related to the reference particle's :math:`\beta_0`, :math:`\gamma_0`, and the momentum deviation :math:`\delta` by:
 
 .. math::
 
@@ -60,11 +61,153 @@ The particle coordinates in the drift are updated as:
 
   z \leftarrow z + L \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1 + \delta}{p_z}\right)
 
-where the :math:`z` update includes the path length difference effect: particles with momentum deviations have different velocities, causing a change in longitudinal position.
+The longitudinal update above is the formula evaluated directly by the original
+implementation. It includes both the speed difference caused by momentum
+deviation and the longer flight path caused by transverse motion.
 
-**Longitudinal Coordinate Continuity**
+Original Formula from Flight Time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Drift does not fold the updated :math:`z_{\mathrm{rel}}` around the ring. Keeping the coordinate continuous preserves accumulated multi-turn phase slip. Use :math:`z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}` when a laboratory coordinate is needed.
+Here :math:`p_x=P_x/P_0`, :math:`p_y=P_y/P_0`, and
+:math:`\delta=(P-P_0)/P_0`. The quantity :math:`p_z` above is normalized
+longitudinal momentum; the stored coordinate ``p.z`` is instead the continuous
+time coordinate
+
+.. math::
+
+  z=\beta_0c(t_0-t_i).
+
+The derivation assumes forward motion with :math:`1+\delta>0` and
+:math:`p_z>0`. A field-free drift keeps the reference speed and each particle's
+momentum constant. The reference flight time and the particle's longitudinal
+velocity are
+
+.. math::
+
+  \Delta t_0=\frac{L}{\beta_0c},\qquad
+  v_s=\beta c\frac{p_z}{1+\delta},\qquad
+  \Delta t_i=\frac{L}{v_s}.
+
+Consequently,
+
+.. math::
+
+  \Delta z=\beta_0c(\Delta t_0-\Delta t_i)
+  =L\left(1-\frac{\beta_0}{\beta}\frac{1+\delta}{p_z}\right).
+
+The reference event advances by :math:`\Delta t_0`; positive :math:`\Delta z`
+means that the particle gains an arrival-time lead over the reference.
+
+Current Formula by Rationalization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Set :math:`a=\gamma_0^{-2}`, :math:`u=1+\delta`, and
+:math:`q_\perp=p_x^2+p_y^2`. Using :math:`\beta_0^2=1-a` and the
+relativistic energy-momentum relation gives
+
+.. math::
+
+  A\equiv\frac{\beta_0}{\beta}u
+  =\frac{\sqrt{1+(\gamma_0\beta_0u)^2}}{\gamma_0}
+  =\sqrt{a+(1-a)u^2}=\frac{E_i}{E_0}.
+
+Here :math:`E_i` and :math:`E_0` are total energies for particles of the same
+rest mass. ``energy_over_gamma`` in the implementation represents :math:`A`.
+Since :math:`p_z^2=u^2-q_\perp`, rationalizing the difference gives
+
+.. math::
+
+  \frac{\Delta z}{L}
+  =\frac{p_z-A}{p_z}
+  =\frac{p_z^2-A^2}{p_z(p_z+A)},
+
+.. math::
+
+  p_z^2-A^2
+  =u^2-q_\perp-\left[a+(1-a)u^2\right]
+  =a(u^2-1)-q_\perp
+  =\frac{\delta(2+\delta)}{\gamma_0^2}-p_x^2-p_y^2.
+
+Both CPU and GPU now evaluate
+
+.. math::
+
+  \Delta z = L\frac{\delta(2+\delta)/\gamma_0^2-p_x^2-p_y^2}
+  {p_z\left[p_z+\sqrt{\gamma_0^{-2}+(1-\gamma_0^{-2})(1+\delta)^2}\right]}.
+
+This is an algebraic identity, with no expansion in momentum deviation or
+transverse angle. It retains the original exact geometric map. The same kernel
+is used for GPU drift segments with internal space charge.
+
+Purpose and Numerical Limits
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The original expression subtracts two numbers close to one when the slip is
+small, losing significant digits. The FP32 spacing immediately above one is
+approximately :math:`1.19\times10^{-7}`. A true slip factor of order
+:math:`10^{-8}` or :math:`10^{-9}` can therefore have a large relative error or
+round to zero in the direct expression.
+
+The current expression constructs the small numerator explicitly. In particular,
+``dp * (2 + dp)`` retains a small momentum deviation even if ``1 + dp`` rounds to
+one; evaluating ``(1 + dp)**2 - 1`` would reintroduce cancellation.
+
+For interpretation only, retaining the leading momentum and transverse terms gives
+
+.. math::
+
+  \frac{\Delta z}{L}\simeq
+  \frac{\delta}{\gamma_0^2}-\frac{p_x^2+p_y^2}{2}.
+
+Thus an on-axis particle with positive momentum deviation arrives earlier,
+while transverse motion at fixed total momentum delays arrival. The ideal
+reference particle has zero slip. Tracking evaluates the full rationalized
+formula above, rather than this leading-order expression.
+
+For example, with :math:`L=1\,\mathrm{m}`, :math:`\gamma_0=2`,
+:math:`\delta=10^{-8}`, and :math:`p_x=p_y=0`, the exact slip is approximately
+:math:`2.5\times10^{-9}\,\mathrm{m}`. The rationalized expression retains this
+increment in FP32 when the initial z is zero. All six stored particle coordinates
+still use the selected FP32 or FP64 precision: adding the same increment to an
+existing FP32 :math:`z=1\,\mathrm{m}` rounds back to one. The rewrite improves
+increment evaluation; it does not remove rounding during repeated accumulation
+or cancellation when the two physical contributions nearly balance.
+
+The exact derivation also presumes that :math:`p_z` is evaluated without a floor.
+The CPU currently applies :math:`p_z=\sqrt{\max(p_z^2,10^{-10})}` after checking
+for loss, while the GPU directly takes the square root for valid particles.
+Their results can therefore differ for :math:`0<p_z^2<10^{-10}`. This pre-existing
+boundary treatment is separate from the formula rewrite.
+
+Computational Cost
+~~~~~~~~~~~~~~~~~~
+
+Both forms have :math:`O(N)` work for :math:`N` particles. On the CPU, the new
+form removes the explicit particle-speed array and its divisions, while adding
+the rationalized numerator and denominator; both forms still evaluate two
+square roots per particle. NumPy temporary arrays and memory traffic also affect
+runtime, so the expression length alone does not predict a speedup.
+
+The GPU keeps the calculation in the same fused kernel and retains two square
+roots per particle. The new denominator adds a floating-point division relative
+to the original kernel, plus arithmetic for the numerator. Coordinate storage,
+global array accesses, and the number of kernel launches are unchanged. The
+cost can increase for arithmetic-limited workloads, particularly with FP64;
+small batches may instead be dominated by launch overhead, and large batches
+may be limited by memory throughput. The purpose of this change is reliable
+small-slip evaluation. Its runtime impact must be measured for the chosen
+hardware, precision, particle count, and slicing configuration.
+
+GPU timing must exclude initial compilation and account for asynchronous
+execution, using synchronization or CUDA events; see
+`CuPy performance guidance <https://docs.cupy.dev/en/stable/user_guide/performance.html>`_.
+Steady-state kernel timings do not by themselves measure the cost of a complete
+simulation with space charge, monitors, and data transfers.
+
+Longitudinal Coordinate Continuity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Stored z remains continuous, retaining multi-turn slip. Physical arrival time is :math:`t_i=T_b-z_i/(\beta_b c)` using the current reference event; nominal slot offsets do not enter this reconstruction.
 
 
 Interface Parameters
