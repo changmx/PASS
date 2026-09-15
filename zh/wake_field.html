@@ -446,6 +446,7 @@
 <li class="toctree-l4"><a class="reference internal" href="space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="space_charge.html#z">周期 z 切片</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="field_solver.html">横向场求解器</a><ul>
@@ -890,6 +891,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#periodic-z-slicing">Periodic z slicing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/field_solver.html">Transverse Field Solvers</a><ul>
@@ -1149,7 +1151,9 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 <p><code class="docutils literal notranslate"><span class="pre">Executor.run(sim,</span> <span class="pre">sequences)</span></code> 始终从第 0 圈开始。新运行开始时，启用的
 WakeField 命令不能保留之前的历史；若在重新初始化的模拟中复用 WakeField
 命令，应先调用 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>。</p>
-<p>宏粒子权重由初始注入参数固定。Executor 不在 Injection 前后复制 tag 或更新
+<p>同一束流的所有宏粒子使用由初始注入参数确定的同一固定权重。
+CPU/GPU 源投影均使用 <code class="docutils literal notranslate"><span class="pre">bunch.ratio</span> <span class="pre">*</span> <span class="pre">bunch.num_charge</span> <span class="pre">*</span> <span class="pre">e</span></code> 作为每个存活宏粒子的
+电荷，不使用逐粒子电荷数组。Executor 不在 Injection 前后复制 tag 或更新
 源电荷；新激活粒子保持原始权重，见 <a class="reference internal" href="injection.html"><span class="doc">注入粒子生成（Injection）</span></a>。</p>
 </section>
 <section id="cpu-gpu">
@@ -1398,7 +1402,9 @@ wake-potential 反卷积；导出的数值文件可用 table 并明确实际约�
 <section id="id12">
 <h2>切片坐标与响应边界<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
 <p>WakeField 接受局部 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> 区间及独立的
-<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 漂移束投影。SpaceCharge 使用局部 z 区间。
+<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 漂移束投影。WakeField 拒绝 SpaceCharge 必须使用的
+<code class="docutils literal notranslate"><span class="pre">Coordinate=z_periodic</span></code> 环周折叠切片，因为其中心不保留连续到达时间；请分别
+定义命名切片集。
 最近一次显式 Slicer 结果决定成员与几何。坐标选择不改变算法组的 <code class="docutils literal notranslate"><span class="pre">Boundary</span></code>：
 <code class="docutils literal notranslate"><span class="pre">periodic</span></code> 表示重复的稳态空间响应，演化通过历史使用 <code class="docutils literal notranslate"><span class="pre">causal_passages</span></code>。
 时间计算使用 float64 与连续存储的 z。</p>

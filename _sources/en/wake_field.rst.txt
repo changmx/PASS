@@ -238,7 +238,10 @@ commands must have no retained history at the start of a new run; call
 ``reset_state()`` before reusing a WakeField command for a newly initialized
 simulation.
 
-Macro-particle weights are fixed by the initial injection inputs. The Executor
+All macro particles in a beam share one fixed weight from the initial injection
+inputs. Source projection uses ``bunch.ratio * bunch.num_charge * e`` as the
+charge per live macro particle on CPU and GPU, without an individual-charge
+array. The Executor
 does not copy tags or update source charges around Injection commands; newly
 activated particles retain their original weights. See :doc:`injection`.
 
@@ -632,8 +635,10 @@ Slice coordinates and response boundaries
 -----------------------------------------
 
 WakeField accepts local ``Coordinate=z_rel`` intervals and the separate
-``Coordinate=arrival_phase`` coasting projection. SpaceCharge requires local z
-intervals. The latest explicit Slicer result controls membership and geometry.
+``Coordinate=arrival_phase`` coasting projection. WakeField rejects the
+``Coordinate=z_periodic`` circumference-folded slices required by SpaceCharge,
+because their centers do not preserve continuous arrival times. Use separate
+named slice sets. The latest explicit Slicer result controls membership and geometry.
 Coordinate selection does not change the algorithm group's ``Boundary``:
 ``periodic`` is a repeated steady spatial response; evolving passage history
 uses ``causal_passages``. Timing uses float64 and the stored continuous z.

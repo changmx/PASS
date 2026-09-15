@@ -8,7 +8,7 @@ RF 腔（RFCavity）
    t_i=T_b-\frac{z_i}{\beta_b c},\qquad
    U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].
 
-频率必须积分；变频时不能使用 ``2*pi*f(t)*t``。``Phase (rad)`` 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 :math:`2\pi`。``harmonic_id`` 和 ``z_center`` 不进入运行中的相位公式。
+频率必须积分；变频时不能使用 ``2*pi*f(t)*t``。``Phase (rad)`` 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 :math:`2\pi`。``harmonic_id`` 和派生的名义槽位位置不进入运行中的相位公式。
 
 能量踢与参考更新
 ----------------

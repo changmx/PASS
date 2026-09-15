@@ -448,6 +448,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#z">周期 z 切片</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/field_solver.html">横向场求解器</a><ul>
@@ -892,6 +893,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#periodic-z-slicing">Periodic z slicing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a><ul>
@@ -969,7 +971,7 @@
 <div class="math notranslate nohighlight">
 \[t_i=T_b-\frac{z_i}{\beta_b c},\qquad
 U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</div>
-<p>Frequency must be integrated; <code class="docutils literal notranslate"><span class="pre">2*pi*f(t)*t</span></code> is incorrect for a chirp. <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> is an unwrapped additive phase modulation: total instantaneous frequency is the carrier frequency plus its modulation derivative divided by <span class="math notranslate nohighlight">\(2\pi\)</span>. <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> and <code class="docutils literal notranslate"><span class="pre">z_center</span></code> do not enter the tracking phase formula.</p>
+<p>Frequency must be integrated; <code class="docutils literal notranslate"><span class="pre">2*pi*f(t)*t</span></code> is incorrect for a chirp. <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> is an unwrapped additive phase modulation: total instantaneous frequency is the carrier frequency plus its modulation derivative divided by <span class="math notranslate nohighlight">\(2\pi\)</span>. <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> and the derived nominal slot position do not enter the tracking phase formula.</p>
 <section id="energy-kick-and-reference-update">
 <h2>Energy kick and reference update<a class="headerlink" href="#energy-kick-and-reference-update" title="Link to this heading"></a></h2>
 <p>For ions, energy, rest energy and momentum times c follow PASS’s per-nucleon

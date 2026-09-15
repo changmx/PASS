@@ -448,6 +448,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#id25">强空间电荷验证与扁平算例输出</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#z">周期 z 切片</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="field_solver.html">横向场求解器</a><ul>
@@ -892,6 +893,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#periodic-z-slicing">Periodic z slicing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/field_solver.html">Transverse Field Solvers</a><ul>
@@ -1172,6 +1174,7 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
 <span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Slicer"</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"space_charge"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Coordinate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"z_periodic"</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Slice model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"equal_length"</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Number of slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Z range mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"auto"</span>
@@ -2039,6 +2042,19 @@ bunch 和圈数。应用程序默认输出仍采用日期目录布局。</p>
 <code class="docutils literal notranslate"><span class="pre">tests/integration/space_charge/strong/README.md</span></code> 说明全部设置、独立参照、
 预先规定的门限和扁平输出文件。</p>
 </section>
+</section>
+<section id="z">
+<h2>周期 z 切片<a class="headerlink" href="#z" title="Link to this heading"></a></h2>
+<p>SpaceCharge 必须使用 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_periodic</span></code>。Slicer 将连续坐标
+<span class="math notranslate nohighlight">\(z=\beta_b c(T_b-t_i)\)</span> 临时折叠为
+<span class="math notranslate nohighlight">\(z_{slice}=[(z+C/2)\bmod C]-C/2\)</span>，不修改粒子 z，也不使用规定时钟。
+CPU/GPU 的 SC 均拒绝 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>、<code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> 和缺少坐标元数据的切片。
+已有 SC 输入必须在 Slicer 中显式选择 <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code>。整环等长网格应使用
+显式 <span class="math notranslate nohighlight">\([-C/2,C/2]\)</span> 范围；auto 使用折叠后的存活粒子最小值和最大值，见 <a class="reference internal" href="slicer.html"><span class="doc">切片器（Slicer）</span></a>。
+该逐束团准静态近似不重建任意速度展宽下严格同时的三维空间分布。
+每个存活宏粒子按最新保存的切片成员沉积，
+积分横向场仍除以保存的 <code class="docutils literal notranslate"><span class="pre">delta_z</span></code>。RF 不缩放这些 z 区间，用户手动更新切片，
+包括元件内部 SC 节点。不同束团仍分别求场，横向边界与求解器保持原有定义。</p>
 </section>
 </section>
 

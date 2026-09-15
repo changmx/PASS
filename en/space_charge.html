@@ -448,6 +448,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../zh/space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/space_charge.html#z">周期 z 切片</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/field_solver.html">横向场求解器</a><ul>
@@ -892,6 +893,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#periodic-z-slicing">Periodic z slicing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a><ul>
@@ -1205,6 +1207,7 @@ Sequence commands refer to one configuration by name:</p>
 <span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Slicer"</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"space_charge"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Coordinate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"z_periodic"</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Slice model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"equal_length"</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Number of slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">64</span><span class="p">,</span>
 <span class="w">            </span><span class="nt">"Z range mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"auto"</span>
@@ -2190,6 +2193,24 @@ SC-off controls use absolute bare-tune errors; shift-normalized metrics are
 <code class="docutils literal notranslate"><span class="pre">tests/integration/space_charge/strong/README.md</span></code> documents all
 settings, independent references, predeclared gates, and flat output files.</p>
 </section>
+</section>
+<section id="periodic-z-slicing">
+<h2>Periodic z slicing<a class="headerlink" href="#periodic-z-slicing" title="Link to this heading"></a></h2>
+<p>SpaceCharge requires <code class="docutils literal notranslate"><span class="pre">Coordinate=z_periodic</span></code>. Slicer temporarily folds the
+continuous coordinate <span class="math notranslate nohighlight">\(z=\beta_b c(T_b-t_i)\)</span> as
+<span class="math notranslate nohighlight">\(z_{slice}=[(z+C/2)\bmod C]-C/2\)</span>, without changing particle z. The
+prescribed clock does not enter this projection. <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>, <code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code>
+and missing coordinate metadata are rejected in both CPU and GPU SC paths.
+Existing SC inputs must explicitly select <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code> in their Slicer.
+For a whole-ring equal-length mesh, select explicit <span class="math notranslate nohighlight">\([-C/2,C/2]\)</span> limits;
+auto ranges use the folded live minimum and maximum. See <a class="reference internal" href="slicer.html"><span class="doc">Slicer</span></a>.</p>
+<p>This per-bunch common-reference-velocity approximation does not reconstruct an
+exact simultaneous 3D distribution for arbitrary velocity spread.
+Each live macro particle is deposited using the latest saved
+membership, and integrated transverse fields are divided by saved <code class="docutils literal notranslate"><span class="pre">delta_z</span></code>.
+RF does not rescale these z intervals. Users update slices manually, including
+for internal SC nodes. Different bunches are still solved separately, with
+the existing transverse boundary conditions and solvers.</p>
 </section>
 </section>
 

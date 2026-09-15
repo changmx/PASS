@@ -448,6 +448,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#z">周期 z 切片</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../field_solver.html">横向场求解器</a><ul>
@@ -892,6 +893,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/space_charge.html#periodic-z-slicing">Periodic z slicing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/field_solver.html">Transverse Field Solvers</a><ul>
@@ -969,7 +971,7 @@
 <div class="math notranslate nohighlight">
 \[t_i=T_b-\frac{z_i}{\beta_b c},\qquad
 U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</div>
-<p>频率必须积分；变频时不能使用 <code class="docutils literal notranslate"><span class="pre">2*pi*f(t)*t</span></code>。<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 <span class="math notranslate nohighlight">\(2\pi\)</span>。<code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 和 <code class="docutils literal notranslate"><span class="pre">z_center</span></code> 不进入运行中的相位公式。</p>
+<p>频率必须积分；变频时不能使用 <code class="docutils literal notranslate"><span class="pre">2*pi*f(t)*t</span></code>。<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 <span class="math notranslate nohighlight">\(2\pi\)</span>。<code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 和派生的名义槽位位置不进入运行中的相位公式。</p>
 <section id="id1">
 <h2>能量踢与参考更新<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>离子的能量、静质量能和动量乘 c 按 PASS 的每核子 eV 约定，电荷因子为
