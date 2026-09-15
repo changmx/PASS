@@ -5,6 +5,10 @@
 
 PASS 中的二极铁为 **厚元件** （ ``length > 0`` ），支持完整的非线性追踪，包括边缘角效应、边缘场效应、以及多种辛积分方案。
 
+``Fint`` 指定入口边缘场积分。正的 ``Fintx`` 指定出口积分；
+``Fintx <= 0`` 时继承 ``Fint``。特别是，当 ``Fint > 0`` 时，
+设置 ``Fintx = 0`` 并不会关闭出口的有限气隙项。
+
 **代码位置**
 
 - 源文件： ``PASS/commands/element/dipole.py``
@@ -113,6 +117,19 @@ PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 
 
   \mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{M}_{\text{body}} \circ \mathcal{M}_{\text{entry}}
 
+本体内部划分为 :math:`N` 个切片时，上式展开为：
+
+.. math::
+
+  \mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{B}_N
+  \circ \cdots \circ \mathcal{B}_1 \circ \mathcal{M}_{\text{entry}}
+
+即 **一个真实入口、N 个本体切片、一个真实出口**。CPU 和 GPU 追踪都在
+本体循环之外施加入出口映射。内部空间电荷踢也只分割本体传输，不产生额外的
+边缘映射。因此，增大 ``Num slices`` 不需要额外的出口积分参数。
+将一块磁铁表示为多个独立 ``SBend`` 元件是另一种操作：每个元件都会执行
+自己的入口和出口映射。
+
 **入口边缘** ：
 
 .. math::
@@ -128,7 +145,7 @@ PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 
 .. note::
 
   - 当 :math:`e_1 = 0` 时，YRotation 和 Wedge 均跳过（无边缘角效应）
-  - 当 ``fint`` = 0 或 ``hgap`` = 0 时，Fringe 跳过（无边缘场效应）
+  - 当 ``fint`` = 0 或 ``hgap`` = 0 时，有限间隙项消失；只要 :math:`K_0 \ne 0`，仍执行几何非线性边缘映射。
   - 当 :math:`K_0 = 0` 时，Fringe 和 Wedge 均跳过
   - 入口和出口的执行顺序互为镜像
   - **出口处** :math:`K_0` **部分取反** ：Xsuite 在出口处将局部变量 :math:`K_0` 取反（ ``if (is_exit) k0 = -k0`` ），但仅 **DipoleFringe** 使用取反后的 :math:`-K_0` ，因为出口边缘场是磁场从 :math:`B_0` 下降到 0（与入口的 0 上升到 :math:`B_0` 方向相反）。 **Wedge** 直接使用原始 ``knorm[0]`` （不取反），因为 Wedge 描述的是均匀磁场 :math:`B_0` 中的旋转，磁场方向在入口和出口一致。PASS 在 ``_edge_exit_cpu`` 中使用 ``k0_fringe = -k0`` （仅 Fringe）和 ``k0`` （Wedge）实现此行为。
@@ -615,28 +632,48 @@ Forest 定义边缘场积分：
 
   在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 :math:`g` 通常指全气隙。Xsuite/MAD-NG 的几何定义使用半气隙 ``hgap`` ，相应的系数已做调整（如 :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` 中的因子 72 即来自此调整）。PASS 保留这一半气隙约定，但生成函数采用与 MAD-X PTC 对比一致的 PTC-compatible 形式。
 
-**生成函数**
+**边缘场角与特征系数**
 
-边缘场映射是一个正则变换（保辛映射），由生成函数 :math:`\Phi_0` 生成：
+边缘场映射使用下面的角度 :math:`\Phi_0` 和特征系数
+:math:`\psi=b_0\tan\Phi_0`，其中 :math:`b_0=K_0\chi`：
 
 .. math::
 
-  \Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z
+  \Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(2+y'^2)\right) p_z
 
 其中 :math:`x' = p_x/p_z` , :math:`y' = p_y/p_z` 是粒子斜率， :math:`c_2 = 2 K_0 \chi \cdot f_h` 是线性边缘场强度参数。
 
+代码中 ``yp2 = 1 + y'^2``，所以 ``1 + yp2 = 2 + y'^2``。
+因此有限气隙因子应为 :math:`1+x'^2(2+y'^2)`，与下文引用的 Xsuite
+物理手册式 (1.194) 一致。反正切项的分母仍为 :math:`1+y'^2`；
+这里使用的是 ``yp2`` 本身。
+
+.. note::
+
+   与外部程序对比时，应明确边缘场约定。PASS 使用上式的 :math:`p_z` 因子。
+   已检查的 Xtrack 0.109.1 实现将该因子改为 :math:`1/p_z`，并相应修改偏导数；
+   但 2026-09-13 检查的 Xsuite 物理手册式 (1.194) 仍显示 :math:`p_s`。
+   因此，即使本体积分已经收敛，非零 ``fint*hgap`` 仍可能产生模型差异。
+   将有限间隙项设为零可另作共同模型测试，但不能据此验证有限边缘场的物理效应。
+   应保留程序版本，同时核对实际映射和文档。
+
+   参见 `Xtrack 边缘场实现 <https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h>`_
+   和 `Xsuite 物理手册 <https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf>`_。
+
 - **第一项** :math:`\arctan(x'/(1+y'^2))` ：粒子在端面处的入射角修正。 :math:`x'` 是水平斜率， :math:`1+y'^2` 反映垂直运动对水平入射角的几何修正（三维方向余弦）。
-- **第二项** :math:`-c_2(1 + x'^2(1+y'^2))p_z` ：边缘场积分效应。 :math:`c_2` 是边缘场强度， :math:`(1 + x'^2(1+y'^2))` 是斜率的高阶修正。
+- **第二项** :math:`-c_2(1 + x'^2(2+y'^2))p_z` ：边缘场积分效应。 :math:`c_2` 是边缘场强度， :math:`(1 + x'^2(2+y'^2))` 是斜率的高阶修正。
 
 **偏导数与力**
 
-从 :math:`\Phi_0` 对斜率 :math:`(x', y', p_z)` 求偏导，再通过链式法则转换为对 :math:`(p_x, p_y, \delta)` 的偏导，得到力的分量。
+先对 :math:`\psi=b_0\tan\Phi_0` 关于独立变量 :math:`(x', y', p_z)`
+求偏导，再用链式法则得到力的分量。对正切函数求导产生
+:math:`b_0/\cos^2\Phi_0` 因子；下面的量是 :math:`\psi` 的偏导数。
 
 引入中间变量 :math:`c_{o2} = b_0 / \cos^2\Phi_0` , :math:`c_{o1}`, :math:`c_{o3}` （详见公式部分），偏导数为：
 
 .. math::
 
-  \phi_1 = \frac{\partial \Phi_0}{\partial x'}, \quad \phi_2 = \frac{\partial \Phi_0}{\partial y'}, \quad \phi_3 = \frac{\partial \Phi_0}{\partial p_z}
+  \phi_1 = \frac{\partial \psi}{\partial x'}, \quad \phi_2 = \frac{\partial \psi}{\partial y'}, \quad \phi_3 = \frac{\partial \psi}{\partial p_z}
 
 力的分量（链式法则 :math:`k_i = \phi_1 \partial x'/\partial p_i + \phi_2 \partial y'/\partial p_i + \phi_3 \partial p_z/\partial p_i` ）：
 
@@ -729,9 +766,12 @@ Forest 定义边缘场积分：
 
 特征函数及偏导数：
 
+这里 :math:`\phi_0=\Phi_0`，而 :math:`\phi_1,\phi_2,\phi_3` 分别是
+:math:`\psi=b_0\tan\phi_0` 关于 :math:`x',y',p_z` 的偏导数。
+
 .. math::
 
-  \phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z
+  \phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(2+y'^2)\right) p_z
 
 .. math::
 
@@ -747,15 +787,15 @@ Forest 定义边缘场积分：
 
 .. math::
 
-  \phi_1 = c_{o1} - c_{o3} \cdot 2 x'(1+y'^2) p_z
+  \phi_1 = c_{o1} - c_{o3} \cdot 2 x'(2+y'^2) p_z
 
 .. math::
 
-  \phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x' y' \cdot p_z
+  \phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x'^2 y' \cdot p_z
 
 .. math::
 
-  \phi_3 = -c_{o3} \left(1 + x'^2(1+y'^2)\right)
+  \phi_3 = -c_{o3} \left(1 + x'^2(2+y'^2)\right)
 
 力的分量：
 
