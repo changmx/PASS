@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#applications">Applications</a></li>
@@ -966,7 +964,7 @@
              
   <section id="reorganizebunch">
 <h1>束团重分组（ReorganizeBunch）<a class="headerlink" href="#reorganizebunch" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的 <strong>ReorganizeBunch</strong> 命令。该命令在指定圈数切换束流的束团分组数，并按照粒子的实验室纵向位置重新建立束团结构。</p>
+<p>本模块介绍 PASS 中的 <strong>ReorganizeBunch</strong> 命令。该命令在指定圈数切换束流的束团分组数，并按照粒子的物理到达相位重新建立束团结构。</p>
 <p><strong>代码位置</strong></p>
 <ul class="simple">
 <li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/reorganize.py</span></code></p></li>
@@ -976,44 +974,27 @@
 <li><p>Schema 类： <code class="docutils literal notranslate"><span class="pre">ReorganizeBunchElement</span></code> （ <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/elements.py</span></code> ）</p></li>
 </ul>
 <section id="id1">
-<h2>功能说明<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>设原束团分组数为 <span class="math notranslate nohighlight">\(h_{\mathrm{old}}\)</span> ，新分组数为 <span class="math notranslate nohighlight">\(h_{\mathrm{new}}\)</span> 。命令在 <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> 指定的圈数执行一次，并完成：</p>
-<ol class="arabic">
-<li><p>根据旧束团中心恢复每个粒子的实验室纵向位置</p>
+<h2>分组操作与边界<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>在 <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> 将分组数改为 h。规定时钟相位
+<span class="math notranslate nohighlight">\(\Psi(t)=\int_{t_*}^t f_{rev}(u)du\)</span> 给出位置 s 处排序键：</p>
 <div class="math notranslate nohighlight">
-\[z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center,old}}.\]</div>
-</li>
-<li><p>建立间隔为 <span class="math notranslate nohighlight">\(C/h_{\mathrm{new}}\)</span> 的新束团中心网格</p>
+\[k_i=\left[-\Psi(t_i)+s/C+1/(2h)\right]\bmod1,\qquad
+t_i=T_b-z_i/(\beta_b c).\]</div>
+<p>分组 j 包含 <span class="math notranslate nohighlight">\(j/h\le k_i&lt;(j+1)/h\)</span> 的粒子，半槽位平移对奇偶分组数
+采用同一规则。所有粒子数组一起重排。周期键只负责分类，展开的物理时间始终保留。</p>
+<p>新参考事件由规定时钟、当前通过次数及新槽位 ID 确定。参考速度为
+<span class="math notranslate nohighlight">\(C f_{rev}(T_b)\)</span>，必须小于光速；参考能量由此速度与静质量确定。
+参考能量改变属于坐标选择，不是 RF 踢：</p>
 <div class="math notranslate nohighlight">
-\[z_{\mathrm{center},k} = k\frac{C}{h_{\mathrm{new}}},
-\qquad k=0,1,\ldots,h_{\mathrm{new}}-1.\]</div>
-</li>
-<li><p>按环上的最近分组中心为粒子分组，并重排所有粒子数组，使每个新束团对应连续的索引范围。</p></li>
-<li><p>将实验室坐标重新写为新束团的相对坐标</p>
-<div class="math notranslate nohighlight">
-\[z_{\mathrm{rel,new}}
-= \operatorname{fold}_C
-  \left(z_{\mathrm{lab}}-z_{\mathrm{center,new}}\right).\]</div>
-</li>
-<li><p>更新束流的 <code class="docutils literal notranslate"><span class="pre">harmonic_number</span></code> 、每个束团的 <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 、 <code class="docutils literal notranslate"><span class="pre">z_center</span></code> 、粒子数和索引范围。</p></li>
-<li><p>若新束团继承了不同的参考动量，则重新归一化 <span class="math notranslate nohighlight">\(p_x\)</span> 、 <span class="math notranslate nohighlight">\(p_y\)</span> 和 <span class="math notranslate nohighlight">\(\delta\)</span> ，以保持每个粒子的绝对机械动量不变。</p></li>
-</ol>
-<p>因此，ReorganizeBunch 不只是修改索引，也不是直接执行物理意义上的散束、合束或压缩。粒子的实验室位置保持不变，但束团参考中心、相对纵向坐标和归一化动量可能改变。</p>
+\[z_i'=\beta_b'c(T_b'-t_i),\qquad
+p_{x,y}'=p_{x,y}P_{0,b}/P_{0,b}',\qquad
+1+\delta_i'=(1+\delta_i)P_{0,b}/P_{0,b}'.\]</div>
+<p>物理时间、能量和机械动量保持不变。<code class="docutils literal notranslate"><span class="pre">SortBunch</span></code> 使用同样的分类键与参考变换，
+但保留已有束团参考参数。两者均使旧 SliceSet 失效，因为局部粒子索引已变化；
+随后由用户显式执行 Slicer。不自动按质心重新居中，也不产生物理散束、合束或压缩。</p>
 </section>
 <section id="id2">
-<h2>分组边界<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>算法使用以下环方位排序键：</p>
-<div class="math notranslate nohighlight">
-\[k_z = \left(z_{\mathrm{lab}}+\frac{C}{2h_{\mathrm{new}}}\right)\bmod C.\]</div>
-<p>第 <span class="math notranslate nohighlight">\(j\)</span> 个分组包含满足</p>
-<div class="math notranslate nohighlight">
-\[j\frac{C}{h_{\mathrm{new}}}
-\le k_z
-&lt; (j+1)\frac{C}{h_{\mathrm{new}}}\]</div>
-<p>的粒子。半个分组宽度的平移使边界位于相邻中心的中点，并对奇数、偶数分组数采用完全相同的规则。</p>
-</section>
-<section id="id3">
-<h2>接口参数<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 22.0%" />
@@ -1058,8 +1039,8 @@
 </tbody>
 </table>
 </section>
-<section id="id4">
-<h2>使用示例<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id3">
+<h2>使用示例<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
 <p>以下示例在第 500 圈把束流切换到 1 个纵向分组：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">    </span><span class="nt">"ReorganizeBunch1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1072,17 +1053,18 @@
 </pre></div>
 </div>
 </section>
-<section id="id5">
-<h2>应用场景<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>应用场景<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>在 RF 操作改变纵向分布后，按新的束团中心网格更新诊断分组</p></li>
 <li><p>在不同模拟阶段切换束团分组数</p></li>
-<li><p>将跨越旧分组边界的粒子按当前实验室方位重新归类</p></li>
+<li><p>将跨越旧分组边界的粒子按当前机器时钟相位重新归类</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>ReorganizeBunch 只改变 PASS 的束团分组参考系，不会替代 RF 腔产生的散束、俘获、合束或束团压缩过程。应先通过相应物理元件形成所需纵向分布，再在合适圈数执行重分组。</p>
 </div>
+<p>参见 <span class="xref std std-ref">zh-longitudinal-reference</span> 和 <a class="reference internal" href="slicer.html"><span class="doc">切片器（Slicer）</span></a>。</p>
 </section>
 </section>
 

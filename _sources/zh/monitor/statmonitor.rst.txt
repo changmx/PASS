@@ -52,7 +52,7 @@
 
 同理计算 :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` 。
 
-纵向统计使用相对束团中心的 :math:`z_{\mathrm{rel}}` 。计算矩之前，程序仅为统计目的将它按环周长折叠到 :math:`[-C/2,C/2)` ，避免同一纵向位置的不同周期表示拉大均值和方差。该临时折叠不会写回粒子坐标。实验室质心可按环坐标约定由 :math:`z_{\mathrm{center}}+\langle z_{\mathrm{rel}}\rangle` 恢复。
+``sigmaZ`` 和 z 矩仍按临时环周代表值计算，不回写连续存储 z。新增 ``sigmaTime`` 使用未折叠 z 的标准差除以 :math:`\beta_b c`，表示实际通过时间展宽。输出逐行包含 ``referenceTime``、``referenceBeta``、``referenceMomentum``；名义 zCenter 不能用来重建实验室质心。
 
 发射度与 Twiss 参数
 ~~~~~~~~~~~~~~~~~~~

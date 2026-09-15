@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#applications">Applications</a></li>
@@ -991,9 +989,11 @@
 <p>The longitudinal momentum component (accounting for the projection of transverse momentum) is:</p>
 <div class="math notranslate nohighlight">
 \[p_z = \sqrt{(1 + \delta)^2 - p_x^2 - p_y^2}\]</div>
-<p>If <span class="math notranslate nohighlight">\(p_z^2 \le 0\)</span>, the particle is physically impossible (transverse momentum exceeds total momentum) and is marked as lost.</p>
+<p>Forward transport requires <span class="math notranslate nohighlight">\(1+\delta&gt;0\)</span> and finite, strictly positive
+<span class="math notranslate nohighlight">\(p_z^2\)</span>. Live particles that fail these conditions are marked lost;
+coordinates and first-loss records of previously lost particles stay unchanged.</p>
 <p><strong>Particle Velocity</strong></p>
-<p>The particle’s <span class="math notranslate nohighlight">\(\beta\)</span> value is computed from the reference particle’s <span class="math notranslate nohighlight">\(\beta_0\)</span>, <span class="math notranslate nohighlight">\(\gamma_0\)</span>, and the momentum deviation <span class="math notranslate nohighlight">\(\delta\)</span>:</p>
+<p>The particle’s <span class="math notranslate nohighlight">\(\beta\)</span> value is related to the reference particle’s <span class="math notranslate nohighlight">\(\beta_0\)</span>, <span class="math notranslate nohighlight">\(\gamma_0\)</span>, and the momentum deviation <span class="math notranslate nohighlight">\(\delta\)</span> by:</p>
 <div class="math notranslate nohighlight">
 \[\beta = \frac{(1 + \delta) \, \gamma_0 \, \beta_0}{\sqrt{1 + \left[(1 + \delta) \, \gamma_0 \, \beta_0\right]^2}}\]</div>
 <p><strong>Coordinate Update</strong></p>
@@ -1004,9 +1004,126 @@
 \[y \leftarrow y + L \cdot \frac{p_y}{p_z}\]</div>
 <div class="math notranslate nohighlight">
 \[z \leftarrow z + L \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1 + \delta}{p_z}\right)\]</div>
-<p>where the <span class="math notranslate nohighlight">\(z\)</span> update includes the path length difference effect: particles with momentum deviations have different velocities, causing a change in longitudinal position.</p>
-<p><strong>Longitudinal Coordinate Continuity</strong></p>
-<p>Drift does not fold the updated <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> around the ring. Keeping the coordinate continuous preserves accumulated multi-turn phase slip. Use <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}\)</span> when a laboratory coordinate is needed.</p>
+<p>The longitudinal update above is the formula evaluated directly by the original
+implementation. It includes both the speed difference caused by momentum
+deviation and the longer flight path caused by transverse motion.</p>
+<section id="original-formula-from-flight-time">
+<h3>Original Formula from Flight Time<a class="headerlink" href="#original-formula-from-flight-time" title="Link to this heading"></a></h3>
+<p>Here <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>, <span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>, and
+<span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>. The quantity <span class="math notranslate nohighlight">\(p_z\)</span> above is normalized
+longitudinal momentum; the stored coordinate <code class="docutils literal notranslate"><span class="pre">p.z</span></code> is instead the continuous
+time coordinate</p>
+<div class="math notranslate nohighlight">
+\[z=\beta_0c(t_0-t_i).\]</div>
+<p>The derivation assumes forward motion with <span class="math notranslate nohighlight">\(1+\delta&gt;0\)</span> and
+<span class="math notranslate nohighlight">\(p_z&gt;0\)</span>. A field-free drift keeps the reference speed and each particle’s
+momentum constant. The reference flight time and the particle’s longitudinal
+velocity are</p>
+<div class="math notranslate nohighlight">
+\[\Delta t_0=\frac{L}{\beta_0c},\qquad
+v_s=\beta c\frac{p_z}{1+\delta},\qquad
+\Delta t_i=\frac{L}{v_s}.\]</div>
+<p>Consequently,</p>
+<div class="math notranslate nohighlight">
+\[\Delta z=\beta_0c(\Delta t_0-\Delta t_i)
+=L\left(1-\frac{\beta_0}{\beta}\frac{1+\delta}{p_z}\right).\]</div>
+<p>The reference event advances by <span class="math notranslate nohighlight">\(\Delta t_0\)</span>; positive <span class="math notranslate nohighlight">\(\Delta z\)</span>
+means that the particle gains an arrival-time lead over the reference.</p>
+</section>
+<section id="current-formula-by-rationalization">
+<h3>Current Formula by Rationalization<a class="headerlink" href="#current-formula-by-rationalization" title="Link to this heading"></a></h3>
+<p>Set <span class="math notranslate nohighlight">\(a=\gamma_0^{-2}\)</span>, <span class="math notranslate nohighlight">\(u=1+\delta\)</span>, and
+<span class="math notranslate nohighlight">\(q_\perp=p_x^2+p_y^2\)</span>. Using <span class="math notranslate nohighlight">\(\beta_0^2=1-a\)</span> and the
+relativistic energy-momentum relation gives</p>
+<div class="math notranslate nohighlight">
+\[A\equiv\frac{\beta_0}{\beta}u
+=\frac{\sqrt{1+(\gamma_0\beta_0u)^2}}{\gamma_0}
+=\sqrt{a+(1-a)u^2}=\frac{E_i}{E_0}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(E_i\)</span> and <span class="math notranslate nohighlight">\(E_0\)</span> are total energies for particles of the same
+rest mass. <code class="docutils literal notranslate"><span class="pre">energy</span></code> in the current <code class="docutils literal notranslate"><span class="pre">drift_factors</span></code> implementation represents <span class="math notranslate nohighlight">\(A\)</span>.
+Since <span class="math notranslate nohighlight">\(p_z^2=u^2-q_\perp\)</span>, rationalizing the difference gives</p>
+<div class="math notranslate nohighlight">
+\[\frac{\Delta z}{L}
+=\frac{p_z-A}{p_z}
+=\frac{p_z^2-A^2}{p_z(p_z+A)},\]</div>
+<div class="math notranslate nohighlight">
+\[p_z^2-A^2
+=u^2-q_\perp-\left[a+(1-a)u^2\right]
+=a(u^2-1)-q_\perp
+=\frac{\delta(2+\delta)}{\gamma_0^2}-p_x^2-p_y^2.\]</div>
+<p>Both CPU and GPU now evaluate</p>
+<div class="math notranslate nohighlight">
+\[\Delta z = L\frac{\delta(2+\delta)/\gamma_0^2-p_x^2-p_y^2}
+{p_z\left[p_z+\sqrt{\gamma_0^{-2}+(1-\gamma_0^{-2})(1+\delta)^2}\right]}.\]</div>
+<p>This is an algebraic identity, with no expansion in momentum deviation or
+transverse angle. It retains the original exact geometric map. The same kernel
+is used for GPU drift segments with internal space charge.</p>
+</section>
+<section id="purpose-and-numerical-limits">
+<h3>Purpose and Numerical Limits<a class="headerlink" href="#purpose-and-numerical-limits" title="Link to this heading"></a></h3>
+<p>The original expression subtracts two numbers close to one when the slip is
+small, losing significant digits. The FP32 spacing immediately above one is
+approximately <span class="math notranslate nohighlight">\(1.19\times10^{-7}\)</span>. A true slip factor of order
+<span class="math notranslate nohighlight">\(10^{-8}\)</span> or <span class="math notranslate nohighlight">\(10^{-9}\)</span> can therefore have a large relative error or
+round to zero in the direct expression.</p>
+<p>The current expression constructs the small numerator explicitly. In particular,
+<code class="docutils literal notranslate"><span class="pre">dp</span> <span class="pre">*</span> <span class="pre">(2</span> <span class="pre">+</span> <span class="pre">dp)</span></code> retains a small momentum deviation even if <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">dp</span></code> rounds to
+one; evaluating <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">dp)**2</span> <span class="pre">-</span> <span class="pre">1</span></code> would reintroduce cancellation.</p>
+<p>For interpretation only, retaining the leading momentum and transverse terms gives</p>
+<div class="math notranslate nohighlight">
+\[\frac{\Delta z}{L}\simeq
+\frac{\delta}{\gamma_0^2}-\frac{p_x^2+p_y^2}{2}.\]</div>
+<p>Thus an on-axis particle with positive momentum deviation arrives earlier,
+while transverse motion at fixed total momentum delays arrival. The ideal
+reference particle has zero slip. Tracking evaluates the full rationalized
+formula above, rather than this leading-order expression.</p>
+<p>For example, with <span class="math notranslate nohighlight">\(L=1\,\mathrm{m}\)</span>, <span class="math notranslate nohighlight">\(\gamma_0=2\)</span>,
+<span class="math notranslate nohighlight">\(\delta=10^{-8}\)</span>, and <span class="math notranslate nohighlight">\(p_x=p_y=0\)</span>, the exact slip is approximately
+<span class="math notranslate nohighlight">\(2.5\times10^{-9}\,\mathrm{m}\)</span>. The rationalized expression retains this
+increment in FP32 when the initial z is zero. All six stored particle coordinates
+still use the selected FP32 or FP64 precision: adding the same increment to an
+existing FP32 <span class="math notranslate nohighlight">\(z=1\,\mathrm{m}\)</span> rounds back to one. The rewrite improves
+increment evaluation; it does not remove rounding during repeated accumulation
+or cancellation when the two physical contributions nearly balance.</p>
+<p>The exact derivation also presumes that <span class="math notranslate nohighlight">\(p_z\)</span> is evaluated without an
+artificial floor. The old CPU code applied
+<span class="math notranslate nohighlight">\(p_z=\sqrt{\max(p_z^2,10^{-10})}\)</span> after checking for loss, altering flight
+times for very small positive longitudinal momenta and disagreeing with GPU.
+Both CPU and GPU now directly evaluate <span class="math notranslate nohighlight">\(p_z=\sqrt{p_z^2}\)</span> for valid
+particles, without clamping positive values. CPU uses safe placeholder values
+only for invalid rows, which do not participate in coordinate updates. This also
+prevents a zero mask multiplied by NaN from corrupting frozen loss records.</p>
+<p>The CPU <code class="docutils literal notranslate"><span class="pre">drift_factors</span></code> and CUDA <code class="docutils literal notranslate"><span class="pre">pass_drift_factors</span></code> centralize the same
+forward conditions and stable formulas for Drift and straight transport inside
+finite electrostatic elements. This reorganizes the calculation without adding
+a new drift force or momentum kick.</p>
+</section>
+<section id="computational-cost">
+<h3>Computational Cost<a class="headerlink" href="#computational-cost" title="Link to this heading"></a></h3>
+<p>Both forms have <span class="math notranslate nohighlight">\(O(N)\)</span> work for <span class="math notranslate nohighlight">\(N\)</span> particles. On the CPU, the new
+form removes the explicit particle-speed array and its divisions, while adding
+the rationalized numerator and denominator; both forms still evaluate two
+square roots per particle. NumPy temporary arrays and memory traffic also affect
+runtime, so the expression length alone does not predict a speedup.</p>
+<p>The GPU keeps the calculation in the same fused kernel and retains two square
+roots per particle. The new denominator adds a floating-point division relative
+to the original kernel, plus arithmetic for the numerator. Coordinate storage,
+global array accesses, and the number of kernel launches are unchanged. The
+cost can increase for arithmetic-limited workloads, particularly with FP64;
+small batches may instead be dominated by launch overhead, and large batches
+may be limited by memory throughput. The purpose of this change is reliable
+small-slip evaluation. Its runtime impact must be measured for the chosen
+hardware, precision, particle count, and slicing configuration.</p>
+<p>GPU timing must exclude initial compilation and account for asynchronous
+execution, using synchronization or CUDA events; see
+<a class="reference external" href="https://docs.cupy.dev/en/stable/user_guide/performance.html">CuPy performance guidance</a>.
+Steady-state kernel timings do not by themselves measure the cost of a complete
+simulation with space charge, monitors, and data transfers.</p>
+</section>
+<section id="longitudinal-coordinate-continuity">
+<h3>Longitudinal Coordinate Continuity<a class="headerlink" href="#longitudinal-coordinate-continuity" title="Link to this heading"></a></h3>
+<p>Stored z remains continuous, retaining multi-turn slip. Physical arrival time is <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span> using the current reference event; nominal slot offsets do not enter this reconstruction.</p>
+</section>
 </section>
 <section id="interface-parameters">
 <h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
@@ -1119,6 +1236,16 @@ while <code class="docutils literal notranslate"><span class="pre">Space</span> 
 for scheduling, shared resources, supported backends and examples.</p>
 <p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>) is a positive integer, default 1.
 Without internal SC, that many body slices are used on both CPU and GPU.</p>
+</section>
+<section id="shared-numerical-drift-factors">
+<h2>Shared numerical drift factors<a class="headerlink" href="#shared-numerical-drift-factors" title="Link to this heading"></a></h2>
+<p>Drift and the finite ElSeparator share the CPU factors and CUDA inline map.
+The longitudinal slip uses a rationalized expression to preserve tiny FP32
+increments. Nonpositive total momentum (delta &lt;= -1), nonpositive longitudinal
+momentum and nonfinite longitudinal momentum are losses. Positive longitudinal
+momentum is no longer clamped to an arbitrary epsilon. Earlier loss records are
+preserved. This common map does not change Drift’s exit/node aperture sampling;
+ElSeparator additionally computes continuous wall intersections along its segments.</p>
 </section>
 </section>
 

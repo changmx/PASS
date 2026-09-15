@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#applications">Applications</a></li>
@@ -966,7 +964,7 @@
              
   <section id="bunch-regrouping-reorganizebunch">
 <h1>Bunch Regrouping (ReorganizeBunch)<a class="headerlink" href="#bunch-regrouping-reorganizebunch" title="Link to this heading"></a></h1>
-<p>This page describes the PASS <strong>ReorganizeBunch</strong> command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the laboratory longitudinal positions of the particles.</p>
+<p>This page describes the PASS <strong>ReorganizeBunch</strong> command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the physical arrival phases of the particles.</p>
 <p><strong>Code location</strong></p>
 <ul class="simple">
 <li><p>Source: <code class="docutils literal notranslate"><span class="pre">PASS/commands/reorganize.py</span></code></p></li>
@@ -975,42 +973,29 @@
 <li><p>Registered name: <code class="docutils literal notranslate"><span class="pre">reorganizebunch</span></code></p></li>
 <li><p>Schema: <code class="docutils literal notranslate"><span class="pre">ReorganizeBunchElement</span></code> in <code class="docutils literal notranslate"><span class="pre">PASS/para/schema/elements.py</span></code></p></li>
 </ul>
-<section id="operation">
-<h2>Operation<a class="headerlink" href="#operation" title="Link to this heading"></a></h2>
-<p>Let the old and new grouping counts be <span class="math notranslate nohighlight">\(h_{\mathrm{old}}\)</span> and <span class="math notranslate nohighlight">\(h_{\mathrm{new}}\)</span>. The command runs once at <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> and performs the following operations:</p>
-<ol class="arabic">
-<li><p>Recover each particle’s laboratory longitudinal position from its old bunch reference:</p>
+<section id="operation-and-group-boundaries">
+<h2>Operation and group boundaries<a class="headerlink" href="#operation-and-group-boundaries" title="Link to this heading"></a></h2>
+<p>At <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code>, the new grouping count is h. With the prescribed reference
+clock phase <span class="math notranslate nohighlight">\(\Psi(t)=\int_{t_*}^t f_{rev}(u)du\)</span>, the sorting key at s is</p>
 <div class="math notranslate nohighlight">
-\[z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center,old}}.\]</div>
-</li>
-<li><p>Build a new grid of bunch centers separated by <span class="math notranslate nohighlight">\(C/h_{\mathrm{new}}\)</span>:</p>
+\[k_i=\left[-\Psi(t_i)+s/C+1/(2h)\right]\bmod1,\qquad
+t_i=T_b-z_i/(\beta_b c).\]</div>
+<p>Group j owns <span class="math notranslate nohighlight">\(j/h\le k_i&lt;(j+1)/h\)</span>. The half-slot shift treats odd and
+even grouping counts identically. All particle arrays are permuted together.
+The periodic key is used only for grouping; the unwrapped time is retained.</p>
+<p>New reference events are chosen from the prescribed clock for the current
+passage and new slot IDs. Their reference velocities are <span class="math notranslate nohighlight">\(C f_{rev}(T_b)\)</span>
+and must be subluminal. The reference energy follows from this velocity and
+rest mass. A different reference energy is a coordinate choice, not an RF kick:</p>
 <div class="math notranslate nohighlight">
-\[z_{\mathrm{center},k} = k\frac{C}{h_{\mathrm{new}}},
-\qquad k=0,1,\ldots,h_{\mathrm{new}}-1.\]</div>
-</li>
-<li><p>Assign particles to the nearest new group center around the ring and reorder every particle array so that each new bunch occupies a contiguous index range.</p></li>
-<li><p>Convert laboratory positions back to coordinates relative to the new bunch center:</p>
-<div class="math notranslate nohighlight">
-\[z_{\mathrm{rel,new}}
-= \operatorname{fold}_C
-  \left(z_{\mathrm{lab}}-z_{\mathrm{center,new}}\right).\]</div>
-</li>
-<li><p>Update the beam <code class="docutils literal notranslate"><span class="pre">harmonic_number</span></code> and each bunch’s <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code>, <code class="docutils literal notranslate"><span class="pre">z_center</span></code>, particle count, and index range.</p></li>
-<li><p>If a new bunch inherits a different reference momentum, rebase <span class="math notranslate nohighlight">\(p_x\)</span>, <span class="math notranslate nohighlight">\(p_y\)</span>, and <span class="math notranslate nohighlight">\(\delta\)</span> so that each particle’s absolute mechanical momentum is preserved.</p></li>
-</ol>
-<p>ReorganizeBunch is therefore more than an index edit, but it is not itself a physical debunching, merging, capture, or compression process. Laboratory positions are preserved, while bunch reference centers, relative longitudinal coordinates, and normalized momenta may change.</p>
-</section>
-<section id="group-boundaries">
-<h2>Group Boundaries<a class="headerlink" href="#group-boundaries" title="Link to this heading"></a></h2>
-<p>The algorithm uses the ring-azimuth sorting key</p>
-<div class="math notranslate nohighlight">
-\[k_z = \left(z_{\mathrm{lab}}+\frac{C}{2h_{\mathrm{new}}}\right)\bmod C.\]</div>
-<p>Group <span class="math notranslate nohighlight">\(j\)</span> contains particles satisfying</p>
-<div class="math notranslate nohighlight">
-\[j\frac{C}{h_{\mathrm{new}}}
-\le k_z
-&lt; (j+1)\frac{C}{h_{\mathrm{new}}}.\]</div>
-<p>The half-group-width shift places each boundary midway between adjacent centers. The same rule applies to odd and even grouping counts.</p>
+\[z_i'=\beta_b'c(T_b'-t_i),\qquad
+p_{x,y}'=p_{x,y}P_{0,b}/P_{0,b}',\qquad
+1+\delta_i'=(1+\delta_i)P_{0,b}/P_{0,b}'.\]</div>
+<p>Physical time, energy and mechanical momenta remain unchanged. <code class="docutils literal notranslate"><span class="pre">SortBunch</span></code>
+uses the same key and transformation while retaining the existing bunch
+references. Both commands invalidate old SliceSets because their local particle
+indices change. Users explicitly execute Slicer afterwards. No automatic
+centroid recentering, physical debunching, merging or compression is performed.</p>
 </section>
 <section id="interface-parameters">
 <h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
@@ -1077,12 +1062,13 @@
 <ul class="simple">
 <li><p>Update diagnostic grouping after RF manipulations have changed the longitudinal distribution</p></li>
 <li><p>Change the bunch-grouping count between simulation stages</p></li>
-<li><p>Reclassify particles that have crossed old group boundaries according to their current laboratory azimuth</p></li>
+<li><p>Reclassify particles that have crossed old group boundaries according to their current machine-clock phase</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>ReorganizeBunch changes the PASS bunch-reference grouping only. It does not replace the physical debunching, capture, merging, or bunch-compression process produced by RF elements. First create the intended longitudinal distribution with the appropriate physical elements, then regroup at the selected turn.</p>
 </div>
+<p>See <span class="xref std std-ref">en-longitudinal-reference</span> and <a class="reference internal" href="slicer.html"><span class="doc">Slicer</span></a>。</p>
 </section>
 </section>
 

@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="统计监视器（StatMonitor）" href="statmonitor.html" />
-    <link rel="prev" title="高频加速腔（RFCavity）" href="../element/rfcavity.html" /> 
+    <link rel="prev" title="RF 腔（RFCavity）" href="../element/rfcavity.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#applications">Applications</a></li>
@@ -1006,13 +1004,21 @@
 </li>
 </ul>
 </div>
+<section id="zh-reference-state">
+<span id="id1"></span><h2>输出中的参考信息<a class="headerlink" href="#zh-reference-state" title="Link to this heading"></a></h2>
+<p>分布文件头保存 <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code>、<code class="docutils literal notranslate"><span class="pre">ReferenceBeta</span></code>、
+<code class="docutils literal notranslate"><span class="pre">ReferenceMomentum</span></code>、<code class="docutils literal notranslate"><span class="pre">CoordinateDefinition</span></code> 和元件出口事件标识。
+统计监视器逐行保存相应参考参数。ParticleMonitor 仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时
+保存这些列，默认在数据列和 headers 中均不保存参考量。必须使用同行参考信息重建存活粒子时间，
+不能使用其他圈的参考值。损失坐标是冻结的诊断记录，不能用后续存活束团参考系解释。</p>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../element/rfcavity.html" class="btn btn-neutral float-left" title="高频加速腔（RFCavity）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../element/rfcavity.html" class="btn btn-neutral float-left" title="RF 腔（RFCavity）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="statmonitor.html" class="btn btn-neutral float-right" title="统计监视器（StatMonitor）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

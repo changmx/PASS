@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#applications">Applications</a></li>
@@ -969,6 +967,9 @@
 <h1>二极铁（Dipole / SBend）<a class="headerlink" href="#dipole-sbend" title="Link to this heading"></a></h1>
 <p>本模块介绍 PASS 中的二极铁元件 <strong>SBend</strong> ，用于模拟带电粒子在扇形弯转磁铁中的运动。二极铁是加速器中最基本的弯转元件，通过均匀磁场使粒子轨道偏转。</p>
 <p>PASS 中的二极铁为 <strong>厚元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），支持完整的非线性追踪，包括边缘角效应、边缘场效应、以及多种辛积分方案。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Fint</span></code> 指定入口边缘场积分。正的 <code class="docutils literal notranslate"><span class="pre">Fintx</span></code> 指定出口积分；
+<code class="docutils literal notranslate"><span class="pre">Fintx</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code> 时继承 <code class="docutils literal notranslate"><span class="pre">Fint</span></code>。特别是，当 <code class="docutils literal notranslate"><span class="pre">Fint</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> 时，
+设置 <code class="docutils literal notranslate"><span class="pre">Fintx</span> <span class="pre">=</span> <span class="pre">0</span></code> 并不会关闭出口的有限气隙项。</p>
 <p><strong>代码位置</strong></p>
 <ul class="simple">
 <li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/dipole.py</span></code></p></li>
@@ -1071,6 +1072,15 @@ Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
 <p>完整映射为：</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{M}_{\text{body}} \circ \mathcal{M}_{\text{entry}}\]</div>
+<p>本体内部划分为 <span class="math notranslate nohighlight">\(N\)</span> 个切片时，上式展开为：</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{B}_N
+\circ \cdots \circ \mathcal{B}_1 \circ \mathcal{M}_{\text{entry}}\]</div>
+<p>即 <strong>一个真实入口、N 个本体切片、一个真实出口</strong>。CPU 和 GPU 追踪都在
+本体循环之外施加入出口映射。内部空间电荷踢也只分割本体传输，不产生额外的
+边缘映射。因此，增大 <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> 不需要额外的出口积分参数。
+将一块磁铁表示为多个独立 <code class="docutils literal notranslate"><span class="pre">SBend</span></code> 元件是另一种操作：每个元件都会执行
+自己的入口和出口映射。</p>
 <p><strong>入口边缘</strong> ：</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{M}_{\text{entry}} = \text{Wedge}(-e_1, K_0) \circ \text{Fringe}(e_1) \circ \text{YRotation}(-e_1)\]</div>
@@ -1081,7 +1091,7 @@ Wedge(-e2, K0)   →  Fringe Field  →  YRotation(-e2)
 <p class="admonition-title">Note</p>
 <ul class="simple">
 <li><p>当 <span class="math notranslate nohighlight">\(e_1 = 0\)</span> 时，YRotation 和 Wedge 均跳过（无边缘角效应）</p></li>
-<li><p>当 <code class="docutils literal notranslate"><span class="pre">fint</span></code> = 0 或 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 0 时，Fringe 跳过（无边缘场效应）</p></li>
+<li><p>当 <code class="docutils literal notranslate"><span class="pre">fint</span></code> = 0 或 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 0 时，有限间隙项消失；只要 <span class="math notranslate nohighlight">\(K_0 \ne 0\)</span>，仍执行几何非线性边缘映射。</p></li>
 <li><p>当 <span class="math notranslate nohighlight">\(K_0 = 0\)</span> 时，Fringe 和 Wedge 均跳过</p></li>
 <li><p>入口和出口的执行顺序互为镜像</p></li>
 <li><p><strong>出口处</strong> <span class="math notranslate nohighlight">\(K_0\)</span> <strong>部分取反</strong> ：Xsuite 在出口处将局部变量 <span class="math notranslate nohighlight">\(K_0\)</span> 取反（ <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">(is_exit)</span> <span class="pre">k0</span> <span class="pre">=</span> <span class="pre">-k0</span></code> ），但仅 <strong>DipoleFringe</strong> 使用取反后的 <span class="math notranslate nohighlight">\(-K_0\)</span> ，因为出口边缘场是磁场从 <span class="math notranslate nohighlight">\(B_0\)</span> 下降到 0（与入口的 0 上升到 <span class="math notranslate nohighlight">\(B_0\)</span> 方向相反）。 <strong>Wedge</strong> 直接使用原始 <code class="docutils literal notranslate"><span class="pre">knorm[0]</span></code> （不取反），因为 Wedge 描述的是均匀磁场 <span class="math notranslate nohighlight">\(B_0\)</span> 中的旋转，磁场方向在入口和出口一致。PASS 在 <code class="docutils literal notranslate"><span class="pre">_edge_exit_cpu</span></code> 中使用 <code class="docutils literal notranslate"><span class="pre">k0_fringe</span> <span class="pre">=</span> <span class="pre">-k0</span></code> （仅 Fringe）和 <code class="docutils literal notranslate"><span class="pre">k0</span></code> （Wedge）实现此行为。</p></li>
@@ -1463,20 +1473,38 @@ hgap = 半气隙
 <p>这与 Xsuite 源码 <code class="docutils literal notranslate"><span class="pre">track_dipole_fringe.h</span></code> 第 37 行 <code class="docutils literal notranslate"><span class="pre">fh</span> <span class="pre">=</span> <span class="pre">hgap</span> <span class="pre">*</span> <span class="pre">fint</span></code> 完全一致。Xsuite 的 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> 参数也是半气隙。因此 <span class="math notranslate nohighlight">\(f_h\)</span> 的物理含义是”半气隙 x 边缘场积分”，而非”全气隙 x 边缘场积分”。</p>
 <p>在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 <span class="math notranslate nohighlight">\(g\)</span> 通常指全气隙。Xsuite/MAD-NG 的几何定义使用半气隙 <code class="docutils literal notranslate"><span class="pre">hgap</span></code> ，相应的系数已做调整（如 <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 \cdot f_h)\)</span> 中的因子 72 即来自此调整）。PASS 保留这一半气隙约定，但生成函数采用与 MAD-X PTC 对比一致的 PTC-compatible 形式。</p>
 </div>
-<p><strong>生成函数</strong></p>
-<p>边缘场映射是一个正则变换（保辛映射），由生成函数 <span class="math notranslate nohighlight">\(\Phi_0\)</span> 生成：</p>
+<p><strong>边缘场角与特征系数</strong></p>
+<p>边缘场映射使用下面的角度 <span class="math notranslate nohighlight">\(\Phi_0\)</span> 和特征系数
+<span class="math notranslate nohighlight">\(\psi=b_0\tan\Phi_0\)</span>，其中 <span class="math notranslate nohighlight">\(b_0=K_0\chi\)</span>：</p>
 <div class="math notranslate nohighlight">
-\[\Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+\[\Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(2+y'^2)\right) p_z\]</div>
 <p>其中 <span class="math notranslate nohighlight">\(x' = p_x/p_z\)</span> , <span class="math notranslate nohighlight">\(y' = p_y/p_z\)</span> 是粒子斜率， <span class="math notranslate nohighlight">\(c_2 = 2 K_0 \chi \cdot f_h\)</span> 是线性边缘场强度参数。</p>
+<p>代码中 <code class="docutils literal notranslate"><span class="pre">yp2</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">+</span> <span class="pre">y'^2</span></code>，所以 <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">yp2</span> <span class="pre">=</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">y'^2</span></code>。
+因此有限气隙因子应为 <span class="math notranslate nohighlight">\(1+x'^2(2+y'^2)\)</span>，与下文引用的 Xsuite
+物理手册式 (1.194) 一致。反正切项的分母仍为 <span class="math notranslate nohighlight">\(1+y'^2\)</span>；
+这里使用的是 <code class="docutils literal notranslate"><span class="pre">yp2</span></code> 本身。</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>与外部程序对比时，应明确边缘场约定。PASS 使用上式的 <span class="math notranslate nohighlight">\(p_z\)</span> 因子。
+已检查的 Xtrack 0.109.1 实现将该因子改为 <span class="math notranslate nohighlight">\(1/p_z\)</span>，并相应修改偏导数；
+但 2026-09-13 检查的 Xsuite 物理手册式 (1.194) 仍显示 <span class="math notranslate nohighlight">\(p_s\)</span>。
+因此，即使本体积分已经收敛，非零 <code class="docutils literal notranslate"><span class="pre">fint*hgap</span></code> 仍可能产生模型差异。
+将有限间隙项设为零可另作共同模型测试，但不能据此验证有限边缘场的物理效应。
+应保留程序版本，同时核对实际映射和文档。</p>
+<p>参见 <a class="reference external" href="https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h">Xtrack 边缘场实现</a>
+和 <a class="reference external" href="https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf">Xsuite 物理手册</a>。</p>
+</div>
 <ul class="simple">
 <li><p><strong>第一项</strong> <span class="math notranslate nohighlight">\(\arctan(x'/(1+y'^2))\)</span> ：粒子在端面处的入射角修正。 <span class="math notranslate nohighlight">\(x'\)</span> 是水平斜率， <span class="math notranslate nohighlight">\(1+y'^2\)</span> 反映垂直运动对水平入射角的几何修正（三维方向余弦）。</p></li>
-<li><p><strong>第二项</strong> <span class="math notranslate nohighlight">\(-c_2(1 + x'^2(1+y'^2))p_z\)</span> ：边缘场积分效应。 <span class="math notranslate nohighlight">\(c_2\)</span> 是边缘场强度， <span class="math notranslate nohighlight">\((1 + x'^2(1+y'^2))\)</span> 是斜率的高阶修正。</p></li>
+<li><p><strong>第二项</strong> <span class="math notranslate nohighlight">\(-c_2(1 + x'^2(2+y'^2))p_z\)</span> ：边缘场积分效应。 <span class="math notranslate nohighlight">\(c_2\)</span> 是边缘场强度， <span class="math notranslate nohighlight">\((1 + x'^2(2+y'^2))\)</span> 是斜率的高阶修正。</p></li>
 </ul>
 <p><strong>偏导数与力</strong></p>
-<p>从 <span class="math notranslate nohighlight">\(\Phi_0\)</span> 对斜率 <span class="math notranslate nohighlight">\((x', y', p_z)\)</span> 求偏导，再通过链式法则转换为对 <span class="math notranslate nohighlight">\((p_x, p_y, \delta)\)</span> 的偏导，得到力的分量。</p>
+<p>先对 <span class="math notranslate nohighlight">\(\psi=b_0\tan\Phi_0\)</span> 关于独立变量 <span class="math notranslate nohighlight">\((x', y', p_z)\)</span>
+求偏导，再用链式法则得到力的分量。对正切函数求导产生
+<span class="math notranslate nohighlight">\(b_0/\cos^2\Phi_0\)</span> 因子；下面的量是 <span class="math notranslate nohighlight">\(\psi\)</span> 的偏导数。</p>
 <p>引入中间变量 <span class="math notranslate nohighlight">\(c_{o2} = b_0 / \cos^2\Phi_0\)</span> , <span class="math notranslate nohighlight">\(c_{o1}\)</span>, <span class="math notranslate nohighlight">\(c_{o3}\)</span> （详见公式部分），偏导数为：</p>
 <div class="math notranslate nohighlight">
-\[\phi_1 = \frac{\partial \Phi_0}{\partial x'}, \quad \phi_2 = \frac{\partial \Phi_0}{\partial y'}, \quad \phi_3 = \frac{\partial \Phi_0}{\partial p_z}\]</div>
+\[\phi_1 = \frac{\partial \psi}{\partial x'}, \quad \phi_2 = \frac{\partial \psi}{\partial y'}, \quad \phi_3 = \frac{\partial \psi}{\partial p_z}\]</div>
 <p>力的分量（链式法则 <span class="math notranslate nohighlight">\(k_i = \phi_1 \partial x'/\partial p_i + \phi_2 \partial y'/\partial p_i + \phi_3 \partial p_z/\partial p_i\)</span> ）：</p>
 <div class="math notranslate nohighlight">
 \[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x'y'}{p_z} - \phi_3 x'\]</div>
@@ -1544,8 +1572,10 @@ hgap = 半气隙
 <div class="math notranslate nohighlight">
 \[x' = \frac{p_x}{p_z}, \quad y' = \frac{p_y}{p_z}\]</div>
 <p>特征函数及偏导数：</p>
+<p>这里 <span class="math notranslate nohighlight">\(\phi_0=\Phi_0\)</span>，而 <span class="math notranslate nohighlight">\(\phi_1,\phi_2,\phi_3\)</span> 分别是
+<span class="math notranslate nohighlight">\(\psi=b_0\tan\phi_0\)</span> 关于 <span class="math notranslate nohighlight">\(x',y',p_z\)</span> 的偏导数。</p>
 <div class="math notranslate nohighlight">
-\[\phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+\[\phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(2+y'^2)\right) p_z\]</div>
 <div class="math notranslate nohighlight">
 \[c_{o2} = \frac{b_0}{\cos^2\phi_0}\]</div>
 <div class="math notranslate nohighlight">
@@ -1553,11 +1583,11 @@ hgap = 半气隙
 <div class="math notranslate nohighlight">
 \[c_{o3} = c_{o2} \cdot c_2\]</div>
 <div class="math notranslate nohighlight">
-\[\phi_1 = c_{o1} - c_{o3} \cdot 2 x'(1+y'^2) p_z\]</div>
+\[\phi_1 = c_{o1} - c_{o3} \cdot 2 x'(2+y'^2) p_z\]</div>
 <div class="math notranslate nohighlight">
-\[\phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x' y' \cdot p_z\]</div>
+\[\phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x'^2 y' \cdot p_z\]</div>
 <div class="math notranslate nohighlight">
-\[\phi_3 = -c_{o3} \left(1 + x'^2(1+y'^2)\right)\]</div>
+\[\phi_3 = -c_{o3} \left(1 + x'^2(2+y'^2)\right)\]</div>
 <p>力的分量：</p>
 <div class="math notranslate nohighlight">
 \[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x' y'}{p_z} - \phi_3 x'\]</div>

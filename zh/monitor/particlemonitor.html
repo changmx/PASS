@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#applications">Applications</a></li>
@@ -977,8 +975,8 @@
 <ul>
 <li><p>通过 <code class="docutils literal notranslate"><span class="pre">max_tag</span></code> 参数选择记录粒子，匹配条件为 <span class="math notranslate nohighlight">\(1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}\)</span> ；</p></li>
 <li><p>支持设置记录圈数范围 <code class="docutils literal notranslate"><span class="pre">[start_turn,</span> <span class="pre">end_turn)</span></code> ，不必从第 0 圈开始追踪；</p></li>
-<li><p>预分配 buffer <code class="docutils literal notranslate"><span class="pre">（max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">11）</span></code> ，避免运行时动态分配；</p></li>
-<li><p>每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；</p></li>
+<li><p>预分配 buffer <code class="docutils literal notranslate"><span class="pre">（max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">num_columns）</span></code> ，避免运行时动态分配；</p></li>
+<li><p>默认每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；开启 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> 后增加三列参考量；</p></li>
 <li><p>模拟结束后每个粒子单独写入一个 TFS 文件；</p></li>
 <li><p>文件名含监视器名称和纵向位置（ 3 位小数），支持多位置部署；</p></li>
 <li><p>CPU 使用 numpy ， GPU 使用 cupy ， buffer 全程驻留 GPU ，仅结束时做一次 D2H 拷贝；</p></li>
@@ -1020,13 +1018,16 @@
 <h2>预分配策略<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">ParticleMonitor</span></code> 在初始化时预分配完整 buffer ：</p>
 <div class="math notranslate nohighlight">
-\[\mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times 11}\]</div>
+\[\mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}\]</div>
+<p><code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> 默认为 false，此时 <span class="math notranslate nohighlight">\(N_{\mathrm{col}}=11\)</span>；
+开启后 <span class="math notranslate nohighlight">\(N_{\mathrm{col}}=14\)</span>。关闭时 CPU 和 GPU 均不为参考列分配缓冲区。</p>
 <p>内存开销：</p>
 <div class="math notranslate nohighlight">
-\[M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times 11 \times 8 \;\text{bytes}\]</div>
+\[M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}\]</div>
 <p>典型场景（ 14 个测试粒子，记录 1000 圈） ：</p>
 <div class="math notranslate nohighlight">
 \[M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}\]</div>
+<p>开启参考列后，该示例占用 1.568 MB，比默认模式增加 27.3%。</p>
 <p>buffer 使用与束流相同的数组后端（ <code class="docutils literal notranslate"><span class="pre">beam.particles.xp</span></code> ）， CPU 用 numpy ， GPU 用 cupy 。预分配的优势：</p>
 <ul class="simple">
 <li><p>运行时零内存分配，不影响追踪性能；</p></li>
@@ -1089,6 +1090,12 @@
 <td><p>-1</p></td>
 <td><p>记录结束圈（不含， -1 表示至最后一圈含）</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">include_reference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;</span></code></p></td>
+<td><p>bool</p></td>
+<td><p>false</p></td>
+<td><p>逐行追加参考时间、beta 和动量，用于物理时间/能量分析，例如 BLonD 对比</p></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
@@ -1115,7 +1122,7 @@
 <span class="o">@</span> <span class="n">EndTurn</span>          <span class="mi">1000</span>
 </pre></div>
 </div>
-<p>输出列（共 11 列）：</p>
+<p>默认输出列（共 11 列）：</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -1189,14 +1196,32 @@
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code></p></td>
 <td><p>m</p></td>
-<td><p>所属束团的实验室纵向中心 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
+<td><p>所属束团的名义槽位 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
 </tr>
 </tbody>
 </table>
-<p>粒子的实验室纵向位置可由</p>
+<p>默认不保存参考量，数据列和 headers 中均不写入这三个值。
+仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时，每行额外保存 <code class="docutils literal notranslate"><span class="pre">referenceTime</span></code> （s）、
+<code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code> （无量纲）、 <code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code> （eV/c 每核子），合计 14 列。
+参考量与同行粒子坐标对应同一次记录事件，此时存活粒子时间为</p>
 <div class="math notranslate nohighlight">
-\[z_{\mathrm{lab}} = z + zCenter\]</div>
-<p>恢复。 <code class="docutils literal notranslate"><span class="pre">z</span></code> 在跟踪过程中可以超出一个环周，不应仅凭 <code class="docutils literal notranslate"><span class="pre">z</span></code> 判断粒子属于哪个束团。</p>
+\[t_i=referenceTime-z/(referenceBeta\,c).\]</div>
+<p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code> 仅表示名义槽位。连续 z 可以超过环周范围，不单独决定分组。
+开启参考列时，损失记录的参考量为 NaN，避免将冻结损失坐标误解为当前束团坐标。
+需要参考历史的分析必须在追踪前开启此选项；加速或重分组后，最终参考快照不能用于重建此前各圈。</p>
+<p>诊断运行可通过 schema API 开启：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ParticleMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_tag</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">include_reference</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>或在生成的 JSON 中设置：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"PM_reference"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ParticleMonitor"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Max tag"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Include reference"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
 <section id="id7">
 <h2>使用示例<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
@@ -1270,7 +1295,7 @@
 <li><p><strong>色品测量</strong> ：在不同动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 下分别测量工作点，线性拟合 <span class="math notranslate nohighlight">\(Q(\delta)\)</span> 的斜率即为色品 <span class="math notranslate nohighlight">\(DQ_x\)</span> 、 <span class="math notranslate nohighlight">\(DQ_y\)</span></p></li>
 <li><p><strong>振幅依赖 tune 偏移（ ADTS ）</strong> ：以不同初始振幅的粒子测量 tune ，分析非线性 tune 随振幅的偏移</p></li>
 <li><p><strong>色散函数测量</strong> ：对动量偏移粒子的 TBT 质心轨道取时间平均，除以 <span class="math notranslate nohighlight">\(\delta\)</span> 即得色散函数 <span class="math notranslate nohighlight">\(D(s)\)</span></p></li>
-<li><p><strong>滑移因子测量</strong> ：对同一束团内动量偏移粒子的相对纵向坐标 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> 逐圈记录；其每圈变化率可用于求滑移因子。跨束团比较或重分组后分析时，应同时使用 <code class="docutils literal notranslate"><span class="pre">zCenter</span></code> 恢复 <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}\)</span></p></li>
+<li><p><strong>滑移因子测量</strong> ：对同一束团内动量偏移粒子的相对纵向坐标 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> 逐圈记录；其每圈变化率可用于求滑移因子。跨束团比较或重分组后分析时，应开启 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code>，使用同行 referenceTime 和 referenceBeta 重建物理到达时间</p></li>
 <li><p><strong>闭合轨道验证</strong> ：初始无偏移粒子的 TBT 坐标应保持不变，验证闭合轨道稳定性</p></li>
 <li><p><strong>粒子损失追踪</strong> ：通过 <code class="docutils literal notranslate"><span class="pre">tag</span></code> 符号变化和 <code class="docutils literal notranslate"><span class="pre">lostTurn</span></code> / <code class="docutils literal notranslate"><span class="pre">lostPosition</span></code> 定位粒子丢失的时刻和位置</p></li>
 </ul>

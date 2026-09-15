@@ -159,10 +159,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -293,15 +294,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -342,14 +341,14 @@
 <li class="toctree-l4"><a class="reference internal" href="particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
@@ -608,6 +607,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -739,14 +739,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -787,11 +785,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#applications">Applications</a></li>
@@ -996,14 +994,16 @@
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
-<col style="width: 20.0%" />
+<col style="width: 22.0%" />
 <col style="width: 12.0%" />
-<col style="width: 48.0%" />
+<col style="width: 10.0%" />
+<col style="width: 36.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Python 字段</p></th>
 <th class="head"><p>JSON key</p></th>
 <th class="head"><p>类型</p></th>
+<th class="head"><p>默认值</p></th>
 <th class="head"><p>说明</p></th>
 </tr>
 </thead>
@@ -1011,17 +1011,32 @@
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;</span></code></p></td>
 <td><p>float</p></td>
+<td><p>必填</p></td>
 <td><p>监视器在束线中的纵向位置。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Command&quot;</span></code></p></td>
 <td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;DistMonitor&quot;</span></code></p></td>
 <td><p>使用 <code class="docutils literal notranslate"><span class="pre">&quot;DistMonitor&quot;</span></code>；运行时不区分大小写。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">turns&quot;</span></code></p></td>
 <td><p>list[list[int]]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
 <td><p>单圈 <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> 或包含端点的范围 <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">include_injection_metadata</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">injection</span> <span class="pre">metadata&quot;</span></code></p></td>
+<td><p>bool</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>追加 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>、<code class="docutils literal notranslate"><span class="pre">injection_turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">injection_batch</span></code>；保存时要求束流具有 Injection 状态。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code></p></td>
+<td><p>可选 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;``（文本，</span></code>.tfs``）或 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;``（压缩数据集，</span></code>.h5``）。</p></td>
 </tr>
 </tbody>
 </table>
@@ -1031,13 +1046,24 @@
 <span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
 </pre></div>
 </div>
+<p>保存带注入信息的 HDF5 快照：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">injection_monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span><span class="p">]],</span>
+    <span class="n">include_injection_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>这两个选项在生成的 JSON 中分别为 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">injection</span> <span class="pre">metadata&quot;:</span> <span class="pre">true</span></code>
+和 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;:</span> <span class="pre">&quot;hdf5&quot;</span></code>。</p>
 </section>
 <section id="id3">
 <h2>输出内容<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
 <p>每个选中的圈数、每个束团生成一个 TFS 文件（或指定的 HDF5 文件）。文件名
 包含运行时间、束流和束团编号、监视器位置、名称及圈数。全部已注入粒子都会
 写出，包括损失粒子；尚未注入的 <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> 预留位置不写出。</p>
-<p>数据列如下：</p>
+<p>默认的九个数据列如下：</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 24.0%" />
@@ -1088,21 +1114,51 @@
 </table>
 <p>TFS 文件头包含 <code class="docutils literal notranslate"><span class="pre">S</span></code>、command 和监视器名称、束流/束团编号、<code class="docutils literal notranslate"><span class="pre">Turn</span></code>、
 粒子计数、后端和精度、PASS 版本、时间，以及 <code class="docutils literal notranslate"><span class="pre">ZCoordinate</span></code>、<code class="docutils literal notranslate"><span class="pre">ZCenter</span></code>、
-<code class="docutils literal notranslate"><span class="pre">Circumference</span></code> 等信息。保存时不会折叠或平移 <code class="docutils literal notranslate"><span class="pre">z</span></code>；恢复实验室坐标时
-应结合 <code class="docutils literal notranslate"><span class="pre">ZCenter</span></code> 使用。</p>
+<code class="docutils literal notranslate"><span class="pre">Circumference</span></code> 等信息。保存时不会折叠或平移 <code class="docutils literal notranslate"><span class="pre">z</span></code>；存活粒子的通过时刻由
+<code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">ReferenceArrivalTime</span> <span class="pre">-</span> <span class="pre">z</span> <span class="pre">/</span> <span class="pre">(ReferenceBeta*c)</span></code> 恢复。
+<code class="docutils literal notranslate"><span class="pre">ZCenter</span></code> 仅为分组元数据，不用于恢复物理通过时刻。</p>
 </section>
 <section id="cpu-gpu">
 <h2>CPU 与 GPU<a class="headerlink" href="#cpu-gpu" title="Link to this heading"></a></h2>
-<p>CPU 直接从 NumPy 粒子数组写出。GPU 在选中圈数将选定输出字段（默认九个）
+<p>CPU 直接从 NumPy 粒子数组写出。GPU 在选中圈数将九个跟踪字段
 复制到主机内存，再由指定格式的写入器输出。监视器不会跨圈保留历史 buffer，因此
 内存开销与单个粒子快照成正比，而不是与总圈数快照成正比。</p>
 </section>
 <section id="id4">
 <h2>注入快照<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<p>Include injection metadata 默认 false，开启后增加 particle_id、injection_turn、
-injection_batch，排序或损失后仍保留身份。Output format 支持默认 tfs 和 hdf5；
-HDF5 使用压缩 dataset 保存相同数据列，用属性保存头信息。
-不输出 tag=0 的预留位置，其数量记录为 NumPending。GPU 只复制选定输出字段。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">injection</span> <span class="pre">metadata</span></code> 默认 <code class="docutils literal notranslate"><span class="pre">false</span></code>。开启后追加三个整数列，
+两种输出格式均包含十二列：</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>列名</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">particle_id</span></code></p></td>
+<td><p>束流内的粒子身份，等于 <code class="docutils literal notranslate"><span class="pre">abs(tag)</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">injection_turn</span></code></p></td>
+<td><p>粒子实际注入时的模拟圈数，从 0 开始。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">injection_batch</span></code></p></td>
+<td><p>原始注入源束团内的批次编号，从 0 开始；重新分组不会重新编号。</p></td>
+</tr>
+</tbody>
+</table>
+<p>主机端根据 <code class="docutils literal notranslate"><span class="pre">abs(tag)</span></code> 和束流的 Injection 批次记录生成这些列，
+<code class="docutils literal notranslate"><span class="pre">ParticlePool</span></code> 不保存对应数组。若缺少 Injection 状态，开启该选项保存时
+会抛出 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>。若状态存在，但粒子 ID 没有匹配的批次记录，
+<code class="docutils literal notranslate"><span class="pre">injection_turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">injection_batch</span></code> 为 <code class="docutils literal notranslate"><span class="pre">-1</span></code>，表示未知。
+排序或损失不改变已出生粒子的身份和注入事件。不输出 <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> 的预留位置，
+其数量记录为 <code class="docutils literal notranslate"><span class="pre">NumPending</span></code>。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code> 支持默认的 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> 和 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>。HDF5 使用 gzip
+压缩数据集保存相同数据列，用文件属性保存头信息。可选注入列不需要额外复制
+设备上的逐粒子数组。</p>
 </section>
 </section>
 

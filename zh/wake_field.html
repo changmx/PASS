@@ -158,10 +158,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -292,15 +293,13 @@
 <li class="toctree-l4"><a class="reference internal" href="element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -341,14 +340,14 @@
 <li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
@@ -607,6 +606,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -738,14 +738,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -786,11 +784,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#applications">Applications</a></li>
@@ -970,18 +968,14 @@
 <h2>物理范围与约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>PASS 追踪解析或用户提供的响应，不求解任意三维结构的 Maxwell 方程。
 响应速度耦合使用束团参考速度；横向电压到冲量的换算则使用粒子实际入射速度。
-粒子坐标保持连续的 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>，<code class="docutils literal notranslate"><span class="pre">z_lab</span> <span class="pre">=</span> <span class="pre">z_rel</span> <span class="pre">+</span> <span class="pre">bunch.z_center</span></code>：</p>
+粒子连续坐标为 <span class="math notranslate nohighlight">\(z_i=\beta_b c(T_b-t_i)\)</span>，当前位置的物理到达时间为</p>
 <div class="math notranslate nohighlight">
-\[t_i=t_0+a_i-\frac{z_{\mathrm{lab},i}}{\beta_0c},\qquad
-a_i^{\mathrm{new}}=a_i^{\mathrm{old}}+
-\frac{z_{\mathrm{lab},i}}{c}
-\left(\frac1{\beta_0^{\mathrm{new}}}-\frac1{\beta_0^{\mathrm{old}}}\right).\]</div>
-<p>第二式用于薄元件处参考能量变化。通用 <code class="docutils literal notranslate"><span class="pre">ArrivalClock</span></code> 保存修正量，与尾场
-是否启用无关，RFCavity 与 Exciter 使用相同修正。束团排序同时重排物理到达时间锚点；
-重组后必须重新执行 Slicer。时钟不将折叠值写回 <code class="docutils literal notranslate"><span class="pre">p.z</span></code>。</p>
-<p>尾场时间适配器持有 <code class="docutils literal notranslate"><span class="pre">beam.arrival_clock</span></code>，只管理尾场切片几何。
-通用初始化、参考变换和采样时间存储属于 core，生命周期与检查点说明见
-<span class="xref std std-doc">arrival_time</span>。</p>
+\[t_i=T_b-z_i/(\beta_b c).\]</div>
+<p>不保存到达修正量。RF 改变参考能量时缩放 z 以保持此时间；重分组将 z 和动量
+变换到目标参考系。尾场适配器转换用户最近提供的 z 区间：中心时间为
+<span class="math notranslate nohighlight">\(T_b-z_{slice}/(\beta_b c)\)</span>，时间宽度为 <span class="math notranslate nohighlight">\(\Delta z/(\beta_b c)\)</span>。
+RF 不改变保存的区间或成员。新发出的源永久保留当次采样的物理时间和宽度，
+后续参考变换不重新解释因果历史。参见 <span class="xref std std-ref">zh-longitudinal-reference</span>。</p>
 <div class="math notranslate nohighlight">
 \[F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad Z_\parallel=F,\qquad Z_\perp=iF.\]</div>
 <p>源和测试横向单项式总阶数为 <span class="math notranslate nohighlight">\(n\)</span> 时，积分尾函数单位为 V/C/m<sup>n</sup>，
@@ -1150,10 +1144,13 @@ a_i^{\mathrm{new}}=a_i^{\mathrm{old}}+
 旧平铺 Components/Solver/Memory turns 接口必须迁移至 Groups，不解释过时字段。
 命令提供 <code class="docutils literal notranslate"><span class="pre">last_sources</span></code>、<code class="docutils literal notranslate"><span class="pre">last_coefficients</span></code>、<code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>、
 <code class="docutils literal notranslate"><span class="pre">group_states</span></code>，诊断包含算法、边界、保留次数、状态字节数及拟合误差。
-<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code>/<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存恢复各组并校验配置指纹；
-<code class="docutils literal notranslate"><span class="pre">ArrivalClock.state_dict()</span></code> 单独保存时钟修正。恢复粒子、参考参数、时钟与
-尾场后，用 <code class="docutils literal notranslate"><span class="pre">Executor.run(...,</span> <span class="pre">start_turn=...)</span></code> 继续。仅恢复粒子数组不足以
-恢复尾场；<code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> 将该位置场状态归零。</p>
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code>/<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存恢复各组并校验配置指纹。
+这些方法仅处理尾场状态；<code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> 将该位置场状态归零。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Executor.run(sim,</span> <span class="pre">sequences)</span></code> 始终从第 0 圈开始。新运行开始时，启用的
+WakeField 命令不能保留之前的历史；若在重新初始化的模拟中复用 WakeField
+命令，应先调用 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>。</p>
+<p>宏粒子权重由初始注入参数固定。Executor 不在 Injection 前后复制 tag 或更新
+源电荷；新激活粒子保持原始权重，见 <a class="reference internal" href="injection.html"><span class="doc">注入粒子生成（Injection）</span></a>。</p>
 </section>
 <section id="cpu-gpu">
 <h2>CPU 与 GPU 执行<a class="headerlink" href="#cpu-gpu" title="Link to this heading"></a></h2>
@@ -1171,6 +1168,20 @@ a_i^{\mathrm{new}}=a_i^{\mathrm{old}}+
 直接历史及空间周期求和均在 GPU 上计算。有理拟合和解析有限 β 阻抗构造属于
 CPU 初始化工作，得到的响应数组按设备上传一次。数值表格/HEADTAIL 转换及分块
 卷积核采样也在 CPU 初始化阶段完成。</p>
+<p>CUDA 计算使用融合的 <code class="docutils literal notranslate"><span class="pre">RawKernel</span></code>/<code class="docutils literal notranslate"><span class="pre">RawModule</span></code>：时间换算、源矩、响应函数及积分、
+直接求和、速度耦合、事件累积、频谱乘积、插值、校验和粒子踢动均在核内完成。
+CuPy 保留为显存管理及启动接口；FFT 和排序／去重继续使用专用 GPU 库。
+不要求用基础核替代这些专用库。</p>
+<p>所有有存活粒子的束团共用一次投影启动及一次踢动启动，支持不同参考时间、速度及
+保存的切片宽度。空粒子群通过批量校验排除，不逐束团同步。粒子范围或 SliceSet
+存储变化时重建布局和指针缓存，参考参数单独更新；各次源记录保留自己的数组。
+固定范围的等长 Slicer 也批量执行各束团的直方图和切片表计算，存活数与越界数
+统一传回主机。主机尾场源快照合并上传各数组，显存中的各行保留本次通过的数据，
+不会被后续上传覆盖。</p>
+<p>直接求解器由一个 warp 负责一个见证切片，在核内计算响应并归约源贡献，不分配
+源切片乘见证切片大小的矩阵。物理时间近场修正对所有响应模型采用同一方式。
+普通 FFT 按校验后的间距、宽度、模型配置及截断时间缓存响应频谱；参考 beta
+改变几何时缓存失效。复用频谱时仍在设备上校验均匀网格。</p>
 <p>粒子坐标支持 float32 与 float64；物理到达时间、切片电荷矩、响应、模式状态、
 能量与动量换算均使用 float64。GPU 原子归约的求和顺序不同，因此 CPU/GPU 应按
 误差容差比较，而不要求逐位相同。float32 存储仍可能改变边界附近的切片归属，
@@ -1178,11 +1189,13 @@ CPU 初始化工作，得到的响应数组按设备上传一次。数值表格/
 <p>投影通过一次粒子遍历和块内直方图累积电荷及横向偶极矩。单个 CUDA 核函数
 合并各分量的测试单项式与机械踢动。模式历史采用有界仿射前缀扫描，指数因子
 保持衰减，支持临界及过阻尼谐振子；圈内事件使用相对通过原点的时间，减少
-长时间后窄切片边界的舍入损失。</p>
-<p>刚执行的等长 Slicer 且到达修正为零时，提供精确均匀网格并允许有限容量的
-FFT 响应缓存。中间输运、网格改变或非零到达修正会使该快捷路径失效。这些
-属于所选求解器的内部优化，不改变用户配置的物理算法。追踪时只同步少量
-校验和控制元数据；检查点序列化明确将显存历史转换为可移植的主机数组。</p>
+长时间后窄切片边界的舍入损失。
+对于中心递增、各切片边界未到达相邻中心的布局，直接构造有序事件，支持相邻
+切片的部分重叠及重合边界；其他布局保留通用排序／去重。模式更新只分配一次
+下一状态向量，保留旧状态供回滚和检查点使用。物理时间卷积在事务前统一校验
+完整沉积帧，逐子块处理时不重复同步主机；单槽位空间变换使用一维 cuFFT。
+源几何、响应模型、历史截断和时间网格近似均保持原有定义。</p>
+<p>等长局部 z 区间按当前参考速度转换为均匀时间网格。响应缓存依赖实际网格几何，beta 改变时其时间宽度也改变。用户控制 Slicer 更新；检查点序列化将显存历史转换为可移植主机数组。</p>
 <p>小规模算例可能由 CPU 更快完成，原因是 CUDA 启动及同步开销。性能测量应先
 预热、同步 CUDA 事件，并计入 Slicer、时钟、投影和踢动。生成报告
 <code class="docutils literal notranslate"><span class="pre">tests/codex/wake_redesign/validation_report.md</span></code> 记录实际硬件、规模、误差、
@@ -1196,8 +1209,8 @@ FFT 响应缓存。中间输运、网格改变或非零到达修正会使该快�
 <span class="math notranslate nohighlight">\(x_i^c y_i^d\)</span>；尾函数单位的空间阶数为 a+b+c+d。这是输入多项式响应的
 表示方式，不推导未提供的多极分量，也不自动保证不同分量之间的 Maxwell 约束。
 解析圆壁模型仍只支持明确规定的纵向与对角偶极分量。</p>
-<p>CPU/CUDA 支持相同幂次。GPU 对普通项保留 Q/Qx/Qy 快速直方图，其余项使用
-融合的通用单项式直方图；测试幂次在融合机械踢动核中按整数幂求值。</p>
+<p>CPU/CUDA 支持相同幂次。GPU 批量直方图在同一次粒子遍历中累积 Q/Qx/Qy
+及所需的通用单项式；测试幂次在融合机械踢动核中按整数幂求值。</p>
 </section>
 <section id="id7">
 <h2>固定网格多束团与长历史<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
@@ -1213,7 +1226,7 @@ FFT 响应缓存。中间输运、网格改变或非零到达修正会使该快�
 <p>槽位与槽内切片分别补零至至少 2B-1 和 2S-1，形成保留真实间隙的线性卷积，
 即使 P/delta-t 不是整数也成立。空槽置零且保留其物理时间位置。源切片允许
 重排、重复；重叠的独立粒子群以守恒方式累加。程序根据实际到达时间映射，
-不按 bunch 枚举顺序推断。由于到达时间使用 -z_lab/(beta*c)，harmonic ID
+不按 bunch 枚举顺序推断。由于到达时间使用 T_b-z/(beta_b*c)，harmonic ID
 递增不一定对应到达时间递增。</p>
 <p><code class="docutils literal notranslate"><span class="pre">exact</span></code> 要求每次通过的中心、宽度与网格一致，只容许浮点舍入。
 <code class="docutils literal notranslate"><span class="pre">linear</span></code> 允许窗口内离网格的 <strong>点源</strong>，源矩线性分配到两个时间节点，场再
@@ -1228,15 +1241,7 @@ L=1,2,4,…，最后截到 H。已完成的 L 圈源块只向未来通过时刻�
 O(F log-squared H)，另加空间 FFT 与分量因子；两者频谱存储均为 O(H F)。
 分层调度在块边界存在耗时峰值，性能测量应至少覆盖一个最大块周期，并报告
 平均值和最大值，不能只看中位数。</p>
-<p>相同源幂次、相同源速度耦合的分量共用前向空间 FFT。<code class="docutils literal notranslate"><span class="pre">GroupExecution</span></code>
-持有核与 FFT 资源，<code class="docutils literal notranslate"><span class="pre">ConvolutionState</span></code> 持有频谱环形缓冲和待施加场，资源
-不放在物理分量对象里。CUDA 执行计划跨长调度间隔持有 cuFFT 句柄，时间变换
-使用连续时间批次；uniform 频谱乘加融合，不分配整段历史临时乘积。
-刚执行 Slicer 的固定网格分块组使用整列投影与踢动核，多束团时钟也批量求值，
-全程保留 float64。各组先预计算新场，再由命令施加踢动并提交历史；每圈
-不复制完整历史频谱。可移植检查点包含采样核/网格指纹，在选定后端恢复，
-恢复追踪前检查频谱形状与有限性。圈数必须连续，空圈也需执行。
-新运行须 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>；初始过去历史为零。</p>
+<p>每个束团按自己的参考事件转换保存的区间。GPU 投影累积当前源矩，不保存粒子时钟数组；融合粒子踢随后使用相应响应系数。</p>
 <p>对于 [-zmax,zmax] 等长 Slicer、共同 beta、谐波槽位 0..B-1、周长 C，且
 t0=n*C/(beta*c)，精确点源网格示例如下：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeConvolutionGrid</span>
@@ -1309,16 +1314,15 @@ Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束�
 验证套件在 CPU/CUDA 上检查这一 DC 结果及方位谐波与解析卷积的收敛。
 零初始历史会产生启动瞬态，应等待响应记忆填满。<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code>
 表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。</p>
-<p>对于持续滑移的演化漂移束，启用 Slicer 的 <code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code>、
-<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>，范围模式仍为
-<code class="docutils literal notranslate"><span class="pre">explicit</span></code>。临时坐标为
-<span class="math notranslate nohighlight">\(C[((z_{rel}+z_{center}-\beta_0ca)/C\bmod1)-1]\)</span>，a 为到达时钟修正。
-粒子存储坐标仍连续，束团分组不变。源切片依次覆盖 [t0,t0+T)，
-T=C/(beta*c)，下一批从下一个物理参考通过时刻开始；使用 <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> 时
-周期可以变化。所有粒子群共享 t0、beta、C；Slicer 必须在 WakeField
-同一位置。中间允许不改变到达相位及参考参数的薄横向元件和诊断；发生纵向
-输运或参考参数变化后必须重新切片。演化历史使用 <code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code>，另一个
-重复稳态边界不能代替这种时间演化。</p>
+<p>演化漂移束使用 <code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase``（或</span> <span class="pre">``Periodic=true</span></code>）、
+<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 及 <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>。显式更新时
+<span class="math notranslate nohighlight">\(z_{phase}=C[(u\bmod1)-1]\)</span>，其中 <span class="math notranslate nohighlight">\(u=v_{obs}(T_{obs}-t_i)/C\)</span>。
+规定时钟选择共同观测事件和速度，见 <a class="reference internal" href="slicer.html"><span class="doc">切片器（Slicer）</span></a>。各束团的参考时间、速度可以
+不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。</p>
+<p>切片覆盖 <span class="math notranslate nohighlight">\([T_{obs},T_{obs}+C/v_{obs})\)</span>。每个新的物理源通过事件需要用户
+更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
+<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code>。<code class="docutils literal notranslate"><span class="pre">time_fft</span></code> 支持变化且互不重叠的通过窗口，
+固定卷积网格仍要求其声明的时间结构。</p>
 <p>这里采用 <strong>每粒子每参考圈经过一次的近似</strong>。在该模型内支持动量展宽及长期
 累计滑移，但不调度同一参考圈内个别粒子的零次或多次通过。实际周期为 Ti
 的均匀刚性流，在模型中表示的电流为 Q/T，实际为 Q/Ti；令
@@ -1349,9 +1353,8 @@ epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。真实 Drift 验证检�
 gpu，以变周期非模态表格验证 2048 圈自洽运动、增长率、tune 和强度阈值。
 独立参考为有限历史 Floquet 矩阵，不是另一个 PASS 求解器。测试使用归一化
 单位及外加的小线性阻尼映射，得到的是该基准的阈值，不是普遍机器极限。</p>
-<p>CUDA 把切片到达时钟统计合并为两遍中心化直方图。表格尾场近场精确修正
-采用每个见证切片一个 warp，避免源—目标对列表及其计数的主机同步；其他
-模型保留通用修正路径。性能测试包括逐束团 Slicer、参考参数变化、源投影、
+<p>CUDA 将保存的切片区间直接换算为物理时间。所有支持的模型均采用每个见证
+切片一个 warp 计算近场精确修正，避免源—目标对列表及其计数的主机同步。性能测试包括逐束团 Slicer、参考参数变化、源投影、
 历史计算与 kick，并预热且覆盖最大历史块的完整调度周期。</p>
 </section>
 <section id="id11">
@@ -1394,14 +1397,11 @@ wake-potential 反卷积；导出的数值文件可用 table 并明确实际约�
 </section>
 <section id="id12">
 <h2>切片坐标与响应边界<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
-<p>WakeField 接受普通 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> 切片或漂移束
-<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 投影；旧 <code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code> 仍选择后者。
-<code class="docutils literal notranslate"><span class="pre">ring_position</span></code> 会把不同过境投影到同一几何 bin，不能提供因果先后，因而
-被拒绝。SpaceCharge 应使用另一个命名几何 SliceSet。</p>
-<p>Coordinate 不改变算法组的 <code class="docutils literal notranslate"><span class="pre">Boundary</span></code>。<code class="docutils literal notranslate"><span class="pre">Boundary=periodic</span></code> 表示具有
-周期镜像的空间响应，不能替代演化到达相位切片所需的 <code class="docutils literal notranslate"><span class="pre">causal_passages</span></code>
-边界及时间历史。core 到达修正仍用 FP64，连续 z 重分组时保持物理时间；
-切片历史及冻结几何仍按各自的职责规则失效。</p>
+<p>WakeField 接受局部 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> 区间及独立的
+<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 漂移束投影。SpaceCharge 使用局部 z 区间。
+最近一次显式 Slicer 结果决定成员与几何。坐标选择不改变算法组的 <code class="docutils literal notranslate"><span class="pre">Boundary</span></code>：
+<code class="docutils literal notranslate"><span class="pre">periodic</span></code> 表示重复的稳态空间响应，演化通过历史使用 <code class="docutils literal notranslate"><span class="pre">causal_passages</span></code>。
+时间计算使用 float64 与连续存储的 z。</p>
 </section>
 </section>
 

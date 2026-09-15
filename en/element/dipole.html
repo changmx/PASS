@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/element/rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/element/rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reorganize.html#applications">Applications</a></li>
@@ -969,6 +967,9 @@
 <h1>Dipole (SBend)<a class="headerlink" href="#dipole-sbend" title="Link to this heading"></a></h1>
 <p>This module describes the PASS dipole element <strong>SBend</strong>, used to simulate the motion of charged particles in a sector bending magnet. The dipole is the most fundamental bending element in accelerators, deflecting the particle orbit through a uniform magnetic field.</p>
 <p>The PASS dipole is a <strong>thick element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>), supporting full nonlinear tracking including edge angle effects, fringe field effects, and multiple symplectic integration schemes.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Fint</span></code> specifies the entrance fringe integral. A positive <code class="docutils literal notranslate"><span class="pre">Fintx</span></code> specifies
+the exit integral; <code class="docutils literal notranslate"><span class="pre">Fintx</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code> inherits <code class="docutils literal notranslate"><span class="pre">Fint</span></code>. In particular, setting
+<code class="docutils literal notranslate"><span class="pre">Fintx</span> <span class="pre">=</span> <span class="pre">0</span></code> does not disable the exit finite-gap terms when <code class="docutils literal notranslate"><span class="pre">Fint</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>.</p>
 <p><strong>Code Location</strong></p>
 <ul class="simple">
 <li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/dipole.py</span></code></p></li>
@@ -1071,6 +1072,16 @@ Exit net rotation: (+e2) + (-e2) = 0
 <p>The complete map is:</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{M}_{\text{body}} \circ \mathcal{M}_{\text{entry}}\]</div>
+<p>With <span class="math notranslate nohighlight">\(N\)</span> internal body slices, this is:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{M}_{\text{bend}} = \mathcal{M}_{\text{exit}} \circ \mathcal{B}_N
+\circ \cdots \circ \mathcal{B}_1 \circ \mathcal{M}_{\text{entry}}\]</div>
+<p>There is <strong>one real entrance, N body slices, and one real exit</strong>. CPU and GPU
+tracking apply the edge maps outside the body loop. Internal space-charge
+kicks subdivide only body transport and do not create additional edge maps.
+Increasing <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> therefore requires no extra exit-integral parameter.
+Representing a magnet as several independent <code class="docutils literal notranslate"><span class="pre">SBend</span></code> elements is a different
+operation: each element then executes its own entrance and exit maps.</p>
 <p><strong>Entrance edge</strong>:</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{M}_{\text{entry}} = \text{Wedge}(-e_1, K_0) \circ \text{Fringe}(e_1) \circ \text{YRotation}(-e_1)\]</div>
@@ -1081,7 +1092,7 @@ Exit net rotation: (+e2) + (-e2) = 0
 <p class="admonition-title">Note</p>
 <ul class="simple">
 <li><p>When <span class="math notranslate nohighlight">\(e_1 = 0\)</span>, both YRotation and Wedge are skipped (no edge angle effect)</p></li>
-<li><p>When <code class="docutils literal notranslate"><span class="pre">fint</span></code> = 0 or <code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 0, Fringe is skipped (no fringe field effect)</p></li>
+<li><p>When <code class="docutils literal notranslate"><span class="pre">fint</span></code> = 0 or <code class="docutils literal notranslate"><span class="pre">hgap</span></code> = 0, the finite-gap terms vanish; the geometric nonlinear fringe map remains when <span class="math notranslate nohighlight">\(K_0 \ne 0\)</span>.</p></li>
 <li><p>When <span class="math notranslate nohighlight">\(K_0 = 0\)</span>, both Fringe and Wedge are skipped</p></li>
 <li><p>The execution order of entrance and exit are mirror images of each other</p></li>
 <li><p><strong>At the exit</strong>, <span class="math notranslate nohighlight">\(K_0\)</span> <strong>is partially negated</strong>: Xsuite negates the local variable <span class="math notranslate nohighlight">\(K_0\)</span> at the exit (<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">(is_exit)</span> <span class="pre">k0</span> <span class="pre">=</span> <span class="pre">-k0</span></code>), but only <strong>DipoleFringe</strong> uses the negated <span class="math notranslate nohighlight">\(-K_0\)</span>, because the exit fringe field is the magnetic field decreasing from <span class="math notranslate nohighlight">\(B_0\)</span> to 0 (opposite direction to the entrance’s 0 rising to <span class="math notranslate nohighlight">\(B_0\)</span>). <strong>Wedge</strong> directly uses the original <code class="docutils literal notranslate"><span class="pre">knorm[0]</span></code> (not negated), because Wedge describes rotation in the uniform magnetic field <span class="math notranslate nohighlight">\(B_0\)</span>, and the field direction is the same at entrance and exit. PASS implements this behavior in <code class="docutils literal notranslate"><span class="pre">_edge_exit_cpu</span></code> using <code class="docutils literal notranslate"><span class="pre">k0_fringe</span> <span class="pre">=</span> <span class="pre">-k0</span></code> (Fringe only) and <code class="docutils literal notranslate"><span class="pre">k0</span></code> (Wedge).</p></li>
@@ -1463,20 +1474,42 @@ hgap = half gap
 <p>This is fully consistent with Xsuite source code <code class="docutils literal notranslate"><span class="pre">track_dipole_fringe.h</span></code> line 37 <code class="docutils literal notranslate"><span class="pre">fh</span> <span class="pre">=</span> <span class="pre">hgap</span> <span class="pre">*</span> <span class="pre">fint</span></code>. The <code class="docutils literal notranslate"><span class="pre">hgap</span></code> parameter in Xsuite is also the half gap. Therefore the physical meaning of <span class="math notranslate nohighlight">\(f_h\)</span> is “half gap × fringe field integral”, not “full gap × fringe field integral”.</p>
 <p>In the physics literature (e.g., Forest’s original paper), <span class="math notranslate nohighlight">\(g\)</span> in the fringe field integral formula typically refers to the full gap. The Xsuite/MAD-NG geometry uses the half gap <code class="docutils literal notranslate"><span class="pre">hgap</span></code>, with corresponding coefficient adjustments (e.g., the factor 72 in <span class="math notranslate nohighlight">\(f_{\text{sad}} = 1/(72 \cdot f_h)\)</span> comes from this adjustment). PASS keeps this half-gap convention while using the PTC-compatible generating-function form for comparison with MAD-X PTC.</p>
 </div>
-<p><strong>Generating function</strong></p>
-<p>The fringe field map is a canonical transformation (symplectic map), generated by the generating function <span class="math notranslate nohighlight">\(\Phi_0\)</span>:</p>
+<p><strong>Fringe angle and characteristic coefficient</strong></p>
+<p>The fringe map uses the angle <span class="math notranslate nohighlight">\(\Phi_0\)</span> below and the characteristic
+coefficient <span class="math notranslate nohighlight">\(\psi=b_0\tan\Phi_0\)</span>, where <span class="math notranslate nohighlight">\(b_0=K_0\chi\)</span>:</p>
 <div class="math notranslate nohighlight">
-\[\Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+\[\Phi_0 = \arctan\!\left(\frac{x'}{1+y'^2}\right) - c_2 \left(1 + x'^2(2+y'^2)\right) p_z\]</div>
 <p>where <span class="math notranslate nohighlight">\(x' = p_x/p_z\)</span>, <span class="math notranslate nohighlight">\(y' = p_y/p_z\)</span> are the particle slopes, and <span class="math notranslate nohighlight">\(c_2 = 2 K_0 \chi \cdot f_h\)</span> is the linear fringe field strength parameter.</p>
+<p>In the implementation, <code class="docutils literal notranslate"><span class="pre">yp2</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">+</span> <span class="pre">y'^2</span></code>, so <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">yp2</span> <span class="pre">=</span> <span class="pre">2</span> <span class="pre">+</span> <span class="pre">y'^2</span></code>.
+Thus the finite-gap factor is <span class="math notranslate nohighlight">\(1+x'^2(2+y'^2)\)</span>, consistent with Eq. (1.194)
+of the Xsuite physics manual cited below. The arctangent denominator remains
+<span class="math notranslate nohighlight">\(1+y'^2\)</span>; it is a different occurrence of <code class="docutils literal notranslate"><span class="pre">yp2</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Keep the fringe convention explicit in comparisons with external programs.
+PASS uses the <span class="math notranslate nohighlight">\(p_z\)</span> factor above. The inspected Xtrack 0.109.1
+implementation uses <span class="math notranslate nohighlight">\(1/p_z\)</span> in this term and changes its derivatives
+consistently, whereas Eq. (1.194) in the Xsuite physics manual inspected on
+2026-09-13 still displays <span class="math notranslate nohighlight">\(p_s\)</span>. Thus nonzero <code class="docutils literal notranslate"><span class="pre">fint*hgap</span></code> can produce
+a model difference even with converged body integration. Setting those
+finite-gap terms to zero provides a separate common-model test; it does
+not validate their physical effect. Preserve the program version and
+compare the implemented map as well as its documentation.</p>
+<p>See the <a class="reference external" href="https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h">Xtrack fringe implementation</a>
+and the <a class="reference external" href="https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf">Xsuite physics manual</a>.</p>
+</div>
 <ul class="simple">
 <li><p><strong>First term</strong> <span class="math notranslate nohighlight">\(\arctan(x'/(1+y'^2))\)</span>: Incident angle correction of the particle at the end face. <span class="math notranslate nohighlight">\(x'\)</span> is the horizontal slope, and <span class="math notranslate nohighlight">\(1+y'^2\)</span> reflects the geometric correction of vertical motion on the horizontal incident angle (3D direction cosines).</p></li>
-<li><p><strong>Second term</strong> <span class="math notranslate nohighlight">\(-c_2(1 + x'^2(1+y'^2))p_z\)</span>: Fringe field integral effect. <span class="math notranslate nohighlight">\(c_2\)</span> is the fringe field strength, and <span class="math notranslate nohighlight">\((1 + x'^2(1+y'^2))\)</span> is the higher-order slope correction.</p></li>
+<li><p><strong>Second term</strong> <span class="math notranslate nohighlight">\(-c_2(1 + x'^2(2+y'^2))p_z\)</span>: Fringe field integral effect. <span class="math notranslate nohighlight">\(c_2\)</span> is the fringe field strength, and <span class="math notranslate nohighlight">\((1 + x'^2(2+y'^2))\)</span> is the higher-order slope correction.</p></li>
 </ul>
 <p><strong>Partial derivatives and forces</strong></p>
-<p>Taking partial derivatives of <span class="math notranslate nohighlight">\(\Phi_0\)</span> with respect to slopes <span class="math notranslate nohighlight">\((x', y', p_z)\)</span>, then converting to partial derivatives with respect to <span class="math notranslate nohighlight">\((p_x, p_y, \delta)\)</span> via the chain rule, gives the force components.</p>
+<p>Differentiate <span class="math notranslate nohighlight">\(\psi=b_0\tan\Phi_0\)</span> with respect to the independent
+variables <span class="math notranslate nohighlight">\((x', y', p_z)\)</span>, then apply the chain rule to obtain the force
+components. Differentiating the tangent supplies the factor
+<span class="math notranslate nohighlight">\(b_0/\cos^2\Phi_0\)</span>; the quantities below are derivatives of <span class="math notranslate nohighlight">\(\psi\)</span>.</p>
 <p>Introducing intermediate variables <span class="math notranslate nohighlight">\(c_{o2} = b_0 / \cos^2\Phi_0\)</span>, <span class="math notranslate nohighlight">\(c_{o1}\)</span>, <span class="math notranslate nohighlight">\(c_{o3}\)</span> (see formula section for details), the partial derivatives are:</p>
 <div class="math notranslate nohighlight">
-\[\phi_1 = \frac{\partial \Phi_0}{\partial x'}, \quad \phi_2 = \frac{\partial \Phi_0}{\partial y'}, \quad \phi_3 = \frac{\partial \Phi_0}{\partial p_z}\]</div>
+\[\phi_1 = \frac{\partial \psi}{\partial x'}, \quad \phi_2 = \frac{\partial \psi}{\partial y'}, \quad \phi_3 = \frac{\partial \psi}{\partial p_z}\]</div>
 <p>Force components (chain rule <span class="math notranslate nohighlight">\(k_i = \phi_1 \partial x'/\partial p_i + \phi_2 \partial y'/\partial p_i + \phi_3 \partial p_z/\partial p_i\)</span>):</p>
 <div class="math notranslate nohighlight">
 \[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x'y'}{p_z} - \phi_3 x'\]</div>
@@ -1544,8 +1577,10 @@ hgap = half gap
 <div class="math notranslate nohighlight">
 \[x' = \frac{p_x}{p_z}, \quad y' = \frac{p_y}{p_z}\]</div>
 <p>Characteristic functions and partial derivatives:</p>
+<p>Here <span class="math notranslate nohighlight">\(\phi_0=\Phi_0\)</span>, and <span class="math notranslate nohighlight">\(\phi_1,\phi_2,\phi_3\)</span> are the partial
+derivatives of <span class="math notranslate nohighlight">\(\psi=b_0\tan\phi_0\)</span> with respect to <span class="math notranslate nohighlight">\(x',y',p_z\)</span>.</p>
 <div class="math notranslate nohighlight">
-\[\phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(1+y'^2)\right) p_z\]</div>
+\[\phi_0 = \arctan\!\left(\frac{x'}{1 + y'^2}\right) - c_2 \left(1 + x'^2(2+y'^2)\right) p_z\]</div>
 <div class="math notranslate nohighlight">
 \[c_{o2} = \frac{b_0}{\cos^2\phi_0}\]</div>
 <div class="math notranslate nohighlight">
@@ -1553,11 +1588,11 @@ hgap = half gap
 <div class="math notranslate nohighlight">
 \[c_{o3} = c_{o2} \cdot c_2\]</div>
 <div class="math notranslate nohighlight">
-\[\phi_1 = c_{o1} - c_{o3} \cdot 2 x'(1+y'^2) p_z\]</div>
+\[\phi_1 = c_{o1} - c_{o3} \cdot 2 x'(2+y'^2) p_z\]</div>
 <div class="math notranslate nohighlight">
-\[\phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x' y' \cdot p_z\]</div>
+\[\phi_2 = -2 c_{o1} \cdot x' y' \cdot \frac{1}{1+y'^2} - c_{o3} \cdot 2 x'^2 y' \cdot p_z\]</div>
 <div class="math notranslate nohighlight">
-\[\phi_3 = -c_{o3} \left(1 + x'^2(1+y'^2)\right)\]</div>
+\[\phi_3 = -c_{o3} \left(1 + x'^2(2+y'^2)\right)\]</div>
 <p>Force components:</p>
 <div class="math notranslate nohighlight">
 \[k_x = \phi_1 \frac{1+x'^2}{p_z} + \phi_2 \frac{x' y'}{p_z} - \phi_3 x'\]</div>

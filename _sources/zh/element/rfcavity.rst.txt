@@ -1,551 +1,166 @@
-高频加速腔（RFCavity）
-========================
+RF 腔（RFCavity）
+========================================
 
-本模块介绍 PASS 中的高频加速腔元件 **RFCavity** ，用于模拟带电粒子在射频电场中的纵向加速运动。高频加速腔是同步加速器、直线加速器和回旋加速器中最核心的元件之一，通过周期性电场为粒子提供能量增益，维持同步粒子的能量并控制纵向束流动力学（同步振荡、束团压缩、纵向接受度等）。
-
-PASS 中的高频加速腔建模为 **薄透镜** （ ``length = 0`` ）的瞬时能量 kick ，采用 **精确相对论能量-动量关系** 和 **移动参考系** 。纵向变换弃用了传统的一阶线性化近似，改用精确的 :math:`E^2 = p^2 + m_0^2` 关系，避免了线性化带来的 :math:`O(\delta^2)` 误差和参考系变换中的 :math:`\beta_1/\beta_0` 因子问题。
-
-**代码位置**
-
-- 源文件： ``PASS/commands/element/rfcavity.py``
-- 类名： ``RFCavity`` （继承自 ``Command`` ）
-- 注册名： ``rfcavity``
-- 核心特征：
-
-  - 薄透镜模型，瞬时能量 kick
-  - 精确相对论能量-动量变换（ :math:`E^2 = p^2 + m_0^2` ），无线性化近似
-  - 移动参考系：每圈更新束流参考能量（ :math:`E_k, \gamma, \beta, p_0, B\rho` ）
-  - 横向动量重缩放（绝热阻尼）： :math:`p_x \leftarrow p_x \cdot \beta_0\gamma_0 / (\beta_1\gamma_1)`
-  - 归一化发射度 :math:`\epsilon_N = \beta\gamma\epsilon` 严格守恒
-  - 支持 dp 接受度（纵向孔径）检查
-  - 支持固定值和 TFS 文件（Ramping）两种参数输入方式
-  - 支持多圈加速模拟
-  - RF 谐波数是腔的状态属性，对所有束团统一；它与束流的束团分组数相互独立
-
-
-坐标约定
---------
-
-PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, \zeta, \delta)` ：
-
-.. list-table::
-  :header-rows: 1
-  :widths: 15 20 65
-
-  * - 变量
-    - 符号
-    - 定义
-  * - ``x``
-    - :math:`x`
-    - 水平偏移（相对于参考轨道）
-  * - ``px``
-    - :math:`p_x`
-    - 归一化水平动量， :math:`p_x = P_x / P_0`
-  * - ``y``
-    - :math:`y`
-    - 垂直偏移
-  * - ``py``
-    - :math:`p_y`
-    - 归一化垂直动量， :math:`p_y = P_y / P_0`
-  * - ``z``
-    - :math:`z_{\mathrm{rel}}`
-    - 粒子相对所属束团中心的纵向坐标
-  * - ``dp``
-    - :math:`\delta`
-    - 相对动量偏差， :math:`\delta = P / P_0 - 1`
-
-其中 :math:`P_0` 为参考粒子动量， :math:`\beta_0 = v_0 / c` 为参考粒子归一化速度。每个束团还保存一个固定的实验室坐标中心
+``RFCavity`` 表示同一位置同时作用的有效电压薄踢。所有束团采样同一组物理波形，CPU 与 CUDA 使用相同算法及 float64 中间量。
 
 .. math::
 
-  z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},
+   t_i=T_b-\frac{z_i}{\beta_b c},\qquad
+   U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].
 
-其中 :math:`h_{\mathrm{group}}` 是束流的束团分组数， :math:`h_{\mathrm{id}}` 是该束团的分组编号。粒子的实验室纵向位置为
+频率必须积分；变频时不能使用 ``2*pi*f(t)*t``。``Phase (rad)`` 是未折叠的附加相位调制，总瞬时频率为载波频率加相位调制导数除以 :math:`2\pi`。``harmonic_id`` 和 ``z_center`` 不进入运行中的相位公式。
 
-.. math::
-
-  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.
-
-``z`` 数组只存储 :math:`z_{\mathrm{rel}}` ；需要计算 RF 相位或到达时间时，元件再显式加上 :math:`z_{\mathrm{center}}`。
-
-
-物理推导
---------
-
-RF 腔的物理本质
-~~~~~~~~~~~~~~~~
-
-RF 腔产生纵向（沿束流方向）振荡电场 :math:`E_s(t) = E_0 \sin(\omega_{\text{rf}} t + \varphi_s)` 。粒子穿过腔体时获得的能量增益取决于到达时刻，因此 RF 相位必须由实验室纵向位置 :math:`z_{\mathrm{lab}}` 计算，而不是只使用束团内的相对坐标 :math:`z_{\mathrm{rel}}`。
-
-设机器周长为 :math:`C` ，等效半径 :math:`R = C / (2\pi)` ，RF 腔谐波数为 :math:`h_{\mathrm{rf}}` ，RF 电压为 :math:`V` ，设定相位为 :math:`\varphi_s` 。粒子的方位角为 :math:`\theta = z_{\mathrm{lab}} / R` ，其 RF 相位为：
-
-.. math::
-
-  \varphi_{\text{particle}}
-  = \varphi_s + \varphi_{\text{off}}
-  - h_{\mathrm{rf}}\frac{z_{\mathrm{lab}}}{R}
-
-其中 :math:`\varphi_{\text{off}}` 为附加相位偏移（详见后文）。
-
-
-phi_offset 的用途
-~~~~~~~~~~~~~~~~~~
-
-``phi_offset`` 是施加在所有粒子上的常数相位偏移，用于平移 RF 波形的时间基准。其主要用途包括：
-
-1. **多腔相位对齐** ：当多台 RF 腔沿环分布、腔间距不是 RF 波长的整数倍时，每台腔需要独立的相位修正以保持同步。
-2. **多谐波系统** ：不同谐波数的腔共享同一频率基准时，通过 :math:`\varphi_{\text{off}}` 实现各腔独立的相位调节。
-3. **相位微调（phase trim）** ：在运行中通过 ``phi_offset`` 微调腔的有效相位，而不改变 ``phase`` 给出的标称相位设定。束团参考粒子的实际相位还包含其 :math:`z_{\mathrm{center}}` 对应的方位项。
-
-物理上， :math:`\varphi_{\text{off}}` 旋转整个 :math:`\sin` 曲线，使得粒子的实际相位变为 :math:`\varphi_s + \varphi_{\text{off}} - h_{\mathrm{rf}}\theta` 。
-
-
-束团分组数与 RF 谐波数
-~~~~~~~~~~~~~~~~~~~~~~~
-
-束流的 :math:`h_{\mathrm{group}}` 只定义束团中心网格；RF 腔的 :math:`h_{\mathrm{rf}}` 只定义 RF 波形在一圈内的周期数。两者不要求相等，也不要求互为整数倍。RFCavity 对奇数和偶数谐波使用同一公式，不施加额外相位补偿。
-
-当 :math:`h_{\mathrm{rf}}/h_{\mathrm{group}}` 为整数时，各束团中心位于等价 RF 相位；否则不同束团中心可能看到不同相位和不同参考能量增益。这是给定分组与 RF 配置的直接物理结果，程序不会自动修改相位。
-
-
-能量 kick
-~~~~~~~~~~
-
-每个粒子的能量增益为：
-
-.. math::
-
-  \Delta E_{\text{kick}} = \frac{q}{A} \cdot V \cdot \sin(\varphi_{\text{particle}})
-
-其中 :math:`q/A` 为荷质比。对每个束团，参考粒子定义为 :math:`z_{\mathrm{rel}}=0` ，其实验室位置为 :math:`z_{\mathrm{center}}` ，参考能量增益为：
-
-.. math::
-
-  \Delta E_{\text{ref}}
-  = \frac{q}{A} V
-  \sin\left(
-  \varphi_s + \varphi_{\text{off}}
-  - h_{\mathrm{rf}}\frac{z_{\mathrm{center}}}{R}
-  \right)
-
-:math:`\Delta E_{\text{ref}}` 用于更新该束团的移动参考系，因此束团中心粒子的 :math:`\delta` 保持在 0 附近。不同束团的参考增益可以不同。
-
-
-一阶线性化近似及其问题
-~~~~~~~~~~~~~~~~~~~~~~~
-
-传统方法在将能量偏差 :math:`dE` 转换为动量偏差 :math:`\delta` 时，采用一阶泰勒展开：
-
-.. math::
-
-  dE \approx \delta \cdot \beta^2 \cdot E_{\text{total}}
-
-其中 :math:`dE = E - E_0` 为粒子相对参考粒子的能量偏差。这是精确关系
-
-.. math::
-
-  E = \sqrt{(p_0 (1+\delta) c)^2 + (m_0 c^2)^2}
-
-在 :math:`\delta \to 0` 处的一阶近似。展开的误差为 :math:`O(\delta^2)` 。
-
-**问题 1：大** ``delta`` **时精度差**
-
-当 :math:`\delta` 较大（如 :math:`\pm 30\%` 的注入接收度）， :math:`O(\delta^2)` 项可达 :math:`\sim 0.01` ，远超浮点精度，引入不可忽略的系统性偏差。
-
-**问题 2：参考系变换引入额外的** ``beta1/beta0`` **因子**
-
-在移动参考系中，参考能量从 :math:`E_0` 变为 :math:`E_1 = E_0 + \Delta E_{\text{syn}}` 。传统方法假设参考系变换时 :math:`\delta` 不变，推导如下：
-
-从 :math:`dE = \delta \cdot \beta^2 \cdot E_{\text{total}}` 出发，旧参考系中 :math:`dE_0 = \delta \cdot \beta_0^2 \cdot E_0` ，新参考系中 :math:`dE_1 = \delta \cdot \beta_1^2 \cdot E_1` 。若假设 :math:`\delta` 不变，则：
-
-.. math::
-
-  dE_1 = dE_0 \cdot \frac{\beta_1^2 E_1}{\beta_0^2 E_0}
-
-进一步将 :math:`\beta_1^2 E_1 / (\beta_0^2 E_0)` 近似为 :math:`\beta_1 / \beta_0` （仅在 :math:`E_1 \approx E_0` 即弱加速时成立），得到：
-
-.. math::
-
-  dE_1 = \frac{\beta_1}{\beta_0} \cdot (dE_0 + \Delta E_{\text{non-syn}} - \Delta E_{\text{syn}})
-
-这是一个 **三重近似** ：
-
-1. **一阶线性化** ： :math:`dE \approx \delta \cdot \beta^2 \cdot E_{\text{total}}` （截断 :math:`O(\delta^2)` ）
-2. **delta 不变假设** ：参考系变换时 :math:`\delta` 不变（实际 :math:`\delta = p/p_0 - 1` 依赖于 :math:`p_0` ）
-3. **弱加速近似** ： :math:`\beta_1^2 E_1 / (\beta_0^2 E_0) \approx \beta_1/\beta_0` （仅在 :math:`E_1 \approx E_0` 时成立）
-
-在强加速场景（如从注入到引出能量变化数倍），第 3 步近似显著失效。
-
-
-精确能量-动量变换
-~~~~~~~~~~~~~~~~~~~
-
-PASS 弃用上述全部近似，直接从精确相对论关系出发。所有物理量采用自然单位制（ :math:`c = 1` ）， :math:`m_0` 、 :math:`p_0` 、 :math:`E` 均以 eV 为单位。能量-动量关系为：
-
-.. math::
-
-  E^2 = p^2 + m_0^2
-
-跟踪链路如下：
-
-**Kick 前** ：粒子动量 :math:`p_{\text{old}} = p_{0,\text{old}} \cdot (1 + \delta)` ，绝对总能量：
-
-.. math::
-
-  E_{\text{old}} = \sqrt{p_{\text{old}}^2 + m_0^2}
-
-**施加 kick** ：
-
-.. math::
-
-  E_{\text{new}} = E_{\text{old}} + \Delta E_{\text{kick}}
-
-**恢复动量** ：
-
-.. math::
-
-  p_{\text{new}} = \sqrt{E_{\text{new}}^2 - m_0^2}
-
-**计算新** :math:`\delta` （相对于新参考动量 :math:`p_{0,\text{new}}` ）：
-
-.. math::
-
-  \delta_{\text{new}} = \frac{p_{\text{new}}}{p_{0,\text{new}}} - 1
-
-**为什么精确方法不需要** ``beta1/beta0`` **因子**
-
-精确方法直接追踪每个粒子的绝对总能量 :math:`E_{\text{particle}}` 和绝对动量 :math:`p_{\text{particle}}` 。 RF kick 改变的是能量（ :math:`E_{\text{new}} = E_{\text{old}} + \Delta E` ），然后从能量精确恢复动量（ :math:`p = \sqrt{E^2 - m_0^2}` ），最后除以新参考动量得到 :math:`\delta` 。
-
-这个过程中：
-
-- 不需要 :math:`dE \to \delta` 的线性化（直接用 :math:`E \to p` 的精确关系）
-- 不需要假设 :math:`\delta` 不变（ :math:`\delta` 由 :math:`p_{\text{particle}} / p_{0,\text{new}}` 直接计算）
-- 不需要 :math:`\beta_1/\beta_0` 缩放因子（参考系变换已隐含在 :math:`p_{0,\text{new}}` 中）
-
-因此三重近似全部被绕过， :math:`\beta_1/\beta_0` 因子自然不出现。
-
-此变换在物理定义域内不使用纵向线性化，只需两次 ``sqrt`` 运算（numpy 向量化，成本可忽略），适用于大 :math:`\delta` 和强加速场景。
-
-.. warning::
-
-  输入参数必须保证 kick 后的粒子总能量和参考总能量不低于静止能量。若设置了非物理的过强减速，使 :math:`E_{\mathrm{new}} < m_0` ，动量平方根将失去实数定义；当前实现不会自动修正这类输入。
-
-
-移动参考系
-~~~~~~~~~~~
-
-PASS 采用移动参考系（moving reference frame）：每次 RF kick 后，每个束团的参考能量更新为包含其 :math:`\Delta E_{\text{ref}}` 的新值：
-
-.. math::
-
-  E_{\text{total},1} = E_{\text{total},0} + \Delta E_{\text{ref}}
-
-.. math::
-
-  \gamma_1 = \frac{E_{\text{total},1}}{m_0}
-
-.. math::
-
-  \beta_1 = \sqrt{1 - \frac{1}{\gamma_1^2}}
-
-.. math::
-
-  p_{0,\text{new}} = \gamma_1 m_0 \beta_1
-
-.. math::
-
-  E_{k,1} = E_{\text{total},1} - m_0
-
-每个束团参考粒子的 :math:`\delta` 始终保持在 0 附近，避免了固定参考系中 :math:`\delta` 持续增长导致的数值精度问题。
-
-
-横向动量重缩放与绝热阻尼
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-RF kick 是纯纵向能量增益，不改变粒子的绝对横向动量 :math:`P_x` 。但由于参考动量 :math:`P_0` 增长，归一化横向动量 :math:`p_x = P_x / P_0` 必须重缩放：
-
-.. math::
-
-  p_x \leftarrow p_x \cdot \frac{p_{0,\text{old}}}{p_{0,\text{new}}} = p_x \cdot \frac{\beta_0 \gamma_0}{\beta_1 \gamma_1}
-
-.. math::
-
-  p_y \leftarrow p_y \cdot \frac{\beta_0 \gamma_0}{\beta_1 \gamma_1}
-
-此缩放 **精确** ，不是近似（因为 :math:`p_0 c = \beta \gamma m_0 c^2` ，所以 :math:`p_{0,\text{old}} / p_{0,\text{new}} = \beta_0 \gamma_0 / (\beta_1 \gamma_1)` ）。
-
-**物理意义** ：归一化发射度 :math:`\epsilon_N = \beta\gamma\epsilon` 是绝热不变量（Liouville 定理）。当 :math:`p_0` 增长时，几何发射度 :math:`\epsilon` 按 :math:`1/(\beta\gamma)` 收缩，即绝热阻尼（adiabatic damping）。横向动量重缩放保证了 :math:`\epsilon_N` 严格守恒：
-
-.. math::
-
-  \epsilon_{\text{geom}}^{\text{new}} = \epsilon_{\text{geom}}^{\text{old}} \cdot \frac{\beta_0 \gamma_0}{\beta_1 \gamma_1} = \frac{\epsilon_N}{\beta_1 \gamma_1}
-
-
-跟踪流程
---------
-
-.. code-block:: text
-
-  输入: z_rel, z_center, dp(=δ), px, py, tag,
-        bunch参数(β₀, γ₀, m₀, q/A, Ek, p₀, C)
-
-  1. 计算 RF 相位
-     z_lab = z_rel + z_center
-     φ_particle = phase + φ_off - h_rf·z_lab/R
-
-  2. 能量 kick
-     ΔE_kick = (q/A)·V·sin(φ_particle)  [逐粒子]
-     ΔE_ref  = (q/A)·V·sin(phase + φ_off - h_rf·z_center/R)
-                                             [逐束团标量]
-
-  3. 更新束流参考（移动参考系）
-     E_total1 = E_total0 + ΔE_ref
-     γ₁ = E_total1 / m₀
-     β₁ = √(1 - 1/γ₁²)
-     p₀_new = γ₁·m₀·β₁
-     Ek₁ = E_total1 - m₀
-
-  4. 精确 δ 更新
-     p_old = p₀_old·(1+δ)
-     E_old = √(p_old² + m₀²)
-     E_new = E_old + ΔE_kick
-     p_new = √(E_new² - m₀²)
-     δ_new = p_new / p₀_new - 1
-
-  5. 横向动量重缩放（绝热阻尼）
-     scale = β₀γ₀ / (β₁γ₁)
-     px *= scale
-     py *= scale
-
-  6. dp 接受度检查（超出 → 标记丢失）
-
-  7. 更新丢失粒子信息
-
-  RFCavity 不修改也不折叠 z_rel。
-
-
-接口参数
---------
-
-.. list-table:: RF 参数
-  :header-rows: 1
-  :widths: 20 22 10 10 38
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 默认值
-    - 说明
-  * - ``voltage``
-    - ``Voltage (V)``
-    - float
-    - 0.0
-    - RF 电压（V）
-  * - ``harmonic``
-    - ``Harmonic``
-    - int
-    - 1
-    - 谐波数 :math:`h`
-  * - ``phase``
-    - ``Phase (rad)``
-    - float
-    - 0.0
-    - 标称 RF 相位 :math:`\varphi_s` （rad）；束团中心的实际相位还包含 ``phi_offset`` 和 :math:`z_{\mathrm{center}}` 项
-  * - ``phi_offset``
-    - ``Phi offset (rad)``
-    - float
-    - 0.0
-    - 附加相位偏移（rad），用于多腔相位对齐和相位 trim
-  * - ``_rf_table``
-    - ``RF data file``
-    - str
-    - None
-    - Ramping 数据文件路径（TFS 格式），提供后覆盖固定值参数。每行对应一圈，所需列名： ``HARMONIC`` 、 ``VOLTAGE`` 、 ``PHASE`` 、 ``PHI_OFFSET``
-  * - ``is_enabled``
-    - ``Is enabled``
-    - bool
-    - True
-    - 开关
-
-.. list-table:: 纵向孔径参数
-  :header-rows: 1
-  :widths: 20 22 10 10 38
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 默认值
-    - 说明
-  * - ``dp_aperture_lower``
-    - ``Dp aperture[0]``
-    - float
-    - -1.0
-    - dp 接受度下限
-  * - ``dp_aperture_upper``
-    - ``Dp aperture[1]``
-    - float
-    - 1.0
-    - dp 接受度上限
-
-.. list-table:: 通用参数
-  :header-rows: 1
-  :widths: 20 22 10 10 38
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 默认值
-    - 说明
-  * - ``s``
-    - ``s (m)``
-    - float
-    - 必填
-    - 元件在束线中的纵向位置
-  * - ``cmd_name``
-    - ``name``
-    - str
-    - 必填
-    - 元件名称
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - ``off``
-    - 横向孔径类型
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - ``[]``
-    - 横向孔径参数
-
-
-Ramping 数据文件
+能量踢与参考更新
 ----------------
 
-当 RF 参数需要随圈数变化时（如能量 ramping ），可提供 TFS 格式的数据文件。 TFS （ Table File System ）是一种带元数据的表格格式，文件中可包含标题、注释等文档信息，列通过列名识别而非位置。
-
-所需列名（大小写不限，顺序不限）：
-
-- ``HARMONIC`` —— 谐波数
-- ``VOLTAGE`` —— RF 电压（V）
-- ``PHASE`` —— 标称 RF 相位（rad）
-- ``PHI_OFFSET`` —— 附加相位偏移（rad）
-
-读取时列名自动转换为小写，因此 ``Harmonic`` 、 ``voltage`` 、 ``phase`` 等任意大小写组合均可。每行对应一圈（第 0 行 = 第 0 圈）。若圈数超出文件行数，使用最后一行数据。文件还可包含 ``TITLE`` 、 ``DATE`` 等元数据头信息，由 ``tfs-pandas`` 库自动解析。
+离子的能量、静质量能和动量乘 c 按 PASS 的每核子 eV 约定，电荷因子为
+带符号的 :math:`q=Z/A`；这里 Z 是电荷数，而不是质子数。电子、正电子
+使用每粒子量，电荷因子分别为 -1、+1，不除以为零的核子数。
+运行时采用 ``sign(bunch.num_charge) * bunch.qm_ratio``，其中
+``qm_ratio`` 保持电荷质量比幅值的既有含义。同一 command 的全部分量
+先在共同入口事件上求和，再进行一次更新：
 
 
-使用示例
+.. math::
+
+   E_i'=\sqrt{[P_{0,b}(1+\delta_i)]^2+m^2}+qU(t_i),\qquad
+   E_{0,b}'=E_{0,b}+qU(T_b),
+
+.. math::
+
+   P_i'=\sqrt{(E_i'-m)(E_i'+m)},\quad
+   P_{0,b}'=\sqrt{(E_{0,b}'-m)(E_{0,b}'+m)},\quad
+   \delta_i'=P_i'/P_{0,b}'-1,
+
+.. math::
+
+   p_{x,y}'=p_{x,y}P_{0,b}/P_{0,b}',\qquad
+   T_b'=T_b,\qquad z_i'=z_i\beta_b'/\beta_b.
+
+纵向电场保持机械横向动量。零长度踢不增加通过时间；z 缩放保证时间连续，不额外缩放实际能量偏差。无效参考能量报错，停止或无法向前传播的粒子标记损失。动量接受度在总踢之后检查。零电压仍检查孔径，禁用 command 则不执行。保存的切片区间、宽度和成员保持原值，由用户重新执行 Slicer 更新。
+
+具体地，存储的 :math:`p_x=P_x/P_{0,b}` 是归一化动量，不是轨迹斜率。
+参考动量更新后，:math:`P_x'=P_{0,b}'p_x'=P_{0,b}p_x=P_x`，y 方向同理。
+而轨迹斜率 :math:`dx/ds=P_x/P_s` 可以随纵向动量改变；加速时横向角度
+减小并不意味着机械横向动量减小。这些关系适用于这里的理想纵向薄踢，
+有限腔的横向电磁场与 RF 聚焦不包含在此模型内。
+
+弱踢的稳定计算
+--------------
+
+实现通过避免相近动量相减，计算同一个精确动量映射。记
+:math:`g_i=qU(t_i)`、:math:`g_0=qU(T_b)`、:math:`r=P_{0,b}/P_{0,b}'`，
+将动量差有理化后得到：
+
+.. math::
+
+   P_i'-P_i=\frac{g_i(2E_i+g_i)}{P_i'+P_i},\qquad
+   \delta_i'=r\delta_i
+   -\frac{g_0(2E_{0,b}+g_0)}{P_{0,b}'(P_{0,b}'+P_{0,b})}
+   +\frac{g_i(2E_i+g_i)}{P_{0,b}'(P_i'+P_i)}.
+
+直接计算 :math:`P_i'/P_{0,b}'-1` 时，弱 RF 踢可能被舍入误差淹没。
+上述形式保留这些小量，是精确公式的代数重排，没有对踢角作线性化。
+
+GPU 实现
 --------
 
-示例 1：基本加速腔
-~~~~~~~~~~~~~~~~~~~
+CPU 使用 NumPy 数组。GPU 使用 ``PASS/commands/element/rfcavity.py`` 中的
+融合 ``RawKernel``：每个存活粒子在同一内核中计算所有波形分量、执行精确能量
+与参考量变换，并记录纵向损失。每个非空束团启动一次 RF 内核；启用横向孔径时，
+随后单独执行标准孔径检查。
 
-.. code-block:: json
+粒子存储可为 float32 或 float64，时间、相位、能量和动量中间量始终保持
+float64。RF 内核不分配与粒子数等长的能量增益、时间、掩码或能量临时数组。
+常值波形使用专门路径；时变波形使用缓存的设备端时间表，其线性插值、频率积分
+和端点保持规则与 CPU 一致。查表时比较局部时间偏移与平移后的节点，避免在
+较大参考时刻下丢失束内微小到达时间差。
 
-  {
-    "RFCavity_1": {
-      "S (m)": 0.0,
-      "Command": "RFCavity",
-      "Voltage (V)": 100000,
-      "Harmonic": 1,
-      "Phase (rad)": 0.3,
-      "Is enabled": true
-    }
-  }
+分量数不超过 32 时，波形描述参数按值传入；更多分量使用打包的设备缓冲区，
+避免超过可移植的内核参数大小限制。设备时间表和编译内核按 command、设备和
+粒子精度缓存。稳态性能测量应排除首次编译和上传。旧单分量 RawKernel 使用
+不同的坐标与精度规则，不能替代当前物理映射。
 
-对质子单束团（ :math:`z_{\mathrm{center}}=0` 、 :math:`\varphi_{\mathrm{off}}=0` ），参考粒子每圈获得 :math:`\Delta E = V \sin(0.3) \approx 29552` eV 的能量增益。
+CPU 标量与数组时间表求值统一由 ``PASS.utils.program.LinearProgram`` 管理；CPU/GPU 共用
+参考踢的主机计算。程序持有输入时间与数值数组的独立只读副本，避免外部
+修改输入后使插值系数、积分或设备缓存失效。更换规定波形时应重新构造
+程序及使用该程序的 command，不在跟踪中原地修改程序数组。
 
-示例 2：带 dp 接受度和相位偏移的腔
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-    "RFCavity_2": {
-      "S (m)": 500.0,
-      "Command": "RFCavity",
-      "Voltage (V)": 200000,
-      "Harmonic": 4,
-      "Phase (rad)": 0.5236,
-      "Phi offset (rad)": 0.05,
-      "Dp aperture": [-0.02, 0.02],
-      "Is enabled": true
-    }
-  }
-
-:math:`\varphi_s = \pi/6 = 0.5236` rad ， 4 次谐波， dp 接受度 :math:`\pm 2\%` ，附加相位偏移 0.05 rad 。
-
-示例 3：Ramping 腔（TFS 文件输入）
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-    "RFCavity_3": {
-      "S (m)": 0.0,
-      "Command": "RFCavity",
-      "RF data file": "D:/PASS/para/rf_data.tfs",
-      "Is enabled": true
-    }
-  }
-
-TFS 文件中每行指定该圈的 ``HARMONIC`` 、 ``VOLTAGE`` 、 ``PHASE`` 、 ``PHI_OFFSET`` 。
-
-示例 4：禁用腔
-~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-    "RFCavity_4": {
-      "S (m)": 0.0,
-      "Command": "RFCavity",
-      "Voltage (V)": 100000,
-      "Harmonic": 1,
-      "Phase (rad)": 0.3,
-      "Is enabled": false
-    }
-  }
-
-``Is enabled = false`` 时，腔体不执行任何操作（no-op ）。
-
-
-应用场景
+输入接口
 --------
 
-1. **同步加速器加速** ：从注入能量到引出能量的加速过程，移动参考系保持 :math:`\delta` 在小量级，数值精度好
+.. list-table::
+   :header-rows: 1
 
-2. **纵向束流动力学** ：同步振荡、束团拉伸/压缩、纵向 Emittance 控制
+   * - JSON key
+     - Type
+     - Default
+     - Meaning
+   * - S (m)
+     - float
+     - Required
+     - 物理位置
+   * - Length (m)
+     - float
+     - 0
+     - 必须为零
+   * - Is enabled
+     - bool
+     - true
+     - 是否执行
+   * - Components
+     - list
+     - Required
+     - 一个或多个 RFComponent
+   * - Dp aperture
+     - [float,float]
+     - None（关闭）
+     - 总踢后动量偏差边界
+   * - Aperture type / Aperture value
+     - str / list
+     - off / []
+     - 标准横向孔径
 
-3. **多谐波加速** ：多个 RF 腔串联使用，不同谐波数实现束团塑形
+每个分量选择以下两种频率定义之一：
 
-4. **能量 ramping** ：通过 TFS 文件输入实现电压/相位随圈数变化，模拟真实加速器运行方案
+* ``Frequency (Hz)``：规定的实际载波频率，正标量或列表。
+* ``Harmonic``：正整数，乘以共同 ``Reference clock`` 的回旋频率；不依赖当前束团能量，也不受分组谐波整除限制。
 
-5. **纵向接受度研究** ：通过 dp aperture 参数设定纵向接受度，研究束流损失边界
+``Voltage (V)`` 与 ``Phase (rad)`` 默认为 0，可为标量或列表。列表共享严格递增的有限 ``Time (s)``。所有程序分段线性插值，区间外保持端点值。参考时钟与默认值见 :ref:`zh-reference-clock`。
 
 
-验证测试
+.. code-block:: json
+
+   {
+     "Command": "RFCavity", "S (m)": 0.0,
+     "Components": [
+       {"Voltage (V)": 100000.0, "Frequency (Hz)": 5000000.0, "Phase (rad)": 0.3},
+       {"Voltage (V)": 20000.0, "Frequency (Hz)": 10000000.0, "Phase (rad)": 1.2}
+     ]
+   }
+
+.. code-block:: python
+
+   from PASS.para.schema import RFCavityElement, RFComponent
+
+   rf = RFCavityElement(s=0.0, components=[
+       RFComponent(voltage=100e3, harmonic=1, phase=0.3),
+       RFComponent(voltage=[0., 20e3], frequency=[10e6, 10.1e6],
+                   times=[0., 0.01], phase=1.2),
+   ])
+
+文件与同步程序
+--------------
+
+使用 ``{"Program file": "rf.tfs"}`` 读取 ``TIME, VOLTAGE, FREQUENCY, PHASE`` 列，单位依次为 s、V、Hz、rad。使用 ``{"Program file": "rf.tfs", "Harmonic": 2}`` 时文件应只有 ``TIME, VOLTAGE, PHASE``，禁止同时提供 FREQUENCY。文件模式不能混用内联波形值。
+
+旧腔级 ``Voltage (V)``、``Harmonic``、``Phase (rad)``、``Phi offset (rad)``、``RF data file`` 及按圈索引的 RF 表已移除。``convert_rf_data(input_path, output_path)`` 仅转换物理时间表，不再把秒转换为圈号。
+
+``PASS.para.tools.rf_data.synchronous_rf_program`` 从电压、目标通过相位及明确的设计粒子能量/飞行时间构造规定波形；它只生成输入，运行时不重置实际束团相位或能量。变频载波积分和附加相位程序共同保证设计采样点相位，采样点之间采用声明的线性插值。
+
+物理范围
 --------
 
-此处所述测试文件仅在本地维护。``tests/`` 目录不纳入 Git 版本控制，
-新克隆的仓库不包含该目录。
+模型采用有效电压、理想纵向薄踢与零长度腔。不额外建模有限间隙渡越、RF 横向聚焦或腔内轨迹；若输入已包含渡越时间因子，不重复乘入。准确的 RF 踢不消除其他输运映射或准静态集体效应的近似。
 
-``tests/test_rf_verification.py`` —— 18 组共 28 项测试，全部通过：
-
-1. 束团参考粒子 :math:`\delta \approx 0` （精度 :math:`< 10^{-12}` ）
-2. 单束团基准情形（ :math:`z_{\mathrm{center}}=0` 、 :math:`\varphi_{\mathrm{off}}=0` ）的参考能量增益 :math:`\Delta E = (q/A) V \sin(\varphi_s)`
-3. 精确能量-动量关系 :math:`E^2 = p^2 + m_0^2`
-4. 相位依赖性（不同 :math:`z_{\mathrm{lab}}` 的粒子获得不同 kick ）
-5. 移动参考系（束流参考能量正确更新）
-6. 绝热阻尼（ :math:`p_x` 按 :math:`\beta_0\gamma_0/(\beta_1\gamma_1)` 缩放）
-7. 归一化发射度守恒（相对误差 :math:`< 10^{-15}` ）
-8. 死粒子不被 kick
-9. 零电压退化为 no-op
-10. dp 接受度检查
-11. 多圈加速（10 圈后能量正确， :math:`\delta` 仍为 :math:`\sim 0` ）
-12. 与独立参考实现的全量对比（ :math:`< 10^{-10}` ）
-13. 低 :math:`\gamma` （非超相对论， :math:`\beta = 0.417` ）
-14. 大 :math:`\delta` （ :math:`\pm 30\%` ，非线性区）
-15. 离子（ :math:`q/A \neq 1` ）
-16. 相位偏移 :math:`\varphi_{\text{off}}`
-17. 禁用腔（ ``is_enabled = false`` ）
-18. 多束团实验室坐标、非整倍谐波关系和奇偶谐波统一处理
+物理 RF 表使用 tfs-pandas 的 ``colwidth=25, headerswidth=25`` 保存，保留 float64 时间精度。同步输入生成器中的 ``origin`` 是首次通过腔的时刻，``time_origin`` 是共同波形基准时刻，两者可以不同。

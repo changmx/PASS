@@ -160,10 +160,11 @@
 </li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">漂移节（Drift）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#id1">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id3">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id4">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id5">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id7">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id10">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">共享数值漂移因子</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a><ul>
@@ -294,15 +295,13 @@
 <li class="toctree-l4"><a class="reference internal" href="exciter.html#id11">使用示例</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="rfcavity.html">高频加速腔（RFCavity）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id2">物理推导</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id8">跟踪流程</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id9">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#ramping">Ramping 数据文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id10">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id13">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id14">验证测试</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rfcavity.html">RF 腔（RFCavity）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id1">能量踢与参考更新</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id2">弱踢的稳定计算</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#gpu">GPU 实现</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id3">输入接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id4">文件与同步程序</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rfcavity.html#id5">物理范围</a></li>
 </ul>
 </li>
 </ul>
@@ -343,14 +342,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#id11">应用场景</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">功能说明</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">分组边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id5">应用场景</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id1">分组操作与边界</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id3">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#id4">应用场景</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a><ul>
@@ -609,6 +608,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#usage-examples">Usage Examples</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#application-scenarios">Application Scenarios</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#internal-space-charge">Internal Space Charge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html#shared-numerical-drift-factors">Shared numerical drift factors</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
@@ -740,14 +740,12 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#verification-tests">Verification Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#energy-kick-and-reference-update">Energy kick and reference update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#stable-weak-kicks">Stable weak kicks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#gpu-implementation">GPU implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#input-interface">Input interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#files-and-synchronous-programs">Files and synchronous programs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/rfcavity.html#physical-scope">Physical scope</a></li>
 </ul>
 </li>
 </ul>
@@ -788,11 +786,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/index.html#output-reference-information">Output reference information</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation">Operation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#group-boundaries">Group Boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#usage-example">Usage Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/reorganize.html#applications">Applications</a></li>
@@ -991,9 +989,10 @@
 <p>纵向动量分量（考虑横向动量的投影）为：</p>
 <div class="math notranslate nohighlight">
 \[p_z = \sqrt{(1 + \delta)^2 - p_x^2 - p_y^2}\]</div>
-<p>若 <span class="math notranslate nohighlight">\(p_z^2 \le 0\)</span> ，粒子物理上不可能存在 （横向动量大于总动量），标记为丢失。</p>
+<p>向前传播要求 <span class="math notranslate nohighlight">\(1+\delta&gt;0\)</span>，且 <span class="math notranslate nohighlight">\(p_z^2\)</span> 有限并严格大于零。
+不满足这些条件的存活粒子标记为丢失；已丢失粒子的坐标和首次损失记录保持不变。</p>
 <p><strong>粒子速度</strong></p>
-<p>粒子 <span class="math notranslate nohighlight">\(\beta\)</span> 值由参考粒子 <span class="math notranslate nohighlight">\(\beta_0\)</span> 、 <span class="math notranslate nohighlight">\(\gamma_0\)</span> 和动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 计算：</p>
+<p>粒子 <span class="math notranslate nohighlight">\(\beta\)</span> 值与参考粒子 <span class="math notranslate nohighlight">\(\beta_0\)</span> 、 <span class="math notranslate nohighlight">\(\gamma_0\)</span> 和动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 的关系为：</p>
 <div class="math notranslate nohighlight">
 \[\beta = \frac{(1 + \delta) \, \gamma_0 \, \beta_0}{\sqrt{1 + \left[(1 + \delta) \, \gamma_0 \, \beta_0\right]^2}}\]</div>
 <p><strong>坐标更新</strong></p>
@@ -1004,12 +1003,107 @@
 \[y \leftarrow y + L \cdot \frac{p_y}{p_z}\]</div>
 <div class="math notranslate nohighlight">
 \[z \leftarrow z + L \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1 + \delta}{p_z}\right)\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(z\)</span> 的更新包含路径长度差效应：具有动量偏差的粒子速度不同，导致纵向位置发生变化。</p>
-<p><strong>纵向坐标连续性</strong></p>
-<p>Drift 不对更新后的 <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> 做环周折叠。连续保存纵向滑移可避免丢失多圈累计信息；需要实验室坐标时使用 <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}=z_{\mathrm{rel}}+z_{\mathrm{center}}\)</span>。</p>
-</section>
+<p>上面的纵向更新式是原实现直接计算的公式。它同时包含动量偏差造成的速度差，
+以及横向运动造成的实际飞行路程增加。</p>
 <section id="id2">
-<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<h3>从飞行时间推导原公式<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<p>这里 <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>、<span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>，
+<span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>。上面的 <span class="math notranslate nohighlight">\(p_z\)</span> 是归一化纵向动量，
+而保存的 <code class="docutils literal notranslate"><span class="pre">p.z</span></code> 是连续的时间坐标：</p>
+<div class="math notranslate nohighlight">
+\[z=\beta_0c(t_0-t_i).\]</div>
+<p>推导假定粒子向前运动，满足 <span class="math notranslate nohighlight">\(1+\delta&gt;0\)</span> 和 <span class="math notranslate nohighlight">\(p_z&gt;0\)</span>。
+无场漂移中，参考速度和各粒子的动量保持不变。参考粒子的飞行时间和实际粒子的
+纵向速度分别为：</p>
+<div class="math notranslate nohighlight">
+\[\Delta t_0=\frac{L}{\beta_0c},\qquad
+v_s=\beta c\frac{p_z}{1+\delta},\qquad
+\Delta t_i=\frac{L}{v_s}.\]</div>
+<p>因此：</p>
+<div class="math notranslate nohighlight">
+\[\Delta z=\beta_0c(\Delta t_0-\Delta t_i)
+=L\left(1-\frac{\beta_0}{\beta}\frac{1+\delta}{p_z}\right).\]</div>
+<p>参考事件的时间推进 <span class="math notranslate nohighlight">\(\Delta t_0\)</span>；正的 <span class="math notranslate nohighlight">\(\Delta z\)</span> 表示粒子相对于
+参考粒子获得了到达时间上的提前量。</p>
+</section>
+<section id="id3">
+<h3>有理化得到当前公式<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>令 <span class="math notranslate nohighlight">\(a=\gamma_0^{-2}\)</span>、<span class="math notranslate nohighlight">\(u=1+\delta\)</span>、
+<span class="math notranslate nohighlight">\(q_\perp=p_x^2+p_y^2\)</span>。利用 <span class="math notranslate nohighlight">\(\beta_0^2=1-a\)</span> 和相对论能量—动量关系：</p>
+<div class="math notranslate nohighlight">
+\[A\equiv\frac{\beta_0}{\beta}u
+=\frac{\sqrt{1+(\gamma_0\beta_0u)^2}}{\gamma_0}
+=\sqrt{a+(1-a)u^2}=\frac{E_i}{E_0}.\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(E_i\)</span> 和 <span class="math notranslate nohighlight">\(E_0\)</span> 是静止质量相同的粒子的总能量。
+当前 <code class="docutils literal notranslate"><span class="pre">drift_factors</span></code> 中的 <code class="docutils literal notranslate"><span class="pre">energy</span></code> 对应 <span class="math notranslate nohighlight">\(A\)</span>。
+由 <span class="math notranslate nohighlight">\(p_z^2=u^2-q_\perp\)</span>，将差值的分子有理化：</p>
+<div class="math notranslate nohighlight">
+\[\frac{\Delta z}{L}
+=\frac{p_z-A}{p_z}
+=\frac{p_z^2-A^2}{p_z(p_z+A)},\]</div>
+<div class="math notranslate nohighlight">
+\[p_z^2-A^2
+=u^2-q_\perp-\left[a+(1-a)u^2\right]
+=a(u^2-1)-q_\perp
+=\frac{\delta(2+\delta)}{\gamma_0^2}-p_x^2-p_y^2.\]</div>
+<p>CPU 和 GPU 当前均计算：</p>
+<div class="math notranslate nohighlight">
+\[\Delta z = L\frac{\delta(2+\delta)/\gamma_0^2-p_x^2-p_y^2}
+{p_z\left[p_z+\sqrt{\gamma_0^{-2}+(1-\gamma_0^{-2})(1+\delta)^2}\right]}.\]</div>
+<p>这是代数恒等变换，没有对动量偏差或横向角度作截断展开，保留了原来的精确几何映射。
+带内部空间电荷的 GPU 漂移分段也使用同一个内核。</p>
+</section>
+<section id="id4">
+<h3>修改目的与数值限制<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>滑移很小时，原表达式需要将两个接近 1 的数相减，容易损失有效数字。
+FP32 在 1 右侧的相邻浮点数间隔约为 <span class="math notranslate nohighlight">\(1.19\times10^{-7}\)</span>，
+所以真实值为 <span class="math notranslate nohighlight">\(10^{-8}\)</span> 或 <span class="math notranslate nohighlight">\(10^{-9}\)</span> 量级的滑移因子，在直接计算时
+可能产生很大的相对误差，甚至被舍入为零。</p>
+<p>当前表达式直接构造小量分子。尤其是 <code class="docutils literal notranslate"><span class="pre">dp</span> <span class="pre">*</span> <span class="pre">(2</span> <span class="pre">+</span> <span class="pre">dp)</span></code>，即使 <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">dp</span></code>
+被舍入为 1，仍能保留很小的动量偏差；若写成 <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">dp)**2</span> <span class="pre">-</span> <span class="pre">1</span></code>，则会再次引入
+相近数相减的问题。</p>
+<p>仅为理解物理含义，保留动量偏差与横向运动的主导项可得：</p>
+<div class="math notranslate nohighlight">
+\[\frac{\Delta z}{L}\simeq
+\frac{\delta}{\gamma_0^2}-\frac{p_x^2+p_y^2}{2}.\]</div>
+<p>因此，轴上粒子的正动量偏差使其提前到达；总动量不变时，横向运动使其推迟到达；
+理想参考粒子的滑移为零。跟踪实际计算的是前面的完整有理化公式，而非这个主导项表达式。</p>
+<p>例如 <span class="math notranslate nohighlight">\(L=1\,\mathrm{m}\)</span>、<span class="math notranslate nohighlight">\(\gamma_0=2\)</span>、<span class="math notranslate nohighlight">\(\delta=10^{-8}\)</span>，
+且 <span class="math notranslate nohighlight">\(p_x=p_y=0\)</span> 时，精确滑移约为 <span class="math notranslate nohighlight">\(2.5\times10^{-9}\,\mathrm{m}\)</span>。
+初始 z 为零时，有理化公式在 FP32 中能够保留这一增量。六维粒子坐标仍统一使用所选的
+FP32 或 FP64：若将同一增量加到已有的 FP32 <span class="math notranslate nohighlight">\(z=1\,\mathrm{m}\)</span> 上，结果仍会舍入为 1。
+因此，本次修改改善增量的计算精度，但不能消除反复累加中的舍入误差，也不能消除两个
+物理贡献几乎抵消时的相消误差。</p>
+<p>精确推导还假定计算 <span class="math notranslate nohighlight">\(p_z\)</span> 时没有设置人为下限。旧 CPU 实现在判断丢失后
+使用 <span class="math notranslate nohighlight">\(p_z=\sqrt{\max(p_z^2,10^{-10})}\)</span>，会改变极小正纵向动量粒子的
+飞行时间，且与 GPU 不一致。当前 CPU 和 GPU 对有效粒子均直接计算
+<span class="math notranslate nohighlight">\(p_z=\sqrt{p_z^2}\)</span>，不再夹紧正值。CPU 仅为无效行设置安全的计算占位值，
+这些行不参与坐标更新；这也避免了用零掩码乘 NaN 时污染已丢失粒子的记录。</p>
+<p>CPU 的 <code class="docutils literal notranslate"><span class="pre">drift_factors</span></code> 与 CUDA 的 <code class="docutils literal notranslate"><span class="pre">pass_drift_factors</span></code> 集中实现同一组
+前向条件和稳定公式，供 Drift 及有限长度静电元件的直线传输复用。
+这是计算逻辑的整理，未增加新的漂移力或动量踢。</p>
+</section>
+<section id="id5">
+<h3>计算开销<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>两种写法对 <span class="math notranslate nohighlight">\(N\)</span> 个粒子的计算量均为 <span class="math notranslate nohighlight">\(O(N)\)</span>。CPU 新写法去掉了显式的
+粒子速度数组及其除法，同时增加了有理化分子和分母的运算；两者每粒子仍需计算两次平方根。
+NumPy 临时数组和内存读写也会影响耗时，因此不能仅凭表达式长短判断是否提速。</p>
+<p>GPU 继续在同一个融合内核中完成计算，每粒子仍计算两次平方根。相对于原内核，
+新分母增加了一次浮点除法，并增加了分子的算术运算。坐标存储、全局数组访问和内核启动次数
+保持不变。运算吞吐受限时，耗时可能增加，FP64 尤其需要关注；小批量可能主要受启动开销
+影响，大批量也可能受显存带宽限制。本次修改的目的是可靠地计算小滑移，具体耗时影响应按
+硬件、精度、粒子数和分段配置实测。</p>
+<p>GPU 计时应排除首次编译，并通过同步或 CUDA 事件处理异步执行，参见
+<a class="reference external" href="https://docs.cupy.dev/en/stable/user_guide/performance.html">CuPy 性能说明</a>。
+稳态内核计时本身不能代表包含空间电荷、监测器和数据传输的完整模拟耗时。</p>
+</section>
+<section id="id6">
+<h3>纵向坐标连续性<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>连续保存 z，不折叠多圈累计滑移。物理到达时间为 <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span>，必须使用当前参考事件；名义槽位偏移不参与时间重建。</p>
+</section>
+</section>
+<section id="id7">
+<h2>接口参数<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -1069,8 +1163,8 @@
 </tbody>
 </table>
 </section>
-<section id="id3">
-<h2>使用示例<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id8">
+<h2>使用示例<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <p>以下 JSON 片段展示了漂移节的配置方式：</p>
 <p><strong>基本用法</strong> ：</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -1102,8 +1196,8 @@
 </pre></div>
 </div>
 </section>
-<section id="id4">
-<h2>应用场景<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<section id="id9">
+<h2>应用场景<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><strong>束线连接</strong> ：在各磁铁元件之间提供自由漂移空间，是最常用的束线元件</p></li>
 <li><p><strong>色散测量</strong> ：在偏转磁铁后设置漂移段，利用色散效应测量束流动量分散</p></li>
@@ -1111,14 +1205,22 @@
 <li><p><strong>孔径检查</strong> ：在关键位置设置带孔径检查的漂移节，监控束流损失</p></li>
 </ul>
 </section>
-<section id="id5">
-<h2>元件内部空间电荷<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id10">
+<h2>元件内部空间电荷<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
 <p>正长度元件可设置 <code class="docutils literal notranslate"><span class="pre">space_charge``（JSON</span> <span class="pre">``Space</span> <span class="pre">charge</span></code>）为
 <code class="docutils literal notranslate"><span class="pre">ElementSpaceCharge</span></code> 对象。<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> 控制外场传输，
 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge.Num</span> <span class="pre">kicks</span></code> 控制 SC 积分。调度规则、共享资源、
 支持的后端和示例见 <a class="reference internal" href="../space_charge.html#zh-internal-space-charge"><span class="std std-ref">元件切片与内部空间电荷</span></a>。</p>
 <p><code class="docutils literal notranslate"><span class="pre">num_slices``（JSON</span> <span class="pre">``Num</span> <span class="pre">slices</span></code>）为正整数，默认 1。
 不启用内部 SC 时，CPU 与 GPU 均使用该数量的本体切片。</p>
+</section>
+<section id="id11">
+<h2>共享数值漂移因子<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<p>Drift 与有限长度 ElSeparator 共享 CPU 漂移因子和 CUDA 内联映射。
+纵向滑移采用有理化表达式，保留 FP32 的微小增量。
+非正总动量（delta &lt;= -1）、非正纵向动量及非有限纵向动量判损，
+不再把正的纵向动量截断到任意 epsilon。已有损失记录保持不变。
+共享映射不改变 Drift 的出口/节点孔径取样；ElSeparator 额外求解沿直线子段的管壁交点。</p>
 </section>
 </section>
 

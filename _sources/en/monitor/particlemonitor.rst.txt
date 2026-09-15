@@ -12,8 +12,8 @@ Introduction
 
   - Selects recorded particles via the ``max_tag`` parameter, with the matching condition :math:`1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}`;
   - Supports setting a recorded turn range ``[start_turn, end_turn)``, without needing to start tracking from turn 0;
-  - Pre-allocates buffer ``(max_tag, num_record_turn, 11)``, avoiding runtime dynamic allocation;
-  - Records 11 columns per turn: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter;
+  - Pre-allocates buffer ``(max_tag, num_record_turn, num_columns)``, avoiding runtime dynamic allocation;
+  - Records 11 columns per turn by default: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter; ``Include reference`` adds three optional reference columns;
   - After simulation, each particle is written to a separate TFS file;
   - Filenames include the monitor name and longitudinal position (3 decimal places), supporting multi-position deployment;
   - CPU uses numpy, GPU uses cupy, with the buffer residing on GPU throughout; only a single D2H copy is performed at the end;
@@ -68,19 +68,25 @@ Pre-allocation Strategy
 
 .. math::
 
-   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times 11}
+   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
+
+``Include reference`` defaults to false: :math:`N_{\mathrm{col}}=11`.
+When enabled, :math:`N_{\mathrm{col}}=14`. Disabled reference columns have no
+buffer allocation on either CPU or GPU.
 
 Memory overhead:
 
 .. math::
 
-   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times 11 \times 8 \;\text{bytes}
+   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
 
 Typical scenario (14 test particles, recording 1000 turns):
 
 .. math::
 
    M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
+
+Enabling reference columns increases this example to 1.568 MB (27.3% more).
 
 The buffer uses the same array backend as the beam (``beam.particles.xp``), numpy on CPU, cupy on GPU. Advantages of pre-allocation:
 
@@ -131,6 +137,11 @@ Interface Parameters
     - int
     - -1
     - Ending turn for recording (exclusive, -1 means up to and including the last turn)
+  * - ``include_reference``
+    - ``"Include reference"``
+    - bool
+    - false
+    - Append per-row reference time, beta and momentum for physical-time/energy analysis, such as BLonD comparison
 
 .. note::
 
@@ -159,7 +170,7 @@ TFS file header:
    @ StartTurn        0
    @ EndTurn          1000
 
-Output columns (11 columns total):
+Default output columns (11 columns total):
 
 .. list-table::
   :header-rows: 1
@@ -200,16 +211,42 @@ Output columns (11 columns total):
     - Loss position :math:`s` (-1 means not lost)
   * - ``zCenter``
     - m
-    - Laboratory longitudinal center of the owning bunch, :math:`z_{\mathrm{center}}`
+    - Nominal grouping slot of the owning bunch, :math:`z_{\mathrm{center}}`
 
-The laboratory longitudinal position is recovered as
+Reference values are not saved by default, either in data columns or in headers.
+With ``"Include reference": true``, each row additionally saves
+``referenceTime`` (s), ``referenceBeta`` (dimensionless) and
+``referenceMomentum`` (eV/c per nucleon), giving 14 columns in total.
+These values belong to the same recording event as the particle coordinates.
+Live-particle arrival time is then
 
 .. math::
 
-   z_{\mathrm{lab}} = z + zCenter.
+   t_i=referenceTime-z/(referenceBeta\,c).
 
-The tracked ``z`` value may extend beyond one circumference and should not be used by itself to determine bunch membership.
+``zCenter`` is nominal slot metadata only. Continuous z may extend beyond one
+circumference and does not alone determine group membership. Reference columns
+are NaN for loss records when enabled, preventing reinterpretation of frozen
+loss coordinates using the current bunch reference. Analyses requiring reference
+history must enable this option before tracking; a final reference snapshot
+cannot reconstruct earlier turns during acceleration or regrouping.
 
+Enable reference output for a diagnostic run with the schema API:
+
+.. code-block:: python
+
+   ParticleMonitor(s=0.0, max_tag=5, include_reference=True)
+
+or in generated JSON:
+
+.. code-block:: json
+
+   "PM_reference": {
+       "S (m)": 0.0,
+       "Command": "ParticleMonitor",
+       "Max tag": 5,
+       "Include reference": true
+   }
 
 Usage Example
 -------------
@@ -294,6 +331,6 @@ Application Scenarios
 - **Chromaticity measurement**: Measure the tune at different momentum deviations :math:`\delta`; the slope of the linear fit of :math:`Q(\delta)` gives the chromaticity :math:`DQ_x`, :math:`DQ_y`
 - **Amplitude-dependent tune shift (ADTS)**: Measure the tune for particles with different initial amplitudes to analyze the nonlinear tune shift with amplitude
 - **Dispersion function measurement**: Take the time average of the TBT centroid orbit of the momentum-offset particle, divided by :math:`\delta`, to obtain the dispersion function :math:`D(s)`
-- **Slip-factor measurement**: Record the bunch-relative coordinate :math:`z_{\mathrm{rel}}` of a momentum-offset particle turn-by-turn. For comparisons across bunches or after regrouping, combine it with ``zCenter`` to recover :math:`z_{\mathrm{lab}}`
+- **Slip-factor measurement**: Record the bunch-relative coordinate :math:`z_{\mathrm{rel}}` of a momentum-offset particle turn-by-turn. For comparisons across bunches or after regrouping, enable ``Include reference`` and use the saved referenceTime and referenceBeta to reconstruct physical arrival times
 - **Closed orbit verification**: The TBT coordinates of an initially un-offset particle should remain unchanged, verifying closed orbit stability
 - **Particle loss tracking**: Locate the time and position of particle loss through ``tag`` sign changes and ``lostTurn`` / ``lostPosition``

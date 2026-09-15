@@ -16,25 +16,20 @@ equations. The reference-velocity approximation within each bunch is retained
 when evaluating a response's velocity coupling. This is distinct from the exact
 incoming particle speed used to convert transverse voltage to momentum impulse.
 
-The particle coordinate remains continuous ``z_rel``. With
-``z_lab = z_rel + bunch.z_center``, arrival time is
+The continuous particle coordinate is :math:`z_i=\beta_b c(T_b-t_i)`.
+At this location, the physical arrival time is
 
 .. math::
 
-   t_i=t_0+a_i-\frac{z_{\mathrm{lab},i}}{\beta_0c},\qquad
-   a_i^{\mathrm{new}}=a_i^{\mathrm{old}}+
-   \frac{z_{\mathrm{lab},i}}{c}
-   \left(\frac1{\beta_0^{\mathrm{new}}}-\frac1{\beta_0^{\mathrm{old}}}\right).
+   t_i=T_b-z_i/(\beta_b c).
 
-The second equation applies at a thin reference-energy change. ``ArrivalClock``
-owns this correction independently of wake activation; RFCavity and Exciter use the same
-correction. Bunch sorting carries physical arrival anchors through its
-permutation. Run Slicer again after regrouping. The clock does not write a
-folded value to ``p.z``.
-
-The wake timing adapter holds ``beam.arrival_clock`` and owns only wake slice
-geometry. Generic initialization, reference changes and sampled-time storage
-belong to core. See :doc:`arrival_time` for lifecycle and checkpoint details.
+No arrival correction is stored. RF reference-energy changes scale z to
+preserve this time; regrouping transforms z and momenta into the destination
+reference. The wake adapter converts the latest user-supplied z intervals:
+centers are :math:`T_b-z_{slice}/(\beta_b c)` and widths are
+:math:`\Delta z/(\beta_b c)`. RF does not alter saved intervals or membership.
+Newly emitted sources retain their sampled physical times and widths forever;
+later reference changes do not reinterpret causal history. See :ref:`en-longitudinal-reference`.
 
 The canonical frequency convention is
 
@@ -228,17 +223,24 @@ Configure and execute a named Slicer before WakeField. The old flat
 ``Components``/``Solver``/``Memory turns`` interface must migrate to ``Groups``;
 there is no compatibility interpretation of obsolete fields.
 
-Diagnostics and restart
------------------------
+Diagnostics and state
+---------------------
 
 The command exposes ``last_sources``, ``last_coefficients``, ``last_diagnostics``
 and ``group_states``. Diagnostics include each selected algorithm, boundary,
 retained passage count, state bytes and fit errors. ``state_dict()`` and
 ``load_state_dict()`` serialize/restore all groups and check a configuration
-fingerprint. ``ArrivalClock.state_dict()`` separately preserves time corrections.
-Also restore particles, reference parameters and the simulation turn before
-resuming with ``Executor.run(..., start_turn=...)``. Restoring particle arrays
-alone is insufficient. ``reset_state()`` starts the location with zero field.
+fingerprint. These methods cover wake state only. ``reset_state()`` starts
+the location with zero field.
+
+``Executor.run(sim, sequences)`` always starts at turn 0. Enabled WakeField
+commands must have no retained history at the start of a new run; call
+``reset_state()`` before reusing a WakeField command for a newly initialized
+simulation.
+
+Macro-particle weights are fixed by the initial injection inputs. The Executor
+does not copy tags or update source charges around Injection commands; newly
+activated particles retain their original weights. See :doc:`injection`.
 
 CPU and GPU execution
 ---------------------
@@ -262,6 +264,30 @@ finite-beta impedance construction are initialization work on the CPU; their
 resulting response arrays are uploaded once per device. Numeric table/HEADTAIL
 conversion and partitioned-kernel sampling are also initialization work on CPU.
 
+CUDA execution uses fused ``RawKernel``/``RawModule`` kernels for time conversion,
+source moments, model evaluation and integration, exact pair sums, velocity
+coupling, event accumulation, spectral products, interpolation, validation and
+particle kicks. CuPy remains the device-memory and launch interface; cuFFT and
+the device sort/unique primitives remain specialized library operations. Replacing
+those libraries with elementary kernels is not a performance requirement.
+
+All populated bunches share one projection launch and one kick launch, including
+unequal reference times, velocities and saved slice widths. Empty populations
+are removed without a separate device-to-host check for each bunch. Layout and
+pointer caches are rebuilt when the particle ranges or SliceSet storage change;
+reference parameters update independently. Source records retain their own arrays.
+Fixed-range equal-length Slicer grids also batch their histogram and table work
+across bunches, with one transfer for alive/outside diagnostics. Host wake-source
+snapshots upload their arrays together; the device rows retain ownership of that
+passage and are not overwritten by later uploads.
+
+The direct solver assigns one warp to a witness and reduces the scalar response
+over source slices. It does not allocate a source-by-witness matrix. All response
+types also use this approach for physical-time near-field corrections. Ordinary
+FFT response spectra are cached by validated spacing, width, model configuration
+and cutoff; changing reference beta invalidates the cache when geometry changes.
+Uniform-grid validity is checked on device even when the spectra are reused.
+
 Particle coordinates may use float32 or float64. Physical arrival times, slice
 charge moments, response calculations, modal states and energy/momentum
 conversions use float64 in both cases. GPU atomic reductions change summation
@@ -275,14 +301,16 @@ monomials and applies the mechanical update in one CUDA kernel. Modal history
 uses bounded affine prefix scans with decaying exponential factors, including
 critical and overdamped resonators. Within-passage event times are relative to
 the passage origin to resolve narrow bins after a long elapsed time.
+For increasing centers whose bin edges do not reach neighboring centers, event
+ordering is constructed directly, including adjacent-bin overlap and coincident
+edges. Other layouts retain general sort/unique handling. Mode updates allocate
+their next vectors once and preserve the previous state for rollback/checkpoints.
+Physical-time convolution validates each complete deposited frame before its
+transaction, then processes its sub-blocks without repeated host checks. A
+single-slot spatial transform uses a one-dimensional cuFFT; source geometry,
+response models, history cutoffs and the time-mesh approximation are unchanged.
 
-A freshly executed equal-length Slicer with zero arrival correction supplies
-an exact uniform grid, allowing bounded caching of its FFT response. Intervening
-transport, changed grid geometry or a nonzero arrival correction invalidates
-this shortcut. These are implementation optimizations of the selected solver;
-the configured physical algorithm never changes. Only small validation and
-control metadata is synchronized during tracking. Checkpoint serialization
-explicitly transfers device history to portable host arrays.
+Equal-length local z intervals convert to a uniform time grid at the current reference velocity. Response caches depend on this actual grid geometry; a change of beta changes its widths. The user controls Slicer updates. Checkpoint serialization transfers device history to portable host arrays.
 
 Small problems can run faster on CPU because CUDA launch and synchronization
 costs dominate. Measure a representative workload after warmup, synchronize
@@ -303,8 +331,8 @@ one supplied polynomial response; it does not derive unprovided multipoles or
 enforce cross-component Maxwell constraints. The round-wall analytic model
 retains its explicitly supported longitudinal/diagonal dipolar components.
 
-CPU and CUDA support the same powers. CUDA retains the fast Q/Qx/Qy histogram
-for standard terms and uses a fused general monomial histogram otherwise.
+CPU and CUDA support the same powers. The batch CUDA histogram accumulates
+Q/Qx/Qy and arbitrary requested monomials in the same particle pass.
 Integer witness powers are evaluated in the fused mechanical kick.
 
 Stationary multibunch and long history
@@ -331,7 +359,7 @@ Slot and intra-slot indices are padded independently to at least 2B-1 and
 Empty slots are zero; they still occupy their physical time positions. Source
 bins may be reordered or duplicated, and independent overlapping populations
 are summed conservatively. Times are mapped from the physical arrival clock,
-not from the enumeration order of bunches. Since arrival uses -z_lab/(beta*c),
+not from the enumeration order of bunches. Since arrival uses T_b-z/(beta_b*c),
 increasing harmonic IDs need not have increasing arrival times.
 
 ``Projection="exact"`` requires the observed centers and widths to match this
@@ -361,9 +389,9 @@ Kernels and FFT resources belong to ``GroupExecution``; ring buffers and pending
 fields belong to ``ConvolutionState``. They are not stored in component objects.
 CUDA plans retain their cuFFT handles across long scheduling intervals; temporal
 transforms use contiguous time batches. Uniform scheduling fuses spectral
-multiply/add without allocating a full-history temporary. A fresh Slicer with
-stationary partitioned groups enables train-wide projection and kick kernels,
-and multibunch clock evaluation is batched. Float64 is retained throughout.
+multiply/add without allocating a full-history temporary. Projection and kicks are batched across the train for all solver groups,
+using the latest explicitly generated SliceSets; multibunch clock evaluation is
+also batched. Float64 is retained throughout.
 All groups preview their new fields before the command applies kicks and commits
 history. Persistent spectra are not copied every turn. Portable checkpoints
 include the sampled-kernel/grid fingerprint and are restored on the selected
@@ -479,19 +507,19 @@ history produces a startup transient; allow the response memory to fill.
 ``Boundary="periodic"`` is a prescribed repeated steady distribution, with
 image-count convergence, rather than evolving transient history.
 
-For evolving coasting profiles with cumulative phase slip, enable Slicer's
-``Periodic=true``, ``equal_length`` and ``Explicit={"z min": -C, "z max": 0}``.
-Range mode remains ``explicit``. The temporary coordinate is
-:math:`C[((z_{rel}+z_{center}-\beta_0ca)/C\bmod1)-1]`, where a is the arrival
-correction. The stored continuous coordinate and grouping metadata are
-unchanged. Each source bin occupies its part of [t0,t0+T), with T=C/(beta*c).
-The next snapshot starts at the next physical reference passage; periods may
-vary when using ``time_fft``. All populations must share t0, beta and C.
-Slicer must run at the WakeField location. Intervening transverse thin elements
-and diagnostics may reuse the geometry when arrival phases and references are
-unchanged; longitudinal transport or reference changes require reslicing. Use
-``Boundary="causal_passages"`` for evolving history; the separate repeated
-steady-state boundary does not supply this time evolution.
+For evolving coasting profiles, use ``Coordinate=arrival_phase`` (or
+``Periodic=true``), ``equal_length`` and ``Explicit={"z min": -C, "z max": 0}``.
+At an explicit Slicer update, :math:`z_{phase}=C[(u\bmod1)-1]` with
+:math:`u=v_{obs}(T_{obs}-t_i)/C`. The prescribed clock selects the common
+observation event and velocity; see :doc:`slicer`. Bunch reference times and
+velocities may differ. All populations must share the saved observation window
+and circumference, and Slicer must be at the wake location.
+
+The bins cover :math:`[T_{obs},T_{obs}+C/v_{obs})`. A new physical source passage
+requires a user Slicer update; reusing a periodic snapshot retains its old
+window. No automatic reslicing is performed. Use ``Boundary="causal_passages"``
+for evolving history. Variable, non-overlapping passage windows are supported
+by ``time_fft``; a fixed convolution grid still requires its documented timing.
 
 This is the **one passage per particle per reference turn approximation**.
 It supports long accumulated slip and momentum spread within this model,
@@ -536,10 +564,9 @@ finite-memory Floquet matrix, not a second PASS solver. It uses normalized
 units and a small external linear damping map; the threshold is specific to
 that benchmark and is not a general machine instability limit.
 
-CUDA combines centered slice-clock statistics into two histogram passes.
-Tabulated wakes use a warp per witness for the exact near-field correction,
-without allocating source-target pair lists or synchronizing pair counts.
-Other model types retain the general correction path. Performance benchmarks
+CUDA converts the saved slice intervals directly to physical time.
+All supported models use a warp per witness for the exact near-field correction,
+without allocating source-target pair lists or synchronizing pair counts. Performance benchmarks
 include the per-bunch Slicer, reference changes, projection, history and kick,
 with warm-up and at least one complete largest-block scheduling cycle.
 
@@ -600,18 +627,13 @@ CST project/binary parsing, automatic unit detection and wake-potential
 deconvolution are not included; exported numeric files can use ``table`` with
 their actual conventions explicitly provided.
 
+
 Slice coordinates and response boundaries
-------------------------------------------
+-----------------------------------------
 
-WakeField accepts ordinary ``Coordinate=z_rel`` slices or the coasting
-``Coordinate=arrival_phase`` projection. Legacy ``Periodic=true`` still selects
-the latter. ``ring_position`` is rejected: geometric folding can place different
-passages in the same bin and cannot supply their causal order. Use a separate
-named geometric SliceSet for SpaceCharge.
-
-The Coordinate setting does not change a solver group's ``Boundary`` setting.
-``Boundary=periodic`` describes a spatial response with periodic images; it is
-not a substitute for the ``causal_passages`` boundary and time history required
-by evolving arrival-phase slices. Core arrival offsets remain FP64 and are
-preserved through continuous-z regrouping. Slice histories and frozen geometry
-are invalidated according to their existing ownership rules.
+WakeField accepts local ``Coordinate=z_rel`` intervals and the separate
+``Coordinate=arrival_phase`` coasting projection. SpaceCharge requires local z
+intervals. The latest explicit Slicer result controls membership and geometry.
+Coordinate selection does not change the algorithm group's ``Boundary``:
+``periodic`` is a repeated steady spatial response; evolving passage history
+uses ``causal_passages``. Timing uses float64 and the stored continuous z.
