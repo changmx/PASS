@@ -1,5 +1,6 @@
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.helper import convert_keys_to_lower
+from PASS.utils.program import LinearProgram
 
 from dataclasses import dataclass, field
 from typing import Literal
@@ -13,6 +14,7 @@ import socket
 import platform
 import logging
 import time
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
