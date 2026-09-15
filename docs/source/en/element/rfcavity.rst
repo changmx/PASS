@@ -8,7 +8,7 @@ RFCavity
    t_i=T_b-\frac{z_i}{\beta_b c},\qquad
    U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].
 
-Frequency must be integrated; ``2*pi*f(t)*t`` is incorrect for a chirp. ``Phase (rad)`` is an unwrapped additive phase modulation: total instantaneous frequency is the carrier frequency plus its modulation derivative divided by :math:`2\pi`. ``harmonic_id`` and ``z_center`` do not enter the tracking phase formula.
+Frequency must be integrated; ``2*pi*f(t)*t`` is incorrect for a chirp. ``Phase (rad)`` is an unwrapped additive phase modulation: total instantaneous frequency is the carrier frequency plus its modulation derivative divided by :math:`2\pi`. ``harmonic_id`` and the derived nominal slot position do not enter the tracking phase formula.
 
 Energy kick and reference update
 --------------------------------
