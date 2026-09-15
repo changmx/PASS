@@ -174,7 +174,9 @@ FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History
 WakeField 命令不能保留之前的历史；若在重新初始化的模拟中复用 WakeField
 命令，应先调用 ``reset_state()``。
 
-宏粒子权重由初始注入参数固定。Executor 不在 Injection 前后复制 tag 或更新
+同一束流的所有宏粒子使用由初始注入参数确定的同一固定权重。
+CPU/GPU 源投影均使用 ``bunch.ratio * bunch.num_charge * e`` 作为每个存活宏粒子的
+电荷，不使用逐粒子电荷数组。Executor 不在 Injection 前后复制 tag 或更新
 源电荷；新激活粒子保持原始权重，见 :doc:`injection`。
 
 CPU 与 GPU 执行
@@ -470,7 +472,9 @@ wake-potential 反卷积；导出的数值文件可用 table 并明确实际约�
 ------------------
 
 WakeField 接受局部 ``Coordinate=z_rel`` 区间及独立的
-``Coordinate=arrival_phase`` 漂移束投影。SpaceCharge 使用局部 z 区间。
+``Coordinate=arrival_phase`` 漂移束投影。WakeField 拒绝 SpaceCharge 必须使用的
+``Coordinate=z_periodic`` 环周折叠切片，因为其中心不保留连续到达时间；请分别
+定义命名切片集。
 最近一次显式 Slicer 结果决定成员与几何。坐标选择不改变算法组的 ``Boundary``：
 ``periodic`` 表示重复的稳态空间响应，演化通过历史使用 ``causal_passages``。
 时间计算使用 float64 与连续存储的 z。

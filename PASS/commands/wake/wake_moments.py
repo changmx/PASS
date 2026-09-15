@@ -58,10 +58,6 @@ class WakeSourceProjector:
             charge = bunch.ratio*bunch.num_charge*const.e
             if not np.isfinite(charge) or bunch.ratio < 0:
                 raise ValueError("Wake macro charge/weight must be finite and weight nonnegative")
-            if hasattr(p, "wake_macro_charge"):
-                charge = np.asarray(p.wake_macro_charge[indices])
-                if not np.all(np.isfinite(charge)):
-                    raise ValueError("Individual wake source charges must be finite")
             for a, b in powers:
                 weights = charge*np.asarray(p.x[indices], float)**a*np.asarray(p.y[indices], float)**b
                 moments[(a, b)].append(np.bincount(local_ids, weights=weights, minlength=count))
@@ -92,7 +88,7 @@ __device__ double monomial(double x,int n){
     while(n){if(n&1)result*=x;n>>=1;if(n)x*=x;}
     return result;
 }
-extern "C" __global__ void project_one(const R* x,const R* y,const int* tag,const double* charge,int individual,
+extern "C" __global__ void project_one(const R* x,const R* y,const int* tag,
     const int* ids,const double* centers,const double* widths,int float_centers,int float_widths,
     int start,int end,int ns,int nm,const int* powers,int use_shared,double q,double beta,double epoch,double velocity,
     int point,double* moments,double* times,double* duration,double* betas,int* invalid){
@@ -108,15 +104,14 @@ extern "C" __global__ void project_one(const R* x,const R* y,const int* tag,cons
     __syncthreads();int has_live=0;
     for(int i=start+blockIdx.x*blockDim.x+threadIdx.x;i<end;i+=blockDim.x*gridDim.x){
         if(tag[i]<=0)continue;has_live=1;int id=ids[i-start];if(id<0||id>=ns){atomicExch(invalid,1);continue;}
-        double qq=individual?charge[i]:q;
-        for(int k=0;k<nm;k++){double v=qq*monomial((double)x[i],powers[2*k])*monomial((double)y[i],powers[2*k+1]);
+        for(int k=0;k<nm;k++){double v=q*monomial((double)x[i],powers[2*k])*monomial((double)y[i],powers[2*k+1]);
             if(!isfinite(v)){atomicExch(invalid,2);continue;}atomicAdd((use_shared?hist:moments)+k*ns+id,v);}
     }
     if(__any_sync(0xffffffff,has_live)&&((threadIdx.x&31)==0))atomicExch(invalid+2,1);
     __syncthreads();if(use_shared)for(int j=threadIdx.x;j<nm*ns;j+=blockDim.x)if(hist[j]!=0.)atomicAdd(moments+j,hist[j]);
 }
 extern "C" __global__ void project_batch(const R* x,const R* y,const int* tag,
-    const double* charge,int individual,const int* layout,const unsigned long long* ptr,
+    const int* layout,const unsigned long long* ptr,
     const double* parameters,int total,int nm,const int* powers,int use_shared,
     double* moments,double* times,double* widths,double* betas,int* invalid){
     int b=blockIdx.y,start=layout[4*b],end=layout[4*b+1],ns=layout[4*b+2],offset=layout[4*b+3];
@@ -143,9 +138,8 @@ extern "C" __global__ void project_batch(const R* x,const R* y,const int* tag,
         if(tag[i]<=0)continue;
         has_live=1;
         int id=ids[i-start];if(id<0||id>=ns){atomicExch(invalid,1);continue;}
-        double qq=individual?charge[i]:q;
         for(int k=0;k<nm;k++){
-            double value=qq*monomial((double)x[i],powers[2*k])*monomial((double)y[i],powers[2*k+1]);
+            double value=q*monomial((double)x[i],powers[2*k])*monomial((double)y[i],powers[2*k+1]);
             if(!isfinite(value)){atomicExch(invalid,2);continue;}
             if(use_shared)atomicAdd(hist+k*ns+id,value);
             else atomicAdd(moments+k*total+offset+id,value);
@@ -225,13 +219,11 @@ def project_gpu(beam, slice_name, turn, components, source_shape="uniform", stat
     d_powers=device_arrays(clock,('source_powers',tuple(powers)),(np.asarray(powers,dtype=np.int32),))[0]
     blocks=min(128,max(1,(maximum_particles+255)//256));shared=len(powers)*maximum_slices*8<=24576
     invalid=cp.zeros(2+len(witnesses),dtype=cp.int32)
-    q=getattr(p,'wake_macro_charge',None)
-    if q is None:q=times
     if len(witnesses)==1:
         start,end,ns,_=layout[0];charge,beta,epoch,velocity,fc,fw,point=parameters[0]
         ids,centers,saved_widths=references
         _gpu_kernels(p)['project_one']((blocks,),(256,),
-            (p.x,p.y,p.tag,q,np.int32(hasattr(p,'wake_macro_charge')),ids,centers,saved_widths,np.int32(fc),np.int32(fw),
+            (p.x,p.y,p.tag,ids,centers,saved_widths,np.int32(fc),np.int32(fw),
              np.int32(start),np.int32(end),np.int32(ns),np.int32(len(powers)),d_powers,np.int32(shared),np.float64(charge),
              np.float64(beta),np.float64(epoch),np.float64(velocity),np.int32(point),moments,times,widths,betas,invalid),
             shared_mem=len(powers)*ns*8 if shared else 0)
@@ -254,7 +246,7 @@ def project_gpu(beam, slice_name, turn, components, source_shape="uniform", stat
         cache['parameter_key']=parameter_key;cache['parameters']=cp.asarray(parameters,dtype=cp.float64)
     d_layout,d_ptr,params=cache['layout'],cache['pointers'],cache['parameters']
     _gpu_kernels(p)['project_batch']((blocks,len(witnesses)),(256,),
-        (p.x,p.y,p.tag,q,np.int32(hasattr(p,'wake_macro_charge')),d_layout,d_ptr,params,
+        (p.x,p.y,p.tag,d_layout,d_ptr,params,
          np.int32(total),np.int32(len(powers)),d_powers,np.int32(shared),moments,times,widths,betas,invalid),
         shared_mem=len(powers)*maximum_slices*8 if shared else 0)
     status=invalid.get();error,unordered=status[:2]
