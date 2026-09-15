@@ -90,7 +90,7 @@ precision. Initial compilation and uploads should be excluded from steady-state
 benchmarks. The old single-component RawKernel implements different coordinate
 and precision rules and cannot be substituted for the current physical map.
 
-Python scalar and array program evaluation are both owned by ``LinearProgram``;
+Python scalar and array program evaluation are both owned by ``PASS.utils.program.LinearProgram``;
 CPU and GPU also share the host reference-kick calculation. Programs hold owned,
 read-only copies of their time and value arrays, preventing external input edits
 from invalidating interpolation coefficients, integrals or device caches. To

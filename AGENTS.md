@@ -69,7 +69,7 @@ API/schema compatibility > testing, documentation, and style.
 - RF components sample one prescribed physical waveform at the entry particle
   times, sum their gains, then update the reference and particles once. Integrate
   frequency over physical time; do not substitute `f(t)*t` for its integral.
-  `LinearProgram` in `PASS/core/config.py` evaluates the prescribed time tables.
+  `LinearProgram` in `PASS/utils/program.py` evaluates the prescribed time tables.
   Harmonic RF uses the beam's shared prescribed clock independently of the
   instantaneous energies of tracked bunches.
 - The latest user-executed Slicer defines the saved z intervals, widths and
