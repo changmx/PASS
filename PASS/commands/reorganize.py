@@ -78,7 +78,7 @@ class ReorganizeBunch(Command):
         for k, b in enumerate(beam.bunches):
             logger.info(
                 f"[ReorganizeBunch] bunch{k}: harmonic_id={b.harmonic_id}, "
-                f"z_center={b.z_center:.3f}, start_idx={b.start_idx}, "
+                f"z_center={b.harmonic_id*b.circum/b.harmonic_number:.3f}, start_idx={b.start_idx}, "
                 f"end_idx={b.end_idx}, Np={b.Np}"
             )
         set_normal_logging()
