@@ -35,6 +35,8 @@ class WakeClock:
     def slice_geometry(self, bunch, name, ids=None, alive=None):
         xp = self.xp
         slices = bunch.slice_sets[name]
+        if getattr(slices, "coordinate", None) == "z_periodic":
+            raise ValueError("WakeField cannot use z_periodic slices; select z_rel or arrival_phase")
         if slices.slice_table is None:
             raise ValueError('WakeField requires an explicitly generated SliceSet')
         centers = xp.asarray(slices.slice_table['z_center'],dtype=xp.float64)

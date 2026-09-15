@@ -233,6 +233,7 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
                "S (m)": 10.0,
                "Command": "Slicer",
                "Slice set": "space_charge",
+               "Coordinate": "z_periodic",
                "Slice model": "equal_length",
                "Number of slices": 64,
                "Z range mode": "auto"
@@ -1073,3 +1074,17 @@ bunch 和圈数。应用程序默认输出仍采用日期目录布局。
 记录为 ``null``。
 ``tests/integration/space_charge/strong/README.md`` 说明全部设置、独立参照、
 预先规定的门限和扁平输出文件。
+
+周期 z 切片
+-----------
+
+SpaceCharge 必须使用 ``Coordinate=z_periodic``。Slicer 将连续坐标
+:math:`z=\beta_b c(T_b-t_i)` 临时折叠为
+:math:`z_{slice}=[(z+C/2)\bmod C]-C/2`，不修改粒子 z，也不使用规定时钟。
+CPU/GPU 的 SC 均拒绝 ``z_rel``、``arrival_phase`` 和缺少坐标元数据的切片。
+已有 SC 输入必须在 Slicer 中显式选择 ``z_periodic``。整环等长网格应使用
+显式 :math:`[-C/2,C/2]` 范围；auto 使用折叠后的存活粒子最小值和最大值，见 :doc:`slicer`。
+该逐束团准静态近似不重建任意速度展宽下严格同时的三维空间分布。
+每个存活宏粒子按最新保存的切片成员沉积，
+积分横向场仍除以保存的 ``delta_z``。RF 不缩放这些 z 区间，用户手动更新切片，
+包括元件内部 SC 节点。不同束团仍分别求场，横向边界与求解器保持原有定义。

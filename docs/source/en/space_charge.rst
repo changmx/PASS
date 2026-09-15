@@ -266,6 +266,7 @@ Sequence commands refer to one configuration by name:
                "S (m)": 10.0,
                "Command": "Slicer",
                "Slice set": "space_charge",
+               "Coordinate": "z_periodic",
                "Slice model": "equal_length",
                "Number of slices": 64,
                "Z range mode": "auto"
@@ -1223,3 +1224,23 @@ SC-off controls use absolute bare-tune errors; shift-normalized metrics are
 ``null`` because the SC shift is zero.
 ``tests/integration/space_charge/strong/README.md`` documents all
 settings, independent references, predeclared gates, and flat output files.
+
+Periodic z slicing
+------------------
+
+SpaceCharge requires ``Coordinate=z_periodic``. Slicer temporarily folds the
+continuous coordinate :math:`z=\beta_b c(T_b-t_i)` as
+:math:`z_{slice}=[(z+C/2)\bmod C]-C/2`, without changing particle z. The
+prescribed clock does not enter this projection. ``z_rel``, ``arrival_phase``
+and missing coordinate metadata are rejected in both CPU and GPU SC paths.
+Existing SC inputs must explicitly select ``z_periodic`` in their Slicer.
+For a whole-ring equal-length mesh, select explicit :math:`[-C/2,C/2]` limits;
+auto ranges use the folded live minimum and maximum. See :doc:`slicer`.
+
+This per-bunch common-reference-velocity approximation does not reconstruct an
+exact simultaneous 3D distribution for arbitrary velocity spread.
+Each live macro particle is deposited using the latest saved
+membership, and integrated transverse fields are divided by saved ``delta_z``.
+RF does not rescale these z intervals. Users update slices manually, including
+for internal SC nodes. Different bunches are still solved separately, with
+the existing transverse boundary conditions and solvers.

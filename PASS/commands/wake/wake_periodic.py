@@ -36,6 +36,8 @@ def prepare_periodic_slices(p,bunch,slices,turn=None,location=None):
 
 def validate_periodic_wake(beam,name,turn):
     sets=[b.slice_sets.get(name) for b in beam.bunches]
+    if any(getattr(s,'coordinate',None)=='z_periodic' for s in sets):
+        raise ValueError("WakeField cannot use z_periodic slices; select z_rel or arrival_phase")
     if not any(s is not None and s.periodic for s in sets):
         return
     if not all(s is not None and s.periodic and s.slice_table is not None for s in sets):

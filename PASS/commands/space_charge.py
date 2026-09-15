@@ -1,6 +1,6 @@
 """Transverse space-charge command using CPU/GPU PIC or analytic fields.
 
-The command consumes a previously computed bunch-local ``SliceSet``.  PIC
+The command requires a previously computed bunch-local ``z_periodic`` SliceSet. PIC
 itself remains a pure particle-snapshot operation; this layer owns the
 ``delta_z`` normalization and the normalized transverse momentum kick.
 """
@@ -399,6 +399,8 @@ class SpaceCharge(Command):
         except KeyError as exc:
             raise KeyError(f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}; "
                            "provide slice_id and slice_table before SpaceCharge") from exc
+        if getattr(slice_set, "coordinate", None) != "z_periodic":
+            raise ValueError("SpaceCharge requires Coordinate='z_periodic' slices")
         slice_id = getattr(slice_set, "slice_id", None)
         table = getattr(slice_set, "slice_table", None)
         if slice_id is None or not isinstance(table, Mapping) or "delta_z" not in table:
@@ -645,14 +647,16 @@ class SpaceCharge(Command):
 
         p = beam.particles
         start, end = int(bunch.start_idx), int(bunch.end_idx)
-        if end <= start:
-            return False
         try:
             slices = bunch.slice_sets[self.slice_set_name]
         except KeyError as exc:
             raise KeyError(
                 f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}"
             ) from exc
+        if getattr(slices, "coordinate", None) != "z_periodic":
+            raise ValueError("SpaceCharge requires Coordinate='z_periodic' slices")
+        if end <= start:
+            return False
         table = getattr(slices, "slice_table", None)
         if (
             getattr(slices, "slice_id", None) is None
