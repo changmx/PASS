@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PASS Documentation (English) &mdash; PASS  documentation</title>
+  <title>WakeField &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
@@ -20,9 +20,7 @@
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Input File Generation (Command-Line Mode)" href="input_generation.html" />
-    <link rel="prev" title="横向场求解器" href="../zh/field_solver.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,7 +44,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Content</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../zh/index.html">PASS 文档（中文）</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../zh/input_generation.html">输入文件生成（命令行模式）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id2">简介</a></li>
@@ -492,7 +490,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">PASS Documentation (English)</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">PASS Documentation (English)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#introduction">Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#architecture-overview">Architecture Overview</a></li>
@@ -953,9 +951,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">PASS Documentation (English)</li>
+      <li class="breadcrumb-item active">WakeField</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/en/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/en/wake_field.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -963,465 +961,596 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="pass-documentation-english">
-<h1>PASS Documentation (English)<a class="headerlink" href="#pass-documentation-english" title="Link to this heading"></a></h1>
-<p>Welcome to PASS, the Particle Accelerator Simulation Studio.</p>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Modules</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#introduction">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#architecture-overview">Architecture Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#quick-start">Quick Start</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#minimal-example">Minimal Example</a></li>
+  <section id="wakefield">
+<h1>WakeField<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">WakeField</span></code> applies an integrated thin-element wake to particles using a named
+<code class="docutils literal notranslate"><span class="pre">Slicer</span></code> result. One command represents one physical location. Its algorithm
+groups have independent source histories or mode states. CPU and CUDA execution
+are described here; numerical validation is recorded in the
+repository’s wake validation report.</p>
+<section id="physical-scope-and-conventions">
+<h2>Physical scope and conventions<a class="headerlink" href="#physical-scope-and-conventions" title="Link to this heading"></a></h2>
+<p>PASS tracks supplied or analytic response models. It does not derive the
+response of arbitrary three-dimensional structures by solving Maxwell’s
+equations. The reference-velocity approximation within each bunch is retained
+when evaluating a response’s velocity coupling. This is distinct from the exact
+incoming particle speed used to convert transverse voltage to momentum impulse.</p>
+<p>The particle coordinate remains continuous <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>. With
+<code class="docutils literal notranslate"><span class="pre">z_lab</span> <span class="pre">=</span> <span class="pre">z_rel</span> <span class="pre">+</span> <span class="pre">bunch.z_center</span></code>, arrival time is</p>
+<div class="math notranslate nohighlight">
+\[t_i=t_0+a_i-\frac{z_{\mathrm{lab},i}}{\beta_0c},\qquad
+a_i^{\mathrm{new}}=a_i^{\mathrm{old}}+
+\frac{z_{\mathrm{lab},i}}{c}
+\left(\frac1{\beta_0^{\mathrm{new}}}-\frac1{\beta_0^{\mathrm{old}}}\right).\]</div>
+<p>The second equation applies at a thin reference-energy change. <code class="docutils literal notranslate"><span class="pre">ArrivalClock</span></code>
+owns this correction independently of wake activation; RFCavity and Exciter use the same
+correction. Bunch sorting carries physical arrival anchors through its
+permutation. Run Slicer again after regrouping. The clock does not write a
+folded value to <code class="docutils literal notranslate"><span class="pre">p.z</span></code>.</p>
+<p>The wake timing adapter holds <code class="docutils literal notranslate"><span class="pre">beam.arrival_clock</span></code> and owns only wake slice
+geometry. Generic initialization, reference changes and sampled-time storage
+belong to core. See <span class="xref std std-doc">arrival_time</span> for lifecycle and checkpoint details.</p>
+<p>The canonical frequency convention is</p>
+<div class="math notranslate nohighlight">
+\[F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad
+Z_\parallel=F,\qquad Z_\perp=iF.\]</div>
+<p>For source/test monomial powers of total order <span class="math notranslate nohighlight">\(n\)</span>, integrated wake units
+are V/C/m<sup>n</sup> and impedance units are ohm/m<sup>n</sup>. Source moments use
+signed real charge represented by each macro particle; witness macro weight
+cancels. Positive longitudinal wake means energy loss. Positive transverse
+voltage means positive Lorentz force. PASS updates energy per nucleon by
+<span class="math notranslate nohighlight">\(\Delta E=-Z_{\mathrm{ion}}V_\parallel/A\)</span>, then computes momentum exactly.
+The transverse kick uses incoming particle <span class="math notranslate nohighlight">\(\beta_i\)</span>:
+<span class="math notranslate nohighlight">\(\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)\)</span>.</p>
+<p>Causal kernels use half of a finite jump at zero delay. A <code class="docutils literal notranslate"><span class="pre">uniform</span></code> source
+represents constant charge density over the slice’s full time width; its kernel
+is integrated analytically or through its primitive. <code class="docutils literal notranslate"><span class="pre">point</span></code> sources are at
+the slice centers. Slicing convergence and parameter scans are user-controlled;
+there is no automatic slice-error controller.</p>
+</section>
+<section id="response-models">
+<h2>Response models<a class="headerlink" href="#response-models" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Models (<code class="docutils literal notranslate"><span class="pre">Kind</span></code> in each component’s <code class="docutils literal notranslate"><span class="pre">Model</span></code>)</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 23.0%" />
+<col style="width: 77.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Kind</p></th>
+<th class="head"><p>Parameters and interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constant</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Amplitude</span></code>, <code class="docutils literal notranslate"><span class="pre">Duration</span> <span class="pre">(s)</span></code>. Finite causal test response.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resonator</span></code></p></td>
+<td><p>Positive <code class="docutils literal notranslate"><span class="pre">R</span></code>, <code class="docutils literal notranslate"><span class="pre">Q</span></code>, <code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>. R is the real impedance at resonance; amplitude decay rate is <span class="math notranslate nohighlight">\(\pi f_r/Q\)</span>. Under-, critical- and over-damped cases are supported.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tabulated</span></code></p></td>
+<td><p>Increasing <code class="docutils literal notranslate"><span class="pre">Times</span> <span class="pre">(s)</span></code>, matching <code class="docutils literal notranslate"><span class="pre">Values</span></code>, <code class="docutils literal notranslate"><span class="pre">Causal</span></code> (default true). Linear interpolation, zero outside the table. Causal tables start at zero; two-sided tables can include negative delays.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
+<td><p>Numeric <code class="docutils literal notranslate"><span class="pre">table</span></code> or <code class="docutils literal notranslate"><span class="pre">headtail</span></code> input with explicit column indices, units, signs and normalization. See File input below. Loaded once, with content fingerprinting.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">impedance</span></code></p></td>
+<td><p>Increasing nonnegative <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>, matching <code class="docutils literal notranslate"><span class="pre">Real</span></code>/<code class="docutils literal notranslate"><span class="pre">Imag</span></code>, explicit <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>. Original samples remain immutable.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fitted_impedance</span></code></p></td>
+<td><p>The same spectrum plus <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">poles</span> <span class="pre">(1/s)</span></code> as [real, imaginary] pairs, <code class="docutils literal notranslate"><span class="pre">Optimize</span> <span class="pre">poles</span></code>, <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">evaluations</span></code>, <code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>, <code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>. Supply only the positive-imaginary pole of each conjugate pair, or real poles.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">modes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Poles</span> <span class="pre">(1/s)</span></code> and <code class="docutils literal notranslate"><span class="pre">Residues</span></code> as [real, imaginary] pairs, with both members of every conjugate pair explicitly present. Real poles require real residues.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resistive_wall</span></code></p></td>
+<td><p>Finite-beta round good-conductor thick wall: <code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Beta</span></code>, <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>. Optional <code class="docutils literal notranslate"><span class="pre">Wall</span> <span class="pre">thickness</span> <span class="pre">(m)</span></code> checks the thick-wall condition; it does not activate a finite-wall field-matching solver.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ultrarelativistic_wall</span></code></p></td>
+<td><p>Bane-Sands round DC wall, <code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>. Requires beta &gt;= 0.99; additional short-bunch validity must also be assessed.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The finite-beta wall implements Stupakov, PRAB <strong>23</strong>, 094401 (2020),
+<a class="reference external" href="https://doi.org/10.1103/PhysRevAccelBeams.23.094401">doi:10.1103/PhysRevAccelBeams.23.094401</a>.
+It supports longitudinal and diagonal dipolar components. It subtracts the
+perfect-conductor response for the identical round geometry and supplies only
+the finite-conductivity correction. Scaled Bessel functions retain the finite
+beta dependence and avoid overflow. DC is outside this model’s validity.
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">skin</span> <span class="pre">depth</span> <span class="pre">ratio</span></code> bounds skin depth divided by radius, and also thickness
+when supplied. <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">surface</span> <span class="pre">impedance</span> <span class="pre">ratio</span></code> bounds the normalized surface
+impedance. Both default to 0.1 and cannot exceed 0.1. Finite wall thickness,
+magnetic/dispersive materials and arbitrary geometry require an appropriate
+validated response; this model does not infer them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code> declares <code class="docutils literal notranslate"><span class="pre">wake</span></code>, <code class="docutils literal notranslate"><span class="pre">finite_conductivity_correction</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pec_image</span></code>, <code class="docutils literal notranslate"><span class="pre">direct_space_charge</span></code> or <code class="docutils literal notranslate"><span class="pre">total</span></code>. PASS does not automatically
+subtract space charge. Existing SpaceCharge calculations are transverse and do
+not establish that longitudinal or all image terms are present. Combine terms
+only after checking geometry, normalization and physical content.</p>
+</section>
+<section id="raw-spectra-and-fitting">
+<h2>Raw spectra and fitting<a class="headerlink" href="#raw-spectra-and-fitting" title="Link to this heading"></a></h2>
+<p>The raw route integrates the piecewise-linear spectrum with an oscillatory
+quadrature, preserving nonuniform frequency samples and avoiding an artificial
+periodic FFT time window. Values outside the measured band are explicitly zero.
+A finite-band inverse is two-sided even for a causal underlying system.
+<code class="docutils literal notranslate"><span class="pre">Reconstruction=&quot;two_sided&quot;</span></code> retains it. <code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> explicitly
+sets its negative-time part to zero and uses half the projected jump at zero;
+this changes the effective frequency response and is a bandwidth approximation.
+Frequency bandwidth and spacing require independent convergence checks.</p>
+<p>Fitting uses variable projection: nonlinear optimization of user-selected poles
+and real least squares for residues. It does not select the number of modes.
+The original spectrum and fit diagnostics remain available on the fitted model.
+The fit must satisfy the specified maximum relative error, normalized with the
+specified relative floor. Stability follows the selected pole half-planes;
+passivity is not automatically enforced or certified. Scalar longitudinal
+passivity tests cannot be applied indiscriminately to transverse components.
+No instantaneous delta/derivative feedthrough is inferred from missing bandwidth.</p>
+<p>Right-half-plane poles describe a decaying backward spatial branch. They are
+never advanced as a growing temporal state. <code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> fits require
+left-half-plane initial poles. General two-sided fits use <code class="docutils literal notranslate"><span class="pre">two_sided</span></code> and an
+explicit spatial boundary. CST project/binary parsing remains deferred;
+numeric exports can use the explicit file convention described below.</p>
+</section>
+<section id="velocity-and-acceleration">
+<h2>Velocity and acceleration<a class="headerlink" href="#velocity-and-acceleration" title="Link to this heading"></a></h2>
+<p>Each component declares <code class="docutils literal notranslate"><span class="pre">Velocity</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Kind=&quot;fixed&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Beta</span></code>: stationary response at one common reference speed.
+A different reference speed is rejected, including changes during tracking.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Kind=&quot;factorized&quot;</span></code>, increasing <code class="docutils literal notranslate"><span class="pre">Betas</span></code> and matching real <code class="docutils literal notranslate"><span class="pre">Source</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Witness</span></code> tables: <span class="math notranslate nohighlight">\(W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)\)</span>.
+Linear interpolation is restricted to the supplied beta interval. Historical
+excitation uses the source speed at that passage; the current witness factor
+is applied when observing the stored field.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Kind=&quot;ideal&quot;</span></code> explicitly defines a velocity-independent point-response
+coupling. This is a model assumption, not an inferred transit-time correction
+for a physical cavity.</p></li>
 </ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#json-file-structure">JSON File Structure</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#core-components">Core Components</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#lattice-sources">Lattice Sources</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#mixed-mode">Mixed Mode</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#one-step-conversion">One-Step Conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#api-reference">API Reference</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html#complete-example">Complete Example</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical configuration workflow</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#help-and-local-documentation">Help and local documentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#tools">Tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#appearance-and-controls">Appearance and controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#property-ordering-and-sections">Property ordering and sections</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#module-responsibilities">Module responsibilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#structured-array-parameters">Structured array parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#space-charge">Space charge</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html#twiss-and-optics">Twiss and optics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#mad-x-sampling">MAD-X sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#one-turn-transfer">One-turn transfer</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#smooth-approximation">Smooth approximation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#particles-and-authoritative-masses">Particles and authoritative masses</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#kinematics-units-and-precision">Kinematics, units and precision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#comparison-with-the-original-particle-table">Comparison with the original particle table</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#current-power-and-stored-energy">Current, power and stored energy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#tune-diagram">Tune diagram</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#rf-bucket">RF bucket</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#magnet-conversion">Magnet conversion</a></li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="project_files.html#saving-and-opening">Saving and opening</a></li>
-<li class="toctree-l2"><a class="reference internal" href="project_files.html#container-format">Container format</a></li>
-<li class="toctree-l2"><a class="reference internal" href="project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="project_files.html#running">Running</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="input_validation.html#one-click-preflight">One-click preflight</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input_validation.html#what-is-checked">What is checked</a></li>
-<li class="toctree-l2"><a class="reference internal" href="input_validation.html#command-line-and-python">Command line and Python</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="injection.html">Injection / Particle Generation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#interface-parameters">Interface parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#bunch-parameters">Bunch parameters</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#transverse-parameters">Transverse parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#beam-parameters">Beam parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#distribution-parameters">Distribution parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#offset-parameters">Offset parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#dispersion-coupling">Dispersion coupling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#momentum-deviation">Momentum deviation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#input-file">Input file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#run-command">Run command</a></li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html#simulation-results">Simulation results</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="element/index.html">Element</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="element/marker.html">Marker</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/marker.html#physical-description">Physical Description</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/marker.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/marker.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/marker.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/drift.html">Drift</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/drift.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/drift.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/drift.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/drift.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/drift.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#body-model-comparison">Body Model Comparison</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#entrance-edge-yrotation">Entrance Edge: YRotation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#entrance-edge-fringe-field">Entrance Edge: Fringe Field</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#entrance-edge-wedge-edge-angle">Entrance Edge: Wedge (Edge Angle)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#edge-angle-sign-convention">Edge Angle Sign Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#parameter-list">Parameter List</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/dipole.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/quadrupole.html">Quadrupole</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#chromaticity-effects">Chromaticity Effects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#tracking-model-comparison">Tracking Model Comparison</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/quadrupole.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/sextupole.html">Sextupole</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#sextupole-field-and-normalized-strength">Sextupole Field and Normalized Strength</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/sextupole.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/octupole.html">Octupole</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#octupole-field-and-normalized-strength">Octupole Field and Normalized Strength</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#amplitude-dependent-tune-shift">Amplitude-Dependent Tune Shift</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#naturally-included-higher-order-effects">Naturally Included Higher-Order Effects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/octupole.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/multipole.html">Multipole</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#multipole-field-and-normalized-strength">Multipole Field and Normalized Strength</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#horner-nested-evaluation">Horner Nested Evaluation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#exact-drift-map">Exact Drift Map</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#symplectic-integrators">Symplectic Integrators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#naturally-included-effects">Naturally Included Effects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#difference-from-xsuite-hxl-curvature-correction">Difference from Xsuite: hxl Curvature Correction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/multipole.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/solenoid.html">Solenoid</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#solenoid-field-and-normalized-strength">Solenoid Field and Normalized Strength</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#why-the-solenoid-has-no-thin-lens-mode">Why the Solenoid Has No Thin Lens Mode</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#multipole-field-overlay-and-sks-integrator">Multipole Field Overlay and SKS Integrator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#chromaticity-effects">Chromaticity Effects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/solenoid.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/kicker.html">Kicker</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#exact-drift-map">Exact Drift Map</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#symplectic-integrators">Symplectic Integrators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/kicker.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/elseparator.html">ElSeparator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#thin-lens-mode">Thin Lens Mode</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#thick-lens-mode-dkd">Thick Lens Mode (DKD)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#kick-consistency-between-thin-lens-and-thick-lens">Kick Consistency Between Thin Lens and Thick Lens</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#septum-logic">Septum Logic</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#tilt-rotation">Tilt Rotation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#overall-tracking-flow">Overall Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#references">References</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/elseparator.html#internal-space-charge">Internal Space Charge</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/exciter.html">Exciter</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#particle-arrival-time">Particle Arrival Time</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#frequency-input-modes">Frequency Input Modes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#excitation-modes">Excitation Modes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#complete-formulas-for-each-mode">Complete Formulas for Each Mode</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#kick-application">Kick Application</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#parameter-list">Parameter List</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/exciter.html#usage-examples">Usage Examples</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/rfcavity.html">RFCavity</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#coordinate-convention">Coordinate Convention</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#physical-derivation">Physical Derivation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#tracking-flow">Tracking Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#ramping-data-file">Ramping Data File</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="element/rfcavity.html#verification-tests">Verification Tests</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitor</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="monitor/statmonitor.html">StatMonitor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#working-principle">Working Principle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#output-files">Output Files</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#longitudinal-coordinate-in-output">Longitudinal coordinate in output</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html#injection-populations">Injection populations</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="monitor/distmonitor.html">DistMonitor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html#turn-selection">Turn selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html#interface">Interface</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html#output">Output</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html#injection-snapshots">Injection snapshots</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="monitor/phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="monitor/phaseadvancemonitor.html#configuration">Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/phaseadvancemonitor.html#output">Output</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="monitor/particlemonitor.html">ParticleMonitor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#output-files">Output Files</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html#operation">Operation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html#group-boundaries">Group Boundaries</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html#applications">Applications</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="aperture.html">Aperture</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="aperture.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l2"><a class="reference internal" href="aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#off-disabled">off (Disabled)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#circle-circular">circle (Circular)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#polygon-polygon">polygon (Polygon)</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
-<li class="toctree-l2"><a class="reference internal" href="aperture.html#usage-example">Usage Example</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="twiss.html#introduction">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="twiss.html#physics-derivation">Physics Derivation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#dispersion-handling">Dispersion Handling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#t0-update">t0 Update</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="twiss.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#position-parameters">Position Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#transverse-parameters">Transverse Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#aperture-parameters">Aperture Parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="twiss.html#usage-example">Usage Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="twiss.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="slicer.html">Slicer</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html#responsibilities">Responsibilities</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html#slice-models">Slice models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html#sliceset-data">SliceSet data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html#snapshots">Snapshots</a></li>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#common-command-parameters">Common command parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#range-mode-parameters">Range-mode parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#sliceset-runtime-interface">SliceSet runtime interface</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#configuration-validation">Configuration validation</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#introduction">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#physical-model">Physical Model</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#macroparticle-charge-and-transverse-source">Macroparticle charge and transverse source</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#integrated-potential-and-field">Integrated potential and field</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#relativistic-transverse-kick">Relativistic transverse kick</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#execution-workflow">Execution Workflow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#tracking-methods-and-analytic-profiles">Tracking Methods and Analytic Profiles</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#configuration-example">Configuration Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#top-level-space-charge-block">Top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#named-resource-configuration">Named resource configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#spacecharge-sequence-command"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> sequence command</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#configuration-rules">Configuration Rules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#gpu-initialization-and-reuse">GPU initialization and reuse</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#diagnostic-output">Diagnostic Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#validation-layout">Validation Layout</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#element-slicing-and-internal-space-charge">Element Slicing and Internal Space Charge</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#three-independent-resolutions">Three independent resolutions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#supported-elements">Supported elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#scheduling-rule">Scheduling rule</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#configuration-and-use">Configuration and use</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#pre-tracking-integration-length-and-coverage-checks">Pre-tracking integration-length and coverage checks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html#fodo-tune-verification">FODO tune verification</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#whole-population-pic-tracking">Whole-population PIC tracking</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#multi-turn-integration-tests-across-boundaries">Multi-turn integration tests across boundaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#introduction">Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#pic-data-flow">PIC Data Flow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#grid-and-source-definition">Grid and Source Definition</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#uniform-nodal-grid">Uniform nodal grid</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#charge-deposition">Charge deposition</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#poisson-equation-and-units">Poisson Equation and Units</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#field-solver-selection">Field-Solver Selection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#finite-difference-fd">Finite difference: <code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#sine-transform-dst-rectangle">Sine transform: <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#free-space-green-function-fft-free-space">Free-space Green function: <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#field-gradients">Field gradients</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#aperture-interface">Aperture Interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#python-interfaces">Python Interfaces</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#geometry-and-pic-pipeline">Geometry and PIC pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#solver-builders-and-one-shot-wrappers">Solver builders and one-shot wrappers</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#result-objects">Result Objects</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#analytic-tracking-and-reference-fields">Analytic Tracking and Reference Fields</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#source-charge-coordinates-and-units">Source charge, coordinates, and units</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#round-gaussian-gaussian-round-free-space">Round Gaussian: gaussian_round_free_space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#direct-formula-example">Direct formula example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html#gpu-resources-and-execution">GPU resources and execution</a></li>
-</ul>
-</li>
-</ul>
+<p>The finite-beta wall sets its matching fixed velocity automatically. A single
+stationary spectrum cannot determine arbitrary unequal-velocity trajectories,
+complex transit phases or arbitrary acceleration. Factorized real coupling
+supports acceleration only when that factorization is supplied and valid; pole
+frequencies and damping remain fixed. No universal beta multiplier is applied.</p>
+</section>
+<section id="explicit-algorithm-groups">
+<h2>Explicit algorithm groups<a class="headerlink" href="#explicit-algorithm-groups" title="Link to this heading"></a></h2>
+<p>Top-level fields are <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Command=&quot;WakeField&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Groups</span></code> and <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code>. Groups have unique <code class="docutils literal notranslate"><span class="pre">Name</span></code> values and nonempty
+<code class="docutils literal notranslate"><span class="pre">Components</span></code> lists. Each component selects <code class="docutils literal notranslate"><span class="pre">Component</span></code>, <code class="docutils literal notranslate"><span class="pre">Model</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Velocity</span></code>, optional <code class="docutils literal notranslate"><span class="pre">Scale</span></code> and <code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code>.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Group execution controls</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code></p></td>
+<td><p>Required: <code class="docutils literal notranslate"><span class="pre">direct</span></code>, <code class="docutils literal notranslate"><span class="pre">fft</span></code>, <code class="docutils literal notranslate"><span class="pre">recursive</span></code> (resonator), <code class="docutils literal notranslate"><span class="pre">modal</span></code> (pole/residue), <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> (stationary gapped train), or <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> (variable-period physical-time history).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">History</span></code></p></td>
+<td><p>Required: <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">direct</span></code> (stored source bins), <code class="docutils literal notranslate"><span class="pre">state</span></code> (resonator/modal state), or <code class="docutils literal notranslate"><span class="pre">partitioned</span></code>. The last requires <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> or <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">point</span></code>; independently selected per group.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns</span></code></p></td>
+<td><p>Positive integer or null for direct history; required finite positive integer for <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code>. Counts preceding passages, with the current passage also included. Must be null for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>Positive value or null for direct/partitioned history; required finite positive value for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>. Clips the kernel at this delay, including a partial uniform source bin. Physical-time projection introduces mesh error at a discontinuous cutoff.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Convolution</span> <span class="pre">grid</span></code></p></td>
+<td><p>Required for <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code>; stationary physical time layout described below.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">grid</span></code></p></td>
+<td><p>Required only for <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>: positive finite <code class="docutils literal notranslate"><span class="pre">Step</span> <span class="pre">(s)</span></code>, integer <code class="docutils literal notranslate"><span class="pre">Block</span> <span class="pre">size</span></code> &gt;= 2 (default 64), and optional finite <code class="docutils literal notranslate"><span class="pre">Origin</span> <span class="pre">(s)</span></code> (default null).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Partition</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dyadic</span></code> (default for partitioned FFT) or <code class="docutils literal notranslate"><span class="pre">uniform</span></code>. No automatic algorithm switch.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">workspace</span> <span class="pre">(MiB)</span></code></p></td>
+<td><p>Partitioned FFT conservative peak allocation budget, default 1024 MiB. Checked before allocating history; CUDA also checks available device memory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Boundary</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">causal_passages</span></code> (default), <code class="docutils literal notranslate"><span class="pre">isolated</span></code>, or <code class="docutils literal notranslate"><span class="pre">periodic</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Period</span> <span class="pre">(s)</span></code>, <code class="docutils literal notranslate"><span class="pre">Periodic</span> <span class="pre">images</span></code></p></td>
+<td><p>Both required for periodic response; use direct solver and no transient history. Images -N through +N are summed explicitly.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">fft</span></code> requires an increasing uniform current grid with equal source widths no
+larger than the spacing. With <code class="docutils literal notranslate"><span class="pre">History=&quot;direct&quot;</span></code>, previous passages are
+explicitly calculated directly. No <code class="docutils literal notranslate"><span class="pre">auto</span></code> option or silent solver fallback is
+provided. Modes retain unlimited decay history with memory proportional to mode
+count. Gaps between bunches use physical elapsed time.</p>
+<p>Causal passages must be ordered and nonoverlapping in physical time, including
+uniform-bin support. Overlap across tracking turns is rejected: turn-batched
+tracking cannot infer future trajectories. A spatial <code class="docutils literal notranslate"><span class="pre">isolated</span></code> boundary
+declares that the complete source train is present in the current batch;
+<code class="docutils literal notranslate"><span class="pre">periodic</span></code> declares its repeated steady state. Both require fixed beta and no
+transient history. They cannot be used to represent arbitrary accelerating or
+transient ring distributions. The user chooses the number of periodic images
+and checks convergence.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeField</span>
+
+<span class="n">wake</span> <span class="o">=</span> <span class="n">WakeField</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">slice_set</span><span class="o">=</span><span class="s2">"wake"</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"short"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span> <span class="n">source_shape</span><span class="o">=</span><span class="s2">"uniform"</span><span class="p">,</span>
+         <span class="n">components</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">component</span><span class="o">=</span><span class="s2">"longitudinal"</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"ideal"</span><span class="p">),</span>
+             <span class="n">model</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"resonator"</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1e3</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mf">1e8</span><span class="p">))]),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"long"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"recursive"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span> <span class="n">source_shape</span><span class="o">=</span><span class="s2">"point"</span><span class="p">,</span>
+         <span class="n">components</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">component</span><span class="o">=</span><span class="s2">"dipolar_y"</span><span class="p">,</span>
+             <span class="n">velocity</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"factorized"</span><span class="p">,</span> <span class="n">betas</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+                           <span class="n">source</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="n">witness</span><span class="o">=</span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+             <span class="n">model</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"resonator"</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mf">1e7</span><span class="p">))]),</span>
+<span class="p">])</span>
+</pre></div>
 </div>
+<p>The coupling numbers in this example are illustrative, not cavity field data.
+Configure and execute a named Slicer before WakeField. The old flat
+<code class="docutils literal notranslate"><span class="pre">Components</span></code>/<code class="docutils literal notranslate"><span class="pre">Solver</span></code>/<code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns</span></code> interface must migrate to <code class="docutils literal notranslate"><span class="pre">Groups</span></code>;
+there is no compatibility interpretation of obsolete fields.</p>
+</section>
+<section id="diagnostics-and-restart">
+<h2>Diagnostics and restart<a class="headerlink" href="#diagnostics-and-restart" title="Link to this heading"></a></h2>
+<p>The command exposes <code class="docutils literal notranslate"><span class="pre">last_sources</span></code>, <code class="docutils literal notranslate"><span class="pre">last_coefficients</span></code>, <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>
+and <code class="docutils literal notranslate"><span class="pre">group_states</span></code>. Diagnostics include each selected algorithm, boundary,
+retained passage count, state bytes and fit errors. <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> serialize/restore all groups and check a configuration
+fingerprint. <code class="docutils literal notranslate"><span class="pre">ArrivalClock.state_dict()</span></code> separately preserves time corrections.
+Also restore particles, reference parameters and the simulation turn before
+resuming with <code class="docutils literal notranslate"><span class="pre">Executor.run(...,</span> <span class="pre">start_turn=...)</span></code>. Restoring particle arrays
+alone is insufficient. <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> starts the location with zero field.</p>
+</section>
+<section id="cpu-and-gpu-execution">
+<h2>CPU and GPU execution<a class="headerlink" href="#cpu-and-gpu-execution" title="Link to this heading"></a></h2>
+<p>CPU and GPU implementations share files, with CUDA helpers and kernel source
+below the corresponding CPU code. Under <code class="docutils literal notranslate"><span class="pre">PASS/commands/wake/</span></code>, temporal
+models live in <code class="docutils literal notranslate"><span class="pre">wake_models.py</span></code>, spectral and rational responses in
+<code class="docutils literal notranslate"><span class="pre">wake_spectrum.py</span></code>, explicit solvers and modal scans in <code class="docutils literal notranslate"><span class="pre">wake_solvers.py</span></code>,
+and the two history convolutions in <code class="docutils literal notranslate"><span class="pre">convolution.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">time_convolution.py</span></code>. Projection belongs to <code class="docutils literal notranslate"><span class="pre">wake_moments.py</span></code>, timing to
+<code class="docutils literal notranslate"><span class="pre">wake_timing.py</span></code>, source storage to <code class="docutils literal notranslate"><span class="pre">wake_state.py</span></code>, and coupling to
+<code class="docutils literal notranslate"><span class="pre">wake_components.py</span></code> and <code class="docutils literal notranslate"><span class="pre">wake_velocity.py</span></code>. Fused particle kicks follow
+the command in <code class="docutils literal notranslate"><span class="pre">PASS/commands/wake_field.py</span></code>. CuPy imports and CUDA compilation
+remain lazy, so CPU execution does not require CUDA dependencies.</p>
+<p>The same model and group configuration runs on CPU and CUDA. Select the normal
+simulation backend; <code class="docutils literal notranslate"><span class="pre">execute_gpu</span></code> requires device particle arrays. Original
+spectra, tabulated responses, resonators, rational modes, direct history and
+spatial periodic sums are evaluated on the GPU. Rational fitting and analytic
+finite-beta impedance construction are initialization work on the CPU; their
+resulting response arrays are uploaded once per device. Numeric table/HEADTAIL
+conversion and partitioned-kernel sampling are also initialization work on CPU.</p>
+<p>Particle coordinates may use float32 or float64. Physical arrival times, slice
+charge moments, response calculations, modal states and energy/momentum
+conversions use float64 in both cases. GPU atomic reductions change summation
+order, so CPU/GPU results need tolerance-based comparisons, not bitwise equality.
+Float32 particle storage can still change slice membership near a boundary and
+accumulate transport rounding over many turns.</p>
+<p>Projection accumulates charge and transverse dipole moments in a single particle
+pass using block-local histograms. The particle kick combines all component
+monomials and applies the mechanical update in one CUDA kernel. Modal history
+uses bounded affine prefix scans with decaying exponential factors, including
+critical and overdamped resonators. Within-passage event times are relative to
+the passage origin to resolve narrow bins after a long elapsed time.</p>
+<p>A freshly executed equal-length Slicer with zero arrival correction supplies
+an exact uniform grid, allowing bounded caching of its FFT response. Intervening
+transport, changed grid geometry or a nonzero arrival correction invalidates
+this shortcut. These are implementation optimizations of the selected solver;
+the configured physical algorithm never changes. Only small validation and
+control metadata is synchronized during tracking. Checkpoint serialization
+explicitly transfers device history to portable host arrays.</p>
+<p>Small problems can run faster on CPU because CUDA launch and synchronization
+costs dominate. Measure a representative workload after warmup, synchronize
+CUDA events, and include Slicer, clock, projection and kick costs when comparing
+complete tracking. The generated validation report under
+<code class="docutils literal notranslate"><span class="pre">tests/codex/wake_redesign/validation_report.md</span></code> records the actual device,
+problem sizes, numerical comparisons, timings and reproducible commands.</p>
+</section>
+<section id="custom-spatial-terms">
+<h2>Custom spatial terms<a class="headerlink" href="#custom-spatial-terms" title="Link to this heading"></a></h2>
+<p>Existing named components remain supported. <code class="docutils literal notranslate"><span class="pre">Component=&quot;custom&quot;</span></code> requires
+<code class="docutils literal notranslate"><span class="pre">Spatial</span></code> containing <code class="docutils literal notranslate"><span class="pre">Plane</span></code> (x/y/z), <code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">powers</span></code> [a,b] and
+<code class="docutils literal notranslate"><span class="pre">Test</span> <span class="pre">powers</span></code> [c,d], all nonnegative integers. The projected source moment is
+<span class="math notranslate nohighlight">\(\sum_j q_j x_j^a y_j^b\)</span>; its response is multiplied by witness
+<span class="math notranslate nohighlight">\(x_i^c y_i^d\)</span>. The kernel unit order is a+b+c+d. A custom term specifies
+one supplied polynomial response; it does not derive unprovided multipoles or
+enforce cross-component Maxwell constraints. The round-wall analytic model
+retains its explicitly supported longitudinal/diagonal dipolar components.</p>
+<p>CPU and CUDA support the same powers. CUDA retains the fast Q/Qx/Qy histogram
+for standard terms and uses a fused general monomial histogram otherwise.
+Integer witness powers are evaluated in the fused mechanical kick.</p>
+</section>
+<section id="stationary-multibunch-and-long-history">
+<h2>Stationary multibunch and long history<a class="headerlink" href="#stationary-multibunch-and-long-history" title="Link to this heading"></a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">Solver=&quot;partitioned_fft&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code> and finite
+<code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns=H</span></code>. No modal fit is required for an arbitrary causal table.
+Define the sample-center times by</p>
+<div class="math notranslate nohighlight">
+\[t_{n,b,i}=t_{\rm origin}+nT+bP+i\Delta t,
+\qquad K_{\ell,d,q}=\overline W(\ell T+dP+q\Delta t).\]</div>
+<p>The grid fields are <code class="docutils literal notranslate"><span class="pre">Period</span> <span class="pre">(s)</span></code> T, <code class="docutils literal notranslate"><span class="pre">Slots</span></code> B, <code class="docutils literal notranslate"><span class="pre">Slices</span></code> S,
+<code class="docutils literal notranslate"><span class="pre">Slot</span> <span class="pre">spacing</span> <span class="pre">(s)</span></code> P, <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">spacing</span> <span class="pre">(s)</span></code> delta-t, <code class="docutils literal notranslate"><span class="pre">Origin</span> <span class="pre">(s)</span></code>
+(default 0), <code class="docutils literal notranslate"><span class="pre">Width</span> <span class="pre">(s)</span></code> (default 0), and <code class="docutils literal notranslate"><span class="pre">Projection</span></code> (default <code class="docutils literal notranslate"><span class="pre">exact</span></code>).
+Period/spacings must be positive. Width must not exceed slice spacing; slot
+windows cannot overlap or span more than one period. Uniform source shape
+requires positive width; point shape requires zero width.</p>
+<p>Slot and intra-slot indices are padded independently to at least 2B-1 and
+2S-1. This is a linear, gapped convolution, even if P/delta-t is not an integer.
+Empty slots are zero; they still occupy their physical time positions. Source
+bins may be reordered or duplicated, and independent overlapping populations
+are summed conservatively. Times are mapped from the physical arrival clock,
+not from the enumeration order of bunches. Since arrival uses -z_lab/(beta*c),
+increasing harmonic IDs need not have increasing arrival times.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Projection=&quot;exact&quot;</span></code> requires the observed centers and widths to match this
+grid at every passage, up to floating-point roundoff. <code class="docutils literal notranslate"><span class="pre">linear</span></code> permits
+off-grid <strong>point</strong> sources within the declared windows: charge moments are
+distributed to two time nodes and fields interpolated back. This introduces a
+time-mesh approximation; refine the grid, especially near sharp wake features.
+The history algorithm adds no tail fitting, temporal decimation or coarsening.
+Changing revolution period, drifting outside the windows or incompatible
+widths raises an error. Choose <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> for variable-period causal history
+with a converged physical-time mesh, or direct summation. There is no silent reset
+or change of history algorithm.</p>
+<p>Uniform partitions schedule all H lag spectra each passage. Dyadic partitions
+cover lags [L,2L) for L=1,2,4,…, truncated at H. Each completed L-passage source
+block produces contributions only to future passages; no future beam trajectory
+is used. Single-lag partitions use spectral delay lines. With F padded spatial
+frequency cells, the history work is O(H F) per turn for uniform partitions and
+O(F log-squared H) amortized for dyadic partitions, in addition to spatial FFTs
+and component factors. Both retain O(H F) spectral storage. Dyadic scheduling
+has bursts at block boundaries; benchmark mean and maximum latency over at
+least one complete largest-block cycle, as well as the median.</p>
+<p>These bounds assume a fixed number of source channels/components. Components
+with identical source powers and source-speed laws share a forward spatial FFT.
+Kernels and FFT resources belong to <code class="docutils literal notranslate"><span class="pre">GroupExecution</span></code>; ring buffers and pending
+fields belong to <code class="docutils literal notranslate"><span class="pre">ConvolutionState</span></code>. They are not stored in component objects.
+CUDA plans retain their cuFFT handles across long scheduling intervals; temporal
+transforms use contiguous time batches. Uniform scheduling fuses spectral
+multiply/add without allocating a full-history temporary. A fresh Slicer with
+stationary partitioned groups enables train-wide projection and kick kernels,
+and multibunch clock evaluation is batched. Float64 is retained throughout.
+All groups preview their new fields before the command applies kicks and commits
+history. Persistent spectra are not copied every turn. Portable checkpoints
+include the sampled-kernel/grid fingerprint and are restored on the selected
+backend; spectral shapes and values are checked before resumed tracking.
+Passage counters must be consecutive, including empty turns. <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>
+is required for a fresh run; initial past history is zero.</p>
+<p>For an equal-length Slicer on [-zmax,zmax], common beta, harmonic slots 0..B-1,
+circumference C, and t0=n*C/(beta*c), an exact point grid is:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeConvolutionGrid</span>
+<span class="n">speed</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">*</span> <span class="mf">299792458.0</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">WakeConvolutionGrid</span><span class="p">(</span>
+    <span class="n">period</span><span class="o">=</span><span class="n">C</span><span class="o">/</span><span class="n">speed</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">slot_spacing</span><span class="o">=</span><span class="n">C</span><span class="o">/</span><span class="p">(</span><span class="n">B</span><span class="o">*</span><span class="n">speed</span><span class="p">),</span>
+    <span class="n">slice_spacing</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">zmax</span><span class="o">/</span><span class="p">(</span><span class="n">S</span><span class="o">*</span><span class="n">speed</span><span class="p">),</span>
+    <span class="n">origin</span><span class="o">=-</span><span class="p">((</span><span class="n">B</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">C</span><span class="o">/</span><span class="n">B</span> <span class="o">+</span> <span class="n">zmax</span><span class="o">-</span><span class="n">zmax</span><span class="o">/</span><span class="n">S</span><span class="p">)</span><span class="o">/</span><span class="n">speed</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">WakeSolverGroup</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"tabular_tail"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"partitioned_fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"partitioned"</span><span class="p">,</span>
+    <span class="n">source_shape</span><span class="o">=</span><span class="s2">"point"</span><span class="p">,</span> <span class="n">memory_turns</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">convolution_grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span>
+    <span class="n">partition</span><span class="o">=</span><span class="s2">"dyadic"</span><span class="p">,</span> <span class="n">max_workspace_mb</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">components</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Use the normal GPU backend to run the same configuration on CUDA. Particle
+storage may be float32; the declared physical mesh and wake arithmetic remain
+double precision. Projection membership near a slice edge can still differ
+with float32. The generated suite, benchmark and full tracking example are in
+<code class="docutils literal notranslate"><span class="pre">tests/codex/wake_fast_history/</span></code>; the benchmark includes source deposition,
+history scheduling and synchronized end-to-end tracking separately.</p>
+</section>
+<section id="variable-period-general-history">
+<h2>Variable-period general history<a class="headerlink" href="#variable-period-general-history" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Solver=&quot;time_fft&quot;</span></code> uses fixed physical-time nodes
+<span class="math notranslate nohighlight">\(t_k=t_{\rm origin}+k\Delta t\)</span>, independently of revolution periods.
+Set <code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code>, finite <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code> and <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">grid</span></code>;
+leave <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns</span></code> and <code class="docutils literal notranslate"><span class="pre">Convolution</span> <span class="pre">grid</span></code> unset. The input arrival clock
+supplies each passage’s actual times. Changing beta, bunch spacing, bin width
+or revolution period does not rescale or discard the existing history.
+The previously stated response/velocity approximations still apply: this
+algorithm does not derive a general two-time electromagnetic response.</p>
+<p>Point source moments are deposited linearly onto neighboring time nodes.
+For finite uniform bins, deposition integrates the same hat basis over the
+source interval, conserving each coupled source moment. Fields are linearly
+interpolated to witness times. Within half the source width plus two mesh steps
+of a source center, the exact source-averaged response replaces its projected
+pair contribution. This local correction preserves the causal jump and half
+self-wake, including sources from the preceding passage. Far-field projection
+remains an approximation. Point sources and witnesses exactly on the mesh
+recover the corresponding discrete direct sum up to floating-point error.</p>
+<p>Resolve short response features and high frequencies by refining <code class="docutils literal notranslate"><span class="pre">Step</span> <span class="pre">(s)</span></code>.
+Converge the physical slice count and memory duration separately. Table knots
+and a sharp memory cutoff can limit the observed order of convergence; no
+universal error tolerance follows just from selecting <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>. The step
+also must be resolvable by the absolute floating-point arrival clock.</p>
+<p>Completed physical-time blocks feed uniform or dyadic online convolution.
+The unfinished block, including source deposition beyond its center, remains
+open across passages. Preview evaluates the currently available sources;
+no future beam trajectory is requested. Persistent ring rows touched during
+preview are saved and restored exactly, and updates are committed only after
+all groups validate their kicks. CPU/GPU checkpoints include the open block,
+near-correction sources, clock origin and completed-block history. Empty
+passages still advance the passage counter. Gaps longer than the complete
+memory horizon and projection support can skip expired empty blocks exactly.</p>
+<p>For block size B, horizon H seconds and M=ceil(H/(B*delta-t))+1 history
+blocks, dyadic work per completed block is O(B log B + B log-squared M)
+amortized, plus source deposition, witness interpolation and local pair
+correction; storage is O(B M) for a fixed number of channels/components.
+One passage may span several blocks. Fine meshes also represent empty time
+between bunches, so <code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> can be substantially cheaper for a
+stationary sparse train. Large overlapping source widths can increase local
+pair work. <code class="docutils literal notranslate"><span class="pre">Block</span> <span class="pre">size</span></code> changes scheduling and memory traffic, not physical
+resolution. Benchmark full largest-block cycles including peak latency.</p>
+<p>CPU and CUDA implement the same projection and history scheme. CUDA uses
+device deposition and fused projected-pair evaluation, shares source FFTs,
+retains cuFFT plans and keeps spectral history on the device. Small validation
+metadata still synchronizes with the host. Slicer continues to be invoked per
+bunch; variable-period support does not require a train-wide Slicer API.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeTimeGrid</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">WakeSolverGroup</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"accelerating_tail"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"time_fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"partitioned"</span><span class="p">,</span>
+    <span class="n">source_shape</span><span class="o">=</span><span class="s2">"uniform"</span><span class="p">,</span> <span class="n">memory_time</span><span class="o">=</span><span class="mf">200e-6</span><span class="p">,</span>
+    <span class="n">time_grid</span><span class="o">=</span><span class="n">WakeTimeGrid</span><span class="p">(</span><span class="n">step</span><span class="o">=</span><span class="mf">0.5e-9</span><span class="p">,</span> <span class="n">block_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">),</span>
+    <span class="n">partition</span><span class="o">=</span><span class="s2">"dyadic"</span><span class="p">,</span> <span class="n">max_workspace_mb</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">components</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These mesh values are illustrative and require convergence for the supplied
+wake. With a null origin, the first source interval chooses a nearby origin;
+an explicit origin must not follow the first source support. Source batches
+must remain causally ordered and nonoverlapping across calls, including bin
+widths. Independent overlapping populations inside one batch are permitted.
+The executable validation and synchronized benchmarks are under
+<code class="docutils literal notranslate"><span class="pre">tests/codex/wake_variable_period/</span></code>.</p>
+</section>
+<section id="coasting-beams">
+<h2>Coasting beams<a class="headerlink" href="#coasting-beams" title="Link to this heading"></a></h2>
+<p>A coasting beam can be represented by one bunch group with
+<code class="docutils literal notranslate"><span class="pre">harmonic_number=1</span></code> and an equal-length explicit Slicer covering a full
+circumference. This permits full-ring charge/current and transverse-moment
+profiles; it does not require RF bunching. For uniform current I and a finite
+causal response, the settled voltage is <span class="math notranslate nohighlight">\(V=I\int_0^\infty W(\tau)d\tau\)</span>.
+The validation suite checks this DC result and convergence of an azimuthal
+harmonic against its analytic convolution on CPU and CUDA. Zero initial
+history produces a startup transient; allow the response memory to fill.
+<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code> is a prescribed repeated steady distribution, with
+image-count convergence, rather than evolving transient history.</p>
+<p>For evolving coasting profiles with cumulative phase slip, enable Slicer’s
+<code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code>, <code class="docutils literal notranslate"><span class="pre">equal_length</span></code> and <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>.
+Range mode remains <code class="docutils literal notranslate"><span class="pre">explicit</span></code>. The temporary coordinate is
+<span class="math notranslate nohighlight">\(C[((z_{rel}+z_{center}-\beta_0ca)/C\bmod1)-1]\)</span>, where a is the arrival
+correction. The stored continuous coordinate and grouping metadata are
+unchanged. Each source bin occupies its part of [t0,t0+T), with T=C/(beta*c).
+The next snapshot starts at the next physical reference passage; periods may
+vary when using <code class="docutils literal notranslate"><span class="pre">time_fft</span></code>. All populations must share t0, beta and C.
+Slicer must run at the WakeField location. Intervening transverse thin elements
+and diagnostics may reuse the geometry when arrival phases and references are
+unchanged; longitudinal transport or reference changes require reslicing. Use
+<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code> for evolving history; the separate repeated
+steady-state boundary does not supply this time evolution.</p>
+<p>This is the <strong>one passage per particle per reference turn approximation</strong>.
+It supports long accumulated slip and momentum spread within this model,
+but does not schedule zero or multiple individual crossings during one turn.
+For a uniform rigid stream with actual period Ti, the represented current
+is Q/T instead of Q/Ti. If epsilon=1-Ti/T, the relative current error is
+abs(epsilon); the included actual-Drift test verifies this first-order error
+and its reduction with momentum spread. A full-ring causal voltage test
+checks charge conservation and <span class="math notranslate nohighlight">\(I\int W\)</span> on CPU and CUDA.</p>
+<p>Require small per-turn slip, small collective change within a turn, and
+<span class="math notranslate nohighlight">\(2\pi |m\,\Delta u|\ll1\)</span> for each resolved azimuthal mode m. Converge
+slice count and the time mesh separately. <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">phase</span> <span class="pre">slip</span></code> (default 0.05,
+at most 0.1) rejects large observed single-step phase changes when WakeField
+consumes the slices; diagnostic Slicer projections remain available. It is a guard,
+not a universal accuracy tolerance. Floating particle storage must also
+resolve the slice width after accumulated motion; prefer float64 for long
+coasting runs. An ordinary explicit Slicer keeps its original boundary
+clipping behavior unless periodic arrival slicing is enabled.</p>
+</section>
+<section id="regression-and-block-contracts">
+<h2>Regression and block contracts<a class="headerlink" href="#regression-and-block-contracts" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PartitionedConvolution.preview_block</span></code> accepts finite float64 backend
+arrays with shape (source channels, slots, slices). Source velocity factors
+are already included; witness factors are applied only after physical-time
+gathering. The returned update owns its spectrum independently of the caller
+array. Preview leaves persistent history unchanged, and an update can be
+committed once. Multi-block previews use a bounded ring-row transaction with
+exception-safe rollback; overlapping transactions on one state are rejected.
+These interfaces preserve group-level atomic history acceptance without
+copying the entire long history on every passage.</p>
+<p>The versioned runner is <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.wake_production.run_regression</span></code>.
+CPU CI runs on pull requests and pushes; CUDA hosts run the same command with
+<code class="docutils literal notranslate"><span class="pre">--require-gpu</span></code>, which fails if no real device is available. Generated
+results and environments remain ignored by Git. The long-term benchmark
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.wake_production.long_term</span> <span class="pre">--backend</span> <span class="pre">cpu</span></code> (or gpu)
+checks 2048-turn self-consistent modes, growth, tune and an intensity threshold
+for a nonmodal table with varying periods. Its independent reference is a
+finite-memory Floquet matrix, not a second PASS solver. It uses normalized
+units and a small external linear damping map; the threshold is specific to
+that benchmark and is not a general machine instability limit.</p>
+<p>CUDA combines centered slice-clock statistics into two histogram passes.
+Tabulated wakes use a warp per witness for the exact near-field correction,
+without allocating source-target pair lists or synchronizing pair counts.
+Other model types retain the general correction path. Performance benchmarks
+include the per-bunch Slicer, reference changes, projection, history and kick,
+with warm-up and at least one complete largest-block scheduling cycle.</p>
+</section>
+<section id="file-input">
+<h2>File input<a class="headerlink" href="#file-input" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> takes <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">Format</span></code> (<code class="docutils literal notranslate"><span class="pre">table</span></code> default or
+<code class="docutils literal notranslate"><span class="pre">headtail</span></code>), <code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code> (default 0), required <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>, optional
+<code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>, <code class="docutils literal notranslate"><span class="pre">Delimiter</span></code> (null for whitespace), <code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code> (default 0),
+<code class="docutils literal notranslate"><span class="pre">Causal</span></code> (default true), <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> (<code class="docutils literal notranslate"><span class="pre">two_sided</span></code> default), optional
+<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>, and required <code class="docutils literal notranslate"><span class="pre">Convention</span></code>. Columns are zero-based, distinct,
+and numeric. UTF-8 files may contain # comments and a byte-order mark. General
+tables are linearly interpolated with zero outside their supplied support;
+causal tables must include zero delay. Unordered/duplicate samples are rejected;
+a reversed time/distance axis is accepted and reordered.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Convention</span></code> declares <code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">kind</span></code> (<code class="docutils literal notranslate"><span class="pre">wake_function</span></code>/<code class="docutils literal notranslate"><span class="pre">impedance</span></code>),
+<code class="docutils literal notranslate"><span class="pre">Axis</span></code> (<code class="docutils literal notranslate"><span class="pre">time</span></code>/<code class="docutils literal notranslate"><span class="pre">distance</span></code>/<code class="docutils literal notranslate"><span class="pre">frequency</span></code>), <code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">unit</span></code>, <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">unit</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Positive</span> <span class="pre">trailing</span></code>, <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">positive</span> <span class="pre">loss</span></code>, <code class="docutils literal notranslate"><span class="pre">Integrated</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">beta</span></code>. <code class="docutils literal notranslate"><span class="pre">Fourier</span> <span class="pre">exponent</span></code> defaults to -1,
+<code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">impedance</span> <span class="pre">factor</span></code> to i (also -i or 1), and
+<code class="docutils literal notranslate"><span class="pre">Shunt</span> <span class="pre">impedance</span> <span class="pre">convention</span></code> to <code class="docutils literal notranslate"><span class="pre">not_applicable</span></code> (provenance only: numeric
+samples are already normalized; this field does not rescale a shunt impedance).</p>
+<p>Time units: s/ms/us/ns/ps; distance: m/cm/mm; frequency: Hz/kHz/MHz/GHz.
+Wake amplitudes explicitly use V/kV/MV divided by C/nC/pC and the required
+spatial powers, for example <code class="docutils literal notranslate"><span class="pre">V/C/m^2</span></code> or <code class="docutils literal notranslate"><span class="pre">V/(pC*mm)</span></code>. Impedance units use
+ohm/Ohm/kOhm/MOhm with spatial powers. Per-length data add one denominator
+length power and require physical <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>; integrated data forbid it.
+Distance coordinates convert to delay through reference beta*c, without an
+additional wake-amplitude Jacobian. Fourier and longitudinal signs are
+converted explicitly. Impedance files require both real and imaginary columns
+and positive-trailing delay convention; use the Fourier sign field for
+opposite transform signs. Finite-band causal projection retains its documented
+approximation. A finite-bunch wake potential requires separate deconvolution
+and is rejected as a point-charge wake.</p>
+<p>HEADTAIL supports several column layouts, so select the columns explicitly.
+Its contract is ns and integrated V/pC for order zero, V/(pC*mm) for order one;
+signs remain explicit. See the <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL table specification</a>.
+PASS reads these numeric units directly; it does not depend on Xwakes or
+PyHEADTAIL. For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="s2">"tail.dat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"headtail"</span><span class="p">,</span>
+    <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span>
+        <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/(pC*mm)"</span><span class="p">,</span> <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reference_beta</span><span class="o">=</span><span class="n">beta</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Input JSON resolves <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code> relative to its directory. Direct Python
+construction uses the supplied path relative to the current directory. Files
+are read only at construction; source hash and conversion metadata remain on
+the model. Checkpoints verify file-content hashes as well as configuration.
+CST project/binary parsing, automatic unit detection and wake-potential
+deconvolution are not included; exported numeric files can use <code class="docutils literal notranslate"><span class="pre">table</span></code> with
+their actual conventions explicitly provided.</p>
+</section>
+<section id="slice-coordinates-and-response-boundaries">
+<h2>Slice coordinates and response boundaries<a class="headerlink" href="#slice-coordinates-and-response-boundaries" title="Link to this heading"></a></h2>
+<p>WakeField accepts ordinary <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> slices or the coasting
+<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> projection. Legacy <code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code> still selects
+the latter. <code class="docutils literal notranslate"><span class="pre">ring_position</span></code> is rejected: geometric folding can place different
+passages in the same bin and cannot supply their causal order. Use a separate
+named geometric SliceSet for SpaceCharge.</p>
+<p>The Coordinate setting does not change a solver group’s <code class="docutils literal notranslate"><span class="pre">Boundary</span></code> setting.
+<code class="docutils literal notranslate"><span class="pre">Boundary=periodic</span></code> describes a spatial response with periodic images; it is
+not a substitute for the <code class="docutils literal notranslate"><span class="pre">causal_passages</span></code> boundary and time history required
+by evolving arrival-phase slices. Core arrival offsets remain FP64 and are
+preserved through continuous-z regrouping. Slice histories and frozen geometry
+are invalidated according to their existing ownership rules.</p>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../zh/field_solver.html" class="btn btn-neutral float-left" title="横向场求解器" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="input_generation.html" class="btn btn-neutral float-right" title="Input File Generation (Command-Line Mode)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

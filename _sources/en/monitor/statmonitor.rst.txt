@@ -331,3 +331,23 @@ Application Scenarios
 - **Nonlinear effect identification**: Use higher-order moment information (skewness and kurtosis) to determine the degree to which the beam distribution deviates from Gaussian, identifying nonlinear resonances or dispersion coupling
 - **Momentum-spread monitoring**: ``sigmadp`` and ``sigmaZ`` describe longitudinal beam quality within a bunch; use ``zCenter`` as well when comparing absolute azimuths across bunches
 - **Correlation diagnostics**: Correlation quantities such as ``xzAverage`` can be used to diagnose dispersion coupling or transverse-longitudinal coupling
+
+Longitudinal coordinate in output
+-------------------------------------------
+
+Longitudinal moments use a temporary full-ring representative of bunch-relative
+z in ``[-C/2,C/2)`` on both CPU and GPU. This never changes stored particle z.
+TFS headers record ``ZCoordinate=z_rel_folded_by_ring`` and ``ZInterval``.
+These are moments of the chosen representative, not unwrapped slip statistics
+or circular moments; a distribution crossing the interval cut can have a large
+reported width. ParticleMonitor and Distribution retain the continuous z_rel
+for analyses that need accumulated longitudinal slip.
+
+Injection populations
+---------------------
+
+numAlive, numInjected and numPending record live, born (live plus lost), and
+reserved macro-particle counts. beamLossTotal excludes pending slots;
+lossPercent uses the injected population as its denominator. An allocated
+population with no survivors produces zero moments and explicit zero-survival
+counts on both CPU and GPU; an empty declared bunch retains the previous no-row behavior.

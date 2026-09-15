@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>孔径（Aperture） &mdash; PASS  documentation</title>
+  <title>WakeField &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
@@ -20,9 +20,7 @@
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Twiss 传输（Twiss）" href="twiss.html" />
-    <link rel="prev" title="束团重分组（ReorganizeBunch）" href="reorganize.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,8 +44,8 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Content</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#id2">简介</a></li>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#id3">架构概览</a></li>
@@ -353,24 +351,24 @@
 <li class="toctree-l3"><a class="reference internal" href="reorganize.html#id5">应用场景</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">孔径（Aperture）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">丢失粒子处理</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">各孔径类型详解</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#off">off（关闭）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#default">default（默认矩形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#circle">circle（圆形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#rectangle">rectangle（矩形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ellipse">ellipse（椭圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#rectcircle">rectcircle（矩形内切圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#rectellipse">rectellipse（矩形内切椭圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#racetrack">racetrack（跑道形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#octagon">octagon（八角形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#polygon">polygon（多边形）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id1">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id2">丢失粒子处理</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id3">各孔径类型详解</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#off">off（关闭）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#default">default（默认矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#circle">circle（圆形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectangle">rectangle（矩形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#ellipse">ellipse（椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#racetrack">racetrack（跑道形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#octagon">octagon（八角形）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="aperture.html#polygon">polygon（多边形）</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">参数总览表</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">使用示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id4">参数总览表</a></li>
+<li class="toctree-l3"><a class="reference internal" href="aperture.html#id5">使用示例</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss 传输（Twiss）</a><ul>
@@ -953,10 +951,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
-      <li class="breadcrumb-item active">孔径（Aperture）</li>
+      <li class="breadcrumb-item active">WakeField</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/zh/aperture.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/zh/wake_field.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -964,463 +961,454 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="aperture">
-<h1>孔径（Aperture）<a class="headerlink" href="#aperture" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的 <strong>孔径检查系统</strong> （ Aperture ），用于在粒子追踪过程中检查粒子是否超出束流管的横向孔径边界。孔径检查是束流损失模拟的核心环节，能够标识并记录因横向坐标超出物理管道限制而丢失的粒子。</p>
-<p>孔径模块位于 <code class="docutils literal notranslate"><span class="pre">PASS/utils/aperture.py</span></code> ，提供 CPU 和 GPU 两种实现 （分别通过 <code class="docutils literal notranslate"><span class="pre">check_aperture_cpu</span></code> 和 <code class="docutils literal notranslate"><span class="pre">check_aperture_gpu</span></code> 函数调用），在每次元件追踪后被自动调用。调用时传入当前元件的纵向位置 <span class="math notranslate nohighlight">\(s\)</span> 和当前圈数。</p>
-<p>孔径检查仅在粒子的横向坐标 <span class="math notranslate nohighlight">\((x, y)\)</span> 上进行，不涉及纵向坐标。每个元件可独立设置孔径类型和参数，支持 10 种孔径几何形状。</p>
-<p>几何构造和损失处理统一放在本文件中。<code class="docutils literal notranslate"><span class="pre">build_aperture({&quot;Type&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;Value&quot;:</span> <span class="pre">...})</span></code>
-构造几何对象；<code class="docutils literal notranslate"><span class="pre">mask(x,</span> <span class="pre">y)</span></code> 包含管壁，<code class="docutils literal notranslate"><span class="pre">strict_mask(x,</span> <span class="pre">y)</span></code> 排除管壁。
-这些判断函数接受 NumPy 或 CuPy 坐标数组，在相同后端返回 mask，不修改粒子。
-<code class="docutils literal notranslate"><span class="pre">aperture_bounds(geometry)</span></code> 返回几何范围，供初始化校验使用。</p>
-<p><code class="docutils literal notranslate"><span class="pre">check_aperture_gpu</span></code> 支持下列全部类型及 float32、float64 粒子坐标，直接在设备上
-记录损失。CUDA 核启动前校验几何参数，尺寸可输入整数或浮点数，空束团不启动核。
-已损失粒子保留原损失位置和圈数，不属于当前束团范围的粒子不受影响。
-CPU 执行不依赖 CuPy。孔径模块及 PIC、SpaceCharge 跟踪均支持 CPU/GPU。</p>
+  <section id="wakefield">
+<h1>WakeField<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">WakeField</span></code> 使用指定的 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> 结果施加积分薄元件尾场。一个命令代表
+一个物理位置，各算法组分别保存源历史或模式状态。本页说明 CPU 与 CUDA 实现，
+数值验证结果见仓库的尾场验证报告。</p>
 <section id="id1">
-<h2>接口参数<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>孔径系统通过两个参数控制：</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 20.0%" />
-<col style="width: 25.0%" />
-<col style="width: 15.0%" />
-<col style="width: 40.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>属性名</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>类型</p></th>
-<th class="head"><p>说明</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Type</span></code></p></td>
-<td><p>str</p></td>
-<td><p>孔径类型，不区分大小写，可选值见下文</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">Value</span></code></p></td>
-<td><p>list</p></td>
-<td><p>孔径参数值，含义随类型而异</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> 不区分大小写，内部统一转换为小写后匹配。 <code class="docutils literal notranslate"><span class="pre">off</span></code> 和 <code class="docutils literal notranslate"><span class="pre">default</span></code> 类型忽略 <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 。</p>
-</div>
+<h2>物理范围与约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>PASS 追踪解析或用户提供的响应，不求解任意三维结构的 Maxwell 方程。
+响应速度耦合使用束团参考速度；横向电压到冲量的换算则使用粒子实际入射速度。
+粒子坐标保持连续的 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>，<code class="docutils literal notranslate"><span class="pre">z_lab</span> <span class="pre">=</span> <span class="pre">z_rel</span> <span class="pre">+</span> <span class="pre">bunch.z_center</span></code>：</p>
+<div class="math notranslate nohighlight">
+\[t_i=t_0+a_i-\frac{z_{\mathrm{lab},i}}{\beta_0c},\qquad
+a_i^{\mathrm{new}}=a_i^{\mathrm{old}}+
+\frac{z_{\mathrm{lab},i}}{c}
+\left(\frac1{\beta_0^{\mathrm{new}}}-\frac1{\beta_0^{\mathrm{old}}}\right).\]</div>
+<p>第二式用于薄元件处参考能量变化。通用 <code class="docutils literal notranslate"><span class="pre">ArrivalClock</span></code> 保存修正量，与尾场
+是否启用无关，RFCavity 与 Exciter 使用相同修正。束团排序同时重排物理到达时间锚点；
+重组后必须重新执行 Slicer。时钟不将折叠值写回 <code class="docutils literal notranslate"><span class="pre">p.z</span></code>。</p>
+<p>尾场时间适配器持有 <code class="docutils literal notranslate"><span class="pre">beam.arrival_clock</span></code>，只管理尾场切片几何。
+通用初始化、参考变换和采样时间存储属于 core，生命周期与检查点说明见
+<span class="xref std std-doc">arrival_time</span>。</p>
+<div class="math notranslate nohighlight">
+\[F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad Z_\parallel=F,\qquad Z_\perp=iF.\]</div>
+<p>源和测试横向单项式总阶数为 <span class="math notranslate nohighlight">\(n\)</span> 时，积分尾函数单位为 V/C/m<sup>n</sup>，
+阻抗单位为 ohm/m<sup>n</sup>。源矩使用带符号真实电荷，测试宏粒子权重约去。
+纵向为正表示损失能量，横向为正表示正方向 Lorentz 力。每核子能量变化
+<span class="math notranslate nohighlight">\(\Delta E=-Z_{\mathrm{ion}}V_\parallel/A\)</span>，随后精确换算动量；横向
+<span class="math notranslate nohighlight">\(\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)\)</span> 使用实际入射速度。
+因果核零点取有限跳跃的一半。<code class="docutils literal notranslate"><span class="pre">uniform</span></code> 对整个切片时间宽度均匀积分，
+<code class="docutils literal notranslate"><span class="pre">point</span></code> 位于切片中心。切片和参数收敛由用户扫描，没有自动切片误差控制。</p>
 </section>
 <section id="id2">
-<h2>丢失粒子处理<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>CPU 和 GPU 均只保留严格位于孔径内部的粒子。接触任意物理壁即损失，包括多边形
-边和顶点；矩形并不要求 x、y 同时达到边界。</p>
-<p>当粒子被判定为丢失时，系统执行以下操作：</p>
-<ul class="simple">
-<li><p><strong>tag 取负</strong> ： <span class="math notranslate nohighlight">\(\text{tag} \leftarrow -|\text{tag}|\)</span> ，保留粒子 ID 信息，仅将符号取负以标记为丢失</p></li>
-<li><p><strong>lost_position</strong> ：记录丢失位置的纵向坐标 <span class="math notranslate nohighlight">\(s\)</span> ，即当前元件的纵向位置</p></li>
-<li><p><strong>lost_turn</strong> ：记录丢失时的圈数</p></li>
-</ul>
-<p>已丢失的粒子 （ <span class="math notranslate nohighlight">\(\text{tag} &lt; 0\)</span> ）在后续孔径检查中将被跳过，不再重复标记。仅对存活粒子 （ <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ）执行孔径检查。</p>
-</section>
-<section id="id3">
-<h2>各孔径类型详解<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>以下逐一介绍 10 种孔径类型的参数定义与丢失判定条件。</p>
-<section id="off">
-<h3>off（关闭）<a class="headerlink" href="#off" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ：无 （ <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 被忽略）</p>
-<p><strong>说明</strong> ：不做任何孔径检查，所有粒子均保留。</p>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <circle cx="150" cy="150" r="60" stroke="#e94560" stroke-width="3" fill="none"/>
-  <line x1="108" y1="108" x2="192" y2="192" stroke="#e94560" stroke-width="3"/>
-  <text x="132" y="248" fill="#e94560" font-size="16" font-weight="bold" font-family="monospace">OFF</text>
-</svg>
-</div></section>
-<section id="default">
-<h3>default（默认矩形）<a class="headerlink" href="#default" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ：无 （ <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code> 被忽略）</p>
-<p><strong>说明</strong> ：普通元件默认使用 ±1m 矩形；<code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 则将 default 解析为
-其配置网格同尺寸的矩形，见 <a class="reference internal" href="space_charge.html"><span class="doc">空间电荷效应（SpaceCharge）</span></a>。</p>
-<p><strong>丢失条件</strong> ：</p>
-<div class="math notranslate nohighlight">
-\[|x| \ge 1.0 \quad \text{或} \quad |y| \ge 1.0\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <rect x="90" y="90" width="120" height="120" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <text x="125" y="84" fill="#00d2ff" font-size="11" font-family="monospace">+1m</text>
-  <text x="125" y="228" fill="#00d2ff" font-size="11" font-family="monospace">-1m</text>
-</svg>
-</div></section>
-<section id="circle">
-<h3>circle（圆形）<a class="headerlink" href="#circle" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[r]</span></code> ，其中 <span class="math notranslate nohighlight">\(r\)</span> 为圆半径。</p>
-<p><strong>丢失条件</strong> ：</p>
-<div class="math notranslate nohighlight">
-\[x^2 + y^2 \ge r^2\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <circle cx="150" cy="150" r="108" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <line x1="150" y1="150" x2="258" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
-  <text x="195" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">r</text>
-</svg>
-</div></section>
-<section id="rectangle">
-<h3>rectangle（矩形）<a class="headerlink" href="#rectangle" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高。</p>
-<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
-<div class="math notranslate nohighlight">
-\[|x| \ge w\]</div>
-<div class="math notranslate nohighlight">
-\[|y| \ge h\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <rect x="30" y="66" width="240" height="168" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
-  <text x="200" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">w</text>
-  <line x1="150" y1="150" x2="150" y2="66" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
-  <text x="156" y="112" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">h</text>
-</svg>
-</div></section>
-<section id="ellipse">
-<h3>ellipse（椭圆）<a class="headerlink" href="#ellipse" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[a,</span> <span class="pre">b]</span></code> ，其中 <span class="math notranslate nohighlight">\(a\)</span> 为半长轴 （ x 方向）， <span class="math notranslate nohighlight">\(b\)</span> 为半短轴 （ y 方向）。</p>
-<p><strong>丢失条件</strong> ：</p>
-<div class="math notranslate nohighlight">
-\[\left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \ge 1\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <ellipse cx="150" cy="150" rx="120" ry="84" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
-  <text x="200" y="142" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">a</text>
-  <line x1="150" y1="150" x2="150" y2="66" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,3"/>
-  <text x="156" y="112" fill="#f5a623" font-size="13" font-style="italic" font-family="monospace">b</text>
-</svg>
-</div></section>
-<section id="rectcircle">
-<h3>rectcircle（矩形内切圆）<a class="headerlink" href="#rectcircle" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为矩形半宽， <span class="math notranslate nohighlight">\(h\)</span> 为矩形半高， <span class="math notranslate nohighlight">\(r\)</span> 为圆半径。</p>
-<p>孔径区域为矩形与圆的 <strong>交集</strong> （粒子需同时在矩形和圆内才存活）。</p>
-<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
-<div class="math notranslate nohighlight">
-\[|x| \ge w \quad \text{或} \quad |y| \ge h\]</div>
-<div class="math notranslate nohighlight">
-\[x^2 + y^2 \ge r^2\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <rect x="90" y="60" width="120" height="180" stroke="#e94560" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
-  <circle cx="150" cy="150" r="78" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <line x1="150" y1="150" x2="210" y2="150" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="172" y="145" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">w</text>
-  <line x1="150" y1="150" x2="150" y2="60" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="135" y="108" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">h</text>
-  <line x1="150" y1="150" x2="205" y2="107" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="165" y="128" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">r</text>
-</svg>
-</div><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>红色虚线为矩形边界，蓝色实线为圆边界。孔径区域为两者的交集。</p>
-</div>
-</section>
-<section id="rectellipse">
-<h3>rectellipse（矩形内切椭圆）<a class="headerlink" href="#rectellipse" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为矩形半宽， <span class="math notranslate nohighlight">\(h\)</span> 为矩形半高， <span class="math notranslate nohighlight">\(a\)</span> 为椭圆半长轴 （ x 方向）， <span class="math notranslate nohighlight">\(b\)</span> 为椭圆半短轴 （ y 方向）。</p>
-<p>孔径区域为矩形与椭圆的 <strong>交集</strong> （粒子需同时在矩形和椭圆内才存活）。</p>
-<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
-<div class="math notranslate nohighlight">
-\[|x| \ge w \quad \text{或} \quad |y| \ge h\]</div>
-<div class="math notranslate nohighlight">
-\[\left(\frac{x}{a}\right)^2 + \left(\frac{y}{b}\right)^2 \ge 1\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <rect x="90" y="60" width="120" height="180" stroke="#e94560" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
-  <ellipse cx="150" cy="150" rx="90" ry="78" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <line x1="150" y1="150" x2="210" y2="150" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="172" y="145" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">w</text>
-  <line x1="150" y1="150" x2="150" y2="60" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="135" y="108" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">h</text>
-  <line x1="150" y1="155" x2="240" y2="155" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="188" y="170" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">a</text>
-  <line x1="155" y1="150" x2="155" y2="72" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="160" y="90" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">b</text>
-</svg>
-</div><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>红色虚线为矩形边界，蓝色实线为椭圆边界。孔径区域为两者的交集。</p>
-</div>
-</section>
-<section id="racetrack">
-<h3>racetrack（跑道形）<a class="headerlink" href="#racetrack" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为矩形半宽， <span class="math notranslate nohighlight">\(h\)</span> 为矩形半高， <span class="math notranslate nohighlight">\(a\)</span> 为椭圆端 x 方向半轴， <span class="math notranslate nohighlight">\(b\)</span> 为椭圆端 y 方向半轴。</p>
-<p>跑道形孔径由中间矩形和两端的半椭圆组成。椭圆端中心位于 <span class="math notranslate nohighlight">\((\pm w, 0)\)</span> 。</p>
-<p><strong>生存条件</strong> （满足任一即存活）：</p>
-<p>矩形区域内：</p>
-<div class="math notranslate nohighlight">
-\[|x| &lt; w \quad \text{且} \quad |y| &lt; h\]</div>
-<p>椭圆端区域内 （ <span class="math notranslate nohighlight">\(|x| &gt; w\)</span> 时）：</p>
-<div class="math notranslate nohighlight">
-\[\left(\frac{|x| - w}{a}\right)^2 + \left(\frac{y}{b}\right)^2 &lt; 1\]</div>
-<p>内部接缝 <span class="math notranslate nohighlight">\(|x|=w\)</span> 处仅当 <span class="math notranslate nohighlight">\(|y|&lt;\min(h,b)\)</span> 时存活；接缝不是物理壁。
-其他不在严格内部区域的粒子均损失。</p>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <path d="M 102 60 L 198 60 A 60 72 0 0 1 198 240 L 102 240 A 60 72 0 0 1 102 60 Z" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <circle cx="198" cy="150" r="3" fill="#f5a623"/>
-  <circle cx="102" cy="150" r="3" fill="#f5a623"/>
-  <line x1="150" y1="150" x2="198" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="168" y="145" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">w</text>
-  <line x1="150" y1="150" x2="150" y2="60" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="135" y="108" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">h</text>
-  <line x1="198" y1="150" x2="258" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="220" y="165" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">a</text>
-  <line x1="198" y1="150" x2="198" y2="78" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="203" y="118" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">b</text>
-</svg>
-</div><div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>橙色圆点标记椭圆端中心位置 <span class="math notranslate nohighlight">\((\pm w, 0)\)</span> 。</p>
-</div>
-</section>
-<section id="octagon">
-<h3>octagon（八角形）<a class="headerlink" href="#octagon" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code> ，其中 <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高， <span class="math notranslate nohighlight">\(d\)</span> 为半对角间隙 （切角距离）。</p>
-<p>八角形为矩形切去 45° 角后得到的形状。 <span class="math notranslate nohighlight">\(d\)</span> 越大，切角越大； <span class="math notranslate nohighlight">\(d = 0\)</span> 时退化为矩形。</p>
-<p><strong>丢失条件</strong> （满足任一即丢失）：</p>
-<div class="math notranslate nohighlight">
-\[|x| \ge w \quad \text{或} \quad |y| \ge h\]</div>
-<div class="math notranslate nohighlight">
-\[|x| + |y| \ge w + h - d\]</div>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <polygon points="60,60 240,60 270,90 270,210 240,240 60,240 30,210 30,90" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <line x1="150" y1="150" x2="270" y2="150" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="200" y="145" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">w</text>
-  <line x1="150" y1="150" x2="150" y2="60" stroke="#f5a623" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="156" y="108" fill="#f5a623" font-size="11" font-style="italic" font-family="monospace">h</text>
-  <line x1="240" y1="60" x2="240" y2="90" stroke="#e94560" stroke-width="1" stroke-dasharray="2,2"/>
-  <text x="244" y="80" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">d</text>
-</svg>
-</div></section>
-<section id="polygon">
-<h3>polygon（多边形）<a class="headerlink" href="#polygon" title="Link to this heading"></a></h3>
-<p><strong>参数</strong> ： <code class="docutils literal notranslate"><span class="pre">aperture_value</span> <span class="pre">=</span> <span class="pre">[[x1,</span> <span class="pre">y1],</span> <span class="pre">[x2,</span> <span class="pre">y2],</span> <span class="pre">...]</span></code> ，顶点列表，自动闭合 （最后一个顶点连接回第一个顶点）。</p>
-<p><strong>丢失条件</strong> ：点位于边、顶点或多边形外部。射线法前先用 CPU/GPU 一致的
-小浮点容差检查边界。</p>
-<p>使用 <strong>射线法</strong> （ ray casting ）判断点是否在多边形内部：从待测点出发沿水平方向发射射线，统计与多边形边的交点数：</p>
-<ul class="simple">
-<li><p>交点数为奇数 → 点在多边形内部 （存活）</p></li>
-<li><p>交点数为偶数 → 点在多边形外部 （丢失）</p></li>
-</ul>
-<div style="text-align: center">
-<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="300" fill="#1a1a2e"/>
-  <line x1="20" y1="150" x2="280" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <line x1="150" y1="20" x2="150" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-  <text x="285" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-  <text x="156" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-  <polygon points="270,150 210,46 90,46 30,150 90,254 210,254" stroke="#00d2ff" stroke-width="2" fill="#00d2ff22"/>
-  <circle cx="270" cy="150" r="4" fill="#f5a623"/>
-  <circle cx="210" cy="46" r="4" fill="#f5a623"/>
-  <circle cx="90" cy="46" r="4" fill="#f5a623"/>
-  <circle cx="30" cy="150" r="4" fill="#f5a623"/>
-  <circle cx="90" cy="254" r="4" fill="#f5a623"/>
-  <circle cx="210" cy="254" r="4" fill="#f5a623"/>
-  <text x="248" y="170" fill="#f5a623" font-size="10" font-family="monospace">P1</text>
-  <text x="215" y="40" fill="#f5a623" font-size="10" font-family="monospace">P2</text>
-  <text x="72" y="40" fill="#f5a623" font-size="10" font-family="monospace">P3</text>
-  <text x="10" y="170" fill="#f5a623" font-size="10" font-family="monospace">P4</text>
-  <text x="72" y="270" fill="#f5a623" font-size="10" font-family="monospace">P5</text>
-  <text x="215" y="270" fill="#f5a623" font-size="10" font-family="monospace">P6</text>
-</svg>
-</div></section>
-</section>
-<section id="id4">
-<h2>参数总览表<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
+<h2>响应模型<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">Model 中的 Kind</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
 <colgroup>
-<col style="width: 15.0%" />
-<col style="width: 25.0%" />
-<col style="width: 60.0%" />
+<col style="width: 23.0%" />
+<col style="width: 77.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>类型</p></th>
-<th class="head"><p>aperture_value</p></th>
-<th class="head"><p>说明</p></th>
+<tr class="row-odd"><th class="head"><p>Kind</p></th>
+<th class="head"><p>参数与含义</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
-<td><p>忽略</p></td>
-<td><p>不做孔径检查</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constant</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Amplitude</span></code>、<code class="docutils literal notranslate"><span class="pre">Duration</span> <span class="pre">(s)</span></code>；有限因果测试响应。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
-<td><p>忽略</p></td>
-<td><p>默认 ±1m 矩形孔径</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resonator</span></code></p></td>
+<td><p>正值 <code class="docutils literal notranslate"><span class="pre">R</span></code>、<code class="docutils literal notranslate"><span class="pre">Q</span></code>、<code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>。R 为谐振阻抗实部；振幅衰减率 <span class="math notranslate nohighlight">\(\pi f_r/Q\)</span>。支持欠阻尼、临界阻尼及过阻尼。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">circle</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[r]</span></code></p></td>
-<td><p>圆形， <span class="math notranslate nohighlight">\(r\)</span> 为半径</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tabulated</span></code></p></td>
+<td><p>递增 <code class="docutils literal notranslate"><span class="pre">Times</span> <span class="pre">(s)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Values</span></code>、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）。线性插值，表外为零。因果表从零开始，双侧表可含负延迟。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectangle</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h]</span></code></p></td>
-<td><p>矩形， <span class="math notranslate nohighlight">\(w\)</span> 为半宽， <span class="math notranslate nohighlight">\(h\)</span> 为半高</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
+<td><p>数值 table 或 headtail 文件，显式声明列、单位、符号与归一化；只在初始化读取，保存内容指纹，详见文件输入。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ellipse</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[a,</span> <span class="pre">b]</span></code></p></td>
-<td><p>椭圆， <span class="math notranslate nohighlight">\(a\)</span> 为半长轴， <span class="math notranslate nohighlight">\(b\)</span> 为半短轴</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">impedance</span></code></p></td>
+<td><p>递增非负 <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Real</span></code>/<code class="docutils literal notranslate"><span class="pre">Imag</span></code>、显式 <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>；保留不可变原始采样。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rectcircle</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">r]</span></code></p></td>
-<td><p>矩形与圆的交集</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fitted_impedance</span></code></p></td>
+<td><p>频谱及 <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">poles</span> <span class="pre">(1/s)``（[实部,</span> <span class="pre">虚部]）、``Optimize</span> <span class="pre">poles</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">evaluations</span></code>、<code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>、<code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>。共轭对只输入正虚部极点，实极点单独输入。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rectellipse</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
-<td><p>矩形与椭圆的交集</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">modes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Poles</span> <span class="pre">(1/s)</span></code>、<code class="docutils literal notranslate"><span class="pre">Residues</span></code> （[实部, 虚部]），须含完整共轭对；实极点对应实留数。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">racetrack</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">a,</span> <span class="pre">b]</span></code></p></td>
-<td><p>跑道形 （矩形 + 椭圆端）</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resistive_wall</span></code></p></td>
+<td><p>有限 β 圆管良导体厚壁：<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Beta</span></code>、<code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>。可选 <code class="docutils literal notranslate"><span class="pre">Wall</span> <span class="pre">thickness</span> <span class="pre">(m)</span></code> 仅检查厚壁条件，不启用有限壁厚场匹配求解器。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">octagon</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[w,</span> <span class="pre">h,</span> <span class="pre">d]</span></code></p></td>
-<td><p>八角形 （矩形切 45° 角）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">polygon</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">[[x1,y1],</span> <span class="pre">...]</span></code></p></td>
-<td><p>多边形顶点列表，自动闭合</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ultrarelativistic_wall</span></code></p></td>
+<td><p>Bane-Sands 圆管 DC 壁：<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>。要求 beta &gt;= 0.99，另须检查短束团适用性。</p></td>
 </tr>
 </tbody>
 </table>
+<p>有限 β 壁模型采用 Stupakov，PRAB <strong>23</strong>, 094401 (2020)，
+<a class="reference external" href="https://doi.org/10.1103/PhysRevAccelBeams.23.094401">doi:10.1103/PhysRevAccelBeams.23.094401</a>。
+支持纵向与对角偶极分量，减去相同几何的理想导体响应，仅提供有限电导率修正。
+缩放 Bessel 函数避免溢出并保留有限 β 依赖。DC 不在适用范围内。
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">skin</span> <span class="pre">depth</span> <span class="pre">ratio</span></code> 限制趋肤深度与半径（及给定壁厚）之比，
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">surface</span> <span class="pre">impedance</span> <span class="pre">ratio</span></code> 限制归一化表面阻抗，默认及最大值均为 0.1。
+有限壁厚、磁性或色散材料及任意几何须提供相应已验证响应，不能从该模型推断。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">wake</span></code>、<code class="docutils literal notranslate"><span class="pre">finite_conductivity_correction</span></code>、<code class="docutils literal notranslate"><span class="pre">pec_image</span></code>、
+<code class="docutils literal notranslate"><span class="pre">direct_space_charge</span></code> 或 <code class="docutils literal notranslate"><span class="pre">total</span></code>。程序不自动减去空间电荷。现有 SpaceCharge
+为横向计算，不能据此认为纵向或所有像场项已包含；组合前须检查几何、归一化及
+物理内容，防止重复或遗漏。</p>
+</section>
+<section id="id3">
+<h2>频谱与拟合<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>原始路径对分段线性频谱做振荡积分，保留非均匀频率采样，不引入 FFT 的人工
+周期时间窗口。频带外明确为零，频带与间距需要独立收敛检查。有限带宽逆变换
+一般为双侧函数。<code class="docutils literal notranslate"><span class="pre">two_sided</span></code> 保留该结果；<code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> 明确截去
+负时间部分，零点取跳跃一半，会改变有效频率响应，是带宽近似。</p>
+<p>拟合采用变量投影：非线性优化用户选定的极点，以实数最小二乘确定留数，
+不自动选模式数。保留原始频谱及诊断；最大相对误差须满足 <code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>，
+分母下限为 <code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>。极点半平面受到约束，但不自动强制或认证无源性。
+纵向标量无源条件不能套用于所有横向分量；缺失频带不推断为 delta 或其导数项。
+右半平面极点只表示向负时间衰减的空间分支，不作为增长时间状态向前递推。
+<code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> 拟合要求左半平面初始极点；一般双侧拟合选择 <code class="docutils literal notranslate"><span class="pre">two_sided</span></code>
+及明确空间边界。CST 工程/二进制解析暂缓；数值导出可使用下述显式文件约定。</p>
+</section>
+<section id="id4">
+<h2>速度、加速与算法组<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>每个分量的 <code class="docutils literal notranslate"><span class="pre">Velocity</span></code> 显式选择：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fixed</span></code> 加 <code class="docutils literal notranslate"><span class="pre">Beta</span></code>：同一参考速度的稳态响应，追踪中参考速度变化会被拒绝。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">factorized</span></code> 加递增 <code class="docutils literal notranslate"><span class="pre">Betas</span></code>、实数 <code class="docutils literal notranslate"><span class="pre">Source</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Witness</span></code> 表：
+<span class="math notranslate nohighlight">\(W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)\)</span>，只在表内线性插值。
+历史激励保存源通过时的速度；当前观察应用测试束团因子。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ideal</span></code>：显式定义速度无关点响应，不是对实际腔体渡越时间因子的推导。</p></li>
+</ul>
+<p>有限 β 壁自动设置相同固定速度。单个稳态谱不能确定任意不同速度轨迹、复数
+渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
+保持不变，不施加通用 β 缩放。</p>
+<p>顶层字段为 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Command=&quot;WakeField&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code>、<code class="docutils literal notranslate"><span class="pre">Groups</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code>。组名 <code class="docutils literal notranslate"><span class="pre">Name</span></code> 必须唯一，<code class="docutils literal notranslate"><span class="pre">Components</span></code> 不为空。分量包含
+<code class="docutils literal notranslate"><span class="pre">Component</span></code>、<code class="docutils literal notranslate"><span class="pre">Model</span></code>、<code class="docutils literal notranslate"><span class="pre">Velocity</span></code>，可选 <code class="docutils literal notranslate"><span class="pre">Scale</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code>。</p>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">算法组控制</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>字段</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code></p></td>
+<td><p>必填 <code class="docutils literal notranslate"><span class="pre">direct</span></code>、<code class="docutils literal notranslate"><span class="pre">fft</span></code>、<code class="docutils literal notranslate"><span class="pre">recursive</span></code> （谐振子）、<code class="docutils literal notranslate"><span class="pre">modal</span></code> （极点/留数）、<code class="docutils literal notranslate"><span class="pre">partitioned_fft</span></code> （固定带间隙束列）或 <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> （变周期物理时间历史）。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">History</span></code></p></td>
+<td><p>必填 <code class="docutils literal notranslate"><span class="pre">none</span></code>、<code class="docutils literal notranslate"><span class="pre">direct``（源切片历史）、``state</span></code> 或 <code class="docutils literal notranslate"><span class="pre">partitioned</span></code>；recursive/modal 必须使用 state，partitioned_fft/time_fft 必须使用 partitioned。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">shape</span></code></p></td>
+<td><p>各组单独选择 uniform（默认）或 point。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns</span></code></p></td>
+<td><p>direct 历史为正整数或 null；partitioned_fft 必须为有限正整数。计数前序通过次数，当前通过另计。time_fft 必须为 null。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>正值或 null，用于 direct/partitioned 历史；time_fft 必须为有限正值。截断延迟核，包含均匀源部分积分；物理时间投影在不连续截断处存在网格误差。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Convolution</span> <span class="pre">grid</span></code></p></td>
+<td><p>partitioned_fft 必填，定义固定的物理时间网格，见下文。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">grid</span></code></p></td>
+<td><p>仅 time_fft 必填：正有限 <code class="docutils literal notranslate"><span class="pre">Step</span> <span class="pre">(s)</span></code>，整数 <code class="docutils literal notranslate"><span class="pre">Block</span> <span class="pre">size</span></code> &gt;= 2（默认 64），可选有限 <code class="docutils literal notranslate"><span class="pre">Origin</span> <span class="pre">(s)</span></code> （默认 null）。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Partition</span></code></p></td>
+<td><p>两种分块 FFT 均选择 dyadic（默认）或 uniform，不自动切换算法。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">workspace</span> <span class="pre">(MiB)</span></code></p></td>
+<td><p>分块 FFT 保守峰值内存预算，默认 1024 MiB；分配前检查，CUDA 另检查可用显存。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Boundary</span></code></p></td>
+<td><p>causal_passages（默认）、isolated 或 periodic。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Period</span> <span class="pre">(s)</span></code>、<code class="docutils literal notranslate"><span class="pre">Periodic</span> <span class="pre">images</span></code></p></td>
+<td><p>periodic 必填，使用 direct 求和 -N 至 +N 镜像，不保存瞬态历史。</p></td>
+</tr>
+</tbody>
+</table>
+<p>FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History=direct 时历史
+明确直接求和。没有 auto 或静默回退。模式按实际时间推进，保留无限衰减历史，
+状态内存随模式数增长。因果批次须按物理时间排序且不重叠（包括均匀源支撑）；
+跨圈重叠会报错，按圈追踪不能推断未来轨迹。isolated 声明完整源列已在当前
+批次，periodic 声明其周期稳态；都要求固定 β 且无瞬态历史，不能表示任意
+加速或瞬态环形分布。用户选择周期镜像数并检查收敛。</p>
 </section>
 <section id="id5">
-<h2>使用示例<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p>以下 JSON 片段展示了各孔径类型的配置方式。孔径参数作为元件属性,
-与 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> 、 <code class="docutils literal notranslate"><span class="pre">Command</span></code> 、 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 等字段并列:</p>
-<p><strong>圆形孔径</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.1</span><span class="p">]</span>
-<span class="p">}</span>
+<h2>示例与恢复<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeField</span>
+<span class="n">wake</span> <span class="o">=</span> <span class="n">WakeField</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">slice_set</span><span class="o">=</span><span class="s2">"wake"</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"short"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span> <span class="n">source_shape</span><span class="o">=</span><span class="s2">"uniform"</span><span class="p">,</span>
+         <span class="n">components</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">component</span><span class="o">=</span><span class="s2">"longitudinal"</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"ideal"</span><span class="p">),</span>
+             <span class="n">model</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"resonator"</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1e3</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mf">1e8</span><span class="p">))]),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"long"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"recursive"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span> <span class="n">source_shape</span><span class="o">=</span><span class="s2">"point"</span><span class="p">,</span>
+         <span class="n">components</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">component</span><span class="o">=</span><span class="s2">"dipolar_y"</span><span class="p">,</span>
+             <span class="n">velocity</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"factorized"</span><span class="p">,</span> <span class="n">betas</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+                           <span class="n">source</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="n">witness</span><span class="o">=</span><span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span>
+             <span class="n">model</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"resonator"</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mf">1e6</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mf">1e7</span><span class="p">))]),</span>
+<span class="p">])</span>
 </pre></div>
 </div>
-<p><strong>矩形孔径</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rectangle"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
-<span class="p">}</span>
+<p>示例耦合仅为说明，不是腔体数据；之前须执行相应 Slicer。
+旧平铺 Components/Solver/Memory turns 接口必须迁移至 Groups，不解释过时字段。
+命令提供 <code class="docutils literal notranslate"><span class="pre">last_sources</span></code>、<code class="docutils literal notranslate"><span class="pre">last_coefficients</span></code>、<code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>、
+<code class="docutils literal notranslate"><span class="pre">group_states</span></code>，诊断包含算法、边界、保留次数、状态字节数及拟合误差。
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code>/<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存恢复各组并校验配置指纹；
+<code class="docutils literal notranslate"><span class="pre">ArrivalClock.state_dict()</span></code> 单独保存时钟修正。恢复粒子、参考参数、时钟与
+尾场后，用 <code class="docutils literal notranslate"><span class="pre">Executor.run(...,</span> <span class="pre">start_turn=...)</span></code> 继续。仅恢复粒子数组不足以
+恢复尾场；<code class="docutils literal notranslate"><span class="pre">reset_state()</span></code> 将该位置场状态归零。</p>
+</section>
+<section id="cpu-gpu">
+<h2>CPU 与 GPU 执行<a class="headerlink" href="#cpu-gpu" title="Link to this heading"></a></h2>
+<p>CPU 与 GPU 实现放在同一文件中，CUDA 辅助函数和核函数源码位于对应 CPU 代码
+下方。<code class="docutils literal notranslate"><span class="pre">PASS/commands/wake/</span></code> 中，时域模型位于 <code class="docutils literal notranslate"><span class="pre">wake_models.py</span></code>，频谱及
+有理响应位于 <code class="docutils literal notranslate"><span class="pre">wake_spectrum.py</span></code>，显式求解器和模式扫描位于
+<code class="docutils literal notranslate"><span class="pre">wake_solvers.py</span></code>，两类历史卷积分别位于 <code class="docutils literal notranslate"><span class="pre">convolution.py</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">time_convolution.py</span></code>。投影归入 <code class="docutils literal notranslate"><span class="pre">wake_moments.py</span></code>，时钟归入
+<code class="docutils literal notranslate"><span class="pre">wake_timing.py</span></code>，源数据存储归入 <code class="docutils literal notranslate"><span class="pre">wake_state.py</span></code>，耦合归入
+<code class="docutils literal notranslate"><span class="pre">wake_components.py</span></code> 和 <code class="docutils literal notranslate"><span class="pre">wake_velocity.py</span></code>。融合粒子踢动位于
+<code class="docutils literal notranslate"><span class="pre">PASS/commands/wake_field.py</span></code> 的 command 实现下方。CuPy 导入和 CUDA 编译
+仍按需执行，CPU 运行不依赖 CUDA 环境。</p>
+<p>CPU 与 CUDA 使用同一模型和算法组配置，通过模拟的后端设置选择；
+<code class="docutils literal notranslate"><span class="pre">execute_gpu</span></code> 要求粒子数组已在显存。原始频谱、表格响应、谐振子、极点模式、
+直接历史及空间周期求和均在 GPU 上计算。有理拟合和解析有限 β 阻抗构造属于
+CPU 初始化工作，得到的响应数组按设备上传一次。数值表格/HEADTAIL 转换及分块
+卷积核采样也在 CPU 初始化阶段完成。</p>
+<p>粒子坐标支持 float32 与 float64；物理到达时间、切片电荷矩、响应、模式状态、
+能量与动量换算均使用 float64。GPU 原子归约的求和顺序不同，因此 CPU/GPU 应按
+误差容差比较，而不要求逐位相同。float32 存储仍可能改变边界附近的切片归属，
+并在长圈数输运中积累舍入差异。</p>
+<p>投影通过一次粒子遍历和块内直方图累积电荷及横向偶极矩。单个 CUDA 核函数
+合并各分量的测试单项式与机械踢动。模式历史采用有界仿射前缀扫描，指数因子
+保持衰减，支持临界及过阻尼谐振子；圈内事件使用相对通过原点的时间，减少
+长时间后窄切片边界的舍入损失。</p>
+<p>刚执行的等长 Slicer 且到达修正为零时，提供精确均匀网格并允许有限容量的
+FFT 响应缓存。中间输运、网格改变或非零到达修正会使该快捷路径失效。这些
+属于所选求解器的内部优化，不改变用户配置的物理算法。追踪时只同步少量
+校验和控制元数据；检查点序列化明确将显存历史转换为可移植的主机数组。</p>
+<p>小规模算例可能由 CPU 更快完成，原因是 CUDA 启动及同步开销。性能测量应先
+预热、同步 CUDA 事件，并计入 Slicer、时钟、投影和踢动。生成报告
+<code class="docutils literal notranslate"><span class="pre">tests/codex/wake_redesign/validation_report.md</span></code> 记录实际硬件、规模、误差、
+计时及复现命令。</p>
+</section>
+<section id="id6">
+<h2>自定义空间项<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>保留现有命名分量。<code class="docutils literal notranslate"><span class="pre">Component=&quot;custom&quot;</span></code> 必须提供 <code class="docutils literal notranslate"><span class="pre">Spatial</span></code>，其中
+<code class="docutils literal notranslate"><span class="pre">Plane</span></code> 为 x/y/z，<code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">powers</span></code> 为 [a,b]，<code class="docutils literal notranslate"><span class="pre">Test</span> <span class="pre">powers</span></code> 为 [c,d]，
+均为非负整数。投影源矩为 <span class="math notranslate nohighlight">\(\sum_j q_j x_j^a y_j^b\)</span>，响应乘以测试粒子的
+<span class="math notranslate nohighlight">\(x_i^c y_i^d\)</span>；尾函数单位的空间阶数为 a+b+c+d。这是输入多项式响应的
+表示方式，不推导未提供的多极分量，也不自动保证不同分量之间的 Maxwell 约束。
+解析圆壁模型仍只支持明确规定的纵向与对角偶极分量。</p>
+<p>CPU/CUDA 支持相同幂次。GPU 对普通项保留 Q/Qx/Qy 快速直方图，其余项使用
+融合的通用单项式直方图；测试幂次在融合机械踢动核中按整数幂求值。</p>
+</section>
+<section id="id7">
+<h2>固定网格多束团与长历史<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>选择 <code class="docutils literal notranslate"><span class="pre">Solver=&quot;partitioned_fft&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code> 和有限
+<code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns=H</span></code>，任意因果表格均不要求模式拟合。采样中心时间定义为</p>
+<div class="math notranslate nohighlight">
+\[t_{n,b,i}=t_{\rm origin}+nT+bP+i\Delta t,
+\qquad K_{\ell,d,q}=\overline W(\ell T+dP+q\Delta t).\]</div>
+<p>网格字段为 <code class="docutils literal notranslate"><span class="pre">Period</span> <span class="pre">(s)</span></code> T、<code class="docutils literal notranslate"><span class="pre">Slots</span></code> B、<code class="docutils literal notranslate"><span class="pre">Slices</span></code> S、<code class="docutils literal notranslate"><span class="pre">Slot</span> <span class="pre">spacing</span> <span class="pre">(s)</span></code> P、
+<code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">spacing</span> <span class="pre">(s)</span></code> delta-t、<code class="docutils literal notranslate"><span class="pre">Origin</span> <span class="pre">(s)</span></code> （默认 0）、<code class="docutils literal notranslate"><span class="pre">Width</span> <span class="pre">(s)</span></code> （默认 0）、
+<code class="docutils literal notranslate"><span class="pre">Projection</span></code> （默认 exact）。周期与间距为正；宽度不超过切片间距，槽位窗口
+不能重叠或跨越一个周期。uniform 源要求正宽度，point 源要求零宽度。</p>
+<p>槽位与槽内切片分别补零至至少 2B-1 和 2S-1，形成保留真实间隙的线性卷积，
+即使 P/delta-t 不是整数也成立。空槽置零且保留其物理时间位置。源切片允许
+重排、重复；重叠的独立粒子群以守恒方式累加。程序根据实际到达时间映射，
+不按 bunch 枚举顺序推断。由于到达时间使用 -z_lab/(beta*c)，harmonic ID
+递增不一定对应到达时间递增。</p>
+<p><code class="docutils literal notranslate"><span class="pre">exact</span></code> 要求每次通过的中心、宽度与网格一致，只容许浮点舍入。
+<code class="docutils literal notranslate"><span class="pre">linear</span></code> 允许窗口内离网格的 <strong>点源</strong>，源矩线性分配到两个时间节点，场再
+插值回测试位置。这引入时间网格近似，尖锐尾场尤其需要细化收敛检查。
+历史算法本身不拟合尾部、不降采样、不粗化时间。周回周期变化、超出窗口或
+宽度不匹配均报错；变周期因果历史可选择时间网格已收敛的 time_fft，或直接求和。
+不会静默重置历史或切换算法。</p>
+<p>uniform 分块每次通过调度全部 H 个延迟频谱；dyadic 分块覆盖 [L,2L)，
+L=1,2,4,…，最后截到 H。已完成的 L 圈源块只向未来通过时刻贡献，不需要
+未来束流轨迹。只有一个延迟的分块使用频谱延迟线。设补零后的空间频率单元数
+为 F，在源通道与分量数量固定时，uniform 历史每圈 O(H F)，dyadic 摊销
+O(F log-squared H)，另加空间 FFT 与分量因子；两者频谱存储均为 O(H F)。
+分层调度在块边界存在耗时峰值，性能测量应至少覆盖一个最大块周期，并报告
+平均值和最大值，不能只看中位数。</p>
+<p>相同源幂次、相同源速度耦合的分量共用前向空间 FFT。<code class="docutils literal notranslate"><span class="pre">GroupExecution</span></code>
+持有核与 FFT 资源，<code class="docutils literal notranslate"><span class="pre">ConvolutionState</span></code> 持有频谱环形缓冲和待施加场，资源
+不放在物理分量对象里。CUDA 执行计划跨长调度间隔持有 cuFFT 句柄，时间变换
+使用连续时间批次；uniform 频谱乘加融合，不分配整段历史临时乘积。
+刚执行 Slicer 的固定网格分块组使用整列投影与踢动核，多束团时钟也批量求值，
+全程保留 float64。各组先预计算新场，再由命令施加踢动并提交历史；每圈
+不复制完整历史频谱。可移植检查点包含采样核/网格指纹，在选定后端恢复，
+恢复追踪前检查频谱形状与有限性。圈数必须连续，空圈也需执行。
+新运行须 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>；初始过去历史为零。</p>
+<p>对于 [-zmax,zmax] 等长 Slicer、共同 beta、谐波槽位 0..B-1、周长 C，且
+t0=n*C/(beta*c)，精确点源网格示例如下：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeConvolutionGrid</span>
+<span class="n">speed</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">*</span> <span class="mf">299792458.0</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">WakeConvolutionGrid</span><span class="p">(</span>
+    <span class="n">period</span><span class="o">=</span><span class="n">C</span><span class="o">/</span><span class="n">speed</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="n">S</span><span class="p">,</span> <span class="n">slot_spacing</span><span class="o">=</span><span class="n">C</span><span class="o">/</span><span class="p">(</span><span class="n">B</span><span class="o">*</span><span class="n">speed</span><span class="p">),</span>
+    <span class="n">slice_spacing</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">zmax</span><span class="o">/</span><span class="p">(</span><span class="n">S</span><span class="o">*</span><span class="n">speed</span><span class="p">),</span>
+    <span class="n">origin</span><span class="o">=-</span><span class="p">((</span><span class="n">B</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">C</span><span class="o">/</span><span class="n">B</span> <span class="o">+</span> <span class="n">zmax</span><span class="o">-</span><span class="n">zmax</span><span class="o">/</span><span class="n">S</span><span class="p">)</span><span class="o">/</span><span class="n">speed</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">WakeSolverGroup</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"tabular_tail"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"partitioned_fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"partitioned"</span><span class="p">,</span>
+    <span class="n">source_shape</span><span class="o">=</span><span class="s2">"point"</span><span class="p">,</span> <span class="n">memory_turns</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">convolution_grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span>
+    <span class="n">partition</span><span class="o">=</span><span class="s2">"dyadic"</span><span class="p">,</span> <span class="n">max_workspace_mb</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">components</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>椭圆孔径</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift3"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">11.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ellipse"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.06</span><span class="p">,</span><span class="w"> </span><span class="mf">0.04</span><span class="p">]</span>
-<span class="p">}</span>
+<p>选择正常 GPU 后端即在 CUDA 执行同一配置。粒子存储可为 float32，但声明的
+物理网格和尾场算术保持双精度；边界附近的切片归属仍可能受 float32 影响。
+生成测试、性能脚本与完整跟踪示例位于 <code class="docutils literal notranslate"><span class="pre">tests/codex/wake_fast_history/</span></code>，
+分别测量源沉积与历史调度、以及同步后的完整追踪。</p>
+</section>
+<section id="id8">
+<h2>变周期下的一般历史计算<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Solver=&quot;time_fft&quot;</span></code> 使用固定物理时间节点
+<span class="math notranslate nohighlight">\(t_k=t_{\rm origin}+k\Delta t\)</span>，不要求固定周回周期。
+选择 <code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code>、有限 <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">grid</span></code>，
+不设置 <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Convolution</span> <span class="pre">grid</span></code>。每次通过的真实到达时间来自
+物理时钟。β、束团间距、切片宽度和周回周期变化时，不重缩放或丢弃已有历史。
+前文的响应模型及速度耦合近似仍适用；此算法不推导一般双时间电磁响应。</p>
+<p>点源矩线性沉积到相邻时间节点；有限均匀源对同一帽函数基底在源区间内积分，
+保持每个耦合源矩守恒。场线性插值到测试时间。在距离源中心不超过半个源宽
+加两个网格步长的范围内，用精确源平均核替换该对源—目标的投影贡献。这一
+局部修正保留因果跳跃和半自作用，并包含上一批次的临近源。远处的时间投影
+仍是近似；点源与测试点恰在网格上时，在浮点误差内恢复对应离散直接求和。</p>
+<p>短尺度响应和高频分量需要细化 <code class="docutils literal notranslate"><span class="pre">Step</span> <span class="pre">(s)</span></code>；物理切片数、历史截断时间须分别
+检查收敛。表格折点和硬截断可限制实际收敛阶，选择 time_fft 本身不保证统一
+误差阈值。步长还必须能被绝对到达时间的浮点表示分辨。</p>
+<p>已完成的物理时间块送入 uniform 或 dyadic 在线卷积；尚未完成的块，包括源
+沉积超出中心的部分，跨通过保留。preview 只计算当前已知源，不要求未来束流
+轨迹。预览中触及的持久环形缓冲行会保存并精确还原，所有组完成踢动校验后
+才提交更新。CPU/GPU 检查点包含未完成块、近场修正源、时钟原点及已完成块
+历史。空批次仍推进通过计数；间隙超过完整历史时长及投影支撑后，可精确跳过
+已无响应的空时间块。</p>
+<p>块长为 B、记忆时间为 H 秒时，历史块数 M=ceil(H/(B*delta-t))+1。
+源通道和分量数固定时，dyadic 每个完成块摊销计算量为
+O(B log B + B log-squared M)，另加源沉积、测试插值及局部源—目标修正；
+存储为 O(B M)。一次通过可能跨越多个块。细时间网格也表示束团间的空隙，
+因此固定稀疏束列使用 partitioned_fft 可能明显更省。大量宽源重叠会增加
+局部修正工作量。<code class="docutils literal notranslate"><span class="pre">Block</span> <span class="pre">size</span></code> 控制调度及内存访问，不改变物理分辨率。
+性能测试应覆盖完整最大块周期并报告峰值耗时。</p>
+<p>CPU 和 CUDA 实现同一投影及历史方案。CUDA 使用设备端沉积、融合的投影对
+计算、共享源 FFT、持久 cuFFT 计划和显存历史；仍会同步少量校验元数据。
+Slicer 保持逐束团调用，变周期支持不要求整列 Slicer 接口。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeTimeGrid</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">WakeSolverGroup</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"accelerating_tail"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"time_fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"partitioned"</span><span class="p">,</span>
+    <span class="n">source_shape</span><span class="o">=</span><span class="s2">"uniform"</span><span class="p">,</span> <span class="n">memory_time</span><span class="o">=</span><span class="mf">200e-6</span><span class="p">,</span>
+    <span class="n">time_grid</span><span class="o">=</span><span class="n">WakeTimeGrid</span><span class="p">(</span><span class="n">step</span><span class="o">=</span><span class="mf">0.5e-9</span><span class="p">,</span> <span class="n">block_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">),</span>
+    <span class="n">partition</span><span class="o">=</span><span class="s2">"dyadic"</span><span class="p">,</span> <span class="n">max_workspace_mb</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">components</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>跑道形孔径</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift4"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">11.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"racetrack"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.03</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05</span><span class="p">]</span>
-<span class="p">}</span>
+<p>示例网格值仅作说明，须对实际尾场检查收敛。原点为 null 时，首个源区间会
+选取邻近原点；显式原点不得晚于首个源的支撑起点。不同调用的源批次仍须按
+因果时间排序且支撑不重叠；同一批次内的独立重叠粒子群允许累加。
+可执行验证和同步计时位于 <code class="docutils literal notranslate"><span class="pre">tests/codex/wake_variable_period/</span></code>。</p>
+</section>
+<section id="id9">
+<h2>漂移束适配范围<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>漂移束可使用单束团组 <code class="docutils literal notranslate"><span class="pre">harmonic_number=1</span></code>，配合覆盖整圈的等长度显式
+Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束。均匀电流 I 对
+有限因果响应的稳态电压为 <span class="math notranslate nohighlight">\(V=I\int_0^\infty W(\tau)d\tau\)</span>。
+验证套件在 CPU/CUDA 上检查这一 DC 结果及方位谐波与解析卷积的收敛。
+零初始历史会产生启动瞬态，应等待响应记忆填满。<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code>
+表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。</p>
+<p>对于持续滑移的演化漂移束，启用 Slicer 的 <code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code>、
+<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>，范围模式仍为
+<code class="docutils literal notranslate"><span class="pre">explicit</span></code>。临时坐标为
+<span class="math notranslate nohighlight">\(C[((z_{rel}+z_{center}-\beta_0ca)/C\bmod1)-1]\)</span>，a 为到达时钟修正。
+粒子存储坐标仍连续，束团分组不变。源切片依次覆盖 [t0,t0+T)，
+T=C/(beta*c)，下一批从下一个物理参考通过时刻开始；使用 <code class="docutils literal notranslate"><span class="pre">time_fft</span></code> 时
+周期可以变化。所有粒子群共享 t0、beta、C；Slicer 必须在 WakeField
+同一位置。中间允许不改变到达相位及参考参数的薄横向元件和诊断；发生纵向
+输运或参考参数变化后必须重新切片。演化历史使用 <code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code>，另一个
+重复稳态边界不能代替这种时间演化。</p>
+<p>这里采用 <strong>每粒子每参考圈经过一次的近似</strong>。在该模型内支持动量展宽及长期
+累计滑移，但不调度同一参考圈内个别粒子的零次或多次通过。实际周期为 Ti
+的均匀刚性流，在模型中表示的电流为 Q/T，实际为 Q/Ti；令
+epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。真实 Drift 验证检查这一
+一阶误差及其随动量偏差减小而收敛；全环因果电压验证在 CPU/CUDA 上检查
+电荷守恒和 <span class="math notranslate nohighlight">\(I\int W\)</span>。</p>
+<p>要求单圈滑移、单圈集体作用变化足够小，并对需要解析的方位模 m 满足
+<span class="math notranslate nohighlight">\(2\pi |m\,\Delta u|\ll1\)</span>。切片数与时间网格应分别做收敛检查。
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">phase</span> <span class="pre">slip</span></code> 默认 0.05、最大 0.1，在 WakeField 使用切片时拒绝
+过大的已观测单步变化；Slicer 仍可生成诊断投影。
+不是通用精度保证。长期累计运动后，粒子存储精度仍须能够解析切片宽度，
+长期漂移束推荐 float64。未启用周期到达切片的普通 explicit 模式仍保持
+原有的边界截取行为。</p>
+</section>
+<section id="id10">
+<h2>回归与分块接口<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PartitionedConvolution.preview_block</span></code> 接收有限的 float64 后端数组，
+形状为 (源通道, 槽位, 切片)。源速度因子已包含，见证速度因子只在物理
+时间采样后施加。返回的更新独立持有频谱，调用者后续修改输入数组不会
+影响它。预计算结束时持久历史不变，更新只可提交一次。多块预计算通过
+有界环形行事务在异常时精确回滚，同一状态禁止重叠事务，从而保证各组
+历史统一接受，且不必每次复制完整长历史。</p>
+<p>已纳入版本管理的入口为
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.wake_production.run_regression</span></code>。CPU CI 在 PR 和
+推送时执行；CUDA 主机使用同一入口加 <code class="docutils literal notranslate"><span class="pre">--require-gpu</span></code>，没有真实设备时
+直接失败。生成结果与环境仍被 Git 忽略。长期验证入口
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.wake_production.long_term</span> <span class="pre">--backend</span> <span class="pre">cpu</span></code>，也可选
+gpu，以变周期非模态表格验证 2048 圈自洽运动、增长率、tune 和强度阈值。
+独立参考为有限历史 Floquet 矩阵，不是另一个 PASS 求解器。测试使用归一化
+单位及外加的小线性阻尼映射，得到的是该基准的阈值，不是普遍机器极限。</p>
+<p>CUDA 把切片到达时钟统计合并为两遍中心化直方图。表格尾场近场精确修正
+采用每个见证切片一个 warp，避免源—目标对列表及其计数的主机同步；其他
+模型保留通用修正路径。性能测试包括逐束团 Slicer、参考参数变化、源投影、
+历史计算与 kick，并预热且覆盖最大历史块的完整调度周期。</p>
+</section>
+<section id="id11">
+<h2>文件输入<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> 接受 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>、<code class="docutils literal notranslate"><span class="pre">Format</span></code> （默认 table 或 headtail）、
+<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code> （默认 0）、必填 <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>、可选 <code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Delimiter</span></code> （null 为空白分隔）、<code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code> （默认 0）、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）、
+<code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> （默认 two_sided）、可选 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 和必填 <code class="docutils literal notranslate"><span class="pre">Convention</span></code>。
+列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
+一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
+采样，反向时间/距离轴可以重排。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Convention</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">kind</span></code> （wake_function/impedance）、<code class="docutils literal notranslate"><span class="pre">Axis</span></code>
+（time/distance/frequency）、<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Positive</span> <span class="pre">trailing</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">positive</span> <span class="pre">loss</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrated</span></code>、<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">beta</span></code>。
+<code class="docutils literal notranslate"><span class="pre">Fourier</span> <span class="pre">exponent</span></code> 默认 -1，<code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">impedance</span> <span class="pre">factor</span></code> 默认 i（可为 -i/1），
+<code class="docutils literal notranslate"><span class="pre">Shunt</span> <span class="pre">impedance</span> <span class="pre">convention</span></code> 默认 not_applicable，仅记录来源：数值表已归一化，
+此字段不重新缩放分路阻抗。</p>
+<p>时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
+尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
+V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
+分母长度幂次，必须给定 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>；已经积分的数据不允许再次乘长度。
+距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
+显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
+约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
+有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。</p>
+<p>HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
+V/(pC*mm)，符号仍需声明。参见 <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL 表格规范</a>。
+PASS 自行读取与换算数值，不依赖 Xwakes 或 PyHEADTAIL。例如：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="s2">"tail.dat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"headtail"</span><span class="p">,</span>
+    <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span>
+        <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/(pC*mm)"</span><span class="p">,</span> <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reference_beta</span><span class="o">=</span><span class="n">beta</span><span class="p">))</span>
 </pre></div>
 </div>
-<p><strong>八角形孔径</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift5"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"octagon"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.03</span><span class="p">,</span><span class="w"> </span><span class="mf">0.01</span><span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>多边形孔径</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift6"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">12.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"polygon"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.043</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.043</span><span class="p">]]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p><strong>关闭孔径检查</strong> :</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Drift7"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">13.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Drift"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="p">}</span>
-</pre></div>
-</div>
+<p>JSON 输入将 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code> 相对其所在目录解析；直接 Python 构造则相对当前
+工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
+校验文件内容与配置。尚不包含 CST 工程/二进制解析、自动单位猜测或
+wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。</p>
+</section>
+<section id="id12">
+<h2>切片坐标与响应边界<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<p>WakeField 接受普通 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> 切片或漂移束
+<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 投影；旧 <code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code> 仍选择后者。
+<code class="docutils literal notranslate"><span class="pre">ring_position</span></code> 会把不同过境投影到同一几何 bin，不能提供因果先后，因而
+被拒绝。SpaceCharge 应使用另一个命名几何 SliceSet。</p>
+<p>Coordinate 不改变算法组的 <code class="docutils literal notranslate"><span class="pre">Boundary</span></code>。<code class="docutils literal notranslate"><span class="pre">Boundary=periodic</span></code> 表示具有
+周期镜像的空间响应，不能替代演化到达相位切片所需的 <code class="docutils literal notranslate"><span class="pre">causal_passages</span></code>
+边界及时间历史。core 到达修正仍用 FP64，连续 z 重分组时保持物理时间；
+切片历史及冻结几何仍按各自的职责规则失效。</p>
 </section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="reorganize.html" class="btn btn-neutral float-left" title="束团重分组（ReorganizeBunch）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="twiss.html" class="btn btn-neutral float-right" title="Twiss 传输（Twiss）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 

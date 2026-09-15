@@ -82,17 +82,18 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/gui.html">图形界面配置流程</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id2">工具</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id3">主题与控件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id4">属性顺序与分区</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id5">模块职责</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id6">结构化数组参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id7">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id2">帮助与本地文档</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id3">工具</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id4">主题与控件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id5">属性顺序与分区</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id6">模块职责</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id7">结构化数组参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id8">空间电荷</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id8">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id9">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id10">手动传输点与后续编辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id9">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id10">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id11">手动传输点与后续编辑</a></li>
 </ul>
 </li>
 </ul>
@@ -314,6 +315,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id7">输出文件</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id8">使用示例</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id10">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id11">输出中的纵向坐标</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id12">注入粒子数</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/distmonitor.html">分布监视器（DistMonitor）</a><ul>
@@ -321,6 +324,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id2">接口参数</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id3">输出内容</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#cpu-gpu">CPU 与 GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id4">注入快照</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/phaseadvancemonitor.html">相位推进监视器（PhaseAdvanceMonitor）</a><ul>
@@ -523,6 +527,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../gui.html">Graphical configuration workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gui.html#help-and-local-documentation">Help and local documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#tools">Tools</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#appearance-and-controls">Appearance and controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#property-ordering-and-sections">Property ordering and sections</a></li>
@@ -755,6 +760,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#output-files">Output Files</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#usage-example">Usage Example</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#longitudinal-coordinate-in-output">Longitudinal coordinate in output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#injection-populations">Injection populations</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="distmonitor.html">DistMonitor</a><ul>
@@ -762,6 +769,7 @@
 <li class="toctree-l4"><a class="reference internal" href="distmonitor.html#interface">Interface</a></li>
 <li class="toctree-l4"><a class="reference internal" href="distmonitor.html#output">Output</a></li>
 <li class="toctree-l4"><a class="reference internal" href="distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="distmonitor.html#injection-snapshots">Injection snapshots</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
@@ -1290,6 +1298,24 @@
 <li><p><strong>Momentum-spread monitoring</strong>: <code class="docutils literal notranslate"><span class="pre">sigmadp</span></code> and <code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> describe longitudinal beam quality within a bunch; use <code class="docutils literal notranslate"><span class="pre">zCenter</span></code> as well when comparing absolute azimuths across bunches</p></li>
 <li><p><strong>Correlation diagnostics</strong>: Correlation quantities such as <code class="docutils literal notranslate"><span class="pre">xzAverage</span></code> can be used to diagnose dispersion coupling or transverse-longitudinal coupling</p></li>
 </ul>
+</section>
+<section id="longitudinal-coordinate-in-output">
+<h2>Longitudinal coordinate in output<a class="headerlink" href="#longitudinal-coordinate-in-output" title="Link to this heading"></a></h2>
+<p>Longitudinal moments use a temporary full-ring representative of bunch-relative
+z in <code class="docutils literal notranslate"><span class="pre">[-C/2,C/2)</span></code> on both CPU and GPU. This never changes stored particle z.
+TFS headers record <code class="docutils literal notranslate"><span class="pre">ZCoordinate=z_rel_folded_by_ring</span></code> and <code class="docutils literal notranslate"><span class="pre">ZInterval</span></code>.
+These are moments of the chosen representative, not unwrapped slip statistics
+or circular moments; a distribution crossing the interval cut can have a large
+reported width. ParticleMonitor and Distribution retain the continuous z_rel
+for analyses that need accumulated longitudinal slip.</p>
+</section>
+<section id="injection-populations">
+<h2>Injection populations<a class="headerlink" href="#injection-populations" title="Link to this heading"></a></h2>
+<p>numAlive, numInjected and numPending record live, born (live plus lost), and
+reserved macro-particle counts. beamLossTotal excludes pending slots;
+lossPercent uses the injected population as its denominator. An allocated
+population with no survivors produces zero moments and explicit zero-survival
+counts on both CPU and GPU; an empty declared bunch retains the previous no-row behavior.</p>
 </section>
 </section>
 
