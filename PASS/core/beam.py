@@ -1,4 +1,5 @@
-from PASS.core.config import Config, LinearProgram
+from PASS.core.config import Config
+from PASS.utils.program import LinearProgram
 from PASS.core.bunch import BunchInfo
 from PASS.core.particle import ParticlePool
 from PASS.utils.constants import const
