@@ -16,7 +16,8 @@ class ParticlePool:
         """
         px = Px/P0
         py = Py/P0
-        z  = s-β0*c*t
+        z  = continuous local time coordinate, in metres:
+             t = t0 - z/(beta0*c)
         dp = (P-P0)/P0 = δ
         """
 
