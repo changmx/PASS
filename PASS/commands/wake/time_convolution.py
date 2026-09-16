@@ -96,7 +96,7 @@ class TimeConvolutionState:
         out.blocks = ConvolutionState.restore(data["blocks"], plan.blocks)
         item = data["open"]
         shape = tuple(item["shape"])
-        if len(shape) != 2 or shape[0] != len(plan.blocks.channels) or not 0 <= shape[1] <= plan.grid.block_size+2:
+        if len(shape) != 2 or shape[0] != len(plan.blocks.channels) or not 0 <= shape[1] <= plan.grid.block_size+3:
             raise ValueError("Physical-time checkpoint open block shape is invalid")
         value = np.asarray(item["real"], float)
         if value.size != math.prod(shape) or not np.all(np.isfinite(value)) or np.any(np.asarray(item["imag"]) != 0):
@@ -117,7 +117,8 @@ class TimeConvolutionState:
                 raise ValueError("Physical-time checkpoint has buffers without a source clock")
         else:
             position = (out.last_end-out.origin)/plan.grid.step
-            expected = math.floor(position)//plan.grid.block_size*plan.grid.block_size
+            expected = max(out.blocks.start_turn,
+                           math.floor(position-1)//plan.grid.block_size)*plan.grid.block_size
             if out.count == 0 or cursor != expected or shape[1] != math.ceil(position)+2-cursor:
                 raise ValueError("Physical-time checkpoint clock and open block are inconsistent")
             if out.recent is None or not len(out.recent.times):
@@ -162,7 +163,7 @@ class TimeConvolution:
             backend=backend, method=method, memory_time=memory_time, max_workspace_mb=max_workspace_mb)
         self.xp = self.blocks.xp
         self.budget = int(max_workspace_mb*1024**2)
-        key = {"version": 1, "blocks": self.blocks.key, "origin": grid.origin,
+        key = {"version": 2, "blocks": self.blocks.key, "origin": grid.origin,
                "projection": "integrated_hat_with_causal_correction"}
         self.key = hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()
         # Samples and a trapezoidal primitive give the exact interaction of
@@ -403,7 +404,12 @@ class TimeConvolution:
                     (density,opened_before,np.int64(density.shape[1]),np.int64(opened_before.shape[1]),np.int64(opened_before.size)))
         else:density[:, :opened_before.shape[1]] += opened_before
         values = xp.empty((len(self.components), nblocks*block), dtype=np.float64)
-        sealed = max(0, math.floor((last-origin)/dt)//block-block_state.start_turn-block_state.count)
+        # Keep one grid node before the passage end writable. Touching source
+        # intervals computed independently can straddle a grid boundary by a
+        # few time ULPs (accepted by the ordering check above). Their hat
+        # deposition then touches the preceding node. Sealing that node here
+        # would reject the next passage or discard part of its source charge.
+        sealed = max(0, math.floor((last-origin)/dt-1)//block-block_state.start_turn-block_state.count)
         operations = []
         if self.backend == 'gpu':
             # This complete density was built on this plan's device. Validate

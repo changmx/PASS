@@ -455,7 +455,11 @@ also must be resolvable by the absolute floating-point arrival clock.
 
 Completed physical-time blocks feed uniform or dyadic online convolution.
 The unfinished block, including source deposition beyond its center, remains
-open across passages. Preview evaluates the currently available sources;
+open across passages. One node before the passage end is also kept writable,
+so roundoff at touching passage boundaries cannot prematurely seal a source
+deposition node. This changes the physical-time checkpoint plan version;
+checkpoints produced before this guard must be regenerated from the initial
+beam state. Preview evaluates the currently available sources;
 no future beam trajectory is requested. Persistent ring rows touched during
 preview are saved and restored exactly, and updates are committed only after
 all groups validate their kicks. CPU/GPU checkpoints include the open block,
