@@ -5,6 +5,45 @@ WakeField
 一个物理位置，各算法组分别保存源历史或模式状态。本页说明 CPU 与 CUDA 实现，
 数值验证结果见仓库的尾场验证报告。
 
+共享配置与尾场点
+----------------
+
+可选根级 ``Wake field`` 包含 ``Enabled``（默认 true）及 ``Configurations``，
+后者将唯一配置名称映射到含 ``Groups`` 的对象。尾场点在内联 ``Groups`` 与
+``Configuration`` 引用之间二选一；``S (m)``、``Slice set``、``Is enabled``
+仍在各点设置。总开关与单点开关均为 true 才执行。没有根级块时，旧内联命令
+保持原有行为。
+
+配置仅共享输入参数。加载输入时将每个引用展开为独立定义，每个物理点分别创建
+模型、历史及求解状态。关闭总开关不能绕过非法配置或缺失引用。共享定义中的文件路径
+与内联定义相同，按输入 JSON 所在目录解析。
+
+根级块及 ``Sequence`` 中对应的点示例::
+
+   "Wake field": {
+       "Enabled": true,
+       "Configurations": {
+           "pipe": {"Groups": [{
+               "Name": "longitudinal", "Solver": "direct", "History": "none",
+               "Components": [{
+                   "Component": "longitudinal", "Velocity": {"Kind": "ideal"},
+                   "Model": {"Kind": "constant", "Amplitude": 1e12, "Duration (s)": 1e-6}
+               }]
+           }]}
+       }
+   },
+   "Sequence": {
+       "wake_1": {"Command": "WakeField", "S (m)": 1.0,
+                  "Slice set": "wake", "Configuration": "pipe", "Is enabled": true}
+   }
+
+这只是接口片段，实际输入需补齐 Injection、光学配置及尾场点之前的匹配 Slicer。
+常量模型仅作示例，不代表指定机器的阻抗。Python API 导出 ``WakeFieldConfig``
+和 ``WakeResourceConfig``；向 ``generate_input`` 传入
+``wake_field=WakeFieldConfig(...)``。``load_input`` 返回展开后的内联序列，使其
+二元返回接口不会丢失共享定义。直接构造底层命令仍需内联定义；从命名配置构造时
+先使用 ``resolve_wake_point``。
+
 物理范围与约定
 --------------
 
@@ -106,7 +145,7 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
 保持不变，不施加通用 β 缩放。
 
-顶层字段为 ``S (m)``、``Command="WakeField"``、``Slice set``、``Groups``、
+命令字段为 ``S (m)``、``Command="WakeField"``、``Slice set``、``Groups`` 或 ``Configuration``、
 ``Is enabled``。组名 ``Name`` 必须唯一，``Components`` 不为空。分量包含
 ``Component``、``Model``、``Velocity``，可选 ``Scale`` 与 ``Field content``。
 
@@ -331,7 +370,9 @@ t0=n*C/(beta*c)，精确点源网格示例如下：
 误差阈值。步长还必须能被绝对到达时间的浮点表示分辨。
 
 已完成的物理时间块送入 uniform 或 dyadic 在线卷积；尚未完成的块，包括源
-沉积超出中心的部分，跨通过保留。preview 只计算当前已知源，不要求未来束流
+沉积超出中心的部分，跨通过保留。通过末端前一个节点也保持可写，避免相接
+通过边界的舍入误差使源沉积节点提前封存。该规则更新了物理时间检查点的
+计划版本；旧版本检查点需要从初始束流状态重新生成。preview 只计算当前已知源，不要求未来束流
 轨迹。预览中触及的持久环形缓冲行会保存并精确还原，所有组完成踢动校验后
 才提交更新。CPU/GPU 检查点包含未完成块、近场修正源、时钟原点及已完成块
 历史。空批次仍推进通过计数；间隙超过完整历史时长及投影支撑后，可精确跳过
@@ -375,11 +416,12 @@ Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束�
 
 演化漂移束使用 ``Coordinate=arrival_phase``（或 ``Periodic=true``）、
 ``equal_length`` 及 ``Explicit={"z min": -C, "z max": 0}``。显式更新时
-:math:`z_{phase}=C[(u\bmod1)-1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
+:math:`z_{phase}=-C[(-u)\bmod1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
 规定时钟选择共同观测事件和速度，见 :doc:`slicer`。各束团的参考时间、速度可以
 不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。
 
-切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。每个新的物理源通过事件需要用户
+切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。恰好为整数圈的相位映射到窗口
+起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
 更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
 ``Boundary="causal_passages"``。``time_fft`` 支持变化且互不重叠的通过窗口，
 固定卷积网格仍要求其声明的时间结构。

@@ -22,4 +22,4 @@ PASS 文档（中文）
    slicer
    space_charge
    field_solver
-   wake_implementation
+   wake_field

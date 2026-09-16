@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#zh-reference-clock">规定的机器时钟与初始化</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence">Sequence（序列容器）</a></li>
@@ -65,20 +66,20 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#lattice">Lattice来源</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id8">方式二：从 MADX twiss 文件读取为元件</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id8">混合模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id9">混合模式</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id9">外部数据文件转换</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id10">四步流水线</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id11">一步到位</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id12">预置封装</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id13">分步调用</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id10">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id11">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id12">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id13">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#id14">分步调用</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../input_generation.html#api">API 参考</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id14">完整示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#id15">完整示例</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../gui.html">图形界面配置流程</a><ul>
@@ -89,11 +90,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#id6">模块职责</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#id7">结构化数组参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#id8">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gui.html#rf">注入、时钟、RF 与脉冲元件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gui.html#id9">尾场与结果文件</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../gui.html#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../gui.html#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#id9">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#id10">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#id11">手动传输点与后续编辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../gui.html#id10">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../gui.html#id11">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../gui.html#id12">手动传输点与后续编辑</a></li>
 </ul>
 </li>
 </ul>
@@ -126,28 +129,41 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../injection.html">注入粒子生成（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id2">束团参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id3">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id4">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id5">束流参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id6">分布参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">偏移参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#zh-longitudinal-reference">纵向坐标与参考到达时间</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id2">参考变换</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id8">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id9">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id11">多束团纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id12">束团填充方案</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id13">色散耦合</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#id14">动量偏差</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id3">固定宏粒子权重</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id4">参考动量变换精度</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id5">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id6">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id7">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id8">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id9">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id10">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id11">偏移参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id15">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#zh-multiturn-injection">多圈注入与横向涂抹</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id13">注入时序与粒子数量</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id14">入射分布与偏置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#bump">Bump 磁铁与横向涂抹</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id15">注入过程的观测</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id16">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id17">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id18">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id19">多束团纵向坐标</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id20">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id21">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../injection.html#id22">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id23">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#id17">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id25">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
@@ -168,18 +184,19 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id1">小角度数值稳定性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id2">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id3">整体追踪流程</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id6">主体模型对比</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html#yrotation">入口边缘：YRotation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id20">边缘角正负号定义</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id21">参数列表</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id24">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id28">参考文献</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html#id29">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id21">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id22">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id25">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id29">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dipole.html#id30">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a><ul>
@@ -397,15 +414,20 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../slicer.html">切片器（Slicer）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../slicer.html#id1">职责边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id2">配置格式</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id3">切片模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id2">切片坐标与复用</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id3">配置格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id4">空间电荷的环周折叠切片</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id5">漂移束尾场的周期到达切片</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id6">切片模型</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../slicer.html#sliceset">SliceSet 数据</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id4">快照输出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id5">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id6">通用命令参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id7">范围模式参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id8">SliceSet 运行时接口</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id9">配置校验</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id7">快照输出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../slicer.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id9">通用命令参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id10">范围模式参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id11">SliceSet 运行时接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../slicer.html#id12">配置校验</a></li>
 </ul>
 </li>
 </ul>
@@ -490,6 +512,23 @@
 <li class="toctree-l3"><a class="reference internal" href="../field_solver.html#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../wake_field.html">WakeField</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id1">共享配置与尾场点</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id2">物理范围与约定</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id3">响应模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id4">频谱与拟合</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id5">速度、加速与算法组</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id6">示例与恢复</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#cpu-gpu">CPU 与 GPU 执行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id7">自定义空间项</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id8">固定网格多束团与长历史</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id9">变周期下的一般历史计算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id10">漂移束适配范围</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id11">回归与分块接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id12">文件输入</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#id13">切片坐标与响应边界</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../en/index.html">PASS Documentation (English)</a><ul>
@@ -503,6 +542,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#prescribed-machine-clock-and-initialization">Prescribed machine clock and initialization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
@@ -534,6 +574,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/gui.html#module-responsibilities">Module responsibilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/gui.html#structured-array-parameters">Structured array parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/gui.html#space-charge">Space charge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/gui.html#injection-clocks-rf-and-pulsed-elements">Injection, clocks, RF and pulsed elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/gui.html#wakefield-and-result-files">WakeField and result files</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/gui.html#twiss-and-optics">Twiss and optics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/gui.html#mad-x-sampling">MAD-X sampling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/gui.html#one-turn-transfer">One-turn transfer</a></li>
@@ -571,6 +613,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/injection.html">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#longitudinal-coordinate-and-reference-time">Longitudinal coordinate and reference time</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#reference-transformations">Reference transformations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#fixed-macro-particle-weights">Fixed macro-particle weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#reference-momentum-precision">Reference-momentum precision</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#interface-parameters">Interface parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#bunch-parameters">Bunch parameters</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#transverse-parameters">Transverse parameters</a></li>
@@ -578,6 +626,13 @@
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#beam-parameters">Beam parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#distribution-parameters">Distribution parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#multi-turn-injection-and-transverse-painting">Multi-turn injection and transverse painting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#injection-schedule-and-particle-population">Injection schedule and particle population</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#incoming-distribution-and-offsets">Incoming distribution and offsets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#transverse-painting-with-bump-magnets">Transverse painting with Bump magnets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/injection.html#observing-injection">Observing injection</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
@@ -590,7 +645,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#input-file">Input file</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#simulation-results">Simulation results</a></li>
 </ul>
@@ -613,6 +668,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#small-angle-numerical-stability">Small-angle numerical stability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
@@ -842,7 +898,10 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/slicer.html">Slicer</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#responsibilities">Responsibilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#slice-coordinate-and-reuse">Slice coordinate and reuse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#circumference-folded-slicing-for-spacecharge">Circumference-folded slicing for SpaceCharge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#periodic-arrival-slicing-for-coasting-wakes">Periodic arrival slicing for coasting wakes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#slice-models">Slice models</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#sliceset-data">SliceSet data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/slicer.html#snapshots">Snapshots</a></li>
@@ -935,6 +994,25 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/field_solver.html#gpu-resources-and-execution">GPU resources and execution</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../en/wake_field.html">WakeField</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#shared-configuration-and-wake-points">Shared configuration and wake points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#physical-scope-and-conventions">Physical scope and conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#response-models">Response models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#raw-spectra-and-fitting">Raw spectra and fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#velocity-and-acceleration">Velocity and acceleration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#explicit-algorithm-groups">Explicit algorithm groups</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#example">Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#diagnostics-and-state">Diagnostics and state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#cpu-and-gpu-execution">CPU and GPU execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#custom-spatial-terms">Custom spatial terms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#stationary-multibunch-and-long-history">Stationary multibunch and long history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#variable-period-general-history">Variable-period general history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#coasting-beams">Coasting beams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#regression-and-block-contracts">Regression and block contracts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#file-input">File input</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/wake_field.html#slice-coordinates-and-response-boundaries">Slice coordinates and response boundaries</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -1012,7 +1090,7 @@
 <span class="math notranslate nohighlight">\(z=\beta_b c(T_b-t_i)\)</span>。激励器直接计算
 <span class="math notranslate nohighlight">\(t_i=T_b-z_i/(\beta_b c)\)</span>，不叠加名义槽位偏移，也不折叠存储 z。
 不同到达时间采样不同信号相位。RF 参考速度变化时的 z 缩放保持该时间连续，
-见 <span class="xref std std-ref">zh-longitudinal-reference</span>。激励波形自身的周期约化规则保持不变。</p>
+见 <a class="reference internal" href="../injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。激励波形自身的周期约化规则保持不变。</p>
 </section>
 <section id="id3">
 <h2>频率输入模式<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>

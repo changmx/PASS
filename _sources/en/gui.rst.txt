@@ -14,7 +14,7 @@ Name, Command, and position are mandatory columns. Drag header
 dividers to resize columns; right-click to select additional columns. Validation
 is in the sequence toolbar and checks the complete active input and dependencies.
 See :doc:`input_validation` for the full report, rules and command-line checker.
-All property fields remain expanded, with unavailable options disabled and long
+Applicable property fields remain expanded, with mode-dependent alternatives hidden or disabled and long
 forms scrolling within the pane. See :doc:`project_files` for JSON/project saving,
 source-file packaging, parameter reuse, and fixed input snapshots for running.
 
@@ -23,8 +23,9 @@ unused space below the entire list. Only **Input configuration (required)** is
 expanded at startup; all other main sections and the Space charge submenu start
 collapsed. **Physics effects** lists **Space charge**,
 **Wakefields**, **Beam-beam effects**, and **Electron cloud**, in that order.
-Space charge expands independently. The last three are disabled placeholders
-until their configuration interfaces are available.
+Space charge and **Wakefields** (尾场) expand independently. The latter contains
+**Global configuration**, **Insert wake slicer**, and **Wake point**;
+Beam-beam effects and Electron cloud remain disabled placeholders.
 
 Help and local documentation
 ----------------------------
@@ -189,13 +190,20 @@ fields are shown with defaults even when omitted from the opened JSON.
 Space charge
 ------------
 
+Use **SC slicing** to create a ``z_periodic`` Slicer. General-purpose slicing
+defaults to ``z_rel``; WakeField slicing accepts ``z_rel`` or ``arrival_phase``.
+``Periodic`` is derived from ``Coordinate``; legacy ``Periodic=true`` without a
+coordinate retains its arrival-phase meaning. Selecting ``arrival_phase`` sets
+equal-length bins and the explicit interval ``[-C, 0]``. Changing circumference
+later requires checking that interval again. Slicing never rewrites particle z.
+RF does not re-bin saved intervals; regrouping requires another explicit Slicer.
+
 Under **Physics effects**, click the **Space charge** heading to expand or
 collapse its submenu, just like the outer module section. Collapsing it does
 not change the project or discard the active form; there is no back-menu item.
 
-* **Calculation configuration** (计算配置) manages the module switch, named
-  configurations, slice-set references, PIC grids, and solvers. This is the
-  former global space-charge editor, with unchanged functionality.
+* **Global configuration** (全局配置) manages the module switch, named
+  configurations, slice-set references, PIC grids, and solvers.
 * **Insert calculation point** (插入计算点) manually inserts a ``SpaceCharge``
   command at a specified position, referencing a named calculation configuration.
   Point parameters, including the interaction length and output options, retain
@@ -235,6 +243,89 @@ walls use separate cached solvers with one shared grid; FFT shares kernels
 and uses apertures for losses only. Initialization checks finite PIC apertures
 fit in the grid and requires DST to use the complete grid rectangle.
 Wall and outside particles are lost before field calculation.
+
+Analytic solvers cannot save potential. The GUI prevents enabling this option;
+an imported enabled option can be cleared. Internal SC inherits its parent
+element's aperture; conflicting legacy child apertures are overridden by the
+engine. ``Num kicks`` sets the internal SC nodes, independently of the parent's
+transport ``Num slices``.
+
+Injection, clocks, RF and pulsed elements
+------------------------------------------
+
+Injection preserves valid harmonic-ID permutations when applying a form.
+Adding/copying bunches assigns a new slot; deleting a slot compresses higher IDs.
+The batch summary shows the planned total, first/subsequent batch sizes, last
+injection turn and macro-particle weight. New bunches retain the existing weight.
+Distribution input offers ``sequential`` or ``repeat``. Random seeds and
+reference arrival times can be cleared to null. Integer fields accept large
+particle counts without a signed-32-bit limit.
+
+Global configuration includes ``Reference clock`` even for older JSON files
+that omitted the key. Disable custom input for the default clock derived from
+the initial harmonic-ID-zero bunch. Otherwise enter time origin and constant
+revolution frequency, or increasing time/frequency tables. The frequency times
+circumference must remain below the speed of light. This clock does not follow
+the instantaneous energy of a tracked bunch.
+
+RFCavity components support inline/file and harmonic/direct-frequency modes.
+Voltage, phase and direct frequency can be scalars or tables sharing ``Time (s)``.
+File input requires TIME/VOLTAGE/PHASE, plus FREQUENCY for direct-frequency mode;
+a harmonic file must omit FREQUENCY. Inactive alternatives are cleared on apply.
+The physical-voltage preview evaluates the tracking waveform's exact frequency
+integral, shows each component and their sum, and allows an explicit time window.
+It is not a multi-harmonic bucket calculation. Legacy cavity-level parameters
+and turn-indexed RF files need a physical-time migration, not a renamed key.
+
+The library includes Bump and the current voltage/geometry ElSeparator interface.
+Required quantities remain blank until supplied; incomplete drafts cannot be applied.
+Bump previews TIME/HKICK/VKICK and can convert two CISP CSV files into one TFS
+using their common physical-time interval. Kicks are integrated delta-P/P0;
+the preview includes time offset and zero extrapolation. **Preview ES** (预览ES) previews
+the tilted electrodes and open field gap, separately from the vacuum aperture.
+S is its exit and S-Length its entrance. Zero voltage retains material losses;
+zero length gives no voltage impulse. Obsolete EX/EY/EXL/EYL inputs require
+explicit voltage, gap and height rather than an inferred conversion.
+Gap, electrode height and septum position must be filled before previewing;
+missing or invalid values identify the offending field. An empty voltage permits
+a geometry-only preview without computing the field; applying/running still
+requires voltage. Distribution File Mode and its popup fit both sequential/repeat
+options without truncating their labels.
+The ES **Hardware parameters** (硬件参数) group labels voltage, gap width,
+electrode height/center, septum position/thickness and tilt in Chinese, retaining
+their units and JSON keys. Bump preview validation and file errors are explained
+in Chinese, including path, TFS format, numeric data and unit errors.
+
+Exciter exposes tune/frequency selection and FM/AM-dependent fields. Ordinary
+magnet ramping remains unavailable in tracking and cannot be newly enabled.
+
+WakeField and result files
+--------------------------
+
+**Wakefields → Global configuration** manages the global enable switch and named
+model/solver configurations. Opening it collects existing inline point definitions
+into separate named configurations, without merging them. Applying a configuration
+rename updates its point references; configurations still in use cannot be deleted.
+**Wake point** selects a configuration, position, slice set and local enable switch.
+The global and local switches must both be on. Each point owns independent history
+even when it uses the same configuration. Inline ``Groups`` remain supported.
+See :doc:`wake_field` for the JSON/API representation.
+
+Groups and components can be added, copied and removed. Solver
+selection covers direct, fft, recursive, modal, partitioned_fft and time_fft;
+history, grids, memory and periodic-boundary controls follow the selected mode.
+The editor exposes all nine model families, spatial powers for custom components,
+and fixed/factorized/ideal velocity laws. The shared schema validates combinations.
+File models require explicit units, axes, sign conventions, integration convention
+and reference beta; unknown external-file conventions are not guessed.
+
+The plot page loads CSV, TFS and one-dimensional DistMonitor HDF5 columns.
+Load multiple files to select beam/bunch/turn snapshots; filter live/lost particles
+and injection batches, and inspect reference and pending-particle metadata.
+``arrival_time_s`` is derived only for live particles with matching row or snapshot
+reference time and beta. Lost coordinates cannot use a later live reference.
+Missing numeric cells remain aligned across columns. Multidimensional SC field
+files require their dedicated analysis and are not treated as particle tables.
 
 Twiss and optics
 ----------------

@@ -270,9 +270,14 @@ particle is retained. In this section E_r=E/D=m0*c²/D+Ek is in eV and q_r=abs(q
    \quad \frac{d\phi}{dN}=2\pi h\eta\delta,
    \quad \frac{d\delta}{dN}=\frac{q_r V}{\beta^2E_r}(\sin\phi-\sin\phi_s).
 
-These signs follow PASS RFCavity and the longitudinal Twiss drift. phi_s already
-includes cavity offset and bunch-center phase. RF h is independent of the
-Injection grouping harmonic. Stability requires eta*cos(phi_s)<0; for positive
+These signs follow PASS's small-deviation RF and longitudinal drift convention.
+For a frozen single component, evaluate the physical waveform phase
+``theta(t_s)=2*pi*integral(f dt)+phase(t_s)`` at the selected synchronous event.
+Use ``phi_s=theta(t_s)`` when signed ``q*V>0``, or add pi when ``q*V<0``;
+the tool uses the positive voltage magnitude and absolute charge. Reduce modulo
+2*pi. The reference event need not be the measured bunch centroid. Nominal
+``z_center`` is grouping metadata and adds no physical phase. RF h is independent
+of the Injection grouping harmonic. Stability requires eta*cos(phi_s)<0; for positive
 eta a stable phase is 180 degrees. Zero charge, V, Ek or eta is rejected.
 
 The positive Hamiltonian is ``H=pi*h*abs(eta)*delta²+U(theta)``, theta=phi-phi_s,
@@ -425,9 +430,10 @@ mode preserves the physical center frequency and width.
 
    A_0=\frac{VL}{d\beta c|B\rho|},\quad f_c=Q_{excite}f_0,\quad
    \Delta f=\Delta Q f_0,\quad
-   t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}+z_{center}}{\beta c}.
+   t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}}{\beta c}.
 
-No z folding is performed. Only the waveform reduces arrival time modulo the
+No nominal bunch-slot offset is added and no z folding is performed.
+Only the waveform reduces arrival time modulo the
 sweep period. A0 follows the current PASS charge-magnitude convention. Single FM
 uses ``phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T``. Dual FM uses the command's two phase
 branches and ``2*cos(pi*df*tau/2)`` envelope; its amplitude can reach 2*A0.

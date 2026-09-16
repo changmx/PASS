@@ -21,3 +21,4 @@ Welcome to PASS, the Particle Accelerator Simulation Studio.
    slicer
    space_charge
    field_solver
+   wake_field

@@ -212,7 +212,11 @@ RF bucket绘制
    \quad \frac{d\phi}{dN}=2\pi h\eta\delta,
    \quad \frac{d\delta}{dN}=\frac{q_r V}{\beta^2E_r}(\sin\phi-\sin\phi_s).
 
-符号遵循 PASS RFCavity 与纵向 Twiss 漂移。phi_s 已包含偏置和束团中心相位；
+符号遵循 PASS 的小偏差 RF 与纵向漂移约定。冻结单分量时，在所选同步参考事件计算
+物理相位 ``theta(t_s)=2*pi*integral(f dt)+phase(t_s)``；有符号 ``q*V>0`` 时
+``phi_s=theta(t_s)``，``q*V<0`` 时再加 pi，均对 2*pi 取余。
+工具使用正电压幅值与电荷绝对值；参考事件不必等于实测质心。
+名义 ``z_center`` 仅为分组元数据，不追加物理相位。
 RF 谐波 h 不受 Injection 分组谐波约束。稳定条件 eta*cos(phi_s)<0，eta>0 时可用 180°。
 电荷、电压、Ek 或 eta 为零时不支持稳定桶。
 
@@ -343,9 +347,10 @@ n=1 为约 39.35%。
 
    A_0=\frac{VL}{d\beta c|B\rho|},\quad f_c=Q_{excite}f_0,\quad
    \Delta f=\Delta Q f_0,\quad
-   t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}+z_{center}}{\beta c}.
+   t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}}{\beta c}.
 
-z 不折叠，仅波形内部将到达时间对扫频周期取余。A0 的电荷量大小约定与当前 PASS 一致。
+不添加名义束团槽位偏移，z 不折叠；仅波形内部将到达时间对扫频周期取余。
+A0 的电荷量大小约定与当前 PASS 一致。
 单频相位为 ``phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T``；双频使用 Exciter 的两段相位和
 ``2*cos(pi*df*tau/2)`` 包络，振幅可能达到 2×A0。
 详细公式窗口列出两段相位导数和完整 AM 公式。

@@ -23,6 +23,20 @@ the exit integral; ``Fintx <= 0`` inherits ``Fint``. In particular, setting
   - Supports aperture check
 
 
+Small-angle numerical stability
+-------------------------------
+
+The polar drift contains the horizontal curvature term
+:math:`\rho(1-\cos\theta)`. Both CPU and GPU evaluate it with the same
+half-angle identity :math:`1-\cos\theta=2\sin^2(\theta/2)`, without
+branching on the angle. The fused GPU kernel precomputes the half-angle sine alongside
+the existing full-angle sine and cosine and reuses them across slices,
+while the internal slicing path uses the same half-angle evaluation. This avoids small-angle cancellation
+without dividing by :math:`1+\cos\theta`. Particle storage precision, integration settings,
+and the physical map are unchanged. Other FP32 rounding errors remain;
+tracking accuracy still requires a precision and slice-convergence check.
+
+
 Coordinate Convention
 ---------------------
 

@@ -26,11 +26,29 @@ clock phase :math:`\Psi(t)=\int_{t_*}^t f_{rev}(u)du`, the sorting key at s is
 Group j owns :math:`j/h\le k_i<(j+1)/h`. The half-slot shift treats odd and
 even grouping counts identically. All particle arrays are permuted together.
 The periodic key is used only for grouping; the unwrapped time is retained.
+The key is kept strictly below 1 in floating-point arithmetic: an upper-side
+limit rounded to 1 is moved to the largest float64 value below 1, retaining
+the last-group assignment. Exactly zero belongs to group 0. Shared interval
+boundaries ensure that all array records belong to exactly one group,
+including when some groups or the entire particle pool are empty. Source ranges
+and destination coverage are checked before particle arrays are reordered.
 
 New reference events are chosen from the prescribed clock for the current
 passage and new slot IDs. Their reference velocities are :math:`C f_{rev}(T_b)`
 and must be subluminal. The reference energy follows from this velocity and
-rest mass. A different reference energy is a coordinate choice, not an RF kick:
+rest mass. A different reference energy is a coordinate choice, not an RF kick.
+
+The old bunch with the lowest harmonic ID supplies the anchor. The nearest
+machine passage is chosen as
+
+.. math::
+
+   n=\operatorname{round}\!\left[\Psi(T_a)-s/C+j_a/h_{old}\right],\qquad
+   \Psi(T_j')=n+s/C-j/h.
+
+This chooses the new reference from the prescribed design trajectory rather
+than from the measured particle centroid. The corresponding live-particle
+coordinate transformation is
 
 .. math::
 
@@ -38,11 +56,42 @@ rest mass. A different reference energy is a coordinate choice, not an RF kick:
    p_{x,y}'=p_{x,y}P_{0,b}/P_{0,b}',\qquad
    1+\delta_i'=(1+\delta_i)P_{0,b}/P_{0,b}'.
 
-Physical time, energy and mechanical momenta remain unchanged. ``SortBunch``
+These reference transformations apply only to live particles (``tag > 0``).
+Lost particles retain all six frozen coordinates and their loss turn/position;
+reserved particles (``tag == 0``) retain their coordinates until injection.
+Their array positions may change together with the other particle records.
+
+The common macro-particle weight stays fixed, even in an empty group. Regrouping
+updates the group's diagnostic real-particle count from its population and that
+weight, without deriving a new weight from a rounded count. No per-particle
+charge array is needed; see :doc:`injection`.
+
+Here ``Np = end_idx - start_idx`` counts every record in the group: live,
+lost and pending. ``Nrp = round(ratio * Np)`` is a diagnostic integer count,
+not the surviving beam intensity. The surviving real-particle population is
+``ratio * count(tag > 0)``; multiplying by the particle charge gives its charge.
+Rounding ``Nrp`` separately in each group can change the sum of those integers,
+so charge-conservation checks must use the fixed weight and live counts.
+
+Live-particle physical time, energy and mechanical momenta remain unchanged. ``SortBunch``
 uses the same key and transformation while retaining the existing bunch
 references. Both commands invalidate old SliceSets because their local particle
 indices change. Users explicitly execute Slicer afterwards. No automatic
 centroid recentering, physical debunching, merging or compression is performed.
+In particular, SortBunch also converts normalized momenta when a particle
+crosses into a group with a different reference momentum. ReorganizeBunch
+rebuilds references even if the requested grouping count equals the old count.
+
+.. important::
+
+   **Execute Slicer after every SortBunch or ReorganizeBunch operation and before
+   the next use of slice information.** The required order is
+   ``SortBunch/ReorganizeBunch -> Slicer -> SpaceCharge/WakeField``, with Slicer
+   updating each named set required by its consumer. Slices created before the
+   operation are invalidated, including slices created earlier in the same turn.
+   Particle tags remain attached to their particles, but slice membership is
+   aligned by current array index, not looked up by tag. CPU and CUDA consumers
+   do not automatically regenerate the cleared results; see :doc:`slicer`.
 
 Interface Parameters
 --------------------

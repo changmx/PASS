@@ -15,6 +15,7 @@
    multipole
    solenoid
    kicker
+   bump
    elseparator
    exciter
    rfcavity

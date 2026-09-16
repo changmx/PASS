@@ -58,6 +58,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#json">JSON 文件结构</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id6">核心组件</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#zh-reference-clock">规定的机器时钟与初始化</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
@@ -65,20 +66,20 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#lattice">Lattice来源</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id8">方式二：从 MADX twiss 文件读取为元件</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id8">混合模式</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id9">混合模式</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id9">外部数据文件转换</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id10">四步流水线</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id11">一步到位</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id12">预置封装</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id13">分步调用</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id10">外部数据文件转换</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id11">四步流水线</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id12">一步到位</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id13">预置封装</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/input_generation.html#id14">分步调用</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#api">API 参考</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id14">完整示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/input_generation.html#id15">完整示例</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/gui.html">图形界面配置流程</a><ul>
@@ -89,11 +90,13 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui.html#id6">模块职责</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui.html#id7">结构化数组参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui.html#id8">空间电荷</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/gui.html#rf">注入、时钟、RF 与脉冲元件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/gui.html#id9">尾场与结果文件</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/gui.html#twiss">Twiss 与光学</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#id9">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#id10">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#id11">手动传输点与后续编辑</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#id10">单圈传输</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#id11">平滑近似</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/gui.html#id12">手动传输点与后续编辑</a></li>
 </ul>
 </li>
 </ul>
@@ -126,28 +129,41 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/injection.html">注入粒子生成（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id2">束团参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id3">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id4">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id5">束流参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id6">分布参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id7">偏移参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#zh-longitudinal-reference">纵向坐标与参考到达时间</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id2">参考变换</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id8">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id9">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id10">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id11">多束团纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id12">束团填充方案</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id13">色散耦合</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id14">动量偏差</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id3">固定宏粒子权重</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id4">参考动量变换精度</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id5">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id6">束团参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id7">横向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id8">纵向参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id9">束流参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id10">分布参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id11">偏移参数</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id15">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id16">运行命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#zh-multiturn-injection">多圈注入与横向涂抹</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id13">注入时序与粒子数量</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id14">入射分布与偏置</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#bump">Bump 磁铁与横向涂抹</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id15">注入过程的观测</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id16">粒子分布类型简介</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id17">横向粒子分布</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id18">纵向粒子分布</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id19">多束团纵向坐标</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id20">束团填充方案</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id21">色散耦合</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/injection.html#id22">动量偏差</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id23">输入文件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#d">1D 投影理论曲线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id17">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id25">模拟结果</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/element/index.html">元件（Element）</a><ul>
@@ -168,18 +184,19 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/element/dipole.html">二极铁（Dipole / SBend）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id1">坐标约定</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id2">整体追踪流程</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id1">小角度数值稳定性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id2">坐标约定</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id3">整体追踪流程</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#dkd-exact">主体：DKD-exact 模型</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id5">主体模型对比</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id6">主体模型对比</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#yrotation">入口边缘：YRotation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#fringe-field">入口边缘：边缘场（Fringe Field）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#wedge">入口边缘：Wedge（边缘角）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id20">边缘角正负号定义</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id21">参数列表</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id24">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id28">参考文献</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id29">元件内部空间电荷</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id21">边缘角正负号定义</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id22">参数列表</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id25">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id29">参考文献</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html#id30">元件内部空间电荷</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/element/quadrupole.html">四极铁（Quadrupole）</a><ul>
@@ -397,15 +414,20 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/slicer.html">切片器（Slicer）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id1">职责边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id2">配置格式</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id3">切片模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id2">切片坐标与复用</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id3">配置格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id4">空间电荷的环周折叠切片</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id5">漂移束尾场的周期到达切片</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id6">切片模型</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#sliceset">SliceSet 数据</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id4">快照输出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id5">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id6">通用命令参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id7">范围模式参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id8">SliceSet 运行时接口</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id9">配置校验</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id7">快照输出</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/slicer.html#id8">接口参数</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id9">通用命令参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id10">范围模式参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id11">SliceSet 运行时接口</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/slicer.html#id12">配置校验</a></li>
 </ul>
 </li>
 </ul>
@@ -490,6 +512,23 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../zh/wake_field.html">WakeField</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id1">共享配置与尾场点</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id2">物理范围与约定</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id3">响应模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id4">频谱与拟合</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id5">速度、加速与算法组</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id6">示例与恢复</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#cpu-gpu">CPU 与 GPU 执行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id7">自定义空间项</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id8">固定网格多束团与长历史</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id9">变周期下的一般历史计算</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id10">漂移束适配范围</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id11">回归与分块接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id12">文件输入</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/wake_field.html#id13">切片坐标与响应边界</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS Documentation (English)</a><ul class="current">
@@ -503,6 +542,7 @@
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="input_generation.html#core-components">Core Components</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="input_generation.html#prescribed-machine-clock-and-initialization">Prescribed machine clock and initialization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
@@ -534,6 +574,8 @@
 <li class="toctree-l3"><a class="reference internal" href="gui.html#module-responsibilities">Module responsibilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gui.html#structured-array-parameters">Structured array parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gui.html#space-charge">Space charge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui.html#injection-clocks-rf-and-pulsed-elements">Injection, clocks, RF and pulsed elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gui.html#wakefield-and-result-files">WakeField and result files</a></li>
 <li class="toctree-l3"><a class="reference internal" href="gui.html#twiss-and-optics">Twiss and optics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="gui.html#mad-x-sampling">MAD-X sampling</a></li>
 <li class="toctree-l4"><a class="reference internal" href="gui.html#one-turn-transfer">One-turn transfer</a></li>
@@ -571,6 +613,12 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Injection / Particle Generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#longitudinal-coordinate-and-reference-time">Longitudinal coordinate and reference time</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#reference-transformations">Reference transformations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#fixed-macro-particle-weights">Fixed macro-particle weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference-momentum-precision">Reference-momentum precision</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bunch-parameters">Bunch parameters</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#transverse-parameters">Transverse parameters</a></li>
@@ -578,6 +626,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#beam-parameters">Beam parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#distribution-parameters">Distribution parameters</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#offset-parameters">Offset parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-turn-injection-and-transverse-painting">Multi-turn injection and transverse painting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#injection-schedule-and-particle-population">Injection schedule and particle population</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#incoming-distribution-and-offsets">Incoming distribution and offsets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#transverse-painting-with-bump-magnets">Transverse painting with Bump magnets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#observing-injection">Observing injection</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
@@ -590,7 +645,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#input-file">Input file</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#run-command">Run command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#simulation-results">Simulation results</a></li>
 </ul>
@@ -613,6 +668,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/dipole.html#small-angle-numerical-stability">Small-angle numerical stability</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html#coordinate-convention">Coordinate Convention</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html#overall-tracking-flow">Overall Tracking Flow</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html#body-dkd-exact-model">Body: DKD-exact Model</a></li>
@@ -842,7 +898,10 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="slicer.html">Slicer</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="slicer.html#responsibilities">Responsibilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#slice-coordinate-and-reuse">Slice coordinate and reuse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="slicer.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#circumference-folded-slicing-for-spacecharge">Circumference-folded slicing for SpaceCharge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="slicer.html#periodic-arrival-slicing-for-coasting-wakes">Periodic arrival slicing for coasting wakes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="slicer.html#slice-models">Slice models</a></li>
 <li class="toctree-l3"><a class="reference internal" href="slicer.html#sliceset-data">SliceSet data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="slicer.html#snapshots">Snapshots</a></li>
@@ -935,6 +994,25 @@
 <li class="toctree-l3"><a class="reference internal" href="field_solver.html#gpu-resources-and-execution">GPU resources and execution</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="wake_field.html">WakeField</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#shared-configuration-and-wake-points">Shared configuration and wake points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#physical-scope-and-conventions">Physical scope and conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#response-models">Response models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#raw-spectra-and-fitting">Raw spectra and fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#velocity-and-acceleration">Velocity and acceleration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#explicit-algorithm-groups">Explicit algorithm groups</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#example">Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#diagnostics-and-state">Diagnostics and state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#cpu-and-gpu-execution">CPU and GPU execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#custom-spatial-terms">Custom spatial terms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#stationary-multibunch-and-long-history">Stationary multibunch and long history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#variable-period-general-history">Variable-period general history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#coasting-beams">Coasting beams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#regression-and-block-contracts">Regression and block contracts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#file-input">File input</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wake_field.html#slice-coordinates-and-response-boundaries">Slice coordinates and response boundaries</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -967,7 +1045,9 @@
   <section id="injection-particle-generation">
 <h1>Injection / Particle Generation<a class="headerlink" href="#injection-particle-generation" title="Link to this heading"></a></h1>
 <p>This module introduces the <strong>Injection</strong> command in PASS, which is used to generate specific particle distributions at the simulation starting position and inject the beam. The injection command supports independently setting transverse distribution, longitudinal distribution, beam parameters, offsets, etc. for each bunch, and is the entry point for particle simulation.</p>
-<p>This example demonstrates how to construct specific particle distributions. The input files and running code used in this document can be found in <a class="reference external" href="https://github.com/changmx/PASS/tree/master/example/01_generate_distribution">GitHub example code</a> .</p>
+<p>Injection supports single-turn and multi-turn operation. The incoming distribution,
+injection schedule and transverse offsets determine how each batch enters the ring;
+time-dependent Bump magnets can vary its subsequent transverse motion.</p>
 <p><strong>Code location</strong></p>
 <ul class="simple">
 <li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/injection.py</span></code></p></li>
@@ -975,6 +1055,66 @@
 <li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">injection</span></code></p></li>
 <li><p>Auxiliary class: <code class="docutils literal notranslate"><span class="pre">InjectionBunchInfo</span></code> (same file, responsible for parameter parsing and distribution generation of a single bunch)</p></li>
 </ul>
+<section id="longitudinal-coordinate-and-reference-time">
+<span id="en-longitudinal-reference"></span><h2>Longitudinal coordinate and reference time<a class="headerlink" href="#longitudinal-coordinate-and-reference-time" title="Link to this heading"></a></h2>
+<p>At a specified lattice location, <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> is the actual passage time
+<span class="math notranslate nohighlight">\(T_b\)</span> of the ideal reference particle of bunch b. The stored, continuous
+coordinate is a time difference expressed in metres:</p>
+<div class="math notranslate nohighlight">
+\[z_i=\beta_b c(T_b-t_i),\qquad t_i=T_b-\frac{z_i}{\beta_b c}.\]</div>
+<p>Positive z means earlier arrival. The reference particle is neither an
+automatically recentered bunch centroid nor necessarily a stable RF synchronous
+particle. No particle or bunch arrival-correction state is stored. All six
+particle coordinates retain the configured storage precision; timing and RF
+intermediates use float64. Local phase reduction never overwrites <code class="docutils literal notranslate"><span class="pre">p.z</span></code>.</p>
+<section id="reference-transformations">
+<h3>Reference transformations<a class="headerlink" href="#reference-transformations" title="Link to this heading"></a></h3>
+<p>A pure reference change at the same physical location preserves time and
+mechanical momentum:</p>
+<div class="math notranslate nohighlight">
+\[z_i'=\frac{\beta_b'}{\beta_b}z_i+\beta_b'c(T_b'-T_b),\qquad
+p_{x,y}'=p_{x,y}\frac{P_{0,b}}{P_{0,b}'},\qquad
+\delta_i'=\frac{P_{0,b}(1+\delta_i)}{P_{0,b}'}-1.\]</div>
+<p>Injection and regrouping apply the required coordinate conversions locally;
+<code class="docutils literal notranslate"><span class="pre">PASS/core/bunch.py</span></code> updates the reference energy parameters. For a zero-length
+RF energy kick, <span class="math notranslate nohighlight">\(T_b'=T_b\)</span>, so z scales by the reference velocity ratio.
+The particle energy also receives the physical RF kick; this is distinct from
+the pure normalization transformation. See <a class="reference internal" href="element/rfcavity.html"><span class="doc">RFCavity</span></a>.</p>
+<p>Transport advances the reference event by its reference flight time. In an
+exact straight drift of length L, <span class="math notranslate nohighlight">\(\Delta T_b=L/(\beta_b c)\)</span> and
+<span class="math notranslate nohighlight">\(\Delta t_i=LE_i/(cP_{s,i})\)</span>. Other transfer maps retain their documented
+approximations. The time-coordinate migration does not change normalized
+quadrupole strengths or magnetic maps.</p>
+</section>
+</section>
+<section id="fixed-macro-particle-weights">
+<h2>Fixed macro-particle weights<a class="headerlink" href="#fixed-macro-particle-weights" title="Link to this heading"></a></h2>
+<p>All populated bunches within one beam must use the same represented real-particle
+count per macro particle, given by <code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Real</span> <span class="pre">Particles</span> <span class="pre">/</span> <span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span>
+<span class="pre">Particles</span></code> in the initial input. Different input weights are rejected. This
+fixed value applies to every planned injection batch. Injection
+activates reserved particles; it does not rescale their weights according to
+the current population, losses, or destination bunch.</p>
+<p>Sorting and regrouping retain this scalar weight, including in empty groups.
+No per-particle weight or wake-charge array is allocated. Rounded diagnostic
+real-particle counts never feed back into the weight. Slicer, SpaceCharge and
+WakeField use the same fixed <code class="docutils literal notranslate"><span class="pre">bunch.ratio</span></code>; only particles with <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>
+contribute. Injection and losses change the active population, never the
+weight of the remaining particles.</p>
+</section>
+<section id="reference-momentum-precision">
+<h2>Reference-momentum precision<a class="headerlink" href="#reference-momentum-precision" title="Link to this heading"></a></h2>
+<p>The incoming momentum deviation is converted to the circulating reference as</p>
+<div class="math notranslate nohighlight">
+\[\delta_{\mathrm{circ}} =
+\frac{p_{0,\mathrm{inj}}}{p_{0,\mathrm{circ}}}\delta_{\mathrm{inj}}
++ \frac{p_{0,\mathrm{inj}}-p_{0,\mathrm{circ}}}{p_{0,\mathrm{circ}}}.\]</div>
+<p>This form avoids subtracting nearly equal unit-sized values. The shared CPU/GPU
+injection path evaluates the conversion in FP64 before storing the result in the
+configured particle precision. Equal reference momenta preserve the incoming
+<code class="docutils literal notranslate"><span class="pre">dp</span></code> values exactly, including small FP32 deviations. All six particle arrays
+retain their common configured FP32 or FP64 dtype.</p>
+</section>
 <section id="interface-parameters">
 <h2>Interface parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
 <p>The parameters of the <code class="docutils literal notranslate"><span class="pre">Injection</span></code> command are shown in the table below. Here <code class="docutils literal notranslate"><span class="pre">s</span></code> must be 0 (the injection point is fixed at the starting position of the sequence), <code class="docutils literal notranslate"><span class="pre">name</span></code> is automatically filled by the sequence key name, and <code class="docutils literal notranslate"><span class="pre">bunch0</span></code> , <code class="docutils literal notranslate"><span class="pre">bunch1</span></code> , … are the parameter dictionaries of each bunch.</p>
@@ -1276,24 +1416,24 @@
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Real</span> <span class="pre">Particles</span></code></p></td>
-<td><p>float</p></td>
+<td><p>int</p></td>
 <td><ul class="simple">
 <li></li>
 </ul>
 </td>
-<td><p>Number of real particles</p></td>
+<td><p>Planned total number of real particles over all injection events for this bunch</p></td>
 </tr>
 <tr class="row-even"><td><ul class="simple">
 <li></li>
 </ul>
 </td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span> <span class="pre">Particles</span></code></p></td>
-<td><p>float</p></td>
+<td><p>int</p></td>
 <td><ul class="simple">
 <li></li>
 </ul>
 </td>
-<td><p>Number of macro particles</p></td>
+<td><p>Planned total number of macro particles over all injection events for this bunch</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stop_turn</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Injection</span> <span class="pre">Turns</span></code></p></td>
@@ -1302,7 +1442,7 @@
 <li></li>
 </ul>
 </td>
-<td><p>Total injection turns</p></td>
+<td><p>Exclusive stop turn, counted from turn 0; positive integer, default 1</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interval</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Injection</span> <span class="pre">Interval</span></code></p></td>
@@ -1311,7 +1451,7 @@
 <li></li>
 </ul>
 </td>
-<td><p>Injection interval (inject once every <code class="docutils literal notranslate"><span class="pre">interval</span></code> turns)</p></td>
+<td><p>Injection interval in turns; positive integer, default 1</p></td>
 </tr>
 </tbody>
 </table>
@@ -1343,15 +1483,20 @@
 <td><p>str</p></td>
 <td><p>Distribution file path ( <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> format)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_save_init_dist</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Mode</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sequential</span></code> (default) reads successive rows for each bunch; <code class="docutils literal notranslate"><span class="pre">repeat</span></code> reads from the beginning at each injection event</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_save_init_dist</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Save</span> <span class="pre">Initial</span> <span class="pre">Distribution</span></code></p></td>
 <td><p>bool</p></td>
 <td><p>Whether to save the initial distribution</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">insert_particles</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">insert_particles</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code></p></td>
 <td><p>list</p></td>
-<td><p>Insert specified particle coordinates, format is <code class="docutils literal notranslate"><span class="pre">[[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp],</span> <span class="pre">...]</span></code></p></td>
+<td><p>Replace the first rows of the first batch after offsets are applied, using <code class="docutils literal notranslate"><span class="pre">[[x,</span> <span class="pre">px,</span> <span class="pre">y,</span> <span class="pre">py,</span> <span class="pre">z,</span> <span class="pre">dp],</span> <span class="pre">...]</span></code>; these rows are included in the planned particle count</p></td>
 </tr>
 </tbody>
 </table>
@@ -1412,6 +1557,106 @@
 </tr>
 </tbody>
 </table>
+</section>
+</section>
+<section id="multi-turn-injection-and-transverse-painting">
+<span id="en-multiturn-injection"></span><h2>Multi-turn injection and transverse painting<a class="headerlink" href="#multi-turn-injection-and-transverse-painting" title="Link to this heading"></a></h2>
+<section id="injection-schedule-and-particle-population">
+<h3>Injection schedule and particle population<a class="headerlink" href="#injection-schedule-and-particle-population" title="Link to this heading"></a></h3>
+<p>Each bunch has its own injection schedule. Let <code class="docutils literal notranslate"><span class="pre">Total</span> <span class="pre">Injection</span> <span class="pre">Turns</span></code> be
+<span class="math notranslate nohighlight">\(T\)</span> and <code class="docutils literal notranslate"><span class="pre">Injection</span> <span class="pre">Interval</span></code> be <span class="math notranslate nohighlight">\(\Delta n\)</span>. Injection occurs at</p>
+<div class="math notranslate nohighlight">
+\[n_k=k\Delta n&lt;T,\qquad
+k=0,\ldots,N_{\mathrm{event}}-1,\qquad
+N_{\mathrm{event}}=\left\lceil\frac{T}{\Delta n}\right\rceil.\]</div>
+<p>The stop turn is excluded. <code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">Macro</span> <span class="pre">Particles</span></code> gives the planned
+total <span class="math notranslate nohighlight">\(N\)</span> for the bunch. Each event receives
+<span class="math notranslate nohighlight">\(\lfloor N/N_{\mathrm{event}}\rfloor\)</span> particles; the first event also
+receives the remainder. Events assigned zero particles add no population.
+The simulation must run through every event assigned particles to inject the
+full population. For a nonempty source with <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Save</span> <span class="pre">Initial</span> <span class="pre">Distribution</span></code>
+enabled, the distribution is saved at the last scheduled event, even when that
+event adds zero particles. After all particles are injected and all requested
+saves have succeeded, subsequent Injection calls return immediately without
+searching the event schedules or recording additional turn numbers.</p>
+<p>Reserved particles have <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> and contribute neither tracking nor charge
+deposition, statistics or losses. Injection activates only the current batch.
+Live particles have <code class="docutils literal notranslate"><span class="pre">tag&gt;0</span></code>; lost particles have <code class="docutils literal notranslate"><span class="pre">tag&lt;0</span></code> and retain their
+loss coordinates. The identity <code class="docutils literal notranslate"><span class="pre">abs(tag)</span></code> of an injected particle remains
+unchanged by sorting or loss. The fixed macro-particle weight defined above
+applies throughout injection and storage.</p>
+<p>An injection batch identifies when particles enter the ring. Longitudinal bunch
+groups are specified separately by <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">ID</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">bunch</span></code>. Completing injection ends particle loading;
+circulating particles continue to follow the lattice and any active waveforms.</p>
+</section>
+<section id="incoming-distribution-and-offsets">
+<h3>Incoming distribution and offsets<a class="headerlink" href="#incoming-distribution-and-offsets" title="Link to this heading"></a></h3>
+<p>With <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File=true</span></code>, each bunch reads its own TFS file
+with columns <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code>, <code class="docutils literal notranslate"><span class="pre">z</span></code> and <code class="docutils literal notranslate"><span class="pre">dp</span></code>. Positions are in metres;
+momenta use the specified injection reference momentum. <code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Mode</span></code>
+controls row selection:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sequential</span></code> consumes consecutive rows across events. The file must contain
+at least the planned total number of particles for that bunch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">repeat</span></code> starts at row zero at each event, taking that event’s particle count.
+The file must contain at least the largest batch. Reusing source coordinates
+still creates new particles with distinct identities.</p></li>
+</ul>
+<p>Otherwise, Injection generates the selected transverse and longitudinal
+distributions for each batch. Generated and loaded particles both receive the
+configured horizontal dispersion and <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">x</span></code> / <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">y</span></code>. The offsets
+apply only at injection. A file-based offset is linearly interpolated at the
+injection turn or incoming reference passage time, according to its <code class="docutils literal notranslate"><span class="pre">turn</span></code> or
+<code class="docutils literal notranslate"><span class="pre">time</span> <span class="pre">(s)</span></code> column. The position and momentum columns are <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">px</span> <span class="pre">(rad)</span></code>
+or <code class="docutils literal notranslate"><span class="pre">y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">py</span> <span class="pre">(rad)</span></code>. Nodes must increase strictly, values must be finite,
+and the table must cover every requested injection event.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Insert</span> <span class="pre">Particle</span> <span class="pre">Coordinate</span></code> replaces the first rows of the first batch after
+these offsets, before conversion to the circulating reference. The batch must
+contain enough rows for these explicitly specified particles. Missing input rows,
+non-finite coordinates, or nonpositive longitudinal momentum cause an error before
+the affected batch is activated.</p>
+<p>The incoming physical momentum remains determined by the specified injection
+energy even when the circulating beam has accelerated. Injection converts the
+incoming momenta and longitudinal coordinate to the destination bunch reference
+while preserving physical momentum and arrival time, as defined in
+<a class="reference internal" href="#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.</p>
+</section>
+<section id="transverse-painting-with-bump-magnets">
+<h3>Transverse painting with Bump magnets<a class="headerlink" href="#transverse-painting-with-bump-magnets" title="Link to this heading"></a></h3>
+<p>Painting fills transverse phase space over successive injection events by
+varying the incoming beam position and momentum, the circulating orbit, or both.
+<code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">Offset</span> <span class="pre">y</span></code> prescribe the incoming beam coordinates at the
+injection point. <span class="xref std std-doc">element/bump</span> supplies horizontal and vertical pulsed
+magnetic kicks along the circulating lattice. Every live particle passing a
+Bump receives its kick, including particles from earlier batches.</p>
+<p>Incoming coordinates and Bump transport use the same fixed machine coordinates.
+Specify the incoming centroid at the injection plane and the physical magnet
+waveforms separately; an orbit displacement is not itself a magnet kick.
+In particle-time mode, the waveform is sampled at
+<span class="math notranslate nohighlight">\(t_i=t_0-z_i/(\beta_0c)\)</span> plus the configured <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">offset</span> <span class="pre">(s)</span></code>. The table
+must cover the arrival times of the particles being deflected. The Bump page
+defines reference-time sampling, interpolation and pulse-boundary behavior.</p>
+<p>Injection creates or loads particles at the injection plane and applies the
+specified offsets. Lattice elements perform subsequent transport and loss
+checks. In particular, <a class="reference internal" href="element/elseparator.html"><span class="doc">ElSeparator</span></a> evaluates electric deflection
+and electrode or vacuum-wall contact when particles pass through that element.
+Particles specified at the ES exit begin tracking at that plane; Injection
+does not apply an additional geometric acceptance cut.</p>
+</section>
+<section id="observing-injection">
+<h3>Observing injection<a class="headerlink" href="#observing-injection" title="Link to this heading"></a></h3>
+<p>Place <a class="reference internal" href="monitor/distmonitor.html"><span class="doc">DistMonitor</span></a> at the desired observation plane and turn to
+save the injected population. At <span class="math notranslate nohighlight">\(s=0\)</span>, Injection executes before the
+monitor, so the snapshot includes the current batch. Enable
+<code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">injection</span> <span class="pre">metadata</span></code> to save <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>, <code class="docutils literal notranslate"><span class="pre">injection_turn</span></code> and
+<code class="docutils literal notranslate"><span class="pre">injection_batch</span></code>. Turn and batch indices start at zero; each source bunch
+has its own batch index, so use <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> for particle matching.</p>
+<p>Both <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format=tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format=hdf5</span></code> exclude pending slots,
+retain lost particles and report <code class="docutils literal notranslate"><span class="pre">NumPending</span></code>. Select <code class="docutils literal notranslate"><span class="pre">tag&gt;0</span></code> when examining
+the live phase-space distribution at the monitor. Coordinates of lost particles
+refer to their loss locations. Use <a class="reference internal" href="monitor/statmonitor.html"><span class="doc">StatMonitor</span></a> for the evolution
+of the circulating population and its statistical moments.</p>
 </section>
 </section>
 <section id="introduction-to-particle-distribution-types">
@@ -1615,20 +1860,25 @@
 </div></blockquote>
 <section id="multi-bunch-longitudinal-coordinates">
 <h3>Multi-bunch Longitudinal Coordinates<a class="headerlink" href="#multi-bunch-longitudinal-coordinates" title="Link to this heading"></a></h3>
-<p>PASS defines the particle-array coordinate <code class="docutils literal notranslate"><span class="pre">z</span></code> as <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span>, measured relative to the center of the owning bunch. The fixed laboratory center of each bunch is determined by its group index:</p>
+<p>The source distribution uses <span class="math notranslate nohighlight">\(z_s=\beta_s c(T_s-t_i)\)</span>. The prescribed
+machine clock, injection turn and slot select its reference event; an explicit
+initial time is also supported, as described in <a class="reference internal" href="input_generation.html#en-reference-clock"><span class="std std-ref">Prescribed machine clock and initialization</span></a>.
+Before writing to the destination bunch, PASS transforms</p>
 <div class="math notranslate nohighlight">
-\[z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},
-\qquad
-z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.\]</div>
-<p>Injection no longer shifts bunch centers into the particle <code class="docutils literal notranslate"><span class="pre">z</span></code> array and uses no odd/even harmonic branches. The generated longitudinal distribution is stored directly as <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span>.</p>
-<p>If the distribution parameters are defined at an RF cavity position <span class="math notranslate nohighlight">\(s=s_{\mathrm{rf}}\)</span>, injection applies only the linear back-propagation</p>
-<div class="math notranslate nohighlight">
-\[z_{\mathrm{rel}}(0)
-= z_{\mathrm{rel}}(s_{\mathrm{rf}})
-+ \eta s_{\mathrm{rf}}\delta,
-\qquad
-\eta = \frac{1}{\gamma_t^2}-\frac{1}{\gamma^2}.\]</div>
-<p>Injection does not fold <span class="math notranslate nohighlight">\(z_{\mathrm{rel}}\)</span> around the ring. Elements that need an absolute arrival phase, such as RFCavity, construct <span class="math notranslate nohighlight">\(z_{\mathrm{lab}}\)</span> themselves.</p>
+\[z_d=\frac{\beta_d}{\beta_s}z_s+\beta_d c(T_d-T_s).\]</div>
+<p>Mechanical momenta are rebased at the same time. Physical time and momentum
+are preserved; z is never folded. RF samples <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)\)</span> directly.</p>
+<p>The nominal slot position is computed as <code class="docutils literal notranslate"><span class="pre">harmonic_id*C/harmonic_number</span></code>
+when writing logs or output; no <code class="docutils literal notranslate"><span class="pre">bunch.z_center</span></code> attribute is stored.
+Existing <code class="docutils literal notranslate"><span class="pre">ZCenter</span></code>/<code class="docutils literal notranslate"><span class="pre">zCenter</span></code> output fields retain this derived metadata.
+The diagrams below use <code class="docutils literal notranslate"><span class="pre">z_center</span></code> for the same nominal position. This is
+distinct from <code class="docutils literal notranslate"><span class="pre">slice_table['z_center']</span></code>, which stores each slice interval’s
+center for slicing and wake calculations.</p>
+<p>For a distribution matched at an RF position <span class="math notranslate nohighlight">\(s_{rf}\)</span> after injection,
+initialization retains the linear back-propagation
+<span class="math notranslate nohighlight">\(z(0)=z(s_{rf})+\eta s_{rf}\delta\)</span>, where
+<span class="math notranslate nohighlight">\(\eta=1/\gamma_t^2-1/\gamma^2\)</span>. This is a declared linear distribution
+approximation, not an exact finite-amplitude transport map.</p>
 </section>
 <section id="bunch-filling-scheme">
 <h3>Bunch filling scheme<a class="headerlink" href="#bunch-filling-scheme" title="Link to this heading"></a></h3>
@@ -1641,7 +1891,7 @@ z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.\]</div>
 <li><p><strong>Partial filling</strong>: retain the complete group-index set and assign zero macro particles to the unfilled slots</p></li>
 </ul>
 </div>
-<p>The figure below illustrates bunch grouping around a ring of circumference <span class="math notranslate nohighlight">\(C\)</span>. The marked points are <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span>, and group indices increase clockwise. The upper figure shows full filling for <span class="math notranslate nohighlight">\(h_{\mathrm{group}}=4\)</span>; the lower figure shows partial filling for <span class="math notranslate nohighlight">\(h_{\mathrm{group}}=5\)</span>, with groups 1, 3, and 4 represented by empty bunches:</p>
+<p>The figure below illustrates bunch grouping around a ring of circumference <span class="math notranslate nohighlight">\(C\)</span>. The marked points are nominal slots <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span>, and group indices increase clockwise. The upper figure shows full filling for <span class="math notranslate nohighlight">\(h_{\mathrm{group}}=4\)</span>; the lower figure shows partial filling for <span class="math notranslate nohighlight">\(h_{\mathrm{group}}=5\)</span>, with groups 1, 3, and 4 represented by empty bunches:</p>
 <div style="text-align: center">
 <svg width="400" height="420" xmlns="http://www.w3.org/2000/svg">
   <rect width="400" height="420" fill="#1a1a2e"/>
@@ -1941,12 +2191,8 @@ z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.\]</div>
 </pre></div>
 </div>
 </section>
-<section id="run-command">
-<h2>Run command<a class="headerlink" href="#run-command" title="Link to this heading"></a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>PASS<span class="se">\e</span>xample<span class="se">\0</span>1_generate_distribution
-python<span class="w"> </span>run.py<span class="w"> </span>--beam0<span class="o">=</span>./beam0.json
-</pre></div>
-</div>
+<section id="distribution-selection">
+<h2>Distribution selection<a class="headerlink" href="#distribution-selection" title="Link to this heading"></a></h2>
 <p>Based on the input file above, a bunch with a Gaussian distribution in the transverse direction and a MatchZ distribution in the longitudinal direction will be generated. By modifying the following two parameter lines, the type of generated bunch distribution can be adjusted:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"Transverse dist"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gaussian"</span><span class="p">,</span>
 <span class="nt">"Longitudinal dist"</span><span class="p">:</span><span class="w"> </span><span class="s2">"matchz"</span><span class="p">,</span>
