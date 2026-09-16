@@ -42,6 +42,9 @@ class TimingConfig(BaseModel):
     )
 
 
+from PASS.para.schema.rf import ReferenceClock
+
+
 class MainConfig(BaseModel):
     """Global parameters for a PASS simulation.
 
@@ -83,6 +86,8 @@ class MainConfig(BaseModel):
         alias="Number of Charges",
         description="Charge count per particle (can be negative, not zero)",
     )
+
+    reference_clock: ReferenceClock | None = Field(default=None, alias="Reference clock")
 
     # --- ring ---
     gamma_t: float = Field(

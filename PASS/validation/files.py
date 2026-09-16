@@ -6,7 +6,7 @@ import numpy as np
 
 
 INPUT_FILE_FIELDS = frozenset({
-    "waveform file", "distribution file path", "file path", "file_path", "rf data file", "k0l ramping file",
+    "waveform file", "distribution file path", "file path", "file_path", "program file", "k0l ramping file",
     "k1l ramping file", "k1sl ramping file", "k2l ramping file", "k2sl ramping file",
     "k3l ramping file", "k3sl ramping file", "kl ramping file", "kick ramping file",
 })
@@ -111,8 +111,6 @@ def check_table(check, value, path, kind, active, minimum_rows):
         if kind == "distribution":
             # Injection._load_dist indexes literal lowercase columns.
             required = ["x", "px", "y", "py", "z", "dp"]
-        elif kind == "rf":
-            required = [names[lower.index(k)] if k in lower else k for k in ("harmonic", "voltage", "phase", "phi_offset")]
         elif kind.startswith("offset_"):
             axis = kind[-1]
             patterns = [r"(?:time|turn)\s*(?:\(\s*s\s*\))?", rf"{axis}\s*(?:\(\s*m\s*\))?", rf"p{axis}\s*(?:\(\s*rad\s*\))?"]
@@ -142,12 +140,6 @@ def check_table(check, value, path, kind, active, minimum_rows):
             arrays[column] = array
         if len(arrays) != len(required):
             return
-        if kind == "rf":
-            harmonic = arrays[required[0]]
-            if np.any((harmonic < 1) | (harmonic != np.floor(harmonic)) | (harmonic >= 2**63)):
-                check.add(path, "rf.file_harmonic", "RF HARMONIC 列必须为正整数，且能表示为 int64", not active)
-            if len(frame) < check.turn_count:
-                check.add(path, "rf.hold_last", f"RF 表有 {len(frame)} 行；之后各圈将继续使用最后一行", True)
         if kind == "distribution":
             if len(frame) < minimum_rows:
                 check.add(path, "distribution.rows", f"该 bunch 在粒子池中的索引要求文件至少 {minimum_rows} 行，实际 {len(frame)} 行；不足部分不会正确初始化", not active)
@@ -166,3 +158,26 @@ def check_table(check, value, path, kind, active, minimum_rows):
                 check.add(path, "offset.coverage", "偏移表从 0 之后开始；最初阶段将使用第一行", True)
     except (OSError, ValueError, OverflowError) as exc:
         check.add(path, "file.read", str(exc), not active)
+
+
+def check_rf_files(check, values, path):
+    if not check.check_files:
+        return
+    from copy import deepcopy
+    from PASS.commands.element.rfcavity import Waveform
+    from PASS.utils.program import LinearProgram
+    entries = values.get('Components', [])
+    if not isinstance(entries, list):
+        return  # The schema diagnostic owns malformed component containers.
+    for index, item in enumerate(entries):
+        if not isinstance(item, dict):
+            continue
+        if not item.get('Program file'):
+            continue
+        prepared = deepcopy(item)
+        resolve_input_paths(prepared, check.base)
+        try:
+            Waveform(prepared, LinearProgram(1.))
+            check.report.checked_files.append(prepared['Program file'])
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            check.add((*path,'Components',index,'Program file'),'rf.program',str(exc))

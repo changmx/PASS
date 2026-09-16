@@ -8,7 +8,7 @@ from functools import lru_cache
 import math
 from pathlib import Path
 import re
-from typing import Annotated, get_args
+from typing import Annotated, get_args, get_origin
 
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
@@ -17,7 +17,7 @@ from PASS.para.schema.elements import ELEMENT_REGISTRY
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
 from PASS.para.schema.slicer import Slicer
-from PASS.para.schema.wake_field import WakeField
+from PASS.para.schema.wake_field import WakeField, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceCharge, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
 from PASS.para.schema.twiss import TwissPoint
 from .report import ValidationReport, parse_json
@@ -60,6 +60,8 @@ def field_adapter(model, name):
 
 
 def _nested_models(annotation):
+    if get_origin(annotation) is dict:
+        return None  # A named-resource mapping is not one child model.
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return annotation
     for argument in get_args(annotation):
@@ -79,6 +81,8 @@ def json_location(value, location):
             result.append(part)
             value = value[part]
         elif isinstance(value, dict):
+            if part == value.get("Kind", value.get("kind")):
+                continue  # Discriminated-union branch label, not a JSON key.
             # A missing required nested key still has a meaningful JSON path.
             result.append(part)
             value = None
@@ -232,7 +236,14 @@ class Validator:
             self.add(p, "turns.clipped", f"执行窗口超出本次运行 [0, {self.turn_count})", True)
 
     def globals(self):
-        raw = {k: v for k, v in self.data.items() if k not in {"Sequence", "Space charge"}}
+        raw = {k: v for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field"}}
+        self.wake_config = None
+        if "Wake field" in self.data:
+            self.model(WakeFieldConfig, self.data["Wake field"], ("Wake field",))
+            try:
+                self.wake_config = WakeFieldConfig.model_validate(self.data["Wake field"])
+            except (ValueError, TypeError):
+                pass
         self.global_values = self.model(MainConfig, raw, ())
         g = self.global_values
         self.require(raw, ["Number of turns", "Number of Protons", "Number of Neutrons", "Number of Charges",
@@ -243,6 +254,14 @@ class Validator:
             self.turn_count = 0
         if not number(self.circumference) or self.circumference <= 0:
             self.circumference = 0
+        clock = g.get("Reference clock")
+        if isinstance(clock, dict) and self.circumference:
+            frequencies = clock.get("Revolution frequency (Hz)")
+            frequencies = frequencies if isinstance(frequencies, list) else [frequencies]
+            from PASS.utils.constants import const
+            if frequencies and all(number(f) for f in frequencies) and max(frequencies) * self.circumference >= const.c:
+                self.add(("Reference clock", "Revolution frequency (Hz)"), "clock.speed",
+                         "规定回旋频率 × 周长必须小于光速")
         self.backend = g.get("Backend (gpu/cpu)", "cpu")
         self.choice(g, "Backend (gpu/cpu)", {"cpu", "gpu"}, ())
         self.numeric(g, "Transition Gamma", (), positive=True)
@@ -288,6 +307,7 @@ class Validator:
         if integer(harmonic) and harmonic > 0 and (len(bunch_keys) != harmonic or any(key != f"bunch{i}" for i, key in enumerate(bunch_keys))):
             self.add(path, "injection.bunches", f"Harmonic Number={harmonic}，需要连续的 bunch0 至 bunch{harmonic - 1}；空桶也要声明")
         ids, start_index = [], 0
+        weight_source = None
         for key in bunch_keys:
             p = (*path, key)
             b = self.model(BunchConfig, raw[key], p)
@@ -302,6 +322,11 @@ class Validator:
                 self.numeric(b, field, p, minimum=0)
             n, real = b.get("Number of Macro Particles", 0), b.get("Number of Real Particles", 0)
             n = max(n, 0) if integer(n) else 0
+            if n > 0 and integer(real) and real >= 0:
+                if weight_source is None:
+                    weight_source = (real, n)
+                elif real * weight_source[1] != weight_source[0] * n:
+                    self.add(p, "injection.weight", "同一束流的所有非空束团必须具有相同且固定的真实粒子数/宏粒子数")
             self.total_particles += n
             if n == 0 and number(real) and real > 0:
                 self.add(p, "injection.empty", "存在真实粒子却没有宏粒子，束流强度将无法表示")
@@ -370,6 +395,15 @@ class Validator:
             v = self.injection(raw, p)
         else:
             v = self.model(MODELS[kind], raw, p)
+        if kind == "WakeField":
+            try:
+                v = resolve_wake_point(raw, self.wake_config)
+            except (ValueError, TypeError) as exc:
+                if raw.get("Configuration") is not None:
+                    self.add((*p, "Configuration"), "wake.configuration", str(exc))
+            # The file checker expects a list even for an invalid draft.
+            if not isinstance(v.get("Groups"), list):
+                v["Groups"] = []
         self.require(raw, ["S (m)"], p)
         required = {"Drift": ["Length (m)"], "SBend": ["Length (m)", "K0L"],
                     "Quadrupole": ["Length (m)"], "Sextupole": ["Length (m)"],
@@ -414,12 +448,6 @@ class Validator:
                     read_bump_waveform(values["Waveform file"])
                 except (ValueError, OSError, KeyError, TypeError) as exc:
                     self.add((*p, "Waveform file"), "bump.waveform", str(exc))
-        if kind == "ElSeparator":
-            self.numeric(v, "Septum thickness (m)", p, minimum=0)
-            for axis in "XY":
-                if v.get(f"E{axis}L (V)") is not None and v.get(f"E{axis} (V/m)"):
-                    if number(length) and number(v.get(f"E{axis}L (V)")) and not math.isclose(v[f"E{axis}L (V)"], v[f"E{axis} (V/m)"] * length):
-                        self.add(p, "separator.conflict", f"E{axis}L 与 E{axis} × Length 不一致；请统一积分场和场强")
         if kind in {"Twiss", "PhaseAdvanceMonitor"}:
             for field in v:
                 if field.startswith("Beta "):
@@ -446,14 +474,16 @@ class Validator:
             pair = v.get("Dp aperture")
             if pair is not None and (len(pair) != 2 or not all(number(x) for x in pair) or pair[0] >= pair[1] or pair[0] < -1):
                 self.add((*p, "Dp aperture"), "rf.dp_aperture", "需要 [-1 ≤ 下限 < 上限] 的两个有限数值")
-            self.file(v, "RF data file", p, "rf", active=v.get("RF data file") is not None)
+            from .files import check_rf_files
+            check_rf_files(self, v, p)
         if kind == "Exciter":
             self.exciter(v, p)
         if kind == "Slicer":
             self.slicer(v, p)
         if kind == "WakeField":
             from .files import check_wake_files
-            check_wake_files(self, v, p)
+            location = ("Wake field", "Configurations", raw["Configuration"]) if raw.get("Configuration") is not None else p
+            check_wake_files(self, v, location)
         internal = v.get("Space charge")
         if isinstance(internal, dict):
             self.aperture(internal, (*p, "Space charge"))
@@ -481,7 +511,7 @@ class Validator:
     def slicer(self, v, p):
         self.choice(v, "Slice model", {"equal_length", "equal_particle", "equal_charge"}, p)
         self.choice(v, "Z range mode", {"auto", "explicit"}, p)
-        self.choice(v, "Coordinate", {"z_rel", "ring_position", "arrival_phase"}, p)
+        self.choice(v, "Coordinate", {"z_rel", "z_periodic", "arrival_phase"}, p)
         name = v.get("Slice set")
         if not isinstance(name, str) or not name.strip() or name != name.strip():
             self.add((*p, "Slice set"), "slicer.name", "Slice set 名称不能为空或包含首尾空白")
@@ -496,11 +526,14 @@ class Validator:
         try:
             from PASS.commands.slicer import SliceSet
             candidate = SliceSet.from_command(name, {k.lower(): value for k, value in v.items()})
-            if candidate.coordinate != "z_rel" and self.circumference:
+            if candidate.coordinate == "arrival_phase" and self.circumference:
                 from PASS.utils.coordinates import ring_interval
                 ring_interval(candidate.explicit.z_min, candidate.explicit.z_max, self.circumference)
                 if candidate.coordinate == "arrival_phase" and candidate.explicit.z_max != 0.:
                     raise ValueError("arrival_phase requires Explicit [-circumference, 0]")
+            if candidate.coordinate == "z_periodic" and self.circumference and candidate.explicit is not None:
+                if candidate.explicit.z_min < -self.circumference / 2 or candidate.explicit.z_max > self.circumference / 2:
+                    raise ValueError("z_periodic Explicit range must lie within [-C/2, C/2]")
             if name in self.slice_sets and self.slice_sets[name] != candidate.configuration():
                 self.add(p, "slicer.conflict", f"多个 Slicer 对 Slice set {name!r} 的配置不一致")
             self.slice_sets[name] = candidate.configuration()

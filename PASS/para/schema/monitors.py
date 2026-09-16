@@ -4,6 +4,7 @@ Consumed by PASS.commands.monitor.* via Command.create(**kwargs).
 """
 
 from pydantic import BaseModel, Field, ConfigDict
+from typing import Literal
 
 
 class StatMonitor(BaseModel):
@@ -17,6 +18,8 @@ class StatMonitor(BaseModel):
 
 class DistMonitor(BaseModel):
     """Distribution monitor: saves full particle distribution at specified turns."""
+    include_injection_metadata: bool = Field(default=False, alias="Include injection metadata")
+    output_format: Literal["tfs", "hdf5"] = Field(default="tfs", alias="Output format")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -77,6 +80,11 @@ class ParticleMonitor(BaseModel):
 
     s: float = Field(alias="S (m)")
     command: str = Field(default="ParticleMonitor", alias="Command")
+    include_reference: bool = Field(
+        default=False,
+        alias="Include reference",
+        description="Append per-row reference time, beta and momentum; omit their storage by default",
+    )
     max_tag: int = Field(
         alias="Max tag",
         description="Record particles with 1 <= |tag| <= max_tag",

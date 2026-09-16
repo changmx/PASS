@@ -300,11 +300,36 @@ class WakeSolverGroup(WakeParameters):
         return self
 
 
+class WakeResourceConfig(WakeParameters):
+    """Reusable model and solver settings, never shared runtime history."""
+    groups: list[WakeSolverGroup] = Field(min_length=1, alias="Groups")
+
+    @model_validator(mode="after")
+    def unique_groups(self):
+        if len({g.name for g in self.groups}) != len(self.groups):
+            raise ValueError("Wake solver group names must be unique at a physical location")
+        return self
+
+
+class WakeFieldConfig(WakeParameters):
+    """Optional top-level 'Wake field' block."""
+    enabled: StrictBool = Field(default=True, alias="Enabled")
+    configurations: dict[str, WakeResourceConfig] = Field(default_factory=dict, alias="Configurations")
+
+    @field_validator("configurations")
+    @classmethod
+    def configuration_names(cls, value):
+        if any(not name.strip() or name != name.strip() for name in value):
+            raise ValueError("Wake configuration names must be nonempty without surrounding whitespace")
+        return value
+
+
 class WakeField(WakeParameters):
     s: float = Field(ge=0, alias="S (m)")
     command: Literal["WakeField"] = Field(default="WakeField", alias="Command")
     slice_set: str = Field(min_length=1, alias="Slice set")
-    groups: list[WakeSolverGroup] = Field(min_length=1, alias="Groups")
+    groups: list[WakeSolverGroup] | None = Field(default=None, min_length=1, alias="Groups")
+    configuration: str | None = Field(default=None, min_length=1, alias="Configuration")
     is_enabled: StrictBool = Field(default=True, alias="Is enabled")
 
     @field_validator("slice_set")
@@ -316,6 +341,50 @@ class WakeField(WakeParameters):
 
     @model_validator(mode="after")
     def combinations(self):
-        if len({g.name for g in self.groups}) != len(self.groups):
-            raise ValueError("Wake solver group names must be unique at a physical location")
+        if (self.groups is None) == (self.configuration is None):
+            raise ValueError("Specify either inline Groups or a named Configuration, exclusively")
+        if self.configuration is not None and self.configuration != self.configuration.strip():
+            raise ValueError("Configuration must not have surrounding whitespace")
+        if self.groups is not None:
+            WakeResourceConfig(groups=self.groups)
         return self
+
+
+def resolve_wake_point(point: dict, block: WakeFieldConfig | None = None) -> dict:
+    """Return an independent inline command, keeping the input unmodified."""
+    config = WakeField.model_validate(point)
+    if config.configuration is not None:
+        resources = {} if block is None else block.configurations
+        if config.configuration not in resources:
+            raise ValueError(f"Unknown Wake field Configuration: {config.configuration!r}")
+        groups = resources[config.configuration].groups
+    else:
+        groups = config.groups
+    result = config.model_dump(by_alias=True, mode="json", exclude={"configuration"})
+    result["Groups"] = [g.model_dump(by_alias=True, mode="json") for g in groups]
+    result["Is enabled"] = config.is_enabled and (block is None or block.enabled)
+    return result
+
+
+def expand_wake_configurations(data: dict) -> None:
+    """Resolve input references before tracking; each command builds its own state.
+
+    Work on a loader-owned input object. Existing inline-only input remains valid.
+    Validate all candidates before changing the sequence.
+    """
+    block = None
+    keys = {str(key).casefold(): key for key in data}
+    if "wake field" in keys:
+        block = WakeFieldConfig.model_validate(data[keys["wake field"]])
+    sequence = data.get(keys.get("sequence"), {})
+    replacements = {}
+    for name, point in sequence.items():
+        if not isinstance(point, dict):
+            continue
+        command_keys = [key for key in point if str(key).casefold() == "command"]
+        if command_keys and str(point[command_keys[0]]).casefold() == "wakefield":
+            values = dict(point)
+            # Like the engine registry, accept the command type in any case.
+            values[command_keys[0]] = "WakeField"
+            replacements[name] = resolve_wake_point(values, block)
+    sequence.update(replacements)

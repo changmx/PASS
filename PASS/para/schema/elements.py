@@ -10,7 +10,8 @@ Consumed by PASS.commands.element.* via Command.create(**kwargs).
 """
 
 from pydantic import BaseModel, Field, ConfigDict, model_validator
-from typing import ClassVar
+from typing import ClassVar, Literal
+from pydantic import StrictInt
 from PASS.para.schema.space_charge import ElementSpaceCharge
 
 
@@ -221,20 +222,51 @@ class KickerElement(SlicedElementBase):
     integrator: str = Field(default="adaptive", alias="Integrator")
 
 
+class BumpElement(SlicedElementBase):
+    model_config = ConfigDict(populate_by_name=True, allow_inf_nan=False)
+    command: str = Field(default="Bump", alias="Command")
+    waveform_file: str = Field(alias="Waveform file", min_length=1)
+    time_mode: Literal["reference", "particle"] = Field(default="particle", alias="Time mode")
+    time_offset: float = Field(default=0.0, alias="Time offset (s)")
+    enabled: bool = Field(default=True, alias="Enable")
+    num_slices: StrictInt = Field(default=1, ge=1, alias="Num slices")
+
+
 # ============================================================
 # ElSeparator (electrostatic separator)
 # ============================================================
 
 class ElSeparatorElement(SlicedElementBase):
+    """Finite parallel electrodes; tilt is a roll and never rescales Length."""
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
     command: str = Field(default="ElSeparator", alias="Command")
-    ex: float = Field(default=0.0, alias="EX (V/m)")
-    ey: float = Field(default=0.0, alias="EY (V/m)")
-    exl: float | None = Field(default=None, alias="EXL (V)")
-    eyl: float | None = Field(default=None, alias="EYL (V)")
+    voltage: float = Field(alias="Voltage (V)", description="Septum potential minus counter-electrode potential")
+    gap: float = Field(gt=0, alias="Gap (m)")
+    electrode_height: float = Field(gt=0, alias="Electrode height (m)")
+    electrode_center: float = Field(default=0.0, alias="Electrode center (m)")
     tilt: float = Field(default=0.0, alias="Tilt (rad)")
-    septum_x_position: float | None = Field(default=None, alias="Septum x position (m)")
-    septum_y_position: float | None = Field(default=None, alias="Septum y position (m)")
-    septum_thickness: float = Field(default=0.0, alias="Septum thickness (m)")
+    septum_position: float = Field(alias="Septum position (m)")
+    septum_thickness: float = Field(default=0.0, ge=0, alias="Septum thickness (m)")
+    num_slices: StrictInt = Field(default=1, ge=1, alias="Num slices")
+
+    @model_validator(mode="after")
+    def validate_geometry(self):
+        from PASS.utils.aperture import build_aperture
+        import math
+        outer = self.septum_position + self.septum_thickness
+        counter = outer + self.gap
+        if not math.isfinite(counter) or counter <= outer:
+            raise ValueError("Gap must resolve distinct finite electrode surfaces")
+        if self.septum_thickness > 0 and outer <= self.septum_position:
+            raise ValueError("Positive septum thickness must resolve distinct surfaces")
+        bottom = self.electrode_center - self.electrode_height / 2
+        top = self.electrode_center + self.electrode_height / 2
+        if not all(math.isfinite(v) for v in (bottom, top)) or top <= bottom:
+            raise ValueError("Electrode height must resolve distinct finite edges")
+        if not math.isfinite(self.voltage / self.gap):
+            raise ValueError("Voltage / Gap must be finite")
+        build_aperture({"Type": self.aperture_type, "Value": self.aperture_value})
+        return self
 
 
 # ============================================================
@@ -272,15 +304,24 @@ class ExciterElement(ElementBase):
 # RFCavity
 # ============================================================
 
+from PASS.para.schema.rf import RFComponent
+
+
 class RFCavityElement(ElementBase):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
     command: str = Field(default="RFCavity", alias="Command")
-    voltage: float = Field(default=0.0, alias="Voltage (V)")
-    harmonic: int = Field(default=1, ge=1, alias="Harmonic")
-    phase: float = Field(default=0.0, alias="Phase (rad)")
-    phi_offset: float = Field(default=0.0, alias="Phi offset (rad)")
-    rf_data_file: str | None = Field(default=None, alias="RF data file")
+    components: list[RFComponent] = Field(min_length=1, alias="Components")
     is_enabled: bool = Field(default=True, alias="Is enabled")
     dp_aperture: list[float] | None = Field(default=None, alias="Dp aperture")
+
+    @model_validator(mode="after")
+    def validate_thin(self):
+        if self.length != 0:
+            raise ValueError("RFCavity is a zero-length effective-voltage kick")
+        if self.dp_aperture is not None:
+            if len(self.dp_aperture) != 2 or not self.dp_aperture[0] < self.dp_aperture[1]:
+                raise ValueError("Dp aperture requires two ordered finite bounds")
+        return self
 
 
 # ============================================================
@@ -319,6 +360,7 @@ ELEMENT_REGISTRY: dict[str, type[ElementBase]] = {
     "multipole": MultipoleElement,
     "solenoid": SolenoidElement,
     "kicker": KickerElement,
+    "bump": BumpElement,
     "elseparator": ElSeparatorElement,
     "exciter": ExciterElement,
     "rfcavity": RFCavityElement,

@@ -10,7 +10,7 @@ class ReferenceClock(BaseModel):
 
     @model_validator(mode='after')
     def validate_program(self):
-        from PASS.core.config import LinearProgram
+        from PASS.utils.program import LinearProgram
         p = LinearProgram(self.frequency, self.times, origin=self.origin)
         if (p.values <= 0).any():
             raise ValueError('Reference frequency must be positive')
@@ -34,7 +34,7 @@ class RFComponent(BaseModel):
             return self
         if (self.frequency is None) == (self.harmonic is None):
             raise ValueError('Specify exactly one of Frequency (Hz) and Harmonic')
-        from PASS.core.config import LinearProgram
+        from PASS.utils.program import LinearProgram
         for value in (self.voltage, self.phase):
             LinearProgram(value, self.times)
         if self.frequency is not None:

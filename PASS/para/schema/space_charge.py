@@ -28,6 +28,7 @@ class SpaceChargeResourceConfig(BaseModel):
         "fft_free_space", "fd_dirichlet", "dst_dirichlet",
         "gaussian_round_free_space", "gaussian_ellipse_free_space",
         "uniform_round_free_space", "uniform_ellipse_free_space",
+        "parabolic_round_free_space", "parabolic_ellipse_free_space",
     ] = Field(default="fd_dirichlet", alias="Solver")
     deposition_method: Literal["CIC", "TSC"] | None = Field(
         default=None,
@@ -59,6 +60,8 @@ class SpaceChargeResourceConfig(BaseModel):
                 "gaussian_ellipse_free_space": {"sigma_x", "sigma_y"},
                 "uniform_round_free_space": {"radius"},
                 "uniform_ellipse_free_space": {"a", "b"},
+                "parabolic_round_free_space": {"radius"},
+                "parabolic_ellipse_free_space": {"a", "b"},
             }[self.solver]
             missing = sizes - supplied
             if missing:
@@ -236,7 +239,7 @@ class ElementSpaceCharge(BaseModel):
 
 SLICED_ELEMENT_COMMANDS = frozenset({
     "drift", "sbend", "quadrupole", "sextupole", "octupole",
-    "multipole", "kicker", "solenoid", "elseparator",
+    "multipole", "kicker", "bump", "solenoid", "elseparator",
 })
 
 

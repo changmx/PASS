@@ -9,6 +9,7 @@ The injection JSON node is nested inside Sequence as:
 """
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
+from typing import Literal
 
 
 class OffsetConfig(BaseModel):
@@ -76,6 +77,12 @@ class BunchConfig(BaseModel):
         default="",
         alias="Distribution File Path",
     )
+    file_mode: Literal["sequential", "repeat"] = Field(
+        default="sequential", alias="Distribution File Mode",
+        description="Read successive bunch-local rows, or repeat the first batch each event.",
+    )
+
+    reference_arrival_time: float | None = Field(default=None, alias="Reference arrival time (s)")
 
     # --- injection timing ---
     injection_turns: int = Field(
@@ -222,6 +229,13 @@ class InjectionItem(BaseModel):
                 "InjectionItem bunch harmonic ids must be a permutation of "
                 f"[0, {self.harmonic_number}); got {harmonic_ids}"
             )
+
+        populated = [b for b in self.bunches if b.num_macro_particles > 0]
+        if populated:
+            source = populated[0]
+            if any(b.num_real_particles * source.num_macro_particles !=
+                   source.num_real_particles * b.num_macro_particles for b in populated):
+                raise ValueError("All populated bunches in a beam must have the same fixed macro-particle weight")
 
         result = {
             "S (m)": self.s,

@@ -18,9 +18,16 @@ Models:
 """
 
 from PASS.para.schema.main import MainConfig, TimingConfig
+from PASS.para.schema.rf import RFComponent, ReferenceClock
 from PASS.para.schema.bunch import BunchConfig, OffsetConfig, InjectionItem
 from PASS.para.schema.twiss import TwissPoint
 from PASS.para.schema.slicer import Slicer
+from PASS.para.schema.wake_field import (
+    WakeField, WakeFieldConfig, WakeResourceConfig, WakeComponentConfig, ConstantWake, ResonatorWake,
+    ResistiveWallWake, TabulatedWake, UltrarelativisticWallWake, ImpedanceWake,
+    FittedImpedanceWake, ModalWake, WakeVelocity, WakeSolverGroup,
+    WakeSpatialTerm, WakeConvolutionGrid, WakeTimeGrid, FileWake, WakeFileConvention,
+)
 from PASS.para.schema.elements import (
     ElementBase,
     DriftElement,
@@ -32,6 +39,7 @@ from PASS.para.schema.elements import (
     MultipoleElement,
     SolenoidElement,
     KickerElement,
+    BumpElement,
     ElSeparatorElement,
     ExciterElement,
     RFCavityElement,
@@ -59,6 +67,15 @@ __all__ = [
     "InjectionItem",
     "TwissPoint",
     "Slicer",
+    "WakeField",
+    "WakeFieldConfig", "WakeResourceConfig",
+    "WakeComponentConfig",
+    "ConstantWake",
+    "ResonatorWake",
+    "ResistiveWallWake",
+    "TabulatedWake",
+    "UltrarelativisticWallWake", "ImpedanceWake", "FittedImpedanceWake", "ModalWake",
+    "WakeVelocity", "WakeSolverGroup", "WakeSpatialTerm", "WakeConvolutionGrid", "WakeTimeGrid", "FileWake", "WakeFileConvention",
     "ElementBase",
     "DriftElement",
     "MarkerElement",
@@ -69,9 +86,10 @@ __all__ = [
     "MultipoleElement",
     "SolenoidElement",
     "KickerElement",
+    "BumpElement",
     "ElSeparatorElement",
     "ExciterElement",
-    "RFCavityElement",
+    "RFCavityElement", "RFComponent", "ReferenceClock",
     "ReorganizeBunchElement",
     "StatMonitor",
     "DistMonitor",

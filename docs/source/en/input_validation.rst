@@ -41,10 +41,15 @@ What is checked
   spellings; old names, Python attribute names and coercible strings are rejected.
 * Global particle identity, nonzero charge, positive circumference/transition
   gamma, turn count, backend, precision, timing and device-ID constraints.
+  Explicit reference clocks require positive frequency and subluminal design
+  speed (revolution frequency times circumference); nested errors identify the
+  clock/RF table or WakeField group/component field.
 * Injection at ``Sequence.injection`` and :math:`S=0`, continuous bunch numbering,
   bunch-group count and unique harmonic IDs, positive kinetic energy, intensities,
   emittances, Twiss functions, supported distributions and mutually exclusive
-  momentum/energy offsets. Empty bunches are supported. RF harmonics remain
+  momentum/energy offsets. All nonempty bunches in one beam must have equal
+  ``Number of Real Particles / Number of Macro Particles`` ratios. Empty bunches
+  inherit this fixed weight. RF harmonics remain
   independent of the bunch-grouping harmonic.
 * Manual particle row shape and momentum domain. With injection window ``T`` and
   interval ``I``, the event count is :math:`M=\lceil T/I\rceil`; the first block has
@@ -74,9 +79,9 @@ What is checked
 
 The current engine does not implement magnetic-element ramping or a BeamBeam
 command. Enabling these features is an error instead of silently ignoring the
-request. RFCavity's implemented RF table remains supported. Optional ElSeparator
-integrated fields and septum positions accept JSON ``null`` consistently with
-their defaults and engine behavior.
+request. RFCavity's implemented RF table remains supported. ElSeparator requires explicit finite voltage, positive gap and electrode height,
+and a finite septum position. Obsolete mode and separate EX/EY or integrated-field
+parameters are rejected; missing geometry is not inferred.
 
 Static validation cannot establish long-term beam stability or certify future
 particle-dependent quantities. For example, particles may subsequently leave a

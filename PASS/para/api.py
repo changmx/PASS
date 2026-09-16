@@ -46,6 +46,13 @@ from pathlib import Path
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, InjectionItem
 from PASS.para.schema.sequence import Sequence
+from PASS.para.schema.slicer import Slicer
+from PASS.para.schema.wake_field import (
+    WakeField, WakeComponentConfig, ConstantWake, ResonatorWake, ResistiveWallWake, TabulatedWake,
+    UltrarelativisticWallWake, ImpedanceWake, FittedImpedanceWake, ModalWake, WakeVelocity, WakeSolverGroup,
+    WakeSpatialTerm, WakeConvolutionGrid, WakeTimeGrid, FileWake, WakeFileConvention,
+    WakeFieldConfig, WakeResourceConfig,
+)
 from PASS.para.schema.space_charge import (
     SpaceChargeConfig,
     SpaceChargeResourceConfig,
@@ -63,6 +70,7 @@ def generate_input(
     output_path: str,
     space_charge: SpaceChargeConfig | None = None,
     extra_modules: dict | None = None,
+    wake_field: WakeFieldConfig | None = None,
 ) -> str:
     """Generate a PASS input JSON file from schema objects.
 
@@ -72,6 +80,7 @@ def generate_input(
         output_path: output JSON file path.
         space_charge: optional space-charge configuration.
         extra_modules: optional additional top-level JSON blocks.
+        wake_field: optional named wake model/solver configurations and global switch.
 
     Returns:
         The output file path.
@@ -84,6 +93,9 @@ def generate_input(
 
     if extra_modules:
         result.update(extra_modules)
+
+    if wake_field is not None:
+        result["Wake field"] = wake_field.model_dump(by_alias=True)
 
     result["Sequence"] = sequence.to_dict()
 
@@ -110,8 +122,11 @@ def load_input(path: str) -> tuple[MainConfig, dict]:
 
     from PASS.core.config import Config
     Config._load_space_charge(data)
+    from PASS.para.schema.wake_field import expand_wake_configurations
+    expand_wake_configurations(data)
     sequence_data = data.pop("Sequence", {})
     data.pop("Space charge", None)
+    data.pop("Wake field", None)
 
     main = MainConfig.model_validate(data)
     return main, sequence_data
@@ -383,4 +398,13 @@ __all__ = [
     "SpaceChargeConfig",
     "SpaceChargeResourceConfig",
     "SpaceCharge",
+    "WakeField",
+    "WakeFieldConfig", "WakeResourceConfig",
+    "WakeComponentConfig",
+    "ConstantWake",
+    "ResonatorWake",
+    "ResistiveWallWake",
+    "TabulatedWake",
+    "UltrarelativisticWallWake", "ImpedanceWake", "FittedImpedanceWake", "ModalWake",
+    "WakeVelocity", "WakeSolverGroup", "WakeSpatialTerm", "WakeConvolutionGrid", "WakeTimeGrid", "FileWake", "WakeFileConvention",
 ]

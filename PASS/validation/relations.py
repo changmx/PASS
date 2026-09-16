@@ -43,6 +43,14 @@ def check_relations(check):
                     check.add((*p, "Start turn"), "reorganize.inactive", "本次运行不会到达重组圈数", True)
                 elif start < check.last_injection:
                     check.add(p, "reorganize.injection", "重组发生在注入结束之前，会改变后续注入所依赖的 bunch 数量或粒子索引")
+        if kind == "WakeField" and v.get("Is enabled", True):
+            slice_name = v.get("Slice set")
+            if slice_name in check.slice_sets and check.slice_sets[slice_name][4] == "z_periodic":
+                check.add(p, "wake.slice_coordinate", "WakeField 不能使用 z_periodic；请选择 z_rel 或 arrival_phase 切片")
+            if slice_name not in check.slice_sets:
+                check.add((*p, "Slice set"), "wake.slicer_missing", f"未定义 Slice set {slice_name!r}")
+            elif slice_name not in valid_slices:
+                check.add(p, "wake.slicer_order", "WakeField 之前必须运行对应的 Slicer")
         if kind == "ParticleMonitor":
             maximum = v.get("Max tag", 0)
             if integer(maximum):
@@ -51,7 +59,8 @@ def check_relations(check):
                 start, end = v.get("Start turn", 0), v.get("End turn", -1)
                 if integer(start) and integer(end):
                     turns = max(0, min(check.turn_count, check.turn_count if end == -1 else end) - start)
-                    size = max(0, maximum) * turns * 11 * 8
+                    columns = 14 if v.get("Include reference", False) else 11
+                    size = max(0, maximum) * turns * columns * 8
                     if size > 512 * 1024**2:
                         check.add(p, "monitor.memory", f"仅坐标缓冲区预计占用 {size / 1024**3:.2f} GiB，请确认内存容量", True)
         internal = v.get("Space charge")
@@ -75,6 +84,8 @@ def check_relations(check):
             check.add((*root, "Configurations", ref, "Slice set"), "sc.slicer_missing", f"未定义 Slice set {slice_name!r}；请添加对应 Slicer")
         elif enabled and number(length) and length > 0 and slice_name not in valid_slices:
             check.add(cp, "sc.slicer_order", f"执行到此命令前 Slice set {slice_name!r} 尚未计算，或已被 SortBunch/ReorganizeBunch 失效；请在其后、SC 之前放置 Slicer")
+        if slice_name in check.slice_sets and check.slice_sets[slice_name][4] != "z_periodic":
+            check.add(cp, "sc.slice_coordinate", "SpaceCharge 只接受 Coordinate=z_periodic 切片；请显式设置对应 Slicer")
         if config.method != "pic" and values.get("Save potential"):
             check.add((*cp, "Save potential"), "sc.analytic_potential", "解析空间电荷不支持保存电势，可保存场或密度")
         if isinstance(internal, dict):
@@ -138,6 +149,8 @@ def check_resource_combinations(check, values, path):
         "gaussian_ellipse_free_space": {"Sigma X (m)", "Sigma Y (m)"},
         "uniform_round_free_space": {"Radius (m)"},
         "uniform_ellipse_free_space": {"Semi-axis A (m)", "Semi-axis B (m)"},
+        "parabolic_round_free_space": {"Radius (m)"},
+        "parabolic_ellipse_free_space": {"Semi-axis A (m)", "Semi-axis B (m)"},
     }
     if method and solver and (method == "pic") != (solver in pic_solvers):
         check.add((*path, "Solver"), "sc.method_solver", "PIC 方法使用 PIC 求解器；frozen/quasi-frozen 使用解析求解器")
