@@ -377,11 +377,12 @@ Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束�
 
 演化漂移束使用 ``Coordinate=arrival_phase``（或 ``Periodic=true``）、
 ``equal_length`` 及 ``Explicit={"z min": -C, "z max": 0}``。显式更新时
-:math:`z_{phase}=C[(u\bmod1)-1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
+:math:`z_{phase}=-C[(-u)\bmod1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
 规定时钟选择共同观测事件和速度，见 :doc:`slicer`。各束团的参考时间、速度可以
 不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。
 
-切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。每个新的物理源通过事件需要用户
+切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。恰好为整数圈的相位映射到窗口
+起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
 更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
 ``Boundary="causal_passages"``。``time_fft`` 支持变化且互不重叠的通过窗口，
 固定卷积网格仍要求其声明的时间结构。

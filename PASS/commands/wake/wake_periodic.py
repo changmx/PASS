@@ -13,7 +13,9 @@ def prepare_periodic_slices(p,bunch,slices,turn=None,location=None):
         raise ValueError('Use Slicer to define a common observation event')
     sl=slice(bunch.start_idx,bunch.end_idx)
     relative=(bunch.t0-slices.observation_time)-p.z[sl].astype(xp.float64)/(bunch.beta*const.c)
-    phase=-relative*slices.observation_velocity/C
+    # Use the same frequency factor and evaluation order as the CUDA path;
+    # a final divide by C can move an exact full-period arrival across a seam.
+    phase=-relative*(slices.observation_velocity/C)
     alive=p.tag[sl]>0
     if not bool(xp.all(xp.isfinite(phase)|~alive)):
         raise ValueError('Live particle arrival phase must be finite')
@@ -31,7 +33,9 @@ def prepare_periodic_slices(p,bunch,slices,turn=None,location=None):
     history[location]=samples
     slices._periodic_previous=history
     slices.periodic_max_step=step
-    slices._periodic_coordinate=xp.where(alive,(xp.remainder(phase,1.)-1.)*C,0.).astype(p.z.dtype)
+    # Reduce elapsed arrival time into [0, C/v_obs). Exact integer phases
+    # belong to the window start (z_phase=0), not the previous window end.
+    slices._periodic_coordinate=xp.where(alive,-xp.remainder(-phase,1.)*C,0.).astype(p.z.dtype)
 
 
 def validate_periodic_wake(beam,name,turn):
@@ -93,7 +97,9 @@ extern "C" __global__ void arrival_phase(const R* z,const int* tag,long long sta
         int live=tag[start+j]>0;double u=-(epoch-(double)z[start+j]/velocity)*factor;
         if(live&&!isfinite(u))invalid=1;
         if(live&&previous&&old_alive[j])maximum=fmax(maximum,fabs(u-old[j]));
-        phase[j]=u;alive[j]=live;double part=u-floor(u);coordinate[j]=live?(R)((part-1.)*circumference):(R)0;
+        phase[j]=u;alive[j]=live;
+        double elapsed=-u,part=elapsed-floor(elapsed);
+        coordinate[j]=live?(R)(-part*circumference):(R)0;
     }
     if(invalid)atomicExch((unsigned long long*)status,__double_as_longlong(1.));
     if(maximum>0.)atomicMax((unsigned long long*)(status+1),(unsigned long long)__double_as_longlong(maximum));

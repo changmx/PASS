@@ -516,13 +516,15 @@ image-count convergence, rather than evolving transient history.
 
 For evolving coasting profiles, use ``Coordinate=arrival_phase`` (or
 ``Periodic=true``), ``equal_length`` and ``Explicit={"z min": -C, "z max": 0}``.
-At an explicit Slicer update, :math:`z_{phase}=C[(u\bmod1)-1]` with
+At an explicit Slicer update, :math:`z_{phase}=-C[(-u)\bmod1]` with
 :math:`u=v_{obs}(T_{obs}-t_i)/C`. The prescribed clock selects the common
 observation event and velocity; see :doc:`slicer`. Bunch reference times and
 velocities may differ. All populations must share the saved observation window
 and circumference, and Slicer must be at the wake location.
 
-The bins cover :math:`[T_{obs},T_{obs}+C/v_{obs})`. A new physical source passage
+The bins cover :math:`[T_{obs},T_{obs}+C/v_{obs})`. An exact integer phase maps
+to the window start and slice 0, rather than its excluded right endpoint.
+A new physical source passage
 requires a user Slicer update; reusing a periodic snapshot retains its old
 window. No automatic reslicing is performed. Use ``Boundary="causal_passages"``
 for evolving history. Variable, non-overlapping passage windows are supported
