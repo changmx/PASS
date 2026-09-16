@@ -1,18 +1,10 @@
-"""SortBunch: sort all particles by longitudinal position and regroup them
-into contiguous per-bunch index ranges.
+"""Regroup by machine-clock phase without folding the stored time coordinate.
 
-Coordinate convention (per-bunch relative z):
-    p.z stores the coordinate RELATIVE to the bunch's ideal particle
-    (z_rel), and each BunchInfo carries z_center = harmonic_id * C / h_group
-    (h_group = beam harmonic number / bunch-grouping multiplicity).  The
-    laboratory position is z_lab = z_rel + z_center.
-
-The azimuthal sort key is
-    key = (z_lab + C/(2h_group)) mod C
-which places bucket i particles in [i*C/h, (i+1)*C/h).  Sorting by key
-therefore makes every bunch's particle indices contiguous, in ascending
-bucket order, for any h (odd or even) and with no bunch split at a fold
-boundary.  The bucket id of a sorted particle is floor(h*key/C).
+At location s the key is (-Psi(t_i) + s/C + 1/(2h)) mod 1, where
+Psi(t) is the integral of the prescribed revolution frequency and
+t_i = bunch.t0 - z_i/(bunch.beta*c). Group j owns [j/h, (j+1)/h).
+Only the key is periodic; live arrival times and mechanical momenta are
+preserved when expressing particles in their destination bunch reference.
 """
 
 from __future__ import annotations
@@ -23,25 +15,11 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.core.bunch import set_reference_energy
+from PASS.utils.constants import const
 from PASS.utils.logger import set_simple_logging, set_normal_logging
 
 logger = logging.getLogger(__name__)
-
-
-def _fold_by_ring(z, circumference):
-    """Return the ring-period representative in [-C/2, C/2)."""
-    return ((z + 0.5 * circumference) % circumference) - 0.5 * circumference
-
-
-def bucket_sort_key(z_lab, h, circum):
-    """Azimuthal sort key in [0, C) for the bucket grid of harmonic h."""
-    half_bucket = 0.5 * circum / h
-    return (z_lab + half_bucket) % circum
-
-
-def bucket_id_from_key(key, h, circum):
-    """Bucket id of a particle from its sort key: floor(h*key/C)."""
-    return np.floor(h * key / circum).astype(np.int64)
 
 
 def _permute_particle_arrays(beam, perm):
@@ -64,6 +42,9 @@ def _permute_particle_arrays(beam, perm):
         arr = getattr(p, name, None)
         if arr is not None:
             setattr(p, name, arr[perm])
+    injection = getattr(beam, "injection_state", None)
+    if injection is not None:
+        injection.reorder(perm)
 
 
 def _invalidate_slice_sets(beam):
@@ -77,120 +58,116 @@ def _invalidate_slice_sets(beam):
             slice_set.invalidate()
 
 
-def _source_bunch_for_center(old_bunches, z_center: float, circum: float):
-    """Choose the old reference whose center is nearest on the ring."""
-    return min(
-        old_bunches,
-        key=lambda bunch: abs(_fold_by_ring(z_center - bunch.z_center, circum)),
-    )
+def regroup_particles(beam, new_harmonic: int | None = None, *, location=0.):
+    """Sort into complete, disjoint groups while preserving physical records.
 
-
-def _rebuild_bunches(beam, h_new: int):
-    """Build one independently referenced BunchInfo object per new bucket."""
-    old = beam.bunches
-    circum = old[0].circum
-    new_list = []
-    for i in range(h_new):
-        z_center = i * circum / h_new
-        source = _source_bunch_for_center(old, z_center, circum)
-        b = copy.deepcopy(source)
-        b.bunch_id = i
-        b.harmonic_number = h_new
-        b.harmonic_id = i
-        b.z_center = z_center
-        b.start_idx = 0
-        b.end_idx = 0
-        b.Np = 0
-        b.Nrp = 0
-        new_list.append(b)
-    beam.bunches = new_list
-
-
-def regroup_particles(beam, new_harmonic: int | None = None):
-    """Sort all particles by azimuth and make each bunch's indices contiguous.
-
-    Without ``new_harmonic`` (SortBunch): bunches keep their harmonic ids and
-    particles are grouped by their current bucket membership.
-
-    With ``new_harmonic`` (ReorganizeBunch harmonic switch): the bucket grid
-    is redefined to C/new_harmonic, the beam harmonic number is updated, the
-    bunches are rebuilt (one per new bucket), and every particle is assigned
-    to the nearest new bucket center.  Particles are renumbered contiguously
-    per bunch.
+    SortBunch retains the existing references. With ``new_harmonic``, choose
+    new reference events and energies from the prescribed machine clock.
+    This reference change leaves live particle time and momentum unchanged;
+    lost and pending coordinates remain frozen. The common macro weight is
+    fixed, and old bunch-local slice results are invalidated after regrouping.
     """
-    p = beam.particles
-    xp = p.xp
-    C = beam.bunches[0].circum
-    h_new = new_harmonic if new_harmonic is not None else beam.harmonic_number
+    p, xp = beam.particles, beam.particles.xp
+    old_bunches = list(beam.bunches)
+    particle_count = len(p.z)
+    if (len(old_bunches) != beam.harmonic_number or not old_bunches
+            or sorted(b.harmonic_id for b in old_bunches)
+            != list(range(beam.harmonic_number))):
+        raise ValueError("Bunch harmonic IDs must cover every grouping slot exactly once")
+    # Check the source partition before filling temporary per-particle arrays.
+    # Sort empty intervals before occupied intervals sharing the same start.
+    expected_start = 0
+    for b in sorted(old_bunches, key=lambda b: (b.start_idx, b.end_idx)):
+        if not expected_start == b.start_idx <= b.end_idx <= particle_count:
+            raise ValueError("Bunch ranges must cover all particles without gaps or overlaps")
+        expected_start = b.end_idx
+    if expected_start != particle_count:
+        raise ValueError("Bunch ranges must cover all particles without gaps or overlaps")
 
-    Np = beam.Np_total
-    if Np == 0:
-        if new_harmonic is not None:
-            beam.harmonic_number = h_new
-            _rebuild_bunches(beam, h_new)
-        _invalidate_slice_sets(beam)
-        return
+    program = beam.reference_program
+    C = old_bunches[0].circum
+    h = beam.harmonic_number if new_harmonic is None else int(new_harmonic)
+    if h < 1:
+        raise ValueError("Grouping harmonic must be positive")
+    epoch = min(b.t0 for b in old_bunches)
+    arrival_time_from_epoch = xp.empty(particle_count, dtype=xp.float64)
+    source_p0 = xp.empty(particle_count, dtype=xp.float64)
+    keys = xp.empty(particle_count, dtype=xp.float64)
+    for b in old_bunches:
+        sl = slice(b.start_idx, b.end_idx)
+        dt = -p.z[sl].astype(xp.float64) / (b.beta * const.c)
+        # t_i - epoch stays unwrapped; the phase integral alone is reduced.
+        arrival_time_from_epoch[sl] = (b.t0 - epoch) + dt
+        keys[sl] = xp.remainder(
+            -program.phase_cycles(b.t0, dt, xp) + location / C + .5 / h, 1.)
+        source_p0[sl] = b.p0
+    # A tiny negative argument can yield exactly 1.0 after floating remainder.
+    # Keep that upper-side limit in the last group, rather than wrapping to 0.
+    xp.minimum(keys, np.nextafter(1., 0.), out=keys)
+    perm = xp.argsort(keys)
+    keys = keys[perm]
+    arrival_time_from_epoch = arrival_time_from_epoch[perm]
+    source_p0 = source_p0[perm]
 
-    # --- laboratory longitudinal positions (old bunch centers) ---
-    z_lab = xp.empty(Np, dtype=xp.float64)
-    p0_by_particle = xp.empty(Np, dtype=xp.float64)
-    weight_by_particle = xp.empty(Np, dtype=xp.float64)
-    for b in beam.bunches:
-        z_lab[b.start_idx:b.end_idx] = p.z[b.start_idx:b.end_idx] + b.z_center
-        p0_by_particle[b.start_idx:b.end_idx] = b.p0
-        weight_by_particle[b.start_idx:b.end_idx] = b.ratio
+    # Adjacent groups share the same boundary, so ranges cannot overlap or
+    # leave internal gaps. Transfer only h+1 indices from a GPU, once.
+    boundaries = xp.searchsorted(keys, xp.arange(h + 1, dtype=xp.float64) / h, side="left")
+    if xp is not np:
+        boundaries = boundaries.get()
+    if boundaries[0] != 0 or boundaries[-1] != particle_count:
+        raise ValueError("Grouping keys must be finite and cover all particles in [0, 1)")
 
-    # --- azimuthal sort key in [0, C) on the (possibly new) bucket grid ---
-    key = bucket_sort_key(z_lab, h_new, C)
-    perm = xp.argsort(key)
-    key_sorted = key[perm]
-    z_lab_sorted = z_lab[perm]
-    p0_sorted = p0_by_particle[perm]
-    weight_sorted = weight_by_particle[perm]
-
-    _permute_particle_arrays(beam, perm)
-
-    # --- rebuild bunch structure for a harmonic switch ---
+    destination_bunches = old_bunches
     if new_harmonic is not None:
-        beam.harmonic_number = h_new
-        _rebuild_bunches(beam, h_new)
+        anchor = min(old_bunches, key=lambda b: b.harmonic_id)
+        # Choose the nearest machine passage to the old anchor, then solve
+        # Psi(T_j') = passage + s/C - j/h for the new reference events.
+        passage = round(float(program.integral(anchor.t0)) - location / C
+                        + anchor.harmonic_id / anchor.harmonic_number)
+        destination_bunches = []
+        for hid in range(h):
+            b = copy.deepcopy(anchor)
+            b.bunch_id, b.harmonic_id, b.harmonic_number = hid, hid, h
+            b.t0 = program.inverse_integral(passage + location / C - hid / h)
+            beta = C * float(program.value(b.t0)) / const.c
+            if not 0 < beta < 1:
+                raise ValueError("Grouping clock must define a subluminal reference trajectory")
+            set_reference_energy(b, b.m0 / np.sqrt(1 - beta * beta))
+            destination_bunches.append(b)
 
-    # --- contiguous index ranges per bunch ---
-    for b in beam.bunches:
-        hid = b.harmonic_id
-        start = int(xp.searchsorted(key_sorted, hid * C / h_new, side="left"))
-        end = int(xp.searchsorted(key_sorted, (hid + 1) * C / h_new, side="left"))
-        b.start_idx = start
-        b.end_idx = end
-        b.Np = end - start
-        if b.Np > 0:
-            b.Nrp = int(round(float(xp.sum(weight_sorted[start:end]))))
-            b.ratio = b.Nrp / b.Np
-
-        # --- recompute bunch-relative z against the assigned bucket center ---
-        # Keep the nearest ring-period image.  This preserves bucket crossing
-        # information at the grouping level without forcing particles back
-        # into a bucket-width interval.
-        p.z[start:end] = _fold_by_ring(z_lab_sorted[start:end] - b.z_center, C)
-
-        if new_harmonic is not None and b.Np > 0:
-            # px, py and dp are normalized to the old bunch reference.
-            # Rebase them to the new bucket reference while preserving each
-            # particle's absolute mechanical momentum.
-            ref_scale = p0_sorted[start:end] / b.p0
-            p.px[start:end] *= ref_scale
-            p.py[start:end] *= ref_scale
-            p.dp[start:end] = ((1.0 + p.dp[start:end]) * ref_scale - 1.0)
-
+    # Validate the partition and all new references before mutating beam state.
+    _permute_particle_arrays(beam, perm)
+    if new_harmonic is not None:
+        beam.bunches = destination_bunches
+        beam.harmonic_number = h
+    for b in destination_bunches:
+        start, end = map(int, boundaries[b.harmonic_id:b.harmonic_id + 2])
+        b.start_idx, b.end_idx, b.Np = start, end, end - start
+        sl = slice(start, end)
+        # Np includes live, lost and pending records; Nrp is diagnostic only.
+        # The common macro-particle weight is unchanged since initialization.
+        b.Nrp = int(round(b.ratio * b.Np))
+        live = p.tag[sl] > 0
+        # z' = beta'*c*(T' - t_i), with no periodic reduction of stored z.
+        p.z[sl] = xp.where(
+            live, b.beta * const.c * ((b.t0 - epoch) - arrival_time_from_epoch[sl]), p.z[sl])
+        scale = source_p0[sl] / b.p0
+        p.px[sl] = xp.where(live, p.px[sl].astype(xp.float64) * scale, p.px[sl])
+        p.py[sl] = xp.where(live, p.py[sl].astype(xp.float64) * scale, p.py[sl])
+        # P0'*(1+dp') = P0*(1+dp); avoid losing tiny dp by first adding 1.
+        p.dp[sl] = xp.where(
+            live, p.dp[sl].astype(xp.float64) * scale + (source_p0[sl] - b.p0) / b.p0, p.dp[sl])
+    # Old per-bunch indices no longer describe these populations. No rebinning
+    # is performed; users must explicitly generate slices for the new grouping.
     _invalidate_slice_sets(beam)
 
 
 @Command.register("sortbunch")
 class SortBunch(Command):
-    """Sort all particles by longitudinal position and regroup bunches.
+    """Sort all particles by machine-clock phase and regroup bunches.
 
     Reads the beam harmonic number (bunch grouping count), computes the
-    azimuthal sort key, reorders every particle array, and assigns each
+    periodic phase key, reorders every particle array, and assigns each
     bunch a contiguous index range (start_idx/end_idx/Np).
     """
 
@@ -215,7 +192,7 @@ class SortBunch(Command):
         logger.info(f"[SortBunch] {self.cmd_name}: sorting {beam.Np_total} "
                     f"particles, h={beam.harmonic_number}")
         set_normal_logging()
-        regroup_particles(beam)
+        regroup_particles(beam, location=self.s)
         return True
 
     def print(self):
