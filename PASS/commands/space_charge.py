@@ -600,7 +600,10 @@ class SpaceCharge(Command):
             handle.create_dataset("delta_z", data=np.asarray(delta_z, dtype=np.float64))
             handle.create_dataset("slice_charge", data=np.asarray(result.deposited_charge, dtype=np.float64))
             if analytic is not None:
-                handle.attrs["size_convention"] = "principal_rms" if self.solver.startswith("gaussian") else "uniform_semi_axes"
+                handle.attrs["size_convention"] = (
+                    "principal_rms" if self.solver.startswith("gaussian") else
+                    "parabolic_semi_axes" if self.solver.startswith("parabolic") else "uniform_semi_axes"
+                )
                 handle.attrs["parameter_source"] = "configuration" if self.method == "frozen" else "current_slice_population_moments"
                 handle.create_dataset("macro_count", data=analytic.macro_count)
                 for column, name in enumerate(("center_x", "center_y", "size_x", "size_y", "angle")):

@@ -14,6 +14,7 @@ from .formula_gaussian_round import gaussian_round_field
 from .formula_gaussian_ellipse import gaussian_elliptic_field
 from .formula_uniform_round import uniform_round_field
 from .formula_uniform_ellipse import uniform_elliptic_field
+from .formula_parabolic import parabolic_round_field, parabolic_elliptic_field, PARABOLIC_CUDA
 from .pic import PICResult
 
 
@@ -24,7 +25,7 @@ class AnalyticResult:
     slice_charge: np.ndarray
     macro_count: np.ndarray
     # Columns: center_x, center_y, size_x, size_y, angle; sizes are Gaussian
-    # principal RMS widths or uniform semi-axes. Empty slices use NaN parameters.
+    # principal RMS widths or uniform/parabolic semi-axes. Empty slices use NaN parameters.
     parameters: np.ndarray
 
 
@@ -42,6 +43,10 @@ def evaluate_profile(x, y, charge, parameters, solver):
         eu, ev = uniform_round_field(u, v, charge, sx)
     elif solver == "uniform_ellipse_free_space":
         eu, ev = uniform_elliptic_field(u, v, charge, sx, sy)
+    elif solver == "parabolic_round_free_space":
+        eu, ev = parabolic_round_field(u, v, charge, sx)
+    elif solver == "parabolic_ellipse_free_space":
+        eu, ev = parabolic_elliptic_field(u, v, charge, sx, sy)
     else:
         raise ValueError(f"unsupported analytic solver {solver!r}")
     return c * eu - s * ev, s * eu + c * ev, u, v
@@ -56,6 +61,7 @@ def solve_analytic(x, y, slice_id, valid, num_slices, charge_per_macro, configur
     solver = configuration.solver
     round_profile = "_round_" in solver
     gaussian = solver.startswith("gaussian_")
+    size_factor = 1.0 if gaussian else np.sqrt(6.0) if solver.startswith("parabolic_") else 2.0
     # Group once, rather than scanning all particles for every slice.
     active = np.flatnonzero(valid)
     order = active[np.argsort(slice_id[active], kind="stable")]
@@ -85,13 +91,13 @@ def solve_analytic(x, y, slice_id, valid, num_slices, charge_per_macro, configur
                 variance = np.trace(covariance) / 2.0
                 if variance <= 0:
                     raise ValueError(f"quasi-frozen slice {sid}: zero transverse size")
-                sx = sy = np.sqrt(variance) * (1.0 if gaussian else 2.0)
+                sx = sy = np.sqrt(variance) * size_factor
                 angle = 0.0
             else:
                 eigenvalues, axes = np.linalg.eigh(covariance)
                 if eigenvalues[0] <= 64 * np.finfo(float).eps * eigenvalues[1]:
                     raise ValueError(f"quasi-frozen slice {sid}: degenerate covariance, eigenvalues={eigenvalues}")
-                sy, sx = np.sqrt(eigenvalues) * (1.0 if gaussian else 2.0)
+                sy, sx = np.sqrt(eigenvalues) * size_factor
                 angle = (np.arctan2(axes[1, 1], axes[0, 1]) + np.pi / 2) % np.pi - np.pi / 2
         parameters[sid] = cx, cy, sx, sy, angle
         ex[indices], ey[indices], _, _ = evaluate_profile(
@@ -113,6 +119,8 @@ def sample_analytic_grid(result, configuration, geometry):
         radius2 = (u / sx)**2 + (v / sy)**2
         if gaussian:
             density[sid] = charge / (2 * np.pi * sx * sy) * np.exp(-0.5 * radius2)
+        elif configuration.solver.startswith("parabolic_"):
+            density[sid] = 2 * charge / (np.pi * sx * sy) * np.maximum(1 - radius2, 0)
         else:
             density[sid] = charge / (np.pi * sx * sy) * (radius2 <= 1)
     return PICResult(density, None, ex, ey, geometry, result.slice_charge)
@@ -123,6 +131,8 @@ _ANALYTIC_PROFILES = (
     "gaussian_ellipse_free_space",
     "uniform_round_free_space",
     "uniform_ellipse_free_space",
+    "parabolic_round_free_space",
+    "parabolic_ellipse_free_space",
 )
 
 
@@ -154,7 +164,7 @@ def _analytic_gpu_module(dtype, device):
     )
     with cp.cuda.Device(device):
         return cp.RawModule(
-            code=preamble + _ANALYTIC_CUDA,
+            code=preamble + PARABOLIC_CUDA + _ANALYTIC_CUDA,
             options=("--std=c++17",),
         )
 
@@ -226,10 +236,10 @@ def solve_analytic_gpu(
             else c.sigma_x
             if kind == 1
             else c.radius
-            if kind == 2
+            if kind in (2, 4)
             else c.a
         )
-        b = a if kind in (0, 2) else c.sigma_y if kind == 1 else c.b
+        b = a if kind in (0, 2, 4) else c.sigma_y if kind == 1 else c.b
         params[:] = cp.asarray(
             [c.center_x or 0.0, c.center_y or 0.0, a, b, c.angle or 0.0], cp.float64
         )
@@ -250,8 +260,8 @@ def solve_analytic_gpu(
                 params,
                 errors,
                 np.int32(ns),
-                np.int32(kind in (0, 2)),
-                np.int32(kind < 2),
+                np.int32(kind in (0, 2, 4)),
+                np.float64(1.0 if kind < 2 else np.sqrt(6.0) if kind >= 4 else 2.0),
             ),
         )
         errors_host = errors.get()
@@ -328,7 +338,7 @@ extern "C" __global__ void centers(const double* sums,double* params,int ns) {
     int s=blockIdx.x*blockDim.x+threadIdx.x;
     if(s<ns && sums[3*s]>0) {params[5*s]=sums[3*s+1]/sums[3*s];params[5*s+1]=sums[3*s+2]/sums[3*s];}
 }
-extern "C" __global__ void sizes(const double* counts,const double* cov,double* p,int* error,int ns,int round,int gaussian) {
+extern "C" __global__ void sizes(const double* counts,const double* cov,double* p,int* error,int ns,int round,double size_factor) {
     int s=blockIdx.x*blockDim.x+threadIdx.x;
     if(s>=ns || counts[3*s]==0) return;
     double count=counts[3*s],a=cov[3*s]/count,b=cov[3*s+1]/count,c=cov[3*s+2]/count;
@@ -337,11 +347,12 @@ extern "C" __global__ void sizes(const double* counts,const double* cov,double* 
     if(round) {hi=lo=(a+b)/2;angle=0;}
     else {double d=hypot(a-b,2*c);hi=(a+b+d)/2;lo=(a+b-d)/2;angle=0.5*atan2(2*c,a-b);}
     if(!isfinite(hi)||!isfinite(lo)||hi<=0||lo<=(round?0:64*2.2204460492503131e-16*hi)) {error[s]=2;return;}
-    p[5*s+2]=sqrt(hi)*(gaussian?1:2);p[5*s+3]=sqrt(lo)*(gaussian?1:2);p[5*s+4]=angle;
+    p[5*s+2]=sqrt(hi)*size_factor;p[5*s+3]=sqrt(lo)*size_factor;p[5*s+4]=angle;
 }
 
 __device__ void profile(double x,double y,double q,double a,double b,int kind,double* ex,double* ey) {
     const double pi=3.14159265358979323846,eps=8.8541878128e-12;
+    if(kind>=4) {parabolic_field(x,y,q,a,b,ex,ey);return;}
     if(kind==0 || (kind==1 && fabs(a-b)<=1e-10*b)) {
         double r2=x*x+y*y;
         double f=r2>0 ? q/(2*pi*eps)*(-expm1(-r2/(2*a*a)))/r2 : 0;

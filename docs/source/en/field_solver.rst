@@ -455,13 +455,14 @@ The ``formula_*`` modules provide free-space analytic integrated fields. They
 are used by the ``frozen`` and ``quasi-frozen`` tracking methods and remain
 available for reference calculations. Their public solver names are
 ``gaussian_round_free_space``, ``gaussian_ellipse_free_space``,
-``uniform_round_free_space`` and ``uniform_ellipse_free_space``. These formulas
+``uniform_round_free_space``, ``uniform_ellipse_free_space``,
+``parabolic_round_free_space`` and ``parabolic_ellipse_free_space``. These formulas
 are evaluated directly at particle positions, outside the PIC pipeline.
 
 Source charge, coordinates, and units
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-All four profiles solve the transverse free-space problem for one charge slice.
+All six profiles solve the transverse free-space problem for one charge slice.
 Let Q denote its signed total charge in C, and let (u, v) be coordinates in the
 source's principal frame. The command obtains Q from the current live,
 assigned population after aperture losses, then translates and rotates:
@@ -612,6 +613,45 @@ that root with a cancellation-resistant quadratic expression and uses the
 rationalized field above to remain stable near a=b. Fields are continuous
 across the source edge; a=b reduces to the uniform disk.
 
+Parabolic density: the projection of a 4D waterbag
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``parabolic_round_free_space`` and ``parabolic_ellipse_free_space`` use
+``formula_parabolic.parabolic_round_field`` and ``parabolic_elliptic_field``.
+A uniform four-dimensional transverse phase-space waterbag projects to
+
+.. math::
+
+   \eta=\frac{u^2}{a^2}+\frac{v^2}{b^2},\qquad
+   \Sigma=\frac{2Q}{\pi ab}\max(1-\eta,0),\qquad
+   a=\sqrt6\,\sigma_u,\quad b=\sqrt6\,\sigma_v.
+
+Use ``Radius (m)`` for a round profile and ``Semi-axis A/B (m)`` for an ellipse.
+These are support edges. With the same confocal lambda, A and B defined above,
+the integrated fields are
+
+.. math::
+
+   \mathcal E_u=\frac{2Q u}{\pi\epsilon_0 A(A+B)}
+   \left[1-\frac{u^2(2A+B)}{3A^2(A+B)}-\frac{v^2}{B(A+B)}\right],
+
+   \mathcal E_v=\frac{2Q v}{\pi\epsilon_0 B(A+B)}
+   \left[1-\frac{v^2(2B+A)}{3B^2(A+B)}-\frac{u^2}{A(A+B)}\right].
+
+These expressions integrate the continuous Poisson field exactly, both inside
+and outside the source. They remain regular as a approaches b. For a=b=R,
+the enclosed charge fraction at r<=R is ``2(r/R)^2-(r/R)^4``; outside it is 1.
+The interior field contains linear and cubic terms. At the same charge and RMS
+sizes, the central gradients of Gaussian, parabolic and uniform profiles have
+the ratio ``1 : 2/3 : 1/2``.
+
+In quasi-frozen tracking, the parabolic family is retained while its centroid,
+principal axes and RMS sizes evolve. This moment closure does not guarantee that
+the evolving particles retain an exact waterbag phase-space density. See the
+`CERN Accelerator School derivation (slide 15)
+<https://cas.web.cern.ch/sites/default/files/lectures/bilbao-2011/priorbeamdynamics2.pdf>`_
+for the 4D projection and round-field limit.
+
 Frozen and quasi-frozen parameter selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -639,7 +679,10 @@ freezing the transverse profile does not freeze its field amplitude.
 .. math::
 
    \sigma=\sqrt{\frac{\operatorname{tr}C_k}{2}},\qquad
-   R_b=2\sigma\quad\text{(round profiles)}.
+   R_b=2\sigma\quad\text{(uniform round)},\qquad
+   R_b=\sqrt6\,\sigma\quad\text{(parabolic round)}.
+
+Parabolic ellipses use :math:`a=\sqrt{6\nu_1},\ b=\sqrt{6\nu_2}`.
 
 The eigenvalues satisfy nu_1 >= nu_2; the eigenvector for nu_1 determines the
 major-axis angle. Moments use denominator N_k, not N_k-1. The round rule
@@ -693,7 +736,7 @@ come from the configuration; quasi-frozen parameters come from each slice's
 current population moments. ``AnalyticResult`` contains particle-sized
 ``integrated_ex``/``integrated_ey``, slice charges and counts, and a
 ``(n_slice, 5)`` parameter array with columns center-x, center-y, size-x, size-y,
-angle. Sizes are Gaussian RMS widths or uniform semi-axes; empty-slice
+angle. Sizes are Gaussian RMS widths or uniform/parabolic semi-axes; empty-slice
 parameters are NaN and their field/charge is zero. No simulation turn or Slicer
 execution metadata is read. See :doc:`space_charge` for the exact moment rules.
 
@@ -726,6 +769,12 @@ particle kicks or truncate the analytic charge distribution.
    * - ``macro_charge_to_physical``
      - real-particle count, signed charge number
      - Signed physical charge in C.
+   * - ``parabolic_round_field``
+     - ``x, y, slice_charge, radius``
+     - Parabolic round-slice integrated field inside and outside the beam.
+   * - ``parabolic_elliptic_field``
+     - ``x, y, slice_charge, a, b``
+     - Parabolic elliptic-slice integrated field inside and outside the beam.
 
 All analytic functions accept scalar or broadcastable coordinate arrays,
 require positive finite size parameters, and use ``epsilon_0`` from PASS
@@ -945,7 +994,7 @@ including with FP32 particles, to avoid rounding a near-wall point onto a
 different node. Density, potential, fields and kicks retain the selected precision.
 
 GPU analytic tracking is provided by ``analytic.solve_analytic_gpu`` for
-all four round/elliptical Gaussian/uniform profiles in frozen and quasi-frozen
+all six round/elliptical Gaussian/uniform/parabolic profiles in frozen and quasi-frozen
 mode. Centered slice statistics and special-function intermediates use FP64;
 particle fields follow the configured dtype. Diagnostic analytic-grid sampling
 may use the CPU on selected output turns.

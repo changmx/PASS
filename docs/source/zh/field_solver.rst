@@ -410,12 +410,13 @@ Python 接口
 ``formula_*`` 模块提供自由空间解析积分场，用于 ``frozen``、``quasi-frozen``
 跟踪，同时保留参考计算用途。公开 solver 名称为 ``gaussian_round_free_space``、
 ``gaussian_ellipse_free_space``、``uniform_round_free_space``、
-``uniform_ellipse_free_space``。直接在粒子位置计算，不经过 PIC 流水线。
+``uniform_ellipse_free_space``、``parabolic_round_free_space``、
+``parabolic_ellipse_free_space``。直接在粒子位置计算，不经过 PIC 流水线。
 
 源电荷、坐标与单位
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-四种分布都求解单个带电切片的横向自由空间问题。以 Q 表示切片带符号总电荷（C），
+六种分布都求解单个带电切片的横向自由空间问题。以 Q 表示切片带符号总电荷（C），
 (u, v) 表示源分布主轴坐标。命令先处理孔径损失，由当前存活且已分配到切片的粒子
 计算 Q，再进行中心平移和旋转：
 
@@ -554,6 +555,40 @@ sigma_u < sigma_v 时交换坐标、尺寸及返回的场分量；尺寸相等�
 实现使用避免相消的二次方程求根表达式，并采用上述有理化场表达式，保证 a、b
 接近时的数值稳定性。场在分布边缘连续，a=b 时退化为均匀圆盘。
 
+抛物型密度：四维水袋的实空间投影
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``parabolic_round_free_space``、``parabolic_ellipse_free_space`` 分别调用
+``formula_parabolic.parabolic_round_field``、``parabolic_elliptic_field``。
+四维横向相空间内均匀填充的水袋，投影到实空间后满足
+
+.. math::
+
+   \eta=\frac{u^2}{a^2}+\frac{v^2}{b^2},\qquad
+   \Sigma=\frac{2Q}{\pi ab}\max(1-\eta,0),\qquad
+   a=\sqrt6\,\sigma_u,\quad b=\sqrt6\,\sigma_v.
+
+圆形模型使用 ``Radius (m)``，椭圆模型使用 ``Semi-axis A/B (m)``，均指分布边缘。
+采用前述共焦 lambda、A、B，积分场为
+
+.. math::
+
+   \mathcal E_u=\frac{2Q u}{\pi\epsilon_0 A(A+B)}
+   \left[1-\frac{u^2(2A+B)}{3A^2(A+B)}-\frac{v^2}{B(A+B)}\right],
+
+   \mathcal E_v=\frac{2Q v}{\pi\epsilon_0 B(A+B)}
+   \left[1-\frac{v^2(2B+A)}{3B^2(A+B)}-\frac{u^2}{A(A+B)}\right].
+
+此表达式为连续 Poisson 场积分的闭式结果，适用于束内及束外，a 接近 b 时仍稳定。
+a=b=R 时，r<=R 内的包围电荷比例为 ``2(r/R)^2-(r/R)^4``，束外为 1。
+束内场包含线性项和三次项。相同电荷和 RMS 尺寸下，高斯、抛物型、均匀模型的
+中心梯度比例为 ``1 : 2/3 : 1/2``。
+
+quasi-frozen 保持抛物型密度族，更新质心、主轴和 RMS 尺寸；这种矩近似不保证
+演化后的粒子仍严格满足四维水袋分布。四维投影和圆束极限可参阅
+`CERN Accelerator School 推导（第 15 页）
+<https://cas.web.cern.ch/sites/default/files/lectures/bilbao-2011/priorbeamdynamics2.pdf>`_。
+
 frozen 与 quasi-frozen 的参数选择
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -580,7 +615,10 @@ frozen 与 quasi-frozen 的参数选择
 .. math::
 
    \sigma=\sqrt{\frac{\operatorname{tr}C_k}{2}},\qquad
-   R_b=2\sigma\quad\text{(round profiles)}.
+   R_b=2\sigma\quad\text{(uniform round)},\qquad
+   R_b=\sqrt6\,\sigma\quad\text{(parabolic round)}.
+
+抛物型椭圆使用 :math:`a=\sqrt{6\nu_1},\ b=\sqrt{6\nu_2}`。
 
 特征值满足 nu_1 >= nu_2，nu_1 对应的特征向量确定长轴角度。统计分母使用
 N_k 而非 N_k-1。圆化规则保留径向二阶矩，非圆粒子也可采用，但不会精确重建
@@ -626,7 +664,7 @@ configuration)`` 按切片组织已分配且存活的粒子。frozen 参数来�
 quasi-frozen 参数来自各切片当前总体矩。``AnalyticResult`` 包含粒子长度的
 ``integrated_ex``/``integrated_ey``、切片电荷与计数，以及 ``(n_slice, 5)``
 参数数组；列依次为中心 x、中心 y、尺寸 x、尺寸 y、角度。
-尺寸是高斯 RMS 或均匀分布半轴。空切片参数为 NaN，场和电荷为零。
+尺寸是高斯 RMS 或均匀/抛物型分布半轴。空切片参数为 NaN，场和电荷为零。
 不读取模拟圈数或 Slicer 执行元数据。具体矩匹配规则见 :doc:`space_charge`。
 
 ``sample_analytic_grid(result, configuration, geometry)`` 在粒子场计算完成后，
@@ -653,6 +691,12 @@ quasi-frozen 参数来自各切片当前总体矩。``AnalyticResult`` 包含粒
    * - ``uniform_elliptic_field``
      - ``x, y, slice_charge, a, b``
      - 均匀椭圆切片束内外的积分场。
+   * - ``parabolic_round_field``
+     - ``x, y, slice_charge, radius``
+     - 抛物型圆切片束内外的积分场。
+   * - ``parabolic_elliptic_field``
+     - ``x, y, slice_charge, a, b``
+     - 抛物型椭圆切片束内外的积分场。
    * - ``macro_charge_to_physical``
      - 真实粒子数、带符号电荷数
      - 带符号物理电荷，单位 C。
@@ -848,6 +892,6 @@ cuFFTDx 头文件由 ``nvidia-mathdx`` 提供。自动模式遇到该可选实�
 即使粒子采用 FP32，几何和孔径判断仍使用双精度中间量，避免近壁粒子因舍入
 落入不同节点。密度、电势、场与踢量保留配置指定的精度。
 
-``analytic.solve_analytic_gpu`` 提供四种圆形/椭圆 Gaussian/uniform
+``analytic.solve_analytic_gpu`` 提供六种圆形/椭圆 Gaussian/uniform/parabolic
 分布的 frozen 与 quasi-frozen GPU 跟踪。切片中心矩和特殊函数中间量使用 FP64，
 粒子场遵循配置精度。选定输出圈的解析场诊断网格采样可使用 CPU。
