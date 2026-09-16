@@ -298,37 +298,38 @@ class Injection(Command):
         y_arr = np.zeros(Np_inj, dtype=np.float64)
         py_arr = np.zeros(Np_inj, dtype=np.float64)
 
+        # Preserve the original KV map while evaluating its fixed coefficients once.
+        F = emit_x
+        nu = emit_x / emit_y
+        sigma11_x = emit_x * beta_x_twiss
+        sigma12_x = -emit_x * alpha_x_twiss
+        sigma22_x = emit_x * gamma_x_twiss
+        sigma11_y = emit_y * beta_y_twiss
+        sigma12_y = -emit_y * alpha_y_twiss
+        sigma22_y = emit_y * gamma_y_twiss
+
+        # https://agenda.linearcollider.org/event/6258/contributions/29168/attachments/24202/37474/linear_dynamics.pdf
+        phi_x = 0.5 * np.arctan2(2 * alpha_x_twiss, gamma_x_twiss - beta_x_twiss)
+        phi_y = 0.5 * np.arctan2(2 * alpha_y_twiss, gamma_y_twiss - beta_y_twiss)
+        X1 = np.sqrt(2) * emit_x / np.sqrt((sigma11_x + sigma22_x) + np.sqrt((sigma22_x - sigma11_x)**2 + 4 * (sigma12_x**2)))
+        X2 = np.sqrt(2) * emit_x / np.sqrt((sigma11_x + sigma22_x) - np.sqrt((sigma22_x - sigma11_x)**2 + 4 * (sigma12_x**2)))
+        Y1 = np.sqrt(2) * emit_y / np.sqrt((sigma11_y + sigma22_y) + np.sqrt((sigma22_y - sigma11_y)**2 + 4 * (sigma12_y**2)))
+        Y2 = np.sqrt(2) * emit_y / np.sqrt((sigma11_y + sigma22_y) - np.sqrt((sigma22_y - sigma11_y)**2 + 4 * (sigma12_y**2)))
+        ax = np.sqrt((X1 / X2) * (np.cos(phi_x)**2) + (X2 / X1) * (np.sin(phi_x)**2))
+        axpx = (X1 / X2 - X2 / X1) * np.sin(2 * phi_x) / (2 * ax)
+        ay = np.sqrt((Y1 / Y2) * (np.cos(phi_y)**2) + (Y2 / Y1) * (np.sin(phi_y)**2))
+        aypy = (Y1 / Y2 - Y2 / Y1) * np.sin(2 * phi_y) / (2 * ay)
+        lower, upper = 1e-15, 1.0 - 1e-15
+        boundary_x, boundary_y = 64 * np.spacing(x_max), 64 * np.spacing(y_max)
+
         i = 0
         while i < Np_inj:
-            random_zeta = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_beta_x = self.rng.uniform(0.0, 1.0)
-            random_beta_y = self.rng.uniform(0.0, 1.0)
-
-            F = emit_x
-            nu = emit_x / emit_y
-
-            sigma11_x = emit_x * beta_x_twiss
-            sigma12_x = -emit_x * alpha_x_twiss
-            sigma22_x = emit_x * gamma_x_twiss
-
-            sigma11_y = emit_y * beta_y_twiss
-            sigma12_y = -emit_y * alpha_y_twiss
-            sigma22_y = emit_y * gamma_y_twiss
-
-            # https://agenda.linearcollider.org/event/6258/contributions/29168/attachments/24202/37474/linear_dynamics.pdf
-            phi_x = 0.5 * np.arctan2(2 * alpha_x_twiss, gamma_x_twiss - beta_x_twiss)
-            phi_y = 0.5 * np.arctan2(2 * alpha_y_twiss, gamma_y_twiss - beta_y_twiss)
-
-            X1 = np.sqrt(2) * emit_x / np.sqrt((sigma11_x + sigma22_x) + np.sqrt((sigma22_x - sigma11_x)**2 + 4 * (sigma12_x**2)))
-            X2 = np.sqrt(2) * emit_x / np.sqrt((sigma11_x + sigma22_x) - np.sqrt((sigma22_x - sigma11_x)**2 + 4 * (sigma12_x**2)))
-            Y1 = np.sqrt(2) * emit_y / np.sqrt((sigma11_y + sigma22_y) + np.sqrt((sigma22_y - sigma11_y)**2 + 4 * (sigma12_y**2)))
-            Y2 = np.sqrt(2) * emit_y / np.sqrt((sigma11_y + sigma22_y) - np.sqrt((sigma22_y - sigma11_y)**2 + 4 * (sigma12_y**2)))
-
-            ax = np.sqrt((X1 / X2) * (np.cos(phi_x)**2) + (X2 / X1) * (np.sin(phi_x)**2))
-            axpx = (X1 / X2 - X2 / X1) * np.sin(2 * phi_x) / (2 * ax)
-            ay = np.sqrt((Y1 / Y2) * (np.cos(phi_y)**2) + (Y2 / Y1) * (np.sin(phi_y)**2))
-            aypy = (Y1 / Y2 - Y2 / Y1) * np.sin(2 * phi_y) / (2 * ay)
-
+            # Draw no more than the missing count, in the original per-candidate order.
+            count = min(Np_inj - i, 65536)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
+                                 count=3 * count).reshape(count, 3)
+            random_zeta = lower + (upper - lower) * values[:, 0]
+            random_beta_x, random_beta_y = values[:, 1], values[:, 2]
             zeta_x_square = F * random_zeta
             zeta_x = np.sqrt(zeta_x_square)
             zeta_y_square = (F - zeta_x_square) / nu
@@ -341,15 +342,23 @@ class Injection(Command):
             y = zeta_y * ay * np.cos(beta_y) * 2
             py = zeta_y * (aypy * np.cos(beta_y) - np.sin(beta_y) / ay) * 2
 
-            if x > x_min and x < x_max and y > y_min and y < y_max:
-                x_arr[i] = x
-                px_arr[i] = px
-                y_arr[i] = y
-                py_arr[i] = py
-
-                i += 1
-            else:
-                pass
+            # As in the Gaussian sampler, keep strict-cut decisions on the
+            # scalar path when transcendental roundoff could change acceptance.
+            near_boundary = ((np.abs(np.abs(x) - x_max) <= boundary_x)
+                             | (np.abs(np.abs(y) - y_max) <= boundary_y))
+            for row in np.flatnonzero(near_boundary):
+                zx2 = F * float(random_zeta[row])
+                zx, zy = np.sqrt(zx2), np.sqrt((F - zx2) / nu)
+                bx, by = 2 * const.pi * float(random_beta_x[row]), 2 * const.pi * float(random_beta_y[row])
+                x[row] = zx * ax * np.cos(bx) * 2
+                px[row] = zx * (axpx * np.cos(bx) - np.sin(bx) / ax) * 2
+                y[row] = zy * ay * np.cos(by) * 2
+                py[row] = zy * (aypy * np.cos(by) - np.sin(by) / ay) * 2
+            accepted = (x > x_min) & (x < x_max) & (y > y_min) & (y < y_max)
+            end = i + int(np.count_nonzero(accepted))
+            x_arr[i:end], px_arr[i:end] = x[accepted], px[accepted]
+            y_arr[i:end], py_arr[i:end] = y[accepted], py[accepted]
+            i = end
 
         p = beam.particles
         p.x[start_index:end_index] = p.xp.asarray(x_arr)
@@ -397,42 +406,61 @@ class Injection(Command):
         y_arr = np.zeros(Np_inj, dtype=np.float64)
         py_arr = np.zeros(Np_inj, dtype=np.float64)
 
+        # Twiss coefficients are fixed throughout this batch. Keep the scalar
+        # formulas and operation order used by the original generator.
+        Xm = 2 * np.sqrt(emit_x * beta_x)
+        thetaXm = 2 * np.sqrt(emit_x * gamma_x)
+        Ym = 2 * np.sqrt(emit_y * beta_y)
+        thetaYm = 2 * np.sqrt(emit_y * gamma_y)
+        chi_x, chi_y = -np.arctan(alpha_x), -np.arctan(alpha_y)
+        sin_chi_x, cos_chi_x = np.sin(chi_x), np.cos(chi_x)
+        sin_chi_y, cos_chi_y = np.sin(chi_y), np.cos(chi_y)
+        sqrt_half = np.sqrt(2) / 2
+        lower, upper = 1e-15, 1.0 - 1e-15
+        boundary_x = 64 * np.spacing(x_max)
+        boundary_y = 64 * np.spacing(y_max)
+
         i = 0
         while i < Np_inj:
-            random_s1_x = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_s1_y = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_s2_x = self.rng.uniform(1e-15, 1.0 - 1e-15)
-            random_s2_y = self.rng.uniform(1e-15, 1.0 - 1e-15)
+            # At most the missing count: no surplus candidate is discarded,
+            # so later longitudinal samples and batches keep their RNG stream.
+            count = min(Np_inj - i, 65536)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
+                                 count=4 * count).reshape(count, 4)
+            # random.Random.uniform(a, b) uses a + (b-a)*random(). Columns
+            # retain its original per-candidate order: s1x, s1y, s2x, s2y.
+            values = lower + (upper - lower) * values
+            a_x = sqrt_half * np.sqrt(-np.log(values[:, 0]))
+            a_y = sqrt_half * np.sqrt(-np.log(values[:, 1]))
+            alp_x = 2 * const.pi * values[:, 2]
+            alp_y = 2 * const.pi * values[:, 3]
+            u_x, v_x = a_x * np.cos(alp_x), a_x * np.sin(alp_x)
+            u_y, v_y = a_y * np.cos(alp_y), a_y * np.sin(alp_y)
+            x, y = Xm * u_x, Ym * u_y
+            px = thetaXm * (u_x * sin_chi_x + v_x * cos_chi_x)
+            py = thetaYm * (u_y * sin_chi_y + v_y * cos_chi_y)
 
-            Xm = 2 * np.sqrt(emit_x * beta_x)
-            thetaXm = 2 * np.sqrt(emit_x * gamma_x)
-            a_x = np.sqrt(2) / 2 * np.sqrt(-np.log(random_s1_x))
-            alp_x = 2 * const.pi * random_s2_x
-            chi_x = -1 * np.arctan(alpha_x)
-            u_x = a_x * np.cos(alp_x)
-            v_x = a_x * np.sin(alp_x)
-            x = Xm * u_x
-            px = thetaXm * (u_x * np.sin(chi_x) + v_x * np.cos(chi_x))
+            # Array transcendental functions can round differently from scalar
+            # calls. Recheck candidates close to either strict 4-sigma cut with
+            # scalar arithmetic, before a changed decision can shift the RNG.
+            near_boundary = ((np.abs(np.abs(x) - x_max) <= boundary_x)
+                             | (np.abs(np.abs(y) - y_max) <= boundary_y))
+            for row in np.flatnonzero(near_boundary):
+                s1x, s1y, s2x, s2y = map(float, values[row])
+                ax = sqrt_half * np.sqrt(-np.log(s1x))
+                ay = sqrt_half * np.sqrt(-np.log(s1y))
+                phase_x, phase_y = 2 * const.pi * s2x, 2 * const.pi * s2y
+                ux, vx = ax * np.cos(phase_x), ax * np.sin(phase_x)
+                uy, vy = ay * np.cos(phase_y), ay * np.sin(phase_y)
+                x[row], y[row] = Xm * ux, Ym * uy
+                px[row] = thetaXm * (ux * sin_chi_x + vx * cos_chi_x)
+                py[row] = thetaYm * (uy * sin_chi_y + vy * cos_chi_y)
 
-            Ym = 2 * np.sqrt(emit_y * beta_y)
-            thetaYm = 2 * np.sqrt(emit_y * gamma_y)
-            a_y = np.sqrt(2) / 2 * np.sqrt(-np.log(random_s1_y))
-            alp_y = 2 * const.pi * random_s2_y
-            chi_y = -1 * np.arctan(alpha_y)
-            u_y = a_y * np.cos(alp_y)
-            v_y = a_y * np.sin(alp_y)
-            y = Ym * u_y
-            py = thetaYm * (u_y * np.sin(chi_y) + v_y * np.cos(chi_y))
-
-            if x > x_min and x < x_max and y > y_min and y < y_max:
-                x_arr[i] = x
-                px_arr[i] = px
-                y_arr[i] = y
-                py_arr[i] = py
-
-                i += 1
-            else:
-                pass
+            accepted = (x > x_min) & (x < x_max) & (y > y_min) & (y < y_max)
+            end = i + int(np.count_nonzero(accepted))
+            x_arr[i:end], px_arr[i:end] = x[accepted], px[accepted]
+            y_arr[i:end], py_arr[i:end] = y[accepted], py[accepted]
+            i = end
 
         p = beam.particles
         p.x[start_index:end_index] = p.xp.asarray(x_arr)
@@ -472,18 +500,18 @@ class Injection(Command):
         Ym = np.sqrt(3.0) * np.sqrt(emit_y * beta_y)
         PYm = np.sqrt(3.0) * np.sqrt(emit_y * gamma_y)
 
-        for i in range(Np_inj):
-            # ---- 2D uniform in [-1, 1] x [-1, 1] ----
-            ux = self.rng.uniform(-1.0, 1.0)
-            vx = self.rng.uniform(-1.0, 1.0)
-            uy = self.rng.uniform(-1.0, 1.0)
-            vy = self.rng.uniform(-1.0, 1.0)
-
-            # ---- Twiss mapping ----
-            x_arr[i] = Xm * ux
-            px_arr[i] = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
-            y_arr[i] = Ym * uy
-            py_arr[i] = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
+        sin_x, cos_x = np.sin(chi_x), np.cos(chi_x)
+        sin_y, cos_y = np.sin(chi_y), np.cos(chi_y)
+        for start in range(0, Np_inj, 65536):
+            end = min(start + 65536, Np_inj)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
+                                 count=4 * (end - start)).reshape(-1, 4)
+            # Match uniform(-1, 1), ordered ux, vx, uy, vy for each particle.
+            ux, vx, uy, vy = (-1.0 + 2.0 * values).T
+            x_arr[start:end] = Xm * ux
+            px_arr[start:end] = PXm * (ux * sin_x + vx * cos_x)
+            y_arr[start:end] = Ym * uy
+            py_arr[start:end] = PYm * (uy * sin_y + vy * cos_y)
 
         p = beam.particles
         p.x[start_index:end_index] = p.xp.asarray(x_arr)
@@ -538,38 +566,27 @@ class Injection(Command):
         chi_x = -np.arctan(alpha_x)
         chi_y = -np.arctan(alpha_y)
 
+        sin_x, cos_x = np.sin(chi_x), np.cos(chi_x)
+        sin_y, cos_y = np.sin(chi_y), np.cos(chi_y)
         i = 0
-
         while i < Np_inj:
-            # ---- 4D uniform ball ----
-            while True:
-
-                ux = self.rng.uniform(-1.0, 1.0)
-                vx = self.rng.uniform(-1.0, 1.0)
-
-                uy = self.rng.uniform(-1.0, 1.0)
-                vy = self.rng.uniform(-1.0, 1.0)
-
-                r2 = (ux * ux + vx * vx + uy * uy + vy * vy)
-
-                if r2 <= 1.0:
-                    break
-
-            # ---- Twiss mapping ----
+            count = min(Np_inj - i, 65536)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
+                                 count=4 * count).reshape(count, 4)
+            values = -1.0 + 2.0 * values
+            ux, vx, uy, vy = values.T
+            # Keep the scalar summation order at the inclusive 4D-ball boundary.
+            r2 = ux * ux + vx * vx + uy * uy + vy * vy
+            ux, vx, uy, vy = values[r2 <= 1.0].T
             x = Xm * ux
-            px = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
+            px = PXm * (ux * sin_x + vx * cos_x)
             y = Ym * uy
-            py = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
-
-            if (x_min < x < x_max and y_min < y < y_max):
-
-                x_arr[i] = x
-                px_arr[i] = px
-
-                y_arr[i] = y
-                py_arr[i] = py
-
-                i += 1
+            py = PYm * (uy * sin_y + vy * cos_y)
+            accepted = (x > x_min) & (x < x_max) & (y > y_min) & (y < y_max)
+            end = i + int(np.count_nonzero(accepted))
+            x_arr[i:end], px_arr[i:end] = x[accepted], px[accepted]
+            y_arr[i:end], py_arr[i:end] = y[accepted], py[accepted]
+            i = end
 
         p = beam.particles
 
@@ -626,40 +643,35 @@ class Injection(Command):
         chi_x = -np.arctan(alpha_x)
         chi_y = -np.arctan(alpha_y)
 
+        sin_x, cos_x = np.sin(chi_x), np.cos(chi_x)
+        sin_y, cos_y = np.sin(chi_y), np.cos(chi_y)
+        draw = self.rng.random
         i = 0
-
         while i < Np_inj:
-
-            while True:
-                # ---- 4D uniform ball ----
-                ux = self.rng.uniform(-1.0, 1.0)
-                vx = self.rng.uniform(-1.0, 1.0)
-
-                uy = self.rng.uniform(-1.0, 1.0)
-                vy = self.rng.uniform(-1.0, 1.0)
-
-                r2 = (ux * ux + vx * vx + uy * uy + vy * vy)
-
-                if r2 <= 1.0:
-                    break
-
-            # ---- parabolic rejection: accept with probability (1 - r2) ----
-            if self.rng.uniform(0.0, 1.0) <= (1.0 - r2):
-
-                x = Xm * ux
-                px = PXm * (ux * np.sin(chi_x) + vx * np.cos(chi_x))
-                y = Ym * uy
-                py = PYm * (uy * np.sin(chi_y) + vy * np.cos(chi_y))
-
-                if (x_min < x < x_max and y_min < y < y_max):
-
-                    x_arr[i] = x
-                    px_arr[i] = px
-
-                    y_arr[i] = y
-                    py_arr[i] = py
-
-                    i += 1
+            count = min(Np_inj - i, 65536)
+            values = np.empty((count, 4), dtype=np.float64)
+            accepted = 0
+            while accepted < count:
+                # Preserve conditional RNG consumption: the fifth draw occurs
+                # only inside the 4D ball, before the next candidate's draws.
+                ux = -1.0 + 2.0 * draw()
+                vx = -1.0 + 2.0 * draw()
+                uy = -1.0 + 2.0 * draw()
+                vy = -1.0 + 2.0 * draw()
+                r2 = ux * ux + vx * vx + uy * uy + vy * vy
+                if r2 <= 1.0 and 0.0 + 1.0 * draw() <= 1.0 - r2:
+                    x, y = Xm * ux, Ym * uy
+                    if x_min < x < x_max and y_min < y < y_max:
+                        values[accepted] = ux, vx, uy, vy
+                        accepted += 1
+            # Rejection stays scalar; the accepted particles share one array map.
+            ux, vx, uy, vy = values.T
+            end = i + count
+            x_arr[i:end] = Xm * ux
+            px_arr[i:end] = PXm * (ux * sin_x + vx * cos_x)
+            y_arr[i:end] = Ym * uy
+            py_arr[i:end] = PYm * (uy * sin_y + vy * cos_y)
+            i = end
 
         p = beam.particles
 
