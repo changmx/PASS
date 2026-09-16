@@ -82,6 +82,8 @@ class Config:
             raw0 = json.load(f)
             from PASS.validation.files import resolve_input_paths
             resolve_input_paths(raw0, path0.resolve().parent)
+            from PASS.para.schema.wake_field import expand_wake_configurations
+            expand_wake_configurations(raw0)
             space_charge0, space_charge_count0 = self._load_space_charge(raw0)
             data0 = convert_keys_to_lower(raw0)
 
@@ -92,6 +94,7 @@ class Config:
             with open(path1, 'r', encoding='utf-8-sig') as f:
                 raw1 = json.load(f)
                 resolve_input_paths(raw1, path1.resolve().parent)
+                expand_wake_configurations(raw1)
                 space_charge1, space_charge_count1 = self._load_space_charge(raw1)
                 data1 = convert_keys_to_lower(raw1)
 

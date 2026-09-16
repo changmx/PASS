@@ -7,6 +7,51 @@ groups have independent source histories or mode states. CPU and CUDA execution
 are described here; numerical validation is recorded in the
 repository's wake validation report.
 
+Shared configuration and wake points
+------------------------------------
+
+The optional root-level ``Wake field`` block contains ``Enabled`` (default true)
+and ``Configurations``, a mapping from unique names to objects containing
+``Groups``. A wake point supplies either its inline ``Groups`` or a
+``Configuration`` reference, exclusively. ``S (m)``, ``Slice set`` and
+``Is enabled`` remain per-point parameters. Both enable switches must be true
+for a point to execute. Without a root block, existing inline commands behave
+as before.
+
+Configurations share input parameters only. Loading the input expands each
+reference into an independent definition; each physical point constructs its
+own models, histories and solver state. Disabling the module does not permit
+invalid configurations or missing references. File paths in shared definitions
+are resolved relative to the input JSON, as for inline definitions.
+
+For example, a root block and a corresponding entry inside ``Sequence`` are::
+
+   "Wake field": {
+       "Enabled": true,
+       "Configurations": {
+           "pipe": {"Groups": [{
+               "Name": "longitudinal", "Solver": "direct", "History": "none",
+               "Components": [{
+                   "Component": "longitudinal", "Velocity": {"Kind": "ideal"},
+                   "Model": {"Kind": "constant", "Amplitude": 1e12, "Duration (s)": 1e-6}
+               }]
+           }]}
+       }
+   },
+   "Sequence": {
+       "wake_1": {"Command": "WakeField", "S (m)": 1.0,
+                  "Slice set": "wake", "Configuration": "pipe", "Is enabled": true}
+   }
+
+This is an interface fragment: supply Injection, optics and the matching Slicer
+before the wake point. The constant model is illustrative, not a prescribed
+machine impedance. The Python API exports ``WakeFieldConfig`` and
+``WakeResourceConfig``; pass ``wake_field=WakeFieldConfig(...)`` to
+``generate_input``. ``load_input`` returns an expanded inline sequence so that
+its two-value return contract does not lose the shared definitions. Direct
+low-level command construction requires an inline definition; use
+``resolve_wake_point`` when starting from a named configuration.
+
 Physical scope and conventions
 ------------------------------
 
@@ -151,8 +196,8 @@ frequencies and damping remain fixed. No universal beta multiplier is applied.
 Explicit algorithm groups
 -------------------------
 
-Top-level fields are ``S (m)``, ``Command="WakeField"``, ``Slice set``,
-``Groups`` and ``Is enabled``. Groups have unique ``Name`` values and nonempty
+Command fields are ``S (m)``, ``Command="WakeField"``, ``Slice set``,
+``Groups`` or ``Configuration``, and ``Is enabled``. Groups have unique ``Name`` values and nonempty
 ``Components`` lists. Each component selects ``Component``, ``Model``,
 ``Velocity``, optional ``Scale`` and ``Field content``.
 

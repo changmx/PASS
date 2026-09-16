@@ -5,6 +5,45 @@ WakeField
 一个物理位置，各算法组分别保存源历史或模式状态。本页说明 CPU 与 CUDA 实现，
 数值验证结果见仓库的尾场验证报告。
 
+共享配置与尾场点
+----------------
+
+可选根级 ``Wake field`` 包含 ``Enabled``（默认 true）及 ``Configurations``，
+后者将唯一配置名称映射到含 ``Groups`` 的对象。尾场点在内联 ``Groups`` 与
+``Configuration`` 引用之间二选一；``S (m)``、``Slice set``、``Is enabled``
+仍在各点设置。总开关与单点开关均为 true 才执行。没有根级块时，旧内联命令
+保持原有行为。
+
+配置仅共享输入参数。加载输入时将每个引用展开为独立定义，每个物理点分别创建
+模型、历史及求解状态。关闭总开关不能绕过非法配置或缺失引用。共享定义中的文件路径
+与内联定义相同，按输入 JSON 所在目录解析。
+
+根级块及 ``Sequence`` 中对应的点示例::
+
+   "Wake field": {
+       "Enabled": true,
+       "Configurations": {
+           "pipe": {"Groups": [{
+               "Name": "longitudinal", "Solver": "direct", "History": "none",
+               "Components": [{
+                   "Component": "longitudinal", "Velocity": {"Kind": "ideal"},
+                   "Model": {"Kind": "constant", "Amplitude": 1e12, "Duration (s)": 1e-6}
+               }]
+           }]}
+       }
+   },
+   "Sequence": {
+       "wake_1": {"Command": "WakeField", "S (m)": 1.0,
+                  "Slice set": "wake", "Configuration": "pipe", "Is enabled": true}
+   }
+
+这只是接口片段，实际输入需补齐 Injection、光学配置及尾场点之前的匹配 Slicer。
+常量模型仅作示例，不代表指定机器的阻抗。Python API 导出 ``WakeFieldConfig``
+和 ``WakeResourceConfig``；向 ``generate_input`` 传入
+``wake_field=WakeFieldConfig(...)``。``load_input`` 返回展开后的内联序列，使其
+二元返回接口不会丢失共享定义。直接构造底层命令仍需内联定义；从命名配置构造时
+先使用 ``resolve_wake_point``。
+
 物理范围与约定
 --------------
 
@@ -106,7 +145,7 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
 保持不变，不施加通用 β 缩放。
 
-顶层字段为 ``S (m)``、``Command="WakeField"``、``Slice set``、``Groups``、
+命令字段为 ``S (m)``、``Command="WakeField"``、``Slice set``、``Groups`` 或 ``Configuration``、
 ``Is enabled``。组名 ``Name`` 必须唯一，``Components`` 不为空。分量包含
 ``Component``、``Model``、``Velocity``，可选 ``Scale`` 与 ``Field content``。
 

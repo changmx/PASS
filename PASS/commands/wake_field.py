@@ -65,6 +65,8 @@ class WakeField(Command):
         values.pop("command", None)
         self.configuration = WakeFieldParameters.model_validate(values)
         wake_cfg = self.configuration
+        if wake_cfg.groups is None:
+            raise ValueError("Named wake configurations must be resolved by Config.load_input before construction")
         self.beam_id, self.s, self.length = beam_id, wake_cfg.s, 0.0
         self.cmd_type, self.is_enabled = "WakeField", wake_cfg.is_enabled
         self.slice_set_name = wake_cfg.slice_set
@@ -132,8 +134,9 @@ class WakeField(Command):
     def _configuration_identity(self):
         # Adding an optional time-grid field must not invalidate checkpoints
         # made with the existing fixed-grid/direct/modal configurations.
-        exclude = {"groups": {"__all__": {"time_grid"}}} if all(
-            g.time_grid is None for g in self.configuration.groups) else None
+        exclude = {"configuration": True}
+        if all(g.time_grid is None for g in self.configuration.groups):
+            exclude["groups"] = {"__all__": {"time_grid"}}
         return hashlib.sha256(self.configuration.model_dump_json(exclude=exclude).encode()).hexdigest()
 
     def execute_cpu(self, sim):
