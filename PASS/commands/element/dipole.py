@@ -1169,10 +1169,18 @@ __device__ PASS_DIPOLE_INLINE void d_kick(pass_real_t& px, pass_real_t& z,
     z -= L * beta_ratio * h * x;
 }
 
+__device__ PASS_DIPOLE_INLINE void d_polar_trig(pass_real_t angle,
+    pass_real_t& sine, pass_real_t& cosine, pass_real_t& sin_half_angle)
+{
+    sincos(angle, &sine, &cosine);
+    sin_half_angle = sin((pass_real_t)0.5 * angle);
+}
+
 __device__ PASS_DIPOLE_INLINE bool d_polar(pass_real_t& x, pass_real_t& px,
     pass_real_t& y, pass_real_t& z, pass_real_t py, pass_real_t dp,
     int& tag, float* lp, int* lt, int i, pass_real_t L, pass_real_t h,
     pass_real_t rho, pass_real_t sin_bend_angle, pass_real_t cos_bend_angle,
+    pass_real_t sin_half_bend_angle,
     pass_real_t beta0, pass_real_t beta_ratio, pass_real_t bg0,
     pass_real_t s0, int turn)
 {
@@ -1205,7 +1213,11 @@ __device__ PASS_DIPOLE_INLINE bool d_polar(pass_real_t& x, pass_real_t& px,
     pass_high_precision_t path_length_factor = (pass_high_precision_t)1 / denominator;
     pass_high_precision_t polar_path_length = (xc + rhoc) * sa
         * inv_pz * path_length_factor;
-    pass_high_precision_t new_x = (xc + rhoc * ((pass_high_precision_t)1 - ca
+    // Match the CPU half-angle identity without subtracting nearby values
+    // or dividing by 1 + cos(theta). Reuse the precomputed half-angle sine.
+    pass_high_precision_t sa2 = (pass_high_precision_t)sin_half_bend_angle;
+    pass_high_precision_t one_minus_cos = (pass_high_precision_t)2 * sa2 * sa2;
+    pass_high_precision_t new_x = (xc + rhoc * (one_minus_cos
         + sa * normalized_px)) * path_length_factor;
     pass_high_precision_t new_px = ca * pxc + sa * pz;
     pass_high_precision_t new_y = (pass_high_precision_t)y + polar_path_length * pyc;
@@ -1221,8 +1233,8 @@ __device__ PASS_DIPOLE_INLINE bool d_rkr_drift(pass_real_t& x,pass_real_t& px,
  pass_real_t& y,pass_real_t& z,pass_real_t py,pass_real_t dp,int& tag,
  float*lp,int*lt,int i,pass_real_t L,pass_real_t h,pass_real_t k0,
  pass_real_t beta0,pass_real_t beta_ratio,pass_real_t bg0,pass_real_t rho,
- pass_real_t sin_first,pass_real_t cos_first,
- pass_real_t sin_middle,pass_real_t cos_middle,
+ pass_real_t sin_first,pass_real_t cos_first,pass_real_t sin_half_first,
+ pass_real_t sin_middle,pass_real_t cos_middle,pass_real_t sin_half_middle,
  pass_real_t s0,int turn){
   if (fabs(L) < PASS_EPS || tag <= 0) return tag > 0;
   if (fabs(h) < PASS_EPS)
@@ -1233,19 +1245,19 @@ __device__ PASS_DIPOLE_INLINE bool d_rkr_drift(pass_real_t& x,pass_real_t& px,
   pass_real_t first_polar_drift = yoshida_z1 * L * (pass_real_t)0.5;
   pass_real_t middle_polar_drift = (yoshida_z1 + yoshida_z0) * L * (pass_real_t)0.5;
   if (!d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
-               first_polar_drift, h, rho, sin_first, cos_first,
+               first_polar_drift, h, rho, sin_first, cos_first, sin_half_first,
                beta0, beta_ratio, bg0, s0, turn)) return false;
   px -= yoshida_z1 * k0 * L;
   if (!d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
-               middle_polar_drift, h, rho, sin_middle, cos_middle,
+               middle_polar_drift, h, rho, sin_middle, cos_middle, sin_half_middle,
                beta0, beta_ratio, bg0, s0, turn)) return false;
   px -= yoshida_z0 * k0 * L;
   if (!d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
-               middle_polar_drift, h, rho, sin_middle, cos_middle,
+               middle_polar_drift, h, rho, sin_middle, cos_middle, sin_half_middle,
                beta0, beta_ratio, bg0, s0, turn)) return false;
   px -= yoshida_z1 * k0 * L;
   return d_polar(x, px, y, z, py, dp, tag, lp, lt, i,
-                 first_polar_drift, h, rho, sin_first, cos_first,
+                 first_polar_drift, h, rho, sin_first, cos_first, sin_half_first,
                  beta0, beta_ratio, bg0, s0, turn);
 }
 
@@ -1303,18 +1315,19 @@ extern "C" __global__ void track_sbend(
     // these values per particle, but evaluate each distinct angle only once.
     pass_real_t rkr_sf1 = 0, rkr_cf1 = 1, rkr_sm1 = 0, rkr_cm1 = 1;
     pass_real_t rkr_sf0 = 0, rkr_cf0 = 1, rkr_sm0 = 0, rkr_cm0 = 1;
+    pass_real_t rkr_shf1 = 0, rkr_shm1 = 0, rkr_shf0 = 0, rkr_shm0 = 0;
     if (fabs(h) > PASS_EPS) {
         pass_real_t rkr_base = h * ds * (pass_real_t)0.25;
         pass_real_t z1 = (pass_real_t)1.3512071919596;
         pass_real_t z0 = (pass_real_t)-1.7024143839193;
         if (PASS_DIPOLE_INTEGRATOR == 0) {
-            sincos(rkr_base * z1, &rkr_sf1, &rkr_cf1);
-            sincos(rkr_base * (z1 + z0), &rkr_sm1, &rkr_cm1);
+            d_polar_trig(rkr_base * z1, rkr_sf1, rkr_cf1, rkr_shf1);
+            d_polar_trig(rkr_base * (z1 + z0), rkr_sm1, rkr_cm1, rkr_shm1);
         } else {
-            sincos(rkr_base * z1 * z1, &rkr_sf1, &rkr_cf1);
-            sincos(rkr_base * z1 * (z1 + z0), &rkr_sm1, &rkr_cm1);
-            sincos(rkr_base * z0 * z1, &rkr_sf0, &rkr_cf0);
-            sincos(rkr_base * z0 * (z1 + z0), &rkr_sm0, &rkr_cm0);
+            d_polar_trig(rkr_base * z1 * z1, rkr_sf1, rkr_cf1, rkr_shf1);
+            d_polar_trig(rkr_base * z1 * (z1 + z0), rkr_sm1, rkr_cm1, rkr_shm1);
+            d_polar_trig(rkr_base * z0 * z1, rkr_sf0, rkr_cf0, rkr_shf0);
+            d_polar_trig(rkr_base * z0 * (z1 + z0), rkr_sm0, rkr_cm0, rkr_shm0);
         }
     }
 #endif
@@ -1353,49 +1366,49 @@ extern "C" __global__ void track_sbend(
         if (alive) alive = d_rkr_drift(
             xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
             d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+            rkr_sf1, rkr_cf1, rkr_shf1, rkr_sm1, rkr_cm1, rkr_shm1, s0, turn);
         if (alive) pxi -= d * k0 * h * xi;
         if (alive) alive = d_rkr_drift(
             xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
             d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+            rkr_sf1, rkr_cf1, rkr_shf1, rkr_sm1, rkr_cm1, rkr_shm1, s0, turn);
 #else
         // RKR outer step; internal polar drift is Yoshida-4.
         pass_real_t d = ds * (pass_real_t)1.3512071919596;
         if (alive) alive = d_rkr_drift(
             xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
             d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+            rkr_sf1, rkr_cf1, rkr_shf1, rkr_sm1, rkr_cm1, rkr_shm1, s0, turn);
         if (alive) pxi -= d * k0 * h * xi;
         if (alive) alive = d_rkr_drift(
             xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
             d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-            rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+            rkr_sf1, rkr_cf1, rkr_shf1, rkr_sm1, rkr_cm1, rkr_shm1, s0, turn);
 
         if (alive) {
             d = ds * (pass_real_t)-1.7024143839193;
             alive = d_rkr_drift(
                 xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
                 d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-                rkr_sf0, rkr_cf0, rkr_sm0, rkr_cm0, s0, turn);
+                rkr_sf0, rkr_cf0, rkr_shf0, rkr_sm0, rkr_cm0, rkr_shm0, s0, turn);
             if (alive) {
                 pxi -= d * k0 * h * xi;
                 alive = d_rkr_drift(
                     xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
                     d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-                    rkr_sf0, rkr_cf0, rkr_sm0, rkr_cm0, s0, turn);
+                    rkr_sf0, rkr_cf0, rkr_shf0, rkr_sm0, rkr_cm0, rkr_shm0, s0, turn);
             }
             d = ds * (pass_real_t)1.3512071919596;
             if (alive) alive = d_rkr_drift(
                 xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
                 d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-                rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+                rkr_sf1, rkr_cf1, rkr_shf1, rkr_sm1, rkr_cm1, rkr_shm1, s0, turn);
             if (alive) {
                 pxi -= d * k0 * h * xi;
                 alive = d_rkr_drift(
                     xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i,
                     d * (pass_real_t)0.5, h, k0, beta0, beta_ratio, bg0, rho,
-                    rkr_sf1, rkr_cf1, rkr_sm1, rkr_cm1, s0, turn);
+                    rkr_sf1, rkr_cf1, rkr_shf1, rkr_sm1, rkr_cm1, rkr_shm1, s0, turn);
             }
         }
 #endif
