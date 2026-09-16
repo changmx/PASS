@@ -15,6 +15,7 @@ This module introduces the various beamline elements supported in PASS.
    multipole
    solenoid
    kicker
+   bump
    elseparator
    exciter
    rfcavity

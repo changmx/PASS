@@ -16,8 +16,8 @@ document or closing the window offers to save unsaved changes.
 
 **Create project from current input** packages the current configuration. Import
 additional JSON files and use the input selector to switch between them. Projects
-copy referenced particle distributions, offset tables, RF tables, and magnet
-ramping files. Original imported JSON and MAD-X TFS files and generator settings
+copy referenced particle distributions, offset tables, RF component programs,
+Bump waveforms, WakeField model files, and magnet ramping files. Original imported JSON and MAD-X TFS files and generator settings
 are retained as sources. Missing inputs identify their JSON location and prevent
 an incomplete project from being saved. Additional source files can be added from
 **Project contents**.
@@ -56,6 +56,12 @@ Inspecting and reusing parameters
 Select a JSON or command to view its parameters and raw text. Copy a value or the
 selected command's JSON to the clipboard. **Copy command into current input**
 also brings its named space-charge configurations, slicers, and file dependencies.
+WakeField copies its referenced Slicer, including conflict-safe slice-set renaming.
+Before copying RFCavity, Bump or WakeField, differing prescribed clocks require a
+choice: retain the target clock, copy the source clock, or cancel. An implicit
+source clock is resolved from its harmonic-ID-zero initial bunch and circumference.
+Copying that clock changes the target's global clock and can affect its existing
+commands. This is not a transfer of tracked beam or wake history.
 Existing names are preserved; conflicting imported names receive numeric suffixes.
 Another project can be opened read-only as a parameter source.
 
