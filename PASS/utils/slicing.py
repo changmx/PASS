@@ -263,12 +263,14 @@ _GPU_STAGE_BEND = r"""
     } else {
         pass_real_t rho=fabs(h)>PASS_EPS?1/h:0,base=h*L/4;
         pass_real_t z1=1.3512071919596578,z0=-1.7024143839193155;
-        pass_real_t sf=sin(base*z1),cf=cos(base*z1),sm=sin(base*(z1+z0)),cm=cos(base*(z1+z0));
+        pass_real_t sf,cf,shf,sm,cm,shm;
+        d_polar_trig(base*z1,sf,cf,shf);
+        d_polar_trig(base*(z1+z0),sm,cm,shm);
         if(action!=2) {
-            alive=d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,sm,cm,s0,turn);
+            alive=d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,shf,sm,cm,shm,s0,turn);
             if(alive) pxi-=L*k0*h*xi;
         }
-        if(action!=1 && alive) d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,sm,cm,s0,turn);
+        if(action!=1 && alive) d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,shf,sm,cm,shm,s0,turn);
     }
 """
 
