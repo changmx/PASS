@@ -3,7 +3,8 @@
 
 本模块介绍 PASS 中的注入命令 **Injection** ，用于在模拟起始位置生成特定粒子分布并注入束流。注入命令支持为每个束团独立设置横向分布、纵向分布、束流参数、偏移等，是粒子模拟的入口环节。
 
-本示例演示如何构建特定粒子分布。本文件中所使用输入文件及运行代码见 `GitHub 示例代码 <https://github.com/changmx/PASS/tree/master/example/01_generate_distribution>`_ 。
+Injection 支持单圈和多圈注入。入射分布、注入时序及横向偏置决定各批粒子进入
+环内的状态；随时间变化的 Bump 磁铁可进一步改变粒子在环内的横向运动。
 
 **代码位置**
 
@@ -11,6 +12,72 @@
 - 类名： ``Injection`` （继承自 ``Command`` ）
 - 注册名： ``injection``
 - 辅助类： ``InjectionBunchInfo`` （同文件，负责单个束团的参数解析与分布生成）
+
+
+.. _zh-longitudinal-reference:
+
+纵向坐标与参考到达时间
+------------------------------------------------
+
+在给定的格架位置，``bunch.t0`` 是束团 b 理想参考粒子的实际通过时刻
+:math:`T_b`。连续存储的纵向坐标是以米表示的时间差：
+
+.. math::
+
+   z_i=\beta_b c(T_b-t_i),\qquad t_i=T_b-\frac{z_i}{\beta_b c}.
+
+z 为正表示早到。理想参考粒子不等于自动重新居中的束团质心，也不保证是稳定的
+RF 同步粒子。不保存粒子级或束团级到达修正状态。六维粒子坐标保持配置的存储精度，
+时间和 RF 中间量使用 float64。局部相位约化不回写 ``p.z``。
+
+参考变换
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+同一物理位置的纯参考变换保持到达时间和机械动量：
+
+.. math::
+
+   z_i'=\frac{\beta_b'}{\beta_b}z_i+\beta_b'c(T_b'-T_b),\qquad
+   p_{x,y}'=p_{x,y}\frac{P_{0,b}}{P_{0,b}'},\qquad
+   \delta_i'=\frac{P_{0,b}(1+\delta_i)}{P_{0,b}'}-1.
+
+注入和重分组在各自实现中完成所需的坐标换算；``PASS/core/bunch.py`` 更新参考能量参数。
+零长度 RF 踢满足 :math:`T_b'=T_b`，
+因此 z 乘以新旧参考速度比。粒子还接受真实 RF 能量增量，这与纯归一化变换不同，
+见 :doc:`element/rfcavity`。
+
+输运按参考飞行时间推进参考事件。长度 L 的精确直线漂移满足
+:math:`\Delta T_b=L/(\beta_b c)`、:math:`\Delta t_i=LE_i/(cP_{s,i})`。
+其他传输映射保留各自声明的近似。本次时间坐标迁移不改变四极铁归一化强度或磁铁映射。
+
+固定宏粒子权重
+--------------
+
+同一束流的所有非空束团必须使用相同的宏粒子代表数，由初始输入中的
+“真实粒子数 / 宏粒子数”确定；不同权重的输入会被拒绝。
+这一固定值适用于所有预先安排的注入批次。注入只激活预留粒子，不按当前粒子数量、
+损失数量或目标束团重新缩放权重。
+
+排序和重分组保留这一标量权重，空束团也保持相同值，不分配逐粒子权重或
+尾场电荷数组。取整后的诊断真实粒子数不用于反推权重。
+Slicer、SpaceCharge 和 WakeField 使用相同且固定的 ``bunch.ratio``，
+仅 ``tag > 0`` 的粒子参与计算。注入和损失只改变存活粒子数，不改变其余粒子的权重。
+
+参考动量变换精度
+----------------
+
+注入粒子的动量偏差按以下公式转换到循环束的参考系：
+
+.. math::
+
+  \delta_{\mathrm{circ}} =
+  \frac{p_{0,\mathrm{inj}}}{p_{0,\mathrm{circ}}}\delta_{\mathrm{inj}}
+  + \frac{p_{0,\mathrm{inj}}-p_{0,\mathrm{circ}}}{p_{0,\mathrm{circ}}}.
+
+这一形式避免了两个接近 1 的数相减。CPU/GPU 共用的注入路径先以 FP64
+计算变换，再按配置的粒子精度保存结果。参考动量相同时，输入 ``dp``
+原样保留，包括很小的 FP32 动量偏差。六维粒子数组仍统一采用配置指定的
+FP32 或 FP64 类型。
 
 
 接口参数
@@ -209,24 +276,24 @@
     - 每核子动能
   * - -
     - ``Number of Real Particles``
-    - float
+    - int
     - -
-    - 真实粒子数
+    - 该束团全部注入事件计划注入的真实粒子总数
   * - -
     - ``Number of Macro Particles``
-    - float
+    - int
     - -
-    - 宏粒子数
+    - 该束团全部注入事件计划注入的宏粒子总数
   * - ``stop_turn``
     - ``Total Injection Turns``
     - int
     - -
-    - 总注入圈数
+    - 从第 0 圈计数、不含端点的停止圈数；正整数，默认 1
   * - ``interval``
     - ``Injection Interval``
     - int
     - -
-    - 注入间隔 （每 ``interval`` 圈注入一次）
+    - 注入间隔，每 ``interval`` 圈注入一次；正整数，默认 1
 
 分布参数
 ~~~~~~~~~~
@@ -247,6 +314,10 @@
     - ``Distribution File Path``
     - str
     - 分布文件路径 （ ``.tfs`` 格式）
+  * - ``load_dist_mode``
+    - ``Distribution File Mode``
+    - str
+    - ``sequential``（默认）按束团连续读取文件行；``repeat`` 在每次注入时从文件开头读取
   * - ``is_save_init_dist``
     - ``Is Save Initial Distribution``
     - bool
@@ -254,7 +325,7 @@
   * - ``insert_particles``
     - ``Insert Particle Coordinate``
     - list
-    - 插入指定粒子坐标，格式为 ``[[x, px, y, py, z, dp], ...]``
+    - 在偏置施加后替换首批的前若干行，格式为 ``[[x, px, y, py, z, dp], ...]``；这些粒子计入计划总数
 
 偏移参数
 ~~~~~~~~~~
@@ -293,6 +364,100 @@
     - ``Offset Momentum (rad)``
     - float
     - 动量偏移量
+
+
+.. _zh-multiturn-injection:
+
+多圈注入与横向涂抹
+------------------
+
+注入时序与粒子数量
+~~~~~~~~~~~~~~~~~~
+
+每个束团独立设置注入时序。令 ``Total Injection Turns`` 为 :math:`T`，
+``Injection Interval`` 为 :math:`\Delta n`，则注入发生在
+
+.. math::
+
+   n_k=k\Delta n<T,\qquad
+   k=0,\ldots,N_{\mathrm{event}}-1,\qquad
+   N_{\mathrm{event}}=\left\lceil\frac{T}{\Delta n}\right\rceil.
+
+停止圈数本身不包含在注入事件内。``Number of Macro Particles`` 是该束团计划
+注入的宏粒子总数 :math:`N`。每批分配 :math:`\lfloor N/N_{\mathrm{event}}\rfloor`
+个粒子，余数全部加入首批；分配数为零的事件不增加粒子。
+模拟必须执行所有分配了粒子的事件，才能注入完整的粒子数量。对于启用了
+``Is Save Initial Distribution`` 的非空注入源，分布仍在最后一个计划事件
+保存，即使该事件不增加粒子。全部粒子注入完毕且所有请求的保存成功后，
+后续 Injection 调用立即返回，不再搜索注入时间表或记录额外圈号。
+
+预留粒子的 ``tag=0``，不参与跟踪、电荷沉积和统计，也不计为损失。
+每次注入只激活当前批次。``tag>0`` 表示存活，``tag<0`` 表示损失并保留损失处
+的坐标。已注入粒子的身份 ``abs(tag)`` 在排序和损失后保持不变。
+前述固定宏粒子权重在注入及后续存储期间始终保持不变。
+
+注入批次标记粒子进入环内的时刻。纵向束团分组由 ``Harmonic Number`` 和
+``Harmonic ID of this bunch`` 单独定义。完成注入后不再加载新粒子，
+已有环流粒子继续通过晶格元件，并受到仍然生效的磁铁波形作用。
+
+入射分布与偏置
+~~~~~~~~~~~~~~
+
+当 ``Is Load Distribution from File=true`` 时，每个束团读取自己的 TFS 文件，
+其中必须包含 ``x``、``px``、``y``、``py``、``z``、``dp`` 六列。位置单位为米，
+动量使用指定注入参考动量归一化。``Distribution File Mode`` 控制行的选取：
+
+* ``sequential``：各次注入依次读取连续行，文件至少应包含该束团计划注入的总行数。
+* ``repeat``：每次均从第零行开始读取本批所需的行数，文件至少应容纳最大批次。
+  重复使用源坐标仍会生成身份不同的新粒子。
+
+未启用文件加载时，Injection 按所选横向和纵向分布生成各批粒子。
+生成与加载的粒子都会施加配置的水平色散及 ``Offset x`` / ``Offset y``；
+这些偏置仅在注入时施加。文件偏置根据 ``turn`` 或 ``time (s)`` 列，在当前
+注入圈号或入射参考粒子通过时间处线性插值。位置与动量列分别为
+``x (m)`` / ``px (rad)`` 或 ``y (m)`` / ``py (rad)``。
+节点必须严格递增、数值必须有限，时间范围必须覆盖所有需要查询的注入事件。
+
+``Insert Particle Coordinate`` 在上述偏置施加后、转换到环流参考系之前，
+替换首批的前若干行；首批必须有足够的行数容纳这些指定粒子。
+文件行数不足、坐标含非有限值或纵向动量非正时，会在激活该批之前报错。
+
+即使环流束已经加速，入射物理动量仍由指定的注入能量决定。
+Injection 在保持物理动量和到达时间的条件下，将入射动量及纵向坐标转换到
+目标束团参考系，定义见 :ref:`zh-longitudinal-reference`。
+
+Bump 磁铁与横向涂抹
+~~~~~~~~~~~~~~~~~~~
+
+涂抹注入通过逐批改变入射束的位置和动量、环流轨道，或同时改变两者，
+使注入粒子逐步填充横向相空间。``Offset x`` 和 ``Offset y`` 指定注入点处
+的入射束坐标；:doc:`element/bump` 在环上施加水平和垂直脉冲磁铁踢。
+所有经过 Bump 的存活粒子都会受力，包括先前批次已经注入的粒子。
+
+入射坐标与 Bump 追踪使用同一套固定机器坐标。应分别指定注入面处的入射中心
+和实际磁铁波形；轨道位移本身不等于磁铁踢角。
+逐粒子时间模式在 :math:`t_i=t_0-z_i/(\beta_0c)` 加上 ``Time offset (s)``
+后查询波形，表格应覆盖需要偏转的粒子的到达时间。
+参考时间模式、插值和脉冲边界行为见 Bump 文档。
+
+Injection 在注入面生成或加载粒子，并施加指定偏置。后续输运和损失检查
+由晶格元件执行。其中 :doc:`element/elseparator` 在粒子实际通过该元件时
+计算静电偏转以及与电极或真空壁的接触。在 ES 出口给定的粒子从该平面
+开始追踪，Injection 不额外施加几何接受截断。
+
+注入过程的观测
+~~~~~~~~~~~~~~
+
+在需要的观察位置和圈数配置 :doc:`monitor/distmonitor`，保存已经注入的粒子。
+在 :math:`s=0` 处，Injection 先于监视器执行，因此快照包含当前批次。
+开启 ``Include injection metadata`` 后，输出增加 ``particle_id``、
+``injection_turn`` 和 ``injection_batch``。圈号和批次从零开始；每个源束团
+独立编号批次，逐粒子匹配应使用 ``particle_id``。
+
+``Output format=tfs`` 和 ``Output format=hdf5`` 均排除预留位置、保留损失粒子，
+并记录 ``NumPending``。分析监视器处的存活相空间时，应选择 ``tag>0``；
+损失粒子的坐标属于其损失位置。环流粒子数及统计矩的演化可用
+:doc:`monitor/statmonitor` 观测。
 
 
 粒子分布类型简介
@@ -537,27 +702,25 @@
 多束团纵向坐标
 ~~~~~~~~~~~~~~
 
-PASS 将粒子数组中的 ``z`` 定义为相对所属束团中心的坐标 :math:`z_{\mathrm{rel}}` 。每个束团的固定实验室坐标中心由分组编号给出：
+源分布的 z 表示相对于源参考粒子的米制时间差，:math:`z_s=\beta_s c(T_s-t_i)`。
+源参考事件由规定机器时钟、注入圈号和槽位选择，初始时刻也可显式指定，见
+:ref:`zh-reference-clock`。写入目标束团前应用
 
 .. math::
 
-  z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},
-  \qquad
-  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.
+   z_d=\frac{\beta_d}{\beta_s}z_s+\beta_d c(T_d-T_s).
 
-注入过程不再把束团中心平移进粒子 ``z`` 数组，也不按奇偶谐波采用不同公式。生成的纵向分布直接作为 :math:`z_{\mathrm{rel}}` 保存。
+机械动量同时重归一化，物理时间和动量不变。z 不做环周折叠。
+RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 
-若分布参数定义在 RF 腔位置 :math:`s=s_{\mathrm{rf}}` ，注入时仅执行一次线性逆向传播：
+名义槽位位置在写日志或输出时由 ``harmonic_id*C/harmonic_number`` 计算，
+不保存 ``bunch.z_center`` 属性。现有 ``ZCenter``/``zCenter`` 输出字段继续
+记录此派生元数据，下图中的 ``z_center`` 也表示该名义位置。
+它与 ``slice_table['z_center']`` 不同：后者保存各切片区间的中心，供切片和尾场计算使用。
 
-.. math::
-
-  z_{\mathrm{rel}}(0)
-  = z_{\mathrm{rel}}(s_{\mathrm{rf}})
-  + \eta s_{\mathrm{rf}}\delta,
-  \qquad
-  \eta = \frac{1}{\gamma_t^2}-\frac{1}{\gamma^2}.
-
-注入过程不对 :math:`z_{\mathrm{rel}}` 做环周折叠。RFCavity 等需要绝对到达相位的元件会自行使用 :math:`z_{\mathrm{lab}}`。
+若匹配分布在距注入点 :math:`s_{rf}` 的 RF 位置定义，初始化仍采用线性逆传播
+:math:`z(0)=z(s_{rf})+\eta s_{rf}\delta`，其中
+:math:`\eta=1/\gamma_t^2-1/\gamma^2`。这属于声明的线性分布近似。
 
 束团填充方案
 ~~~~~~~~~~~~~~
@@ -571,7 +734,7 @@ PASS 将粒子数组中的 ``z`` 定义为相对所属束团中心的坐标 :mat
    - **全填充** ：所有分组都包含非零宏粒子，中心依次位于 :math:`0,C/h_{\mathrm{group}},\ldots,(h_{\mathrm{group}}-1)C/h_{\mathrm{group}}`
    - **部分填充** ：保留完整的分组编号，但将未填充槽位对应束团的宏粒子数设为 0
 
-下图为环形布局下的束团分组示例。圆环代表加速器周长 :math:`C` ，标记点为 :math:`z_{\mathrm{center}}` 。分组编号按顺时针方向递增。上图为 :math:`h_{\mathrm{group}}=4` 全填充；下图为 :math:`h_{\mathrm{group}}=5` 部分填充，其中分组 1、3、4 由空束团占位：
+下图为环形布局下的束团分组示例。圆环代表加速器周长 :math:`C` ，标记点为名义槽位 :math:`z_{\mathrm{center}}` 。分组编号按顺时针方向递增。上图为 :math:`h_{\mathrm{group}}=4` 全填充；下图为 :math:`h_{\mathrm{group}}=5` 部分填充，其中分组 1、3、4 由空束团占位：
 
 .. raw:: html
 
@@ -901,13 +1064,8 @@ PASS 将粒子数组中的 ``z`` 定义为相对所属束团中心的坐标 :mat
   }
 
 
-运行命令
---------
-
-.. code-block:: bash
-
-  cd PASS\example\01_generate_distribution
-  python run.py --beam0=./beam0.json
+分布类型选择
+------------
 
 根据上面的输入文件，将生成在横向满足 Gaussian 分布，在纵向满足 MatchZ 分布的束团。修改下面这两行参数，可调整生成的束团分布类型：
 

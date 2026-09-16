@@ -5,6 +5,7 @@ from PASS.core.config import Config
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
+from PASS.core.particle import ParticlePool
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
@@ -20,12 +21,64 @@ import random
 from scipy.optimize import brentq
 from scipy.integrate import dblquad
 import os
+from types import SimpleNamespace
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class InjectionBatch:
+    """One successfully injected ID interval, independent of current bunch grouping."""
+
+    first_id: int
+    count: int
+    turn: int
+    index: int
+
+
+class InjectionState:
+    """Injection-owned reservations and batch history, attached to the beam.
+
+    Only pending particles need a separate identity map: their tag is zero.
+    Once every batch is injected, abs(tag) supplies identity and the map is
+    released. Birth information is stored once per batch, never in ParticlePool.
+    """
+
+    def __init__(self, count, xp):
+        self.remaining = count
+        self.reserved_ids = xp.arange(1, count + 1, dtype=xp.int32) if count else None
+        self.batches = []
+
+    def reorder(self, permutation):
+        if self.reserved_ids is not None:
+            self.reserved_ids = self.reserved_ids[permutation]
+
+    def record_batch(self, first_id, count, turn, index):
+        self.batches.append(InjectionBatch(first_id, count, turn, index))
+        self.remaining -= count
+        if self.remaining == 0:
+            self.reserved_ids = None
+
+    def snapshot(self, tags):
+        """Build optional host-side output columns from signed tags and batch ranges."""
+        ids = np.abs(np.asarray(tags))
+        turns = np.full(ids.shape, -1, dtype=np.int32)
+        indices = np.full(ids.shape, -1, dtype=np.int32)
+        batches = sorted(self.batches, key=lambda batch: batch.first_id)
+        if batches:
+            first = np.array([batch.first_id for batch in batches], dtype=np.int64)
+            end = first + np.array([batch.count for batch in batches], dtype=np.int64)
+            slot = np.searchsorted(first, ids, side="right") - 1
+            valid = (slot >= 0) & (ids < end[np.maximum(slot, 0)])
+            turns[valid] = np.array([batch.turn for batch in batches], dtype=np.int32)[slot[valid]]
+            indices[valid] = np.array([batch.index for batch in batches], dtype=np.int32)[slot[valid]]
+        return {"particle_id": ids, "injection_turn": turns, "injection_batch": indices}
+
+
 @Command.register("injection")
 class Injection(Command):
+    """Create incoming batches; lattice elements own transport and material losses."""
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
         kwargs = {k.lower(): v for k, v in command_kwargs.items()}
@@ -69,6 +122,12 @@ class Injection(Command):
                 self.random_seed = abs(self.random_seed)
             self.rng = random.Random(self.random_seed)
 
+        self._executed = set()
+        self._completed_batches = set()
+        self._finished = False
+        beam = sim.beams[self.beam_id]
+        if getattr(beam, "injection_state", None) is None:
+            beam.injection_state = InjectionState(len(beam.particles.tag), beam.particles.xp)
         super().__init__()
 
     def print(self):
@@ -85,119 +144,120 @@ class Injection(Command):
         return self._execute(sim)
 
     def _execute(self, sim: Simulation):
-        cfg = sim.cfg
-        beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
-        state = sim.state
-
-        use_cpu = cfg.use_cpu
-        turn = state.turn
+        if self._finished:
+            return False
+        beam, turn = sim.beams[self.beam_id], int(sim.state.turn)
+        if turn in self._executed:
+            return False
+        p, xp = beam.particles, beam.particles.xp
+        state = beam.injection_state
         did_execute = False
-
-        for i in range(len(self.inj_bunchs)):
-            inj_bunch = self.inj_bunchs[i]
-            if turn not in inj_bunch.inj_turns:
+        for source in self.inj_bunchs:
+            if turn not in source.inj_turns or not source.planned_count:
                 continue
-            bunch_info = bunches[i]
-            Np = bunch_info.Np
-            if Np == 0:
-                # Empty bunch (declared by the beam harmonic number but with
-                # no particles): skip generation; the reference parameters
-                # still evolve through the RF cavity each turn.
-                continue
-            did_execute = True
-            total_inj_turns = len(inj_bunch.inj_turns)
-            inj_bunch.Np_inj_curTurn = int(Np / total_inj_turns)
-            logger.info(f"total injection turns = {total_inj_turns}, Np_inj_curTurn = {inj_bunch.Np_inj_curTurn}")
-            if (turn == inj_bunch.inj_turns[0] and inj_bunch.Np_inj_curTurn * total_inj_turns != Np):
-                inj_bunch.Np_inj_curTurn += (Np - inj_bunch.Np_inj_curTurn * total_inj_turns)
-                logger.info(
-                    f"[Injection] Since the total number of particles {Np} cannot be divided exactly by the number of injection turns {total_inj_turns}, we will inject {inj_bunch.Np_inj_curTurn} particles in the first turn and {Np / total_inj_turns} particles in the rest turns."
-                )
+            batch = int(np.searchsorted(source.inj_turns, turn))
+            count = source.planned_count // len(source.inj_turns)
+            if batch == 0:
+                count += source.planned_count % len(source.inj_turns)
+            if count > 0 and (source.bunch_id, turn) not in self._completed_batches:
+                first = source.first_id + source.Np_injected
+                if state.reserved_ids is None:
+                    raise ValueError("Injection reservations have already been consumed")
+                destination = xp.flatnonzero((state.reserved_ids >= first) & (state.reserved_ids < first + count))
+                # Keep input row -> ID association, even after SortBunch.
+                destination = destination[xp.argsort(state.reserved_ids[destination])]
+                if len(destination) != count or bool(xp.any(p.tag[destination] != 0)):
+                    raise ValueError("Injection reservation is missing or already active")
 
-            if inj_bunch.is_load_dist:
-                self._load_dist(inj_bunch, bunch_info, beam, use_cpu)
-            else:
-                if inj_bunch.dist_trans.lower() == "kv":
-                    self._generate_trans_kv_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_trans.lower() == "gaussian":
-                    self._generate_trans_gaussian_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_trans.lower() == "uniform":
-                    self._generate_trans_uniform_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_trans.lower() == "waterbag":
-                    self._generate_trans_waterbag_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_trans.lower() == "parabolic":
-                    self._generate_trans_parabolic_dist(inj_bunch, bunch_info, beam, use_cpu)
+                # Generate one batch in isolation. All generators retain their local
+                # contiguous-array contract; no circulating particle can be overwritten.
+                work = copy.copy(source)
+                work.Np_injected, work.Np_inj_curTurn = 0, count
+                work.file_start = source.Np_injected
+                work.current_turn = turn
+                injection_time = beam.reference_program.inverse_integral(
+                    float(turn)-source.harmonic_id/source.harmonic_number)
+                if source.reference_arrival_time is not None:
+                    injection_time += source.reference_arrival_time-beam.reference_program.inverse_integral(
+                        -source.harmonic_id/source.harmonic_number)
+                work.current_time = injection_time
+                particles = ParticlePool(count, np, dtype=p.dtype)
+                scratch = SimpleNamespace(particles=particles)
+                local = SimpleNamespace(start_idx=0, end_idx=count)
+                if work.is_load_dist:
+                    self._load_dist(work, local, scratch, True)
                 else:
-                    raise ValueError(f"We don't support transverse distribution: {inj_bunch.dist_trans}")
+                    transverse = {"kv": "kv", "gaussian": "gaussian", "uniform": "uniform",
+                                  "waterbag": "waterbag", "parabolic": "parabolic"}
+                    longitudinal = {"gaussian": "gaussian", "coasting": "coasting",
+                                    "matchz": "matchZ", "matchdp": "matchDp"}
+                    if work.dist_trans not in transverse or work.dist_longi not in longitudinal:
+                        raise ValueError("Unsupported injection distribution")
+                    getattr(self, "_generate_trans_" + transverse[work.dist_trans] + "_dist")(work, local, scratch, True)
+                    getattr(self, "_generate_longi_" + longitudinal[work.dist_longi] + "_dist")(work, local, scratch, True)
+                self._add_offset(work, local, scratch, True)
+                if batch == 0 and work.is_insert_particles:
+                    if work.num_insert_particles > count:
+                        raise ValueError("Manual particles exceed the first injection batch")
+                    self._insert_particles(work, local, scratch, True)
+                matrix = np.column_stack([getattr(particles, name) for name in ("x", "px", "y", "py", "z", "dp")])
+                if not np.all(np.isfinite(matrix)):
+                    raise ValueError("Injection coordinates must be finite")
+                if np.any((particles.dp <= -1) | ((1 + particles.dp)**2 <= particles.px**2 + particles.py**2)):
+                    raise ValueError("Injection requires a real positive longitudinal momentum")
 
-                if inj_bunch.dist_longi.lower() == "gaussian":
-                    self._generate_longi_gaussian_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_longi.lower() == "coasting":
-                    self._generate_longi_coasting_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_longi.lower() == "matchz":
-                    self._generate_longi_matchZ_dist(inj_bunch, bunch_info, beam, use_cpu)
-                elif inj_bunch.dist_longi.lower() == "matchdp":
-                    self._generate_longi_matchDp_dist(inj_bunch, bunch_info, beam, use_cpu)
-                else:
-                    raise ValueError(f"We don't support longitudinal distribution: {inj_bunch.dist_longi}")
-
-            self._add_offset(inj_bunch, bunch_info, beam, use_cpu)
-
-            inj_bunch.Np_injected += inj_bunch.Np_inj_curTurn
-
-            if turn == inj_bunch.inj_turns[0]:
-                if inj_bunch.is_insert_particles:
-                    self._insert_particles(inj_bunch, bunch_info, beam, use_cpu)
-
-            if turn == inj_bunch.inj_turns[-1]:
-                if inj_bunch.is_save_init_dist:
-                    self._save_init_dist(inj_bunch, bunch_info, beam, cfg)
-
+                # The incoming beam keeps its specified energy while the circulating
+                # reference may have accelerated. Convert momentum exactly once.
+                for bunch in beam.bunches:
+                    selected = (destination >= bunch.start_idx) & (destination < bunch.end_idx)
+                    dest = destination[selected]
+                    rows = np.asarray(selected) if xp is np else selected.get()
+                    factor = source.p0 / bunch.p0
+                    for name in ("x", "y"):
+                        getattr(p, name)[dest] = xp.asarray(getattr(particles, name)[rows])
+                    for name in ("px", "py"):
+                        getattr(p, name)[dest] = xp.asarray(getattr(particles, name)[rows] * factor)
+                    # Keep small momentum deviations when reference momenta are
+                    # equal or nearly equal; cast only after the stable transform.
+                    incoming_delta = particles.dp[rows].astype(np.float64, copy=False)
+                    reference_delta = (source.p0 - bunch.p0) / bunch.p0
+                    p.dp[dest] = xp.asarray(incoming_delta * factor + reference_delta)
+                    p.z[dest] = xp.asarray(particles.z[rows].astype(np.float64)*(bunch.beta/source.beta)
+                        + bunch.beta*const.c*(bunch.t0-injection_time))
+                p.tag[destination] = state.reserved_ids[destination]
+                p.lost_turn[destination], p.lost_position[destination] = -1, -1
+                state.record_batch(first, count, turn, batch)
+                source.Np_injected += count
+                self._completed_batches.add((source.bunch_id, turn))
+                source.Np_inj_curTurn = count
+                did_execute = True
+            # A zero-size final event still owns the requested save. Keep it
+            # separate from activation so a failed save can also be retried.
+            if (turn == source.inj_turns[-1] and source.is_save_init_dist
+                    and not source._saved_init_dist):
+                self._save_init_dist(source, beam.bunches[source.bunch_id], beam, sim.cfg)
+                source._saved_init_dist = True
+                did_execute = True
+        self._executed.add(turn)
+        self._finished = all(
+            source.Np_injected == source.planned_count
+            and (not source.planned_count or not source.is_save_init_dist or source._saved_init_dist)
+            for source in self.inj_bunchs
+        )
         return did_execute
 
-    def _load_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
-
+    def _load_dist(self, inj_bunch, bunch_info, beam, use_cpu):
         path = Path(inj_bunch.load_dist_filepath)
-        if not path.exists():
-            raise FileNotFoundError(f"Input file not found: {path}")
-
-        logger.info(f"Start loading data from file: {path} ...")
-
         df = tfs.read(path)
-        x = df["x"].to_numpy()
-        px = df["px"].to_numpy()
-        y = df["y"].to_numpy()
-        py = df["py"].to_numpy()
-        z = df["z"].to_numpy()
-        dp = df["dp"].to_numpy()
-
-        len_input = len(x)
-
-        start_index = bunch_info.start_idx + inj_bunch.Np_injected
-        end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-
-        copy_start = start_index
-        copy_end = min(end_index, len_input)
-
-        if copy_start >= len_input:
-            logger.warning(f"No more particles to inject from file {path}. Start index {copy_start} beyond file length {len_input}")
-        else:
-            df_start = copy_start
-            df_end = copy_end
-
-            p = beam.particles
-            p.x[copy_start:copy_end] = p.xp.asarray(x[df_start:df_end])
-            p.px[copy_start:copy_end] = p.xp.asarray(px[df_start:df_end])
-            p.y[copy_start:copy_end] = p.xp.asarray(y[df_start:df_end])
-            p.py[copy_start:copy_end] = p.xp.asarray(py[df_start:df_end])
-            p.z[copy_start:copy_end] = p.xp.asarray(z[df_start:df_end])
-            p.dp[copy_start:copy_end] = p.xp.asarray(dp[df_start:df_end])
-
-            if copy_end < end_index:
-                logger.warning(f"Only copy particles {copy_start}-{copy_end} from file: {path}")
-
-        logger.info("Successfully")
+        fields = ("x", "px", "y", "py", "z", "dp")
+        values = df[list(fields)].to_numpy(dtype=float)
+        start = 0 if inj_bunch.load_dist_mode == "repeat" else inj_bunch.file_start
+        end = start + inj_bunch.Np_inj_curTurn
+        if end > len(values):
+            raise ValueError(f"Distribution {path} needs {end} rows; found {len(values)}")
+        for col, name in enumerate(fields):
+            getattr(beam.particles, name)[:] = values[start:end, col]
+        beam.particles.dp[:] += inj_bunch.ddp
 
     def _generate_trans_kv_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         # This menthod is derived from "Particle - in - cell code BEAMPATH for beam dynamics simulations in linear accelerators and beamlines"
@@ -935,22 +995,29 @@ class Injection(Command):
         eta = inj_bunch.getInitEta()
         z_arr += eta * inj_bunch.rf_position * dp_arr
 
-    def _add_offset(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
-        """Apply transverse dispersion coupling: x += dp*dx, px += dp*dpx."""
-        dx = inj_bunch.dx
-        dpx = inj_bunch.dpx
-        if dx == 0.0 and dpx == 0.0:
-            return
-
-        start_index = bunch_info.start_idx + inj_bunch.Np_injected
-        end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-
+    def _add_offset(self, inj_bunch, bunch_info, beam, use_cpu):
         p = beam.particles
-        xp = p.xp
-
-        dp_slice = p.dp[start_index:end_index]
-        p.x[start_index:end_index] += xp.asarray(dx * dp_slice)
-        p.px[start_index:end_index] += xp.asarray(dpx * dp_slice)
+        start = bunch_info.start_idx + inj_bunch.Np_injected
+        end = start + inj_bunch.Np_inj_curTurn
+        sl = slice(start, end)
+        p.x[sl] += inj_bunch.dx * p.dp[sl]
+        p.px[sl] += inj_bunch.dpx * p.dp[sl]
+        for axis in ("x", "y"):
+            if not getattr(inj_bunch, "is_offset_" + axis, False):
+                continue
+            position = getattr(inj_bunch, "offset_" + axis + "_position")
+            momentum = getattr(inj_bunch, "offset_" + axis + "_momentum")
+            if getattr(inj_bunch, "is_offset_" + axis + "_fromfile"):
+                nodes = getattr(inj_bunch, "offset_" + axis + "_time")
+                kind = getattr(inj_bunch, "offset_" + axis + "_timekind")
+                when = inj_bunch.current_turn if kind == "turn" else inj_bunch.current_time
+                if when < nodes[0] or when > nodes[-1]:
+                    raise ValueError(f"Injection offset {axis} does not cover {kind}={when}")
+                position, momentum = np.interp(when, nodes, position), np.interp(when, nodes, momentum)
+            else:
+                position, momentum = position[0], momentum[0]
+            getattr(p, axis)[sl] += position
+            getattr(p, "p" + axis)[sl] += momentum
 
     def _insert_particles(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         logger.info(f"Inserting specified particles to beam{self.beam_id} bunch{inj_bunch.bunch_id} ...")
@@ -989,6 +1056,12 @@ class InjectionBunchInfo:
         cfg = sim.cfg
         bunch: BunchInfo = sim.beams[beam_id].bunches[bunch_id]
 
+        self.planned_count = bunch.Np
+        self.first_id = bunch.start_idx + 1
+        self.p0 = bunch.p0
+        self.reference_arrival_time = kwargs.get("reference arrival time (s)")
+        self.harmonic_id = bunch.harmonic_id
+        self.harmonic_number = bunch.harmonic_number
         self.beam_id = beam_id
         self.bunch_id = bunch_id
         self.Ek = bunch.Ek
@@ -1005,6 +1078,8 @@ class InjectionBunchInfo:
         self.start_turn = 0
         self.stop_turn = int(kwargs["total injection turns"])
         self.interval = int(kwargs["injection interval"])
+        if self.stop_turn < 1 or self.interval < 1:
+            raise ValueError("Injection turns and interval must be positive")
         self.inj_turns = np.arange(self.start_turn, self.stop_turn, self.interval, dtype=int)
         self.alphax = kwargs["alpha x"]
         self.alphay = kwargs["alpha y"]
@@ -1049,7 +1124,11 @@ class InjectionBunchInfo:
         self.ddp = ddp
         self.is_load_dist = kwargs.get("is load distribution from file", False)
         self.load_dist_filepath = kwargs.get("distribution file path", None)
+        self.load_dist_mode = kwargs.get("distribution file mode", "sequential")
+        if self.load_dist_mode not in {"sequential", "repeat"}:
+            raise ValueError("Distribution File Mode must be sequential or repeat")
         self.is_save_init_dist = kwargs.get("is save initial distribution", True)
+        self._saved_init_dist = False
 
         self.num_insert_particles = len(kwargs["insert particle coordinate"])
         self.is_insert_particles = self.num_insert_particles > 0
@@ -1380,4 +1459,8 @@ def _read_offset_fromfile(file_path: str, direction: str):
     if momentum_arr is None:
         raise KeyError(f"No 'px' or 'py' colums were found in file {file_path}")
 
+    if (len(time_arr) == 0 or not np.all(np.isfinite(time_arr))
+            or np.any(np.diff(time_arr) <= 0)
+            or not np.all(np.isfinite(position_arr)) or not np.all(np.isfinite(momentum_arr))):
+        raise ValueError("Injection offset requires finite values and strictly increasing nodes")
     return time_arr, position_arr, momentum_arr, time_kind

@@ -3,7 +3,9 @@ Injection / Particle Generation
 
 This module introduces the **Injection** command in PASS, which is used to generate specific particle distributions at the simulation starting position and inject the beam. The injection command supports independently setting transverse distribution, longitudinal distribution, beam parameters, offsets, etc. for each bunch, and is the entry point for particle simulation.
 
-This example demonstrates how to construct specific particle distributions. The input files and running code used in this document can be found in `GitHub example code <https://github.com/changmx/PASS/tree/master/example/01_generate_distribution>`_ .
+Injection supports single-turn and multi-turn operation. The incoming distribution,
+injection schedule and transverse offsets determine how each batch enters the ring;
+time-dependent Bump magnets can vary its subsequent transverse motion.
 
 **Code location**
 
@@ -11,6 +13,84 @@ This example demonstrates how to construct specific particle distributions. The 
 - Class name: ``Injection`` (inherited from ``Command`` )
 - Registration name: ``injection``
 - Auxiliary class: ``InjectionBunchInfo`` (same file, responsible for parameter parsing and distribution generation of a single bunch)
+
+
+.. _en-longitudinal-reference:
+
+Longitudinal coordinate and reference time
+------------------------------------------------
+
+At a specified lattice location, ``bunch.t0`` is the actual passage time
+:math:`T_b` of the ideal reference particle of bunch b. The stored, continuous
+coordinate is a time difference expressed in metres:
+
+.. math::
+
+   z_i=\beta_b c(T_b-t_i),\qquad t_i=T_b-\frac{z_i}{\beta_b c}.
+
+Positive z means earlier arrival. The reference particle is neither an
+automatically recentered bunch centroid nor necessarily a stable RF synchronous
+particle. No particle or bunch arrival-correction state is stored. All six
+particle coordinates retain the configured storage precision; timing and RF
+intermediates use float64. Local phase reduction never overwrites ``p.z``.
+
+Reference transformations
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A pure reference change at the same physical location preserves time and
+mechanical momentum:
+
+.. math::
+
+   z_i'=\frac{\beta_b'}{\beta_b}z_i+\beta_b'c(T_b'-T_b),\qquad
+   p_{x,y}'=p_{x,y}\frac{P_{0,b}}{P_{0,b}'},\qquad
+   \delta_i'=\frac{P_{0,b}(1+\delta_i)}{P_{0,b}'}-1.
+
+Injection and regrouping apply the required coordinate conversions locally;
+``PASS/core/bunch.py`` updates the reference energy parameters. For a zero-length
+RF energy kick, :math:`T_b'=T_b`, so z scales by the reference velocity ratio.
+The particle energy also receives the physical RF kick; this is distinct from
+the pure normalization transformation. See :doc:`element/rfcavity`.
+
+Transport advances the reference event by its reference flight time. In an
+exact straight drift of length L, :math:`\Delta T_b=L/(\beta_b c)` and
+:math:`\Delta t_i=LE_i/(cP_{s,i})`. Other transfer maps retain their documented
+approximations. The time-coordinate migration does not change normalized
+quadrupole strengths or magnetic maps.
+
+Fixed macro-particle weights
+----------------------------
+
+All populated bunches within one beam must use the same represented real-particle
+count per macro particle, given by ``Number of Real Particles / Number of Macro
+Particles`` in the initial input. Different input weights are rejected. This
+fixed value applies to every planned injection batch. Injection
+activates reserved particles; it does not rescale their weights according to
+the current population, losses, or destination bunch.
+
+Sorting and regrouping retain this scalar weight, including in empty groups.
+No per-particle weight or wake-charge array is allocated. Rounded diagnostic
+real-particle counts never feed back into the weight. Slicer, SpaceCharge and
+WakeField use the same fixed ``bunch.ratio``; only particles with ``tag > 0``
+contribute. Injection and losses change the active population, never the
+weight of the remaining particles.
+
+Reference-momentum precision
+----------------------------
+
+The incoming momentum deviation is converted to the circulating reference as
+
+.. math::
+
+  \delta_{\mathrm{circ}} =
+  \frac{p_{0,\mathrm{inj}}}{p_{0,\mathrm{circ}}}\delta_{\mathrm{inj}}
+  + \frac{p_{0,\mathrm{inj}}-p_{0,\mathrm{circ}}}{p_{0,\mathrm{circ}}}.
+
+This form avoids subtracting nearly equal unit-sized values. The shared CPU/GPU
+injection path evaluates the conversion in FP64 before storing the result in the
+configured particle precision. Equal reference momenta preserve the incoming
+``dp`` values exactly, including small FP32 deviations. All six particle arrays
+retain their common configured FP32 or FP64 dtype.
 
 
 Interface parameters
@@ -209,24 +289,24 @@ Beam parameters
     - Kinetic energy per nucleon
   * - -
     - ``Number of Real Particles``
-    - float
+    - int
     - -
-    - Number of real particles
+    - Planned total number of real particles over all injection events for this bunch
   * - -
     - ``Number of Macro Particles``
-    - float
+    - int
     - -
-    - Number of macro particles
+    - Planned total number of macro particles over all injection events for this bunch
   * - ``stop_turn``
     - ``Total Injection Turns``
     - int
     - -
-    - Total injection turns
+    - Exclusive stop turn, counted from turn 0; positive integer, default 1
   * - ``interval``
     - ``Injection Interval``
     - int
     - -
-    - Injection interval (inject once every ``interval`` turns)
+    - Injection interval in turns; positive integer, default 1
 
 Distribution parameters
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -247,6 +327,10 @@ Distribution parameters
     - ``Distribution File Path``
     - str
     - Distribution file path ( ``.tfs`` format)
+  * - ``load_dist_mode``
+    - ``Distribution File Mode``
+    - str
+    - ``sequential`` (default) reads successive rows for each bunch; ``repeat`` reads from the beginning at each injection event
   * - ``is_save_init_dist``
     - ``Is Save Initial Distribution``
     - bool
@@ -254,7 +338,7 @@ Distribution parameters
   * - ``insert_particles``
     - ``Insert Particle Coordinate``
     - list
-    - Insert specified particle coordinates, format is ``[[x, px, y, py, z, dp], ...]``
+    - Replace the first rows of the first batch after offsets are applied, using ``[[x, px, y, py, z, dp], ...]``; these rows are included in the planned particle count
 
 Offset parameters
 ~~~~~~~~~~~~~~~~~
@@ -293,6 +377,123 @@ The horizontal offset ( ``Offset x`` ) and vertical offset ( ``Offset y`` ) have
     - ``Offset Momentum (rad)``
     - float
     - Momentum offset
+
+
+.. _en-multiturn-injection:
+
+Multi-turn injection and transverse painting
+--------------------------------------------
+
+Injection schedule and particle population
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each bunch has its own injection schedule. Let ``Total Injection Turns`` be
+:math:`T` and ``Injection Interval`` be :math:`\Delta n`. Injection occurs at
+
+.. math::
+
+   n_k=k\Delta n<T,\qquad
+   k=0,\ldots,N_{\mathrm{event}}-1,\qquad
+   N_{\mathrm{event}}=\left\lceil\frac{T}{\Delta n}\right\rceil.
+
+The stop turn is excluded. ``Number of Macro Particles`` gives the planned
+total :math:`N` for the bunch. Each event receives
+:math:`\lfloor N/N_{\mathrm{event}}\rfloor` particles; the first event also
+receives the remainder. Events assigned zero particles add no population.
+The simulation must run through every event assigned particles to inject the
+full population. For a nonempty source with ``Is Save Initial Distribution``
+enabled, the distribution is saved at the last scheduled event, even when that
+event adds zero particles. After all particles are injected and all requested
+saves have succeeded, subsequent Injection calls return immediately without
+searching the event schedules or recording additional turn numbers.
+
+Reserved particles have ``tag=0`` and contribute neither tracking nor charge
+deposition, statistics or losses. Injection activates only the current batch.
+Live particles have ``tag>0``; lost particles have ``tag<0`` and retain their
+loss coordinates. The identity ``abs(tag)`` of an injected particle remains
+unchanged by sorting or loss. The fixed macro-particle weight defined above
+applies throughout injection and storage.
+
+An injection batch identifies when particles enter the ring. Longitudinal bunch
+groups are specified separately by ``Harmonic Number`` and
+``Harmonic ID of this bunch``. Completing injection ends particle loading;
+circulating particles continue to follow the lattice and any active waveforms.
+
+Incoming distribution and offsets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With ``Is Load Distribution from File=true``, each bunch reads its own TFS file
+with columns ``x``, ``px``, ``y``, ``py``, ``z`` and ``dp``. Positions are in metres;
+momenta use the specified injection reference momentum. ``Distribution File Mode``
+controls row selection:
+
+* ``sequential`` consumes consecutive rows across events. The file must contain
+  at least the planned total number of particles for that bunch.
+* ``repeat`` starts at row zero at each event, taking that event's particle count.
+  The file must contain at least the largest batch. Reusing source coordinates
+  still creates new particles with distinct identities.
+
+Otherwise, Injection generates the selected transverse and longitudinal
+distributions for each batch. Generated and loaded particles both receive the
+configured horizontal dispersion and ``Offset x`` / ``Offset y``. The offsets
+apply only at injection. A file-based offset is linearly interpolated at the
+injection turn or incoming reference passage time, according to its ``turn`` or
+``time (s)`` column. The position and momentum columns are ``x (m)`` / ``px (rad)``
+or ``y (m)`` / ``py (rad)``. Nodes must increase strictly, values must be finite,
+and the table must cover every requested injection event.
+
+``Insert Particle Coordinate`` replaces the first rows of the first batch after
+these offsets, before conversion to the circulating reference. The batch must
+contain enough rows for these explicitly specified particles. Missing input rows,
+non-finite coordinates, or nonpositive longitudinal momentum cause an error before
+the affected batch is activated.
+
+The incoming physical momentum remains determined by the specified injection
+energy even when the circulating beam has accelerated. Injection converts the
+incoming momenta and longitudinal coordinate to the destination bunch reference
+while preserving physical momentum and arrival time, as defined in
+:ref:`en-longitudinal-reference`.
+
+Transverse painting with Bump magnets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Painting fills transverse phase space over successive injection events by
+varying the incoming beam position and momentum, the circulating orbit, or both.
+``Offset x`` and ``Offset y`` prescribe the incoming beam coordinates at the
+injection point. :doc:`element/bump` supplies horizontal and vertical pulsed
+magnetic kicks along the circulating lattice. Every live particle passing a
+Bump receives its kick, including particles from earlier batches.
+
+Incoming coordinates and Bump transport use the same fixed machine coordinates.
+Specify the incoming centroid at the injection plane and the physical magnet
+waveforms separately; an orbit displacement is not itself a magnet kick.
+In particle-time mode, the waveform is sampled at
+:math:`t_i=t_0-z_i/(\beta_0c)` plus the configured ``Time offset (s)``. The table
+must cover the arrival times of the particles being deflected. The Bump page
+defines reference-time sampling, interpolation and pulse-boundary behavior.
+
+Injection creates or loads particles at the injection plane and applies the
+specified offsets. Lattice elements perform subsequent transport and loss
+checks. In particular, :doc:`element/elseparator` evaluates electric deflection
+and electrode or vacuum-wall contact when particles pass through that element.
+Particles specified at the ES exit begin tracking at that plane; Injection
+does not apply an additional geometric acceptance cut.
+
+Observing injection
+~~~~~~~~~~~~~~~~~~~
+
+Place :doc:`monitor/distmonitor` at the desired observation plane and turn to
+save the injected population. At :math:`s=0`, Injection executes before the
+monitor, so the snapshot includes the current batch. Enable
+``Include injection metadata`` to save ``particle_id``, ``injection_turn`` and
+``injection_batch``. Turn and batch indices start at zero; each source bunch
+has its own batch index, so use ``particle_id`` for particle matching.
+
+Both ``Output format=tfs`` and ``Output format=hdf5`` exclude pending slots,
+retain lost particles and report ``NumPending``. Select ``tag>0`` when examining
+the live phase-space distribution at the monitor. Coordinates of lost particles
+refer to their loss locations. Use :doc:`monitor/statmonitor` for the evolution
+of the circulating population and its statistical moments.
 
 
 Introduction to particle distribution types
@@ -531,27 +732,30 @@ Currently, the PASS program supports generating the following longitudinal parti
 Multi-bunch Longitudinal Coordinates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PASS defines the particle-array coordinate ``z`` as :math:`z_{\mathrm{rel}}`, measured relative to the center of the owning bunch. The fixed laboratory center of each bunch is determined by its group index:
+The source distribution uses :math:`z_s=\beta_s c(T_s-t_i)`. The prescribed
+machine clock, injection turn and slot select its reference event; an explicit
+initial time is also supported, as described in :ref:`en-reference-clock`.
+Before writing to the destination bunch, PASS transforms
 
 .. math::
 
-  z_{\mathrm{center}} = h_{\mathrm{id}}\frac{C}{h_{\mathrm{group}}},
-  \qquad
-  z_{\mathrm{lab}} = z_{\mathrm{rel}} + z_{\mathrm{center}}.
+   z_d=\frac{\beta_d}{\beta_s}z_s+\beta_d c(T_d-T_s).
 
-Injection no longer shifts bunch centers into the particle ``z`` array and uses no odd/even harmonic branches. The generated longitudinal distribution is stored directly as :math:`z_{\mathrm{rel}}`.
+Mechanical momenta are rebased at the same time. Physical time and momentum
+are preserved; z is never folded. RF samples :math:`T_d-z_d/(\beta_d c)` directly.
 
-If the distribution parameters are defined at an RF cavity position :math:`s=s_{\mathrm{rf}}`, injection applies only the linear back-propagation
+The nominal slot position is computed as ``harmonic_id*C/harmonic_number``
+when writing logs or output; no ``bunch.z_center`` attribute is stored.
+Existing ``ZCenter``/``zCenter`` output fields retain this derived metadata.
+The diagrams below use ``z_center`` for the same nominal position. This is
+distinct from ``slice_table['z_center']``, which stores each slice interval's
+center for slicing and wake calculations.
 
-.. math::
-
-  z_{\mathrm{rel}}(0)
-  = z_{\mathrm{rel}}(s_{\mathrm{rf}})
-  + \eta s_{\mathrm{rf}}\delta,
-  \qquad
-  \eta = \frac{1}{\gamma_t^2}-\frac{1}{\gamma^2}.
-
-Injection does not fold :math:`z_{\mathrm{rel}}` around the ring. Elements that need an absolute arrival phase, such as RFCavity, construct :math:`z_{\mathrm{lab}}` themselves.
+For a distribution matched at an RF position :math:`s_{rf}` after injection,
+initialization retains the linear back-propagation
+:math:`z(0)=z(s_{rf})+\eta s_{rf}\delta`, where
+:math:`\eta=1/\gamma_t^2-1/\gamma^2`. This is a declared linear distribution
+approximation, not an exact finite-amplitude transport map.
 
 Bunch filling scheme
 ~~~~~~~~~~~~~~~~~~~~
@@ -565,7 +769,7 @@ Bunch filling scheme
    - **Full filling**: every group contains particles, with centers at :math:`0,C/h_{\mathrm{group}},\ldots,(h_{\mathrm{group}}-1)C/h_{\mathrm{group}}`
    - **Partial filling**: retain the complete group-index set and assign zero macro particles to the unfilled slots
 
-The figure below illustrates bunch grouping around a ring of circumference :math:`C`. The marked points are :math:`z_{\mathrm{center}}`, and group indices increase clockwise. The upper figure shows full filling for :math:`h_{\mathrm{group}}=4`; the lower figure shows partial filling for :math:`h_{\mathrm{group}}=5`, with groups 1, 3, and 4 represented by empty bunches:
+The figure below illustrates bunch grouping around a ring of circumference :math:`C`. The marked points are nominal slots :math:`z_{\mathrm{center}}`, and group indices increase clockwise. The upper figure shows full filling for :math:`h_{\mathrm{group}}=4`; the lower figure shows partial filling for :math:`h_{\mathrm{group}}=5`, with groups 1, 3, and 4 represented by empty bunches:
 
 .. raw:: html
 
@@ -895,13 +1099,8 @@ Input file
   }
 
 
-Run command
------------
-
-.. code-block:: bash
-
-  cd PASS\example\01_generate_distribution
-  python run.py --beam0=./beam0.json
+Distribution selection
+----------------------
 
 Based on the input file above, a bunch with a Gaussian distribution in the transverse direction and a MatchZ distribution in the longitudinal direction will be generated. By modifying the following two parameter lines, the type of generated bunch distribution can be adjusted:
 
