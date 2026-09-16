@@ -23,12 +23,9 @@ import zipfile
 from PASS import __version__
 
 FORMAT_VERSION = 1
-FILE_FIELDS = frozenset({
-    "distribution file path", "file path", "program file",
-    "k0l ramping file", "k1l ramping file", "k1sl ramping file",
-    "k2l ramping file", "k2sl ramping file", "k3l ramping file",
-    "k3sl ramping file", "kl ramping file", "kick ramping file",
-})
+from PASS.validation.files import INPUT_FILE_FIELDS
+
+FILE_FIELDS = INPUT_FILE_FIELDS
 JSON_LIMIT = 64 * 1024 * 1024
 
 
@@ -441,12 +438,22 @@ class Project:
         entries["README.txt"] = b"Extract all files together. Install PASS, then run: python run.py\nInputs use paths relative to this folder. Outputs are written under output/.\n"
         self._write_archive(Path(destination), entries)
 
-    def copy_command(self, source_id: str, name: str, target: Project, target_id: str) -> str:
+    def copy_command(self, source_id: str, name: str, target: Project, target_id: str,
+                     *, clock_policy: str = "check") -> str:
         """Copy a command and its named SC/Slicer/file dependencies without overwrite."""
         source = self.configs[source_id].data
         result = deepcopy(target.configs[target_id].data)
         sequence = result.setdefault("Sequence", {})
         command = deepcopy(source["Sequence"][name])
+        clock_difference = self.command_clock_difference(source_id, name, target, target_id)
+        if clock_difference and clock_policy == "check":
+            raise ProjectError("该命令依赖规定时钟，源与目标时钟/默认时钟条件不同。请选择保留目标时钟或复制源时钟。")
+        if clock_policy not in {"check", "target", "source"}:
+            raise ProjectError("Invalid clock copy policy")
+        if clock_difference and clock_policy == "source":
+            # Materialize the actual source clock, including the implicit default.
+            from PASS.gui.clock import reference_clock_snapshot
+            result["Reference clock"] = reference_clock_snapshot(source)
         config_names = {}
         slice_names = {}
 
@@ -468,31 +475,56 @@ class Project:
 
         def visit(value):
             if isinstance(value, dict):
-                if "Configuration" in value:
+                if value.get("Configuration") is not None:
                     old = value["Configuration"]
-                    if old not in config_names:
-                        resource = source.get("Space charge", {}).get("Configurations", {}).get(old)
+                    module = "Wake field" if value.get("Command") == "WakeField" else "Space charge"
+                    identity = (module, old)
+                    if identity not in config_names:
+                        resource = source.get(module, {}).get("Configurations", {}).get(old)
                         if not isinstance(resource, dict):
-                            raise ProjectError(f"Missing Space charge configuration: {old}")
-                        block = result.setdefault("Space charge", {})
+                            raise ProjectError(f"Missing {module} configuration: {old}")
+                        block = result.setdefault(module, {})
                         resources = block.setdefault("Configurations", {})
                         new = unique_name(old, resources)
                         copied = target._capture(resource, self.config_base)
-                        copied["Slice set"] = copy_slice(copied["Slice set"])
+                        if module == "Space charge":
+                            copied["Slice set"] = copy_slice(copied["Slice set"])
                         resources[new] = copied
                         # Preserve target physics switches; create a usable block
                         # only when the target has no module settings yet.
-                        block.setdefault("Enabled", source.get("Space charge", {}).get("Enabled", True))
-                        config_names[old] = new
-                    value["Configuration"] = config_names[old]
+                        block.setdefault("Enabled", source.get(module, {}).get("Enabled", True))
+                        config_names[identity] = new
+                    value["Configuration"] = config_names[identity]
                 for item in value.values():
                     visit(item)
             elif isinstance(value, list):
                 for item in value:
                     visit(item)
         visit(command)
+        if command.get("Command") == "WakeField":
+            command["Slice set"] = copy_slice(command["Slice set"])
         command = target._capture(command, self.config_base)
         new_name = unique_name(name, sequence)
         sequence[new_name] = command
         target.update_config(target_id, result)
         return new_name
+
+    def command_clock_difference(self, source_id, name, target, target_id):
+        """Describe dependencies before changing the target project."""
+        source = self.configs[source_id].data
+        destination = target.configs[target_id].data
+        command = source["Sequence"][name]
+        kind = command.get("Command")
+        # Direct-frequency RF also integrates from the prescribed time origin.
+        # Initial particle times for Bump/Wake depend on the same machine clock.
+        needs_clock = kind in {"WakeField", "Bump", "RFCavity"}
+        if not needs_clock:
+            return None
+        from PASS.gui.clock import reference_clock_snapshot
+        try:
+            a, b = reference_clock_snapshot(source), reference_clock_snapshot(destination)
+        except (ValueError, KeyError, TypeError):
+            a, b = source.get("Reference clock"), destination.get("Reference clock")
+            if a is None or b is None:
+                return {"source": a, "target": b, "detail": "默认时钟需完整束流信息，当前无法确定"}
+        return {"source": a, "target": b} if a != b else None

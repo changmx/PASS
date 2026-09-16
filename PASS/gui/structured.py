@@ -516,7 +516,7 @@ class RangeEditor(StructuredField):
         self.upper = ScientificSpinBox(pair[1])
         root.addRow("z 最小值 / m" if explicit else "最小 dp/p", self.lower)
         root.addRow("z 最大值 / m" if explicit else "最大 dp/p", self.upper)
-        hint = QLabel("切片采用束团相对坐标 z_rel。自动模式下不使用此范围。" if explicit else "取消自定义时使用引擎默认范围 −1 至 1。")
+        hint = QLabel("范围使用所选 Coordinate。arrival_phase 为 [-C, 0]；自动模式不使用显式范围。" if explicit else "取消自定义时使用引擎默认范围 −1 至 1。")
         hint.setWordWrap(True)
         hint.setObjectName("muted")
         root.addRow(hint)
@@ -559,6 +559,7 @@ class InternalSpaceChargeEditor(StructuredField):
         self.configuration.addItems(list(dict.fromkeys([*configurations, initial["Configuration"]])))
         self.configuration.setCurrentText(initial["Configuration"])
         self.kicks = IntegerSpinBox(initial["Num kicks"], 1)
+        self.kicks.setToolTip("内部 SC 节点数量；与父元件 Num slices 的输运切分不同。")
         form.addRow("计算配置", self.configuration)
         form.addRow("内部 kick 数", self.kicks)
         self.aperture_type = QComboBox()
@@ -567,6 +568,9 @@ class InternalSpaceChargeEditor(StructuredField):
         self.aperture = ApertureEditor(initial["Aperture type"], initial["Aperture value"])
         form.addRow("孔径类型", self.aperture_type)
         form.addRow(self.aperture)
+        hint = QLabel("内部 SC 始终继承父元件孔径；这里的旧显式孔径若冲突会被引擎覆盖。default 表示继承。")
+        hint.setWordWrap(True)
+        form.addRow(hint)
         self.flags = {}
         for key, title in (("Save field", "保存电场"), ("Save potential", "保存电势"), ("Save density", "保存电荷密度")):
             check = QCheckBox(title)
@@ -582,6 +586,15 @@ class InternalSpaceChargeEditor(StructuredField):
         self.body.setEnabled(self.enabled_box.isChecked())
         self.enabled_box.toggled.connect(self.changed)
         self.configuration.currentTextChanged.connect(self.changed)
+        def output_modes():
+            resource = configurations.get(self.configuration.currentText(), {}) if isinstance(configurations, dict) else {}
+            potential = self.flags["Save potential"]
+            pic = resource.get("Method", "pic") == "pic"
+            potential.setEnabled(pic or potential.isChecked())
+            potential.setToolTip("解析求解器不提供电势；已有选项须取消，可改为保存电场或密度。" if not pic else "保存网格电势")
+        self.configuration.currentTextChanged.connect(output_modes)
+        self.flags["Save potential"].toggled.connect(output_modes)
+        output_modes()
         self.kicks.valueChanged.connect(self.changed)
         self.aperture_type.currentTextChanged.connect(self.aperture.set_kind)
         self.aperture.changed.connect(self.changed)

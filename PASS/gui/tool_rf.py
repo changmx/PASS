@@ -47,7 +47,7 @@ class RFBucketPage(PhysicsToolPage):
         df.addRow("纵轴", self.bind(self.y_axis))
         df.addRow("桶内轨道数", self.orbits)
         self.controls.addWidget(display)
-        self.controls.addWidget(hint("φs 是束团中心的有效相位。单谐波、固定参数、小 δ 近似；详细数值见“计算结果”。"))
+        self.controls.addWidget(hint("φs 是所选同步参考事件的有效相位，电荷与电压的符号吸收到相位中；不由名义束团槽位追加相位。单谐波、固定参数、小 δ 近似。"))
         self.controls.addStretch()
         self.results = ResultFields([
             ("eta", "滑移因子 η", 1), ("delta_max", "δ 半高 (%)", 100),

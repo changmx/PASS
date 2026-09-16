@@ -232,6 +232,10 @@ MainConfig (Global Parameters)
      - ``Output directory``
      - str
      - Output directory
+   * - ``reference_clock``
+     - ``Reference clock``
+     - ReferenceClock or null
+     - Prescribed revolution-frequency program; see the reference-clock section below
    * - ``is_plot``
      - ``Is plot figure``
      - bool
@@ -250,6 +254,40 @@ losses and, for Dirichlet solvers, the conducting wall. Configurations no longer
 contain ``Chamber``. Supply a complete grid full-width or half-width pair;
 omitting the command aperture selects a rectangle equal to that grid.
 
+.. _en-reference-clock:
+
+Prescribed machine clock and initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The optional top-level ``Reference clock`` defines a positive revolution
+frequency :math:`f_{rev}(t)` and an epoch :math:`t_*`:
+
+.. math::
+
+   \Psi(t)=\int_{t_*}^{t} f_{rev}(u)\,du.
+
+Use ``Revolution frequency (Hz)`` (scalar or list), ``Time (s)`` for list
+samples, and ``Time origin (s)`` (default 0). Samples are linearly interpolated,
+end values are held, and the integral is evaluated analytically on each
+segment. This prescribed program is independent of tracked bunch energies.
+Without a program, PASS fixes its frequency to the initial reference
+velocity of harmonic-id-zero divided by circumference; it does not follow
+subsequent acceleration automatically.
+
+Initially, :math:`T_b=\Psi^{-1}(-h_{id}/h_{group})`, unless BunchConfig supplies
+``Reference arrival time (s)``. Injection on turn n uses
+:math:`\Psi^{-1}(n-h_{id}/h_{group})`; an explicit initial arrival time shifts
+that source schedule by its difference from the nominal initial time.
+Incoming z and normalized momenta are transformed to the destination bunch
+reference without changing physical arrival times or momenta.
+
+``harmonic_id`` and ``harmonic_number`` describe nominal grouping slots.
+The nominal slot position ``harmonic_id*C/harmonic_number`` is calculated
+when needed for metadata output. Adding it to z does not reconstruct a
+physical position or arrival time. RF harmonics are
+independent of this grouping count. :doc:`reorganize` explains regrouping by
+the prescribed clock phase while retaining unwrapped particle times.
+
 InjectionItem (Injection and Grouping)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -259,7 +297,7 @@ InjectionItem (Injection and Grouping)
 - The required number of ``BunchConfig`` entries in ``bunches``
 - The requirement that ``harmonic_id`` values uniquely cover :math:`0,\ldots,h_{\mathrm{group}}-1`
 
-It does not constrain ``RFCavityElement.harmonic``. Represent an unfilled group with a declared bunch whose ``num_macro_particles`` is zero.
+It does not constrain ``RFComponent.harmonic``. Represent an unfilled group with a declared bunch whose ``num_macro_particles`` is zero.
 
 Set ``random_seed`` (JSON key ``Random Seed``) to an integer when the generated particle distribution must be reproducible. Leave it unset, or use JSON ``null``, for the default non-deterministic seed. The seed belongs to the whole Injection command, so its random stream is shared by all declared bunches and injection turns.
 
@@ -495,13 +533,15 @@ Twiss transfer points and physical elements can be mixed within the same sequenc
        seq.add(f"twiss_{i:04d}", item)
 
    # insert RF cavity (at s=0)
-   seq.add("rf1", RFCavityElement(s=0.0, voltage=100e3, harmonic=1, phase=0.5236))
+   seq.add("rf1", RFCavityElement(s=0.0, components=[dict(voltage=100e3, harmonic=1, phase=0.5236)]))
 
 
 External Data File Conversion
 -----------------------------
 
 PASS uses the **TFS format** as the unified format for all ramping/RF/exciter data files. ``tools/data_converter.py`` provides a general conversion pipeline that transforms various external files (CSV/TXT/TFS) into PASS TFS.
+
+RF files retain physical seconds and do not use the magnet-ramping turn conversion below. RF columns are ``TIME, VOLTAGE, FREQUENCY, PHASE``; see :doc:`element/rfcavity`.
 
 Four-Step Pipeline
 ~~~~~~~~~~~~~~~~~~
@@ -545,7 +585,7 @@ Thin wrappers for common element types:
    convert_k1l_ramping("external.csv", "k1l_ramping.tfs", revolution_freq=1.76e6)
 
    # RF data
-   convert_rf_data("llrf.csv", "rf_data.tfs", revolution_freq=1.76e6)
+   convert_rf_data("llrf.csv", "rf_physical_time.tfs")
 
 Step-by-Step Invocation
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -604,6 +644,7 @@ API Reference
        output_path: str,
        space_charge: SpaceChargeConfig | None = None,
        extra_modules: dict | None = None,
+       wake_field: WakeFieldConfig | None = None,
    ) -> str
 
    # Load existing JSON (for modification and regeneration)

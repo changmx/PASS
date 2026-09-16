@@ -232,6 +232,10 @@ MainConfig（全局参数）
      - ``Output directory``
      - str
      - 输出目录
+   * - ``reference_clock``
+     - ``Reference clock``
+     - ReferenceClock or null
+     - 规定的回旋频率程序，详见下方机器时钟小节
    * - ``is_plot``
      - ``Is plot figure``
      - bool
@@ -248,6 +252,35 @@ MainConfig（全局参数）
 定义粒子损失孔径，并在 Dirichlet 中同时定义导体壁，配置不再包含 ``Chamber``。
 网格输入必须完整选择全宽或半宽一组；省略命令孔径时默认使用网格同尺寸矩形。
 
+.. _zh-reference-clock:
+
+规定的机器时钟与初始化
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+顶层可选 ``Reference clock`` 定义正值回旋频率 :math:`f_{rev}(t)` 和基准时刻
+:math:`t_*`：
+
+.. math::
+
+   \Psi(t)=\int_{t_*}^{t} f_{rev}(u)\,du.
+
+输入为 ``Revolution frequency (Hz)``（标量或列表）、列表对应的 ``Time (s)``，
+以及默认 0 的 ``Time origin (s)``。采样值分段线性插值，区间外保持端点值，
+每段积分解析计算。该规定程序独立于实际跟踪束团的能量。
+未指定时，PASS 固定使用 harmonic-id-zero 束团初始参考速度除以周长；
+后续加速不会自动改变这个频率。
+
+初始 :math:`T_b=\Psi^{-1}(-h_{id}/h_{group})`，也可由 BunchConfig 的
+``Reference arrival time (s)`` 指定。第 n 圈注入使用
+:math:`\Psi^{-1}(n-h_{id}/h_{group})`；显式初始到达时间与名义初始时间的差
+平移该注入源的日程。注入粒子的 z 和归一化动量变换到目标束团参考系，保持物理
+到达时间和机械动量。
+
+``harmonic_id``、``harmonic_number`` 表示名义槽位。
+名义槽位位置 ``harmonic_id*C/harmonic_number`` 在需要输出元数据时计算；
+将它加到 z 不能重建实际位置或到达时间。RF 谐波与分组数相互独立。:doc:`reorganize` 说明如何用
+规定时钟相位重分组，同时保留展开的粒子时间。
+
 InjectionItem（注入与分组）
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -257,7 +290,7 @@ InjectionItem（注入与分组）
 - ``bunches`` 列表必须包含多少个 ``BunchConfig``
 - ``harmonic_id`` 必须唯一覆盖 :math:`0,\ldots,h_{\mathrm{group}}-1`
 
-它不限制 ``RFCavityElement.harmonic`` 。未填充的分组应使用 ``num_macro_particles=0`` 的空束团占位。
+它不限制 ``RFComponent.harmonic`` 。未填充的分组应使用 ``num_macro_particles=0`` 的空束团占位。
 
 当需要复现生成的粒子分布时，设置整数 ``random_seed`` （JSON 键 ``Random Seed`` ）。不设置或在 JSON 中设为 ``null`` 时采用默认的非确定性种子。该种子属于整个 Injection 命令，因此所有声明的束团和注入轮次共享同一随机数流。
 
@@ -483,13 +516,15 @@ twiss 传输点和物理元件可以在同一个序列中混合使用。例如�
        seq.add(f"twiss_{i:04d}", item)
 
    # 插入 RF 腔（在 s=0 处）
-   seq.add("rf1", RFCavityElement(s=0.0, voltage=100e3, harmonic=1, phase=0.5236))
+   seq.add("rf1", RFCavityElement(s=0.0, components=[dict(voltage=100e3, harmonic=1, phase=0.5236)]))
 
 
 外部数据文件转换
 ----------------
 
 PASS 使用 **TFS 格式** 作为所有 ramping/RF/exciter 数据文件的统一格式。 ``tools/data_converter.py`` 提供了通用转换流水线，将各种外部文件（CSV/TXT/TFS）转为 PASS TFS。
+
+RF 文件保留物理秒，不使用下面磁铁 ramping 的圈号转换管线。RF 列为 ``TIME, VOLTAGE, FREQUENCY, PHASE``，接口见 :doc:`element/rfcavity`。
 
 四步流水线
 ~~~~~~~~~~
@@ -533,7 +568,7 @@ PASS 使用 **TFS 格式** 作为所有 ramping/RF/exciter 数据文件的统一
    convert_k1l_ramping("external.csv", "k1l_ramping.tfs", revolution_freq=1.76e6)
 
    # RF 数据
-   convert_rf_data("llrf.csv", "rf_data.tfs", revolution_freq=1.76e6)
+   convert_rf_data("llrf.csv", "rf_physical_time.tfs")
 
 分步调用
 ~~~~~~~~
@@ -592,6 +627,7 @@ API 参考
        output_path: str,
        space_charge: SpaceChargeConfig | None = None,
        extra_modules: dict | None = None,
+       wake_field: WakeFieldConfig | None = None,
    ) -> str
 
    # 加载已有 JSON（用于修改后重新生成）

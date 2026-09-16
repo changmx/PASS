@@ -6,10 +6,10 @@ RF_FORMULAS = MASS_REFERENCE_FORMULAS + r"""
 <p>采用固定参数、小动量偏差的光滑近似。本节采用上文的 D=max(A,1)，总能量 E<sub>r</sub>=E/D、归一化电荷量 q<sub>r</sub>=|q|/D。</p>
 <eq>E_r=\frac{m_0c^2}{D}+E_k,\qquad q_r=\frac{|q|}{D}</eq>
 <eq>\eta=\frac{1}{\gamma_t^2}-\frac{1}{\gamma^2},\qquad \phi=\phi_s-\frac{2\pi h z_{\mathrm{rel}}}{C}</eq>
-<p>h 是 RF 谐波数，与 Injection 分组谐波独立。φ<sub>s</sub> 是已含腔相位、偏置和束团中心贡献的有效相位。</p>
+<p>h 是 RF 谐波数，与 Injection 分组谐波独立。φ<sub>s</sub> 是所选同步参考事件的有效相位；该事件不必等于束流实测质心。</p>
 <eq>\frac{d\phi}{dN}=2\pi h\eta\delta</eq>
 <eq>\frac{d\delta}{dN}=\frac{q_r V}{\beta^2 E_r}\left(\sin\phi-\sin\phi_s\right)</eq>
-<p>N 为圈数，δ=Δp/p，V 为正的电压幅值。电荷符号通过有效相位表示，与当前 PASS 约定一致。</p>
+<p>N 为圈数，δ=Δp/p，V 为正的电压幅值。冻结单分量时，令 θ(t<sub>s</sub>)=2π∫f(t)dt+φ(t<sub>s</sub>)；若 qV 有符号乘积为负，φ<sub>s</sub>=θ(t<sub>s</sub>)+π，否则 φ<sub>s</sub>=θ(t<sub>s</sub>)，均按 2π 取余。RFCavity 使用有符号 qV 的物理波形，工具使用 |qV| 的等效相位；不得另加名义 z_center 相位。本工具不计算多谐波或随时间变化的势阱。</p>
 <eq>\eta\cos\phi_s<0</eq>
 <p>上式为稳定条件。低于跃迁常用 0°，高于跃迁常用 180°。
 电荷、V、动能或 η 为零，以及 90°/270° 退化相位均不支持稳定桶。</p>
