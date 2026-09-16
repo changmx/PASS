@@ -82,6 +82,16 @@ In particular, SortBunch also converts normalized momenta when a particle
 crosses into a group with a different reference momentum. ReorganizeBunch
 rebuilds references even if the requested grouping count equals the old count.
 
+.. important::
+
+   **Execute Slicer after every SortBunch or ReorganizeBunch operation and before
+   the next use of slice information.** The required order is
+   ``SortBunch/ReorganizeBunch -> Slicer -> SpaceCharge/WakeField``, with Slicer
+   updating each named set required by its consumer. Slices created before the
+   operation are invalidated, including slices created earlier in the same turn.
+   Particle tags remain attached to their particles, but slice membership is
+   aligned by current array index, not looked up by tag. CPU and CUDA consumers
+   do not automatically regenerate the cleared results; see :doc:`slicer`.
 
 Interface Parameters
 --------------------

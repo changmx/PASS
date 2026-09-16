@@ -70,6 +70,15 @@
 特别地，SortBunch 在粒子转入参考动量不同的束团时也会转换归一化动量。
 ReorganizeBunch 即使请求的分组数与原值相同，也会重建参考。
 
+.. important::
+
+   **每次执行 SortBunch 或 ReorganizeBunch 后，必须先重新执行 Slicer，再使用
+   切片信息。** 所需顺序为
+   ``SortBunch/ReorganizeBunch -> Slicer -> SpaceCharge/WakeField``，其中 Slicer
+   必须更新后续命令引用的每个命名切片集。操作前生成的切片都会失效，包括同一圈
+   内此前生成的结果。粒子的 tag 仍随粒子移动，但切片归属按当前数组索引对齐，
+   不通过 tag 查找。CPU 和 CUDA 上使用切片的命令都不会自动重新生成已清空的
+   结果，详见 :doc:`slicer`。
 
 接口参数
 --------
