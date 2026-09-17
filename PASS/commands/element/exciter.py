@@ -29,7 +29,7 @@ class Exciter(Command):
         self.cmd_type: str = self.__class__.__name__
         self.cmd_name: str = kwargs["name"]
 
-        if self.length > 0.0:
+        if not np.isfinite(self.length) or self.length != 0.0:
             raise ValueError(f"The length of Exciter {self.cmd_name} is {self.length}, which should be 0.0")
 
         self.is_enabled: bool = kwargs["enable"]
@@ -58,9 +58,12 @@ class Exciter(Command):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
         # --- exciter hardware parameters ---
-        self.voltage: float = kwargs["voltage (v)"]  # peak voltage on the plates (V)
+        self.voltage: float = kwargs["voltage (v)"]  # signed peak interplate difference (V)
         self.gap: float = kwargs["gap (m)"]  # spacing between plates (m)
         self.plate_length: float = kwargs["plate length (m)"]  # effective length of the plates (m)
+        if not all(np.isfinite(v) for v in (self.voltage,self.gap,self.plate_length)) or self.gap <= 0 or self.plate_length < 0:
+            raise ValueError("Exciter requires finite voltage, positive gap and nonnegative plate length")
+        self._gpu_cache = {}
 
         # --- frequency parameters (two input modes) ---
         # Mode 1 (tune): provide excite_tune + sweep_tune, cf/cfw computed at runtime
@@ -137,8 +140,7 @@ class Exciter(Command):
         beam = sim.beams[self.beam_id]
         effective_turn = turn - self.start_turn
         for bunch in beam.bunches:
-            kick_amplitude = (self.voltage * self.plate_length /
-                              (self.gap * bunch.beta * const.c * bunch.brho))
+            kick_amplitude = self._reference_amplitude(bunch)
             v0 = bunch.beta * const.c
             frequency_0 = v0 / bunch.circum
             if self.use_tune_mode:
@@ -156,6 +158,15 @@ class Exciter(Command):
                            (v0, kick_amplitude, cf, cfw, self.period,
                             self.fm_dual_frequency, am_factor, mode))
         return True
+
+    def _reference_amplitude(self, bunch):
+        """Reference impulse, subsequently multiplied by beta0*c/v_s per particle."""
+        if not 0 < bunch.beta < 1 or not np.isfinite(bunch.brho) or bunch.brho <= 0:
+            raise ValueError("Exciter requires a finite massive-particle reference and positive rigidity")
+        value = np.sign(bunch.num_charge)*self.voltage*self.plate_length/(self.gap*bunch.beta*const.c*bunch.brho)
+        if not np.isfinite(value):
+            raise ValueError("Exciter integrated impulse must be finite")
+        return value
 
     # ------------------------------------------------------------------
     # AM (amplitude modulation) helpers
@@ -251,8 +262,7 @@ class Exciter(Command):
         frequency parameters (tune mode or frequency mode), dispatches to the
         appropriate kick shape function, and applies the kick to px or py.
         """
-        # normalized kick amplitude: Δpx = V·L / (d·βc·Bρ)
-        kick_amplitude = (self.voltage * self.plate_length / (self.gap * bunch.beta * const.c * bunch.brho))
+        kick_amplitude = self._reference_amplitude(bunch)
 
         v0 = bunch.beta * const.c
         frequency_0 = 1.0 / (bunch.circum / v0)
@@ -277,11 +287,22 @@ class Exciter(Command):
         px = p.px[start:end]
         py = p.py[start:end]
         tag = p.tag[start:end]
-
-        alive = (tag > 0).astype(np.float64)
+        dp = p.dp[start:end].astype(np.float64)
+        px0,py0 = px.astype(np.float64),py.astype(np.float64)
+        with np.errstate(over='ignore',invalid='ignore',divide='ignore'):
+            ps2 = (1+dp)**2-px0*px0-py0*py0
+            A2 = 1/bunch.gamma**2+(1-1/bunch.gamma**2)*(1+dp)**2
+            valid = (dp>-1)&(ps2>0)&np.isfinite(ps2)&np.isfinite(A2)&np.isfinite(z)
+            valid &= np.isfinite(p.x[start:end])&np.isfinite(p.y[start:end])
+            factor = np.sqrt(np.where(valid,A2,1.)/np.where(valid,ps2,1.))
+        invalid = (tag>0)&~valid
+        tag[invalid] = -np.abs(tag[invalid])
+        p.lost_position[start:end][invalid] = self.s
+        p.lost_turn[start:end][invalid] = turn
+        alive = tag>0
 
         # Local time coordinate: positive z arrives earlier.
-        time_temp = bunch.t0 - np.asarray(z, dtype=np.float64) / v0
+        time_temp = bunch.t0 - np.where(alive,np.asarray(z,dtype=np.float64),0.) / v0
 
         if self.mode == "single_fm":
             kick = self._kick_saw_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
@@ -294,12 +315,17 @@ class Exciter(Command):
         else:
             kick = np.zeros(len(z), dtype=np.float64)
 
-        kick *= alive
-
+        kick = kick*factor
         if self.is_x:
-            px += kick
+            px[alive] += kick[alive]
         else:
-           py += kick
+            py[alive] += kick[alive]
+        with np.errstate(over='ignore',invalid='ignore'):
+            ps2 = (1+dp)**2-px.astype(np.float64)**2-py.astype(np.float64)**2
+        invalid = alive&(~np.isfinite(ps2)|(ps2<=0))
+        tag[invalid] = -np.abs(tag[invalid])
+        p.lost_position[start:end][invalid] = self.s
+        p.lost_turn[start:end][invalid] = turn
 CUDA_REAL_PREAMBLE = r'''
 #ifndef PASS_USE_FLOAT
 #define PASS_USE_FLOAT 0
@@ -316,14 +342,22 @@ EXCITER_BODY = r'''
 extern "C" __global__
 void track_exciter(
     pass_real_t* __restrict__ px, pass_real_t* __restrict__ py,
-    const pass_real_t* __restrict__ z, const int* __restrict__ tag,
-    int start_index, int end_index, double t0,
+    const pass_real_t* __restrict__ z, const pass_real_t* __restrict__ dp,
+    const pass_real_t* __restrict__ x, const pass_real_t* __restrict__ y,
+    int* __restrict__ tag,float* lost_position,int* lost_turn,
+    int start_index, int end_index, double t0,double inv_g2,double s0,int turn,
     double v0, double amplitude, double cf,
     double cfw, double period, double fm_dual_frequency,
     double am_factor, int mode, int direction)
 {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
     if (i >= end_index || tag[i] <= 0) return;
+    double r=1.+(double)dp[i],ps2=r*r-(double)px[i]*px[i]-(double)py[i]*py[i];
+    double A2=inv_g2+(1-inv_g2)*r*r;
+    if(!(r>0 && ps2>0) || !isfinite(ps2) || !isfinite(A2) || !isfinite(z[i]) || !isfinite(x[i]) || !isfinite(y[i])) {
+        tag[i]=-abs(tag[i]);lost_position[i]=(float)s0;lost_turn[i]=turn;return;
+    }
+    amplitude*=sqrt(A2/ps2);
     const double pi = (double)3.1415926535897932384626433832795;
     double t = t0 - (double)z[i] / v0;
     double temp = t - floor(t / period) * period;
@@ -349,11 +383,10 @@ void track_exciter(
         }
     }
     if (direction == 0) px[i] += kick; else py[i] += kick;
+    ps2=r*r-(double)px[i]*px[i]-(double)py[i]*py[i];
+    if(!isfinite(ps2) || ps2<=0) {tag[i]=-abs(tag[i]);lost_position[i]=(float)s0;lost_turn[i]=turn;}
 }
 '''
-
-_kernels = {}
-
 
 def launch_exciter(element, sim, bunch, effective_turn, params):
     try:
@@ -361,20 +394,20 @@ def launch_exciter(element, sim, bunch, effective_turn, params):
     except (ImportError, OSError) as exc:
         raise RuntimeError("GPU Exciter tracking requires the optional 'cuda' dependencies.") from exc
     p = sim.beams[element.beam_id].particles
-    key = np.dtype(p.dtype)
-    if key not in _kernels:
-        _kernels[key] = cp.RawKernel(
+    key = (cp.cuda.runtime.getDevice(),np.dtype(p.dtype))
+    if key not in element._gpu_cache:
+        element._gpu_cache[key] = cp.RawKernel(
             CUDA_REAL_PREAMBLE + EXCITER_BODY, "track_exciter",
-            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
+            options=("--std=c++14", "--fmad=false", f"-DPASS_USE_FLOAT={int(p.dtype == np.dtype(np.float32))}"),
         )
     start, end = bunch.start_idx, bunch.end_idx; n=end-start
     if n <= 0: return
     real=np.float64; threads=256
     blocks = (n + threads - 1) // threads
     v0, amplitude, cf, cfw, period, fm_dual_frequency, am_factor, mode = params
-    _kernels[key]((blocks,), (threads,),
-                  (p.px,p.py,p.z,p.tag,np.int32(start),np.int32(end),
-                   real(bunch.t0),real(v0),real(amplitude),real(cf),
+    element._gpu_cache[key]((blocks,), (threads,),
+                  (p.px,p.py,p.z,p.dp,p.x,p.y,p.tag,p.lost_position,p.lost_turn,np.int32(start),np.int32(end),
+                   real(bunch.t0),real(1/bunch.gamma**2),real(element.s),np.int32(sim.state.turn),real(v0),real(amplitude),real(cf),
                    real(cfw),real(period),real(fm_dual_frequency),real(am_factor),
                    np.int32(mode),np.int32(0 if element.is_x else 1)))
     from PASS.utils.aperture import check_aperture_gpu

@@ -53,14 +53,46 @@ The normalized kick (divided by the reference particle total momentum :math:`P_0
 
   \Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}
 
-Using the magnetic rigidity :math:`B\rho = P_0 / Q`, this simplifies to:
+Using the magnetic rigidity :math:`B\rho = P_0 / |Q|`, this simplifies to:
 
 .. math::
 
-  \Delta p_x = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
+  \Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
 
 This form is uniformly applicable to proton beams (:math:`Z=1, A=1`) and ion beams (:math:`Z \neq A`), since :math:`B\rho` already contains the charge-to-mass ratio information.
 
+
+Per-particle longitudinal velocity
+--------------------------------------
+
+The reference-speed expression above sets the normalization only. The applied
+effective impulse uses each particle's incident longitudinal velocity:
+
+.. math::
+
+   \Delta p_{u,i}=\operatorname{sgn}(q)
+      \frac{V_{\rm peak}\ell}{g\beta_0c B\rho}
+      \frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
+           {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}}F(t_i).
+
+V is the signed peak interplate voltage difference; B*rho is the positive
+reference rigidity magnitude. Positive V drives positive charges in the selected
+positive transverse direction. The charge sign is applied explicitly. No extra
+division by (1+delta) is appropriate for momenta normalized by P0.
+The same law applies to coasting and bunched particles. Different arrival times
+already sample different waveform phases; the velocity factor additionally
+changes their amplitudes. Tune-mode frequencies use the reference revolution
+frequency, not a separate oscillator frequency for each particle.
+
+This remains a zero-length effective transverse kick: x, y, z, dp and t0 do not
+change. It freezes the incident speed and samples the waveform at the element
+plane. It does not integrate the waveform through the physical plate length or
+model longitudinal electromagnetic forces, energy exchange, fringe fields or
+transmission-line propagation. Single-time sampling requires little waveform
+variation during the transit (for a sinusoid, omega*ell/vs much less than one).
+The existing FM phase-period rule and turn-stepped AM envelope are retained.
+Invalid incident states or non-forward post-kick states are removed at this
+plane, preserving previous loss records. CPU and GPU use the same equations.
 
 Particle Arrival Time
 ---------------------

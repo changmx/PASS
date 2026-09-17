@@ -53,14 +53,41 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 
   \Delta p_x = \frac{\Delta P_x}{P_0} = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c \cdot P_0}
 
-利用磁刚度 :math:`B\rho = P_0 / Q` ，可简化为：
+利用磁刚度 :math:`B\rho = P_0 / |Q|` ，可简化为：
 
 .. math::
 
-  \Delta p_x = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
+  \Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
 
 该形式对质子束 （ :math:`Z=1, A=1` ）和离子束 （ :math:`Z \neq A` ）统一适用，因为 :math:`B\rho` 已包含荷质比信息。
 
+
+逐粒子纵向速度
+--------------
+
+上面的参考速度表达式仅用于归一化；实际等效冲量使用各粒子的入口纵向速度：
+
+.. math::
+
+   \Delta p_{u,i}=\operatorname{sgn}(q)
+      \frac{V_{\rm peak}\ell}{g\beta_0c B\rho}
+      \frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
+           {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}}F(t_i).
+
+V 是带符号的极板间峰值电压差，B*rho 是正的参考磁刚度幅值。
+正电压使正电荷沿选定横向的正方向偏转，电荷符号显式计入。
+由于动量按 P0 归一化，不应再额外除以 (1+delta)。
+漂移束和束团束使用相同单粒子规律；到达时间差原本就决定各粒子取样的相位，
+速度系数进一步改变其幅值。工作点模式使用参考回旋频率，不能给每个粒子
+分别定义一个激励源频率。
+
+这仍是零长度等效横向冲量，x、y、z、dp、t0 均不改变。
+冲量计算冻结入口速度，在元件平面取样波形，不沿真实电极长度积分，
+不描述纵向电磁力、能量交换、边缘场或传输线传播。
+单时刻取样要求通过期间波形变化很小；对正弦波即 omega*ell/vs 远小于 1。
+现有 FM 相位周期规则和按圈更新的 AM 包络保留。
+入口无效状态或冲量后不能正向运动的状态在该平面移出，首次损失记录不被覆盖。
+CPU 和 GPU 使用相同方程。
 
 粒子到达时间
 ------------
