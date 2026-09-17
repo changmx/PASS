@@ -83,6 +83,14 @@ linear interpolation, integrated frequency and held endpoints as CPU.
 Table lookup compares local offsets to shifted knots, preserving small
 intra-bunch arrival differences at large reference times.
 
+The scalar accumulated phase is reduced modulo one cycle using high-precision
+host arithmetic before conversion to float64. Each particle then adds its local
+frequency integral about that reference event. This avoids rounding a large
+``frequency * elapsed_time`` product or adding a tiny particle offset to a long
+table interval. CPU and CUDA use the same cached reference phase; particle
+calculations and storage retain the precision described above. This does not
+recover timing information already lost in the supplied float64 reference time.
+
 Waveform descriptors are passed by value for up to 32 components. Larger lists
 use a packed device buffer to stay within the portable kernel argument limit.
 Device tables and compiled kernels are cached per command, device and particle

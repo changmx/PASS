@@ -207,8 +207,10 @@ class RFCavity(Command):
             # scratch arrays or device-to-host synchronization are required.
             parameters = template.copy()
             for j, component in enumerate(self.components):
-                if len(component.frequency.values) == 1:
-                    parameters['components']['frequency']['base'][0,j] = component.frequency.phase_cycles(bunch.t0)
+                base, value, index = component.frequency.phase_anchor(bunch.t0)
+                parameters['components']['frequency']['base'][0,j] = base
+                parameters['components']['frequency']['value'][0,j] = value
+                parameters['components']['frequency']['padding'][0,j] = index
             if len(self.components) > 32:
                 # Large component lists exceed the portable 4 KiB argument
                 # bank. The same kernel reads one packed descriptor buffer.
@@ -255,7 +257,7 @@ def _prepare_rf_kernel(components, dtype, cp):
                 scalar = False
                 if id(program) not in stored:
                     table = cp.asarray(np.concatenate((program.times, program.values,
-                        program.slopes, program.integrals)))
+                        program.slopes, program.phase_integrals)))
                     stored[id(program)] = table
                     tables.append(table)
                 record['data'] = stored[id(program)].data.ptr
@@ -307,9 +309,17 @@ __device__ __forceinline__ double program_value(
     int index = left > 0 ? left-1 : 0;
     double dx = (reference-times[index])+offset;
     double slope = (reference-times[0])+offset < 0.0 ? 0.0 : slopes[index];
-    if (integral)
-        return unit_cycle(unit_cycle(integrals[index]-p.base)
-                          +dx*(values[index]+0.5*slope*dx));
+    if (integral) {
+        bool before = offset < times[0]-reference;
+        if (index == p.padding && before == (reference < times[0]))
+            return unit_cycle(p.base+offset*(p.value+0.5*slope*offset));
+        int anchor = index;
+        if (!before && index+1 < p.count &&
+                fabs(reference-times[index+1]) < fabs(reference-times[index]))
+            anchor = index+1;
+        double local_dx = (reference-times[anchor])+offset;
+        return unit_cycle(integrals[anchor]+local_dx*(values[anchor]+0.5*slope*local_dx));
+    }
     return values[index]+slope*dx;
 }
 

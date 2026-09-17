@@ -1,6 +1,7 @@
 """Prescribed piecewise-linear time programs for CPU and GPU consumers."""
 
 import numpy as np
+from decimal import Decimal, localcontext
 
 
 class LinearProgram:
@@ -25,6 +26,9 @@ class LinearProgram:
         self.slopes = np.r_[np.diff(self.values)/np.diff(self.times), 0.] if len(self.times)>1 else np.zeros(1)
         self.integrals = np.r_[0., np.cumsum(np.diff(self.times)*(self.values[1:]+self.values[:-1])/2)]
         self._devices = {}
+        self._phase_data = None
+        self._phase_anchor = None
+        self._phase_devices = {}
         self.integral_origin = float(self._primitive(origin, 0., np))
         for array in (self.times, self.values, self.slopes, self.integrals):
             array.setflags(write=False)
@@ -61,12 +65,75 @@ class LinearProgram:
         return self._primitive(reference, offset, xp)-self.integral_origin
 
     def phase_cycles(self, reference, offset=0., xp=np):
-        # Reduce the scalar epoch first; preserve tiny intra-bunch differences.
+        # The epoch product itself must be reduced before rounding to float64.
+        # Merely taking remainder(f*t, 1) loses phase at large elapsed times.
+        base, frequency, reference_index = self.phase_anchor(reference)
         if len(self.values) == 1:
-            base = np.remainder(self.values[0]*(reference-self.origin), 1.)
-            return xp.remainder(base+self.values[0]*offset, 1.)
-        value, slope, dx, base = self._parts(reference, offset, xp)
-        return xp.remainder(xp.remainder(base-self.integral_origin, 1.)+dx*(value+.5*slope*dx), 1.)
+            return xp.remainder(base+frequency*offset, 1.)
+        if xp is np and np.isscalar(offset) and offset == 0.:
+            return base
+        times, values, slopes, _ = self._arrays(xp)
+        index = xp.clip(xp.searchsorted(times-reference, offset, side='right')-1, 0, len(self.times)-1)
+        before = offset < times[0]-reference
+        slope = xp.where(before, 0., slopes[index])
+        same = (index == reference_index) & (before == (reference < self.times[0]))
+        local = base+offset*(frequency+.5*slope*offset)
+        if xp not in self._phase_devices:
+            self._phase_devices[xp] = xp.asarray(self.phase_integrals)
+        following = xp.minimum(index+1, len(self.times)-1)
+        use_upper = (~before & (following != index)
+                     & (xp.abs(reference-times[following]) < xp.abs(reference-times[index])))
+        anchor = xp.where(use_upper, following, index)
+        dx = (reference-times[anchor])+offset
+        crossing = self._phase_devices[xp][anchor]+dx*(values[anchor]+.5*slope*dx)
+        return xp.remainder(xp.where(same, local, crossing), 1.)
+
+    def _prepare_phase_data(self):
+        """Exact decimal input products, built lazily for frequency consumers."""
+        if self._phase_data is not None:
+            return
+        with localcontext() as ctx:
+            ctx.prec = 80
+            times = tuple(Decimal.from_float(float(t)) for t in self.times)
+            values = tuple(Decimal.from_float(float(v)) for v in self.values)
+            integrals = [Decimal(0)]
+            for j in range(len(times)-1):
+                integrals.append(integrals[-1]+(times[j+1]-times[j])*(values[j+1]+values[j])/2)
+            self._phase_data = times, values, tuple(integrals)
+            origin = self._decimal_primitive(self.origin)
+            self._phase_origin = origin
+            self._phase_integrals = np.array([float((v-origin) % 1) % 1. for v in integrals])
+            self._phase_integrals.setflags(write=False)
+
+    def _decimal_primitive(self, reference):
+        times, values, integrals = self._phase_data
+        j = max(0, int(np.searchsorted(self.times, reference, side='right'))-1)
+        dx = Decimal.from_float(float(reference))-times[j]
+        slope = ((values[j+1]-values[j])/(times[j+1]-times[j])
+                 if reference >= self.times[0] and j+1 < len(times) else Decimal(0))
+        return integrals[j]+dx*(values[j]+slope*dx/2)
+
+    @property
+    def phase_integrals(self):
+        """Fractional integrated cycles at table knots, relative to the origin."""
+        self._prepare_phase_data()
+        return self._phase_integrals
+
+    def phase_anchor(self, reference):
+        """Host phase, frequency and interval for a local particle-time expansion.
+
+        Only the scalar epoch uses extra precision. Particle arithmetic stays
+        float64 on both backends; repeated reference/particle calls reuse it.
+        """
+        reference = float(reference)
+        if self._phase_anchor is None or self._phase_anchor[0] != reference:
+            self._prepare_phase_data()
+            with localcontext() as ctx:
+                ctx.prec = 80
+                cycles = float((self._decimal_primitive(reference)-self._phase_origin) % 1) % 1.
+            index = max(0, int(np.searchsorted(self.times, reference, side='right'))-1)
+            self._phase_anchor = reference, (cycles, float(self.value(reference)), index)
+        return self._phase_anchor[1]
 
     def inverse_integral(self, cycles):
         """Invert a strictly positive frequency program, in physical seconds."""
