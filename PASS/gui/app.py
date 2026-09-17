@@ -147,7 +147,7 @@ FIELD_HELP = {
     "Coordinate": "SC 使用 z_periodic；尾场使用 z_rel 或 arrival_phase。均不改写粒子连续 z_rel。",
     "Max phase slip": "到达相位切片允许的相位滑移，范围 (0, 0.1]。",
     "Time mode": "reference：规定时钟在当前 turn 的逆积分；particle：实际局部 kick 中心的 t0-z_rel/(beta*c)。",
-    "Waveform file": "TFS 列 TIME、HKICK、VKICK；时间为秒，kick 是积分 Delta P/P0；时间递增，表外踢为零。",
+    "Waveform file": "TFS 列 TIME、HKICK、VKICK；时间为秒，kick 是积分 Delta P/P0；时间递增，各平面范围外保持最近端点值并警告。",
     "Include injection metadata": "输出 particle_id、injection_turn、injection_batch；未注入粒子计入 NumPending。",
     "Include reference": "保存每行 referenceTime、referenceBeta、referenceMomentum；用配套参考量重建活粒子物理时间。",
 }
@@ -2466,7 +2466,7 @@ class ConfigPage(QWidget):
         """Present command parameters by purpose, independently of schema inheritance."""
         command = values.get("Command")
         special = {
-            "ElSeparator": [("硬件参数", ("Voltage (V)", "Gap (m)", "Electrode height (m)", "Electrode center (m)", "Septum position (m)", "Septum thickness (m)", "Tilt (rad)"))],
+            "ElSeparator": [("硬件参数", ("V (V)", "VL (V m)", "Gap (m)", "Septum position (m)", "Septum thickness (m)", "Tilt (rad)"))],
             "Bump": [("脉冲波形与时钟", ("Waveform file", "Time mode", "Time offset (s)"))],
             "WakeField": [("尾场求解组", ("Groups",))],
             "Exciter": [
@@ -2526,7 +2526,7 @@ class ConfigPage(QWidget):
         if target.get("Command") == "SpaceCharge":
             self.form_hint.setText("default 孔径使用配置网格矩形；修改后点击应用。")
         elif target.get("Command") == "ElSeparator":
-            self.form_hint.setText("位置 s 为出口、入口为 s−L。电压为隔板电势减去对侧电极电势；倾角只旋转电极截面，不旋转真空孔径。零电压仍检查材料碰撞，零长度没有电压脉冲。旧 EX/EY/EXL/EYL 无法自动换算，请按实际场隙、电极高度及电压重新配置。")
+            self.form_hint.setText("V 为隔板减去高压电极的电压差，VL 为该电压差沿纵向的积分（V·m），二选一，另一个留空。零长度非零冲量使用 VL。电极和有场区覆盖任意局部 v，外部范围由孔径限定；Tilt 不旋转孔径。S 是出口，零强度仍检查材料碰撞。")
         elif target.get("Command") == "Bump":
             self.form_hint.setText("HKICK/VKICK 为积分 ΔP/P0；不再除以 (1+δ)。Enable 只控制电磁踢，关闭后仍有输运和孔径。")
         elif target.get("Command") == "RFCavity":
@@ -2613,11 +2613,12 @@ class ConfigPage(QWidget):
             value = deepcopy(self._selected_mapping)
             if value.get("Command") == "ElSeparator":
                 # A geometry preview should not require unrelated tracking inputs.
-                keys = ("Gap (m)", "Electrode height (m)", "Septum position (m)",
-                        "Septum thickness (m)", "Electrode center (m)", "Tilt (rad)", "Voltage (V)")
+                keys = ("Gap (m)", "Septum position (m)", "Septum thickness (m)",
+                        "Tilt (rad)", "V (V)", "VL (V m)", "Length (m)",
+                        "Aperture type", "Aperture value")
                 for key in keys:
                     field = self._form_fields[key]
-                    if key == "Voltage (V)" and not field.text().strip():
+                    if key in {"V (V)", "VL (V m)"} and not field.text().strip():
                         value[key] = None
                     else:
                         value[key] = self._read_field_value(key, field, value.get(key))
@@ -3027,11 +3028,10 @@ class ConfigPage(QWidget):
         hardware = {}
         if getattr(self, "_field_context", {}).get("Command") == "ElSeparator":
             hardware = {
-                "Voltage (V)": ("电压 / V", "隔板电势减去对侧电极电势，可正可负；零电压仍检查材料碰撞。"),
+                "V (V)": ("电压差 V / V", "隔板电势减去高压电极电势，可正可负；与 VL 二选一，另一个留空。零值仍检查材料碰撞。"),
+                "VL (V m)": ("积分电压 VL / V·m", "电压差沿纵向的积分；积分电场为 VL/Gap。与 V 二选一，支持零长度薄冲量。"),
                 "Gap (m)": ("场隙宽度 / m", "隔板外表面与对侧电极内表面之间的开放间隙，必须大于零。"),
-                "Electrode height (m)": ("电极高度 / m", "电极在局部切向坐标中的总高度，必须大于零。"),
-                "Electrode center (m)": ("电极中心 / m", "电极高度区间的局部切向中心坐标，默认零。"),
-                "Septum position (m)": ("隔板位置 / m", "薄隔板内表面的局部法向坐标。"),
+                "Septum position (m)": ("隔板位置 / m", "septum 靠循环束无场区表面的局部 u 坐标，相对于参考轨道。"),
                 "Septum thickness (m)": ("隔板厚度 / m", "薄隔板的法向厚度，不得小于零；零厚度表面仍会吸收接触粒子。"),
                 "Tilt (rad)": ("倾角 / rad", "电极截面绕纵向轴的旋转角；不会缩放元件长度，也不旋转真空孔径。"),
             }

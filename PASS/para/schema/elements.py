@@ -237,13 +237,14 @@ class BumpElement(SlicedElementBase):
 # ============================================================
 
 class ElSeparatorElement(SlicedElementBase):
-    """Finite parallel electrodes; tilt is a roll and never rescales Length."""
+    """Infinite-height parallel electrodes, with a thick or thin electric kick."""
     model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
     command: str = Field(default="ElSeparator", alias="Command")
-    voltage: float = Field(alias="Voltage (V)", description="Septum potential minus counter-electrode potential")
+    voltage: float | None = Field(default=None, alias="V (V)",
+        description="Signed septum-minus-high-voltage-electrode potential difference; specify exactly one of V and VL")
+    voltage_length: float | None = Field(default=None, alias="VL (V m)",
+        description="Signed longitudinal integral of the interplate voltage difference, in V m; integrated electric field is VL / Gap")
     gap: float = Field(gt=0, alias="Gap (m)")
-    electrode_height: float = Field(gt=0, alias="Electrode height (m)")
-    electrode_center: float = Field(default=0.0, alias="Electrode center (m)")
     tilt: float = Field(default=0.0, alias="Tilt (rad)")
     septum_position: float = Field(alias="Septum position (m)")
     septum_thickness: float = Field(default=0.0, ge=0, alias="Septum thickness (m)")
@@ -251,21 +252,34 @@ class ElSeparatorElement(SlicedElementBase):
 
     @model_validator(mode="after")
     def validate_geometry(self):
-        from PASS.utils.aperture import build_aperture
+        from PASS.para.schema.space_charge import validate_loss_aperture
         import math
+        if not math.isfinite(self.s-self.length):
+            raise ValueError("ElSeparator entrance S - Length must be finite")
         outer = self.septum_position + self.septum_thickness
         counter = outer + self.gap
         if not math.isfinite(counter) or counter <= outer:
             raise ValueError("Gap must resolve distinct finite electrode surfaces")
         if self.septum_thickness > 0 and outer <= self.septum_position:
             raise ValueError("Positive septum thickness must resolve distinct surfaces")
-        bottom = self.electrode_center - self.electrode_height / 2
-        top = self.electrode_center + self.electrode_height / 2
-        if not all(math.isfinite(v) for v in (bottom, top)) or top <= bottom:
-            raise ValueError("Electrode height must resolve distinct finite edges")
-        if not math.isfinite(self.voltage / self.gap):
-            raise ValueError("Voltage / Gap must be finite")
-        build_aperture({"Type": self.aperture_type, "Value": self.aperture_value})
+        if (self.voltage is None) == (self.voltage_length is None):
+            raise ValueError("Specify exactly one of V (V) and VL (V m); zero is allowed")
+        if self.voltage is not None:
+            if self.length == 0 and self.voltage != 0:
+                raise ValueError("Nonzero V requires positive Length; use VL for a zero-length kick")
+            field = self.voltage / self.gap
+            integrated_field = field * self.length
+        else:
+            integrated_field = self.voltage_length / self.gap
+            field = integrated_field / self.length if self.length > 0 else 0.
+        if not math.isfinite(field) or not math.isfinite(integrated_field):
+            raise ValueError("Electric field and integrated electric field must be finite")
+        kind = self.aperture_type.lower()
+        self.aperture_type = {"circular": "circle", "elliptic": "ellipse", "rectangular": "rectangle"}.get(kind, kind)
+        self.aperture_value = validate_loss_aperture(self.aperture_type, self.aperture_value)
+        if self.aperture_type == "polygon":
+            from PASS.validation.geometry import validate_polygon
+            validate_polygon(self.aperture_value)
         return self
 
 

@@ -12,7 +12,6 @@ import logging
 import math
 from numbers import Integral
 
-from PASS.para.schema.space_charge import parse_element_space_charge, validate_loss_aperture
 from PASS.utils.aperture import check_aperture_cpu
 from PASS.utils.constants import const
 
@@ -21,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 def resolve_internal_sc_aperture(config, parent_type, parent_value, name, sim, beam_id):
     """Use the element aperture for both deposition walls and particle losses."""
+    from PASS.para.schema.space_charge import validate_loss_aperture
+
     kind = str(parent_type).strip().lower()
     dimensions = validate_loss_aperture(kind, parent_value)
     if kind == "default":
@@ -105,6 +106,8 @@ def configure_element_slicing(element, sim, values):
     settings = getattr(sim.cfg, "space_charge", [])
     if element.beam_id >= len(settings) or not settings[element.beam_id].enabled:
         return
+    from PASS.para.schema.space_charge import parse_element_space_charge
+
     config = parse_element_space_charge(raw)
     config = resolve_internal_sc_aperture(config, element.aperture_type, element.aperture_value,
                                           element.cmd_name, sim, element.beam_id)
@@ -152,11 +155,14 @@ def print_element_slicing(element):
                 first.save_field, first.save_potential, first.save_density, first._save_turn_ranges)
 
 
-def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
+def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False,
+                    check_aperture_at_nodes=True):
     """Call transport(ds, on_center) for a whole bunch, then boundary SC.
 
     No reference clock advancement and no longitudinal rebinning occurs here.
     The owning element advances its reference clock once for the total length.
+    Elements with an exit-only aperture disable loss checks at internal nodes;
+    SC still enforces its field-domain validity requirements.
     """
     plan = element.slice_plan
     p = beam.particles
@@ -177,14 +183,20 @@ def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
                 p.lost_turn[region][unrecorded] = turn
                 entry_alive[lost] = False
                 if gpu:
-                    from PASS.utils.aperture import check_aperture_gpu
-                    check_aperture_gpu(beam, bunch, element.aperture_type,
-                                       element.aperture_value, command.s, turn)
-                    command.apply_bunch_gpu(element._sc_sim, beam, bunch)
+                    if check_aperture_at_nodes:
+                        from PASS.utils.aperture import check_aperture_gpu
+                        check_aperture_gpu(beam, bunch, element.aperture_type,
+                                           element.aperture_value, command.s, turn)
+                        command.apply_bunch_gpu(element._sc_sim, beam, bunch)
+                    else:
+                        command.apply_bunch_gpu(element._sc_sim, beam, bunch, check_aperture=False)
                 else:
-                    check_aperture_cpu(beam, bunch, element.aperture_type,
-                                       element.aperture_value, command.s, turn)
-                    command.apply_bunch_cpu(element._sc_sim, beam, bunch)
+                    if check_aperture_at_nodes:
+                        check_aperture_cpu(beam, bunch, element.aperture_type,
+                                           element.aperture_value, command.s, turn)
+                        command.apply_bunch_cpu(element._sc_sim, beam, bunch)
+                    else:
+                        command.apply_bunch_cpu(element._sc_sim, beam, bunch, check_aperture=False)
                 entry_alive[p.tag[region] <= 0] = False
 
         transport(plan.slice_length, callback if pair and node.placement == "center" else None)

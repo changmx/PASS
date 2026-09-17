@@ -375,17 +375,20 @@ class SpaceCharge(Command):
             self.apply_bunch_cpu(sim, beam, bunch)
         return True
 
-    def apply_bunch_cpu(self, sim, beam, bunch):
+    def apply_bunch_cpu(self, sim, beam, bunch, *, check_aperture=True):
         """Shared entry point for explicit commands and internal element nodes.
 
         Consume the existing longitudinal bin membership and widths, while
         evaluating fields at current transverse coordinates. Do not advance s
         or the reference clock, rebin particles, or traverse other bunches.
+        An exit-only parent may defer aperture losses; PIC field-domain
+        validation remains mandatory independently of this loss check.
         """
         if not self.is_enabled:
             return False
         turn = int(sim.state.turn)
-        check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+        if check_aperture:
+            check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
         if self.sc_length != 0.0:
             return self._apply_bunch_cpu(beam, bunch, beam.particles, sim, turn)
         return False
@@ -635,12 +638,13 @@ class SpaceCharge(Command):
             self.apply_bunch_gpu(sim, beam, bunch)
         return True
 
-    def apply_bunch_gpu(self, sim, beam, bunch):
-        """Apply the same integrated-field kick to a device-resident bunch."""
+    def apply_bunch_gpu(self, sim, beam, bunch, *, check_aperture=True):
+        """Apply a device kick, optionally deferring losses to the parent exit."""
         if not self.is_enabled:
             return False
-        from PASS.utils.aperture import check_aperture_gpu
-        check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, int(sim.state.turn))
+        if check_aperture:
+            from PASS.utils.aperture import check_aperture_gpu
+            check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, int(sim.state.turn))
         if self.sc_length == 0:
             return False
         import cupy as cp

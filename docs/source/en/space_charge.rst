@@ -961,6 +961,8 @@ grid-domain error. Independent explicit SC commands retain their own apertures.
 
 The element aperture is checked at SC nodes and the usual element exit. Losses
 are excluded from sources and kicks; first recorded loss positions are preserved.
+``Bump`` uses one exit aperture check per passage and defers internal-node
+aperture losses; its PIC field-domain validation still applies at every SC node.
 Nodes share resources by configuration and effective aperture. Their snapshots
 are stored under
 ``<space_charge_output>/<element>/internal_sc/node_000000/turn_000000/``.

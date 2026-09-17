@@ -62,7 +62,8 @@ def read_bump_preview(command, base_dir):
     if path.is_dir():
         raise ValueError(f"所选路径是文件夹，请选择 TFS 波形文件：\n{path}")
     try:
-        return read_bump_waveform(path)
+        samples, _ = read_bump_waveform(path)
+        return samples
     except FileNotFoundError as exc:
         raise ValueError(f"找不到 Bump 波形文件，请检查路径：\n{path}") from exc
     except PermissionError as exc:
@@ -83,10 +84,18 @@ def read_bump_preview(command, base_dir):
         message = str(exc)
         if message == "Bump requires at least two finite rows with strictly increasing TIME":
             translated = "波形文件至少需要两行有限数值；TIME 必须严格递增，不能重复或倒序。"
+        elif message == "Bump waveform file is empty":
+            translated = "波形文件为空，请提供包含 TIME、HKICK、VKICK 的 TFS 数据。"
+        elif "must contain real numbers" in message:
+            translated = "TIME、HKICK、VKICK 必须为实数列，不接受复数、布尔值或字符串列。"
         elif message == "Bump TIME_UNIT must be s":
             translated = "波形文件的时间单位必须为秒，请将 TIME_UNIT 设为 s，并按秒换算时间数据。"
         elif message == "Bump KICK_CONVENTION must be delta_p_over_p0":
             translated = "波形文件的踢量约定必须为积分动量变化 ΔP/P0；KICK_CONVENTION 应设为 delta_p_over_p0。"
+        elif "must hold its endpoint values" in message:
+            translated = "各平面在其原始时间范围外必须保持端点值，请检查 HKICK/VKICK 与范围表头。"
+        elif "Bump requires both" in message or any(key in message for key in ("HKICK_START", "HKICK_END", "VKICK_START", "VKICK_END")) or "range must be strictly increasing" in message:
+            translated = "各平面的原始时间范围表头须成对填写，起止时间必须有限、严格递增并对应 TIME 节点。"
         else:
             translated = "波形表格无法解析，请检查列数及数据类型；TIME、HKICK、VKICK 必须填写数值。"
         raise ValueError(translated) from exc
@@ -153,12 +162,12 @@ class ParameterPreview(QDialog):
             ax = self.figure.subplots()
             for i, label in enumerate(("HKICK", "VKICK"), 1):
                 ax.plot(times, samples[:, i], label=label)
-                ax.plot([times[0]-pad, times[0]], [0, 0], color="gray", linestyle="--")
-                ax.plot([times[-1], times[-1]+pad], [0, 0], color="gray", linestyle="--")
+                ax.plot([times[0]-pad, times[0]], [samples[0, i]]*2, color="gray", linestyle="--")
+                ax.plot([times[-1], times[-1]+pad], [samples[-1, i]]*2, color="gray", linestyle="--")
             ax.set(xlabel="Sampling time before offset (s)", ylabel="Integrated kick: delta P / P0")
             ax.grid(alpha=.25)
             ax.legend()
-            self.status.setText("TFS 线性插值，端点包含在内、表外为零。横轴已减 Time offset；reference 使用规定时钟的圈时刻，particle 使用实际局部粒子到达时间。此图是输入波形，不是跟踪轨迹。")
+            self.status.setText("TFS 线性插值，端点包含在内；两平面在各自原始时间范围外保持最近端点值，跟踪时每个元件警告一次。横轴已减 Time offset；reference 使用规定时钟的圈时刻，particle 使用实际局部粒子到达时间。此图是输入波形，不是跟踪轨迹。")
         else:
             self.draw_separator()
         root.addWidget(NavigationToolbar2QT(self.canvas, self))
@@ -183,32 +192,73 @@ class ParameterPreview(QDialog):
 
     def draw_separator(self):
         from matplotlib.patches import Polygon
+        from PASS.commands.element.elseparator import _aperture_primitives
         from PASS.para.schema.elements import ElSeparatorElement
-        keys = ("Gap (m)", "Electrode height (m)", "Septum position (m)",
-                "Septum thickness (m)", "Electrode center (m)", "Tilt (rad)")
+        from PASS.utils.aperture import build_aperture, IntersectionAperture
+        keys = ("Gap (m)", "Septum position (m)", "Septum thickness (m)",
+                "Tilt (rad)", "Length (m)", "Aperture type", "Aperture value")
         # Reuse the physical geometry checks, independently of tracking settings.
-        # An unspecified voltage permits geometry only; never report it as zero.
-        voltage = self.command.get("Voltage (V)")
-        p = ElSeparatorElement.model_validate({"S (m)": 0., "Voltage (V)": 0. if voltage is None else voltage,
+        # Unspecified strength permits geometry only; never report it as zero.
+        voltage, voltage_length = self.command.get("V (V)"), self.command.get("VL (V m)")
+        geometry_only = voltage is None and voltage_length is None
+        p = ElSeparatorElement.model_validate({"S (m)": 0.,
+            "V (V)": 0. if geometry_only else voltage, "VL (V m)": voltage_length,
             **{k: self.command[k] for k in keys if k in self.command}}).model_dump(by_alias=True)
         d, thickness, gap = (p[k] for k in ("Septum position (m)", "Septum thickness (m)", "Gap (m)"))
-        center, height, angle = (p[k] for k in ("Electrode center (m)", "Electrode height (m)", "Tilt (rad)"))
+        angle = p["Tilt (rad)"]
         ax = self.figure.subplots()
-        rotation = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+        # Inverse of u=x*cos(theta)-y*sin(theta), v=x*sin(theta)+y*cos(theta).
+        rotation = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
+        geometry = build_aperture({"Type": p["Aperture type"], "Value": p["Aperture value"]})
+        segments, ellipses = _aperture_primitives(geometry)
+        # A composite aperture is the intersection of its components. Sampling
+        # line interiors lets the preview clip edges whose endpoints lie outside
+        # the other component instead of drawing the full component outlines.
+        count = 257 if isinstance(geometry, IntersectionAperture) else 2
+        curves = [np.column_stack((np.linspace(x1,x2,count),np.linspace(y1,y2,count)))
+                  for x1,y1,x2,y2 in segments]
+        for cx, cy, a, b, side in ellipses:
+            angles = np.linspace(np.pi/2,3*np.pi/2,129) if side < 0 else (
+                np.linspace(-np.pi/2,np.pi/2,129) if side > 0 else np.linspace(0,2*np.pi,257))
+            curves.append(np.column_stack((cx+a*np.cos(angles),cy+b*np.sin(angles))))
+        if isinstance(geometry, IntersectionAperture):
+            for curve in curves:
+                # All supported intersection components are convex and centered
+                # at the origin; the tiny inward offset avoids trig roundoff.
+                inward = curve*(1-16*np.finfo(float).eps)
+                curve[~geometry.mask(inward[:,0],inward[:,1])] = np.nan
+        # These bounds crop the drawing, not the infinitely tall electrodes.
+        lower, upper, span = min(0.,d-2*gap), d+thickness+1.3*gap, 2*gap
+        if curves:
+            points = np.concatenate(curves)
+            local = points[np.isfinite(points).all(axis=1)] @ rotation
+            lower, upper = min(lower,float(local[:,0].min())), max(upper,float(local[:,0].max()))
+            span = max(span,1.1*float(np.abs(local[:,1]).max()))
         for left, right, color, label in (
+            (lower, d, "#dcebd9", "Circulating-beam field-free region"),
             (d, d+thickness, "#bb5555", "Septum"),
-            (d+thickness, d+thickness+gap, "#abd9ec", "Open field gap"),
-            (d+thickness+gap, d+thickness+gap+.3*gap, "#777777", "Counter electrode (continues)"),
+            (d+thickness, d+thickness+gap, "#abd9ec", "Field region"),
+            (d+thickness+gap, upper, "#777777", "High-voltage electrode"),
         ):
-            vertices = np.array([[left, center-height/2], [right, center-height/2],
-                                 [right, center+height/2], [left, center+height/2]]) @ rotation.T
-            ax.add_patch(Polygon(vertices, closed=True, facecolor=color, edgecolor=color, label=label))
+            vertices = np.array([[left,-span],[right,-span],[right,span],[left,span]]) @ rotation.T
+            ax.add_patch(Polygon(vertices, closed=True, facecolor=color, edgecolor="none", label=label))
+        for surface in (d,d+thickness,d+thickness+gap):
+            ends = np.array([[surface,-span],[surface,span]]) @ rotation.T
+            ax.plot(*ends.T, color="#753e3e", linewidth=1)
+        for i, curve in enumerate(curves):
+            ax.plot(*curve.T, color="black", linestyle="--", label="Vacuum aperture (beam frame)" if i == 0 else None)
         ax.plot(0, 0, "+", color="black", label="Beam origin")
         ax.autoscale_view()
         ax.set_aspect("equal", adjustable="datalim")
         ax.set(xlabel="Beam x (m)", ylabel="Beam y (m)")
         ax.grid(alpha=.25)
         ax.legend()
-        field = ("电压未填写，仅预览几何，不计算电场" if voltage is None else
-                 f"开口场隙内 Eu=V/g={p['Voltage (V)']/gap:.6g} V/m")
-        self.status.setText(f"电极截面（真空孔径未绘制）。{field}；对电极向外无限延伸，仅截取一段显示。电极边界吸收粒子，零电压仍有材料损失。")
+        if geometry_only:
+            field = "V、VL 未填写，仅预览几何，不计算电场"
+        elif voltage_length is not None:
+            field = f"积分电场 VL/g={voltage_length/gap:.6g} V"
+            field += (f"，等效 Eu={voltage_length/gap/p['Length (m)']:.6g} V/m"
+                      if p["Length (m)"] > 0 else "，零长度薄冲量")
+        else:
+            field = f"有场区 Eu=V/g={voltage/gap:.6g} V/m"
+        self.status.setText(f"{field}。循环束无场区和有场区均保留粒子，septum 与高压电极吸收粒子。电极沿局部 v 无限延伸，图中只显示截取范围；黑色虚线为独立孔径，Tilt 不旋转它。")
