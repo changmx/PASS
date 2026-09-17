@@ -1,681 +1,328 @@
 ElSeparator
 ===========
 
-This module describes the PASS electrostatic separator element **ElSeparator**, used to simulate the deflection of charged particles in a uniform transverse electric field. Electrostatic separators are widely used in beam injection and extraction systems, using a septum (cutting plate/wire) to divide the aperture into a field-free region (circulating beam in the ring) and a field region (injected or extracted beam), applying electric field deflection only to particles that cross the septum.
+``PASS.commands.element.elseparator.ElSeparator`` models an electrostatic
+septum with a circulating-beam field-free region, a thin separating electrode,
+a field region and a high-voltage electrode. The registered command is
+``ElSeparator``. CPU and GPU implement a relativistic uniform electrostatic
+body map with hard-edge potential matching for positive length. Zero length
+uses a single effective impulse evaluated with each particle's incident
+longitudinal velocity.
+Entering the field region does not itself lose a particle. Survivors continue into
+the downstream lattice, where the actual later apertures determine later losses.
 
-The PASS electrostatic separator supports both **thin lens** (pure momentum kick) and **thick lens** (DKD exact parabolic trajectory) modes. The user can input deflection parameters via either field strength (``ex`` / ``ey``, V/m) or integrated field (``exl`` / ``eyl``, V), consistent with MAD-X definitions.
+Length, orientation and time
+----------------------------
 
-**Code Location**
+``Length (m)`` is the supplied longitudinal transport length L. ``S (m)`` is
+the exit; the entrance is S-L. ``Tilt (rad)`` is a roll about the longitudinal
+axis, not a pitch or yaw of the element axis. **Never multiply or divide L by
+cos(tilt)** for transport, field integration, loss positions or reference time.
+Horizontal, vertical and inclined separators share one implementation.
 
-- Source file: ``PASS/commands/element/elseparator.py``
-- Class name: ``ElSeparator`` (inherits from ``Command``)
-- Registration name: ``elseparator``
-- Key features:
+With the existing PASS roll convention, temporary geometric coordinates are
 
-  - Thin lens (``length = 0``): pure momentum translation, strictly symplectic
-  - Thick lens (``length > 0``): DKD (Drift-Kick-Drift) 2nd-order symplectic integration, exact solution for uniform electric field
-  - Two input methods: field strength (``ex`` / ``ey``) and integrated field (``exl`` / ``eyl``), with automatic mutual derivation
-  - Septum position detection: automatically determines whether a particle is in the field-free region, field region, or striking the plate/wire
-  - Supports ``tilt`` roll rotation about the :math:`s` axis (clockwise, consistent with MAD-X)
-  - Supports aperture check
+.. math::
 
+   u=x\cos\theta-y\sin\theta,\qquad
+   v=x\sin\theta+y\cos\theta.
 
-Coordinate Convention
----------------------
+The particle arrays remain in the beam frame. A local normal kick is applied as
 
-PASS uses the six-dimensional phase-space variables :math:`(x, p_x, y, p_y, z, \delta)`:
+.. math::
 
-.. list-table::
-  :header-rows: 1
-  :widths: 15 20 65
+   \Delta p_x=K_u\cos\theta,\qquad
+   \Delta p_y=-K_u\sin\theta.
 
-  * - Variable
-    - Symbol
-    - Definition
-  * - ``x``
-    - :math:`x`
-    - Horizontal offset (relative to the reference orbit)
-  * - ``px``
-    - :math:`p_x`
-    - Normalized horizontal momentum, :math:`p_x = P_x / P_0`
-  * - ``y``
-    - :math:`y`
-    - Vertical offset
-  * - ``py``
-    - :math:`p_y`
-    - Normalized vertical momentum, :math:`p_y = P_y / P_0`
-  * - ``z``
-    - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
-  * - ``dp``
-    - :math:`\delta`
-    - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
+Thus tilt=0 selects horizontal deflection and tilt=+/-pi/2 selects vertical
+deflection; the sign of the voltage and the particle charge determine polarity.
+Adding pi to the roll reverses the geometric normal. The sign of the septum
+position does not independently select a field side.
 
-where :math:`P_0` is the reference particle momentum, :math:`\beta_0 = v_0 / c` is the reference particle normalized velocity.
+For every traversed reference segment ds, including empty bunches,
 
+.. math::
 
-Physical Derivation
+   t_0\leftarrow t_0+\frac{ds}{\beta_0 c},\qquad
+   z_{\mathrm{rel}}=\beta_0c(t_0-t_i).
+
+The design reference clock retains the field-free reference transit convention.
+Individual flight-time differences are computed by the exact field body map or
+the standard drift in the circulating-beam field-free region. There is no additional tilt time correction or arrival state.
+A zero-length instance checks geometry and momentum at its plane, applies a
+``VL`` kick to surviving particles in the field region, then checks momentum
+validity again. It changes neither x, y, z nor reference time. It cannot locate
+collisions that would occur inside the omitted physical length; use the thick
+model to resolve those trajectories and loss positions. Num slices does not
+repeat the thin kick, and internal space charge requires positive length.
+
+Geometry and voltage
 --------------------
 
-Electric Field Force and Normalized Kick
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Let d be ``Septum position (m)``, t be ``Septum thickness (m)`` and g be
+``Gap (m)``. The high-voltage electrode's inner surface is uc=d+t+g.
+These positions are relative to the reference orbit, not the ring's geometric
+center. The regions, for every local v, are
 
-The electrostatic separator produces a uniform transverse electric field :math:`E_x` or :math:`E_y` between the plates. A charged particle in the electric field experiences the force:
+* circulating-beam field-free region: u < d;
+* septum material: d <= u <= d+t;
+* field region: d+t < u < uc;
+* high-voltage electrode material: u >= uc.
 
-.. math::
+The electrode surfaces are absorbing material boundaries.
+A zero-thickness septum is a closed plane: touching or crossing it still loses a
+particle. This is an effective material-loss model, not a discrete-wire or
+multiple-scattering simulation.
 
-  \vec{F} = q \vec{E}
+For entry contact tests, projected coordinates within
+``4*epsilon*(abs(x*cos(tilt))+abs(y*sin(tilt)))`` of a material surface count as
+touching; epsilon is the particle dtype's machine precision. This prevents
+rotation/storage roundoff from letting a point on a zero-thickness septum pass.
+Future ray intersections still use the specified surfaces without shifting them.
 
-The particle traverses the separator of length :math:`L` with longitudinal velocity :math:`v = \beta_0 c`, with a residence time of :math:`t = L / (\beta_0 c)`. The transverse momentum change is:
+The plates and field are idealized as covering all local v. Use the separate
+vacuum aperture for the opposite wall and transverse clearance, including
+symmetric limits in v. This assumes the modeled acceptance lies within the
+electrodes' good-field coverage; it does not model finite-height fringe fields.
+The polygon is an outer acceptance boundary, not a replacement for the internal
+septum material. ``Aperture type: off`` disables only the vacuum-wall check.
 
-.. math::
-
-  \Delta P_x = q E_x \cdot t = \frac{q E_x L}{\beta_0 c}
-
-Normalizing to PASS coordinates (:math:`p_x = P_x / P_0`, :math:`P_0 = q_0 B\rho`, same species :math:`q = q_0`):
-
-.. math::
-
-  \Delta p_x = \frac{\Delta P_x}{P_0} = \frac{E_x L}{\beta_0 c \cdot B\rho} = \frac{\mathrm{exl}}{\beta_0 c \cdot B\rho}
-
-where :math:`\mathrm{exl} = E_x \cdot L` is the integrated electric field (unit: volts), and :math:`B\rho = P_0 / q_0` is the magnetic rigidity. Similarly:
-
-.. math::
-
-  \Delta p_y = \frac{\mathrm{eyl}}{\beta_0 c \cdot B\rho}
-
-Dimensional verification: :math:`[\mathrm{V}] / ([\mathrm{m/s}] \cdot [\mathrm{T \cdot m}]) = [\mathrm{J/C}] / [\mathrm{kg \cdot m / (C \cdot s)}] = 1` (dimensionless) ✓
-
-Equivalence with Magnetic Dipole
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The deflection produced by an electric field on a particle with velocity :math:`\beta_0 c` is equivalent to a particle with magnetic rigidity :math:`B\rho` passing through a magnetic field :math:`B`. From :math:`\Delta p_x = E_x L / (\beta_0 c \cdot B\rho)` and the magnetic dipole kick :math:`\Delta p_x = B L / B\rho` being equivalent:
+``V (V)`` is the signed septum-minus-high-voltage-electrode potential difference.
+``VL (V m)`` is its longitudinal integral, not the electric-field integral:
 
 .. math::
 
-  E_x = \beta_0 c \cdot B
+   V=\phi_{\mathrm{septum}}-\phi_{\mathrm{HV}},\qquad
+   VL=\int V(s)\,ds,\qquad
+   \int E_u(s)\,ds=\frac{VL}{g}.
 
-That is, an electric field of :math:`1\,\mathrm{MV/m}` at :math:`\beta_0 \approx 1` is equivalent to a magnetic field of :math:`B \approx 3.336\,\mathrm{mT}`.
-
-Same Deflection Angle but Different Energy Change
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The above equivalence refers only to the **same deflection angle**. Electric and magnetic fields differ fundamentally in energy conservation:
-
-- **Magnetic field does no work**: :math:`\vec{F} = q\vec{v}\times\vec{B}`, :math:`\vec{F} \perp \vec{v}`, the total particle momentum :math:`P` is unchanged; as :math:`p_x` increases, :math:`p_z` decreases (momentum redistribution), and :math:`\delta` is exactly unchanged.
-- **Electric field does work**: :math:`\vec{F} = q\vec{E}`, the particle has a transverse displacement :math:`\Delta x` within the plates, the electric field does work :math:`W = qE_x \cdot \Delta x \neq 0`, and the total particle energy increases, so :math:`\delta` changes.
-
-For a thick lens, the transverse displacement of the particle (DKD exact solution) is:
+For a thick uniform-field model, V input gives Eu=V/g and VL=V*L;
+VL input gives Eu=VL/(g*L). For a thin model, VL is an independent input
+representing the real device integral, even though the tracking length is zero.
+For zero length the effective normalized impulse is
 
 .. math::
 
-  \Delta x = \frac{p_{x0} L}{p_z} + \frac{\Delta p_x \cdot L}{2 p_z}
+   K_u=\operatorname{sgn}(q)\frac{VL/g}{\beta_0 c B\rho}
+       \frac{A}{p_s},\qquad
+   A=\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta)^2},\qquad
+   p_s=\sqrt{(1+\delta)^2-p_x^2-p_y^2}.
 
-The :math:`\delta` change corresponding to the electric field work:
+Here beta0*c*ps/A is the incident longitudinal speed. The incident state is
+frozen during this lumped impulse. It keeps dp fixed and is not the exact map
+of a finite electrode. PASS stores px=Px/P0 and py=Py/P0, so this is a
+normalized mechanical momentum increment, not an angular kick. Do not divide
+it by an additional (1+delta). Finite length uses the energy-consistent map below.
 
-.. math::
+PASS stores the positive reference rigidity magnitude. The charge sign is
+applied explicitly. The current bunch beta and rigidity are read each execution;
+RF updates them through ``set_reference_energy``. A constant applied voltage
+therefore does not imply a constant kick during acceleration.
 
-  \Delta\delta = \frac{W}{P_0 c} = \frac{E_x \cdot \Delta x}{B\rho \cdot c}
+Specify exactly one non-null V or VL; zero is valid. Both or neither are errors.
+For zero length, nonzero V is rejected with a request to use VL; V=0 permits a
+pure geometry check. Gap and septum position remain required for either input.
+The old ``Voltage (V)``, electrode-height/center and EX/EY/EXL/EYL fields are
+not accepted. Material and vacuum checks remain active at zero strength.
 
-For a particle with :math:`p_{x0} = 0`, substituting :math:`\Delta x = \Delta p_x \cdot L / (2 p_z)` and :math:`\Delta p_x = E_x L / (\beta_0 c \cdot B\rho)`:
+Propagation and collisions
+--------------------------
 
-.. math::
+The septum and external field-free regions have zero potential. Within the gap,
+with uf=d+t, the ideal body potential is Phi=-Eu*(u-uf). The high-voltage plate
+therefore has potential -V. Define W=energy/(P0*c), mu=mc/P0 and k=q*Eu/(P0*c).
+The entrance edge changes mechanical energy to W+k*(u-uf), keeping transverse
+momenta and coordinates fixed. The exit edge subtracts k*(u-uf). These are
+ideal zero-width longitudinal edge impulses, not measured fringe profiles.
 
-  \Delta\delta = \frac{\Delta p_x^2}{2\beta_0}
-
-For :math:`\Delta p_x = 30\,\mathrm{mrad}`, :math:`\beta_0 \approx 1`, :math:`\Delta\delta \approx 4.5 \times 10^{-4}`, which is one to two orders of magnitude smaller than typical beam momentum spread (:math:`10^{-3} \sim 10^{-2}`).
-
-.. note::
-
-  In the PASS DKD implementation, the kick only updates :math:`p_x` / :math:`p_y`, not :math:`\delta`, i.e., the electric field work is ignored. This is a reasonable approximation:
-
-  - **Magnitude is negligible**: :math:`\Delta\delta = O(\Delta p_x^2)`, on the order of :math:`10^{-4}` for deflection angles of tens of mrad
-  - **Per-particle correct handling is costly**: :math:`\Delta x` depends on the initial :math:`p_{x0}`, which differs for each particle; correctly computing the work requires tracking displacement per particle within the DKD, turning a simple symplectic integrator into an iterative scheme
-  - **Thin lens self-consistency**: When :math:`L = 0`, :math:`\Delta x = 0`, :math:`W = 0`, :math:`\Delta\delta = 0`; the thin lens ignoring energy change is naturally self-consistent
-
-
-Thin Lens Mode
---------------
-
-When ``length = 0``, the electrostatic separator is modeled as a thin lens: the particle position is unchanged, and only the momentum undergoes an instantaneous jump:
-
-.. math::
-
-  x \leftarrow x
-
-.. math::
-
-  p_x \leftarrow p_x + \frac{\mathrm{exl}}{\beta_0 c \cdot B\rho}
+In the uniform body, ps and pv are constant. For a forward distance ds and
+a=k*ds/ps, the analytic map is
 
 .. math::
 
-  y \leftarrow y
+   p_{u,2}=p_{u,1}\cosh a+W_1\sinh a,\qquad
+   W_2=W_1\cosh a+p_{u,1}\sinh a,
+
+   u_2=u_1+\frac{W_2-W_1}{k},\qquad
+   v_2=v_1+\frac{p_v}{p_s}ds,\qquad
+   c\Delta t=\frac{p_{u,2}-p_{u,1}}{k},
+
+   \delta_2=\sqrt{W_2^2-\mu^2}-1,\qquad
+   z_2=z_1+ds-\beta_0c\Delta t.
+
+The implementation evaluates cancellation-free increments and the zero-field
+limit, rather than subtracting nearly equal hyperbolic functions. The short
+series used near zero is a floating-point evaluation technique, not a paraxial
+approximation. Across the complete static element, surviving particles recover
+their entry mechanical energy when no other energy-changing interaction acts.
+Particles without a positive forward momentum at an edge are removed at that
+edge; this represents leaving the forward tracking model, not material absorption.
+
+Entrance and exit matching occur once per element, never at internal slice or
+SC boundaries. A center SC callback receives the state after half a body slice;
+a boundary callback receives the full body-slice state. Both see the correct
+design reference time and mechanical particle momenta in the beam frame.
+Survivors in the circulating-beam field-free region also participate.
+See :ref:`en-internal-space-charge` for node placement and weights. With no
+internal SC, one analytic body propagation suffices: Num slices does not change
+the external-field result. With SC, convergence of the split collective map
+must still be checked.
+
+Electrode contacts are solved from the body's energy-position relation, retaining
+both momentum branches so that turns and grazing contacts are included. Vacuum
+wall contacts use conservative interval bounds on the analytic curve. Line and
+coordinate extrema include interior turning points; ellipse bounds enclose the
+whole interval. This detects non-convex excursions even with both endpoints
+inside. The earliest candidate is isolated to a longitudinal interval of
+1e-12*max(1, segment length) metres, with a separate 64-double-epsilon scaled
+geometry tolerance. Near tangencies that spatial tolerance can produce a larger
+uncertainty in the longitudinal contact location. Stored loss positions use the
+existing float32 array. Field-free motion retains analytic straight intersections.
+
+Particles stop at first contact and keep their mechanical state at that point;
+an exit edge is not applied to a particle lost inside the body. Subsequent calls
+preserve the first loss record. Material surfaces and vacuum walls compete for
+the earliest contact. All existing aperture types remain supported in the beam
+frame: off, default, rectangle, circle, ellipse, rectcircle, rectellipse,
+racetrack, octagon and polygon. Tilt rotates the electrodes and field, not the
+separately specified vacuum chamber.
+
+For a manually entered local polygon, transform each vertex into beam coordinates:
 
 .. math::
 
-  p_y \leftarrow p_y + \frac{\mathrm{eyl}}{\beta_0 c \cdot B\rho}
+   x=u\cos\theta+v\sin\theta,\qquad y=-u\sin\theta+v\cos\theta.
 
-The Jacobian of this map is the identity matrix, which is strictly symplectic. The kick is computed directly from the integrated field :math:`\mathrm{exl}` / :math:`\mathrm{eyl}` without needing to know the plate length.
+Enter vertices in boundary order without repeating the first vertex to close
+the polygon. Self-intersections, non-adjacent edge contacts, repeated vertices
+and malformed aperture dimensions are rejected during schema validation as
+well as input preflight.
 
+Tilt=0 puts the high-voltage electrode on local +x, while tilt=pi reverses
+the layout. Changing the voltage sign changes force polarity, not the geometry.
 
-Thick Lens Mode (DKD)
----------------------
+Drift and approximation limits
+------------------------------
 
-When ``length > 0``, Drift-Kick-Drift (DKD) 2nd-order symplectic integration is used:
-
-.. math::
-
-  \mathcal{M}_{\mathrm{DKD}}(L) = \mathrm{Drift}\!\left(\frac{L}{2}\right) \circ \mathrm{Kick}(L) \circ \mathrm{Drift}\!\left(\frac{L}{2}\right)
-
-where Kick is the thin lens kick (:math:`\Delta p_x = \mathrm{exl} / (\beta_0 c \cdot B\rho)`), and Drift is the exact drift map.
-
-Each ``_drift_exact_cpu`` call performs :math:`x \mathrel{+}= L \cdot p_x / p_z`. The DKD has three steps: the first drift uses the initial :math:`p_{x0}`, after the kick the second drift uses :math:`p_{x0} + \Delta p_x`. Combining:
+ES and :doc:`drift` share the CPU factors and CUDA inline drift function. With
+T=px^2+py^2 and ps=sqrt((1+delta)^2-T), define
 
 .. math::
 
-  \Delta x = \frac{p_{x0} L}{2 p_z} + \frac{(p_{x0} + \Delta p_x) L}{2 p_z} = \frac{p_{x0} L}{p_z} + \frac{\Delta p_x \cdot L}{2 p_z}
-
-DKD Is Exact for Uniform Electric Field
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Under a uniform electric field, the particle equation of motion is constant-acceleration motion. Let :math:`k = E_x / (\beta_0 c \cdot B\rho)` (constant), with :math:`p_z` approximately unchanged:
-
-.. math::
-
-  \frac{dp_x}{ds} = k
-
-.. math::
-
-  \frac{dx}{ds} = \frac{p_x}{p_z}
-
-Integrating gives a parabolic trajectory:
-
-.. math::
-
-  p_x(s) = p_{x0} + k \cdot s
-
-.. math::
-
-  x(s) = x_0 + \frac{p_{x0}}{p_z} s + \frac{k}{2 p_z} s^2
-
-At :math:`s = L`, substituting :math:`\Delta p_x = k L`:
-
-.. math::
-
-  x(L) = x_0 + \frac{p_{x0} L}{p_z} + \frac{\Delta p_x \cdot L}{2 p_z}
-
-This is **exactly consistent** with the DKD result. This is not a coincidence—leapfrog (DKD) is exact for constant-acceleration motion, because the first half drift uses the initial :math:`p_x` and the second half uses the kicked :math:`p_{x0} + \Delta p_x`; the average exactly gives the parabola.
-
-.. note::
-
-  The above exactness assumes :math:`p_z \approx \mathrm{const}`. For typical deflection angles (tens of mrad), the :math:`p_z` change :math:`\Delta p_z \approx -\Delta p_x^2 / (2 p_z) \sim 10^{-4}` is negligible. Therefore, DKD does not need an additional ``model="exact"`` mode.
-
-
-Kick Consistency Between Thin Lens and Thick Lens
---------------------------------------------------
-
-The kick :math:`\Delta p_x` is **exactly the same** for both thin lens and thick lens, both computed from the integrated field :math:`\mathrm{exl}`. The difference is only in the position change:
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 40 40
-
-  * -
-    - Thin lens (:math:`L = 0`)
-    - Thick lens DKD (:math:`L > 0`)
-  * - kick :math:`\Delta p_x`
-    - :math:`\mathrm{exl} / (\beta_0 c \cdot B\rho)`
-    - Same
-  * - Position change :math:`\Delta x`
-    - 0
-    - :math:`p_x L / p_z + \Delta p_x \cdot L / (2 p_z)`
-  * - Septum detection
-    - Single point (entrance position)
-    - Entrance position classification
-
-For :math:`\Delta p_x = 30\,\mathrm{mrad}`, :math:`L = 0.5\,\mathrm{m}`, :math:`p_z \approx 1` (typical parameters), the position difference:
-
-.. math::
-
-  \frac{\Delta p_x \cdot L}{2 p_z} \approx \frac{0.03 \times 0.5}{2} = 7.5\,\mathrm{mm}
-
-This magnitude is not negligible in injection/extraction scenarios (septum gaps are typically on the order of mm), so the thick lens mode is recommended.
-
-
-Septum Logic
-------------
-
-The core physical characteristic of the electrostatic separator is that **not all particles experience the electric field**. The septum (cutting plate/wire) divides the aperture into:
-
-- **Field-free region**: the region where the circulating beam resides; particles are unaffected by the electric field and undergo pure drift
-- **Field region**: the region where the injected/extracted beam resides; particles are deflected by the electric field
-- **Plate/wire region** (within septum thickness): particles strike the cutting plate/wire and are marked as lost
-
-Determination Rules
-~~~~~~~~~~~~~~~~~~~
-
-The septum direction is directly determined by which field component is nonzero:
-
-- :math:`E_x \neq 0` (``exl`` nonzero): plates are vertical, the septum is a vertical line, and the :math:`x` coordinate is checked
-- :math:`E_y \neq 0` (``eyl`` nonzero): plates are horizontal, the septum is a horizontal line, and the :math:`y` coordinate is checked
-
-The sign of ``septum_x_position`` determines which side has the field—**the field is always on the side away from the beam center**:
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 25 25 25
-
-  * - septum_x_position
-    - Field-free region (circulating beam)
-    - Plate/wire region
-    - Field region (deflected beam)
-  * - :math:`> 0`
-    - :math:`x \le s_x`
-    - :math:`s_x < x \le s_x + t`
-    - :math:`x > s_x + t`
-  * - :math:`< 0`
-    - :math:`x \ge s_x`
-    - :math:`s_x - t \le x < s_x`
-    - :math:`x < s_x - t`
-
-where :math:`s_x` is ``septum x position`` and :math:`t` is ``septum thickness``. The rules for ``septum y position`` are analogous, replacing :math:`x` with :math:`y`.
-
-.. raw:: html
-
-  <div style="text-align: center">
-  <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-    <rect width="400" height="300" fill="#1a1a2e"/>
-    <!-- axes -->
-    <line x1="20" y1="150" x2="380" y2="150" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-    <line x1="200" y1="20" x2="200" y2="280" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
-    <text x="385" y="165" fill="#888" font-size="12" font-family="monospace">x</text>
-    <text x="206" y="18" fill="#888" font-size="12" font-family="monospace">y</text>
-    <!-- septum plate (loss zone) -->
-    <rect x="260" y="30" width="16" height="240" fill="#e94560" fill-opacity="0.3" stroke="#e94560" stroke-width="1.5"/>
-    <!-- field region (right of plate) -->
-    <rect x="276" y="30" width="104" height="240" fill="#00d2ff" fill-opacity="0.08" stroke="none"/>
-    <!-- field-free region (left of septum) -->
-    <text x="140" y="90" fill="#00d2ff" font-size="13" font-family="monospace">Field-free</text>
-    <text x="140" y="108" fill="#00d2ff" font-size="11" font-family="monospace">Circulating beam</text>
-    <!-- loss zone label -->
-    <text x="255" y="22" fill="#e94560" font-size="11" font-family="monospace">Plate/Wire</text>
-    <!-- field region label -->
-    <text x="305" y="90" fill="#f5a623" font-size="13" font-family="monospace">Field region</text>
-    <text x="305" y="108" fill="#f5a623" font-size="11" font-family="monospace">Deflected beam</text>
-    <!-- septum position marker -->
-    <line x1="260" y1="140" x2="260" y2="160" stroke="#e94560" stroke-width="2"/>
-    <text x="245" y="175" fill="#e94560" font-size="11" font-style="italic" font-family="monospace">s</text>
-    <text x="245" y="188" fill="#e94560" font-size="10" font-family="monospace">x</text>
-    <!-- thickness marker -->
-    <line x1="260" y1="265" x2="276" y2="265" stroke="#e94560" stroke-width="1.5" stroke-dasharray="2,2"/>
-    <text x="262" y="278" fill="#e94560" font-size="10" font-style="italic" font-family="monospace">t</text>
-    <!-- E field arrow in field region -->
-    <line x1="310" y1="200" x2="370" y2="200" stroke="#f5a623" stroke-width="2" marker-end="url(#arrowhead)"/>
-    <defs>
-      <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-        <polygon points="0 0, 8 3, 0 6" fill="#f5a623"/>
-      </marker>
-    </defs>
-    <text x="330" y="195" fill="#f5a623" font-size="12" font-style="italic" font-family="monospace">E</text>
-    <text x="322" y="215" fill="#f5a623" font-size="10" font-family="monospace">x</text>
-  </svg>
-  </div>
-
-.. note::
-
-  - If ``septum x position`` is not provided (``None``) but ``exl`` is nonzero, all particles experience the electric field (no septum detection). This corresponds to the use case of a uniform-field correction element
-  - ``septum thickness`` defaults to 0, in which case the plate/wire region width is zero, and particles are either in the field-free region or the field region
-
-
-Tilt Rotation
--------------
-
-The ``tilt`` parameter implements a roll rotation of the element about the :math:`s` axis. It follows the MAD-X convention: **positive angle represents clockwise rotation** (looking along the :math:`+s` direction).
-
-.. raw:: html
-
-  <div style="text-align: center">
-  <svg width="350" height="250" xmlns="http://www.w3.org/2000/svg">
-    <rect width="350" height="250" fill="#1a1a2e"/>
-    <!-- s axis (into page, marked as dot) -->
-    <circle cx="175" cy="125" r="4" fill="#888"/>
-    <text x="182" y="120" fill="#888" font-size="12" font-family="monospace">s</text>
-    <!-- original (untilted) frame: x and y axes -->
-    <line x1="175" y1="125" x2="315" y2="125" stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>
-    <line x1="175" y1="125" x2="175" y2="30" stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>
-    <text x="320" y="130" fill="#555" font-size="11" font-family="monospace">x</text>
-    <text x="180" y="28" fill="#555" font-size="11" font-family="monospace">y</text>
-    <!-- tilted frame (clockwise by tilt) -->
-    <line x1="175" y1="125" x2="305" y2="65" stroke="#00d2ff" stroke-width="2"/>
-    <line x1="175" y1="125" x2="95" y2="35" stroke="#00d2ff" stroke-width="2"/>
-    <text x="310" y="60" fill="#00d2ff" font-size="12" font-family="monospace">x'</text>
-    <text x="80" y="32" fill="#00d2ff" font-size="12" font-family="monospace">y'</text>
-    <!-- rotation arc -->
-    <path d="M 250 125 A 75 75 0 0 0 225 55" fill="none" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="3,2"/>
-    <text x="258" y="95" fill="#f5a623" font-size="12" font-style="italic" font-family="monospace">tilt</text>
-    <!-- clockwise arrow on arc -->
-    <polygon points="225,55 232,58 228,50" fill="#f5a623"/>
-  </svg>
-  </div>
-
-Tilt does not affect the choice of integration method—it only performs an instantaneous coordinate transformation at the entrance and exit:
-
-::
-
-  Entrance:  Clockwise rotation of :math:`(x, y, p_x, p_y)` by :math:`+\varphi`  → Enter element natural coordinate system
-  Interior:  DKD or thin lens, tracked in the natural coordinate system (field along :math:`x'`, septum along :math:`x'`)
-  Exit:      Counterclockwise rotation of :math:`(x, y, p_x, p_y)` by :math:`-\varphi`  → Return to laboratory coordinate system
-
-Clockwise rotation matrix:
-
-.. math::
-
-  x' = x \cos\varphi - y \sin\varphi
-
-.. math::
-
-  y' = x \sin\varphi + y \cos\varphi
-
-.. math::
-
-  p_x' = p_x \cos\varphi - p_y \sin\varphi
-
-.. math::
-
-  p_y' = p_x \sin\varphi + p_y \cos\varphi
-
-Drift itself is coordinate-independent (free-space propagation does not depend on the transverse coordinate direction), the kick is along :math:`x'` in the natural coordinate system, and the septum is a straight line at :math:`x' = \mathrm{const}` in the natural coordinate system. All physics is completed in the natural coordinate system.
-
-
-Overall Tracking Flow
----------------------
-
-::
-
-  ====== Thin lens (length = 0) ======
-
-    1. Tilt rotation (if any)
-    2. Classify particles: field-free / field region / striking plate
-    3. Field-free region: no operation (position and momentum unchanged)
-    4. Field region: pure kick (Δpx = exl / (β₀c·Bρ), Δpy = eyl / (β₀c·Bρ))
-    5. Striking plate: tag set negative, record lost_position/lost_turn
-    6. Tilt rotation back (if any)
-
-  ====== Thick lens (length > 0) ======
-
-    1. Tilt rotation (if any)
-    2. Classify particles: field-free / field region / striking plate
-    3. Field-free region: pure Drift(L)
-    4. Field region: DKD
-       Drift(L/2) → Kick → Drift(L/2)
-    5. Striking plate: tag set negative, record lost_position/lost_turn
-    6. Tilt rotation back (if any)
-
-  The drift steps update the continuous bunch-relative longitudinal coordinate without ring folding.
-
-
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 22 28 10 10 30
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - Plate length (:math:`\ge 0`; :math:`= 0` for thin lens)
-  * - ``ex``
-    - ``ex (v/m)``
-    - float
-    - V/m
-    - Horizontal electric field strength, default 0
-  * - ``ey``
-    - ``ey (v/m)``
-    - float
-    - V/m
-    - Vertical electric field strength, default 0
-  * - ``exl``
-    - ``exl (v)``
-    - float
-    - V
-    - Horizontal integrated field :math:`E_x L`, default derived from :math:`E_x \cdot L`
-  * - ``eyl``
-    - ``eyl (v)``
-    - float
-    - V
-    - Vertical integrated field :math:`E_y L`, default derived from :math:`E_y \cdot L`
-  * - ``tilt``
-    - ``tilt (rad)``
-    - float
-    - rad
-    - Roll angle about the :math:`s` axis, positive is clockwise, default 0
-  * - ``septum_x_position``
-    - ``septum x position (m)``
-    - float
-    - m
-    - Septum position in :math:`x` direction (effective when ``exl`` is nonzero), default ``None``
-  * - ``septum_y_position``
-    - ``septum y position (m)``
-    - float
-    - m
-    - Septum position in :math:`y` direction (effective when ``eyl`` is nonzero), default ``None``
-  * - ``septum_thickness``
-    - ``septum thickness (m)``
-    - float
-    - m
-    - Septum plate/wire thickness, default 0
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - Aperture type, default ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``
-
-.. note::
-
-  - Two input methods for field strength (``ex`` / ``ey``) and integrated field (``exl`` / ``eyl``):
-
-    - Thick lens: when ``ex`` / ``ey`` are provided, :math:`\mathrm{exl} = E_x \cdot L` is automatically computed; when ``exl`` / ``eyl`` are provided, :math:`E_x = \mathrm{exl} / L` is automatically derived
-    - Thin lens: ``exl`` / ``eyl`` are used directly (``ex`` / ``ey`` are meaningless when :math:`L = 0`)
-
-  - ``ex`` and ``ey`` typically have only one nonzero (horizontal or vertical deflection plate). If both are nonzero simultaneously, a warning is issued
-  - ``septum x position`` / ``septum y position`` take effect only when the corresponding field component is nonzero
-  - The ``Command`` field should be set to ``elseparator``
-
-
-Usage Examples
---------------
-
-Thin Lens Horizontal Deflection
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a thin lens electrostatic separator at :math:`s = 10.0` m with integrated field :math:`\mathrm{exl} = 1 \times 10^5` V:
+   A=\sqrt{\gamma_0^{-2}+(1-\gamma_0^{-2})(1+\delta)^2},
+   \qquad
+   \frac{\Delta z}{ds}=
+   \frac{\delta(2+\delta)\gamma_0^{-2}-T}{p_s(p_s+A)}.
+
+This rationalized form retains small longitudinal slips in single precision.
+Nonpositive total or longitudinal momentum and nonfinite longitudinal momentum
+are rejected; positive longitudinal momentum is not artificially clamped.
+Tracking never wraps the stored z coordinate.
+
+The thick map is exact for the declared ideal uniform body and hard edges,
+up to floating-point and collision-location tolerances. It does not include a
+three-dimensional fringe map, finite-height fields, discrete septum wires,
+scattering or secondary particles. Thin tracking additionally omits the actual
+body trajectory, energy exchange and transit-time change, and freezes the
+incident longitudinal speed during the effective impulse. A thin VL model is
+not asserted to be the exact L-to-zero limit of the finite hard-edge model.
+
+CPU and CUDA implementations reside in the same source file. GPU kernels use
+double precision for analytic field trajectories and curved collision bounds;
+particle arrays retain their configured float32 or float64 storage. Internal SC
+nodes materialize the particle state; compiled kernels are cached per element,
+device and storage dtype. No particle coordinate array is rotated in place.
+
+Input parameters
+----------------
+
+.. list-table:: ElSeparator parameters
+   :header-rows: 1
+   :widths: 23 27 15 35
+
+   * - Python field
+     - JSON key
+     - Default
+     - Meaning
+   * - ``s``
+     - ``S (m)``
+     - Required
+     - Exit position.
+   * - ``length``
+     - ``Length (m)``
+     - 0
+     - Nonnegative supplied length, independent of roll.
+   * - ``voltage``
+     - ``V (V)``
+     - null
+     - Signed interplate voltage difference; choose V or VL. Nonzero V requires positive length.
+   * - ``voltage_length``
+     - ``VL (V m)``
+     - null
+     - Signed longitudinal voltage integral; supports positive or zero tracking length.
+   * - ``gap``
+     - ``Gap (m)``
+     - Required
+     - Positive clear electrode gap.
+   * - ``septum_position``
+     - ``Septum position (m)``
+     - Required
+     - Surface d facing the circulating-beam field-free region, along u.
+   * - ``septum_thickness``
+     - ``Septum thickness (m)``
+     - 0
+     - Nonnegative effective material thickness.
+   * - ``tilt``
+     - ``Tilt (rad)``
+     - 0
+     - Roll used in the projection and kick equations above.
+   * - ``aperture_type`` / ``aperture_value``
+     - ``Aperture type`` / ``Aperture value``
+     - off / []
+     - Existing vacuum aperture geometry.
+   * - ``num_slices``
+     - ``Num slices``
+     - 1
+     - Strict positive integer; sets internal SC scheduling. The isolated analytic body does not require subdivision.
+   * - ``space_charge``
+     - ``Space charge``
+     - null
+     - Optional internal SC configuration; requires positive length.
+
+Input configuration
+-------------------
+
+Specify V or VL, gap and septum geometry for the modeled device. This synthetic
+example uses a manual polygon with ``-0.05 < x < 0.0201`` and ``|y| < 0.02``.
+The internal septum remains absorbing. Replace the values with device parameters;
+the selected strength input is constant on every pass.
 
 .. code-block:: json
 
-  {
-      "ES1": {
-          "S (m)": 10.0,
-          "Command": "elseparator",
-          "ExL (V)": 1e5
-      }
-  }
+   {
+     "Command": "ElSeparator",
+     "S (m)": 1.0,
+     "Length (m)": 1.0,
+     "V (V)": 1000.0,
+     "Gap (m)": 0.01,
+     "Septum position (m)": 0.01,
+     "Septum thickness (m)": 0.0001,
+     "Tilt (rad)": 0.0,
+     "Num slices": 16,
+     "Aperture type": "polygon",
+     "Aperture value": [[-0.05, -0.02], [0.0201, -0.02], [0.0201, 0.02], [-0.05, 0.02]]
+   }
 
-The particle receives a horizontal kick :math:`\Delta p_x = \mathrm{exl} / (\beta_0 c \cdot B\rho)`. Position is unchanged.
+To use the same integrated strength in this 1 m element, replace ``V (V)`` with
+``"VL (V m)": 1000.0``. To use a thin model at S=1 m, also set ``Length (m)``
+to 0. The same input field integral is used at that plane, with the incident particle
+speed. Its effective impulse need not equal the full thick map exactly; it omits
+the thick model's transverse displacement and flight time. For example,
+(x,y)=(0.005,0) survives without a kick, (0.01005,0) is lost in septum material,
+and (0.015,0) survives the entry check and receives the field kick.
 
-Thick Lens Horizontal Deflection
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a thick lens electrostatic separator at :math:`s = 15.0` m, length 0.5 m, field strength :math:`E_x = 2 \times 10^5` V/m:
-
-.. code-block:: json
-
-  {
-      "ES2": {
-          "S (m)": 15.0,
-          "Command": "elseparator",
-          "Length (m)": 0.5,
-          "Ex (V/m)": 2e5
-      }
-  }
-
-The integrated field :math:`\mathrm{exl} = 2 \times 10^5 \times 0.5 = 1 \times 10^5` V. DKD tracking is used; the particle follows a parabolic trajectory.
-
-Injection Separator with Septum
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example simulates an injection electrostatic separator with the septum at :math:`x = 5` mm and septum thickness 2 mm:
-
-.. code-block:: json
-
-  {
-      "ES3": {
-          "S (m)": 20.0,
-          "Command": "elseparator",
-          "Length (m)": 0.3,
-          "Ex (V/m)": 3e5,
-          "Septum X Position (m)": 0.005,
-          "Septum Thickness (m)": 0.002
-      }
-  }
-
-Particle classification:
-
-- :math:`x \le 5` mm: field-free region, pure drift (circulating beam)
-- :math:`5\,\mathrm{mm} < x \le 7` mm: striking plate/wire, marked as lost
-- :math:`x > 7` mm: field region, DKD deflection (injection beam)
-
-Negative-Side Septum (Extraction Scenario)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example simulates an extraction scenario with the septum at :math:`x = -5` mm and the field on the left side:
-
-.. code-block:: json
-
-  {
-      "ES4": {
-          "S (m)": 25.0,
-          "Command": "elseparator",
-          "Length (m)": 0.3,
-          "Ex (V/m)": -3e5,
-          "Septum X Position (m)": -0.005
-      }
-  }
-
-Particle classification:
-
-- :math:`x \ge -5` mm: field-free region, pure drift (circulating beam)
-- :math:`x < -5` mm: field region, DKD deflection (extraction beam)
-
-Vertical Deflection Plate
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a vertical deflection plate with only :math:`E_y` nonzero:
-
-.. code-block:: json
-
-  {
-      "ES5": {
-          "S (m)": 30.0,
-          "Command": "elseparator",
-          "Length (m)": 0.4,
-          "Ey (V/m)": 2.5e5,
-          "Septum Y Position (m)": 0.005
-      }
-  }
-
-Particles are deflected in the :math:`y` direction. Septum detection is along the :math:`y` direction.
-
-Deflection Plate with Tilt
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a deflection plate rotated 30 degrees clockwise about the :math:`s` axis:
-
-.. code-block:: json
-
-  {
-      "ES6": {
-          "S (m)": 35.0,
-          "Command": "elseparator",
-          "Length (m)": 0.5,
-          "Ex (V/m)": 2e5,
-          "Tilt (rad)": 0.5236,
-          "Septum X Position (m)": 0.005
-      }
-  }
-
-The element's natural coordinate system is rotated 30 degrees clockwise, and both the field and septum are defined in the rotated coordinate system. Entrance rotation → tracking → exit rotation back.
-
-Zero-Field Degeneration
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example has zero field strength, degenerating to a pure drift (thick lens) or marker (thin lens):
-
-.. code-block:: json
-
-  {
-      "ES7": {
-          "S (m)": 40.0,
-          "Command": "elseparator",
-          "Length (m)": 0.5
-      }
-  }
-
-When :math:`\mathrm{exl} = \mathrm{eyl} = 0`, all particles undergo pure drift with no deflection.
-
-
-Application Scenarios
----------------------
-
-- **Beam injection**: Place electrostatic separators in the injection section to deflect the injected beam to match the main ring closed orbit. The septum separates the circulating beam from the injected beam, deflecting only the injected particles
-- **Beam extraction**: Place electrostatic separators at the extraction point to deflect the extracted beam into the extraction channel. The septum ensures the circulating beam is unaffected
-- **Orbit correction**: Without a septum (``septum x position = None``), the electrostatic separator can serve as a uniform-field correction element, applying the same kick to all particles
-- **Low-energy beam deflection**: In low-energy sections where :math:`\beta\gamma` is small, electrostatic deflection is more efficient than magnetic deflection (electric force is independent of velocity, magnetic force is proportional to velocity), commonly used in low-energy injection lines
-- **Fast extraction systems**: Electrostatic separators have fast response times (nanosecond-level pulses), suitable for fast extraction and bunch-by-bunch extraction
-
-
-References
-----------
-
-- MAD-X User's Guide, "ELSEPARATOR" section (``ex`` / ``ey`` / ``ex_l`` / ``ey_l`` / ``tilt`` definitions)
-- Xsuite source code: ``xtrack/mad_loader.py`` (``convert_elseparator = convert_drift_like``, xsuite does not yet implement an independent elseparator)
-- Wiedemann, H., "Particle Accelerator Physics", Ch. 4 (equivalence between electric and magnetic deflection)
-- Conte, M. & MacKay, W.W., "An Introduction to the Physics of Particle Accelerators", Ch. 7 (electrostatic separators in injection and extraction)
-
-Internal Space Charge
-------------------------------------------
-
-A positive-length element may set ``space_charge`` (JSON ``Space charge``)
-to an ``ElementSpaceCharge`` object. ``Num slices`` controls external transport,
-while ``Space charge.Num kicks`` controls SC integration. See :ref:`en-internal-space-charge`
-for scheduling, shared resources, supported backends and examples.
-
-``num_slices`` (JSON ``Num slices``) is a positive integer, default 1.
-Without internal SC, that many body slices are used on both CPU and GPU.
-
-With multiple external slices or internal SC, septum classification is
-performed at each external slice center. The default one-slice map without
-internal SC retains entry classification. Electric kicks retain the existing
-transverse approximation and do not update ``dp``. Slicing refines that model;
-it does not introduce electric work or a full three-dimensional field model.
+Injection timing is described in :ref:`en-multiturn-injection`. New particles
+specified at the ES exit start tracking at that plane. Injection generates or
+loads their coordinates without an additional geometric acceptance cut.
+ElSeparator evaluates deflection and losses when particles subsequently pass
+through the element, according to its thick or thin model.

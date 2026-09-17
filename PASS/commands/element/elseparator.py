@@ -1,631 +1,809 @@
-from PASS.commands.command import Command
-from PASS.utils.slicing import (
-    print_element_slicing,
-    configure_element_slicing, run_body_slices,
-)
-from PASS.core.simulation import Simulation
-from PASS.core.beam import Beam
-from PASS.core.bunch import BunchInfo
-from PASS.core.particle import ParticlePool
-from PASS.core.config import Config
-from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-from PASS.utils.constants import const
-from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
+"""Electrostatic septum: a field gap, infinite-height plates and vacuum walls.
 
-import numpy as np
+A roll projects the geometry and the kick; it never changes the supplied L.
+Positive length uses a relativistic uniform-field body map and hard-edge
+potential matching. Zero length uses an effective kick with the incident
+longitudinal speed. V is a voltage difference; VL is its integral in V m.
+Particles stop at first contact with material, including curved trajectories.
+"""
+from dataclasses import dataclass
 import logging
+import math
+import numpy as np
 
-logger = logging.getLogger(__name__)
+from PASS.commands.command import Command
+from PASS.commands.element.drift import drift_factors, drift_cuda_factors
+from PASS.para.schema.elements import ElSeparatorElement
+from PASS.para.schema.space_charge import parse_element_space_charge
+from PASS.utils.aperture import (
+    build_aperture, AllSpaceAperture, RectangleAperture, EllipticAperture,
+    IntersectionAperture, RacetrackAperture, OctagonAperture, PolygonAperture,
+)
+from PASS.utils.constants import const
+from PASS.utils.slicing import configure_element_slicing, print_element_slicing, run_body_slices
+
+
+def _aperture_primitives(geometry):
+    """Return finite line segments and (cx, cy, a, b, side) ellipse arcs."""
+    if isinstance(geometry, AllSpaceAperture):
+        return [], []
+    if isinstance(geometry, EllipticAperture):
+        return [], [(0., 0., geometry.a, geometry.b, 0)]
+    if isinstance(geometry, IntersectionAperture):
+        parts = [_aperture_primitives(g) for g in geometry.apertures]
+        return [s for p in parts for s in p[0]], [e for p in parts for e in p[1]]
+    if isinstance(geometry, RacetrackAperture):
+        w, h, a, b = geometry.w, geometry.h, geometry.a, geometry.b
+        segments = [(-w, -h, w, -h), (-w, h, w, h)]
+        if h != b:
+            lo, hi = min(h, b), max(h, b)
+            segments += [(x, sign*lo, x, sign*hi) for x in (-w, w) for sign in (-1, 1)]
+        return segments, [(-w, 0., a, b, -1), (w, 0., a, b, 1)]
+    if isinstance(geometry, RectangleAperture):
+        x0, x1, y0, y1 = geometry.x_min, geometry.x_max, geometry.y_min, geometry.y_max
+        vertices = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    elif isinstance(geometry, OctagonAperture):
+        w, h, d = geometry.w, geometry.h, geometry.d
+        vertices = [(-w+d, -h), (w-d, -h), (w, -h+d), (w, h-d),
+                    (w-d, h), (-w+d, h), (-w, h-d), (-w, -h+d)]
+    elif isinstance(geometry, PolygonAperture):
+        vertices = list(geometry.vertices)
+    else:
+        raise TypeError(f"Unsupported aperture geometry: {type(geometry).__name__}")
+    return [(*a, *b) for a, b in zip(vertices, vertices[1:]+vertices[:1]) if a != b], []
+
+
+def _aperture_inside_cuda(geometry, name):
+    """Generate the existing strict point predicate, using double geometry."""
+    def f(x):
+        return format(float(x), '.17g')
+    prefix = f'__device__ inline bool {name}(double x, double y) {{ '
+    if isinstance(geometry, AllSpaceAperture):
+        body = 'return true;'
+    elif isinstance(geometry, RectangleAperture):
+        body = (f'return x>{f(geometry.x_min)} && x<{f(geometry.x_max)} '
+                f'&& y>{f(geometry.y_min)} && y<{f(geometry.y_max)};')
+    elif isinstance(geometry, EllipticAperture):
+        body = f'return (x/{f(geometry.a)})*(x/{f(geometry.a)})+(y/{f(geometry.b)})*(y/{f(geometry.b)})<1.;'
+    elif isinstance(geometry, IntersectionAperture):
+        definitions = [_aperture_inside_cuda(g, f'{name}_{i}') for i, g in enumerate(geometry.apertures)]
+        body = 'return '+' && '.join(f'{name}_{i}(x,y)' for i in range(len(definitions)))+';'
+        return '\n'.join(definitions)+'\n'+prefix+body+' }\n'
+    elif isinstance(geometry, RacetrackAperture):
+        w, h, a, b = map(f, (geometry.w, geometry.h, geometry.a, geometry.b))
+        body = (f'double ax=fabs(x), dx=(ax-({w}))/({a}); '
+                f'return (ax<({w}) && fabs(y)<({h})) || '
+                f'(ax>({w}) && dx*dx+(y/({b}))*(y/({b}))<1.) || '
+                f'(ax==({w}) && fabs(y)<fmin({h},{b}));')
+    elif isinstance(geometry, OctagonAperture):
+        body = (f'return fabs(x)<{f(geometry.w)} && fabs(y)<{f(geometry.h)} '
+                f'&& fabs(x)+fabs(y)<{f(geometry.w+geometry.h-geometry.d)};')
+    elif isinstance(geometry, PolygonAperture):
+        vertices = list(geometry.vertices)
+        tolerance = 64*np.finfo(float).eps*max(1., float(np.max(np.abs(vertices))))
+        body = f'bool inside=false; const double tol={f(tolerance)};\n'
+        for (x1, y1), (x2, y2) in zip(vertices, vertices[1:]+vertices[:1]):
+            dx, dy = x2-x1, y2-y1
+            if dx == dy == 0:
+                continue
+            body += (f'if (fabs(({f(dx)})*(y-({f(y1)}))-({f(dy)})*(x-({f(x1)})))'
+                     f'/{f(np.hypot(dx,dy))}<=tol && x>={f(min(x1,x2))}-tol '
+                     f'&& x<={f(max(x1,x2))}+tol && y>={f(min(y1,y2))}-tol '
+                     f'&& y<={f(max(y1,y2))}+tol) return false;\n')
+            if dy != 0:
+                body += (f'if ((({f(y1)}>y)!=({f(y2)}>y)) && '
+                         f'x<({f(dx)})*(y-({f(y1)}))/({f(dy)})+({f(x1)})) inside=!inside;\n')
+        body += 'return inside;'
+    else:
+        raise TypeError(type(geometry).__name__)
+    return prefix+body+' }\n'
+
+
+@dataclass
+class _ApertureBoundary:
+    """First intersections with the existing, extruded vacuum apertures.
+
+    Distances are along a straight tracking segment, not Euclidean path lengths.
+    CPU predicates and generated CUDA use the same boundary primitives.  A wall
+    touch is a loss, including tangencies and paths through a non-convex polygon.
+    """
+
+    geometry: object
+
+    def __post_init__(self):
+        self.segments, self.ellipses = _aperture_primitives(self.geometry)
+
+    def first_hit(self, x, y, dx, dy):
+        """First nonnegative ray distance; infinity means no wall intersection."""
+        x, y, dx, dy = np.broadcast_arrays(*(np.asarray(a, dtype=float) for a in (x,y,dx,dy)))
+        hit = np.where(self.geometry.strict_mask(x, y), np.inf, 0.)
+        for x1, y1, x2, y2 in self.segments:
+            ex, ey = x2-x1, y2-y1
+            cross = dx*ey-dy*ex
+            safe = np.where(cross != 0., cross, 1.)
+            distance = ((x1-x)*ey-(y1-y)*ex)/safe
+            fraction = ((x1-x)*dy-(y1-y)*dx)/safe
+            valid = (cross != 0.) & (distance >= 0.) & (fraction >= 0.) & (fraction <= 1.)
+            hit = np.minimum(hit, np.where(valid, distance, np.inf))
+        for cx, cy, a, b, side in self.ellipses:
+            xx, yy, vx, vy = (x-cx)/a, (y-cy)/b, dx/a, dy/b
+            aa, bb, cc = vx*vx+vy*vy, xx*vx+yy*vy, xx*xx+yy*yy-1.
+            discriminant = bb*bb-aa*cc
+            root = np.sqrt(np.maximum(discriminant, 0.))
+            q = -bb-np.copysign(root, bb)
+            candidates = (q/np.where(aa != 0., aa, 1.), cc/np.where(q != 0., q, 1.))
+            for distance in candidates:
+                valid = (aa > 0.) & (discriminant >= 0.) & (distance >= 0.)
+                if side:
+                    valid &= side*(x+distance*dx-cx) >= 0.
+                hit = np.minimum(hit, np.where(valid, distance, np.inf))
+        return hit
+
+    def cuda_source(self):
+        """A device helper to embed in the owning element's fused kernel."""
+        source = '#ifndef INFINITY\n#define INFINITY (__longlong_as_double(0x7ff0000000000000LL))\n#endif\n'
+        source += _aperture_inside_cuda(self.geometry, 'pass_aperture_inside')
+        source += '''
+__device__ inline double pass_aperture_hit(double x,double y,double dx,double dy) {
+    if (!pass_aperture_inside(x,y)) return 0.;
+    double hit=INFINITY;
+'''
+        for x1,y1,x2,y2 in self.segments:
+            values = ','.join(format(float(v),'.17g') for v in (x1,y1,x2-x1,y2-y1))
+            source += f'''{{ const double p[4]={{{values}}};
+                double cross=dx*p[3]-dy*p[2];
+                if (cross!=0.) {{
+                    double s=((p[0]-x)*p[3]-(p[1]-y)*p[2])/cross;
+                    double t=((p[0]-x)*dy-(p[1]-y)*dx)/cross;
+                    if (s>=0. && t>=0. && t<=1.) hit=fmin(hit,s);
+                }} }}\n'''
+        for cx,cy,a,b,side in self.ellipses:
+            values = ','.join(format(float(v),'.17g') for v in (cx,cy,a,b))
+            source += f'''{{ const double p[4]={{{values}}};
+                double xx=(x-p[0])/p[2],yy=(y-p[1])/p[3],vx=dx/p[2],vy=dy/p[3];
+                double aa=vx*vx+vy*vy,bb=xx*vx+yy*vy,cc=xx*xx+yy*yy-1.;
+                double disc=bb*bb-aa*cc;
+                if (aa>0. && disc>=0.) {{
+                    double q=-bb-copysign(sqrt(disc),bb);
+                    double roots[2]={{q/aa,q!=0. ? cc/q : 0.}};
+                    for (int j=0;j<2;++j) {{ double s=roots[j];
+                        if (s>=0. && ({side}==0 || {side}*(x+s*dx-p[0])>=0.)) hit=fmin(hit,s);
+                    }}
+                }} }}\n'''
+        return source+'return hit; }\n'
+
+
+def _slab_entry(u, du, lower, upper, tolerance):
+    """First contact with a closed u interval, allowing projection roundoff.
+
+    Only an entry contact is snapped to zero distance. Future intersections
+    still use the supplied physical surfaces, without expanding the material.
+    """
+    moving = du != 0.
+    safe = np.where(moving, du, 1.)
+    a, b = (lower-u)/safe, (upper-u)/safe
+    near, far = np.maximum(0., np.minimum(a,b)), np.maximum(a,b)
+    inside = (u >= lower-tolerance) & (u <= upper+tolerance)
+    return np.where(inside, 0., np.where(moving & (far >= near), near, np.inf))
+
+
+@dataclass
+class _ElectricOrbit:
+    """Exact body orbit, with momenta in P0 and energy in P0*c.
+
+    k=q*Eu/(P0*c), ps and pv are constant in the uniform transverse field.
+    Edges are handled separately. Stable increments retain the zero-field limit.
+    """
+
+    x: float
+    y: float
+    px: float
+    py: float
+    dp: float
+    beta: float
+    inv_g2: float
+    k: float
+    co: float
+    si: float
+
+    def __post_init__(self):
+        self.pu = self.px*self.co-self.py*self.si
+        self.pv = self.px*self.si+self.py*self.co
+        self.ps = math.sqrt((1+self.dp)**2-self.px**2-self.py**2)
+        self.energy = math.sqrt(self.inv_g2+(1-self.inv_g2)*(1+self.dp)**2)/self.beta
+        self.mass2 = self.inv_g2/(self.beta*self.beta)
+        self.transverse_mass = math.sqrt(self.mass2+self.ps**2+self.pv**2)
+
+    def increments(self, distance):
+        a = self.k*distance/self.ps
+        # shc=sinh(a)/a, cmc=(cosh(a)-1)/a; no division by field strength.
+        if abs(a) < 1.e-4:
+            a2 = a*a
+            shcm1 = a2*(1/6+a2*(1/120+a2/5040))
+            cmc = a*(1/2+a2*(1/24+a2*(1/720+a2/40320)))
+        else:
+            shcm1 = math.sinh(a)/a-1
+            cmc = 2*math.sinh(a/2)**2/a
+        shc = 1+shcm1
+        du = distance/self.ps*(self.pu*shc+self.energy*cmc)
+        dv = distance/self.ps*self.pv
+        dpu = a*(self.energy*shc+self.pu*cmc)
+        de = a*(self.pu*shc+self.energy*cmc)
+        A = self.beta*self.energy
+        slip = (self.dp*(2+self.dp)*self.inv_g2-self.px**2-self.py**2)/(self.ps*(self.ps+A))
+        dz = distance*slip-self.beta*distance/self.ps*(self.energy*shcm1+self.pu*cmc)
+        return du,dv,dpu,de,dz
+
+    def point(self, distance):
+        du,dv,_,_,_ = self.increments(distance)
+        return self.x+self.co*du+self.si*dv, self.y-self.si*du+self.co*dv
+
+    def linear_range(self, ax, ay, c, lo, hi):
+        """Exact extrema of ax*x(s)+ay*y(s)+c on a forward interval."""
+        x0,y0 = self.point(lo)
+        x1,y1 = self.point(hi)
+        f0,f1 = ax*x0+ay*y0+c, ax*x1+ay*y1+c
+        lower,upper = min(f0,f1),max(f0,f1)
+        au,av = ax*self.co-ay*self.si, ax*self.si+ay*self.co
+        if au != 0 and self.k != 0:
+            target = -av*self.pv/au
+            et = math.hypot(self.transverse_mass,target)
+            dpu = target-self.pu
+            de = dpu*(target+self.pu)/(et+self.energy)
+            angle = math.asinh((dpu*self.energy-self.pu*de)/self.transverse_mass**2)
+            middle = self.ps/self.k*angle
+            if lo < middle < hi:
+                x,y = self.point(middle)
+                value = ax*x+ay*y+c
+                lower,upper = min(lower,value),max(upper,value)
+        return lower,upper
+
+    def electrode_contact(self, surface, length):
+        """Solve E(u)=E0+k*du before evaluating possibly very long body maps.
+
+        Both momentum roots are considered: a particle may turn before reaching
+        a surface. A stable quadratic and rapidity difference retain weak fields.
+        """
+        du = surface-(self.x*self.co-self.y*self.si)
+        de = self.k*du
+        if self.energy+de <= 0:
+            return math.inf
+        change = de*(2*self.energy+de)
+        discriminant = self.pu*self.pu+change
+        tolerance = 64*np.finfo(float).eps*max(self.pu*self.pu,abs(change),1.e-300)
+        if discriminant < -tolerance:
+            return math.inf
+        root = math.sqrt(max(0.,discriminant))
+        q = -self.pu-math.copysign(root,self.pu)
+        hit = math.inf
+        for dpu in (q,-change/q if q else 0.):
+            angle = math.asinh((dpu*self.energy-self.pu*de)/self.transverse_mass**2)
+            distance = self.ps/self.k*angle
+            if 0 <= distance <= length:
+                hit = min(hit,distance)
+        return hit
+
+
+def _curve_contact(orbit, length, primitive):
+    """Conservative interval isolation of the first contact, not endpoint sampling.
+
+    Coordinate extrema bound each whole interval, including turns/tangencies.
+    A root is localized to 1e-12*max(1,length) metres along s. Geometry rounding
+    uses double precision independently of particle storage precision.
+    """
+    tolerance_s = 1.e-12*max(1.,length)
+    pending = [(0.,length)]
+    kind,values = primitive
+    while pending:
+        lo,hi = pending.pop()
+        if kind == 'line':
+            ax,ay,c,bx,by,d,extent = values
+            f0,f1 = orbit.linear_range(ax,ay,c,lo,hi)
+            tolerance = 64*np.finfo(float).eps*max(1.,abs(c),abs(f0),abs(f1))
+            if f0 > tolerance or f1 < -tolerance:
+                continue
+            if math.isfinite(extent):
+                t0,t1 = orbit.linear_range(bx,by,d,lo,hi)
+                if t1 < -tolerance or t0 > extent+tolerance:
+                    continue
+        else:
+            cx,cy,a,b,side = values
+            x0,x1 = orbit.linear_range(1/a,0.,-cx/a,lo,hi)
+            y0,y1 = orbit.linear_range(0.,1/b,-cy/b,lo,hi)
+            if side and (x1 < 0 if side > 0 else x0 > 0):
+                continue
+            minimum = (0. if x0<=0<=x1 else min(x0*x0,x1*x1))
+            minimum += 0. if y0<=0<=y1 else min(y0*y0,y1*y1)
+            maximum = max(x0*x0,x1*x1)+max(y0*y0,y1*y1)
+            tolerance = 64*np.finfo(float).eps*max(1.,maximum)
+            if minimum > 1+tolerance or maximum < 1-tolerance:
+                continue
+        if hi-lo <= tolerance_s:
+            return (lo+hi)/2
+        middle = (lo+hi)/2
+        pending.append((middle,hi))
+        pending.append((lo,middle))
+    return math.inf
+
+
+def _curved_primitives(boundary, co, si, field_start, counter):
+    """Boundary equations in the beam frame; electrode planes have no ends."""
+    result = [('line',(co,-si,-u,0.,0.,0.,math.inf)) for u in (field_start,counter)]
+    for x0,y0,x1,y1 in boundary.segments:
+        ex,ey = x1-x0,y1-y0
+        norm = math.hypot(ex,ey)
+        ax,ay,bx,by = -ey/norm,ex/norm,ex/norm,ey/norm
+        result.append(('line',(ax,ay,-ax*x0-ay*y0,bx,by,-bx*x0-by*y0,norm)))
+    result.extend(('ellipse',ellipse) for ellipse in boundary.ellipses)
+    return result
 
 
 @Command.register("elseparator")
 class ElSeparator(Command):
-    """
-    Electrostatic separator.
+    """Signed V or VL, one roll, and an open field region on local +u.
 
-    An electrostatic separator applies a uniform transverse electric field
-    to deflect charged particles. It is primarily used for beam injection
-    and extraction, where a septum divides the aperture into a field-free
-    region (circulating beam) and a field region (injected/extracted beam).
-
-    The deflection kick is derived from the integrated electric field:
-
-      Δpx = exl / (β₀·c·Bρ)
-      Δpy = eyl / (β₀·c·Bρ)
-
-    where exl = ex·L (integrated horizontal field, in Volts),
-          eyl = ey·L (integrated vertical field, in Volts),
-          β₀ is the reference particle velocity / c,
-          Bρ is the magnetic rigidity (p₀ / q₀).
-
-    Tracking model:
-      - Thin lens (length=0): pure momentum kick (Δpx, Δpy), no drift.
-      - Thick lens (length>0): Drift(L/2) → Kick → Drift(L/2) (DKD).
-        For a uniform electric field, DKD is exact (the trajectory is a
-        parabola and leapfrog integrates constant-acceleration motion
-        without error, provided pz is approximately constant).
-
-    Septum logic:
-      Particles on the circulating-beam side of the septum do not feel
-      the electric field (pure drift). Particles that cross the septum
-      into the field region are deflected. Particles that hit the septum
-      plate/wire (within septum_thickness) are marked as lost.
-
-      - septum_x_position > 0: field region is x > septum_x_position + thickness
-      - septum_x_position < 0: field region is x < septum_x_position - thickness
-      - septum_x_position = None: all particles feel the field (no septum)
-
-    Tilt (MAD-X convention):
-      Roll angle about the longitudinal (s) axis. A positive tilt
-      represents a clockwise rotation of the separator when viewed
-      looking downstream along +s.
-
-    Coordinate convention (PASS):
-      x, px, y, py, z, dp(=δ)
-      px = Px/P0,  py = Py/P0,  dp = (P-P0)/P0
-      z  = s - β0·c·t  (ζ coordinate)
+    u=x*cos(tilt)-y*sin(tilt), v=x*sin(tilt)+y*cos(tilt).
+    Septum: [position, position+thickness]; counter electrode starts a gap
+    beyond that interval. Both plates and the field cover all local v.
+    The circulating-beam field-free region is u < position; its surviving
+    particles and those in the field region continue into the downstream lattice.
+    The separately configured beam-frame vacuum aperture applies everywhere.
+    Touching material loses the particle, even with zero voltage. Thick tracking
+    includes electric work and ideal hard edges, but not material scattering or
+    a measured three-dimensional fringe field. The thin map remains effective.
     """
 
-    def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
-        kwargs = {k.lower(): v for k, v in command_kwargs.items()}
-
-        self.beam_id = beam_id
-        self.s = kwargs["s (m)"]
-        self.length = kwargs.get("length (m)", 0.0)
-        self.cmd_type = self.__class__.__name__
-        self.cmd_name = kwargs["name"]
-
-        if self.length < 0.0:
-            raise ValueError(f"The length of ElSeparator {self.cmd_name} is {self.length}, which should be >= 0")
-        if self.length > const.eps:
-            self.is_thick = True
-        else:
-            self.is_thick = False
-
-        # Electric field strengths (V/m)
-        self.ex = kwargs.get("ex (v/m)", 0.0)
-        self.ey = kwargs.get("ey (v/m)", 0.0)
-
-        # Integrated fields (V) = E * L
-        # If exl/eyl not provided, derive from ex/ey and length
-        self.exl = kwargs.get("exl (v)", None)
-        self.eyl = kwargs.get("eyl (v)", None)
-
-        if self.exl is None:
-            self.exl = self.ex * self.length
-        if self.eyl is None:
-            self.eyl = self.ey * self.length
-
-        # Consistency: if exl given and ex not given, derive ex for thick lens
-        if self.is_thick:
-            if abs(self.ex) < const.eps and abs(self.exl) > const.eps:
-                self.ex = self.exl / self.length
-            if abs(self.ey) < const.eps and abs(self.eyl) > const.eps:
-                self.ey = self.eyl / self.length
-
-        if abs(self.exl) < const.eps and abs(self.eyl) < const.eps:
-            logger.warning(f"ElSeparator {self.cmd_name} has zero integrated field "
-                           f"(exl={self.exl}, eyl={self.eyl}). It will act as a drift/marker.")
-        elif abs(self.exl) > const.eps and abs(self.eyl) > const.eps:
-            logger.warning(f"ElSeparator {self.cmd_name} has both exl={self.exl} and eyl={self.eyl} "
-                           f"non-zero. Both horizontal and vertical kicks will be applied simultaneously. "
-                           f"This is unusual for a typical electrostatic separator.")
-
-        # Tilt (rotation about s-axis)
-        self.tilt = kwargs.get("tilt (rad)", 0.0)
-
-        # Septum positions (None = no septum on that axis)
-        self.septum_x_position = kwargs.get("septum x position (m)", None)
-        self.septum_y_position = kwargs.get("septum y position (m)", None)
-        self.septum_thickness = kwargs.get("septum thickness (m)", 0.0)
-
-        # --- aperture ---
-        self.aperture_type: str = kwargs.get("aperture type", "off").lower()
-        self.aperture_value: list = kwargs.get("aperture value", [])
-        if not isinstance(self.aperture_value, list):
-            raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
-
-        configure_element_slicing(self, sim, kwargs)
+    def __init__(self, beam_id, sim, **command_kwargs):
+        values = {k.lower(): v for k,v in command_kwargs.items()}
+        aliases = {field.alias.lower(): field.alias for field in ElSeparatorElement.model_fields.values()}
+        unknown = set(values)-set(aliases)-{"name"}
+        if unknown:
+            raise ValueError("ElSeparator uses V or VL, Gap and Septum position; "
+                             "obsolete/unknown parameters: "+", ".join(sorted(unknown)))
+        if values.get("space charge") is not None:
+            values["space charge"] = parse_element_space_charge(values["space charge"])
+        config = ElSeparatorElement.model_validate({aliases[k]:v for k,v in values.items() if k in aliases})
+        self.beam_id, self.cmd_type, self.cmd_name = beam_id, "ElSeparator", values["name"]
+        for name in ("s", "length", "voltage", "voltage_length", "gap", "tilt", "septum_position",
+                     "septum_thickness",
+                     "aperture_type", "aperture_value"):
+            setattr(self, name, getattr(config,name))
+        self.cos_t, self.sin_t = float(np.cos(self.tilt)), float(np.sin(self.tilt))
+        self.field_start = self.septum_position+self.septum_thickness
+        self.counter_position = self.field_start+self.gap
+        self.integrated_field = (self.voltage_length/self.gap if self.voltage_length is not None
+                                 else (self.voltage/self.gap)*self.length)
+        self.boundary = _ApertureBoundary(build_aperture({"Type":self.aperture_type,"Value":self.aperture_value}))
+        self._curved_boundaries = _curved_primitives(
+            self.boundary,self.cos_t,self.sin_t,self.field_start,self.counter_position)
+        self._gpu_cache = {}
+        configure_element_slicing(self, sim, values)
         super().__init__()
 
     def print(self):
-        set_simple_logging()
-        logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, "
-                    f"Length={self.length:.4f}, Ex={self.ex:.6e}, Ey={self.ey:.6e}, "
-                    f"ExL={self.exl:.6e}, EyL={self.eyl:.6e}, Tilt={self.tilt:.6f}, "
-                    f"SeptumXPosition={self.septum_x_position}, SeptumYPosition={self.septum_y_position}, SeptumThickness={self.septum_thickness:.6f}, "
-                    f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        logging.getLogger(__name__).info(
+            "ElSeparator %s: S=%g L=%g V=%s V VL=%s V*m gap=%g tilt=%g septum=%g thickness=%g aperture=%s %s",
+            self.cmd_name,self.s,self.length,self.voltage,self.voltage_length,self.gap,
+            self.tilt,self.septum_position,self.septum_thickness,self.aperture_type,self.aperture_value)
         print_element_slicing(self)
-        set_normal_logging()
 
-    # ============================================================
-    # Main execution
-    # ============================================================
+    def _integrated_kick(self, bunch):
+        """Full-gap impulse in P_u/P0, using the current reference speed/rigidity."""
+        denom = bunch.beta*const.c*bunch.brho
+        if not np.isfinite(denom) or denom <= 0 or not 0 < bunch.beta < 1:
+            raise ValueError("ElSeparator requires a finite massive-particle reference and positive rigidity")
+        value = float(np.sign(bunch.num_charge)*self.integrated_field/denom)
+        if not np.isfinite(value):
+            raise ValueError("ElSeparator integrated impulse must be finite")
+        return value
+
+    def _advance_cpu(self, p, bunch, length, s0, turn, selection=None):
+        sl = slice(bunch.start_idx,bunch.end_idx)
+        x,px,y,py,z,dp,tag = (getattr(p,n)[sl] for n in ("x","px","y","py","z","dp","tag"))
+        valid, inv_ps, slip = drift_factors(px,py,dp,1/bunch.gamma**2)
+        valid &= np.isfinite(x)&np.isfinite(y)&np.isfinite(z)
+        selected = np.ones(tag.shape,dtype=bool) if selection is None else selection
+        invalid = (tag>0)&selected&~valid
+        tag[invalid] = -np.abs(tag[invalid])
+        p.lost_position[sl][invalid] = s0
+        p.lost_turn[sl][invalid] = turn
+        active = (tag>0)&selected
+        xx,yy = np.where(active,x,0.).astype(float),np.where(active,y,0.).astype(float)
+        dx = np.where(active,px,0.).astype(float)*inv_ps.astype(float)
+        dy = np.where(active,py,0.).astype(float)*inv_ps.astype(float)
+        u = xx*self.cos_t-yy*self.sin_t
+        du = dx*self.cos_t-dy*self.sin_t
+        # A rotated point on a plate rarely projects to its exact binary u.
+        # Include coordinate storage and projection roundoff, for both dtypes.
+        tolerance = 4*np.finfo(p.dtype).eps*(np.abs(xx*self.cos_t)+np.abs(yy*self.sin_t))
+        hit = np.minimum(self.boundary.first_hit(xx,yy,dx,dy),
+                         _slab_entry(u,du,self.septum_position,self.field_start,tolerance))
+        hit = np.minimum(hit,_slab_entry(u,du,self.counter_position,np.inf,tolerance))
+        lost = active & (hit<=length)
+        distance = np.where(lost,hit,length).astype(p.dtype)
+        x[active] += distance[active]*px[active]*inv_ps[active]
+        y[active] += distance[active]*py[active]*inv_ps[active]
+        z[active] += distance[active]*slip[active]
+        tag[lost] = -np.abs(tag[lost])
+        p.lost_position[sl][lost] = s0+hit[lost]
+        p.lost_turn[sl][lost] = turn
+
+    def _kick_cpu(self, p, bunch, kick):
+        sl = slice(bunch.start_idx,bunch.end_idx)
+        x,y,tag = p.x[sl],p.y[sl],p.tag[sl]
+        u = x.astype(float)*self.cos_t-y.astype(float)*self.sin_t
+        mask = (tag>0)&(u>self.field_start)&(u<self.counter_position)
+        px,py,dp = (getattr(p,n)[sl][mask].astype(float) for n in ('px','py','dp'))
+        ps = np.sqrt((1+dp)**2-px*px-py*py)
+        A = np.sqrt(1/bunch.gamma**2+(1-1/bunch.gamma**2)*(1+dp)**2)
+        impulse = kick*A/ps
+        p.px[sl][mask] += impulse*self.cos_t
+        p.py[sl][mask] -= impulse*self.sin_t
+
+    def _edge_cpu(self, p, bunch, k, entering, s0, turn):
+        """Match mechanical energy across Phi=-E*(u-field_start), in zero time."""
+        sl = slice(bunch.start_idx,bunch.end_idx)
+        x,px,y,py,dp,tag = (getattr(p,n)[sl] for n in ('x','px','y','py','dp','tag'))
+        u = x.astype(float)*self.cos_t-y.astype(float)*self.sin_t
+        indices = np.flatnonzero((tag>0)&(u>self.field_start)&(u<self.counter_position))
+        if not len(indices) or k == 0:
+            return
+        old = dp[indices].astype(float)
+        inv_g2 = 1/bunch.gamma**2
+        energy = np.sqrt(inv_g2+(1-inv_g2)*(1+old)**2)/bunch.beta
+        de = (1 if entering else -1)*k*(u[indices]-self.field_start)
+        delta_r2 = de*(2*energy+de)
+        r2 = (1+old)**2+delta_r2
+        transverse = px[indices].astype(float)**2+py[indices].astype(float)**2
+        valid = np.isfinite(r2)&np.isfinite(energy+de)&(energy+de>0)&(r2>transverse)
+        lost = indices[~valid]
+        tag[lost] = -np.abs(tag[lost])
+        p.lost_position[sl][lost],p.lost_turn[sl][lost] = s0,turn
+        good = indices[valid]
+        value = (old[valid]*(2+old[valid])+delta_r2[valid])/(np.sqrt(r2[valid])+1)
+        dp[good] = value
+
+    def _body_cpu(self, p, bunch, k, length, s0, turn):
+        self._advance_cpu(p,bunch,0.,s0,turn)
+        sl = slice(bunch.start_idx,bunch.end_idx)
+        u = p.x[sl].astype(float)*self.cos_t-p.y[sl].astype(float)*self.sin_t
+        field = (p.tag[sl]>0)&(u>self.field_start)&(u<self.counter_position)&(k!=0.)
+        self._advance_cpu(p,bunch,length,s0,turn,selection=~field)
+        for local in np.flatnonzero(field):
+            i = bunch.start_idx+local
+            orbit = _ElectricOrbit(*(float(getattr(p,n)[i]) for n in ('x','y','px','py','dp')),
+                                   bunch.beta,1/bunch.gamma**2,k,self.cos_t,self.sin_t)
+            hit = min(orbit.electrode_contact(self.field_start,length),
+                      orbit.electrode_contact(self.counter_position,length))
+            for primitive in self._curved_boundaries[2:]:
+                hit = min(hit,_curve_contact(orbit,min(length,hit),primitive))
+            distance = min(length,hit)
+            du,dv,dpu,de,dz = orbit.increments(distance)
+            p.x[i] += self.cos_t*du+self.sin_t*dv
+            p.y[i] += -self.sin_t*du+self.cos_t*dv
+            p.px[i] += self.cos_t*dpu
+            p.py[i] -= self.sin_t*dpu
+            r2 = (1+orbit.dp)**2+de*(2*orbit.energy+de)
+            p.dp[i] = (orbit.dp*(2+orbit.dp)+de*(2*orbit.energy+de))/(math.sqrt(r2)+1)
+            p.z[i] += dz
+            if hit <= length:
+                p.tag[i] = -abs(p.tag[i])
+                p.lost_position[i],p.lost_turn[i] = s0+hit,turn
+        # Rounded storage at a body/SC boundary must not feed a contact or an
+        # invalid forward state into the collective solver before the next step.
+        self._advance_cpu(p,bunch,0.,s0+length,turn)
+
+    def _kernel(self, p):
+        import cupy as cp
+        key = (cp.cuda.runtime.getDevice(),np.dtype(p.dtype))
+        if key not in self._gpu_cache:
+            source = _kernel_source(self.boundary.cuda_source())
+            self._gpu_cache[key] = cp.RawKernel(source,"track_separator",options=(
+                "--std=c++17","--fmad=false",f"-DPASS_USE_FLOAT={int(p.dtype==np.float32)}"))
+        return self._gpu_cache[key]
+
+    def _thick_kernel(self, p):
+        import cupy as cp
+        key = ('thick',cp.cuda.runtime.getDevice(),np.dtype(p.dtype))
+        if key not in self._gpu_cache:
+            source = _kernel_source(self.boundary.cuda_source())+_thick_kernel_source(self._curved_boundaries)
+            self._gpu_cache[key] = cp.RawKernel(source,'track_separator_thick',options=(
+                '--std=c++17','--fmad=false',f'-DPASS_USE_FLOAT={int(p.dtype==np.float32)}'))
+        return self._gpu_cache[key]
 
     def execute_cpu(self, sim):
-        beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
-        turn = sim.state.turn
-
-        for i, bunch in enumerate(bunches):
-            self._track_elseparator_cpu(beam, bunch, turn)
-            check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
-            if abs(self.length) >= const.eps:
-                bunch.t0 += self.length / (bunch.beta * const.c)
-        return True
+        return self._execute(sim, gpu=False)
 
     def execute_gpu(self, sim):
-        if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
-        beam = sim.beams[self.beam_id]
-        turn = sim.state.turn
-        p = beam.particles
-        kernel = _get_elseparator_kernel(p.dtype)
+        return self._execute(sim, gpu=True)
 
+    def _execute(self, sim, *, gpu):
+        beam,turn = sim.beams[self.beam_id],int(sim.state.turn)
+        p = beam.particles
+        kernel = self._kernel(p) if gpu and self.length == 0 else None
+        thick_kernel = self._thick_kernel(p) if gpu and self.length > 0 else None
         for bunch in beam.bunches:
-            start = bunch.start_idx
-            end = bunch.end_idx
-            n = end - start
-            if n > 0:
-                threads = 256
-                blocks = (n + threads - 1) // threads
-                denom = bunch.beta * const.c * bunch.brho
-                kick_x = self.exl / denom if abs(denom) > const.eps else 0.0
-                kick_y = self.eyl / denom if abs(denom) > const.eps else 0.0
-                count = self.num_slice if self.is_thick else 1
-                ds = self.length / count
-                for j in range(count):
-                    kernel(
-                        (blocks,), (threads,),
-                        (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
-                         p.lost_position, p.lost_turn,
-                         np.int32(start), np.int32(end),
-                         p.real(bunch.beta * bunch.gamma), p.real(1.0 / bunch.gamma),
-                         p.real(ds), p.real(kick_x / count), p.real(kick_y / count),
-                         p.real(self.tilt),
-                         np.int32(1 if self.septum_x_position is not None and abs(self.exl) > const.eps else 0),
-                         p.real(self.septum_x_position or 0.0),
-                         np.int32(1 if self.septum_y_position is not None and abs(self.eyl) > const.eps else 0),
-                         p.real(self.septum_y_position or 0.0),
-                         p.real(self.septum_thickness),
-                         np.int32(1 if self.is_thick else 0), np.int32(count > 1),
-                         p.real(self.s - self.length + (j + 1) * ds), np.int32(turn)),
-                    )
-                check_aperture_gpu(
-                    beam, bunch, self.aperture_type, self.aperture_value,
-                    self.s, turn,
-                )
-            if abs(self.length) >= const.eps:
-                bunch.t0 += self.length / (bunch.beta * const.c)
+            total_kick = self._integrated_kick(bunch)
+            field_k = (np.sign(bunch.num_charge)*(self.integrated_field/self.length)/(const.c*bunch.brho)
+                       if self.length > 0 else 0.)
+            if not np.isfinite(field_k):
+                raise ValueError("ElSeparator normalized body field must be finite")
+            offset = 0.
+
+            def advance(length):
+                nonlocal offset
+                self._advance_cpu(p,bunch,length,self.s-self.length+offset,turn)
+                offset += length
+                bunch.t0 += length/(bunch.beta*const.c)
+
+            def launch(before, kick, after, repeats=1):
+                nonlocal offset
+                n = bunch.end_idx-bunch.start_idx
+                if n:
+                    kernel(((n+255)//256,),(256,),(
+                        p.x,p.px,p.y,p.py,p.z,p.dp,p.tag,p.lost_position,p.lost_turn,
+                        np.int32(bunch.start_idx),np.int32(bunch.end_idx),np.int32(turn),np.int32(repeats),
+                        np.float64(before),p.real(kick),np.float64(after),
+                        np.float64(self.s-self.length+offset),p.real(1/bunch.gamma**2),
+                        np.float64(self.cos_t),np.float64(self.sin_t),np.float64(self.septum_position),
+                        np.float64(self.field_start),np.float64(self.counter_position)))
+                for _ in range(repeats):
+                    offset += before
+                    bunch.t0 += before/(bunch.beta*const.c)
+                    offset += after
+                    bunch.t0 += after/(bunch.beta*const.c)
+
+            def thick(action, ds=0.):
+                nonlocal offset
+                k = field_k
+                s0 = self.s-self.length+offset
+                if gpu:
+                    n = bunch.end_idx-bunch.start_idx
+                    if n:
+                        thick_kernel(((n+255)//256,),(256,),(
+                            p.x,p.px,p.y,p.py,p.z,p.dp,p.tag,p.lost_position,p.lost_turn,
+                            np.int32(bunch.start_idx),np.int32(bunch.end_idx),np.int32(turn),np.int32(action),
+                            np.float64(ds),np.float64(k),np.float64(s0),np.float64(bunch.beta),
+                            np.float64(1/bunch.gamma**2),np.float64(self.cos_t),np.float64(self.sin_t),
+                            np.float64(self.septum_position),np.float64(self.field_start),np.float64(self.counter_position)))
+                else:
+                    if action == 1:
+                        self._body_cpu(p,bunch,k,ds,s0,turn)
+                    else:
+                        self._advance_cpu(p,bunch,0.,s0,turn)
+                        self._edge_cpu(p,bunch,k,action==0,s0,turn)
+                        self._advance_cpu(p,bunch,0.,s0,turn)
+                if action == 1:
+                    offset += ds
+                    bunch.t0 += ds/(bunch.beta*const.c)
+
+            def transport(ds, on_center):
+                if on_center is None:
+                    thick(1,ds)
+                else:
+                    thick(1,ds/2)
+                    on_center()
+                    thick(1,ds/2)
+
+            if self.length == 0:
+                if gpu:
+                    launch(0.,total_kick,0.)
+                else:
+                    advance(0.)
+                    self._kick_cpu(p,bunch,total_kick)
+                    advance(0.)  # Reject invalid post-kick momentum at the same plane.
+            else:
+                thick(0)
+                if self._sc_nodes:
+                    run_body_slices(self,beam,bunch,turn,transport,gpu=gpu)
+                else:
+                    thick(1,self.length)
+                thick(2)
         return True
 
-    # ============================================================
-    # Full tracking (CPU)
-    # ============================================================
 
-    def _track_elseparator_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        """Track particles through the electrostatic separator."""
-
-        if self.is_thick and (self._sc_nodes or self.num_slice > 1):
-            self._track_sliced_elseparator_cpu(beam, bunch, turn)
-            return
-
-        beta0 = bunch.beta
-        gamma0 = bunch.gamma
-        brho = bunch.brho
-        start = bunch.start_idx
-        end = bunch.end_idx
-
-        p = beam.particles
-        x = p.x[start:end]
-        px = p.px[start:end]
-        y = p.y[start:end]
-        py = p.py[start:end]
-        z = p.z[start:end]
-        dp = p.dp[start:end]
-        tag = p.tag[start:end]
-
-        alive_before = tag > 0
-
-        # Compute kick strengths from integrated field
-        # Δp = exl / (β₀·c·Bρ)
-        denom = beta0 * const.c * brho
-        kick_x = self.exl / denom if abs(denom) > const.eps else 0.0
-        kick_y = self.eyl / denom if abs(denom) > const.eps else 0.0
-
-        mask = (tag > 0).astype(np.float64)
-
-        # --- Tilt rotation (entry) ---
-        if abs(self.tilt) > const.eps:
-            self._tilt_rotate_cpu(x, px, y, py, tag, mask, self.tilt)
-
-        # --- Classify particles: field region, field-free, septum loss ---
-        field_mask = np.ones(len(x), dtype=bool)  # True = feels field
-        septum_lost = np.zeros(len(x), dtype=bool)  # True = hits septum plate/wire
-
-        if self.septum_x_position is not None and abs(self.exl) > const.eps:
-            sx = self.septum_x_position
-            th = self.septum_thickness
-            if sx > 0:
-                # Field region: x > sx + th
-                # Loss zone (septum plate/wire): sx < x <= sx + th
-                field_mask &= (x > sx + th)
-                septum_lost |= ((x > sx) & (x <= sx + th))
-            else:
-                # sx < 0: field region is x < sx - th
-                # Loss zone: sx - th <= x < sx
-                field_mask &= (x < sx - th)
-                septum_lost |= ((x < sx) & (x >= sx - th))
-
-        if self.septum_y_position is not None and abs(self.eyl) > const.eps:
-            sy = self.septum_y_position
-            th = self.septum_thickness
-            if sy > 0:
-                field_mask &= (y > sy + th)
-                septum_lost |= ((y > sy) & (y <= sy + th))
-            else:
-                field_mask &= (y < sy - th)
-                septum_lost |= ((y < sy) & (y >= sy - th))
-
-        # Only alive particles are classified
-        alive = tag > 0
-        field_mask &= alive
-        septum_lost &= alive & ~field_mask
-
-        # --- Mark particles hitting septum as lost ---
-        if np.any(septum_lost):
-            tag[septum_lost] = -np.abs(tag[septum_lost])
-            lost_position = p.lost_position[start:end]
-            lost_turn = p.lost_turn[start:end]
-            lost_position[septum_lost] = self.s
-            lost_turn[septum_lost] = turn
-
-        # --- Tracking ---
-        if self.is_thick:
-            # Thick lens: DKD for field region, pure drift for field-free region
-            # Field-free particles: full drift
-            free_mask = alive & ~field_mask & (tag > 0)
-            if np.any(free_mask):
-                self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag,
-                                      free_mask.astype(np.float64), beta0)
-
-            # Field particles: DKD (drift L/2 → kick → drift L/2)
-            if np.any(field_mask):
-                fm = field_mask.astype(np.float64)
-                # Check if any field particles were killed by drift (pz_sq < 0)
-                self._drift_exact_cpu(self.length * 0.5, x, px, y, py, z, dp, tag, fm, beta0)
-                # Update field_mask: some particles may have been killed by drift
-                fm = (field_mask & (tag > 0)).astype(np.float64)
-                self._kick_cpu(kick_x, kick_y, x, px, y, py, tag, fm)
-                self._drift_exact_cpu(self.length * 0.5, x, px, y, py, z, dp, tag, fm, beta0)
-        else:
-            # Thin lens: pure kick for field particles
-            if np.any(field_mask):
-                fm = field_mask.astype(np.float64)
-                self._kick_cpu(kick_x, kick_y, x, px, y, py, tag, fm)
-
-        # --- Tilt rotation (exit) ---
-        if abs(self.tilt) > const.eps:
-            mask = (tag > 0).astype(np.float64)
-            self._tilt_rotate_cpu(x, px, y, py, tag, mask, -self.tilt)
-
-        # --- Update lost particle info ---
-        newly_lost = alive_before & (tag < 0)
-        if np.any(newly_lost):
-            lost_position = p.lost_position[start:end]
-            lost_turn = p.lost_turn[start:end]
-            lost_position[newly_lost] = self.s
-            lost_turn[newly_lost] = turn
-
-    def _track_sliced_elseparator_cpu(self, beam, bunch, turn):
-        """Advance all particles together; classify septum at each slice center.
-
-        The electric kick is evaluated in the tilted separator frame. SC is
-        evaluated after returning to the beam frame, including field-free particles.
-        """
-        p = beam.particles
-        region = slice(bunch.start_idx, bunch.end_idx)
-        x, px, y, py, z, dp, tag = (getattr(p, name)[region]
-                                    for name in ("x", "px", "y", "py", "z", "dp", "tag"))
-        denom = bunch.beta * const.c * bunch.brho
-        kx = self.exl / denom if abs(denom) > const.eps else 0.0
-        ky = self.eyl / denom if abs(denom) > const.eps else 0.0
-        slice_index = 0
-
-        def transport(ds, on_center):
-            nonlocal slice_index
-            mask = (tag > 0).astype(np.float64)
-            self._drift_exact_cpu(ds / 2, x, px, y, py, z, dp, tag, mask, bunch.beta)
-            frame_mask = (tag > 0).astype(np.float64)
-            if abs(self.tilt) > const.eps:
-                self._tilt_rotate_cpu(x, px, y, py, tag, frame_mask, self.tilt)
-            field = tag > 0
-            septum_lost = np.zeros_like(field)
-            for coordinate, position, strength in ((x, self.septum_x_position, self.exl),
-                                                    (y, self.septum_y_position, self.eyl)):
-                if position is None or abs(strength) <= const.eps:
-                    continue
-                if position > 0:
-                    field &= coordinate > position + self.septum_thickness
-                    septum_lost |= (coordinate > position) & (coordinate <= position + self.septum_thickness)
-                else:
-                    field &= coordinate < position - self.septum_thickness
-                    septum_lost |= (coordinate < position) & (coordinate >= position - self.septum_thickness)
-            septum_lost &= tag > 0
-            tag[septum_lost] = -np.abs(tag[septum_lost])
-            s_center = self.s - self.length + (slice_index + 0.5) * ds
-            p.lost_position[region][septum_lost] = s_center
-            p.lost_turn[region][septum_lost] = turn
-            self._kick_cpu(kx * ds / self.length, ky * ds / self.length,
-                           x, px, y, py, tag, (field & (tag > 0)).astype(float))
-            if abs(self.tilt) > const.eps:
-                self._tilt_rotate_cpu(x, px, y, py, tag, frame_mask, -self.tilt)
-            if on_center is not None:
-                on_center()
-            self._drift_exact_cpu(ds / 2, x, px, y, py, z, dp, tag,
-                                  (tag > 0).astype(float), bunch.beta)
-            slice_index += 1
-
-        run_body_slices(self, beam, bunch, turn, transport)
-
-    # ============================================================
-    # Kick: pure momentum translation
-    # ============================================================
-
-    def _kick_cpu(self, kick_x, kick_y,
-                  x, px, y, py, tag, mask):
-        """Apply electrostatic kick to masked particles.
-
-        Δpx = kick_x
-        Δpy = kick_y
-        """
-        px += kick_x * mask
-        py += kick_y * mask
-
-    # ============================================================
-    # Tilt rotation about s-axis
-    # ============================================================
-
-    def _tilt_rotate_cpu(self, x, px, y, py, tag, mask, angle):
-        """Rotate (x, y, px, py) clockwise by `angle` about the s-axis.
-
-        MAD-X convention: positive angle = clockwise rotation when viewed
-        looking downstream along +s.
-
-        x'  =  x·cos - y·sin
-        y'  =  x·sin + y·cos
-        px' =  px·cos - py·sin
-        py' =  px·sin + py·cos
-        """
-        cos_a = np.cos(angle)
-        sin_a = np.sin(angle)
-
-        x_new = x * cos_a - y * sin_a
-        y_new = x * sin_a + y * cos_a
-        px_new = px * cos_a - py * sin_a
-        py_new = px * sin_a + py * cos_a
-
-        x[:] = x_new * mask + x * (1.0 - mask)
-        y[:] = y_new * mask + y * (1.0 - mask)
-        px[:] = px_new * mask + px * (1.0 - mask)
-        py[:] = py_new * mask + py * (1.0 - mask)
-
-    # ============================================================
-    # Exact drift map (same as solenoid.py / dipole.py)
-    # ============================================================
-
-    def _drift_exact_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0):
-        """Exact drift: free propagation in a straight, field-free region.
-
-        x  += (px / pz) * L
-        y  += (py / pz) * L
-        z  += L * (1 - (beta0/beta) * (1+dp) / pz)
-        """
-        if abs(L) < const.eps:
-            return
-
-        one_plus_delta = 1.0 + dp
-        pz_sq = one_plus_delta**2 - px**2 - py**2
-
-        valid = (pz_sq > 0.0) & (tag > 0)
-        tag[~valid] = -np.abs(tag[~valid])
-        pz_sq_safe = np.maximum(pz_sq, const.eps)
-        pz = np.sqrt(pz_sq_safe)
-        inv_pz = 1.0 / pz
-
-        gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
-        bg = beta0 * gamma0
-        beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
-
-        # Exclude particles that became invalid in this drift before using
-        # the clamped pz value; otherwise pz~0 would create a huge jump.
-        mask = mask * (tag > 0)
-        L_mask = L * mask
-
-        x += L_mask * px * inv_pz
-        y += L_mask * py * inv_pz
-        z += L_mask * (1.0 - (beta0 / beta) * one_plus_delta * inv_pz)
-
-
-# ============================================================
-# Helper: compute beta from (1+delta) and beta0*gamma0
-# ============================================================
-
-def one_plus_delta_beta(one_plus_delta, bg):
-    """
-    Compute beta = v/c given (1+delta) and beta0*gamma0.
-
-    From: P/P0 = 1+delta = beta*gamma / (beta0*gamma0)
-    => beta*gamma = (1+delta) * beta0*gamma0
-    => beta = (beta*gamma) / sqrt(1 + (beta*gamma)²)
-    """
-    bg_new = one_plus_delta * bg
-    return bg_new / np.sqrt(1.0 + bg_new**2)
-
-
-CUDA_REAL_PREAMBLE = f'''
-#ifndef PASS_USE_FLOAT
-#define PASS_USE_FLOAT 0
-#endif
+def _kernel_source(aperture_source):
+    return r'''
 #if PASS_USE_FLOAT
-using pass_real_t = float;
+using pass_real_t=float;
 #else
-using pass_real_t = double;
+using pass_real_t=double;
 #endif
-#define PASS_EPS ((pass_real_t){const.eps:.17g})
-'''
-
-ELSEPARATOR_KERNEL_BODY = r'''
-__device__ inline bool elseparator_drift(
-    pass_real_t& x, pass_real_t& y, pass_real_t& z,
-    const pass_real_t px, const pass_real_t py, const pass_real_t dp,
-    int& tag, float* lost_position, int* lost_turn,
-    pass_real_t beta_gamma, pass_real_t inv_gamma, pass_real_t length,
-    pass_real_t s_position, int turn)
-{
-    if (tag <= 0) return false;
-    pass_real_t one_plus_delta = (pass_real_t)1 + dp;
-    pass_real_t pz_sq = one_plus_delta * one_plus_delta - px * px - py * py;
-    if (!(pz_sq > (pass_real_t)0)) {
-        tag = -abs(tag);
-        lost_position[0] = (float)s_position;
-        lost_turn[0] = turn;
-        return false;
+using R=pass_real_t;
+'''+drift_cuda_factors()+aperture_source+r'''
+__device__ inline double slab_entry(double u,double du,double lo,double hi,double tolerance) {
+    if (u>=lo-tolerance && u<=hi+tolerance) return 0.;
+    if (du==0.) return INFINITY;
+    double a=(lo-u)/du,b=(hi-u)/du;
+    double near=fmax(0.,fmin(a,b)),far=fmax(a,b);
+    return far>=near ? near : INFINITY;
+}
+__device__ inline bool separator_advance(R& x,R& y,R& z,R px,R py,R dp,
+    int& tag,float& lp,int& lt,R inv_g2,double length,double s0,int turn,
+    double co,double si,double us,double outer,double counter) {
+    if (tag<=0) return false;
+    R inv_ps,slip;
+    if (!pass_drift_factors(px,py,dp,inv_g2,inv_ps,slip) || !isfinite(x) || !isfinite(y) || !isfinite(z)) {
+        tag=-abs(tag);lp=(float)s0;lt=turn;return false;
     }
-    pass_real_t inv_pz = (pass_real_t)1 / sqrt(pz_sq);
-    pass_real_t bg = one_plus_delta * beta_gamma;
-    pass_real_t dzeta_factor = sqrt((pass_real_t)1 + bg * bg) * inv_pz * inv_gamma;
-    x += length * px * inv_pz;
-    y += length * py * inv_pz;
-    z += length * ((pass_real_t)1 - dzeta_factor);
+    double dx=(double)px*(double)inv_ps,dy=(double)py*(double)inv_ps;
+    double u=(double)x*co-(double)y*si;
+    double du=dx*co-dy*si;
+    const double epsilon=PASS_USE_FLOAT ? 0x1p-23 : 0x1p-52;
+    double tolerance=4.*epsilon*(fabs((double)x*co)+fabs((double)y*si));
+    double hit=pass_aperture_hit((double)x,(double)y,dx,dy);
+    hit=fmin(hit,slab_entry(u,du,us,outer,tolerance));
+    hit=fmin(hit,slab_entry(u,du,counter,INFINITY,tolerance));
+    bool lost=hit<=length;
+    R distance=(R)(lost ? hit : length);
+    x+=distance*px*inv_ps;y+=distance*py*inv_ps;z+=distance*slip;
+    if (lost) {tag=-abs(tag);lp=(float)(s0+hit);lt=turn;return false;}
     return true;
 }
-
-extern "C" __global__
-void transfer_elseparator(
-    pass_real_t* __restrict__ x, pass_real_t* __restrict__ px,
-    pass_real_t* __restrict__ y, pass_real_t* __restrict__ py,
-    pass_real_t* __restrict__ z, const pass_real_t* __restrict__ dp,
-    int* __restrict__ tag, float* __restrict__ lost_position,
-    int* __restrict__ lost_turn, int start_index, int end_index,
-    pass_real_t beta_gamma, pass_real_t inv_gamma, pass_real_t length,
-    pass_real_t kick_x, pass_real_t kick_y, pass_real_t tilt,
-    int has_x_septum, pass_real_t septum_x,
-    int has_y_septum, pass_real_t septum_y, pass_real_t thickness,
-    int is_thick, int sliced_center, pass_real_t s_position, int turn)
-{
-    int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (i >= end_index || tag[i] <= 0) return;
-
-    pass_real_t xi = x[i], pxi = px[i];
-    pass_real_t yi = y[i], pyi = py[i];
-    pass_real_t zi = z[i], dpi = dp[i];
-    int ti = tag[i];
-    float lp = lost_position[i];
-    int lt = lost_turn[i];
-
-    // Sliced bodies classify at the physical midpoint in the local frame.
-    // Keep the historical entry classification for the default single map.
-    if (sliced_center) {
-        elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
-                          beta_gamma, inv_gamma, length * (pass_real_t)0.5,
-                          sliced_center == 3 ? s_position : s_position - length * (pass_real_t)0.5, turn);
-    }
-
-    pass_real_t co = cos(tilt), si = sin(tilt);
-    if (fabs(tilt) > PASS_EPS) {
-        pass_real_t tx = xi * co - yi * si;
-        pass_real_t ty = xi * si + yi * co;
-        pass_real_t tpx = pxi * co - pyi * si;
-        pass_real_t tpy = pxi * si + pyi * co;
-        xi = tx; yi = ty; pxi = tpx; pyi = tpy;
-    }
-
-    bool field = true;
-    bool septum_lost = false;
-    if (has_x_septum) {
-        if (septum_x > 0) {
-            field = field && (xi > septum_x + thickness);
-            septum_lost = septum_lost || ((xi > septum_x) && (xi <= septum_x + thickness));
-        } else {
-            field = field && (xi < septum_x - thickness);
-            septum_lost = septum_lost || ((xi < septum_x) && (xi >= septum_x - thickness));
+extern "C" __global__ void track_separator(
+    R* x,R* px,R* y,R* py,R* z,const R* dp,int* tag,float* lost_position,int* lost_turn,
+    int start,int end,int turn,int repeats,double before,R kick,double after,
+    double s0,R inv_g2,double co,double si,double us,double outer,double counter) {
+    int i=start+blockIdx.x*blockDim.x+threadIdx.x;
+    if (i>=end || tag[i]<=0) return;
+    R xi=x[i],yi=y[i],zi=z[i],pxi=px[i],pyi=py[i],dpi=dp[i];
+    int ti=tag[i],lt=lost_turn[i];float lp=lost_position[i];
+    for (int j=0;j<repeats;++j) {
+        if (!separator_advance(xi,yi,zi,pxi,pyi,dpi,ti,lp,lt,inv_g2,before,s0,turn,
+            co,si,us,outer,counter)) break;
+        s0+=before;
+        double u=(double)xi*co-(double)yi*si;
+        if (u>outer && u<counter) {
+            double r=1.+(double)dpi;
+            double ps=sqrt(r*r-(double)pxi*pxi-(double)pyi*pyi);
+            double A=sqrt((double)inv_g2+(1.-(double)inv_g2)*r*r);
+            double impulse=(double)kick*A/ps;
+            pxi+=(R)(impulse*co);pyi-=(R)(impulse*si);
         }
+        if (!separator_advance(xi,yi,zi,pxi,pyi,dpi,ti,lp,lt,inv_g2,after,s0,turn,
+            co,si,us,outer,counter)) break;
+        s0+=after;
     }
-    if (has_y_septum) {
-        if (septum_y > 0) {
-            field = field && (yi > septum_y + thickness);
-            septum_lost = septum_lost || ((yi > septum_y) && (yi <= septum_y + thickness));
-        } else {
-            field = field && (yi < septum_y - thickness);
-            septum_lost = septum_lost || ((yi < septum_y) && (yi >= septum_y - thickness));
-        }
-    }
-    septum_lost = septum_lost && !field;
-    if (septum_lost && ti > 0) {
-        ti = -abs(ti);
-        lp = (float)(s_position - (sliced_center ? length * (pass_real_t)0.5 : (pass_real_t)0));
-        lt = turn;
-    }
-
-    if (ti > 0) {
-        if (sliced_center) {
-            if (field) {
-                pxi += kick_x;
-                pyi += kick_y;
-            }
-        } else if (is_thick) {
-            if (field) {
-                if (elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
-                                      beta_gamma, inv_gamma, length * (pass_real_t)0.5,
-                                      s_position, turn)) {
-                    pxi += kick_x;
-                    pyi += kick_y;
-                    elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
-                                      beta_gamma, inv_gamma, length * (pass_real_t)0.5,
-                                      s_position, turn);
-                }
-            } else {
-                elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
-                                  beta_gamma, inv_gamma, length, s_position, turn);
-            }
-        } else if (field) {
-            pxi += kick_x;
-            pyi += kick_y;
-        }
-    }
-
-    if ((ti > 0 || sliced_center) && fabs(tilt) > PASS_EPS) {
-        pass_real_t tx = xi * co + yi * si;
-        pass_real_t ty = -xi * si + yi * co;
-        pass_real_t tpx = pxi * co + pyi * si;
-        pass_real_t tpy = -pxi * si + pyi * co;
-        xi = tx; yi = ty; pxi = tpx; pyi = tpy;
-    }
-    if (sliced_center == 1 || sliced_center == 3) {
-        elseparator_drift(xi, yi, zi, pxi, pyi, dpi, ti, &lp, &lt,
-                          beta_gamma, inv_gamma, length * (pass_real_t)0.5,
-                          s_position, turn);
-    }
-    x[i] = xi; px[i] = pxi; y[i] = yi; py[i] = pyi; z[i] = zi;
-    tag[i] = ti; lost_position[i] = lp; lost_turn[i] = lt;
+    x[i]=xi;y[i]=yi;z[i]=zi;px[i]=pxi;py[i]=pyi;
+    tag[i]=ti;lost_position[i]=lp;lost_turn[i]=lt;
 }
 '''
 
-ELSEPARATOR_SOURCE = CUDA_REAL_PREAMBLE + ELSEPARATOR_KERNEL_BODY
-_elseparator_kernels = {}
 
-
-def _get_elseparator_kernel(dtype):
-    try:
-        import cupy as cp
-    except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU ElSeparator tracking requires CUDA dependencies.") from exc
-    key = np.dtype(dtype)
-    if key not in _elseparator_kernels:
-        _elseparator_kernels[key] = cp.RawKernel(
-            ELSEPARATOR_SOURCE, "transfer_elseparator",
-            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
-        )
-    return _elseparator_kernels[key]
+def _thick_kernel_source(primitives):
+    """Same analytic map and conservative interval bounds as the CPU path."""
+    source = r'''
+struct ElectricOrbit {
+    double x,y,px,py,dp,beta,ig,k,co,si,pu,pv,ps,energy,mt;
+    __device__ void init(double X,double Y,double PX,double PY,double DP,
+                         double B,double IG,double K,double CO,double SI) {
+        x=X;y=Y;px=PX;py=PY;dp=DP;beta=B;ig=IG;k=K;co=CO;si=SI;
+        pu=px*co-py*si;pv=px*si+py*co;
+        ps=sqrt((1+dp)*(1+dp)-px*px-py*py);
+        energy=sqrt(ig+(1-ig)*(1+dp)*(1+dp))/beta;
+        mt=sqrt(ig/(beta*beta)+ps*ps+pv*pv);
+    }
+    __device__ void increments(double ds,double& du,double& dv,double& dpu,double& de,double& dz) const {
+        double a=k*ds/ps,shcm1,cmc;
+        if(fabs(a)<1.e-4) {
+            double a2=a*a;
+            shcm1=a2*(1./6+a2*(1./120+a2/5040));
+            cmc=a*(1./2+a2*(1./24+a2*(1./720+a2/40320)));
+        } else { shcm1=sinh(a)/a-1;cmc=2*sinh(a/2)*sinh(a/2)/a; }
+        double shc=1+shcm1;
+        du=ds/ps*(pu*shc+energy*cmc);dv=ds/ps*pv;
+        dpu=a*(energy*shc+pu*cmc);de=a*(pu*shc+energy*cmc);
+        double A=beta*energy,slip=(dp*(2+dp)*ig-px*px-py*py)/(ps*(ps+A));
+        dz=ds*slip-beta*ds/ps*(energy*shcm1+pu*cmc);
+    }
+    __device__ void point(double ds,double& X,double& Y) const {
+        double du,dv,dpu,de,dz;increments(ds,du,dv,dpu,de,dz);
+        X=x+co*du+si*dv;Y=y-si*du+co*dv;
+    }
+    __device__ void range(double ax,double ay,double c,double lo,double hi,double& lower,double& upper) const {
+        double x0,y0,x1,y1;point(lo,x0,y0);point(hi,x1,y1);
+        double f0=ax*x0+ay*y0+c,f1=ax*x1+ay*y1+c;
+        lower=fmin(f0,f1);upper=fmax(f0,f1);
+        double au=ax*co-ay*si,av=ax*si+ay*co;
+        if(au!=0 && k!=0) {
+            double target=-av*pv/au,et=hypot(mt,target),dpu=target-pu;
+            double de=dpu*(target+pu)/(et+energy);
+            double angle=asinh((dpu*energy-pu*de)/(mt*mt)),middle=ps/k*angle;
+            if(lo<middle && middle<hi) {
+                double X,Y;point(middle,X,Y);double value=ax*X+ay*Y+c;
+                lower=fmin(lower,value);upper=fmax(upper,value);
+            }
+        }
+    }
+    __device__ double electrode(double surface,double length) const {
+        double de=k*(surface-(x*co-y*si));
+        if(energy+de<=0) return INFINITY;
+        double change=de*(2*energy+de),disc=pu*pu+change;
+        double tol=64*0x1p-52*fmax(fmax(pu*pu,fabs(change)),1.e-300);
+        if(disc<-tol) return INFINITY;
+        double root=sqrt(fmax(0.,disc)),q=-pu-copysign(root,pu),hit=INFINITY;
+        double increments[2]={q,q!=0?-change/q:0.};
+        for(int j=0;j<2;++j) {
+            double angle=asinh((increments[j]*energy-pu*de)/(mt*mt)),ds=ps/k*angle;
+            if(ds>=0 && ds<=length) hit=fmin(hit,ds);
+        }
+        return hit;
+    }
+};
+__device__ double curve_contact(const ElectricOrbit& o,double length,int kind,const double* p) {
+    const double eps=0x1p-52,stol=1.e-12*fmax(1.,length);
+    double left[64],right[64];int count=1;left[0]=0;right[0]=length;
+    while(count) {
+        --count;double lo=left[count],hi=right[count];
+        if(kind==0) {
+            double f0,f1;o.range(p[0],p[1],p[2],lo,hi,f0,f1);
+            double tol=64*eps*fmax(1.,fmax(fabs(p[2]),fmax(fabs(f0),fabs(f1))));
+            if(f0>tol || f1<-tol) continue;
+            if(isfinite(p[6])) {
+                double t0,t1;o.range(p[3],p[4],p[5],lo,hi,t0,t1);
+                if(t1<-tol || t0>p[6]+tol) continue;
+            }
+        } else {
+            double x0,x1,y0,y1;o.range(1/p[2],0,-p[0]/p[2],lo,hi,x0,x1);
+            o.range(0,1/p[3],-p[1]/p[3],lo,hi,y0,y1);
+            if((p[4]>0 && x1<0) || (p[4]<0 && x0>0)) continue;
+            double minimum=(x0<=0 && x1>=0)?0:fmin(x0*x0,x1*x1);
+            minimum+=(y0<=0 && y1>=0)?0:fmin(y0*y0,y1*y1);
+            double maximum=fmax(x0*x0,x1*x1)+fmax(y0*y0,y1*y1);
+            double tol=64*eps*fmax(1.,maximum);
+            if(minimum>1+tol || maximum<1-tol) continue;
+        }
+        if(hi-lo<=stol) return (lo+hi)/2;
+        double mid=(lo+hi)/2;
+        left[count]=mid;right[count]=hi;++count;
+        left[count]=lo;right[count]=mid;++count;
+    }
+    return INFINITY;
+}
+__device__ double curved_hit(const ElectricOrbit& o,double length) {
+    double hit=INFINITY;
+'''
+    for _,values in primitives[:2]:
+        surface = -values[2]
+        source += f'hit=fmin(hit,o.electrode({format(surface,".17g")},length));\n'
+    for kind,values in primitives[2:]:
+        numbers = ','.join('INFINITY' if math.isinf(v) else format(float(v),'.17g') for v in values)
+        source += f'{{const double p[]={{{numbers}}}; hit=fmin(hit,curve_contact(o,fmin(length,hit),{int(kind!="line")},p));}}\n'
+    return source+r'''
+    return hit;
+}
+extern "C" __global__ void track_separator_thick(
+    R* x,R* px,R* y,R* py,R* z,R* dp,int* tag,float* lp,int* lt,
+    int start,int end,int turn,int action,double length,double k,double s0,
+    double beta,double ig,double co,double si,double us,double outer,double counter) {
+    int i=start+blockIdx.x*blockDim.x+threadIdx.x;
+    if(i>=end || tag[i]<=0) return;
+    R X=x[i],Y=y[i],Z=z[i],PX=px[i],PY=py[i],DP=dp[i];int T=tag[i],LT=lt[i];float LP=lp[i];
+    if(separator_advance(X,Y,Z,PX,PY,DP,T,LP,LT,(R)ig,0,s0,turn,co,si,us,outer,counter)) {
+        double u=(double)X*co-(double)Y*si;
+        bool field=u>outer && u<counter && k!=0;
+        if(action!=1 && field) {
+            double old=(double)DP,energy=sqrt(ig+(1-ig)*(1+old)*(1+old))/beta;
+            double de=(action==0?1.:-1.)*k*(u-outer),dr2=de*(2*energy+de);
+            double r2=(1+old)*(1+old)+dr2,transverse=(double)PX*PX+(double)PY*PY;
+            if(!isfinite(r2) || !isfinite(energy+de) || energy+de<=0 || r2<=transverse) {
+                T=-abs(T);LP=(float)s0;LT=turn;
+            } else DP=(R)((old*(2+old)+dr2)/(sqrt(r2)+1));
+            separator_advance(X,Y,Z,PX,PY,DP,T,LP,LT,(R)ig,0,s0,turn,co,si,us,outer,counter);
+        } else if(action==1 && !field) {
+            separator_advance(X,Y,Z,PX,PY,DP,T,LP,LT,(R)ig,length,s0,turn,co,si,us,outer,counter);
+        } else if(action==1) {
+            ElectricOrbit o;o.init(X,Y,PX,PY,DP,beta,ig,k,co,si);
+            double hit=curved_hit(o,length),ds=fmin(length,hit),du,dv,dpu,de,dz;
+            o.increments(ds,du,dv,dpu,de,dz);
+            X+=(R)(co*du+si*dv);Y+=(R)(-si*du+co*dv);PX+=(R)(co*dpu);PY-=(R)(si*dpu);Z+=(R)dz;
+            double dr2=de*(2*o.energy+de),r2=(1+o.dp)*(1+o.dp)+dr2;
+            DP=(R)((o.dp*(2+o.dp)+dr2)/(sqrt(r2)+1));
+            if(hit<=length) {T=-abs(T);LP=(float)(s0+hit);LT=turn;}
+        }
+        if(action==1 && T>0)
+            separator_advance(X,Y,Z,PX,PY,DP,T,LP,LT,(R)ig,0,s0+length,turn,co,si,us,outer,counter);
+    }
+    x[i]=X;y[i]=Y;z[i]=Z;px[i]=PX;py[i]=PY;dp[i]=DP;tag[i]=T;lp[i]=LP;lt[i]=LT;
+}
+'''
