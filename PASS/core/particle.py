@@ -39,10 +39,12 @@ class ParticlePool:
         self.lost_position = self.xp.full(n_particles, -1, dtype=self.xp.float32)
 
     def copy(self, xp_target, fields=None, dtype=None):
-        """Copy to another backend and, optionally, another particle dtype.
+        """Copy arrays to a backend and, optionally, another particle dtype.
 
         ``dtype`` changes only the six-dimensional particle state. Integer
         metadata and float32 ``lost_position`` remain unchanged.
+        Selected arrays own independent storage, including same-backend copies.
+        When ``fields`` is supplied, unselected attributes remain shared.
         """
         target_dtype = self.dtype if dtype is None else np.dtype(dtype)
         if target_dtype not in {np.dtype(np.float32), np.dtype(np.float64)}:
@@ -51,7 +53,10 @@ class ParticlePool:
 
         def convert(name, value):
             value_dtype = target_dtype if name in self.real_fields else None
-            return convert_array(value, xp_target, dtype=value_dtype)
+            converted = convert_array(value, xp_target, dtype=value_dtype)
+            if converted is value and isinstance(value, self.xp.ndarray):
+                return converted.copy()
+            return converted
 
         new = ParticlePool.__new__(ParticlePool)
         new.xp = xp_target
