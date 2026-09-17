@@ -13,7 +13,7 @@ PASS 是面向粒子加速器的多功能模拟平台，支持 Windows 和 Linux
 
 ## 安装
 
-PASS 当前从源码目录安装，需要 Python 3.10 或更高版本。
+PASS 当前从源码目录安装，需要 Python 3.11 或更高版本。
 
 ```bash
 git clone https://github.com/changmx/PASS.git

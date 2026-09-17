@@ -13,7 +13,7 @@ The complete documentation is published at [changmx.github.io/PASS](https://chan
 
 ## Installing
 
-PASS currently installs from a source checkout. Python 3.10 or newer is required.
+PASS currently installs from a source checkout. Python 3.11 or newer is required.
 
 ```bash
 git clone https://github.com/changmx/PASS.git
