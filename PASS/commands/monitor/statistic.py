@@ -26,6 +26,11 @@ def _fold_by_ring(z, circumference):
     return ((z + 0.5 * circumference) % circumference) - 0.5 * circumference
 
 
+def _rms_from_moments(second, mean):
+    """Raw moment subtraction can round a zero variance slightly negative."""
+    return np.sqrt(np.maximum(second - mean**2, 0.0))
+
+
 @Command.register("statmonitor")
 class StatMonitor(Command):
 
@@ -143,12 +148,12 @@ class StatMonitor(Command):
                 'y4': (y**4).mean()
             }
 
-            sigma_x = np.sqrt(stat['x2'] - stat['x']**2)
-            sigma_px = np.sqrt(stat['px2'] - stat['px_avg']**2)
-            sigma_y = np.sqrt(stat['y2'] - stat['y']**2)
-            sigma_py = np.sqrt(stat['py2'] - stat['py_avg']**2)
-            sigma_z = np.sqrt(stat['z2'] - stat['z']**2)
-            sigma_dp = np.sqrt(stat['dp2'] - stat['dp']**2)
+            sigma_x = _rms_from_moments(stat['x2'], stat['x'])
+            sigma_px = _rms_from_moments(stat['px2'], stat['px_avg'])
+            sigma_y = _rms_from_moments(stat['y2'], stat['y'])
+            sigma_py = _rms_from_moments(stat['py2'], stat['py_avg'])
+            sigma_z = _rms_from_moments(stat['z2'], stat['z'])
+            sigma_dp = _rms_from_moments(stat['dp2'], stat['dp'])
 
             sig_xpx = stat['xpx'] - stat['x'] * stat['px_avg']
             sig_ypy = stat['ypy'] - stat['y'] * stat['py_avg']
@@ -342,12 +347,12 @@ class StatMonitor(Command):
             beam_loss = injected - count_alive
             loss_percent = 100.0 * beam_loss / injected if injected else 0.0
 
-            sigma_x = np.sqrt(x2_avg - x_avg**2)
-            sigma_px = np.sqrt(px2_avg - px_avg**2)
-            sigma_y = np.sqrt(y2_avg - y_avg**2)
-            sigma_py = np.sqrt(py2_avg - py_avg**2)
-            sigma_z = np.sqrt(z2_avg - z_avg**2)
-            sigma_dp = np.sqrt(dp2_avg - dp_avg**2)
+            sigma_x = _rms_from_moments(x2_avg, x_avg)
+            sigma_px = _rms_from_moments(px2_avg, px_avg)
+            sigma_y = _rms_from_moments(y2_avg, y_avg)
+            sigma_py = _rms_from_moments(py2_avg, py_avg)
+            sigma_z = _rms_from_moments(z2_avg, z_avg)
+            sigma_dp = _rms_from_moments(dp2_avg, dp_avg)
 
             sig_xpx = xpx_avg - x_avg * px_avg
             sig_ypy = ypy_avg - y_avg * py_avg
