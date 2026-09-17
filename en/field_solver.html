@@ -502,13 +502,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id14">抛物型密度：四维水袋的实空间投影</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id14">直接调用公式示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id15">Python 接口与数值稳定性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id15">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id16">Python 接口与数值稳定性</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id16">高效网格数建议</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id17">选择建议与限制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id17">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id18">选择建议与限制</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
@@ -984,6 +985,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parabolic-density-the-projection-of-a-4d-waterbag">Parabolic density: the projection of a 4D waterbag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#direct-formula-example">Direct formula example</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
@@ -1535,11 +1537,12 @@ dimensions must match the solver geometry.</p>
 are used by the <code class="docutils literal notranslate"><span class="pre">frozen</span></code> and <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code> tracking methods and remain
 available for reference calculations. Their public solver names are
 <code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">gaussian_ellipse_free_space</span></code>,
-<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code> and <code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code>. These formulas
+<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code>,
+<code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code> and <code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code>. These formulas
 are evaluated directly at particle positions, outside the PIC pipeline.</p>
 <section id="source-charge-coordinates-and-units">
 <h3>Source charge, coordinates, and units<a class="headerlink" href="#source-charge-coordinates-and-units" title="Link to this heading"></a></h3>
-<p>All four profiles solve the transverse free-space problem for one charge slice.
+<p>All six profiles solve the transverse free-space problem for one charge slice.
 Let Q denote its signed total charge in C, and let (u, v) be coordinates in the
 source’s principal frame. The command obtains Q from the current live,
 assigned population after aperture losses, then translates and rotates:</p>
@@ -1652,6 +1655,34 @@ that root with a cancellation-resistant quadratic expression and uses the
 rationalized field above to remain stable near a=b. Fields are continuous
 across the source edge; a=b reduces to the uniform disk.</p>
 </section>
+<section id="parabolic-density-the-projection-of-a-4d-waterbag">
+<h3>Parabolic density: the projection of a 4D waterbag<a class="headerlink" href="#parabolic-density-the-projection-of-a-4d-waterbag" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code> and <code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code> use
+<code class="docutils literal notranslate"><span class="pre">formula_parabolic.parabolic_round_field</span></code> and <code class="docutils literal notranslate"><span class="pre">parabolic_elliptic_field</span></code>.
+A uniform four-dimensional transverse phase-space waterbag projects to</p>
+<div class="math notranslate nohighlight">
+\[\eta=\frac{u^2}{a^2}+\frac{v^2}{b^2},\qquad
+\Sigma=\frac{2Q}{\pi ab}\max(1-\eta,0),\qquad
+a=\sqrt6\,\sigma_u,\quad b=\sqrt6\,\sigma_v.\]</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code> for a round profile and <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A/B</span> <span class="pre">(m)</span></code> for an ellipse.
+These are support edges. With the same confocal lambda, A and B defined above,
+the integrated fields are</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathcal E_u=\frac{2Q u}{\pi\epsilon_0 A(A+B)}
+\left[1-\frac{u^2(2A+B)}{3A^2(A+B)}-\frac{v^2}{B(A+B)}\right],\\\mathcal E_v=\frac{2Q v}{\pi\epsilon_0 B(A+B)}
+\left[1-\frac{v^2(2B+A)}{3B^2(A+B)}-\frac{u^2}{A(A+B)}\right].\end{aligned}\end{align} \]</div>
+<p>These expressions integrate the continuous Poisson field exactly, both inside
+and outside the source. They remain regular as a approaches b. For a=b=R,
+the enclosed charge fraction at r&lt;=R is <code class="docutils literal notranslate"><span class="pre">2(r/R)^2-(r/R)^4</span></code>; outside it is 1.
+The interior field contains linear and cubic terms. At the same charge and RMS
+sizes, the central gradients of Gaussian, parabolic and uniform profiles have
+the ratio <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">:</span> <span class="pre">2/3</span> <span class="pre">:</span> <span class="pre">1/2</span></code>.</p>
+<p>In quasi-frozen tracking, the parabolic family is retained while its centroid,
+principal axes and RMS sizes evolve. This moment closure does not guarantee that
+the evolving particles retain an exact waterbag phase-space density. See the
+<a class="reference external" href="https://cas.web.cern.ch/sites/default/files/lectures/bilbao-2011/priorbeamdynamics2.pdf">CERN Accelerator School derivation (slide 15)</a>
+for the 4D projection and round-field limit.</p>
+</section>
 <section id="frozen-and-quasi-frozen-parameter-selection">
 <h3>Frozen and quasi-frozen parameter selection<a class="headerlink" href="#frozen-and-quasi-frozen-parameter-selection" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> uses one fixed center, orientation and set of profile sizes for
@@ -1669,7 +1700,9 @@ C_k=\frac{1}{N_k}\sum_{n\in k}(\mathbf r_n-\mathbf c_k)
 a=2\sqrt{\nu_1},\quad b=2\sqrt{\nu_2}\quad\text{(uniform ellipse)},\]</div>
 <div class="math notranslate nohighlight">
 \[\sigma=\sqrt{\frac{\operatorname{tr}C_k}{2}},\qquad
-R_b=2\sigma\quad\text{(round profiles)}.\]</div>
+R_b=2\sigma\quad\text{(uniform round)},\qquad
+R_b=\sqrt6\,\sigma\quad\text{(parabolic round)}.\]</div>
+<p>Parabolic ellipses use <span class="math notranslate nohighlight">\(a=\sqrt{6\nu_1},\ b=\sqrt{6\nu_2}\)</span>.</p>
 <p>The eigenvalues satisfy nu_1 &gt;= nu_2; the eigenvector for nu_1 determines the
 major-axis angle. Moments use denominator N_k, not N_k-1. The round rule
 preserves the radial second moment even if the particles are not round; it
@@ -1716,7 +1749,7 @@ come from the configuration; quasi-frozen parameters come from each slice’s
 current population moments. <code class="docutils literal notranslate"><span class="pre">AnalyticResult</span></code> contains particle-sized
 <code class="docutils literal notranslate"><span class="pre">integrated_ex</span></code>/<code class="docutils literal notranslate"><span class="pre">integrated_ey</span></code>, slice charges and counts, and a
 <code class="docutils literal notranslate"><span class="pre">(n_slice,</span> <span class="pre">5)</span></code> parameter array with columns center-x, center-y, size-x, size-y,
-angle. Sizes are Gaussian RMS widths or uniform semi-axes; empty-slice
+angle. Sizes are Gaussian RMS widths or uniform/parabolic semi-axes; empty-slice
 parameters are NaN and their field/charge is zero. No simulation turn or Slicer
 execution metadata is read. See <a class="reference internal" href="space_charge.html"><span class="doc">Space-Charge Effect (SpaceCharge)</span></a> for the exact moment rules.</p>
 <p><code class="docutils literal notranslate"><span class="pre">sample_analytic_grid(result,</span> <span class="pre">configuration,</span> <span class="pre">geometry)</span></code> evaluates diagnostic
@@ -1757,6 +1790,14 @@ particle kicks or truncate the analytic charge distribution.</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">macro_charge_to_physical</span></code></p></td>
 <td><p>real-particle count, signed charge number</p></td>
 <td><p>Signed physical charge in C.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parabolic_round_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">slice_charge,</span> <span class="pre">radius</span></code></p></td>
+<td><p>Parabolic round-slice integrated field inside and outside the beam.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parabolic_elliptic_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">slice_charge,</span> <span class="pre">a,</span> <span class="pre">b</span></code></p></td>
+<td><p>Parabolic elliptic-slice integrated field inside and outside the beam.</p></td>
 </tr>
 </tbody>
 </table>
@@ -2002,7 +2043,7 @@ gather weights. Geometry and aperture comparisons use double intermediates,
 including with FP32 particles, to avoid rounding a near-wall point onto a
 different node. Density, potential, fields and kicks retain the selected precision.</p>
 <p>GPU analytic tracking is provided by <code class="docutils literal notranslate"><span class="pre">analytic.solve_analytic_gpu</span></code> for
-all four round/elliptical Gaussian/uniform profiles in frozen and quasi-frozen
+all six round/elliptical Gaussian/uniform/parabolic profiles in frozen and quasi-frozen
 mode. Centered slice statistics and special-function intermediates use FP64;
 particle fields follow the configured dtype. Diagnostic analytic-grid sampling
 may use the CPU on selected output turns.</p>

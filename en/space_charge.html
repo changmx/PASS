@@ -502,13 +502,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id14">抛物型密度：四维水袋的实空间投影</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id14">直接调用公式示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id15">Python 接口与数值稳定性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id15">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/field_solver.html#id16">Python 接口与数值稳定性</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id16">高效网格数建议</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id17">选择建议与限制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id17">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#id18">选择建议与限制</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/field_solver.html#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
@@ -984,6 +985,7 @@
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#parabolic-density-the-projection-of-a-4d-waterbag">Parabolic density: the projection of a 4D waterbag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#direct-formula-example">Direct formula example</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
@@ -1195,6 +1197,10 @@ specifies both the field algorithm/profile and its boundary condition:</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code></p></td>
 <td><p>Uniform disk or ellipse, including the exterior field.</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code>, <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code></p></td>
+<td><p>Parabolic spatial density, the projection of a uniform 4D waterbag.</p></td>
+</tr>
 </tbody>
 </table>
 <p>In <code class="docutils literal notranslate"><span class="pre">frozen</span></code>, all slices using one configuration share fixed transverse
@@ -1208,7 +1214,8 @@ of each slice’s current live, assigned particles. Moments use denominator
 physical weight. The source charge is <span class="math notranslate nohighlight">\(Q_k=N_k R Z e\)</span>.</p>
 <p>For an elliptic profile, covariance eigenvectors define the principal axes.
 Gaussian sizes are the square roots of the eigenvalues; uniform semi-axes
-are twice these RMS sizes. The first reported principal size is the larger.
+are twice these RMS sizes; parabolic semi-axes are sqrt(6) times the RMS sizes.
+The first reported principal size is the larger.
 The counterclockwise major-axis angle is reported modulo pi in
 <span class="math notranslate nohighlight">\([-\pi/2,\pi/2)\)</span>. Fields are evaluated after translation/rotation and
 rotated back to the original transverse axes.</p>
@@ -1217,10 +1224,14 @@ rotated back to the original transverse axes.</p>
 \[\sigma^2=\frac{\operatorname{Var}(x)+\operatorname{Var}(y)}{2},
 \qquad R=2\sigma.\]</div>
 <p><code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code> uses sigma; <code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code> uses R.
+<code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code> uses <span class="math notranslate nohighlight">\(R=\sqrt6\,\sigma\)</span>.
 This preserves the centroid-relative radial second moment. It is a deliberate
 round approximation for non-round populations, not an exact reconstruction of
 their field. Choosing a uniform profile does not turn the particles into a KV
-distribution. No automatic profile switching occurs.</p>
+distribution. Likewise, the parabolic model assumes a parabolic projected
+density even if the evolved phase-space distribution is no longer a waterbag.
+No automatic profile switching occurs. Density normalization and the exact
+interior/exterior parabolic field are given in <a class="reference internal" href="field_solver.html"><span class="doc">Transverse Field Solvers</span></a>.</p>
 <p>Empty slices produce zero field and charge. Nonempty quasi-frozen round slices
 require at least two particles and positive radial variance; elliptic slices
 require at least three particles and a nondegenerate covariance. Specifically,
@@ -1463,13 +1474,13 @@ contents and sequence commands are ignored and no resources are built.</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float or null</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
-<td><p>Required positive radius for frozen uniform disk.</p></td>
+<td><p>Required positive support radius for frozen uniform or parabolic disk.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">/</span> <span class="pre">b</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float or null</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
-<td><p>Required positive semi-axes for frozen uniform ellipse.</p></td>
+<td><p>Required positive support semi-axes for frozen uniform or parabolic ellipse.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1785,7 +1796,8 @@ commands, output layout, and the distinction between batch and per-case paths.</
 <code class="docutils literal notranslate"><span class="pre">solver</span></code> name and <code class="docutils literal notranslate"><span class="pre">grid_role</span></code> (<code class="docutils literal notranslate"><span class="pre">tracking</span></code> or <code class="docutils literal notranslate"><span class="pre">diagnostic</span></code>). Analytic
 snapshots additionally store <code class="docutils literal notranslate"><span class="pre">macro_count</span></code>, <code class="docutils literal notranslate"><span class="pre">center_x</span></code>, <code class="docutils literal notranslate"><span class="pre">center_y</span></code>,
 <code class="docutils literal notranslate"><span class="pre">size_x</span></code>, <code class="docutils literal notranslate"><span class="pre">size_y</span></code> and <code class="docutils literal notranslate"><span class="pre">angle</span></code> per slice. <code class="docutils literal notranslate"><span class="pre">size_convention</span></code> is
-<code class="docutils literal notranslate"><span class="pre">principal_rms</span></code> for Gaussian profiles or <code class="docutils literal notranslate"><span class="pre">uniform_semi_axes</span></code> for uniform
+<code class="docutils literal notranslate"><span class="pre">principal_rms</span></code> for Gaussian profiles, <code class="docutils literal notranslate"><span class="pre">parabolic_semi_axes</span></code> for parabolic
+profiles, or <code class="docutils literal notranslate"><span class="pre">uniform_semi_axes</span></code> for uniform
 profiles. <code class="docutils literal notranslate"><span class="pre">parameter_source</span></code> is <code class="docutils literal notranslate"><span class="pre">configuration</span></code> or
 <code class="docutils literal notranslate"><span class="pre">current_slice_population_moments</span></code>. Empty-slice parameters are NaN; their
 charge and sampled fields/density are zero. A frozen ellipse retains the user’s
@@ -2018,8 +2030,14 @@ full grid-aligned rectangle. Incompatible geometry is an initialization error;
 the program does not silently choose a different wall or solver. Particles
 outside a free-space PIC grid with losses disabled still cause the existing
 grid-domain error. Independent explicit SC commands retain their own apertures.</p>
-<p>The element aperture is checked at SC nodes and the usual element exit. Losses
-are excluded from sources and kicks; first recorded loss positions are preserved.
+<p>For each bunch passage, ordinary elements, including <code class="docutils literal notranslate"><span class="pre">Bump</span></code>, check the aperture
+once at the exit when no internal SC is active. With <span class="math notranslate nohighlight">\(K\)</span> active internal SC
+nodes, each SC entry point checks once before source evaluation, and the element
+checks once more at the exit: <span class="math notranslate nohighlight">\(K+1\)</span> checks in total. Other external slice
+boundaries do not add checks. Newly lost particles are excluded from sources and
+kicks; first recorded loss positions are preserved. PIC field-domain validation
+remains active at every SC node. <code class="docutils literal notranslate"><span class="pre">ElSeparator</span></code> additionally retains its separate
+first-contact collision handling along each drift subsegment.
 Nodes share resources by configuration and effective aperture. Their snapshots
 are stored under
 <code class="docutils literal notranslate"><span class="pre">&lt;space_charge_output&gt;/&lt;element&gt;/internal_sc/node_000000/turn_000000/</span></code>.

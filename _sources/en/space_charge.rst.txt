@@ -161,6 +161,9 @@ specifies both the field algorithm/profile and its boundary condition:
    * - ``frozen``, ``quasi-frozen``
      - ``uniform_round_free_space``, ``uniform_ellipse_free_space``
      - Uniform disk or ellipse, including the exterior field.
+   * - ``frozen``, ``quasi-frozen``
+     - ``parabolic_round_free_space``, ``parabolic_ellipse_free_space``
+     - Parabolic spatial density, the projection of a uniform 4D waterbag.
 
 In ``frozen``, all slices using one configuration share fixed transverse
 center, sizes and orientation. Defaults for omitted center and angle are zero;
@@ -175,7 +178,8 @@ physical weight. The source charge is :math:`Q_k=N_k R Z e`.
 
 For an elliptic profile, covariance eigenvectors define the principal axes.
 Gaussian sizes are the square roots of the eigenvalues; uniform semi-axes
-are twice these RMS sizes. The first reported principal size is the larger.
+are twice these RMS sizes; parabolic semi-axes are sqrt(6) times the RMS sizes.
+The first reported principal size is the larger.
 The counterclockwise major-axis angle is reported modulo pi in
 :math:`[-\pi/2,\pi/2)`. Fields are evaluated after translation/rotation and
 rotated back to the original transverse axes.
@@ -188,10 +192,14 @@ For a round profile the moment-matched radius rule is
    \qquad R=2\sigma.
 
 ``gaussian_round_free_space`` uses sigma; ``uniform_round_free_space`` uses R.
+``parabolic_round_free_space`` uses :math:`R=\sqrt6\,\sigma`.
 This preserves the centroid-relative radial second moment. It is a deliberate
 round approximation for non-round populations, not an exact reconstruction of
 their field. Choosing a uniform profile does not turn the particles into a KV
-distribution. No automatic profile switching occurs.
+distribution. Likewise, the parabolic model assumes a parabolic projected
+density even if the evolved phase-space distribution is no longer a waterbag.
+No automatic profile switching occurs. Density normalization and the exact
+interior/exterior parabolic field are given in :doc:`field_solver`.
 
 Empty slices produce zero field and charge. Nonempty quasi-frozen round slices
 require at least two particles and positive radial variance; elliptic slices
@@ -418,12 +426,12 @@ Named resource configuration
      - ``Radius (m)``
      - float or null
      - ``null``
-     - Required positive radius for frozen uniform disk.
+     - Required positive support radius for frozen uniform or parabolic disk.
    * - ``a / b``
      - ``Semi-axis A (m) / Semi-axis B (m)``
      - float or null
      - ``null``
-     - Required positive semi-axes for frozen uniform ellipse.
+     - Required positive support semi-axes for frozen uniform or parabolic ellipse.
 
 
 ``SpaceCharge`` sequence command
@@ -716,7 +724,8 @@ HDF5 ``schema_version`` is ``3``. Attributes include ``method``, the full
 ``solver`` name and ``grid_role`` (``tracking`` or ``diagnostic``). Analytic
 snapshots additionally store ``macro_count``, ``center_x``, ``center_y``,
 ``size_x``, ``size_y`` and ``angle`` per slice. ``size_convention`` is
-``principal_rms`` for Gaussian profiles or ``uniform_semi_axes`` for uniform
+``principal_rms`` for Gaussian profiles, ``parabolic_semi_axes`` for parabolic
+profiles, or ``uniform_semi_axes`` for uniform
 profiles. ``parameter_source`` is ``configuration`` or
 ``current_slice_population_moments``. Empty-slice parameters are NaN; their
 charge and sampled fields/density are zero. A frozen ellipse retains the user's
@@ -950,8 +959,14 @@ the program does not silently choose a different wall or solver. Particles
 outside a free-space PIC grid with losses disabled still cause the existing
 grid-domain error. Independent explicit SC commands retain their own apertures.
 
-The element aperture is checked at SC nodes and the usual element exit. Losses
-are excluded from sources and kicks; first recorded loss positions are preserved.
+For each bunch passage, ordinary elements, including ``Bump``, check the aperture
+once at the exit when no internal SC is active. With :math:`K` active internal SC
+nodes, each SC entry point checks once before source evaluation, and the element
+checks once more at the exit: :math:`K+1` checks in total. Other external slice
+boundaries do not add checks. Newly lost particles are excluded from sources and
+kicks; first recorded loss positions are preserved. PIC field-domain validation
+remains active at every SC node. ``ElSeparator`` additionally retains its separate
+first-contact collision handling along each drift subsegment.
 Nodes share resources by configuration and effective aperture. Their snapshots
 are stored under
 ``<space_charge_output>/<element>/internal_sc/node_000000/turn_000000/``.

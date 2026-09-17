@@ -502,13 +502,14 @@
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id14">抛物型密度：四维水袋的实空间投影</a></li>
 <li class="toctree-l4"><a class="reference internal" href="field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id14">直接调用公式示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id15">Python 接口与数值稳定性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id15">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id16">Python 接口与数值稳定性</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id16">高效网格数建议</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id17">选择建议与限制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id17">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id18">选择建议与限制</a></li>
 <li class="toctree-l3"><a class="reference internal" href="field_solver.html#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
@@ -984,6 +985,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#parabolic-density-the-projection-of-a-4d-waterbag">Parabolic density: the projection of a 4D waterbag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#direct-formula-example">Direct formula example</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
@@ -1178,6 +1180,10 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
 <td><p><code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code></p></td>
 <td><p>均匀圆盘或椭圆，包括束流外部场。</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code>、<code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code></p></td>
+<td><p>抛物型实空间密度，对应均匀四维水袋的投影。</p></td>
+</tr>
 </tbody>
 </table>
 <p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 中，同一配置的所有切片共用固定的横向中心、尺寸和方向。
@@ -1187,15 +1193,19 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
 重新统计质心和总体协方差。统计分母使用 <span class="math notranslate nohighlight">\(N\)</span>，不是 <span class="math notranslate nohighlight">\(N-1\)</span>；
 同一束团宏粒子的物理权重相同。源电荷为 <span class="math notranslate nohighlight">\(Q_k=N_k R Z e\)</span>。</p>
 <p>椭圆模型的协方差特征向量确定主轴。高斯尺寸为特征值平方根；均匀分布半轴为
-这些 RMS 尺寸的两倍。输出的第一个主轴尺寸为较大者，主轴逆时针角度按 pi 周期
+这些 RMS 尺寸的两倍；抛物型分布半轴为 RMS 尺寸的 sqrt(6) 倍。
+输出的第一个主轴尺寸为较大者，主轴逆时针角度按 pi 周期
 报告到 <span class="math notranslate nohighlight">\([-\pi/2,\pi/2)\)</span>。先平移、旋转到主轴坐标计算场，再转回原横向坐标。</p>
 <p>圆形模型采用等径向二阶矩规则：</p>
 <div class="math notranslate nohighlight">
 \[\sigma^2=\frac{\operatorname{Var}(x)+\operatorname{Var}(y)}{2},
 \qquad R=2\sigma.\]</div>
 <p><code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code> 使用 sigma，<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code> 使用 R。
+<code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code> 使用 <span class="math notranslate nohighlight">\(R=\sqrt6\,\sigma\)</span>。
 此规则保留相对质心的径向二阶矩；对于非圆分布，它是用户选择的圆对称近似，
-不保证重建实际电场。选择均匀模型也不表示粒子已成为 KV 分布。程序不自动切换模型。</p>
+不保证重建实际电场。选择均匀模型也不表示粒子已成为 KV 分布。抛物型模型假定
+投影密度保持抛物型，即使演化后的相空间分布已不再是严格水袋。程序不自动切换模型。
+密度归一化及完整束内、束外抛物型场见 <a class="reference internal" href="field_solver.html"><span class="doc">横向场求解器</span></a>。</p>
 <p>空切片的电荷和场为零。非空 quasi-frozen 圆形切片至少需要两个粒子且径向方差为正；
 椭圆切片至少需要三个粒子且协方差非退化。具体要求为较小特征值严格大于
 <code class="docutils literal notranslate"><span class="pre">64</span> <span class="pre">*</span> <span class="pre">float64_epsilon</span> <span class="pre">*</span> <span class="pre">较大特征值</span></code>。尺寸或协方差无效时报告切片编号，
@@ -1425,13 +1435,13 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
 <td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float or null</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
-<td><p>frozen 均匀圆盘必填的正半径。</p></td>
+<td><p>frozen 均匀或抛物型圆盘必填的正支撑半径。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">/</span> <span class="pre">b</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float or null</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
-<td><p>frozen 均匀椭圆必填的正半轴。</p></td>
+<td><p>frozen 均匀或抛物型椭圆必填的正支撑半轴。</p></td>
 </tr>
 </tbody>
 </table>
@@ -1707,7 +1717,8 @@ FFT 的差异同时包含物理边界条件变化，不能把它解释为 FD/DST
 <p>HDF5 的 <code class="docutils literal notranslate"><span class="pre">schema_version</span></code> 为 <code class="docutils literal notranslate"><span class="pre">3</span></code>，attributes 包含 <code class="docutils literal notranslate"><span class="pre">method</span></code>、完整 <code class="docutils literal notranslate"><span class="pre">solver</span></code>
 名称和 <code class="docutils literal notranslate"><span class="pre">grid_role``（``tracking</span></code> 或 <code class="docutils literal notranslate"><span class="pre">diagnostic</span></code>）。解析快照额外保存每切片的
 <code class="docutils literal notranslate"><span class="pre">macro_count</span></code>、<code class="docutils literal notranslate"><span class="pre">center_x</span></code>、<code class="docutils literal notranslate"><span class="pre">center_y</span></code>、<code class="docutils literal notranslate"><span class="pre">size_x</span></code>、<code class="docutils literal notranslate"><span class="pre">size_y</span></code>、<code class="docutils literal notranslate"><span class="pre">angle</span></code>。
-高斯的 <code class="docutils literal notranslate"><span class="pre">size_convention</span></code> 为 <code class="docutils literal notranslate"><span class="pre">principal_rms</span></code>，均匀模型为 <code class="docutils literal notranslate"><span class="pre">uniform_semi_axes</span></code>。
+高斯的 <code class="docutils literal notranslate"><span class="pre">size_convention</span></code> 为 <code class="docutils literal notranslate"><span class="pre">principal_rms</span></code>，均匀模型为 <code class="docutils literal notranslate"><span class="pre">uniform_semi_axes</span></code>，
+抛物型模型为 <code class="docutils literal notranslate"><span class="pre">parabolic_semi_axes</span></code>。
 <code class="docutils literal notranslate"><span class="pre">parameter_source</span></code> 为 <code class="docutils literal notranslate"><span class="pre">configuration</span></code> 或 <code class="docutils literal notranslate"><span class="pre">current_slice_population_moments</span></code>。
 空切片参数为 NaN，电荷和采样场、密度为零。frozen 椭圆保留用户的轴顺序，
 quasi-frozen 椭圆将长轴放在首位。</p>
@@ -1915,7 +1926,11 @@ Dirichlet 求解器则要求元件具有有限孔径。PIC 网格必须包含继
 DST 要求它恰好等于网格对齐的完整矩形。不兼容时初始化报错，不会静默更换管壁或求解器。
 关闭损失孔径时，自由空间 PIC 中粒子超出网格仍会触发原有网格范围错误。
 独立的显式 SC command 仍保留自己的孔径设置。</p>
-<p>SC 节点和元件出口均检查元件孔径。损失粒子不参与源项和踢量，首次损失记录得到保留。
+<p>每个束团每次通过普通元件（包括 <code class="docutils literal notranslate"><span class="pre">Bump</span></code>）时，若没有生效的内部 SC，仅在出口
+检查一次孔径。若有 <span class="math notranslate nohighlight">\(K\)</span> 个生效的内部 SC 节点，每个 SC 入口在计算源项前
+检查一次，元件出口再检查一次，共 <span class="math notranslate nohighlight">\(K+1\)</span> 次。其余外场切片边界不增加检查。
+刚损失的粒子不参与源项和踢量，首次损失记录得到保留。每个 SC 节点仍执行 PIC
+计算域有效性检查。<code class="docutils literal notranslate"><span class="pre">ElSeparator</span></code> 另行保留沿每个漂移子段的首次接触碰撞处理。
 内部节点按配置名和实际孔径共享资源，快照保存在
 <code class="docutils literal notranslate"><span class="pre">&lt;space_charge_output&gt;/&lt;element&gt;/internal_sc/node_000000/turn_000000/</span></code>。
 文件名保留 beam 和 bunch 标识。HDF5 记录 <code class="docutils literal notranslate"><span class="pre">parent_element</span></code>、

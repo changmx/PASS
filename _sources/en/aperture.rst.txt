@@ -3,7 +3,21 @@ Aperture
 
 This module describes the **aperture checking system** (Aperture) in PASS, used to check whether particles exceed the transverse aperture boundaries of the beam pipe during particle tracking. Aperture checking is a core component of beam loss simulation, capable of identifying and recording particles lost due to transverse coordinates exceeding physical pipe limits.
 
-The aperture module is located at ``PASS/utils/aperture.py`` and provides both CPU and GPU implementations (called via the ``check_aperture_cpu`` and ``check_aperture_gpu`` functions, respectively), automatically invoked after each element tracking. The current element's longitudinal position :math:`s` and the current turn number are passed in at call time.
+The aperture module is located at ``PASS/utils/aperture.py`` and provides both CPU and GPU implementations (called via the ``check_aperture_cpu`` and ``check_aperture_gpu`` functions, respectively). Each call receives the longitudinal position :math:`s` of the check and the current turn number.
+
+For each bunch passage through an ordinary element, including ``Bump``, an enabled
+aperture is checked once at the exit if no internal space charge is active. With
+:math:`K` active internal SC nodes, it is checked once before each SC source
+evaluation and once at the exit, for :math:`K+1` checks. Other external integration
+slice boundaries do not add checks. An independent ``SpaceCharge`` command checks
+at its own position. Setting the aperture to ``off`` disables these aperture
+losses; PIC field-domain validation and transport momentum-validity checks remain
+independent. ``ElSeparator`` retains its separate first-contact collision checks
+along drift subsegments; see :doc:`element/elseparator`.
+
+Ordinary aperture checks sample discrete positions. A particle that leaves and
+re-enters the aperture between these positions can escape detection; increasing
+only the external slice count does not automatically add aperture checks.
 
 Aperture checking is performed only on the transverse coordinates :math:`(x, y)` of particles and does not involve longitudinal coordinates. Each element can independently set its aperture type and parameters, supporting 10 aperture geometries.
 
@@ -60,7 +74,7 @@ loss does not require both coordinates to reach their limits.
 When a particle is determined to be lost, the system performs the following operations:
 
 - **tag negation** : :math:`\text{tag} \leftarrow -|\text{tag}|` , preserving the particle ID information and only negating the sign to mark it as lost
-- **lost_position** : records the longitudinal coordinate :math:`s` of the loss location, i.e., the longitudinal position of the current element
+- **lost_position** : records the longitudinal coordinate :math:`s` of the first check that detects the loss, such as an internal SC node or the element exit; this is not an interpolated wall-intersection position
 - **lost_turn** : records the turn number at the time of loss
 
 Particles already lost ( :math:`\text{tag} < 0` ) are skipped in subsequent aperture checks and are not marked again. Aperture checking is performed only on surviving particles ( :math:`\text{tag} > 0` ).

@@ -502,13 +502,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id14">抛物型密度：四维水袋的实空间投影</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id14">直接调用公式示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id15">Python 接口与数值稳定性</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id15">直接调用公式示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id16">Python 接口与数值稳定性</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id16">高效网格数建议</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id17">选择建议与限制</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">高效网格数建议</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id18">选择建议与限制</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#gpu">GPU 资源与执行</a></li>
 </ul>
 </li>
@@ -984,6 +985,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#parabolic-density-the-projection-of-a-4d-waterbag">Parabolic density: the projection of a 4D waterbag</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#direct-formula-example">Direct formula example</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
@@ -1490,10 +1492,11 @@ SC 初始化器会拒绝超出网格的有限 PIC 孔径，并拒绝与完整矩
 <p><code class="docutils literal notranslate"><span class="pre">formula_*</span></code> 模块提供自由空间解析积分场，用于 <code class="docutils literal notranslate"><span class="pre">frozen</span></code>、<code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code>
 跟踪，同时保留参考计算用途。公开 solver 名称为 <code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code>、
 <code class="docutils literal notranslate"><span class="pre">gaussian_ellipse_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>、
-<code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code>。直接在粒子位置计算，不经过 PIC 流水线。</p>
+<code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code>、
+<code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code>。直接在粒子位置计算，不经过 PIC 流水线。</p>
 <section id="id13">
 <h3>源电荷、坐标与单位<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
-<p>四种分布都求解单个带电切片的横向自由空间问题。以 Q 表示切片带符号总电荷（C），
+<p>六种分布都求解单个带电切片的横向自由空间问题。以 Q 表示切片带符号总电荷（C），
 (u, v) 表示源分布主轴坐标。命令先处理孔径损失，由当前存活且已分配到切片的粒子
 计算 Q，再进行中心平移和旋转：</p>
 <div class="math notranslate nohighlight">
@@ -1594,6 +1597,29 @@ r^{-2}\begin{pmatrix}u\\v\end{pmatrix},&amp;r&gt;R_b.
 实现使用避免相消的二次方程求根表达式，并采用上述有理化场表达式，保证 a、b
 接近时的数值稳定性。场在分布边缘连续，a=b 时退化为均匀圆盘。</p>
 </section>
+<section id="id14">
+<h3>抛物型密度：四维水袋的实空间投影<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code> 分别调用
+<code class="docutils literal notranslate"><span class="pre">formula_parabolic.parabolic_round_field</span></code>、<code class="docutils literal notranslate"><span class="pre">parabolic_elliptic_field</span></code>。
+四维横向相空间内均匀填充的水袋，投影到实空间后满足</p>
+<div class="math notranslate nohighlight">
+\[\eta=\frac{u^2}{a^2}+\frac{v^2}{b^2},\qquad
+\Sigma=\frac{2Q}{\pi ab}\max(1-\eta,0),\qquad
+a=\sqrt6\,\sigma_u,\quad b=\sqrt6\,\sigma_v.\]</div>
+<p>圆形模型使用 <code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>，椭圆模型使用 <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A/B</span> <span class="pre">(m)</span></code>，均指分布边缘。
+采用前述共焦 lambda、A、B，积分场为</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\mathcal E_u=\frac{2Q u}{\pi\epsilon_0 A(A+B)}
+\left[1-\frac{u^2(2A+B)}{3A^2(A+B)}-\frac{v^2}{B(A+B)}\right],\\\mathcal E_v=\frac{2Q v}{\pi\epsilon_0 B(A+B)}
+\left[1-\frac{v^2(2B+A)}{3B^2(A+B)}-\frac{u^2}{A(A+B)}\right].\end{aligned}\end{align} \]</div>
+<p>此表达式为连续 Poisson 场积分的闭式结果，适用于束内及束外，a 接近 b 时仍稳定。
+a=b=R 时，r&lt;=R 内的包围电荷比例为 <code class="docutils literal notranslate"><span class="pre">2(r/R)^2-(r/R)^4</span></code>，束外为 1。
+束内场包含线性项和三次项。相同电荷和 RMS 尺寸下，高斯、抛物型、均匀模型的
+中心梯度比例为 <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">:</span> <span class="pre">2/3</span> <span class="pre">:</span> <span class="pre">1/2</span></code>。</p>
+<p>quasi-frozen 保持抛物型密度族，更新质心、主轴和 RMS 尺寸；这种矩近似不保证
+演化后的粒子仍严格满足四维水袋分布。四维投影和圆束极限可参阅
+<a class="reference external" href="https://cas.web.cern.ch/sites/default/files/lectures/bilbao-2011/priorbeamdynamics2.pdf">CERN Accelerator School 推导（第 15 页）</a>。</p>
+</section>
 <section id="frozen-quasi-frozen">
 <h3>frozen 与 quasi-frozen 的参数选择<a class="headerlink" href="#frozen-quasi-frozen" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 中，引用同一配置的全部切片共用固定中心、方向和尺寸；中心与角度
@@ -1610,7 +1636,9 @@ C_k=\frac{1}{N_k}\sum_{n\in k}(\mathbf r_n-\mathbf c_k)
 a=2\sqrt{\nu_1},\quad b=2\sqrt{\nu_2}\quad\text{(uniform ellipse)},\]</div>
 <div class="math notranslate nohighlight">
 \[\sigma=\sqrt{\frac{\operatorname{tr}C_k}{2}},\qquad
-R_b=2\sigma\quad\text{(round profiles)}.\]</div>
+R_b=2\sigma\quad\text{(uniform round)},\qquad
+R_b=\sqrt6\,\sigma\quad\text{(parabolic round)}.\]</div>
+<p>抛物型椭圆使用 <span class="math notranslate nohighlight">\(a=\sqrt{6\nu_1},\ b=\sqrt{6\nu_2}\)</span>。</p>
 <p>特征值满足 nu_1 &gt;= nu_2，nu_1 对应的特征向量确定长轴角度。统计分母使用
 N_k 而非 N_k-1。圆化规则保留径向二阶矩，非圆粒子也可采用，但不会精确重建
 非圆源的场。均匀模型近似均匀横向投影密度，并不把实际粒子变成 KV 分布。</p>
@@ -1618,8 +1646,8 @@ N_k 而非 N_k-1。圆化规则保留径向二阶矩，非圆粒子也可采用�
 椭圆切片至少需要三个粒子，且 <code class="docutils literal notranslate"><span class="pre">nu_2</span> <span class="pre">&gt;</span> <span class="pre">64</span> <span class="pre">*</span> <span class="pre">float64_epsilon</span> <span class="pre">*</span> <span class="pre">nu_1</span></code>。
 无效统计量会报错。切片编号与宽度由用户独立提供，不检查 Slicer 执行或圈数历史。</p>
 </section>
-<section id="id14">
-<h3>直接调用公式示例<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<section id="id15">
+<h3>直接调用公式示例<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
 <p>下例先计算积分场，再换算切片平均场。输入坐标已位于源分布坐标系：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">PASS.commands.solver.formula_gaussian_ellipse</span><span class="w"> </span><span class="kn">import</span> <span class="n">gaussian_elliptic_field</span>
@@ -1642,14 +1670,14 @@ N_k 而非 N_k-1。圆化规则保留径向二阶矩，非圆粒子也可采用�
 <p>这些验证命令要求本地已有测试文件；<code class="docutils literal notranslate"><span class="pre">tests/</span></code> 不纳入 Git 版本控制，
 新克隆的仓库不包含该目录。</p>
 </section>
-<section id="id15">
-<h3>Python 接口与数值稳定性<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<section id="id16">
+<h3>Python 接口与数值稳定性<a class="headerlink" href="#id16" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">solve_analytic(x,</span> <span class="pre">y,</span> <span class="pre">slice_id,</span> <span class="pre">valid,</span> <span class="pre">num_slices,</span> <span class="pre">charge_per_macro,</span>
 <span class="pre">configuration)</span></code> 按切片组织已分配且存活的粒子。frozen 参数来自配置，
 quasi-frozen 参数来自各切片当前总体矩。<code class="docutils literal notranslate"><span class="pre">AnalyticResult</span></code> 包含粒子长度的
 <code class="docutils literal notranslate"><span class="pre">integrated_ex</span></code>/<code class="docutils literal notranslate"><span class="pre">integrated_ey</span></code>、切片电荷与计数，以及 <code class="docutils literal notranslate"><span class="pre">(n_slice,</span> <span class="pre">5)</span></code>
 参数数组；列依次为中心 x、中心 y、尺寸 x、尺寸 y、角度。
-尺寸是高斯 RMS 或均匀分布半轴。空切片参数为 NaN，场和电荷为零。
+尺寸是高斯 RMS 或均匀/抛物型分布半轴。空切片参数为 NaN，场和电荷为零。
 不读取模拟圈数或 Slicer 执行元数据。具体矩匹配规则见 <a class="reference internal" href="space_charge.html"><span class="doc">空间电荷效应（SpaceCharge）</span></a>。</p>
 <p><code class="docutils literal notranslate"><span class="pre">sample_analytic_grid(result,</span> <span class="pre">configuration,</span> <span class="pre">geometry)</span></code> 在粒子场计算完成后，
 采样诊断网格上的密度和场，返回 <code class="docutils literal notranslate"><span class="pre">potential=None</span></code> 的网格结果；当前命令拒绝解析
@@ -1684,6 +1712,14 @@ quasi-frozen 参数来自各切片当前总体矩。<code class="docutils litera
 <td><p><code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">slice_charge,</span> <span class="pre">a,</span> <span class="pre">b</span></code></p></td>
 <td><p>均匀椭圆切片束内外的积分场。</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parabolic_round_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">slice_charge,</span> <span class="pre">radius</span></code></p></td>
+<td><p>抛物型圆切片束内外的积分场。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parabolic_elliptic_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">slice_charge,</span> <span class="pre">a,</span> <span class="pre">b</span></code></p></td>
+<td><p>抛物型椭圆切片束内外的积分场。</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">macro_charge_to_physical</span></code></p></td>
 <td><p>真实粒子数、带符号电荷数</p></td>
 <td><p>带符号物理电荷，单位 C。</p></td>
@@ -1706,13 +1742,13 @@ Faddeeva 函数的指数增长及大数相减，近圆束尤其需要这一处�
 为该归一化半径平方的平方量级。</p>
 </section>
 </section>
-<section id="id16">
-<h2>高效网格数建议<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<section id="id17">
+<h2>高效网格数建议<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
 <p>这里 <code class="docutils literal notranslate"><span class="pre">N</span></code> 是包含两端点的节点数，宽度 <code class="docutils literal notranslate"><span class="pre">W</span></code> 对应间距 <code class="docutils literal notranslate"><span class="pre">h</span> <span class="pre">=</span> <span class="pre">W/(N-1)</span></code>。
 首先确定物理范围和所需分辨率。下表是在各个规模附近便于选择的起点，并非所有
 硬件上的绝对最快值；两个方向分别应用相应规则。</p>
-<table class="docutils align-default" id="id18">
-<caption><span class="caption-text">节点数建议</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id19">
+<caption><span class="caption-text">节点数建议</span><a class="headerlink" href="#id19" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 16.0%" />
 <col style="width: 24.0%" />
@@ -1774,8 +1810,8 @@ Faddeeva 函数的指数增长及大数相减，近圆束尤其需要这一处�
 对于完整的接地矩形，DST 求解相同的离散泊松系统，且无需稀疏 LU 因子。
 PASS 保留用户显式配置的节点数。</p>
 </section>
-<section id="id17">
-<h2>选择建议与限制<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
+<section id="id18">
+<h2>选择建议与限制<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>接地导体腔体使用 <code class="docutils literal notranslate"><span class="pre">fd</span></code>，曲线、多边形或复合孔径尤其应选此方法。</p></li>
 <li><p>完整矩形网格恰好就是接地导体腔体时，可使用 <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code>。</p></li>
@@ -1797,8 +1833,8 @@ CuPy 设备数组和 <code class="docutils literal notranslate"><span class="pre
 <p>每项功能的 CPU 和 GPU 实现位于同一个模块中。CUDA 源码内嵌在对应模块，
 首次使用时编译；这些求解器不再使用独立的 <code class="docutils literal notranslate"><span class="pre">gpu_*.py</span></code> 实现文件或外部
 <code class="docutils literal notranslate"><span class="pre">.cu</span></code> 源码文件。原有 GPU 模块导入路径已移除。</p>
-<table class="docutils align-default" id="id19">
-<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">PASS.commands.solver</span></code> 下的源码模块</span><a class="headerlink" href="#id19" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id20">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">PASS.commands.solver</span></code> 下的源码模块</span><a class="headerlink" href="#id20" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 25.0%" />
 <col style="width: 75.0%" />
@@ -1833,8 +1869,8 @@ CuPy 设备数组和 <code class="docutils literal notranslate"><span class="pre
 空间电荷的两条执行路径都位于 <code class="docutils literal notranslate"><span class="pre">PASS.commands.space_charge</span></code>，元件内部切片调度
 位于 <code class="docutils literal notranslate"><span class="pre">PASS.utils.slicing</span></code>。GPU 库仅在 GPU 入口内部导入，代码合并不会让
 CPU 执行依赖 CUDA。</p>
-<table class="docutils align-default" id="id20">
-<caption><span class="caption-text">GPU 求解实现</span><a class="headerlink" href="#id20" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id21">
+<caption><span class="caption-text">GPU 求解实现</span><a class="headerlink" href="#id21" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 22.0%" />
 <col style="width: 78.0%" />
@@ -1905,7 +1941,7 @@ cuFFTDx 头文件由 <code class="docutils literal notranslate"><span class="pre
 有收益。CIC/TSC 都对壁面保留 stencil 归一化，并采用匹配的回插权重。
 即使粒子采用 FP32，几何和孔径判断仍使用双精度中间量，避免近壁粒子因舍入
 落入不同节点。密度、电势、场与踢量保留配置指定的精度。</p>
-<p><code class="docutils literal notranslate"><span class="pre">analytic.solve_analytic_gpu</span></code> 提供四种圆形/椭圆 Gaussian/uniform
+<p><code class="docutils literal notranslate"><span class="pre">analytic.solve_analytic_gpu</span></code> 提供六种圆形/椭圆 Gaussian/uniform/parabolic
 分布的 frozen 与 quasi-frozen GPU 跟踪。切片中心矩和特殊函数中间量使用 FP64，
 粒子场遵循配置精度。选定输出圈的解析场诊断网格采样可使用 CPU。</p>
 </section>

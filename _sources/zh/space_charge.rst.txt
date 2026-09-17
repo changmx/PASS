@@ -144,6 +144,9 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
    * - ``frozen``、``quasi-frozen``
      - ``uniform_round_free_space``、``uniform_ellipse_free_space``
      - 均匀圆盘或椭圆，包括束流外部场。
+   * - ``frozen``、``quasi-frozen``
+     - ``parabolic_round_free_space``、``parabolic_ellipse_free_space``
+     - 抛物型实空间密度，对应均匀四维水袋的投影。
 
 ``frozen`` 中，同一配置的所有切片共用固定的横向中心、尺寸和方向。
 省略中心和角度时取零；对应 solver 的尺寸参数必填。不同作用位置可以引用不同配置。
@@ -154,7 +157,8 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
 同一束团宏粒子的物理权重相同。源电荷为 :math:`Q_k=N_k R Z e`。
 
 椭圆模型的协方差特征向量确定主轴。高斯尺寸为特征值平方根；均匀分布半轴为
-这些 RMS 尺寸的两倍。输出的第一个主轴尺寸为较大者，主轴逆时针角度按 pi 周期
+这些 RMS 尺寸的两倍；抛物型分布半轴为 RMS 尺寸的 sqrt(6) 倍。
+输出的第一个主轴尺寸为较大者，主轴逆时针角度按 pi 周期
 报告到 :math:`[-\pi/2,\pi/2)`。先平移、旋转到主轴坐标计算场，再转回原横向坐标。
 
 圆形模型采用等径向二阶矩规则：
@@ -165,8 +169,11 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
    \qquad R=2\sigma.
 
 ``gaussian_round_free_space`` 使用 sigma，``uniform_round_free_space`` 使用 R。
+``parabolic_round_free_space`` 使用 :math:`R=\sqrt6\,\sigma`。
 此规则保留相对质心的径向二阶矩；对于非圆分布，它是用户选择的圆对称近似，
-不保证重建实际电场。选择均匀模型也不表示粒子已成为 KV 分布。程序不自动切换模型。
+不保证重建实际电场。选择均匀模型也不表示粒子已成为 KV 分布。抛物型模型假定
+投影密度保持抛物型，即使演化后的相空间分布已不再是严格水袋。程序不自动切换模型。
+密度归一化及完整束内、束外抛物型场见 :doc:`field_solver`。
 
 空切片的电荷和场为零。非空 quasi-frozen 圆形切片至少需要两个粒子且径向方差为正；
 椭圆切片至少需要三个粒子且协方差非退化。具体要求为较小特征值严格大于
@@ -380,12 +387,12 @@ PIC 要求损失检查后仍参与计算的粒子位于网格内，否则报错�
      - ``Radius (m)``
      - float or null
      - ``null``
-     - frozen 均匀圆盘必填的正半径。
+     - frozen 均匀或抛物型圆盘必填的正支撑半径。
    * - ``a / b``
      - ``Semi-axis A (m) / Semi-axis B (m)``
      - float or null
      - ``null``
-     - frozen 均匀椭圆必填的正半轴。
+     - frozen 均匀或抛物型椭圆必填的正支撑半轴。
 
 
 ``SpaceCharge`` 序列命令
@@ -639,7 +646,8 @@ FFT 的差异同时包含物理边界条件变化，不能把它解释为 FD/DST
 HDF5 的 ``schema_version`` 为 ``3``，attributes 包含 ``method``、完整 ``solver``
 名称和 ``grid_role``（``tracking`` 或 ``diagnostic``）。解析快照额外保存每切片的
 ``macro_count``、``center_x``、``center_y``、``size_x``、``size_y``、``angle``。
-高斯的 ``size_convention`` 为 ``principal_rms``，均匀模型为 ``uniform_semi_axes``。
+高斯的 ``size_convention`` 为 ``principal_rms``，均匀模型为 ``uniform_semi_axes``，
+抛物型模型为 ``parabolic_semi_axes``。
 ``parameter_source`` 为 ``configuration`` 或 ``current_slice_population_moments``。
 空切片参数为 NaN，电荷和采样场、密度为零。frozen 椭圆保留用户的轴顺序，
 quasi-frozen 椭圆将长轴放在首位。
@@ -848,7 +856,11 @@ DST 要求它恰好等于网格对齐的完整矩形。不兼容时初始化报�
 关闭损失孔径时，自由空间 PIC 中粒子超出网格仍会触发原有网格范围错误。
 独立的显式 SC command 仍保留自己的孔径设置。
 
-SC 节点和元件出口均检查元件孔径。损失粒子不参与源项和踢量，首次损失记录得到保留。
+每个束团每次通过普通元件（包括 ``Bump``）时，若没有生效的内部 SC，仅在出口
+检查一次孔径。若有 :math:`K` 个生效的内部 SC 节点，每个 SC 入口在计算源项前
+检查一次，元件出口再检查一次，共 :math:`K+1` 次。其余外场切片边界不增加检查。
+刚损失的粒子不参与源项和踢量，首次损失记录得到保留。每个 SC 节点仍执行 PIC
+计算域有效性检查。``ElSeparator`` 另行保留沿每个漂移子段的首次接触碰撞处理。
 内部节点按配置名和实际孔径共享资源，快照保存在
 ``<space_charge_output>/<element>/internal_sc/node_000000/turn_000000/``。
 文件名保留 beam 和 bunch 标识。HDF5 记录 ``parent_element``、
