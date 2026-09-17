@@ -49,6 +49,7 @@ from PASS.para.schema.bunch import BunchConfig, OffsetConfig
 from PASS.para.schema.monitors import StatMonitor, ParticleMonitor
 from PASS.para.schema.elements import RFCavityElement
 from PASS.para.schema.twiss import TwissPoint
+from PASS.utils.constants import const
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -63,7 +64,7 @@ NUM_CHARGE = 35
 QM_RATIO = NUM_CHARGE / (NUM_PROTON + NUM_NEUTRON)   # 0.147059
 
 KINETIC_ENERGY = 17.0e6      # eV/u
-M0 = 931.494e6               # eV/c^2 per nucleon (u)
+M0 = const.m_u_eV            # Same rest mass as the tracked ion reference.
 GAMMA_0 = 1.0 + KINETIC_ENERGY / M0
 BETA_0 = math.sqrt(1.0 - 1.0 / GAMMA_0**2)
 E_TOTAL_0 = GAMMA_0 * M0     # eV per nucleon
@@ -126,9 +127,8 @@ def calc_theory(voltage: float, harmonic: int, phase: float) -> dict:
 def make_test_particles(harmonic: int, dpmax: float) -> list:
     """13 tagged test particles (+2 for RF-period symmetry).
 
-    The stored coordinate is bunch-relative, so the bunch-center particle
-    always has z_rel = 0.  For this one-bunch example z_center = 0 as well,
-    hence z_rel = 0 receives the synchronous RF gain.  The two additional
+    The reference particle has z_rel = 0.  The RF waveform in this example
+    is configured to give it the synchronous gain.  The two additional
     h=2 particles are separated by one RF period C/h = C/2.
 
     tag  1: z=z_sync, dp=0         -> synchronous particle (energy gain)
@@ -246,32 +246,21 @@ def selected_cases(case_name: str) -> list[str]:
 
 
 def build_rf_data_tfs(script_dir: Path, case: dict) -> str:
-    """Write the RF TFS waveform used by a file-driven case."""
-    if case["rf_mode"] == "file":
-        n_rows = case["ramp_rows"]
-        turns = np.arange(n_rows)
-        voltage = case["voltage"] * (1.0 + case["ramp_slope"] * turns)
-        filename = case["ramp_file"]
-    elif case["rf_mode"] == "waveform":
-        n_rows = case["num_turns"]
-        turns = np.arange(n_rows)
-        modulation = case["waveform_amplitude"] * np.sin(
-            2.0 * math.pi * turns / case["waveform_period"]
-        )
-        ramp = case["waveform_ramp"] * turns / max(n_rows - 1, 1)
-        voltage = case["voltage"] * (1.0 + modulation + ramp)
-        filename = case["waveform_file"]
+    """Prescribe a physical waveform, with explicit design passage phases."""
+    from PASS.para.tools.rf_data import synchronous_rf_program
+    n_rows=case["num_turns"]+1
+    turns=np.arange(n_rows)
+    if case["rf_mode"]=="file":
+        voltage=case["voltage"]*(1+case["ramp_slope"]*np.minimum(turns,case["ramp_rows"]-1))
+    elif case["rf_mode"]=="waveform":
+        voltage=case["voltage"]*(1+case["waveform_amplitude"]*np.sin(2*np.pi*turns/case["waveform_period"])
+                  +case["waveform_ramp"]*turns/max(case["num_turns"]-1,1))
     else:
-        raise ValueError(f"RF data TFS requested for unsupported mode {case['rf_mode']!r}")
-
-    df = tfs_lib.TfsDataFrame(
-        {"HARMONIC": np.full(n_rows, case["harmonic"], dtype=np.int64),
-         "VOLTAGE": voltage,
-         "PHASE": np.full(n_rows, case["phase"]),
-         "PHI_OFFSET": np.full(n_rows, case["phi_offset"])}
-    )
-    path = script_dir / filename
-    tfs_lib.write(str(path), df)
+        voltage=np.full(n_rows,case["voltage"])
+    table=synchronous_rf_program(voltage,case["phase"]+case["phi_offset"],case["harmonic"],
+                                CIRCUM,M0,KINETIC_ENERGY,QM_RATIO)
+    path=script_dir/f"rf_physical_h{case['harmonic']}_{case['lattice']}_{case['rf_mode']}.tfs"
+    tfs_lib.write(str(path),table,colwidth=25,headerswidth=25)
     return str(path)
 
 
@@ -309,18 +298,13 @@ def build_items(case: dict, script_dir: Path):
     return items, names
 
 
-def build_case(name: str, script_dir: Path) -> str:
-    """Build beam0_<name>.json for one case."""
+def build_case(name: str, script_dir: Path, *, include_reference: bool = False) -> str:
+    """Build one case, optionally recording reference values for BLonD comparison."""
     case = CASES[name]
     theory = calc_theory(case["voltage"], case["harmonic"], case["phase"])
 
-    # --- RF data file (file or continuously varying waveform mode) ---
-    rf_file = None
-    if case["rf_mode"] != "fixed":
-        rf_file = build_rf_data_tfs(script_dir, case)
-        rf_voltage = case["voltage"]          # first-row value
-    else:
-        rf_voltage = case["voltage"]
+    rf_file = build_rf_data_tfs(script_dir, case)
+    rf_voltage = case["voltage"]
 
     # --- test particles ---
     test_particles = make_test_particles(case["harmonic"], theory["dpmax"])
@@ -380,18 +364,15 @@ def build_case(name: str, script_dir: Path) -> str:
     # --- monitors ---
     monitors = [
         StatMonitor(s=0.0),
-        ParticleMonitor(s=0.0, max_tag=n_test, start_turn=0, end_turn=-1),
+        ParticleMonitor(s=0.0, max_tag=n_test, start_turn=0, end_turn=-1,
+                        include_reference=include_reference),
     ]
 
     # --- RF cavity (fixed mode or file mode) ---
     items, names = build_items(case, script_dir)
     rfcavity = RFCavityElement(
         s=0.0,
-        voltage=case["voltage"],
-        harmonic=case["harmonic"],
-        phase=case["phase"],
-        phi_offset=case["phi_offset"],
-        rf_data_file=rf_file,
+        components=[dict(program_file=rf_file)],
         is_enabled=True,
         dp_aperture=[-theory["dp_aperture"], theory["dp_aperture"]],
     )
@@ -406,6 +387,7 @@ def build_case(name: str, script_dir: Path) -> str:
         empty.num_real_particles = 0
         empty.num_macro_particles = 0
         empty.harmonic_id = i
+        empty.insert_particle = []
         bunches.append(empty)
 
     seq = build_sequence(
@@ -441,7 +423,11 @@ if __name__ == "__main__":
         default="all",
         help="Input case to generate (default: all).",
     )
+    parser.add_argument(
+        "--include-reference", action="store_true",
+        help="Record particle reference time, beta and momentum for BLonD comparison.",
+    )
     args = parser.parse_args()
 
     for case_name in selected_cases(args.case):
-        build_case(case_name, SCRIPT_DIR)
+        build_case(case_name, SCRIPT_DIR, include_reference=args.include_reference)

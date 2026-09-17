@@ -435,6 +435,7 @@ def analyse_case(name, output_dir=None, is_plot=True):
     data = read_pass_tbt(out)
     stat = read_pass_stat(out)
     print(f"\n{'='*60}\n[{name}]  {out}\n{'='*60}")
+    print("Tune/bucket/symmetry checks use a local synchronous approximation; time-varying physical programs need not satisfy it exactly.")
 
     if is_plot:
         fig, axes = plt.subplots(2, 3, figsize=(15, 8))

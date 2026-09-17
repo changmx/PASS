@@ -4,14 +4,16 @@
 
 This example verifies the physical correctness and functionality of PASS's RF cavity element `RFCavity` (`PASS/commands/element/rfcavity.py`). The beam is a low-energy heavy ion, 238U35+ at 17 MeV/u, and the ring optics use the FODO lattice from examples 03/04 (`fodo.tfs`, with headers C = 234.4 m and gamma_t = 3.3746).
 
-Four cases are covered. They are driven from a single `CASES` source in `make_input.py`, and `analyse.py` imports that source to avoid duplicate parameter definitions and theory values.
+Five cases are covered. They are driven from a single `CASES` source in `make_input.py`, and `analyse.py` imports that source to avoid duplicate parameter definitions and theory values.
 
 | case | lattice | RF mode | harmonic | focus |
 |------|---------|---------|----------|-------|
-| `twiss_h1_fixed` | single Twiss point one-turn map (`longitudinal_transfer="drift"`) | fixed scalar | h=1 | energy gain / Qs / bucket / damping / loss |
-| `twiss_h2_fixed` | same | fixed scalar | h=2 | RF phase symmetry with period C/h |
-| `twiss_h1_ramping` | same | TFS waveform file (one row per turn) | h=1 | turn-by-turn parameter loading + clamping |
-| `element_h1_fixed` | real FODO ring (`fodo.tfs` elements) | fixed scalar | h=1 | exact element-by-element longitudinal transport / momentum compaction emergence |
+| `twiss_h1_fixed` | single Twiss point one-turn map (`longitudinal_transfer="drift"`) | physical-time program with constant design voltage | h=1 | energy gain / Qs / bucket / damping / loss |
+| `twiss_h2_fixed` | same | physical-time program with constant design voltage | h=2 | RF phase symmetry with period C/h |
+| `twiss_h1_ramping` | same | physical-time TFS with design passage samples | h=1 | voltage ramp + held final voltage |
+| `element_h1_fixed` | real FODO ring (`fodo.tfs` elements) | physical-time program with constant design voltage | h=1 | exact element-by-element longitudinal transport / momentum compaction emergence |
+
+The additional `twiss_h1_waveform` case prescribes a sinusoidally modulated design voltage. Every case now generates `rf_physical_h<h>_<lattice>_<mode>.tfs`.
 
 `make_input.py` fixes the Injection random seed to `2026`, so every case uses a
 reproducible generated particle distribution.
@@ -28,14 +30,18 @@ The K1L/K0L values in `fodo.tfs` are normalized strengths, i.e. divided by refer
 
 ### RF kick
 
-Each turn applies a longitudinal kick at s=0:
+Each turn samples a common physical waveform at the actual passage time:
 
-$$dE = (q/A)\,V\,\sin\left(\phi_s + \phi_{\text{off}} - \frac{2\pi h}{C}z_{\text{lab}}\right),\qquad z_{\text{lab}}=z_{\text{rel}}+z_{\text{center}}$$
+$$t_i=T_b-\frac{z_i}{\beta_b c},\qquad
+\Delta E_i=\frac{Z}{A}V(t_i)\sin\left(2\pi\int_0^{t_i} f(u)\,du+\phi(t_i)\right).$$
 
-- PASS stores particle coordinates relative to the bunch center as `z_rel`; `z_center = h_id * C / h_group` is the fixed bunch label in the ring. The RF phase is therefore always evaluated with the laboratory coordinate `z_lab`, not with any special even-harmonic correction.
-- This example has only one bunch, so `z_center = 0` and the synchronous particle is `z_rel = 0`, independent of harmonic parity. Particles separated by one RF period C/h receive the same kick; for h=2, `z = +-C/2` is in phase with `z = 0`.
-- When the cavity harmonic matches the bunch grouping number, or is an integer multiple of it, all bunch centers get the same reference gain. Otherwise the code still computes phase and reference energy per bunch using each bunch's `z_center`, so different bunches can receive different gains.
-- Energy -> momentum -> delta conversion is fully relativistic, with no linearization. Each bunch's reference frame is updated by its own center particle `dE_ref`, and transverse momenta are rescaled as `p_x,y <- p_x,y * (p0_old / p0_new)` for adiabatic damping.
+`z` is a continuous time difference expressed in metres. A thin cavity keeps `T_b` and every live particle's time unchanged while scaling `z` by `beta_new/beta_old`. It updates reference and particle energies using the same waveform, converts energy to momentum exactly, and preserves mechanical transverse momentum by rebasing `px` and `py`. No arrival-correction arrays are stored. `z_center` is nominal grouping metadata.
+
+The input generator explicitly constructs a synchronous design trajectory from the requested voltages and passage phases. The TFS columns are `TIME, VOLTAGE, FREQUENCY, PHASE` in seconds, volts, Hz and radians. Frequency is integrated; PHASE is an unwrapped additive modulation. Samples are linearly interpolated with held endpoints. Tracked bunches do not reset their phase to the design phase each turn. For a time-varying waveform, particles separated by the instantaneous RF wavelength need not receive exactly identical kicks: they sample different physical times.
+
+RF components are supplied through `RFCavityElement(components=[dict(program_file=...)])`. For a fixed hardware frequency, use an inline `frequency` value instead of this synchronous design generator. A component's `harmonic` multiplies a prescribed shared reference-clock frequency, which is constant at its initial value unless an explicit clock program is provided. Grouping harmonics impose no divisibility restriction.
+
+CPU and CUDA implement the same thin-kick model. Effective voltage excludes additional finite-gap and transverse RF focusing models. The exact kick does not remove the separate approximations in a Twiss map or quasi-static space charge. User-controlled saved z slice intervals, widths and memberships remain unchanged across RF; only an explicit Slicer updates them.
 
 ### One-turn map and synchrotron motion
 
@@ -94,7 +100,9 @@ The reference synchronous position is `z_rel = 0` (and `z_center = 0` for this e
 
 The dp aperture is `+-1.08 * Delta p_max` (computed automatically per case). Tag 12 is clipped on the first turn, while tags 10/11 probe the bucket edge.
 
-## Verification Results
+## Historical results before the local-time migration
+
+The numerical values below are retained as historical measurements. They are not validation results for the current physical-time waveform and coordinate model. Regenerate inputs and outputs before evaluating the migrated implementation; the new cross-code benchmark report records its own measured values and scope.
 
 ### 1. Energy Gain (all 4 cases)
 
@@ -178,11 +186,11 @@ The first-order error grows with |delta p|. For ordinary beam conditions (delta 
 
 | note | nature | severity |
 |--------|------|--------|
-| multi-bunch operation with non-integer RF harmonic ratios | allowed configuration: the phase is evaluated with `z_lab = z_rel + z_center`; if the cavity harmonic is not an integer multiple of the bunch grouping number, different bunch centers receive different reference gains | depends on the machine operating scheme. The code does not forbid it, but the user should verify the resulting longitudinal working point |
+| multi-bunch operation with non-integer RF harmonic ratios | allowed configuration: each bunch samples the common waveform at `t = T_b - z/(beta_b*c)`; if the cavity harmonic is not an integer multiple of the bunch grouping number, different bunch centers receive different reference gains | depends on the machine operating scheme. The code does not forbid it, but the user should verify the resulting longitudinal working point |
 | low-beta Qs adiabatic drift (about -1.7% over 2048 turns) | real physical effect: beta^2 E is strongly amplified by 1/beta^2 at low gamma | low. Compare against the adiabatic-average theory <Qs(gamma)>; shortening the run or increasing energy reduces it |
 | first-order Twiss drift failure near the bucket edge | model approximation: the first-order `-eta*C*delta p` drift omits higher-order terms | medium-low. For normal beam conditions (delta p <= 1e-3) the effect is small; use the element mode for large-dp or edge studies |
 
-**RFCavity conclusion:** In the normal physics range covered by this example, energy gain, synchrotron motion, bucket structure, multi-bunch phase handling based on `z_lab`, ramp-file reading, dp aperture, and adiabatic damping are all validated by simulation. Two limits remain: the GPU backend is not implemented (`execute_gpu` raises `NotImplementedError`), and if an unphysical over-decelerating kick drives the total energy below rest energy, the current implementation does not yet mark that particle as lost automatically.
+The historical measurements above do not establish correctness of the migrated implementation. Current verification separately checks CPU/CUDA, signed charge, arrival-time continuity, exact energy conversion, simultaneous components, manual slicing, injection and wake history.
 
 ## File Layout
 
@@ -192,7 +200,7 @@ The first-order error grows with |delta p|. For ordinary beam conditions (delta 
 ├── run.py          # --case/--beam0 -> PASS.main
 ├── analyse.py      # verification modules + A/B comparison (imports make_input)
 ├── fodo.madx/.seq/.ps/.tfs  # FODO lattice from examples 03/04 (provides C and gamma_t)
-├── rf_ramp.tfs     # ramp waveform (generated automatically by make_input)
+├── rf_physical_h<h>_<lattice>_<mode>.tfs  # physical-time programs
 ├── beam0_<case>.json
 └── output/<case>/YYYY_MMDD/HHMM_SS/
 ```
@@ -201,8 +209,8 @@ The first-order error grows with |delta p|. For ordinary beam conditions (delta 
 
 ```bash
 cd example/05_rf_cavity_longitudinal
-python make_input.py    # generate 4 beam0_<case>.json files + rf_ramp.tfs
-python run.py           # run the 4 cases in sequence
+python make_input.py    # generate 5 JSON inputs and physical-time RF tables
+python run.py           # run the 5 cases serially
 python analyse.py       # print all verification results + interactive plots
 ```
 
@@ -217,9 +225,31 @@ python run.py --beam0 beam0_twiss_h1_fixed.json
 
 ## Notes
 
-1. **CPU backend required**: `RFCavity.execute_gpu` is not implemented.
+1. **Backend**: generated inputs default to CPU; the current RFCavity also supports CUDA.
 2. **Sequence ordering fix**: this example depends on the shared `COMMAND_PRIORITY` in `PASS/commands/__init__.py`, where `"RFCavity": 300`. Before that fix, RFCavity fell into `Other=999` and was sorted after monitors at the same s, which caused the monitors to record the pre-kick state. The corrected order is `Injection -> RFCavity -> monitors -> ring transport`, so turn n records the state after the n-th kick.
 3. **Turn convention**: turn 0 includes the first kick.
-4. **Longitudinal coordinate**: manually specified particle z is `z_rel` relative to the bunch center; the code adds `z_center` automatically when computing RF phase.
+4. **Longitudinal coordinate**: manually specified z is `beta*c*(T-t)` relative to its source reference. Use the reference time and beta saved with each monitor row; no nominal-center offset enters the RF phase.
 5. **K-value normalization**: K1L in `fodo.tfs` is normalized strength and does not depend on beam energy. The element case can therefore use the real FODO elements directly without rigidity scaling.
 6. **FFT Qs measurement**: Qs is very small, so zero padding to 65536 plus parabolic interpolation is needed, and the result should be compared against the adiabatic-average theory <Qs(gamma)> rather than the initial value.
+
+RF tables and monitor metadata are written with sufficient significant digits to retain float64 timing. The design generator uses the same rest-mass constant as tracking. The approximate tune, bucket and h=2 symmetry plots in `analyse.py` are diagnostics; accelerating, time-varying programs do not have an exact stationary separatrix or exact instantaneous-wavelength symmetry.
+
+`python blond_compare.py --case twiss_h1_fixed` produces a standalone `pass_blond_report.html` with embedded plots. This example comparison starts after kick 0 and explicitly uses BLonD's simple energy-linear drift and a local RF phase/voltage approximation; finite-amplitude differences are expected. Use `--output-dir PATH` to compare an existing run with reference columns.
+
+Ordinary `make_input.py` runs leave ParticleMonitor's `include_reference` option
+disabled: the output has 11 columns, and no reference values are saved in headers.
+`analyse.py` accepts this default output. When `blond_compare.py` runs PASS itself,
+it explicitly enables `include_reference=True` (`"Include reference": true in JSON).
+The three extra columns, `referenceTime`, `referenceBeta`, and `referenceMomentum`,
+are required to reconstruct physical arrival times and energies for comparison.
+
+To prepare an existing run for BLonD comparison manually:
+
+```bash
+python make_input.py --case twiss_h1_fixed --include-reference
+python run.py --case twiss_h1_fixed
+python blond_compare.py --case twiss_h1_fixed --output-dir PATH_TO_RUN
+```
+
+Outputs missing any reference column are rejected with instructions to enable
+recording and rerun PASS; adding the option after tracking cannot recover the history.
