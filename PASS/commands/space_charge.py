@@ -381,8 +381,9 @@ class SpaceCharge(Command):
         Consume the existing longitudinal bin membership and widths, while
         evaluating fields at current transverse coordinates. Do not advance s
         or the reference clock, rebin particles, or traverse other bunches.
-        An exit-only parent may defer aperture losses; PIC field-domain
-        validation remains mandatory independently of this loss check.
+        Explicit commands and internal nodes use this entry point's aperture
+        check before source evaluation. PIC field-domain validation remains
+        mandatory independently of this loss check.
         """
         if not self.is_enabled:
             return False
@@ -639,7 +640,7 @@ class SpaceCharge(Command):
         return True
 
     def apply_bunch_gpu(self, sim, beam, bunch, *, check_aperture=True):
-        """Apply a device kick, optionally deferring losses to the parent exit."""
+        """Check the node aperture before the device source and kick by default."""
         if not self.is_enabled:
             return False
         if check_aperture:

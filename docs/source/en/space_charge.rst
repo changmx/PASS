@@ -959,10 +959,14 @@ the program does not silently choose a different wall or solver. Particles
 outside a free-space PIC grid with losses disabled still cause the existing
 grid-domain error. Independent explicit SC commands retain their own apertures.
 
-The element aperture is checked at SC nodes and the usual element exit. Losses
-are excluded from sources and kicks; first recorded loss positions are preserved.
-``Bump`` uses one exit aperture check per passage and defers internal-node
-aperture losses; its PIC field-domain validation still applies at every SC node.
+For each bunch passage, ordinary elements, including ``Bump``, check the aperture
+once at the exit when no internal SC is active. With :math:`K` active internal SC
+nodes, each SC entry point checks once before source evaluation, and the element
+checks once more at the exit: :math:`K+1` checks in total. Other external slice
+boundaries do not add checks. Newly lost particles are excluded from sources and
+kicks; first recorded loss positions are preserved. PIC field-domain validation
+remains active at every SC node. ``ElSeparator`` additionally retains its separate
+first-contact collision handling along each drift subsegment.
 Nodes share resources by configuration and effective aperture. Their snapshots
 are stored under
 ``<space_charge_output>/<element>/internal_sc/node_000000/turn_000000/``.

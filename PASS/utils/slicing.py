@@ -12,7 +12,6 @@ import logging
 import math
 from numbers import Integral
 
-from PASS.utils.aperture import check_aperture_cpu
 from PASS.utils.constants import const
 
 logger = logging.getLogger(__name__)
@@ -155,14 +154,14 @@ def print_element_slicing(element):
                 first.save_field, first.save_potential, first.save_density, first._save_turn_ranges)
 
 
-def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False,
-                    check_aperture_at_nodes=True):
+def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
     """Call transport(ds, on_center) for a whole bunch, then boundary SC.
 
     No reference clock advancement and no longitudinal rebinning occurs here.
     The owning element advances its reference clock once for the total length.
-    Elements with an exit-only aperture disable loss checks at internal nodes;
-    SC still enforces its field-domain validity requirements.
+    Each SC entry point checks the aperture once before evaluating its source.
+    The owning element checks again at its exit; other slice boundaries do not
+    add aperture checks. SC also validates its field domain independently.
     """
     plan = element.slice_plan
     p = beam.particles
@@ -183,20 +182,9 @@ def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False,
                 p.lost_turn[region][unrecorded] = turn
                 entry_alive[lost] = False
                 if gpu:
-                    if check_aperture_at_nodes:
-                        from PASS.utils.aperture import check_aperture_gpu
-                        check_aperture_gpu(beam, bunch, element.aperture_type,
-                                           element.aperture_value, command.s, turn)
-                        command.apply_bunch_gpu(element._sc_sim, beam, bunch)
-                    else:
-                        command.apply_bunch_gpu(element._sc_sim, beam, bunch, check_aperture=False)
+                    command.apply_bunch_gpu(element._sc_sim, beam, bunch)
                 else:
-                    if check_aperture_at_nodes:
-                        check_aperture_cpu(beam, bunch, element.aperture_type,
-                                           element.aperture_value, command.s, turn)
-                        command.apply_bunch_cpu(element._sc_sim, beam, bunch)
-                    else:
-                        command.apply_bunch_cpu(element._sc_sim, beam, bunch, check_aperture=False)
+                    command.apply_bunch_cpu(element._sc_sim, beam, bunch)
                 entry_alive[p.tag[region] <= 0] = False
 
         transport(plan.slice_length, callback if pair and node.placement == "center" else None)
