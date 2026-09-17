@@ -441,12 +441,13 @@ class Validator:
         if kind == "Bump":
             from .files import resolve_input_paths
             from PASS.utils.bump_waveform import read_bump_waveform
+            from tfs.errors import TfsFormatError
             values = {"Waveform file": v.get("Waveform file", "")}
             resolve_input_paths(values, self.base)
             if self.check_files:
                 try:
                     read_bump_waveform(values["Waveform file"])
-                except (ValueError, OSError, KeyError, TypeError) as exc:
+                except (ValueError, OSError, KeyError, TypeError, TfsFormatError) as exc:
                     self.add((*p, "Waveform file"), "bump.waveform", str(exc))
         if kind in {"Twiss", "PhaseAdvanceMonitor"}:
             for field in v:
