@@ -70,10 +70,21 @@ effective impulse uses each particle's incident longitudinal velocity:
 
 .. math::
 
-   \Delta p_{u,i}=\operatorname{sgn}(q)
-      \frac{V_{\rm peak}\ell}{g\beta_0c B\rho}
-      \frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
-           {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}}F(t_i).
+   A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho},\qquad
+   R_i=\frac{\beta_0c}{v_{s,i}}
+      =\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
+            {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}},
+
+.. math::
+
+   A_i=A_0R_i,\qquad \Delta p_{u,i}=A_iF(t_i).
+
+Here :math:`u=x` or :math:`y` is the selected direction, :math:`\delta_i` is
+``dp``, and all particle quantities in :math:`R_i` are evaluated before the kick.
+:math:`A_0` is the signed reference coefficient; :math:`A_i` is the signed
+per-particle coefficient used in all four mode formulas below. For
+:math:`\delta_i=p_{x,i}=p_{y,i}=0`, :math:`R_i=1`; this is the fixed reference
+state used by the GUI signal preview.
 
 V is the signed peak interplate voltage difference; B*rho is the positive
 reference rigidity magnitude. Positive V drives positive charges in the selected
@@ -89,7 +100,7 @@ change. It freezes the incident speed and samples the waveform at the element
 plane. It does not integrate the waveform through the physical plate length or
 model longitudinal electromagnetic forces, energy exchange, fringe fields or
 transmission-line propagation. Single-time sampling requires little waveform
-variation during the transit (for a sinusoid, omega*ell/vs much less than one).
+variation during the transit (for a sinusoid, :math:`\omega L/v_s\ll1`).
 The existing FM phase-period rule and turn-stepped AM envelope are retained.
 Invalid incident states or non-forward post-kick states are removed at this
 plane, preserving previous loss records. CPU and GPU use the same equations.
@@ -215,9 +226,10 @@ Amplitude Modulation (AM) Dimension
 
 .. math::
 
-  A(t) = A_0 = \Delta p_{x,\text{amplitude}}
+  A_i(t) = A_i = A_0R_i
 
-i.e., the kick amplitude computed from the voltage parameters is used directly, without time variation.
+No time-varying AM envelope is applied. The signed coefficient still includes
+the incident velocity factor and can differ between particles or passages.
 
 **Time-varying amplitude (am)**
 
@@ -225,7 +237,7 @@ Based on a beam diffusion/growth model, the excitation amplitude grows over time
 
 .. math::
 
-  A(t) = A_0 \cdot \text{am\_factor}(t)
+  A_i(t) = A_i \cdot \text{am\_factor}(t)
 
 where :math:`\text{am\_factor}(t)` is a dimensionless time-varying scaling factor:
 
@@ -265,7 +277,10 @@ Physical meaning:
 - :math:`k_{\text{const}}`: Emittance growth coefficient
 - :math:`\varepsilon`: Initial emittance fraction (a measure of the :math:`r_0 / \delta_0` ratio)
 
-The exciter continuously injects energy into the beam; the beam oscillation amplitude increases, the emittance grows, and a larger excitation amplitude is needed to maintain the relative driving effect. The logarithmic term makes the growth start fast (steep segment) and slow down later (gentle segment), consistent with the physical characteristics of an adiabatic growth process.
+This prescribed AM envelope is intended for transverse excitation and diffusion
+studies. It does not itself calculate emittance growth or mechanical energy
+gain: the thin kick leaves ``dp`` unchanged, and the beam response depends on
+the lattice and the sampled excitation phases.
 
 
 Complete Formulas for Each Mode
@@ -275,13 +290,13 @@ Complete Formulas for Each Mode
 
 .. math::
 
-  \text{kick}(\tau) = A_0 \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
+  \text{kick}(\tau) = A_i \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
 
 2. **single_fm_am** (single-segment sweep + time-varying amplitude)
 
 .. math::
 
-  \text{kick}(\tau) = A_0 \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
+  \text{kick}(\tau) = A_i \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
 
 3. **dual_fm** (dual-segment sweep + constant amplitude)
 
@@ -289,13 +304,13 @@ First half (:math:`0 \le \tau \le T/2`):
 
 .. math::
 
-  \text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
 
 Second half (:math:`T/2 < \tau \le T`):
 
 .. math::
 
-  \text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
+  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
 
 4. **dual_fm_am** (dual-segment sweep + time-varying amplitude)
 
@@ -303,15 +318,19 @@ First half (:math:`0 \le \tau \le T/2`):
 
 .. math::
 
-  \text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
 
 Second half (:math:`T/2 < \tau \le T`):
 
 .. math::
 
-  \text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
+  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
 
-where :math:`\tau = t \bmod T`, :math:`A_0 = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}`.
+For particle :math:`i`, :math:`\tau=t_i\bmod T` and :math:`A_i=A_0R_i` as
+defined above. The AM argument is the turn-based time
+:math:`t=n_{\rm eff}/f_0`; it is distinct from the particle arrival time
+:math:`t_i`. These are the final normalized kicks, including both the charge
+sign and the incident velocity factor; neither factor is applied a second time.
 
 
 Kick Application
@@ -414,17 +433,17 @@ Hardware Parameters
     - ``voltage (v)``
     - float
     - V
-    - Plate peak voltage
+    - Finite signed peak voltage difference between the plates; positive V drives positive charges in the selected positive direction
   * - ``gap``
     - ``gap (m)``
     - float
     - m
-    - Plate gap
+    - Finite positive plate gap
   * - ``plate_length``
     - ``plate length (m)``
     - float
     - m
-    - Plate effective length
+    - Finite nonnegative effective plate length; zero gives zero impulse
 
 Frequency Parameters
 ~~~~~~~~~~~~~~~~~~~~

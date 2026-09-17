@@ -105,10 +105,16 @@ MAGNET_FORMULAS = MASS_REFERENCE_FORMULAS + r"""
 EXCITER_FORMULAS = MASS_REFERENCE_FORMULAS + r"""
 <h2>激励器基准踢角</h2>
 <p>与 PASS Exciter 的单频 FM、单频 FM+AM、双频 FM、双频 FM+AM 对应。
-V 为电压幅值，d 为极板间距，L 为极板有效长。</p>
-<eq>A_0=\frac{VL}{d\,\beta c\,|B\rho|},\qquad E_{\mathrm{plate}}=\frac{V}{d}</eq>
+V 为带符号极板间峰值电压差，d 为正极板间距，L 为非负极板有效长；Bρ 为正磁刚度幅值。</p>
+<eq>A_0=\operatorname{sgn}(q)\frac{VL}{d\,\beta_0 c\,B\rho},\qquad E_{\mathrm{plate}}=\frac{V}{d}</eq>
 <eq>t_{\mathrm{plate}}=\frac{L}{\beta c},\qquad f_0=\frac{\beta c}{C}</eq>
-<p>双频叠加包络可达 2A<sub>0</sub>。负电荷沿用当前 PASS 的磁刚度大小约定，极性通过电极/信号相位解释。</p>
+<p>正 V 使正电荷沿选定横向的正方向偏转。电荷或电压反号会使踢角反号；包络与频谱显示幅值大小。
+无 AM 时双频包络可达 2|A<sub>0</sub>|。V=0 或 L=0 时冲量为零。</p>
+<p>跟踪端逐粒子的冲量为：</p>
+<eq>\Delta p_{u,i}=A_0R_iF(t_i),\qquad R_i=\frac{\beta_0c}{v_{s,i}}=\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}{\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}}</eq>
+<p>本工具预览固定参考状态 δ=p<sub>x</sub>=p<sub>y</sub>=0，因此 R=1；所设 z_rel 只改变到达相位。
+冲量按 P<sub>0</sub> 归一化，不额外除以 1+δ。踢角显示采用近轴参考粒子的 Δp<sub>u</sub>≈Δu′。
+这是冻结入口速度、在元件平面取样波形的零长度等效冲量，不计算有限长度轨迹和能量交换。</p>
 <eq>f_c=Q_{\mathrm{excite}}f_0,\qquad \Delta f=\Delta Q\,f_0</eq>
 <p>Δf 是扫频全宽；激励 tune 可以包含整数边带，例如 9.47。这里只预览设定信号，不预测共振响应。</p>
 <h3>到达时间</h3>

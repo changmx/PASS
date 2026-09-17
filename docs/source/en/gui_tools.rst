@@ -421,23 +421,33 @@ Exciter calculation and plotting
 -----------------------------------
 
 The page implements the four modes in ``PASS/commands/element/exciter.py``:
-single_fm, single_fm_am, dual_fm, dual_fm_am. Inputs include plate voltage, gap,
+single_fm, single_fm_am, dual_fm, dual_fm_am. Inputs include signed peak interplate voltage difference, gap,
 effective plate length, circumference, tune or frequency, full sweep width,
 period and the original dual-frequency/AM parameters. Switching frequency input
 mode preserves the physical center frequency and width.
 
 .. math::
 
-   A_0=\frac{VL}{d\beta c|B\rho|},\quad f_c=Q_{excite}f_0,\quad
+   A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0 cB\rho},\quad f_c=Q_{excite}f_0,\quad
    \Delta f=\Delta Q f_0,\quad
    t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}}{\beta c}.
 
 No nominal bunch-slot offset is added and no z folding is performed.
 Only the waveform reduces arrival time modulo the
-sweep period. A0 follows the current PASS charge-magnitude convention. Single FM
+sweep period. :math:`B\rho` is the positive rigidity magnitude; the charge sign
+is applied explicitly. Reversing either the charge or the voltage reverses the
+kick, while envelopes and spectra remain magnitudes. Zero voltage or zero
+effective plate length gives zero impulse. Single FM
 uses ``phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T``. Dual FM uses the command's two phase
-branches and ``2*cos(pi*df*tau/2)`` envelope; its amplitude can reach 2*A0.
+branches and ``2*cos(pi*df*tau/2)`` envelope; without AM its magnitude can reach
+:math:`2|A_0|`.
 The formula window lists both phase derivatives and AM equations explicitly.
+
+The preview fixes :math:`\delta=p_x=p_y=0`, so the tracking factor
+:math:`R_i=\beta_0c/v_{s,i}` is one. The selected ``z_rel`` changes only the
+arrival phase. Tracking uses the per-particle coefficient :math:`A_i=A_0R_i`;
+see :doc:`element/exciter`. The displayed kick and CSV angle units use the
+paraxial reference-particle approximation :math:`\Delta u'\simeq\Delta p_u`.
 
 AM updates by effective turn ``floor(t_elapsed*f0)`` and diverges at t_ext, so
 AM plot windows must end before t_ext. The fixed-parameter preview plots the

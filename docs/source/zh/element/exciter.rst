@@ -69,10 +69,20 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 
 .. math::
 
-   \Delta p_{u,i}=\operatorname{sgn}(q)
-      \frac{V_{\rm peak}\ell}{g\beta_0c B\rho}
-      \frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
-           {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}}F(t_i).
+   A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0c B\rho},\qquad
+   R_i=\frac{\beta_0c}{v_{s,i}}
+      =\frac{\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta_i)^2}}
+            {\sqrt{(1+\delta_i)^2-p_{x,i}^2-p_{y,i}^2}},
+
+.. math::
+
+   A_i=A_0R_i,\qquad \Delta p_{u,i}=A_iF(t_i).
+
+其中 :math:`u=x` 或 :math:`y` 为选定方向， :math:`\delta_i` 即 ``dp`` ，
+:math:`R_i` 中的粒子状态均在施加冲量前计算。
+:math:`A_0` 是带符号参考系数， :math:`A_i` 是下文四种模式统一使用的带符号逐粒子系数。
+当 :math:`\delta_i=p_{x,i}=p_{y,i}=0` 时， :math:`R_i=1` ；
+GUI 信号预览采用的就是这一固定参考状态。
 
 V 是带符号的极板间峰值电压差，B*rho 是正的参考磁刚度幅值。
 正电压使正电荷沿选定横向的正方向偏转，电荷符号显式计入。
@@ -84,7 +94,7 @@ V 是带符号的极板间峰值电压差，B*rho 是正的参考磁刚度幅值
 这仍是零长度等效横向冲量，x、y、z、dp、t0 均不改变。
 冲量计算冻结入口速度，在元件平面取样波形，不沿真实电极长度积分，
 不描述纵向电磁力、能量交换、边缘场或传输线传播。
-单时刻取样要求通过期间波形变化很小；对正弦波即 omega*ell/vs 远小于 1。
+单时刻取样要求通过期间波形变化很小；对正弦波即 :math:`\omega L/v_s\ll1` 。
 现有 FM 相位周期规则和按圈更新的 AM 包络保留。
 入口无效状态或冲量后不能正向运动的状态在该平面移出，首次损失记录不被覆盖。
 CPU 和 GPU 使用相同方程。
@@ -208,9 +218,10 @@ CPU 和 GPU 使用相同方程。
 
 .. math::
 
-  A(t) = A_0 = \Delta p_{x,\text{amplitude}}
+  A_i(t) = A_i = A_0R_i
 
-即直接使用由电压参数计算的 kick 幅度，不随时间变化。
+不施加随时间变化的 AM 包络。带符号系数仍包含入口速度因子，
+因此可以因粒子不同或各次通过时的状态不同而变化。
 
 **时变幅度（am）**
 
@@ -218,7 +229,7 @@ CPU 和 GPU 使用相同方程。
 
 .. math::
 
-  A(t) = A_0 \cdot \text{am\_factor}(t)
+  A_i(t) = A_i \cdot \text{am\_factor}(t)
 
 其中 :math:`\text{am\_factor}(t)` 是无量纲的时变缩放因子：
 
@@ -258,7 +269,8 @@ CPU 和 GPU 使用相同方程。
 - :math:`k_{\text{const}}` ：发射度增长系数
 - :math:`\varepsilon` ：初始发射度占比 （ :math:`r_0 / \delta_0` 比值的度量）
 
-激励器持续给束流注入能量，束流振荡幅度增大，发射度增长，需要更大的激励幅度维持相对驱动效果。对数项使得增长开始快 （陡峭段），后期减缓 （平缓段），符合绝热增长过程的物理特征。
+这一规定的 AM 包络用于横向激励和扩散研究，本身不计算发射度增长或机械能增益。
+薄冲量保持 ``dp`` 不变，实际束流响应取决于晶格和采样的激励相位。
 
 
 各模式完整公式
@@ -268,13 +280,13 @@ CPU 和 GPU 使用相同方程。
 
 .. math::
 
-  \text{kick}(\tau) = A_0 \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
+  \text{kick}(\tau) = A_i \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
 
 2. **single_fm_am** （单段扫频 + 时变幅度）
 
 .. math::
 
-  \text{kick}(\tau) = A_0 \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
+  \text{kick}(\tau) = A_i \cdot \text{am\_factor}(t) \cdot \sin\!\left(2\pi f_c \cdot \tau + \frac{\pi \Delta f}{T} \cdot \tau (\tau - T)\right)
 
 3. **dual_fm** （双段扫频 + 常值幅度）
 
@@ -282,13 +294,13 @@ CPU 和 GPU 使用相同方程。
 
 .. math::
 
-  \text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
 
 后半周期 （ :math:`T/2 < \tau \le T` ）：
 
 .. math::
 
-  \text{kick} = 2 A_0 \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
+  \text{kick} = 2 A_i \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
 
 4. **dual_fm_am** （双段扫频 + 时变幅度）
 
@@ -296,15 +308,18 @@ CPU 和 GPU 使用相同方程。
 
 .. math::
 
-  \text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
+  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (f_d \cdot \tau - 0.5) \tau\right)
 
 后半周期 （ :math:`T/2 < \tau \le T` ）：
 
 .. math::
 
-  \text{kick} = 2 A_0 \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
+  \text{kick} = 2 A_i \cdot \text{am\_factor}(t) \cos\!\left(\frac{\pi}{2} \Delta f \cdot \tau\right) \sin\!\left(2\pi f_c \cdot \tau + \pi \Delta f (\tau - T/2)(f_d \cdot \tau - 1.0)\right)
 
-其中 :math:`\tau = t \bmod T` ， :math:`A_0 = \frac{V \cdot L}{d \cdot \beta c \cdot B\rho}` 。
+对粒子 :math:`i` ， :math:`\tau=t_i\bmod T` ， :math:`A_i=A_0R_i` ，定义见上文。
+AM 自变量为按圈计算的时间 :math:`t=n_{\rm eff}/f_0` ，
+与粒子到达时间 :math:`t_i` 不同。
+上述公式给出最终归一化冲量，已包含电荷符号和入口速度因子，不再重复乘这两个因子。
 
 
 Kick 的施加
@@ -407,17 +422,17 @@ kick 施加后，激励器会根据孔径参数 （ ``aperture_type`` ）对粒�
     - ``voltage (v)``
     - float
     - V
-    - 极板峰值电压
+    - 有限的带符号极板间峰值电压差；正电压使正电荷沿选定横向的正方向偏转
   * - ``gap``
     - ``gap (m)``
     - float
     - m
-    - 极板间距
+    - 有限正极板间距
   * - ``plate_length``
     - ``plate length (m)``
     - float
     - m
-    - 极板有效长度
+    - 有限非负极板有效长度；为零时冲量为零
 
 频率参数
 ~~~~~~~~~~

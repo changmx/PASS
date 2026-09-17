@@ -281,18 +281,23 @@ The library includes Bump and the current voltage/geometry ElSeparator interface
 Required quantities remain blank until supplied; incomplete drafts cannot be applied.
 Bump previews TIME/HKICK/VKICK and can convert two CISP CSV files into one TFS
 using their common physical-time interval. Kicks are integrated delta-P/P0;
-the preview includes time offset and zero extrapolation. **Preview ES** (预览ES) previews
-the tilted electrodes and open field gap, separately from the vacuum aperture.
-S is its exit and S-Length its entrance. Zero voltage retains material losses;
-zero length gives no voltage impulse. Obsolete EX/EY/EXL/EYL inputs require
-explicit voltage, gap and height rather than an inferred conversion.
-Gap, electrode height and septum position must be filled before previewing;
-missing or invalid values identify the offending field. An empty voltage permits
-a geometry-only preview without computing the field; applying/running still
-requires voltage. Distribution File Mode and its popup fit both sequential/repeat
+the preview includes time offset and endpoint holds outside each plane's supplied
+range. The CSV time grids and ranges may differ; conversion retains their union.
+**Preview ES** (预览ES) previews
+the tilted electrodes, circulating-beam field-free region and field region,
+with the independent vacuum aperture drawn as a dashed outline in beam coordinates.
+For rectcircle/rectellipse, the outline is clipped to the actual intersection
+rather than showing both complete component boundaries.
+Electrodes cover all local v; the drawing is cropped for display.
+S is its exit and S-Length its entrance. Zero strength retains material losses;
+zero length supports one VL kick. V is the interplate voltage difference in V,
+and VL its longitudinal integral in V m; applying/running requires exactly one.
+Gap and septum position must be filled before previewing; missing or invalid
+values identify the offending field. Leaving both V and VL empty permits a
+geometry-only preview without computing the field. Distribution File Mode and its popup fit both sequential/repeat
 options without truncating their labels.
-The ES **Hardware parameters** (硬件参数) group labels voltage, gap width,
-electrode height/center, septum position/thickness and tilt in Chinese, retaining
+The ES **Hardware parameters** (硬件参数) group labels V, VL, gap width,
+septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.
 

@@ -2,7 +2,9 @@
 
 Elapsed time controls the effective turn for AM. Absolute arrival time controls
 FM: t_arrive=T_start+t_elapsed-z_rel/(beta*c), without folding z.
-The preview uses fixed reference kinematics; it does not track beam response.
+The preview uses fixed reference kinematics with dp=px=py=0, so beta0*c/vs=1.
+Voltage and the reference kick coefficient are signed; envelopes are magnitudes.
+It does not track beam response.
 """
 from dataclasses import dataclass
 import math
@@ -116,9 +118,10 @@ def calculate_exciter(kinematics: Kinematics, settings: ExciterSettings, *, max_
         raise ValueError("频率输入应为 tune 或 frequency。")
     if not kinematics.particle.charge_state or not kinematics.brho or not kinematics.velocity:
         raise ValueError("激励计算需要带电粒子且 Ek > 0。")
-    for key in ("circumference", "gap", "plate_length", "period", "duration"):
+    for key in ("circumference", "gap", "period", "duration"):
         finite_number(getattr(settings, key), key, positive=True)
-    finite_number(settings.voltage, "电压", minimum=0)
+    finite_number(settings.plate_length, "极板有效长", minimum=0)
+    finite_number(settings.voltage, "带符号极板间峰值电压差")
     finite_number(settings.start_time, "绘图起始时间", minimum=0)
     for key in ("reference_clock_start", "z_rel"):
         finite_number(getattr(settings, key), key)
@@ -143,7 +146,8 @@ def calculate_exciter(kinematics: Kinematics, settings: ExciterSettings, *, max_
     if needed > max_samples:
         raise ValueError("当前频率下绘图窗口过长；请缩短时间跨度（最多 200000 个采样点）。")
     times = settings.start_time + np.arange(needed)*(settings.duration/needed)
-    amplitude = settings.voltage*settings.plate_length/(settings.gap*kinematics.velocity*kinematics.brho)
+    charge_sign = 1 if kinematics.particle.charge_state > 0 else -1
+    amplitude = charge_sign*settings.voltage*settings.plate_length/(settings.gap*kinematics.velocity*kinematics.brho)
     with np.errstate(over="raise", invalid="raise", divide="raise"):
         arrays = exciter_waveform(settings, times, f0, kinematics.velocity, amplitude, cf, width)
         start_turn = math.ceil(settings.start_time*f0)

@@ -24,9 +24,10 @@ class ExciterPage(PhysicsToolPage):
             self.mode.addItem(label, key)
         form.addRow("激励模式", self.mode)
         for key, label, value, scale in (("circumference", "环周长 C (m)", 100, 1),
-                ("voltage", "电压幅值 V (V)", 1000, 1), ("gap", "极板间距 d (mm)", 50, .001),
+                ("voltage", "带符号峰值电压差 V (V)", 1000, 1), ("gap", "极板间距 d (mm)", 50, .001),
                 ("plate_length", "极板有效长 L (m)", .5, 1)):
-            self.add_input(form, key, label, value, scale)
+            self.add_input(form, key, label, value, scale, -1e100 if key == "voltage" else 0)
+        self.inputs["voltage"].setToolTip("极板间带符号峰值电压差；正电压使正电荷沿选定横向的正方向偏转。")
         self.controls.addWidget(box)
         frequency_box = QGroupBox("扫频参数")
         self.frequency_form = ff = QFormLayout(frequency_box)
@@ -67,13 +68,15 @@ class ExciterPage(PhysicsToolPage):
         self.results = ResultFields([
             ("f0", "回旋频率 f0 (kHz)", .001), ("cf", "中心频率 fc (kHz)", .001),
             ("width", "扫频全宽 Δf (kHz)", .001), ("tune", "中心激励 tune", 1),
-            ("sweep_tune", "扫频 tune 全宽", 1), ("amplitude", "基准踢角 A0 (mrad)", 1000),
+            ("sweep_tune", "扫频 tune 全宽", 1), ("amplitude", "带符号基准踢角 A0 (mrad)", 1000),
             ("peak", "采样最大 |踢角| (mrad)", 1000), ("rms", "采样 RMS 踢角 (mrad)", 1000),
             ("field", "基准电场 V/d (V/m)", 1), ("transit", "过板时间 (ns)", 1e9),
             ("rate", "采样率 (MHz)", 1e-6), ("resolution", "频谱间隔 (Hz)", 1)])
         self.result_layout.setContentsMargins(0, 0, 0, 0)
         self.result_layout.addWidget(self.results)
-        self.result_layout.addWidget(hint("按 PASS Exciter 的公式绘制外加信号；逐圈点是粒子实际采样值。此处不计算束流响应或发射度增长。"))
+        self.result_layout.addWidget(hint("预览固定参考状态（dp=px=py=0，速度因子为 1），按所设 z_rel 计算到达相位。"
+                                          "电荷或电压反号使踢角反号，包络显示幅值大小。"
+                                          "踢角采用近轴近似 Δp_u≈Δu′；不计算束流响应或发射度增长。"))
         self.controls.addWidget(self.result_page)
         self.controls.addStretch()
         self.mode.currentIndexChanged.connect(self.change_mode)
