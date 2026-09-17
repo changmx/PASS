@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ElSeparator &mdash; PASS  documentation</title>
+  <title>Bump &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
@@ -21,8 +21,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Exciter" href="exciter.html" />
-    <link rel="prev" title="Bump" href="bump.html" /> 
+    <link rel="next" title="ElSeparator" href="elseparator.html" />
+    <link rel="prev" title="Kicker" href="kicker.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -769,18 +769,18 @@
 <li class="toctree-l4"><a class="reference internal" href="kicker.html#internal-space-charge">Internal Space Charge</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="bump.html">Bump</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="bump.html#transport-and-loss-handling">Transport and loss handling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="bump.html#waveform-boundaries">Waveform boundaries</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Bump</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#transport-and-loss-handling">Transport and loss handling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#waveform-boundaries">Waveform boundaries</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">ElSeparator</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#length-orientation-and-time">Length, orientation and time</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#geometry-and-voltage">Geometry and voltage</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#propagation-and-collisions">Propagation and collisions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#drift-and-approximation-limits">Drift and approximation limits</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#input-parameters">Input parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#input-configuration">Input configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="elseparator.html">ElSeparator</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#length-orientation-and-time">Length, orientation and time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#geometry-and-voltage">Geometry and voltage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#propagation-and-collisions">Propagation and collisions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#drift-and-approximation-limits">Drift and approximation limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#input-parameters">Input parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="elseparator.html#input-configuration">Input configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="exciter.html">Exciter</a><ul>
@@ -1033,9 +1033,9 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">PASS Documentation (English)</a></li>
           <li class="breadcrumb-item"><a href="index.html">Element</a></li>
-      <li class="breadcrumb-item active">ElSeparator</li>
+      <li class="breadcrumb-item active">Bump</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/en/element/elseparator.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/en/element/bump.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -1043,301 +1043,133 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="elseparator">
-<h1>ElSeparator<a class="headerlink" href="#elseparator" title="Link to this heading"></a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">PASS.commands.element.elseparator.ElSeparator</span></code> models an electrostatic
-septum with a circulating-beam field-free region, a thin separating electrode,
-a field region and a high-voltage electrode. The registered command is
-<code class="docutils literal notranslate"><span class="pre">ElSeparator</span></code>. CPU and GPU implement a relativistic uniform electrostatic
-body map with hard-edge potential matching for positive length. Zero length
-uses a single effective impulse evaluated with each particle’s incident
-longitudinal velocity.
-Entering the field region does not itself lose a particle. Survivors continue into
-the downstream lattice, where the actual later apertures determine later losses.</p>
-<section id="length-orientation-and-time">
-<h2>Length, orientation and time<a class="headerlink" href="#length-orientation-and-time" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> is the supplied longitudinal transport length L. <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> is
-the exit; the entrance is S-L. <code class="docutils literal notranslate"><span class="pre">Tilt</span> <span class="pre">(rad)</span></code> is a roll about the longitudinal
-axis, not a pitch or yaw of the element axis. <strong>Never multiply or divide L by
-cos(tilt)</strong> for transport, field integration, loss positions or reference time.
-Horizontal, vertical and inclined separators share one implementation.</p>
-<p>With the existing PASS roll convention, temporary geometric coordinates are</p>
-<div class="math notranslate nohighlight">
-\[u=x\cos\theta-y\sin\theta,\qquad
-v=x\sin\theta+y\cos\theta.\]</div>
-<p>The particle arrays remain in the beam frame. A local normal kick is applied as</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x=K_u\cos\theta,\qquad
-\Delta p_y=-K_u\sin\theta.\]</div>
-<p>Thus tilt=0 selects horizontal deflection and tilt=+/-pi/2 selects vertical
-deflection; the sign of the voltage and the particle charge determine polarity.
-Adding pi to the roll reverses the geometric normal. The sign of the septum
-position does not independently select a field side.</p>
-<p>For every traversed reference segment ds, including empty bunches,</p>
-<div class="math notranslate nohighlight">
-\[t_0\leftarrow t_0+\frac{ds}{\beta_0 c},\qquad
-z_{\mathrm{rel}}=\beta_0c(t_0-t_i).\]</div>
-<p>The design reference clock retains the field-free reference transit convention.
-Individual flight-time differences are computed by the exact field body map or
-the standard drift in the circulating-beam field-free region. There is no additional tilt time correction or arrival state.
-A zero-length instance checks geometry and momentum at its plane, applies a
-<code class="docutils literal notranslate"><span class="pre">VL</span></code> kick to surviving particles in the field region, then checks momentum
-validity again. It changes neither x, y, z nor reference time. It cannot locate
-collisions that would occur inside the omitted physical length; use the thick
-model to resolve those trajectories and loss positions. Num slices does not
-repeat the thin kick, and internal space charge requires positive length.</p>
-</section>
-<section id="geometry-and-voltage">
-<h2>Geometry and voltage<a class="headerlink" href="#geometry-and-voltage" title="Link to this heading"></a></h2>
-<p>Let d be <code class="docutils literal notranslate"><span class="pre">Septum</span> <span class="pre">position</span> <span class="pre">(m)</span></code>, t be <code class="docutils literal notranslate"><span class="pre">Septum</span> <span class="pre">thickness</span> <span class="pre">(m)</span></code> and g be
-<code class="docutils literal notranslate"><span class="pre">Gap</span> <span class="pre">(m)</span></code>. The high-voltage electrode’s inner surface is uc=d+t+g.
-These positions are relative to the reference orbit, not the ring’s geometric
-center. The regions, for every local v, are</p>
-<ul class="simple">
-<li><p>circulating-beam field-free region: u &lt; d;</p></li>
-<li><p>septum material: d &lt;= u &lt;= d+t;</p></li>
-<li><p>field region: d+t &lt; u &lt; uc;</p></li>
-<li><p>high-voltage electrode material: u &gt;= uc.</p></li>
-</ul>
-<p>The electrode surfaces are absorbing material boundaries.
-A zero-thickness septum is a closed plane: touching or crossing it still loses a
-particle. This is an effective material-loss model, not a discrete-wire or
-multiple-scattering simulation.</p>
-<p>For entry contact tests, projected coordinates within
-<code class="docutils literal notranslate"><span class="pre">4*epsilon*(abs(x*cos(tilt))+abs(y*sin(tilt)))</span></code> of a material surface count as
-touching; epsilon is the particle dtype’s machine precision. This prevents
-rotation/storage roundoff from letting a point on a zero-thickness septum pass.
-Future ray intersections still use the specified surfaces without shifting them.</p>
-<p>The plates and field are idealized as covering all local v. Use the separate
-vacuum aperture for the opposite wall and transverse clearance, including
-symmetric limits in v. This assumes the modeled acceptance lies within the
-electrodes’ good-field coverage; it does not model finite-height fringe fields.
-The polygon is an outer acceptance boundary, not a replacement for the internal
-septum material. <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type:</span> <span class="pre">off</span></code> disables only the vacuum-wall check.</p>
-<p><code class="docutils literal notranslate"><span class="pre">V</span> <span class="pre">(V)</span></code> is the signed septum-minus-high-voltage-electrode potential difference.
-<code class="docutils literal notranslate"><span class="pre">VL</span> <span class="pre">(V</span> <span class="pre">m)</span></code> is its longitudinal integral, not the electric-field integral:</p>
-<div class="math notranslate nohighlight">
-\[V=\phi_{\mathrm{septum}}-\phi_{\mathrm{HV}},\qquad
-VL=\int V(s)\,ds,\qquad
-\int E_u(s)\,ds=\frac{VL}{g}.\]</div>
-<p>For a thick uniform-field model, V input gives Eu=V/g and VL=V*L;
-VL input gives Eu=VL/(g*L). For a thin model, VL is an independent input
-representing the real device integral, even though the tracking length is zero.
-For zero length the effective normalized impulse is</p>
-<div class="math notranslate nohighlight">
-\[K_u=\operatorname{sgn}(q)\frac{VL/g}{\beta_0 c B\rho}
-    \frac{A}{p_s},\qquad
-A=\sqrt{\gamma_0^{-2}+\beta_0^2(1+\delta)^2},\qquad
-p_s=\sqrt{(1+\delta)^2-p_x^2-p_y^2}.\]</div>
-<p>Here beta0*c*ps/A is the incident longitudinal speed. The incident state is
-frozen during this lumped impulse. It keeps dp fixed and is not the exact map
-of a finite electrode. PASS stores px=Px/P0 and py=Py/P0, so this is a
-normalized mechanical momentum increment, not an angular kick. Do not divide
-it by an additional (1+delta). Finite length uses the energy-consistent map below.</p>
-<p>PASS stores the positive reference rigidity magnitude. The charge sign is
-applied explicitly. The current bunch beta and rigidity are read each execution;
-RF updates them through <code class="docutils literal notranslate"><span class="pre">set_reference_energy</span></code>. A constant applied voltage
-therefore does not imply a constant kick during acceleration.</p>
-<p>Specify exactly one non-null V or VL; zero is valid. Both or neither are errors.
-For zero length, nonzero V is rejected with a request to use VL; V=0 permits a
-pure geometry check. Gap and septum position remain required for either input.
-The old <code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code>, electrode-height/center and EX/EY/EXL/EYL fields are
-not accepted. Material and vacuum checks remain active at zero strength.</p>
-</section>
-<section id="propagation-and-collisions">
-<h2>Propagation and collisions<a class="headerlink" href="#propagation-and-collisions" title="Link to this heading"></a></h2>
-<p>The septum and external field-free regions have zero potential. Within the gap,
-with uf=d+t, the ideal body potential is Phi=-Eu*(u-uf). The high-voltage plate
-therefore has potential -V. Define W=energy/(P0*c), mu=mc/P0 and k=q*Eu/(P0*c).
-The entrance edge changes mechanical energy to W+k*(u-uf), keeping transverse
-momenta and coordinates fixed. The exit edge subtracts k*(u-uf). These are
-ideal zero-width longitudinal edge impulses, not measured fringe profiles.</p>
-<p>In the uniform body, ps and pv are constant. For a forward distance ds and
-a=k*ds/ps, the analytic map is</p>
-<div class="math notranslate nohighlight">
-\[ \begin{align}\begin{aligned}p_{u,2}=p_{u,1}\cosh a+W_1\sinh a,\qquad
-W_2=W_1\cosh a+p_{u,1}\sinh a,\\u_2=u_1+\frac{W_2-W_1}{k},\qquad
-v_2=v_1+\frac{p_v}{p_s}ds,\qquad
-c\Delta t=\frac{p_{u,2}-p_{u,1}}{k},\\\delta_2=\sqrt{W_2^2-\mu^2}-1,\qquad
-z_2=z_1+ds-\beta_0c\Delta t.\end{aligned}\end{align} \]</div>
-<p>The implementation evaluates cancellation-free increments and the zero-field
-limit, rather than subtracting nearly equal hyperbolic functions. The short
-series used near zero is a floating-point evaluation technique, not a paraxial
-approximation. Across the complete static element, surviving particles recover
-their entry mechanical energy when no other energy-changing interaction acts.
-Particles without a positive forward momentum at an edge are removed at that
-edge; this represents leaving the forward tracking model, not material absorption.</p>
-<p>Entrance and exit matching occur once per element, never at internal slice or
-SC boundaries. A center SC callback receives the state after half a body slice;
-a boundary callback receives the full body-slice state. Both see the correct
-design reference time and mechanical particle momenta in the beam frame.
-Survivors in the circulating-beam field-free region also participate.
-See <a class="reference internal" href="../space_charge.html#en-internal-space-charge"><span class="std std-ref">Element Slicing and Internal Space Charge</span></a> for node placement and weights. With no
-internal SC, one analytic body propagation suffices: Num slices does not change
-the external-field result. With SC, convergence of the split collective map
-must still be checked.</p>
-<p>Electrode contacts are solved from the body’s energy-position relation, retaining
-both momentum branches so that turns and grazing contacts are included. Vacuum
-wall contacts use conservative interval bounds on the analytic curve. Line and
-coordinate extrema include interior turning points; ellipse bounds enclose the
-whole interval. This detects non-convex excursions even with both endpoints
-inside. The earliest candidate is isolated to a longitudinal interval of
-1e-12*max(1, segment length) metres, with a separate 64-double-epsilon scaled
-geometry tolerance. Near tangencies that spatial tolerance can produce a larger
-uncertainty in the longitudinal contact location. Stored loss positions use the
-existing float32 array. Field-free motion retains analytic straight intersections.</p>
-<p>Particles stop at first contact and keep their mechanical state at that point;
-an exit edge is not applied to a particle lost inside the body. Subsequent calls
-preserve the first loss record. Material surfaces and vacuum walls compete for
-the earliest contact. All existing aperture types remain supported in the beam
-frame: off, default, rectangle, circle, ellipse, rectcircle, rectellipse,
-racetrack, octagon and polygon. Tilt rotates the electrodes and field, not the
-separately specified vacuum chamber.</p>
-<p>For a manually entered local polygon, transform each vertex into beam coordinates:</p>
-<div class="math notranslate nohighlight">
-\[x=u\cos\theta+v\sin\theta,\qquad y=-u\sin\theta+v\cos\theta.\]</div>
-<p>Enter vertices in boundary order without repeating the first vertex to close
-the polygon. Self-intersections, non-adjacent edge contacts, repeated vertices
-and malformed aperture dimensions are rejected during schema validation as
-well as input preflight.</p>
-<p>Tilt=0 puts the high-voltage electrode on local +x, while tilt=pi reverses
-the layout. Changing the voltage sign changes force polarity, not the geometry.</p>
-</section>
-<section id="drift-and-approximation-limits">
-<h2>Drift and approximation limits<a class="headerlink" href="#drift-and-approximation-limits" title="Link to this heading"></a></h2>
-<p>ES and <a class="reference internal" href="drift.html"><span class="doc">Drift</span></a> share the CPU factors and CUDA inline drift function. With
-T=px^2+py^2 and ps=sqrt((1+delta)^2-T), define</p>
-<div class="math notranslate nohighlight">
-\[A=\sqrt{\gamma_0^{-2}+(1-\gamma_0^{-2})(1+\delta)^2},
-\qquad
-\frac{\Delta z}{ds}=
-\frac{\delta(2+\delta)\gamma_0^{-2}-T}{p_s(p_s+A)}.\]</div>
-<p>This rationalized form retains small longitudinal slips in single precision.
-Nonpositive total or longitudinal momentum and nonfinite longitudinal momentum
-are rejected; positive longitudinal momentum is not artificially clamped.
-Tracking never wraps the stored z coordinate.</p>
-<p>The thick map is exact for the declared ideal uniform body and hard edges,
-up to floating-point and collision-location tolerances. It does not include a
-three-dimensional fringe map, finite-height fields, discrete septum wires,
-scattering or secondary particles. Thin tracking additionally omits the actual
-body trajectory, energy exchange and transit-time change, and freezes the
-incident longitudinal speed during the effective impulse. A thin VL model is
-not asserted to be the exact L-to-zero limit of the finite hard-edge model.</p>
-<p>CPU and CUDA implementations reside in the same source file. GPU kernels use
-double precision for analytic field trajectories and curved collision bounds;
-particle arrays retain their configured float32 or float64 storage. Internal SC
-nodes materialize the particle state; compiled kernels are cached per element,
-device and storage dtype. No particle coordinate array is rotated in place.</p>
-</section>
-<section id="input-parameters">
-<h2>Input parameters<a class="headerlink" href="#input-parameters" title="Link to this heading"></a></h2>
+  <section id="bump">
+<h1>Bump<a class="headerlink" href="#bump" title="Link to this heading"></a></h1>
+<p>A Bump is a two-plane pulsed dipole in fixed machine coordinates. Every live
+particle passing through it receives the kick, regardless of injection batch.
+Incoming coordinates and magnetic kicks use the same fixed machine coordinate
+system. Injection offsets specify the incoming beam at the injection plane;
+see <a class="reference internal" href="../injection.html#en-multiturn-injection"><span class="std std-ref">Multi-turn injection and transverse painting</span></a> for their role in transverse painting.
+This ideal model is intended for fixed-energy injection painting. Kicks use
+the injection reference momentum; acceleration scaling, magnetic fringe fields,
+pole-face focusing and field errors are outside this model.</p>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-text">ElSeparator parameters</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-text">Interface</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
-<col style="width: 23.0%" />
-<col style="width: 27.0%" />
-<col style="width: 15.0%" />
-<col style="width: 35.0%" />
+<col style="width: 30.0%" />
+<col style="width: 20.0%" />
+<col style="width: 50.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>Python field</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>Default</p></th>
+<tr class="row-odd"><th class="head"><p>JSON field</p></th>
+<th class="head"><p>Default / unit</p></th>
 <th class="head"><p>Meaning</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
-<td><p>Required</p></td>
-<td><p>Exit position.</p></td>
+<tr class="row-even"><td><p>Waveform file</p></td>
+<td><p>Required TFS</p></td>
+<td><p>Real numeric TIME, HKICK, VKICK columns; at least two finite rows, strictly increasing time.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
-<td><p>0</p></td>
-<td><p>Nonnegative supplied length, independent of roll.</p></td>
+<tr class="row-odd"><td><p>Time mode</p></td>
+<td><p>particle</p></td>
+<td><p>particle uses laboratory arrival time; reference uses a turn-based clock.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">V</span> <span class="pre">(V)</span></code></p></td>
-<td><p>null</p></td>
-<td><p>Signed interplate voltage difference; choose V or VL. Nonzero V requires positive length.</p></td>
+<tr class="row-even"><td><p>Time offset (s)</p></td>
+<td><p>0 s</p></td>
+<td><p>Added to sampling time; all batches share one global origin.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">voltage_length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">VL</span> <span class="pre">(V</span> <span class="pre">m)</span></code></p></td>
-<td><p>null</p></td>
-<td><p>Signed longitudinal voltage integral; supports positive or zero tracking length.</p></td>
+<tr class="row-odd"><td><p>Length (m)</p></td>
+<td><p>0 m</p></td>
+<td><p>Thin kick at zero length; forward DKD otherwise.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gap</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Gap</span> <span class="pre">(m)</span></code></p></td>
-<td><p>Required</p></td>
-<td><p>Positive clear electrode gap.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">septum_position</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Septum</span> <span class="pre">position</span> <span class="pre">(m)</span></code></p></td>
-<td><p>Required</p></td>
-<td><p>Surface d facing the circulating-beam field-free region, along u.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">septum_thickness</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Septum</span> <span class="pre">thickness</span> <span class="pre">(m)</span></code></p></td>
-<td><p>0</p></td>
-<td><p>Nonnegative effective material thickness.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tilt</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Tilt</span> <span class="pre">(rad)</span></code></p></td>
-<td><p>0</p></td>
-<td><p>Roll used in the projection and kick equations above.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code> / <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code> / <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
-<td><p>off / []</p></td>
-<td><p>Existing vacuum aperture geometry.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
+<tr class="row-even"><td><p>Num slices</p></td>
 <td><p>1</p></td>
-<td><p>Strict positive integer; sets internal SC scheduling. The isolated analytic body does not require subdivision.</p></td>
+<td><p>Strict positive integer; each slice receives its integral fraction.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">space_charge</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code></p></td>
-<td><p>null</p></td>
-<td><p>Optional internal SC configuration; requires positive length.</p></td>
+<tr class="row-odd"><td><p>Enable</p></td>
+<td><p>true</p></td>
+<td><p>Enables kicks; drift and aperture checks remain when false.</p></td>
+</tr>
+<tr class="row-even"><td><p>Space charge</p></td>
+<td><p>None</p></td>
+<td><p>Existing internal midpoint scheduling, for positive length.</p></td>
 </tr>
 </tbody>
 </table>
-</section>
-<section id="input-configuration">
-<h2>Input configuration<a class="headerlink" href="#input-configuration" title="Link to this heading"></a></h2>
-<p>Specify V or VL, gap and septum geometry for the modeled device. This synthetic
-example uses a manual polygon with <code class="docutils literal notranslate"><span class="pre">-0.05</span> <span class="pre">&lt;</span> <span class="pre">x</span> <span class="pre">&lt;</span> <span class="pre">0.0201</span></code> and <code class="docutils literal notranslate"><span class="pre">|y|</span> <span class="pre">&lt;</span> <span class="pre">0.02</span></code>.
-The internal septum remains absorbing. Replace the values with device parameters;
-the selected strength input is constant on every pass.</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ElSeparator"</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"V (V)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1000.0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Gap (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Septum position (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Septum thickness (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0001</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Tilt (rad)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"polygon"</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Aperture value"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mf">-0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.02</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0201</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.02</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0201</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.05</span><span class="p">,</span><span class="w"> </span><span class="mf">0.02</span><span class="p">]]</span>
-<span class="p">}</span>
+<p>The strengths are dimensionless integrated kicks:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Kx</span> <span class="o">=</span> <span class="n">Delta</span> <span class="n">Px</span> <span class="o">/</span> <span class="n">P0</span><span class="p">;</span> <span class="n">Ky</span> <span class="o">=</span> <span class="n">Delta</span> <span class="n">Py</span> <span class="o">/</span> <span class="n">P0</span>
+<span class="n">px</span> <span class="o">+=</span> <span class="n">Kx</span><span class="p">;</span> <span class="n">py</span> <span class="o">+=</span> <span class="n">Ky</span>
+<span class="n">each</span> <span class="nb">slice</span><span class="p">:</span> <span class="n">D</span><span class="p">(</span><span class="n">L</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">N</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">K</span><span class="p">(</span><span class="n">Kx</span><span class="o">/</span><span class="n">N</span><span class="p">,</span> <span class="n">Ky</span><span class="o">/</span><span class="n">N</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">D</span><span class="p">(</span><span class="n">L</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">N</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>To use the same integrated strength in this 1 m element, replace <code class="docutils literal notranslate"><span class="pre">V</span> <span class="pre">(V)</span></code> with
-<code class="docutils literal notranslate"><span class="pre">&quot;VL</span> <span class="pre">(V</span> <span class="pre">m)&quot;:</span> <span class="pre">1000.0</span></code>. To use a thin model at S=1 m, also set <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>
-to 0. The same input field integral is used at that plane, with the incident particle
-speed. Its effective impulse need not equal the full thick map exactly; it omits
-the thick model’s transverse displacement and flight time. For example,
-(x,y)=(0.005,0) survives without a kick, (0.01005,0) is lost in septum material,
-and (0.015,0) survives the entry check and receives the field kick.</p>
-<p>Injection timing is described in <a class="reference internal" href="../injection.html#en-multiturn-injection"><span class="std std-ref">Multi-turn injection and transverse painting</span></a>. New particles
-specified at the ES exit start tracking at that plane. Injection generates or
-loads their coordinates without an additional geometric acceptance cut.
-ElSeparator evaluates deflection and losses when particles subsequently pass
-through the element, according to its thick or thin model.</p>
+<p>These are not exact geometric slopes. Do not divide by (1+delta) again.
+Particle mode samples every kick center using the local reference passage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">t0</span> <span class="o">-</span> <span class="n">z</span><span class="o">/</span><span class="p">(</span><span class="n">beta0</span><span class="o">*</span><span class="n">c</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Coordinates remain continuous. Reference mode uses the prescribed machine clock inverse at the invocation turn. It omits particle z and local flight time; particle mode samples the actual local kick-center event.</p>
+<p>Here <code class="docutils literal notranslate"><span class="pre">t0</span></code> is the ideal reference particle’s passage time, and
+<code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">beta0*c*(t0-t)</span></code>. The nominal grouping slot position is not added to z;
+there is no separate particle or bunch arrival correction. The waveform’s
+<code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">offset</span> <span class="pre">(s)</span></code> is added to the resulting query time. Thin Bump kicks keep
+<code class="docutils literal notranslate"><span class="pre">t0</span></code>, z and the total momentum deviation unchanged. Thick elements advance
+<code class="docutils literal notranslate"><span class="pre">t0</span></code> by each reference half-drift’s flight time.</p>
+<section id="transport-and-loss-handling">
+<h2>Transport and loss handling<a class="headerlink" href="#transport-and-loss-handling" title="Link to this heading"></a></h2>
+<p>For positive length, every slice consists of a half drift, the transverse kick
+and a second half drift. Internal space charge acts at the midpoints of equal
+longitudinal subintervals. Depending on the external slicing, a space-charge
+node falls at a magnetic kick center, after the magnetic kick, or at a slice
+boundary. It uses the particle state and reference time at that location.
+Without active internal space charge, the aperture is checked once per bunch at
+the element exit. With <span class="math notranslate nohighlight">\(K\)</span> internal SC nodes, each SC entry point checks
+once before evaluating the source, and the exit adds one check, for <span class="math notranslate nohighlight">\(K+1\)</span>
+checks per passage. These checks remain active when magnetic kicks are disabled.
+A thin Bump checks at its own position. Other external slice boundaries do not
+add checks. Excursions that leave and re-enter the aperture between check
+positions are not recorded. Newly lost particles do not enter the SC source or
+receive its kick. PIC field-domain validation remains active for participating
+particles at every node. See <a class="reference internal" href="../space_charge.html"><span class="doc">Space-Charge Effect (SpaceCharge)</span></a> for internal scheduling.</p>
+<p>The forward map requires positive longitudinal momentum:</p>
+<div class="math notranslate nohighlight">
+\[1+\delta&gt;0,\qquad (1+\delta)^2-p_x^2-p_y^2&gt;0.\]</div>
+<p>These conditions are checked before the first kick, including a thin Bump,
+and after a magnetic kick before any internal space-charge evaluation or
+further drift. Particles violating them are marked lost and stop moving; a
+later opposing kick cannot restore them. These momentum checks are separate
+from aperture checks at SC nodes and the exit. CPU and GPU execution follow the same
+transport and observation sequence. Particle
+coordinates support float32 and float64; waveform times and interpolation use
+float64.</p>
+</section>
+<section id="waveform-boundaries">
+<h2>Waveform boundaries<a class="headerlink" href="#waveform-boundaries" title="Link to this heading"></a></h2>
+<p>Interpolation is linear and includes both endpoints. Before a plane’s first
+supplied time, its first kick value is held; after its last time, its last
+value is held. An out-of-range live-particle query emits one warning per
+element over its lifetime, including the supplied range of each plane.
+Pending and previously lost particles do not trigger this warning.</p>
+<p>Negative times are allowed. Supply them when the pre-injection field changes.
+If the first supplied time is zero, an earlier arrival receives the value at
+zero and triggers the warning. A normal ramp-down must explicitly end at zero;
+a nonzero final value continues to act after the table ends.</p>
+<p>Horizontal and vertical CSV inputs to <code class="docutils literal notranslate"><span class="pre">convert_cisp_bump</span></code> may have different
+row counts, time nodes and time ranges, including disjoint ranges. Conversion
+uses the union of all time nodes and independently holds each plane’s endpoint
+values outside its supplied range. It never crops the longer waveform.
+The resulting TFS still uses <code class="docutils literal notranslate"><span class="pre">TIME</span></code>, <code class="docutils literal notranslate"><span class="pre">HKICK</span></code> and <code class="docutils literal notranslate"><span class="pre">VKICK</span></code> columns.
+Conversion and reading preserve float64 precision, including distinct adjacent
+time nodes. Complex, boolean and string columns are rejected rather than
+converted to real kick values.</p>
+<p>Optional paired TFS headers <code class="docutils literal notranslate"><span class="pre">HKICK_START</span></code>/<code class="docutils literal notranslate"><span class="pre">HKICK_END</span></code> and
+<code class="docutils literal notranslate"><span class="pre">VKICK_START</span></code>/<code class="docutils literal notranslate"><span class="pre">VKICK_END</span></code> record the original supplied intervals in seconds.
+They preserve per-plane out-of-range warnings after conversion, even inside
+the merged table’s time range. Each interval must begin and end at <code class="docutils literal notranslate"><span class="pre">TIME</span></code> nodes and its
+column must hold its endpoint values outside that interval. Without these
+headers, both planes use the full table range.</p>
+<p>Optional TFS headers are TIME_UNIT=”s” and
+KICK_CONVENTION=”delta_p_over_p0”; conflicting values are rejected.</p>
 </section>
 </section>
 
@@ -1345,8 +1177,8 @@ through the element, according to its thick or thin model.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="bump.html" class="btn btn-neutral float-left" title="Bump" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="exciter.html" class="btn btn-neutral float-right" title="Exciter" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="kicker.html" class="btn btn-neutral float-left" title="Kicker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="elseparator.html" class="btn btn-neutral float-right" title="ElSeparator" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

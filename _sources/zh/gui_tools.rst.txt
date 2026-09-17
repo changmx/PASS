@@ -340,20 +340,27 @@ n=1 为约 39.35%。
 ----------------------------------------
 
 对应 ``PASS/commands/element/exciter.py`` 中的 single_fm、single_fm_am、dual_fm、dual_fm_am。
-输入极板电压、间距、有效长、周长、激励 tune 或频率、扫频全宽、周期以及原模型的双频/AM 参数。
+输入带符号极板间峰值电压差、间距、有效长、周长、激励 tune 或频率、扫频全宽、周期以及原模型的双频/AM 参数。
 切换 tune/频率输入方式时保留实际中心频率和宽度。
 
 .. math::
 
-   A_0=\frac{VL}{d\beta c|B\rho|},\quad f_c=Q_{excite}f_0,\quad
+   A_0=\operatorname{sgn}(q)\frac{VL}{d\beta_0 cB\rho},\quad f_c=Q_{excite}f_0,\quad
    \Delta f=\Delta Q f_0,\quad
    t_{arrive}=t_{0,start}+t_{elapsed}-\frac{z_{rel}}{\beta c}.
 
 不添加名义束团槽位偏移，z 不折叠；仅波形内部将到达时间对扫频周期取余。
-A0 的电荷量大小约定与当前 PASS 一致。
+:math:`B\rho` 为正磁刚度幅值，电荷符号显式计入。
+电荷或电压反号使踢角反号，包络和频谱仍显示幅值大小。
+电压或极板有效长为零时冲量为零。
 单频相位为 ``phi=2*pi*fc*tau+pi*df*tau*(tau-T)/T``；双频使用 Exciter 的两段相位和
-``2*cos(pi*df*tau/2)`` 包络，振幅可能达到 2×A0。
+``2*cos(pi*df*tau/2)`` 包络，无 AM 时其幅值可达 :math:`2|A_0|` 。
 详细公式窗口列出两段相位导数和完整 AM 公式。
+
+预览固定 :math:`\delta=p_x=p_y=0` ，因此跟踪中的速度因子
+:math:`R_i=\beta_0c/v_{s,i}` 为 1；所设 ``z_rel`` 只改变到达相位。
+实际跟踪使用逐粒子系数 :math:`A_i=A_0R_i` ，见 :doc:`element/exciter` 。
+踢角显示和 CSV 角度单位采用近轴参考粒子近似 :math:`\Delta u'\simeq\Delta p_u` 。
 
 AM 按有效圈 ``floor(t_elapsed*f0)`` 更新，并在 t_ext 发散，绘图窗口必须在 t_ext 前结束。
 这里用固定束流参数预览外加信号，不预测束流响应、损失或发射度增长。

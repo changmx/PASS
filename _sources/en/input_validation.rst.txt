@@ -79,9 +79,11 @@ What is checked
 
 The current engine does not implement magnetic-element ramping or a BeamBeam
 command. Enabling these features is an error instead of silently ignoring the
-request. RFCavity's implemented RF table remains supported. ElSeparator requires explicit finite voltage, positive gap and electrode height,
-and a finite septum position. Obsolete mode and separate EX/EY or integrated-field
-parameters are rejected; missing geometry is not inferred.
+request. RFCavity's implemented RF table remains supported. ElSeparator requires
+exactly one finite ``V (V)`` or ``VL (V m)``, a positive gap and a finite septum
+position. Zero strength is valid; nonzero V requires positive length, while VL
+also supports a zero-length kick. The old ``Voltage (V)``, electrode-height/center,
+mode and separate EX/EY/EXL/EYL parameters are rejected. Missing geometry is not inferred.
 
 Static validation cannot establish long-term beam stability or certify future
 particle-dependent quantities. For example, particles may subsequently leave a
