@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] - 2026-09-17
+
 ### Added
-- (Collective effects: space charge, impedance, beam-beam, electron cloud)
+
+- Space-charge and wake-field simulations.
+- GUI for configuration, validation, tracking, and analysis.
+- Multi-turn injection, bump elements, and injection-painting example.
+- Distribution and phase-advance monitors.
 
 ### Changed
-- ()
+
+- Improved RF timing, reference-state handling, and element tracking.
+- Expanded documentation and examples.
+- Raised the minimum Python version to 3.11.
 
 ---
 
