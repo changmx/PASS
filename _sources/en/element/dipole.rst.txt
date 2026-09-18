@@ -36,11 +36,38 @@ without dividing by :math:`1+\cos\theta`. Particle storage precision, integratio
 and the physical map are unchanged. Other FP32 rounding errors remain;
 tracking accuracy still requires a precision and slice-convergence check.
 
+For a static rot-kick-rot map without internal space-charge nodes, FP32 particle
+arrays use FP64 working coordinates on CPU and FP64 registers and scalar
+parameters in the fused GPU kernel. The internal rotations and dipole kicks
+cancel reference-scale momenta; rounding each substep to FP32 can obscure a
+small betatron displacement. The completed element map is written back to the
+original particle storage precision. The integration scheme and physical map
+are unchanged.
+
+For a static bend without internal space-charge nodes, CPU and GPU accumulate the
+longitudinal increments separately from the entry coordinate, then apply
+:math:`z_{\mathrm{out}}=z_{\mathrm{in}}+\sum_j\Delta z_j` once at the exit.
+This prevents repeated rounding of small slice increments against a large FP32
+:math:`z_{\mathrm{in}}`. It is an accumulation strategy, not a coordinate fold;
+the stored coordinate remains continuous. The increment accumulator uses the
+working precision of the selected map, including FP64 for static RKR.
+Internal space-charge paths keep the live longitudinal
+coordinate available at each node. Rounding at element boundaries and other
+finite-precision errors remain.
+
+The polar drift also keeps the small velocity correction separate from the
+geometric path difference. For :math:`g=\gamma_0^{-2}` and
+:math:`r=-g\delta(2+\delta)/(1+\delta)^2`, evaluate
+:math:`\beta_0/\beta-1=r/(\sqrt{1+r}+1)`. If :math:`\ell` is the particle
+path length, the longitudinal increment is
+:math:`\Delta z=(L-\ell)-\ell r/(\sqrt{1+r}+1)` on both CPU and GPU.
+This avoids first rounding the near-unity velocity ratio to one in FP32.
+
 
 Coordinate Convention
 ---------------------
 
-PASS uses normalized curvilinear coordinates consistent with Xsuite. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
+PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
 .. list-table::
   :header-rows: 1
@@ -163,7 +190,7 @@ operation: each element then executes its own entrance and exit maps.
   - When ``fint`` = 0 or ``hgap`` = 0, the finite-gap terms vanish; the geometric nonlinear fringe map remains when :math:`K_0 \ne 0`.
   - When :math:`K_0 = 0`, both Fringe and Wedge are skipped
   - The execution order of entrance and exit are mirror images of each other
-  - **At the exit**, :math:`K_0` **is partially negated**: Xsuite negates the local variable :math:`K_0` at the exit (``if (is_exit) k0 = -k0``), but only **DipoleFringe** uses the negated :math:`-K_0`, because the exit fringe field is the magnetic field decreasing from :math:`B_0` to 0 (opposite direction to the entrance's 0 rising to :math:`B_0`). **Wedge** directly uses the original ``knorm[0]`` (not negated), because Wedge describes rotation in the uniform magnetic field :math:`B_0`, and the field direction is the same at entrance and exit. PASS implements this behavior in ``_edge_exit_cpu`` using ``k0_fringe = -k0`` (Fringe only) and ``k0`` (Wedge).
+  - **At the exit**, the fringe map uses :math:`-K_0` because the field transition reverses from rising to falling. The wedge retains :math:`K_0` because it rotates through the same uniform field.
 
 
 Why This Order
@@ -478,9 +505,9 @@ Substituting :math:`\lambda` and simplifying, using the orthogonality of rotatio
 
   x' = \frac{x \cdot p_z}{p_z'} = \frac{x \cdot p_z}{p_x \sin\theta + p_z \cos\theta}
 
-**Verification of consistency with the Xsuite formula**:
+**Equivalent implementation form**:
 
-Xsuite writes ``x_hat = x / (cos_angle * ptt)``, where ``ptt = 1 + tan_angle * px / pz``:
+The implementation uses ``x_hat = x / (cos_angle * ptt)``, where ``ptt = 1 + tan_angle * px / pz``:
 
 .. math::
 
@@ -552,7 +579,7 @@ Six-dimensional map:
 Variable Conversion Notes
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Xsuite stores :math:`p_\tau` (normalized longitudinal momentum deviation), while PASS stores :math:`\delta` (normalized total momentum deviation). The exact relationship between them is:
+The normalized energy deviation :math:`p_\tau` and the stored momentum deviation :math:`\delta` satisfy:
 
 .. math::
 
@@ -576,7 +603,7 @@ Expanding and using :math:`1 - 1/\gamma_0^2 = \beta_0^2`:
 
   (1+\delta)^2 = 1 + \frac{2 p_\tau}{\beta_0^2} + \frac{p_\tau^2}{\beta_0^2}
 
-And the Xsuite expression for :math:`p_z` is ``sqrt(1 + 2*pt/beta0 + pt*pt - px*px - py*py)``, which after substituting the above relation equals exactly :math:`\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}`.
+Writing :math:`p_z` in terms of the energy deviation gives ``sqrt(1 + 2*pt/beta0 + pt*pt - px*px - py*py)``, which after substituting the above relation equals exactly :math:`\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}`.
 
 
 Entrance Edge: Fringe Field
@@ -632,7 +659,7 @@ where :math:`g_{\text{full}}` is the magnet full gap (:math:`g_{\text{full}} = 2
 
   **Naming relationship between hgap and g**
 
-  The ``hgap`` parameter in Xsuite and PASS is the magnet **half gap**, i.e., half the distance between the upper and lower pole faces.
+  The ``hgap`` parameter is the magnet **half gap**, i.e., half the distance between the upper and lower pole faces.
 
   - ``hgap`` = half gap = :math:`g_{\text{half}}`
   - Magnet full gap :math:`g_{\text{full}} = 2 \times \text{hgap}`
@@ -643,9 +670,9 @@ where :math:`g_{\text{full}}` is the magnet full gap (:math:`g_{\text{full}} = 2
 
     f_h = \text{hgap} \times \text{fint}
 
-  This is fully consistent with Xsuite source code ``track_dipole_fringe.h`` line 37 ``fh = hgap * fint``. The ``hgap`` parameter in Xsuite is also the half gap. Therefore the physical meaning of :math:`f_h` is "half gap × fringe field integral", not "full gap × fringe field integral".
+  Thus :math:`f_h` is the half gap multiplied by the fringe field integral.
 
-  In the physics literature (e.g., Forest's original paper), :math:`g` in the fringe field integral formula typically refers to the full gap. The Xsuite/MAD-NG geometry uses the half gap ``hgap``, with corresponding coefficient adjustments (e.g., the factor 72 in :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` comes from this adjustment). PASS keeps this half-gap convention while using the PTC-compatible generating-function form for comparison with MAD-X PTC.
+  A formula written in terms of the full gap requires the corresponding coefficient conversion. PASS uses the half-gap convention in the generating function below.
 
 **Fringe angle and characteristic coefficient**
 
@@ -659,24 +686,19 @@ coefficient :math:`\psi=b_0\tan\Phi_0`, where :math:`b_0=K_0\chi`:
 where :math:`x' = p_x/p_z`, :math:`y' = p_y/p_z` are the particle slopes, and :math:`c_2 = 2 K_0 \chi \cdot f_h` is the linear fringe field strength parameter.
 
 In the implementation, ``yp2 = 1 + y'^2``, so ``1 + yp2 = 2 + y'^2``.
-Thus the finite-gap factor is :math:`1+x'^2(2+y'^2)`, consistent with Eq. (1.194)
-of the Xsuite physics manual cited below. The arctangent denominator remains
+Thus the finite-gap factor is :math:`1+x'^2(2+y'^2)`. The arctangent denominator remains
 :math:`1+y'^2`; it is a different occurrence of ``yp2``.
 
 .. note::
 
-   Keep the fringe convention explicit in comparisons with external programs.
-   PASS uses the :math:`p_z` factor above. The inspected Xtrack 0.109.1
-   implementation uses :math:`1/p_z` in this term and changes its derivatives
-   consistently, whereas Eq. (1.194) in the Xsuite physics manual inspected on
-   2026-09-13 still displays :math:`p_s`. Thus nonzero ``fint*hgap`` can produce
-   a model difference even with converged body integration. Setting those
-   finite-gap terms to zero provides a separate common-model test; it does
-   not validate their physical effect. Preserve the program version and
-   compare the implemented map as well as its documentation.
+   The finite-gap term uses :math:`p_z`, not its reciprocal; the derivatives
+   follow the same generating function. Setting ``fint*hgap`` to zero removes
+   this term and therefore does not test its finite-gap effect.
 
-   See the `Xtrack fringe implementation <https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h>`_
-   and the `Xsuite physics manual <https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf>`_.
+   Formula references: `fringe implementation <https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h>`_
+   and `physics manual <https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf>`_.
+   These references use different finite-gap conventions; the equation above
+   defines the convention used by PASS.
 
 
 - **First term** :math:`\arctan(x'/(1+y'^2))`: Incident angle correction of the particle at the end face. :math:`x'` is the horizontal slope, and :math:`1+y'^2` reflects the geometric correction of vertical motion on the horizontal incident angle (3D direction cosines).
@@ -999,7 +1021,6 @@ Equation Eq. 1.201 gives the **path length** :math:`\Delta\ell`, while the code 
 
   \zeta \leftarrow \zeta - \frac{\Delta \ell}{\text{rvv}}
 
-Fully consistent with Xsuite source code ``add_to_zeta(-delta_ell / rvv)``.
 
 .. warning::
 
@@ -1024,7 +1045,7 @@ The code uses ``np.clip`` to limit the argument to the :math:`[-1, 1]` range:
   arg_px = np.clip(arg_px, -1.0, 1.0)
   arg_new_px = np.clip(arg_new_px, -1.0, 1.0)
 
-This is a **pure numerical safety measure** that does not change the physical result. In exact arithmetic, :math:`A \cdot p_x` is strictly within :math:`[-1, 1]`, and the clip is never triggered. Xsuite is C code, where ``asin(1.0000000001)`` returns a finite value without raising an exception, but Python requires explicit protection.
+Clipping protects the inverse sine against roundoff near its domain boundary.
 
 
 Proof That Wedge Degenerates to YRotation When K0=0
@@ -1115,7 +1136,7 @@ Edge Angle Sign Convention
 
   End face normal tilts toward the bending inside relative to trajectory normal
 
-The sign convention for edge angles :math:`e_1`, :math:`e_2` follows the MAD-X / Xsuite convention:
+The sign convention for edge angles :math:`e_1`, :math:`e_2` follows the MAD-X convention:
 
 - :math:`e_1 > 0`: The entrance end face normal tilts toward the bending outside relative to the reference trajectory normal
 - :math:`e_2 > 0`: The exit end face normal tilts toward the bending outside relative to the reference trajectory normal

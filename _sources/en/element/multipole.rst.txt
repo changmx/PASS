@@ -3,7 +3,7 @@ Multipole
 
 This module describes the PASS general multipole element **Multipole**, used to simulate the motion of charged particles in an arbitrary-order multipole magnet. Unlike single-order elements such as the quadrupole, sextupole, and octupole, the multipole uses ``knl`` / ``ksl`` arrays to simultaneously support arbitrary-order (including mixed-order) multipole components, suitable for field error injection, combined multipole elements, higher-order multipoles, and other scenarios.
 
-The PASS multipole supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators. The kick uses Horner nested evaluation, which is fully consistent with Xsuite's ``kick_simple_single_coordinates`` at the formula level.
+The PASS multipole supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators. The kick uses Horner nested evaluation.
 
 **Code Location**
 
@@ -26,7 +26,7 @@ The PASS multipole supports both **thick element** (``length > 0``) and **thin l
 Coordinate Convention
 ---------------------
 
-PASS uses normalized curvilinear coordinates consistent with Xsuite. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
+PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
 .. list-table::
   :header-rows: 1
@@ -228,7 +228,7 @@ The core of the multipole kick is to evaluate the polynomial:
 
   P(z) = \sum_{n=0}^{N} c_n z^n, \qquad z = x + i y
 
-where :math:`c_n = \chi \cdot K_{nL} / n!`. Direct expansion of higher-order terms is computationally expensive and numerically unstable. PASS uses Horner nested evaluation, which is algorithmically consistent with Xsuite's ``kick_simple_single_coordinates`` (``track_magnet_kick.h:182-228``).
+where :math:`c_n = \chi \cdot K_{nL} / n!`. Direct expansion of higher-order terms is computationally expensive and numerically unstable. PASS uses Horner nested evaluation.
 
 The Horner recursion starts from the highest-order coefficient and works downward:
 
@@ -380,40 +380,17 @@ DKD-exact naturally includes all nonlinear effects for an ideal multipole withou
   * - Full nonlinearity of each order multipole kick
     - Horner recursion preserves all terms of :math:`(x+iy)^n`
 
-The only approximation source is the integrator truncation error (:math:`O(\Delta s^2)` for uniform, :math:`O(\Delta s^4)` for yoshida4).
+The split-map truncation error is :math:`O(\Delta s^2)` for uniform and
+:math:`O(\Delta s^4)` for yoshida4. Finite-precision arithmetic also contributes
+error; see :ref:`en-element-integration-precision` for the coefficient, substep and
+particle-storage precision conventions.
 
 
-Difference from Xsuite: hxl Curvature Correction
-------------------------------------------------
+Reference-orbit scope
+---------------------
 
-The Xsuite ``Multipole`` element supports the ``hxl`` parameter (horizontal reference orbit rotation angle), used to describe **combined-function magnets**—multipole elements where the reference orbit is bent within the magnet. PASS currently does not implement ``hxl`` and only supports straight magnets (``hxl = 0``).
-
-In Xsuite, ``hxl`` produces three sets of corrections (source code ``track_magnet_kick.h:97-143``):
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 30 45
-
-  * - Correction Term
-    - Trigger Condition
-    - Expression
-  * - rot_frame
-    - :math:`h_{xl} \neq 0` (independent of knl)
-    - :math:`\Delta p_x \mathrel{+}= h_{xl}(1+\delta)`, :math:`\Delta \zeta \mathrel{+}= -\frac{\beta_0}{\beta} h_{xl} x`
-  * - k0h correction
-    - :math:`h_{xl} \neq 0` and :math:`k_{0L} \neq 0`
-    - :math:`\Delta p_x \mathrel{+}= -\chi \, k_{0L} \cdot \frac{h_{xl}}{L} \cdot x`
-  * - k1h correction
-    - :math:`h_{xl} \neq 0` and :math:`k_{1L} \neq 0`
-    - :math:`\Delta p_x \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot (-x^2 + \frac{1}{2}y^2)`, :math:`\Delta p_y \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot xy`
-
-The ``rot_frame`` correction describes the geometric effect of reference orbit deflection and **is independent of field components**—it is triggered whenever :math:`h_{xl} \neq 0`, even if knl/ksl are all zero (pure drift). The ``k0h`` and ``k1h`` corrections are coupling terms between curvature and multipole components, requiring both ``hxl`` and the corresponding knl component to be nonzero.
-
-.. note::
-
-  - PASS multipole sets :math:`h_{xl} = 0`, so all three correction sets are zero, fully consistent with Xsuite's straight magnet (``hxl=0``) at the kick formula level
-  - When :math:`h_{xl} = 0`, regardless of knl/ksl values, PASS and Xsuite results are particle-by-particle consistent (verified, precision :math:`< 10^{-12}`)
-  - To simulate combined-function magnets (multipole elements with a bent reference orbit), ``hxl`` support needs to be added to PASS; this is a future extension item
+The multipole uses a straight reference orbit. It does not provide an ``hxl``
+curvature correction for a bent reference orbit.
 
 
 Interface Parameters

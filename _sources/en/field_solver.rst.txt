@@ -392,10 +392,10 @@ Solver builders and one-shot wrappers
      - Reusable solver
      - One-shot wrapper
    * - ``build_fd_resources(geometry)``
-     - ``FDSolver``
+     - ``FDRectangleSolver``
      - ``solve_poisson_fd(...)``
    * - ``build_fd_arbitrary_resources(geometry, aperture)``
-     - ``ArbitraryFDSolver``
+     - ``FDArbitrarySolver``
      - ``solve_poisson_fd_arbitrary(...)``
    * - ``build_dst_rectangle_resources(geometry)``
      - ``DSTRectangleSolver``
@@ -437,7 +437,7 @@ Result Objects
    * - ``FieldResult.integrated_ex``, ``integrated_ey``
      - 2-D or 3-D
      - V
-     - Integrated transverse fields; ``ex`` and ``ey`` are aliases.
+     - Integrated transverse fields.
    * - ``PICResult``
      - batched
      - mixed
@@ -758,8 +758,7 @@ particle kicks or truncate the analytic charge distribution.
      - Round-Gaussian integrated ``(Ex, Ey)`` in V.
    * - ``gaussian_elliptic_field``
      - ``x, y, slice_charge, sigma_x, sigma_y``
-     - Bassetti--Erskine integrated field in V;
-       ``gaussian_ellipse_field`` is an alias.
+     - Bassetti--Erskine integrated field in V.
    * - ``uniform_round_field``
      - ``x, y, slice_charge, radius``
      - Uniform round-slice field inside and outside the beam.
@@ -900,9 +899,9 @@ The previous GPU module import paths have been removed.
    * - ``pic.py``
      - ``pic_cpu`` / ``pic_gpu``, resource builders, deposition and gather.
    * - ``fd_rectangle.py``
-     - ``FDSolver`` / ``GPUFDSolver(geometry, dtype="float64")``.
+     - ``FDRectangleSolver`` / ``GPUFDRectangleSolver(geometry, dtype="float64")``.
    * - ``fd_arbitrary.py``
-     - ``ArbitraryFDSolver`` / ``GPUArbitraryFDSolver(geometry, aperture, dtype="float64")``.
+     - ``FDArbitrarySolver`` / ``GPUFDArbitrarySolver(geometry, aperture, dtype="float64")``.
    * - ``dst_rectangle.py``
      - ``DSTRectangleSolver`` / ``GPUDSTRectangleSolver``, including cuFFTDx compilation.
    * - ``fft_free_space.py``
@@ -955,7 +954,7 @@ For example, given device arrays ``x``, ``y`` and integer ``slice_id``:
    )
    result = pic_gpu(x, y, slice_id, 1.0e-15, geometry=grid,
                     resources=resources, num_slices=100, method="CIC")
-   ex, ey = gather_fields_gpu(result.ex, result.ey, {"x": x, "y": y},
+   ex, ey = gather_fields_gpu(result.integrated_ex, result.integrated_ey, {"x": x, "y": y},
                              grid, resources, slice_id, method="CIC")
    resources.close()
 

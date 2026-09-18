@@ -24,7 +24,7 @@ The PASS sextupole supports both **thick element** (``length > 0``) and **thin l
 Coordinate Convention
 ---------------------
 
-PASS uses normalized curvilinear coordinates consistent with Xsuite. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
+PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
 .. list-table::
   :header-rows: 1

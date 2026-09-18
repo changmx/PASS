@@ -35,11 +35,31 @@ CPU 和 GPU 统一使用半角恒等式
 保持不变。其他 FP32 舍入误差仍然存在，追踪精度仍需通过精度和
 切片收敛检查确认。
 
+对于没有内部空间电荷节点的静态 rot-kick-rot 映射，FP32 粒子数组在 CPU 上使用
+FP64 工作坐标，在融合 GPU 内核中使用 FP64 寄存器和标量参数。
+内部旋转与二极场踢动需要抵消参考弯转量；若每个子步都舍入到 FP32，可能掩盖很小的
+横向振荡位移。完整元件映射结束后再写回原粒子存储精度，积分方法和物理映射保持不变。
+
+对于没有内部空间电荷节点的静磁弯铁，CPU 和 GPU 将纵向增量与入口坐标分开累加，
+在出口一次执行 :math:`z_{\mathrm{out}}=z_{\mathrm{in}}+\sum_j\Delta z_j`。
+这样可避免微小切片增量反复与较大的 FP32 :math:`z_{\mathrm{in}}` 相加所产生的舍入损失。
+这只是增量的累加方式，不是坐标折叠；保存的纵向坐标仍然连续。
+增量累加器采用所选映射的工作精度，其中静态 RKR 使用 FP64。
+内部空间电荷路径仍在每个节点提供实时纵向坐标。
+元件边界的存储舍入及其他有限精度误差仍然存在。
+
+极坐标漂移还将微小的速度修正与几何路程差分开计算。令
+:math:`g=\gamma_0^{-2}`、:math:`r=-g\delta(2+\delta)/(1+\delta)^2`，则计算
+:math:`\beta_0/\beta-1=r/(\sqrt{1+r}+1)`。
+粒子的实际路程为 :math:`\ell` 时，CPU 和 GPU 均使用
+:math:`\Delta z=(L-\ell)-\ell r/(\sqrt{1+r}+1)`。
+这样可避免先将接近一的速度比在 FP32 中舍入为一。
+
 
 坐标约定
 --------
 
-PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
+PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
 
 .. list-table::
   :header-rows: 1
@@ -161,7 +181,7 @@ PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 
   - 当 ``fint`` = 0 或 ``hgap`` = 0 时，有限间隙项消失；只要 :math:`K_0 \ne 0`，仍执行几何非线性边缘映射。
   - 当 :math:`K_0 = 0` 时，Fringe 和 Wedge 均跳过
   - 入口和出口的执行顺序互为镜像
-  - **出口处** :math:`K_0` **部分取反** ：Xsuite 在出口处将局部变量 :math:`K_0` 取反（ ``if (is_exit) k0 = -k0`` ），但仅 **DipoleFringe** 使用取反后的 :math:`-K_0` ，因为出口边缘场是磁场从 :math:`B_0` 下降到 0（与入口的 0 上升到 :math:`B_0` 方向相反）。 **Wedge** 直接使用原始 ``knorm[0]`` （不取反），因为 Wedge 描述的是均匀磁场 :math:`B_0` 中的旋转，磁场方向在入口和出口一致。PASS 在 ``_edge_exit_cpu`` 中使用 ``k0_fringe = -k0`` （仅 Fringe）和 ``k0`` （Wedge）实现此行为。
+  - **出口处**，边缘场由上升变为下降，因此 Fringe 使用 :math:`-K_0`；Wedge 仍在同一均匀磁场中旋转，保留 :math:`K_0`。
 
 
 为什么是这个顺序
@@ -476,9 +496,9 @@ YRotation 是纯几何坐标旋转，不涉及任何磁场。其目的是将粒�
 
   x' = \frac{x \cdot p_z}{p_z'} = \frac{x \cdot p_z}{p_x \sin\theta + p_z \cos\theta}
 
-**验证与 Xsuite 公式的一致性** ：
+**等价实现形式** ：
 
-Xsuite 写作 ``x_hat = x / (cos_angle * ptt)`` ，其中 ``ptt = 1 + tan_angle * px / pz`` ：
+实现中写作 ``x_hat = x / (cos_angle * ptt)`` ，其中 ``ptt = 1 + tan_angle * px / pz`` ：
 
 .. math::
 
@@ -550,7 +570,7 @@ Xsuite 写作 ``x_hat = x / (cos_angle * ptt)`` ，其中 ``ptt = 1 + tan_angle 
 变量转换说明
 ~~~~~~~~~~~~~~~~~~~~
 
-Xsuite 中存储 :math:`p_\tau` （归一化纵向动量偏差），而 PASS 存储 :math:`\delta` （归一化总动量偏差）。两者的精确关系为：
+归一化能量偏差 :math:`p_\tau` 与存储的归一化动量偏差 :math:`\delta` 满足：
 
 .. math::
 
@@ -574,7 +594,7 @@ Xsuite 中存储 :math:`p_\tau` （归一化纵向动量偏差），而 PASS 存
 
   (1+\delta)^2 = 1 + \frac{2 p_\tau}{\beta_0^2} + \frac{p_\tau^2}{\beta_0^2}
 
-而 Xsuite 中 :math:`p_z` 的表达式为 ``sqrt(1 + 2*pt/beta0 + pt*pt - px*px - py*py)`` ，代入上述关系后恰好等于 :math:`\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}` 。
+用能量偏差表示时，:math:`p_z` 的表达式为 ``sqrt(1 + 2*pt/beta0 + pt*pt - px*px - py*py)`` ，代入上述关系后恰好等于 :math:`\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}` 。
 
 
 入口边缘：边缘场（Fringe Field）
@@ -630,7 +650,7 @@ Forest 定义边缘场积分：
 
   **hgap 与 g 的命名关系**
 
-  Xsuite 和 PASS 的 ``hgap`` 参数是磁铁的 **半气隙** （half gap），即上下极板间距的一半。
+  ``hgap`` 参数是磁铁的 **半气隙** （half gap），即上下极板间距的一半。
 
   - ``hgap`` = 半气隙 = :math:`g_{\text{half}}`
   - 磁铁全气隙 :math:`g_{\text{full}} = 2 \times \text{hgap}`
@@ -641,9 +661,9 @@ Forest 定义边缘场积分：
 
     f_h = \text{hgap} \times \text{fint}
 
-  这与 Xsuite 源码 ``track_dipole_fringe.h`` 第 37 行 ``fh = hgap * fint`` 完全一致。Xsuite 的 ``hgap`` 参数也是半气隙。因此 :math:`f_h` 的物理含义是"半气隙 x 边缘场积分"，而非"全气隙 x 边缘场积分"。
+  因此 :math:`f_h` 是半气隙与边缘场积分的乘积。
 
-  在物理文献中（如 Forest 的原始论文），边缘场积分公式中的 :math:`g` 通常指全气隙。Xsuite/MAD-NG 的几何定义使用半气隙 ``hgap`` ，相应的系数已做调整（如 :math:`f_{\text{sad}} = 1/(72 \cdot f_h)` 中的因子 72 即来自此调整）。PASS 保留这一半气隙约定，但生成函数采用与 MAD-X PTC 对比一致的 PTC-compatible 形式。
+  使用全气隙定义的公式需要相应转换系数。PASS 在下面的生成函数中使用半气隙约定。
 
 **边缘场角与特征系数**
 
@@ -657,21 +677,18 @@ Forest 定义边缘场积分：
 其中 :math:`x' = p_x/p_z` , :math:`y' = p_y/p_z` 是粒子斜率， :math:`c_2 = 2 K_0 \chi \cdot f_h` 是线性边缘场强度参数。
 
 代码中 ``yp2 = 1 + y'^2``，所以 ``1 + yp2 = 2 + y'^2``。
-因此有限气隙因子应为 :math:`1+x'^2(2+y'^2)`，与下文引用的 Xsuite
-物理手册式 (1.194) 一致。反正切项的分母仍为 :math:`1+y'^2`；
+因此有限气隙因子为 :math:`1+x'^2(2+y'^2)`。反正切项的分母仍为 :math:`1+y'^2`；
 这里使用的是 ``yp2`` 本身。
 
 .. note::
 
-   与外部程序对比时，应明确边缘场约定。PASS 使用上式的 :math:`p_z` 因子。
-   已检查的 Xtrack 0.109.1 实现将该因子改为 :math:`1/p_z`，并相应修改偏导数；
-   但 2026-09-13 检查的 Xsuite 物理手册式 (1.194) 仍显示 :math:`p_s`。
-   因此，即使本体积分已经收敛，非零 ``fint*hgap`` 仍可能产生模型差异。
-   将有限间隙项设为零可另作共同模型测试，但不能据此验证有限边缘场的物理效应。
-   应保留程序版本，同时核对实际映射和文档。
+   有限气隙项使用 :math:`p_z`，而非其倒数；偏导数也采用相同生成函数。
+   将 ``fint*hgap`` 设为零会去掉该项，因此不能据此验证有限气隙效应。
 
-   参见 `Xtrack 边缘场实现 <https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h>`_
-   和 `Xsuite 物理手册 <https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf>`_。
+   公式参考：`边缘场实现 <https://github.com/xsuite/xtrack/blob/main/xtrack/beam_elements/elements_src/track_dipole_fringe.h>`_
+   和 `物理手册 <https://xsuite.github.io/xsuite/docs/physics_manual/physics_man.pdf>`_。
+   这些参考资料的有限气隙约定存在差异，PASS 的约定以上式为准。
+
 
 - **第一项** :math:`\arctan(x'/(1+y'^2))` ：粒子在端面处的入射角修正。 :math:`x'` 是水平斜率， :math:`1+y'^2` 反映垂直运动对水平入射角的几何修正（三维方向余弦）。
 - **第二项** :math:`-c_2(1 + x'^2(2+y'^2))p_z` ：边缘场积分效应。 :math:`c_2` 是边缘场强度， :math:`(1 + x'^2(2+y'^2))` 是斜率的高阶修正。
@@ -992,7 +1009,6 @@ Delta-ell 与 zeta 的关系
 
   \zeta \leftarrow \zeta - \frac{\Delta \ell}{\text{rvv}}
 
-与 Xsuite 源码 ``add_to_zeta(-delta_ell / rvv)`` 完全一致。
 
 .. warning::
 
@@ -1017,7 +1033,7 @@ Wedge 中 :math:`D` 的计算用到 :math:`\arcsin` ：
   arg_px = np.clip(arg_px, -1.0, 1.0)
   arg_new_px = np.clip(arg_new_px, -1.0, 1.0)
 
-这是 **纯数值安全措施** ，不改变物理结果。在精确算术下 :math:`A \cdot p_x` 严格在 :math:`[-1, 1]` 内， clip 不会触发。Xsuite 是 C 代码， ``asin(1.0000000001)`` 在 C 中返回有限值不抛异常，但 Python 需要显式保护。
+裁剪用于避免边界附近的浮点舍入使反正弦参数超出定义域。
 
 
 K0=0 时 Wedge 退化为 YRotation 的证明
@@ -1108,7 +1124,7 @@ YRotation 的 :math:`p_x'` 公式为 :math:`p_x' = \cos\alpha \cdot p_x - \sin\a
 
   端面法线相对于轨迹法线向弯转内侧倾斜
 
-边缘角 :math:`e_1` , :math:`e_2` 的正负号采用 MAD-X / Xsuite 约定：
+边缘角 :math:`e_1` , :math:`e_2` 的正负号采用 MAD-X 约定：
 
 - :math:`e_1 > 0` ：入口端面法线相对于参考轨迹法线向弯转外侧倾斜
 - :math:`e_2 > 0` ：出口端面法线相对于参考轨迹法线向弯转外侧倾斜

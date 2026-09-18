@@ -9,7 +9,7 @@
 - 分组算法： ``PASS/commands/sort_bunch.py``
 - 类名： ``ReorganizeBunch`` （继承自 ``Command`` ）
 - 注册名： ``reorganizebunch``
-- Schema 类： ``ReorganizeBunchElement`` （ ``PASS/para/schema/elements.py`` ）
+- Schema 类： ``ReorganizeBunchItem`` （ ``PASS/para/schema/elements.py`` ）
 
 
 分组操作与边界

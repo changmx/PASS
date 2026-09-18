@@ -822,10 +822,10 @@ quasi-frozen 椭圆将长轴放在首位。
 
 .. code-block:: python
 
-   from PASS.para.schema.elements import QuadrupoleElement
+   from PASS.para.schema.elements import QuadrupoleItem
    from PASS.para.schema.space_charge import ElementSpaceCharge
 
-   sequence.add("q1", QuadrupoleElement(
+   sequence.add("q1", QuadrupoleItem(
        s=1.0, length=0.4, k1l=0.12,
        num_slices=10, integrator="yoshida4",
        space_charge=ElementSpaceCharge(

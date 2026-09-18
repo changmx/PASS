@@ -351,10 +351,10 @@ Python 接口
      - 可复用求解器
      - 一次性封装
    * - ``build_fd_resources(geometry)``
-     - ``FDSolver``
+     - ``FDRectangleSolver``
      - ``solve_poisson_fd(...)``
    * - ``build_fd_arbitrary_resources(geometry, aperture)``
-     - ``ArbitraryFDSolver``
+     - ``FDArbitrarySolver``
      - ``solve_poisson_fd_arbitrary(...)``
    * - ``build_dst_rectangle_resources(geometry)``
      - ``DSTRectangleSolver``
@@ -395,7 +395,7 @@ Python 接口
    * - ``FieldResult.integrated_ex``、``integrated_ey``
      - 二维或三维
      - V
-     - 横向积分场；``ex`` 和 ``ey`` 为兼容别名。
+     - 横向积分场。
    * - ``PICResult``
      - 批量
      - 混合
@@ -683,8 +683,7 @@ quasi-frozen 参数来自各切片当前总体矩。``AnalyticResult`` 包含粒
      - 圆高斯分布的积分 ``(Ex, Ey)``，单位 V。
    * - ``gaussian_elliptic_field``
      - ``x, y, slice_charge, sigma_x, sigma_y``
-     - Bassetti--Erskine 积分场，单位 V；
-       ``gaussian_ellipse_field`` 为其别名。
+     - Bassetti--Erskine 积分场，单位 V。
    * - ``uniform_round_field``
      - ``x, y, slice_charge, radius``
      - 均匀圆切片束内外的积分场。
@@ -809,9 +808,9 @@ CuPy 设备数组和 ``RawKernel``；Python 主机端调用 cuDSS 绑定与 cuFF
    * - ``pic.py``
      - ``pic_cpu`` / ``pic_gpu``，资源构建、沉积与回插。
    * - ``fd_rectangle.py``
-     - ``FDSolver`` / ``GPUFDSolver(geometry, dtype="float64")``。
+     - ``FDRectangleSolver`` / ``GPUFDRectangleSolver(geometry, dtype="float64")``。
    * - ``fd_arbitrary.py``
-     - ``ArbitraryFDSolver`` / ``GPUArbitraryFDSolver(geometry, aperture, dtype="float64")``。
+     - ``FDArbitrarySolver`` / ``GPUFDArbitrarySolver(geometry, aperture, dtype="float64")``。
    * - ``dst_rectangle.py``
      - ``DSTRectangleSolver`` / ``GPUDSTRectangleSolver``，包括 cuFFTDx 编译。
    * - ``fft_free_space.py``
@@ -860,7 +859,7 @@ DST 自动择优，FFT 每批 16 个切片，沉积使用直接原子加。
    )
    result = pic_gpu(x, y, slice_id, 1.0e-15, geometry=grid,
                     resources=resources, num_slices=100, method="CIC")
-   ex, ey = gather_fields_gpu(result.ex, result.ey, {"x": x, "y": y},
+   ex, ey = gather_fields_gpu(result.integrated_ex, result.integrated_ey, {"x": x, "y": y},
                              grid, resources, slice_id, method="CIC")
    resources.close()
 

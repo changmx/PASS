@@ -26,7 +26,16 @@ The PASS quadrupole supports both **thick element** (``length > 0``) and **thin 
 Coordinate Convention
 ---------------------
 
-PASS uses normalized curvilinear coordinates consistent with Xsuite. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
+For zero normal and skew strengths, both CPU and GPU use the exact drift,
+including when ``mat-kick-mat`` is selected. In the nonzero-field matrix model,
+the path-length excess :math:`\Delta\ell=\ell-L` is accumulated separately.
+With :math:`r=-\gamma_0^{-2}\delta(2+\delta)/(1+\delta)^2`, the equivalent
+longitudinal update is
+:math:`\Delta z=-\Delta\ell-(L+\Delta\ell)r/(\sqrt{1+r}+1)`.
+This preserves small high-energy velocity and path corrections without changing
+the matrix model's paraxial approximation or momentum normalization.
+
+PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
 .. list-table::
   :header-rows: 1

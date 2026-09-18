@@ -26,7 +26,14 @@ PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
 坐标约定
 --------
 
-PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
+正常和斜四极强度都为零时，CPU 和 GPU 均使用精确漂移，包括选择
+``mat-kick-mat`` 的情况。非零场矩阵模型将额外路程
+:math:`\Delta\ell=\ell-L` 单独累加。令
+:math:`r=-\gamma_0^{-2}\delta(2+\delta)/(1+\delta)^2`，等价的纵向更新为
+:math:`\Delta z=-\Delta\ell-(L+\Delta\ell)r/(\sqrt{1+r}+1)`。
+这保留了高能下微小的速度和路程修正，不改变矩阵模型的近轴近似和动量归一化。
+
+PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
 
 .. list-table::
   :header-rows: 1
@@ -380,7 +387,7 @@ yoshida4 积分器（4阶辛）
 
   - 薄透镜模式（ ``length = 0`` ）不存在路径长度效应，因此薄透镜四极铁本身 **不引入自然色品** ——无论正常四极还是斜四极
   - 厚透镜 DKD-exact 模式完整包含自然色品效应，包括高阶非线性色散项
-  - 与 Xsuite 的 mat-kick-mat 模型不同（显式除以 :math:`1+\delta` ），PASS 的 DKD-exact 是通过精确 :math:`p_z` 隐式引入的，还包含了 :math:`p_z` 的高阶非线性效应
+  - DKD-exact 通过精确 :math:`p_z` 引入动量依赖，同时包含 :math:`p_z` 的高阶非线性效应
   - 在 PASS 的 Twiss 线性传输框架中，自然色品通过 ``DQx`` / ``DQy`` 参数（相移中的 :math:`\delta` 项）引入，而非通过元件本身。若在 Twiss 传输中额外插入薄透镜四极铁，不会与 ``DQx`` 重复计数色品——因为薄透镜本身不引入色品。但若插入的四极铁强度较大，显著改变了 lattice 的 tune 和 :math:`\beta` 函数，则原有 Twiss 参数（包括 ``DQx`` ）不再准确，需重新计算
 
 
