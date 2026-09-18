@@ -5,14 +5,18 @@ from typing import Final
 @dataclass(frozen=True)
 class _PhysicalConstants:
     """
-    Physical constants (SI units unless noted).
-    Values from Particle Data Group 2026 (https://pdg.lbl.gov/2026/reviews/contents_sports.html).
+    Physical constants (SI units unless noted) and numerical integration constants.
+    Particle data values from PDG 2026 (https://pdg.lbl.gov/2026/reviews/contents_sports.html).
     """
     c: Final[float] = 299792458.0  # speed of light (m/s)
     pi: Final[float] = 3.141592653589793
     e: Final[float] = 1.602176634e-19  # elementary charge (C)
 
     eps: Final[float] = 1e-10  # small tolerance
+
+    # Symmetric fourth-order composition; retain the relation in binary64.
+    yoshida_z1: Final[float] = 1.0 / (2.0 - 2.0**(1.0 / 3.0))
+    yoshida_z0: Final[float] = 1.0 - 2.0 * yoshida_z1
 
     # Electron mass
     m_e_eV: Final[float] = 0.51099895000e6  # eV/c^2
@@ -46,3 +50,14 @@ class _PhysicalConstants:
 
 
 const = _PhysicalConstants()
+
+
+def _build_yoshida_cuda_constants():
+    """Emit compile-time binary64 coefficients from the shared Python source."""
+    return f'''
+#ifndef PASS_YOSHIDA_CONSTANTS
+#define PASS_YOSHIDA_CONSTANTS
+constexpr double pass_yoshida_z1 = {const.yoshida_z1:.17g};
+constexpr double pass_yoshida_z0 = 1.0 - 2.0 * pass_yoshida_z1;
+#endif
+'''

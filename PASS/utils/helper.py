@@ -1,7 +1,8 @@
-import numpy as np
 import json
-import tfs
 from datetime import datetime
+
+import numpy as np
+import tfs
 
 
 def convert_keys_to_lower(obj):

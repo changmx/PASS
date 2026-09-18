@@ -10,17 +10,34 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from PySide6.QtCore import QSignalBlocker, QSize, QTimer, Qt
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QAbstractItemView, QAbstractSpinBox, QApplication, QCheckBox, QColorDialog,
-    QComboBox, QFileDialog, QGridLayout, QGroupBox, QHBoxLayout,
-    QHeaderView, QLabel, QPushButton, QScrollArea, QSplitter, QTableWidget, QTabWidget,
-    QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QAbstractSpinBox,
+    QApplication,
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSplitter,
+    QTableWidget,
+    QTabWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from PASS.gui.appearance import THEMES
 from PASS.gui.structured import IntegerSpinBox
-from PASS.gui.tool_beam import hint, number
+from PASS.gui.tool_beam import hint, create_number_input
 from PASS.gui.tool_formulas import FormulaDialog, TUNE_FORMULAS
 from PASS.tool.tune_diagram import ResonanceLine, resonance_lines
-
 
 POINT_COLORS = ("#3479dc", "#d78532", "#9767c3", "#3b987a", "#cf647d", "#629baa")
 MARKERS = (("圆点", "o"), ("方块", "s"), ("三角", "^"), ("菱形", "D"), ("加号", "+"))
@@ -64,6 +81,7 @@ def parse_working_points(text):
 
 
 class TuneDiagramPage(QWidget):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.theme = "dark"
@@ -113,7 +131,7 @@ class TuneDiagramPage(QWidget):
         pgl.setContentsMargins(8, 8, 8, 8)
         point_actions = QGridLayout()
         for index, (text, callback) in enumerate((("添加", self.add_point), ("删除选中", self.remove_points), ("粘贴", self.paste_points),
-                                                 ("导入 CSV…", self.import_points), ("导出 CSV…", self.export_points))):
+                                                  ("导入 CSV…", self.import_points), ("导出 CSV…", self.export_points))):
             button = QPushButton(text)
             button.clicked.connect(callback)
             point_actions.addWidget(button, index // 3, index % 3)
@@ -163,7 +181,7 @@ class TuneDiagramPage(QWidget):
         for row, axis in enumerate(("Qx", "Qy")):
             rg.addWidget(QLabel(axis), row, 0)
             for col, edge in enumerate(("min", "max"), 1):
-                spin = number(9 if edge == "min" else 10, -1e6)
+                spin = create_number_input(9 if edge == "min" else 10, -1e6)
                 spin.setMaximum(1e6)
                 spin.setToolTip(f"{axis} {'下限' if edge == 'min' else '上限'}")
                 self.ranges[f"{axis}_{edge}"] = spin
@@ -354,7 +372,10 @@ class TuneDiagramPage(QWidget):
             orders = [n for n, w in self.orders.items() if w.isChecked()]
             lines = resonance_lines(orders, xr, yr, [k for k, w in self.kinds.items() if w.isChecked()])
             points = self.point_data(visible_only=True)
-            custom = [self.lines.item(row, 1).data(Qt.UserRole) for row in range(self.lines.rowCount()) if self.lines.item(row, 0).checkState() == Qt.Checked]
+            custom = [
+                self.lines.item(row, 1).data(Qt.UserRole) for row in range(self.lines.rowCount())
+                if self.lines.item(row, 0).checkState() == Qt.Checked
+            ]
             custom_keys = {line.key for line in custom}
             palette = (colors["muted"], "#c97859", "#559975", "#a07fc2", "#519aa8", "#bd9a48")
             legends = []
@@ -363,11 +384,17 @@ class TuneDiagramPage(QWidget):
                 for kind in ("single", "sum", "diff"):
                     segments = [line.segment(xr, yr) for line in lines if line.order == order and line.kind == kind and line.key not in custom_keys]
                     if segments:
-                        self.ax.add_collection(LineCollection(segments, colors=color, linewidths=max(.5, 1.3 - .07*order), linestyles="dashed" if kind == "diff" else "solid", alpha=.72))
+                        self.ax.add_collection(
+                            LineCollection(segments,
+                                           colors=color,
+                                           linewidths=max(.5, 1.3 - .07 * order),
+                                           linestyles="dashed" if kind == "diff" else "solid",
+                                           alpha=.72))
                 legends.append(Line2D([], [], color=color, linewidth=1.2, label=f"{order}"))
             for line in custom:
                 if segment := line.segment(xr, yr):
-                    self.ax.add_collection(LineCollection([segment], colors=colors["accent"], linewidths=2, linestyles="dashed" if line.kind == "diff" else "solid"))
+                    self.ax.add_collection(
+                        LineCollection([segment], colors=colors["accent"], linewidths=2, linestyles="dashed" if line.kind == "diff" else "solid"))
             outside = 0
             point_handles, point_names = [], []
             for name, x, y, color, marker in points:
@@ -381,11 +408,21 @@ class TuneDiagramPage(QWidget):
                     point_names.append(name)
             self.ax.set(xlim=xr, ylim=yr, aspect="equal")
             if point_handles:
-                self.point_legend = self.ax.legend(
-                    handles=point_handles, labels=[" "] * len(point_names), loc="upper right",
-                    fontsize=8, numpoints=1, markerscale=.9, borderpad=.3, labelspacing=.25,
-                    handlelength=.9, handletextpad=.4, borderaxespad=.5, framealpha=.9,
-                    facecolor=colors["panel"], edgecolor=colors["line"], labelcolor=colors["text"])
+                self.point_legend = self.ax.legend(handles=point_handles,
+                                                   labels=[" "] * len(point_names),
+                                                   loc="upper right",
+                                                   fontsize=8,
+                                                   numpoints=1,
+                                                   markerscale=.9,
+                                                   borderpad=.3,
+                                                   labelspacing=.25,
+                                                   handlelength=.9,
+                                                   handletextpad=.4,
+                                                   borderaxespad=.5,
+                                                   framealpha=.9,
+                                                   facecolor=colors["panel"],
+                                                   edgecolor=colors["line"],
+                                                   labelcolor=colors["text"])
                 # Literal names, including leading underscores, work across Matplotlib versions.
                 for text, name in zip(self.point_legend.get_texts(), point_names):
                     text.set_text(name)
@@ -396,10 +433,19 @@ class TuneDiagramPage(QWidget):
                     self.point_legend.set_clip_on(False)
             if legends:
                 # Keep the outside legend as Axes.legend_ so constrained layout reserves its space.
-                legend = self.ax.legend(handles=legends, title="Order", loc="lower center", bbox_to_anchor=(.5, 1.01), ncol=min(6, len(legends)), fontsize=8,
-                                        title_fontsize=8, facecolor=colors["panel"], edgecolor=colors["line"], labelcolor=colors["text"])
+                legend = self.ax.legend(handles=legends,
+                                        title="Order",
+                                        loc="lower center",
+                                        bbox_to_anchor=(.5, 1.01),
+                                        ncol=min(6, len(legends)),
+                                        fontsize=8,
+                                        title_fontsize=8,
+                                        facecolor=colors["panel"],
+                                        edgecolor=colors["line"],
+                                        labelcolor=colors["text"])
                 legend.get_title().set_color(colors["text"])
-            self.error.setText(f"{len(lines)} 条自动线 · {len(custom)} 条自定义线 · {len(points)-outside} 个可见工作点" + (f" · {outside} 个工作点在范围外" if outside else ""))
+            self.error.setText(f"{len(lines)} 条自动线 · {len(custom)} 条自定义线 · {len(points)-outside} 个可见工作点" +
+                               (f" · {outside} 个工作点在范围外" if outside else ""))
             self.details.setText("选择图中工作点查看坐标；缩放和平移使用图上方工具栏。")
             self._valid_plot = True
             self.export_button.setEnabled(True)

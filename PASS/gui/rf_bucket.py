@@ -42,8 +42,8 @@ class RFBucket:
     energy_gain_ev: float
 
     def potential(self, offset):
-        return self.potential_scale * (-2 * math.cos(self.phase_s) * np.sin(np.asarray(offset)/2)**2
-                                      + math.sin(self.phase_s) * (np.asarray(offset) - np.sin(offset)))
+        return self.potential_scale * (-2 * math.cos(self.phase_s) * np.sin(np.asarray(offset) / 2)**2 + math.sin(self.phase_s) *
+                                       (np.asarray(offset) - np.sin(offset)))
 
     def contour(self, fraction=1., samples=601):
         """Return phase offsets and positive delta branch at H/H_sep=fraction."""
@@ -62,8 +62,14 @@ class RFBucket:
         return offsets, delta
 
 
-def calculate_bucket(kinematics: Kinematics, voltage: float, harmonic: int,
-                     circumference: float, phase_s_deg=0., *, eta=None, gamma_t=None) -> RFBucket:
+def calculate_bucket(kinematics: Kinematics,
+                     voltage: float,
+                     harmonic: int,
+                     circumference: float,
+                     phase_s_deg=0.,
+                     *,
+                     eta=None,
+                     gamma_t=None) -> RFBucket:
     voltage = finite_number(voltage, "RF 电压幅值", positive=True)
     circumference = finite_number(circumference, "环周长", positive=True)
     if type(harmonic) is not int or harmonic < 1:
@@ -89,8 +95,7 @@ def calculate_bucket(kinematics: Kinematics, voltage: float, harmonic: int,
     kinetic_scale = abs(a) / 2
 
     def potential(offset):
-        return potential_scale * (-2 * cos_s * math.sin(offset/2)**2
-                                   + math.sin(phase_s) * (offset - math.sin(offset)))
+        return potential_scale * (-2 * cos_s * math.sin(offset / 2)**2 + math.sin(phase_s) * (offset - math.sin(offset)))
 
     saddles = [math.pi - 2 * phase_s + 2 * math.pi * n for n in range(-3, 4)]
     left_saddle = max(t for t in saddles if t < 0)
@@ -109,15 +114,13 @@ def calculate_bucket(kinematics: Kinematics, voltage: float, harmonic: int,
     f_rf = harmonic * f_rev
     qs = math.sqrt(-a * b * cos_s) / (2 * math.pi)
     # Integrate normalized height so quadrature tolerance does not depend on V.
-    normalized_area = quad(lambda t: math.sqrt(max(0., (level - potential(t))/level)),
-                           left, right, epsabs=1e-10, epsrel=1e-10)[0]
+    normalized_area = quad(lambda t: math.sqrt(max(0., (level - potential(t)) / level)), left, right, epsabs=1e-10, epsrel=1e-10)[0]
     area = 2 * delta_max * normalized_area * energy_scale / (2 * math.pi * f_rf)
     width = right - left
-    result = RFBucket(kinematics, voltage, harmonic, circumference, eta, phase_s, left, right,
-                     potential_scale, kinetic_scale, level, delta_max, delta_max * energy_scale,
-                     width, width * circumference / (2 * math.pi * harmonic), width / (2 * math.pi * f_rf),
-                     area, f_rev, f_rf, qs, qs * f_rev,
-                     abs(kinematics.particle.charge_state) * voltage * math.sin(phase_s))
+    result = RFBucket(kinematics, voltage, harmonic, circumference, eta, phase_s, left, right, potential_scale, kinetic_scale, level, delta_max,
+                      delta_max * energy_scale, width, width * circumference / (2 * math.pi * harmonic), width / (2 * math.pi * f_rf), area, f_rev,
+                      f_rf, qs, qs * f_rev,
+                      abs(kinematics.particle.charge_state) * voltage * math.sin(phase_s))
     for key in result.__dataclass_fields__:
         if key != "kinematics":
             finite_number(getattr(result, key), "计算结果")

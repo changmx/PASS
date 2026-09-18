@@ -31,17 +31,16 @@ class ConvolutionGrid:
             v = getattr(self, name)
             if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or v < 1:
                 raise ValueError(f"Convolution grid {name} must be a positive integer")
-        if not all(np.isfinite(v) and v > 0 for v in
-                   (self.period, self.slot_spacing, self.slice_spacing)):
+        if not all(np.isfinite(v) and v > 0 for v in (self.period, self.slot_spacing, self.slice_spacing)):
             raise ValueError("Convolution grid periods and spacings must be positive finite")
         if not np.isfinite(self.origin) or not np.isfinite(self.width) or self.width < 0:
             raise ValueError("Convolution grid origin/width must be finite; width >= 0")
-        if self.width > self.slice_spacing*(1+1e-12):
+        if self.width > self.slice_spacing * (1 + 1e-12):
             raise ValueError("Source width must not exceed slice spacing")
-        span = (self.slices-1)*self.slice_spacing
-        if self.slots > 1 and self.slot_spacing < span + max(self.width, self.slice_spacing)*.999999999999:
+        span = (self.slices - 1) * self.slice_spacing
+        if self.slots > 1 and self.slot_spacing < span + max(self.width, self.slice_spacing) * .999999999999:
             raise ValueError("Convolution slot windows overlap")
-        if (self.slots-1)*self.slot_spacing+span+self.width > self.period*(1+1e-12):
+        if (self.slots - 1) * self.slot_spacing + span + self.width > self.period * (1 + 1e-12):
             raise ValueError("Convolution source windows exceed the turn period")
         if self.projection not in {"exact", "linear"}:
             raise ValueError("Convolution projection must be exact or linear")
@@ -49,8 +48,8 @@ class ConvolutionGrid:
             raise ValueError("Linear time projection currently requires point sources")
 
     def times(self, turn=0):
-        return (self.origin+turn*self.period+np.arange(self.slots)[:, None]*self.slot_spacing
-                +np.arange(self.slices)[None, :]*self.slice_spacing).ravel()
+        return (self.origin + turn * self.period + np.arange(self.slots)[:, None] * self.slot_spacing +
+                np.arange(self.slices)[None, :] * self.slice_spacing).ravel()
 
 
 def source_channels(components):
@@ -70,13 +69,13 @@ def source_channels(components):
 
 
 def _array_state(array):
-    a = array.get() if hasattr(array, "get") else np.asarray(array)
-    return {"shape": list(a.shape), "real": a.real.ravel().tolist(),
-            "imag": a.imag.ravel().tolist()}
+    host_array = array.get() if hasattr(array, "get") else np.asarray(array)
+    return {"shape": list(host_array.shape), "real": host_array.real.ravel().tolist(), "imag": host_array.imag.ravel().tolist()}
 
 
 class ConvolutionState:
     """One location's persistent spectra; plans contain only reusable resources."""
+
     def __init__(self, plan, *, start_turn=0):
         self.plan_key = plan.key
         self.start_turn = int(start_turn)
@@ -86,11 +85,16 @@ class ConvolutionState:
 
     @property
     def nbytes(self):
-        return self.inputs.nbytes+self.pending.nbytes
+        return self.inputs.nbytes + self.pending.nbytes
 
     def state_dict(self):
-        return {"plan_key": self.plan_key, "start_turn": self.start_turn, "count": self.count,
-                "inputs": _array_state(self.inputs), "pending": _array_state(self.pending)}
+        return {
+            "plan_key": self.plan_key,
+            "start_turn": self.start_turn,
+            "count": self.count,
+            "inputs": _array_state(self.inputs),
+            "pending": _array_state(self.pending)
+        }
 
     @classmethod
     def restore(cls, data, plan):
@@ -99,22 +103,23 @@ class ConvolutionState:
         for key in ("start_turn", "count"):
             if isinstance(data[key], bool) or not isinstance(data[key], int) or data[key] < 0:
                 raise ValueError("Convolution checkpoint has an invalid turn/count")
-        out = cls(plan, start_turn=data["start_turn"])
+        state = cls(plan, start_turn=data["start_turn"])
         for name in ("inputs", "pending"):
             item = data[name]
-            target = getattr(out, name)
+            target = getattr(state, name)
             if tuple(item["shape"]) != target.shape:
                 raise ValueError("Convolution checkpoint has an invalid array shape")
-            value = np.asarray(item["real"])+1j*np.asarray(item["imag"])
+            value = np.asarray(item["real"]) + 1j * np.asarray(item["imag"])
             if value.size != target.size or not np.all(np.isfinite(value)):
                 raise ValueError("Convolution checkpoint contains invalid spectra")
             target[...] = plan.xp.asarray(value.reshape(target.shape))
-        out.count = data["count"]
-        return out
+        state.count = data["count"]
+        return state
 
 
 class HistoryUpdate:
     """Staged update: no persistent ring is changed until the kick is accepted."""
+
     def __init__(self, state, spectrum, additions, plan=None):
         self.state, self.spectrum, self.additions = state, spectrum, additions
         self.count = state.count
@@ -133,15 +138,17 @@ class HistoryUpdate:
             return
         s.pending[n % len(s.pending)] = 0
         for value in self.additions:
-            start = (n+1) % len(s.pending)
-            first = min(len(value), len(s.pending)-start)
-            if isinstance(value,np.ndarray):
-                s.pending[start:start+first] += value[:first]
-                if first < len(value):s.pending[:len(value)-first] += value[first:]
+            start = (n + 1) % len(s.pending)
+            first = min(len(value), len(s.pending) - start)
+            if isinstance(value, np.ndarray):
+                s.pending[start:start + first] += value[:first]
+                if first < len(value):
+                    s.pending[:len(value) - first] += value[first:]
             else:
                 from .wake_state import add_gpu
-                add_gpu(s,s.pending[start:start+first].view(np.float64),value[:first].view(np.float64))
-                if first<len(value):add_gpu(s,s.pending[:len(value)-first].view(np.float64),value[first:].view(np.float64))
+                add_gpu(s, s.pending[start:start + first].view(np.float64), value[:first].view(np.float64))
+                if first < len(value):
+                    add_gpu(s, s.pending[:len(value) - first].view(np.float64), value[first:].view(np.float64))
         s.count += 1
         self.additions = ()
         self.spectrum = None
@@ -155,6 +162,7 @@ class BlockPreviewTransaction:
     The caller retains the spectra/additions it wants to commit subsequently.
     A state cannot be used by overlapping transactions.
     """
+
     def __init__(self, state):
         self.state, self.count = state, state.count
         self.saved = []
@@ -172,15 +180,15 @@ class BlockPreviewTransaction:
 
     def _save(self, name, start, count):
         array, seen = getattr(self.state, name), self.seen[name]
-        for first, last in ((start, min(start+count, len(array))), (0, max(0, start+count-len(array)))):
-            unseen = np.flatnonzero(~seen[first:last])+first
+        for first, last in ((start, min(start + count, len(array))), (0, max(0, start + count - len(array)))):
+            unseen = np.flatnonzero(~seen[first:last]) + first
             if not len(unseen):
                 continue
-            boundaries = np.r_[0, np.flatnonzero(np.diff(unseen) != 1)+1, len(unseen)]
+            boundaries = np.r_[0, np.flatnonzero(np.diff(unseen) != 1) + 1, len(unseen)]
             for a, b in zip(boundaries[:-1], boundaries[1:]):
-                sl = slice(int(unseen[a]), int(unseen[b-1])+1)
-                self.saved.append((array, sl, array[sl].copy()))
-                seen[sl] = True
+                bunch_slice = slice(int(unseen[a]), int(unseen[b - 1]) + 1)
+                self.saved.append((array, bunch_slice, array[bunch_slice].copy()))
+                seen[bunch_slice] = True
 
     def apply(self, update):
         s = self.state
@@ -191,7 +199,7 @@ class BlockPreviewTransaction:
         if update.plan is not None:
             self._save("pending", 0, len(s.pending))
         for value in update.additions:
-            self._save("pending", (s.count+1) % len(s.pending), len(value))
+            self._save("pending", (s.count + 1) % len(s.pending), len(value))
         update.commit()
 
     def __exit__(self, *exception):
@@ -211,8 +219,8 @@ class PartitionedConvolution:
     samples. ``memory_turns`` counts prior passages, as in the direct solver.
     Workspace limits are checked before allocating device buffers.
     """
-    def __init__(self, components, grid, memory_turns, *, backend="cpu", method="dyadic",
-                 memory_time=None, max_workspace_mb=1024):
+
+    def __init__(self, components, grid, memory_turns, *, backend="cpu", method="dyadic", memory_time=None, max_workspace_mb=1024):
         import hashlib
         from dataclasses import asdict
         import json
@@ -231,36 +239,36 @@ class PartitionedConvolution:
         self.memory_turns, self.memory_time, self.method = memory_turns, memory_time, method
         self.backend = backend
         self.channels, self.channel_indices = source_channels(components)
-        self.shape = (next_fast_len(2*grid.slots-1), next_fast_len(2*grid.slices-1))
-        self.frequency_shape = (self.shape[0], self.shape[1]//2+1)
-        self.longest = 1 << (memory_turns.bit_length()-1) if method == "dyadic" else memory_turns
+        self.shape = (next_fast_len(2 * grid.slots - 1), next_fast_len(2 * grid.slices - 1))
+        self.frequency_shape = (self.shape[0], self.shape[1] // 2 + 1)
+        self.longest = 1 << (memory_turns.bit_length() - 1) if method == "dyadic" else memory_turns
         self.input_capacity = self.longest if method == "dyadic" else 1
-        self.pending_capacity = 2*self.longest if method == "dyadic" else memory_turns+1
+        self.pending_capacity = 2 * self.longest if method == "dyadic" else memory_turns + 1
         self.levels = []
         if method == "dyadic":
             length = 1
             while length <= memory_turns:
-                self.levels.append((length, min(length, memory_turns-length+1)))
+                self.levels.append((length, min(length, memory_turns - length + 1)))
                 length *= 2
         else:
             self.levels = [(1, memory_turns)]
-        f = math.prod(self.frequency_shape)
+        frequency_count = math.prod(self.frequency_shape)
         nc, nu = len(components), len(self.channels)
         # Conservative peak: retained kernel spectra + rings + largest staged
         # update and FFT temporaries. Includes CPU/GPU double complex arithmetic.
-        kernel_rows = sum(2*l for l, _ in self.levels) if method == "dyadic" else memory_turns
-        self.estimated_bytes = int(16*f*(nc*(kernel_rows+2*self.longest+8*self.longest+1)
-                                      +nu*(self.longest+4*self.longest)))
+        kernel_rows = sum(2 * l for l, _ in self.levels) if method == "dyadic" else memory_turns
+        self.estimated_bytes = int(16 * frequency_count * (nc * (kernel_rows + 2 * self.longest + 8 * self.longest + 1) + nu *
+                                                           (self.longest + 4 * self.longest)))
         if not np.isfinite(max_workspace_mb) or max_workspace_mb <= 0:
             raise ValueError("Max workspace must be positive finite")
-        if self.estimated_bytes > max_workspace_mb*1024**2:
+        if self.estimated_bytes > max_workspace_mb * 1024**2:
             raise MemoryError(f"Convolution estimated peak {self.estimated_bytes/1024**2:.1f} MiB "
                               f"exceeds {max_workspace_mb:g} MiB; reduce grid/history or raise the explicit limit")
         if backend == "gpu":
             import cupy as cp
             self.xp, self.fft = cp, cp.fft
             self.device = cp.cuda.runtime.getDevice()
-            if self.estimated_bytes > cp.cuda.runtime.memGetInfo()[0]*.9:
+            if self.estimated_bytes > cp.cuda.runtime.memGetInfo()[0] * .9:
                 raise MemoryError("Convolution workspace would exhaust available GPU memory")
         else:
             import scipy.fft
@@ -269,17 +277,23 @@ class PartitionedConvolution:
         self.indices = self.xp.asarray(self.channel_indices)
         self._time_plans = {}
         self._density = self.xp.zeros((nu, grid.slots, grid.slices), dtype=np.float64)
-        d = np.arange(self.shape[0])
-        q = np.arange(self.shape[1])
-        d = np.where(d < grid.slots, d, d-self.shape[0])
-        q = np.where(q < grid.slices, q, q-self.shape[1])
-        self._offsets = d[:, None]*grid.slot_spacing+q[None, :]*grid.slice_spacing
+        slot_offsets = np.arange(self.shape[0])
+        slice_offsets = np.arange(self.shape[1])
+        slot_offsets = np.where(slot_offsets < grid.slots, slot_offsets, slot_offsets - self.shape[0])
+        slice_offsets = np.where(slice_offsets < grid.slices, slice_offsets, slice_offsets - self.shape[1])
+        self._offsets = slot_offsets[:, None] * grid.slot_spacing + slice_offsets[None, :] * grid.slice_spacing
         # Hash canonical sampled kernels too: model identity alone is not an
         # adequate checkpoint/cache key for user-supplied response objects.
-        digest = hashlib.sha256(json.dumps({"grid": asdict(grid), "history": memory_turns,
-            "memory_time": memory_time, "method": method,
-            "components": [(c.plane, c.source_powers, c.test_powers, repr(c.velocity)) for c in components]},
-            sort_keys=True).encode())
+        digest = hashlib.sha256(
+            json.dumps(
+                {
+                    "grid": asdict(grid),
+                    "history": memory_turns,
+                    "memory_time": memory_time,
+                    "method": method,
+                    "components": [(c.plane, c.source_powers, c.test_powers, repr(c.velocity)) for c in components]
+                },
+                sort_keys=True).encode())
         self._digest = digest
         self.head = self._kernel_spectra(0, 1)[0]
         self.filters = []
@@ -288,7 +302,7 @@ class PartitionedConvolution:
                 kernel = self._kernel_spectra(length, count)
                 # A single lag is a spectral delay line, requiring no temporal
                 # FFT. This includes lag 1 and power-of-two cutoff endpoints.
-                self.filters.append(kernel[0] if count == 1 else self._time_forward(kernel, 2*length))
+                self.filters.append(kernel[0] if count == 1 else self._time_forward(kernel, 2 * length))
         else:
             self.filters.append(self._kernel_spectra(1, memory_turns))
         self.key = digest.hexdigest()
@@ -305,7 +319,7 @@ class PartitionedConvolution:
         if key not in self._time_plans:
             from cupyx.scipy.fft import get_fft_plan
             sample = self.xp.empty((rows, *self.frequency_shape, size), dtype=np.complex128)
-            self._time_plans[key] = get_fft_plan(sample, axes=(-1,), value_type="C2C")
+            self._time_plans[key] = get_fft_plan(sample, axes=(-1, ), value_type="C2C")
         return self._time_plans[key]
 
     def _time_forward(self, data, size):
@@ -324,45 +338,45 @@ class PartitionedConvolution:
 
     def _kernel_spectra(self, start, count):
         from .wake_solvers import _kernel
-        out = self.xp.empty((count, len(self.components), *self.frequency_shape), dtype=np.complex128)
+        kernel_spectra = self.xp.empty((count, len(self.components), *self.frequency_shape), dtype=np.complex128)
         # Initialization uses the canonical CPU evaluator, including arbitrary
         # tabulated/spectral models; no formula is reimplemented for this path.
         for j in range(count):
-            tau = (start+j)*self.grid.period+self._offsets
+            tau = (start + j) * self.grid.period + self._offsets
             values = np.stack([_kernel(c, tau, self.grid.width, self.memory_time) for c in self.components])
             if not np.all(np.isfinite(values)):
                 raise ValueError("Convolution kernel is not finite")
             self._digest.update(values.tobytes())
-            out[j] = self.fft.rfft2(self.xp.asarray(values), axes=(-2, -1))
-        return out
+            kernel_spectra[j] = self.fft.rfft2(self.xp.asarray(values), axes=(-2, -1))
+        return kernel_spectra
 
     def _mapping(self, source, turn):
-        xp, g = self.xp, self.grid
+        xp, grid = self.xp, self.grid
         times = xp.asarray(source.times, dtype=np.float64)
-        rel = times-(g.origin+turn*g.period)
-        guard = (g.slot_spacing-(g.slices-1)*g.slice_spacing)/2
-        slots = xp.floor((rel+guard)/g.slot_spacing).astype(np.int64)
-        position = (rel-slots*g.slot_spacing)/g.slice_spacing
+        rel = times - (grid.origin + turn * grid.period)
+        guard = (grid.slot_spacing - (grid.slices - 1) * grid.slice_spacing) / 2
+        slots = xp.floor((rel + guard) / grid.slot_spacing).astype(np.int64)
+        position = (rel - slots * grid.slot_spacing) / grid.slice_spacing
         # Absolute clocks eventually cannot resolve a fine mesh. Never silently
         # accept a tolerance comparable with an entire slice.
-        resolution = abs(np.spacing(g.origin+turn*g.period))
-        if resolution > g.slice_spacing*1e-3:
+        resolution = abs(np.spacing(grid.origin + turn * grid.period))
+        if resolution > grid.slice_spacing * 1e-3:
             raise ValueError("Absolute convolution clock cannot resolve the requested slice spacing")
-        tolerance = max(64*resolution/g.slice_spacing, 2e-9)
+        tolerance = max(64 * resolution / grid.slice_spacing, 2e-9)
         nearest = xp.rint(position)
-        position = xp.where(xp.abs(position-nearest) <= tolerance, nearest, position)
+        position = xp.where(xp.abs(position - nearest) <= tolerance, nearest, position)
         left = xp.floor(position).astype(np.int64)
-        fraction = position-left
-        valid = ((slots >= 0) & (slots < g.slots) & (left >= 0) & (left < g.slices)
-                 & ((left < g.slices-1) | (fraction == 0)) & xp.isfinite(times))
-        if g.projection == "exact":
+        fraction = position - left
+        valid = ((slots >= 0) & (slots < grid.slots) & (left >= 0) & (left < grid.slices) & ((left < grid.slices - 1) | (fraction == 0))
+                 & xp.isfinite(times))
+        if grid.projection == "exact":
             valid &= fraction == 0
         widths = xp.asarray(source.widths)
-        valid &= xp.abs(widths-g.width) <= max(g.width*1e-10, g.slice_spacing*1e-12)
+        valid &= xp.abs(widths - grid.width) <= max(grid.width * 1e-10, grid.slice_spacing * 1e-12)
         if not bool(xp.all(valid)):
             raise ValueError("Source times/widths do not match the declared convolution grid; "
                              "use point-source linear projection or a compatible exact grid")
-        index = slots*g.slices+left
+        index = slots * grid.slices + left
         return index, fraction
 
     def _validated_state(self, state, turn):
@@ -377,7 +391,7 @@ class PartitionedConvolution:
             raise ValueError("Convolution state belongs to a different plan")
         if not isinstance(state.inputs, xp.ndarray) or (self.device is not None and state.inputs.device.id != self.device):
             raise ValueError("Convolution state belongs to another backend/device; restore its checkpoint on this plan")
-        if turn != state.start_turn+state.count:
+        if turn != state.start_turn + state.count:
             raise ValueError("Convolution turns must be consecutive; submit empty sources for empty turns")
         return state
 
@@ -403,18 +417,18 @@ class PartitionedConvolution:
                 flat = self._density[ci].ravel()
                 if values.size == 0:
                     continue
-                flat += np.bincount(index, weights=values*(1-fraction), minlength=flat.size)
+                flat += np.bincount(index, weights=values * (1 - fraction), minlength=flat.size)
                 if self.grid.projection == "linear":
-                    right = np.minimum(index+1, flat.size-1)
-                    flat += np.bincount(right, weights=values*fraction, minlength=flat.size)
+                    right = np.minimum(index + 1, flat.size - 1)
+                    flat += np.bincount(right, weights=values * fraction, minlength=flat.size)
         values, update = self._convolve_block(self._density, state)
         if self.backend == "gpu":
             result = gather_gpu(self, source, values, index, fraction)
         else:
             values = values[:, :self.grid.slots, :self.grid.slices].reshape(len(self.components), -1)
-            result = values[:, index]*(1-fraction)
+            result = values[:, index] * (1 - fraction)
             if self.grid.projection == "linear":
-                result += values[:, xp.minimum(index+1, values.shape[1]-1)]*fraction
+                result += values[:, xp.minimum(index + 1, values.shape[1] - 1)] * fraction
             for ci, component in enumerate(self.components):
                 result[ci] *= component.witness_factor(source.betas)
         return result, update
@@ -429,13 +443,12 @@ class PartitionedConvolution:
         The input array is not retained by the staged update.
         """
         state = self._validated_state(state, turn)
-        if (not isinstance(density, self.xp.ndarray) or density.shape != self._density.shape
-                or density.dtype != np.float64):
+        if (not isinstance(density, self.xp.ndarray) or density.shape != self._density.shape or density.dtype != np.float64):
             raise ValueError("Convolution block must be a float64 backend array with the declared channel/grid shape")
         if self.device is not None and density.device.id != self.device:
             raise ValueError("Convolution block belongs to another CUDA device")
         from .wake_state import finite_gpu
-        if not (finite_gpu(self,density) if self.backend=='gpu' else bool(np.all(np.isfinite(density)))):
+        if not (finite_gpu(self, density) if self.backend == 'gpu' else bool(np.all(np.isfinite(density)))):
             raise ValueError("Convolution block must be finite")
         values, update = self._convolve_block(density, state)
         return values[:, :self.grid.slots, :self.grid.slices].copy(), update
@@ -444,167 +457,254 @@ class PartitionedConvolution:
         """Shared spectral core; validation and coordinate mapping live at the boundary."""
         xp = self.xp
         single_slot = self.backend == "gpu" and self.shape[0] == 1
-        spectrum = (self.fft.rfft(density, n=self.shape[1], axis=-1) if single_slot
-                    else self.fft.rfft2(density, s=self.shape, axes=(-2, -1)))
+        spectrum = (self.fft.rfft(density, n=self.shape[1], axis=-1) if single_slot else self.fft.rfft2(density, s=self.shape, axes=(-2, -1)))
         n = state.count
         if self.backend == "gpu":
             accumulated = accumulate_gpu(self, state, spectrum)
         else:
-            accumulated = self.head*spectrum[self.indices]+state.pending[n % len(state.pending)]
+            accumulated = self.head * spectrum[self.indices] + state.pending[n % len(state.pending)]
             if self.method == "dyadic":
                 for (length, count), kernel in zip(self.levels, self.filters):
                     if count == 1 and n >= length:
-                        accumulated += kernel*state.inputs[(n-length) % len(state.inputs)][self.indices]
-        values = (self.fft.irfft(accumulated, n=self.shape[1], axis=-1) if single_slot
-                  else self.fft.irfft2(accumulated, s=self.shape, axes=(-2, -1)))
+                        accumulated += kernel * state.inputs[(n - length) % len(state.inputs)][self.indices]
+        values = (self.fft.irfft(accumulated, n=self.shape[1], axis=-1) if single_slot else self.fft.irfft2(accumulated, s=self.shape, axes=(-2, -1)))
         additions = []
         if self.method == "uniform" and self.backend == "cpu":
             # All prior lag contributions of this new source are scheduled once.
-            additions.append(self.filters[0]*spectrum[self.indices][None, ...])
+            additions.append(self.filters[0] * spectrum[self.indices][None, ...])
         elif self.method == "dyadic":
             for (length, count), kernel in zip(self.levels, self.filters):
-                if count == 1 or (n+1) % length:
+                if count == 1 or (n + 1) % length:
                     continue
                 block = xp.empty((length, len(self.channels), *self.frequency_shape), dtype=np.complex128)
                 if length > 1:
-                    start = (n-length+1) % len(state.inputs)
-                    first = min(length-1, len(state.inputs)-start)
-                    block[:first] = state.inputs[start:start+first]
-                    if first < length-1:
-                        block[first:-1] = state.inputs[:length-1-first]
+                    start = (n - length + 1) % len(state.inputs)
+                    first = min(length - 1, len(state.inputs) - start)
+                    block[:first] = state.inputs[start:start + first]
+                    if first < length - 1:
+                        block[first:-1] = state.inputs[:length - 1 - first]
                 block[-1] = spectrum
-                transformed = self._time_forward(block, 2*length)
-                product = (transformed[:, self.indices]*kernel if self.backend == "cpu" else history_product_gpu(self, transformed, kernel))
-                contribution = self._time_inverse(product, length+count-1)
+                transformed = self._time_forward(block, 2 * length)
+                product = (transformed[:, self.indices] * kernel if self.backend == "cpu" else history_product_gpu(self, transformed, kernel))
+                contribution = self._time_inverse(product, length + count - 1)
                 additions.append(contribution)
-        return values, HistoryUpdate(state, spectrum, additions,
-                                     self if self.method == "uniform" and self.backend == "gpu" else None)
+        return values, HistoryUpdate(state, spectrum, additions, self if self.method == "uniform" and self.backend == "gpu" else None)
 
     def step(self, source, state=None, *, turn):
         values, update = self.preview(source, state, turn=turn)
         from .wake_state import finite_gpu
-        if not (finite_gpu(self,values) if self.backend=='gpu' else bool(np.all(np.isfinite(values)))):
+        if not (finite_gpu(self, values) if self.backend == 'gpu' else bool(np.all(np.isfinite(values)))):
             raise FloatingPointError("Convolution produced nonfinite coefficients")
         update.commit()
         return values, update.state
 
     @property
     def diagnostics(self):
-        return {"partition": self.method, "source_transforms": len(self.channels),
-                "components": len(self.components), "spatial_fft_shape": self.shape,
-                "history_levels": len(self.levels), "estimated_peak_bytes": self.estimated_bytes}
+        return {
+            "partition": self.method,
+            "source_transforms": len(self.channels),
+            "components": len(self.components),
+            "spatial_fft_shape": self.shape,
+            "history_levels": len(self.levels),
+            "estimated_peak_bytes": self.estimated_bytes
+        }
 
 
-# ----------------------------------------------------------------------------
 # GPU: fused CUDA convolution kernels
-# ----------------------------------------------------------------------------
 
 
-def convolution_kernel(plan,name):
+def convolution_kernel(plan, name):
     import cupy as cp
-    cache=plan.__dict__.setdefault('_convolution_kernels',{})
-    key=(cp.cuda.runtime.getDevice(),name)
-    if key not in cache:cache[key]=cp.RawKernel(_CODE,name,options=('--std=c++17',))
+    cache = plan.__dict__.setdefault('_convolution_kernels', {})
+    key = (cp.cuda.runtime.getDevice(), name)
+    if key not in cache:
+        cache[key] = cp.RawKernel(_CODE, name, options=('--std=c++17', ))
     return cache[key]
 
 
-def accumulate_gpu(plan,state,spectrum):
+def accumulate_gpu(plan, state, spectrum):
     import cupy as cp
-    if not hasattr(plan,'_single_filters'):
-        singles=[(l,k) for (l,c),k in zip(plan.levels,plan.filters) if c==1] if plan.method=='dyadic' else []
-        plan._single_lags=cp.asarray([l for l,_ in singles],dtype=cp.int64)
-        plan._single_filters=cp.stack([k for _,k in singles]) if singles else cp.empty(0,dtype=cp.complex128)
-    nf=int(np.prod(plan.frequency_shape));span=nf*len(plan.components)
-    result=cp.empty((len(plan.components),*plan.frequency_shape),dtype=cp.complex128)
-    convolution_kernel(plan,'accumulate')(((span+255)//256,),(256,),
-        (plan.head,spectrum,state.pending,state.inputs,plan._single_filters,plan._single_lags,plan.indices,
-         np.int64(nf),np.int64(span),np.int64(len(plan.channels)),np.int64(state.count),np.int64(len(state.inputs)),
-         np.int64(len(state.pending)),np.int32(len(plan._single_lags)),result))
+    if not hasattr(plan, '_single_filters'):
+        singles = [(l, k) for (l, c), k in zip(plan.levels, plan.filters) if c == 1] if plan.method == 'dyadic' else []
+        plan._single_lags = cp.asarray([l for l, _ in singles], dtype=cp.int64)
+        plan._single_filters = cp.stack([k for _, k in singles]) if singles else cp.empty(0, dtype=cp.complex128)
+    nf = int(np.prod(plan.frequency_shape))
+    span = nf * len(plan.components)
+    result = cp.empty((len(plan.components), *plan.frequency_shape), dtype=cp.complex128)
+    convolution_kernel(plan,
+                       'accumulate')(((span + 255) // 256, ), (256, ),
+                                     (plan.head, spectrum, state.pending, state.inputs, plan._single_filters, plan._single_lags, plan.indices,
+                                      np.int64(nf), np.int64(span), np.int64(len(plan.channels)), np.int64(state.count), np.int64(len(
+                                          state.inputs)), np.int64(len(state.pending)), np.int32(len(plan._single_lags)), result))
     return result
 
 
-def gather_gpu(plan,source,values,index,fraction):
+def gather_gpu(plan, source, values, index, fraction):
     import cupy as cp
     from .wake_velocity import apply_factor_gpu
-    n=len(source.times);result=cp.empty((len(plan.components),n),dtype=cp.float64)
-    if n:convolution_kernel(plan,'gather')(((result.size+255)//256,),(256,),
-        (values,index,fraction,np.int64(n),np.int64(plan.grid.slices),np.int64(plan.shape[1]),
-         np.int64(np.prod(plan.shape)),np.int64(result.size),result))
-    for ci,c in enumerate(plan.components):
-        law=c.velocity
-        if law is not None and law.kind!='fixed' and any(v!=1. for v in law.witness):
-            apply_factor_gpu(c,source.betas,result[ci],witness=True,out=result[ci])
+    n = len(source.times)
+    result = cp.empty((len(plan.components), n), dtype=cp.float64)
+    if n:
+        convolution_kernel(plan, 'gather')(((result.size + 255) // 256, ), (256, ), (values, index, fraction, np.int64(n), np.int64(
+            plan.grid.slices), np.int64(plan.shape[1]), np.int64(np.prod(plan.shape)), np.int64(result.size), result))
+    for ci, c in enumerate(plan.components):
+        law = c.velocity
+        if law is not None and law.kind != 'fixed' and any(v != 1. for v in law.witness):
+            apply_factor_gpu(c, source.betas, result[ci], witness=True, out=result[ci])
     return result
 
 
-def schedule_uniform_gpu(plan,state,spectrum):
-    nf=int(np.prod(plan.frequency_shape));span=len(plan.components)*nf
-    convolution_kernel(plan,'schedule_uniform')((((plan.memory_turns+1)*span+255)//256,),(256,),
-        (plan.filters[0],spectrum,plan.indices,np.int64(nf),np.int64(span),np.int64(state.count),
-         np.int64(plan.memory_turns),state.pending))
+def schedule_uniform_gpu(plan, state, spectrum):
+    nf = int(np.prod(plan.frequency_shape))
+    span = len(plan.components) * nf
+    convolution_kernel(plan, 'schedule_uniform')(
+        (((plan.memory_turns + 1) * span + 255) // 256, ), (256, ),
+        (plan.filters[0], spectrum, plan.indices, np.int64(nf), np.int64(span), np.int64(state.count), np.int64(plan.memory_turns), state.pending))
 
 
-def history_product_gpu(plan,transformed,kernel):
+def history_product_gpu(plan, transformed, kernel):
     import cupy as cp
-    out=cp.empty(kernel.shape,dtype=cp.complex128)
-    convolution_kernel(plan,'history_product')(((out.size+255)//256,),(256,),
-        (transformed,kernel,plan.indices,np.int64(out.size//len(plan.components)),np.int64(out.size),out))
+    out = cp.empty(kernel.shape, dtype=cp.complex128)
+    convolution_kernel(plan,
+                       'history_product')(((out.size + 255) // 256, ), (256, ),
+                                          (transformed, kernel, plan.indices, np.int64(out.size // len(plan.components)), np.int64(out.size), out))
     return out
 
 
 _CODE = r'''
 #include <cupy/complex.cuh>
-using C=complex<double>;
-extern "C" __global__ void accumulate(const C* head,const C* source,const C* pending,const C* inputs,
-    const C* singles,const long long* lags,const int* channels,long long nf,long long span,long long nu,
-    long long count,long long input_capacity,long long pending_capacity,int nlags,C* out){
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=span)return;
-    long long src=(long long)channels[i/nf]*nf+i%nf;
-    C value=head[i]*source[src]+pending[(count%pending_capacity)*span+i];
-    for(int j=0;j<nlags;j++)if(count>=lags[j])value+=singles[(long long)j*span+i]*inputs[((count-lags[j])%input_capacity)*nu*nf+src];
-    out[i]=value;
+using C = complex<double>;
+extern "C" __global__ void accumulate(
+    const C* head,
+    const C* source,
+    const C* pending,
+    const C* inputs,
+    const C* singles,
+    const long long* lags,
+    const int* channels,
+    long long nf,
+    long long span,
+    long long nu,
+    long long count,
+    long long input_capacity,
+    long long pending_capacity,
+    int nlags,
+    C* out
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= span)
+        return;
+    long long src = (long long)channels[i / nf] * nf + i % nf;
+    C value = head[i] * source[src] + pending[(count % pending_capacity) * span + i];
+    for (int j = 0; j < nlags; j++)
+        if (count >= lags[j])
+            value += singles[(long long)j * span + i] * inputs[((count - lags[j]) % input_capacity) * nu * nf + src];
+    out[i] = value;
 }
-extern "C" __global__ void gather(const double* field,const long long* index,const double* fraction,
-    long long n,long long slices,long long padded_slices,long long padded_span,long long size,double* out){
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=size)return;
-    long long c=i/n,j=i%n,q=index[j],offset=c*padded_span+(q/slices)*padded_slices+q%slices;
-    double part=fraction[j],value=field[offset]*(1.-part);if(part!=0.)value+=field[offset+1]*part;out[i]=value;
+extern "C" __global__ void gather(
+    const double* field,
+    const long long* index,
+    const double* fraction,
+    long long n,
+    long long slices,
+    long long padded_slices,
+    long long padded_span,
+    long long size,
+    double* out
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= size)
+        return;
+    long long c = i / n, j = i % n, q = index[j], offset = c * padded_span + (q / slices) * padded_slices + q % slices;
+    double part = fraction[j], value = field[offset] * (1. - part);
+    if (part != 0.)
+        value += field[offset + 1] * part;
+    out[i] = value;
 }
-extern "C" __global__ void schedule_uniform(const C* kernel,const C* source,const int* channels,
-    long long nf,long long span,long long count,long long history,C* pending){
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=(history+1)*span)return;
-    long long lag=i/span,cell=i%span,out=((count+1+lag)%(history+1))*span+cell;
-    if(lag==history)pending[out]=C(0.,0.);else pending[out]+=kernel[i]*source[(long long)channels[cell/nf]*nf+cell%nf];
+extern "C" __global__ void schedule_uniform(
+    const C* kernel,
+    const C* source,
+    const int* channels,
+    long long nf,
+    long long span,
+    long long count,
+    long long history,
+    C* pending
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= (history + 1) * span)
+        return;
+    long long lag = i / span, cell = i % span, out = ((count + 1 + lag) % (history + 1)) * span + cell;
+    if (lag == history)
+        pending[out] = C(0., 0.);
+    else
+        pending[out] += kernel[i] * source[(long long)channels[cell / nf] * nf + cell % nf];
 }
-extern "C" __global__ void history_product(const C* source,const C* filter,const int* channels,long long row,long long n,C* out){
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)out[i]=filter[i]*source[(long long)channels[i/row]*row+i%row];
+extern "C" __global__ void history_product(
+    const C* source,
+    const C* filter,
+    const int* channels,
+    long long row,
+    long long n,
+    C* out
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n)
+        out[i] = filter[i] * source[(long long)channels[i / row] * row + i % row];
 }
 
-extern "C" __global__ void scatter(const double* times,const double* widths,
-    const double* betas,const double* values,int n,int channels,int slots,int slices,
-    double origin,double gap,double step,double width,double tolerance,int linear,
-    double beta_min,double beta_max,long long* index,double* fraction,double* density,int* invalid){
-    int i=blockIdx.x*blockDim.x+threadIdx.x;
-    if(i>=n)return;
-    double rel=times[i]-origin, guard=(gap-(slices-1)*step)/2.;
-    double slot=floor((rel+guard)/gap),pos=(rel-slot*gap)/step;
-    double near=nearbyint(pos);
-    if(fabs(pos-near)<=tolerance)pos=near;
-    double left=floor(pos),part=pos-left;
-    if(!isfinite(times[i])||!isfinite(widths[i])||!isfinite(betas[i])||betas[i]<=0.
-       ||betas[i]<beta_min||betas[i]>beta_max||slot<0||slot>=slots||left<0||left>=slices
-       ||(left==slices-1&&part!=0.)||(!linear&&part!=0.)
-       ||fabs(widths[i]-width)>fmax(width*1e-10,step*1e-12)){
-        atomicExch(invalid,1);index[i]=0;fraction[i]=0.;return;
+extern "C" __global__ void scatter(
+    const double* times,
+    const double* widths,
+    const double* betas,
+    const double* values,
+    int n,
+    int channels,
+    int slots,
+    int slices,
+    double origin,
+    double gap,
+    double step,
+    double width,
+    double tolerance,
+    int linear,
+    double beta_min,
+    double beta_max,
+    long long* index,
+    double* fraction,
+    double* density,
+    int* invalid
+) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n)
+        return;
+    double rel = times[i] - origin, guard = (gap - (slices - 1) * step) / 2.;
+    double slot = floor((rel + guard) / gap), pos = (rel - slot * gap) / step;
+    double near = nearbyint(pos);
+    if (fabs(pos - near) <= tolerance)
+        pos = near;
+    double left = floor(pos), part = pos - left;
+    if (!isfinite(times[i]) || !isfinite(widths[i]) || !isfinite(betas[i]) || betas[i] <= 0. || betas[i] < beta_min || betas[i] > beta_max ||
+        slot < 0 || slot >= slots || left < 0 || left >= slices || (left == slices - 1 && part != 0.) || (!linear && part != 0.) ||
+        fabs(widths[i] - width) > fmax(width * 1e-10, step * 1e-12)) {
+        atomicExch(invalid, 1);
+        index[i] = 0;
+        fraction[i] = 0.;
+        return;
     }
-    long long id=(long long)slot*slices+(long long)left;
-    index[i]=id;fraction[i]=part;
-    for(int k=0;k<channels;k++){
-        double value=values[(long long)k*n+i];
-        if(!isfinite(value)){atomicExch(invalid,2);continue;}
-        double* out=density+(long long)k*slots*slices+id;
-        atomicAdd(out,value*(1.-part));
-        if(linear&&part!=0.)atomicAdd(out+1,value*part);
+    long long id = (long long)slot * slices + (long long)left;
+    index[i] = id;
+    fraction[i] = part;
+    for (int k = 0; k < channels; k++) {
+        double value = values[(long long)k * n + i];
+        if (!isfinite(value)) {
+            atomicExch(invalid, 2);
+            continue;
+        }
+        double* out = density + (long long)k * slots * slices + id;
+        atomicAdd(out, value * (1. - part));
+        if (linear && part != 0.)
+            atomicAdd(out + 1, value * part);
     }
 }
 '''
@@ -614,21 +714,21 @@ def deposit_gpu(plan, source, turn):
     """One scatter launch and one scalar validation transfer per passage."""
     import cupy as cp
     from .wake_components import moments_gpu
-    g = plan.grid
+    grid = plan.grid
     n = len(source.times)
     arrays = [source.times, source.widths, source.betas]
-    if any(a.shape != (n,) for a in arrays) or any(source.moments[c.source_powers].shape != (n,) for c in plan.channels):
+    if any(a.shape != (n, ) for a in arrays) or any(source.moments[c.source_powers].shape != (n, ) for c in plan.channels):
         raise ValueError("Convolution source arrays must have matching one-dimensional shapes")
     times, widths, betas = [cp.ascontiguousarray(a, dtype=cp.float64) for a in arrays]
     if not hasattr(plan, "_scatter"):
-        plan._scatter = cp.RawKernel(_CODE, "scatter", options=("--std=c++17",))
+        plan._scatter = cp.RawKernel(_CODE, "scatter", options=("--std=c++17", ))
         plan._invalid = cp.zeros(1, dtype=cp.int32)
     index, fraction = cp.empty(n, dtype=cp.int64), cp.empty(n, dtype=cp.float64)
     plan._density.fill(0)
     if not n:
         return index, fraction
-    resolution = abs(np.spacing(g.origin+turn*g.period))
-    if resolution > g.slice_spacing*1e-3:
+    resolution = abs(np.spacing(grid.origin + turn * grid.period))
+    if resolution > grid.slice_spacing * 1e-3:
         raise ValueError("Absolute convolution clock cannot resolve the requested slice spacing")
     beta_min, beta_max = 0., 1.
     for c in plan.components:
@@ -636,16 +736,15 @@ def deposit_gpu(plan, source, turn):
             beta_min = max(beta_min, .99)
         law = c.velocity
         if law is not None:
-            lo, hi = ((law.beta*(1-1e-12), law.beta*(1+1e-12)) if law.kind == "fixed"
-                      else (law.betas[0], law.betas[-1]))
+            lo, hi = ((law.beta * (1 - 1e-12), law.beta * (1 + 1e-12)) if law.kind == "fixed" else (law.betas[0], law.betas[-1]))
             beta_min, beta_max = max(beta_min, lo), min(beta_max, hi)
     values = cp.ascontiguousarray(moments_gpu(plan.channels, source), dtype=cp.float64)
     plan._invalid.fill(0)
-    plan._scatter(((n+255)//256,), (256,), (times, widths, betas, values,
-        np.int32(n), np.int32(len(plan.channels)), np.int32(g.slots), np.int32(g.slices),
-        np.float64(g.origin+turn*g.period), np.float64(g.slot_spacing), np.float64(g.slice_spacing),
-        np.float64(g.width), np.float64(max(64*resolution/g.slice_spacing, 2e-9)), np.int32(g.projection == "linear"),
-        np.float64(beta_min), np.float64(beta_max), index, fraction, plan._density, plan._invalid))
+    plan._scatter(((n + 255) // 256, ), (256, ),
+                  (times, widths, betas, values, np.int32(n), np.int32(len(plan.channels)), np.int32(grid.slots), np.int32(
+                      grid.slices), np.float64(grid.origin + turn * grid.period), np.float64(grid.slot_spacing), np.float64(
+                          grid.slice_spacing), np.float64(grid.width), np.float64(max(64 * resolution / grid.slice_spacing, 2e-9)),
+                   np.int32(grid.projection == "linear"), np.float64(beta_min), np.float64(beta_max), index, fraction, plan._density, plan._invalid))
     if int(plan._invalid[0]):
         raise ValueError("Source times/widths do not match convolution grid, or source moments/beta are invalid")
     return index, fraction

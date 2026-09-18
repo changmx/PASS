@@ -24,7 +24,7 @@ PASS 中的八极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
 坐标约定
 --------
 
-PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
+PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
 
 .. list-table::
   :header-rows: 1

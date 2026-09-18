@@ -45,7 +45,7 @@ def _interval_coverage(intervals, circumference, tolerance):
     return covered, gaps, overlaps
 
 
-def analyse_sc_coverage(commands, circumference, *, mode="full-ring", expected_length=None):
+def analyze_sc_coverage(commands, circumference, *, mode="full-ring", expected_length=None):
     """Analyse actual commands once per beam/pass, independent of bunch/turn count.
 
     Explicit SC weights without sc_start are counted but never assigned invented
@@ -62,22 +62,43 @@ def analyse_sc_coverage(commands, circumference, *, mode="full-ring", expected_l
             internal_count += len(weights)
             if not math.isclose(length, command.length, rel_tol=1e-10, abs_tol=1e-12):
                 issues.append(f"Element {command.cmd_name!r}: internal SC weights {length:g} m differ from body length {command.length:g} m")
-            contributions.append({"name": command.cmd_name, "source": "internal", "length": length,
-                                  "start": command.s - command.length, "extent": command.length})
+            contributions.append({
+                "name": command.cmd_name,
+                "source": "internal",
+                "length": length,
+                "start": command.s - command.length,
+                "extent": command.length
+            })
         elif str(getattr(command, "cmd_type", "")).lower() == "spacecharge" and command.is_enabled:
             if command.sc_length == 0:
                 continue
             explicit_count += 1
-            contributions.append({"name": command.cmd_name, "source": "explicit", "length": command.sc_length,
-                                  "start": getattr(command, "sc_start", None), "extent": command.sc_length})
+            contributions.append({
+                "name": command.cmd_name,
+                "source": "explicit",
+                "length": command.sc_length,
+                "start": getattr(command, "sc_start", None),
+                "extent": command.sc_length
+            })
 
     total = math.fsum(item["length"] for item in contributions)
     unknown = [item["name"] for item in contributions if item["start"] is None]
-    report = {"mode": mode, "total_sc_length": total, "circumference": None,
-              "target_length": None, "length_difference": None, "internal_kicks": internal_count,
-              "explicit_kicks": explicit_count, "contributions": contributions,
-              "unknown_intervals": unknown, "covered_length": None, "uncovered_intervals": [],
-              "overlap_intervals": [], "issues": issues, "status": "ok"}
+    report = {
+        "mode": mode,
+        "total_sc_length": total,
+        "circumference": None,
+        "target_length": None,
+        "length_difference": None,
+        "internal_kicks": internal_count,
+        "explicit_kicks": explicit_count,
+        "contributions": contributions,
+        "unknown_intervals": unknown,
+        "covered_length": None,
+        "uncovered_intervals": [],
+        "overlap_intervals": [],
+        "issues": issues,
+        "status": "ok"
+    }
     try:
         circumference = float(circumference)
         if not math.isfinite(circumference) or circumference <= 0:
@@ -131,15 +152,16 @@ def validate_sc_coverage(sim, sequences):
             reports[beam_id] = {"beam_id": beam_id, "status": "disabled"}
             continue
         data = sim.cfg.input_data[beam_id]
-        report = analyse_sc_coverage(sequence.cmds, data.get("circumference (m)"),
-                                     mode=config.coverage_mode, expected_length=config.expected_sc_length)
+        report = analyze_sc_coverage(sequence.cmds,
+                                     data.get("circumference (m)"),
+                                     mode=config.coverage_mode,
+                                     expected_length=config.expected_sc_length)
         report["beam_id"] = beam_id
         report["policy"] = config.coverage_check
         reports[beam_id] = report
         logger.info("Beam %d SC coverage: mode=%s, total=%g m, target=%s m, circumference=%s m, "
-                    "internal kicks=%d, explicit kicks=%d, status=%s", beam_id, report["mode"],
-                    report["total_sc_length"], report["target_length"], report["circumference"],
-                    report["internal_kicks"], report["explicit_kicks"], report["status"])
+                    "internal kicks=%d, explicit kicks=%d, status=%s", beam_id, report["mode"], report["total_sc_length"], report["target_length"],
+                    report["circumference"], report["internal_kicks"], report["explicit_kicks"], report["status"])
         for key in ("uncovered_intervals", "overlap_intervals"):
             regions = report[key]
             if regions:

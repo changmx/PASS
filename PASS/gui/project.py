@@ -83,9 +83,10 @@ def resolved_file(value: str, base: Path) -> Path:
 
 
 def missing_files(data: dict, base: Path) -> list[str]:
-    return [f"{pointer}: input file not found: {mapping[key]}"
-            for mapping, key, pointer in file_references(data)
-            if not resolved_file(mapping[key], base).is_file()]
+    return [
+        f"{pointer}: input file not found: {mapping[key]}" for mapping, key, pointer in file_references(data)
+        if not resolved_file(mapping[key], base).is_file()
+    ]
 
 
 def digest_file(path: Path) -> str:
@@ -107,11 +108,9 @@ def unique_name(name: str, existing) -> str:
 
 def safe_member(name: str) -> str:
     path = PurePosixPath(name)
-    if (not name or "\\" in name or ":" in name or "\x00" in name or path.is_absolute()
-            or any(part in (".", "..", "") or part.endswith((".", " "))
-                   or re.search(r'[<>"|?*]', part)
-                   or re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", part)
-                   for part in name.split("/"))):
+    if (not name or "\\" in name or ":" in name or "\x00" in name or path.is_absolute() or any(part in (".", "..", "") or part.endswith(
+        (".", " ")) or re.search(r'[<>"|?*]', part) or re.fullmatch(r"(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?", part)
+                                                                                               for part in name.split("/"))):
         raise ProjectError(f"Invalid archive path: {name!r}")
     return name
 
@@ -214,8 +213,7 @@ class Project:
         value = deepcopy(recipe)
         value["config_id"] = config_id
         sources = value.pop("source_files", {})
-        value["source_assets"] = {key: self.add_asset(Path(path), "source").id
-                                  for key, path in sources.items() if path}
+        value["source_assets"] = {key: self.add_asset(Path(path), "source").id for key, path in sources.items() if path}
         value.setdefault("id", uuid4().hex)
         value.setdefault("pass_version", __version__)
         self.recipes.append(value)
@@ -244,9 +242,13 @@ class Project:
             path = f"configs/{config.id}.json"
             content = json_bytes(config.data)
             entries[path] = content
-            configs.append({"id": config.id, "name": config.name, "path": path,
-                            "sha256": hashlib.sha256(content).hexdigest(),
-                            "dependencies": self._dependency_records(config)})
+            configs.append({
+                "id": config.id,
+                "name": config.name,
+                "path": path,
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "dependencies": self._dependency_records(config)
+            })
         assets = []
         for asset in self.assets.values():
             source = self.root / asset.path
@@ -261,11 +263,18 @@ class Project:
             entries[path] = content
             recipes.append({"path": path, "sha256": hashlib.sha256(content).hexdigest()})
         manifest = {
-            "format": "pass-project", "format_version": FORMAT_VERSION,
-            "project_id": self.id, "created_at": self.created_at,
-            "saved_with": {"pass_version": __version__},
-            "active_config_id": self.active_config_id, "configs": configs,
-            "assets": assets, "recipes": recipes, "run_settings": self.run_settings,
+            "format": "pass-project",
+            "format_version": FORMAT_VERSION,
+            "project_id": self.id,
+            "created_at": self.created_at,
+            "saved_with": {
+                "pass_version": __version__
+            },
+            "active_config_id": self.active_config_id,
+            "configs": configs,
+            "assets": assets,
+            "recipes": recipes,
+            "run_settings": self.run_settings,
         }
         self._write_archive(destination, entries, manifest)
         self.path = destination
@@ -332,16 +341,19 @@ class Project:
                 return read_json(content)
 
             manifest = read_entry("manifest.json")
-            if manifest.get("format") != "pass-project" or type(manifest.get("format_version")) is not int or manifest["format_version"] != FORMAT_VERSION:
+            if manifest.get("format") != "pass-project" or type(
+                    manifest.get("format_version")) is not int or manifest["format_version"] != FORMAT_VERSION:
                 raise ProjectError("Unsupported PASS project format/version")
             self.id = str(manifest["project_id"])
             self.created_at = manifest["created_at"]
             registered = {"manifest.json"}
+
             def register(name):
                 safe_member(name)
                 if name in registered:
                     raise ProjectError(f"Member used more than once: {name}")
                 registered.add(name)
+
             for entry in manifest["assets"]:
                 asset = Asset(**entry)
                 if asset.id in self.assets or not re.fullmatch(r"[a-zA-Z0-9_-]+", asset.id):
@@ -428,18 +440,16 @@ class Project:
                 entries[asset.path] = self.root / asset.path
         # Engine readers historically use process-relative paths. A controlled
         # cwd makes this extracted package directly runnable with existing PASS.
-        entries["run.py"] = (
-            '"""Run this exported PASS input bundle: python run.py."""\n'
-            'import os\nfrom pathlib import Path\nfrom PASS.gui.runner import run_inputs\n'
-            'root = Path(__file__).resolve().parent\nos.chdir(root)\n'
-            + ('raise SystemExit(run_inputs(str(root / "beam0.json"), str(root / "beam1.json")))\n' if len(config_ids) == 2
-               else 'raise SystemExit(run_inputs(str(root / "beam0.json")))\n')
-        ).encode("utf-8")
-        entries["README.txt"] = b"Extract all files together. Install PASS, then run: python run.py\nInputs use paths relative to this folder. Outputs are written under output/.\n"
+        entries["run.py"] = ('"""Run this exported PASS input bundle: python run.py."""\n'
+                             'import os\nfrom pathlib import Path\nfrom PASS.gui.runner import run_inputs\n'
+                             'root = Path(__file__).resolve().parent\nos.chdir(root)\n' +
+                             ('raise SystemExit(run_inputs(str(root / "beam0.json"), str(root / "beam1.json")))\n'
+                              if len(config_ids) == 2 else 'raise SystemExit(run_inputs(str(root / "beam0.json")))\n')).encode("utf-8")
+        entries[
+            "README.txt"] = b"Extract all files together. Install PASS, then run: python run.py\nInputs use paths relative to this folder. Outputs are written under output/.\n"
         self._write_archive(Path(destination), entries)
 
-    def copy_command(self, source_id: str, name: str, target: Project, target_id: str,
-                     *, clock_policy: str = "check") -> str:
+    def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, clock_policy: str = "check") -> str:
         """Copy a command and its named SC/Slicer/file dependencies without overwrite."""
         source = self.configs[source_id].data
         result = deepcopy(target.configs[target_id].data)
@@ -500,6 +510,7 @@ class Project:
             elif isinstance(value, list):
                 for item in value:
                     visit(item)
+
         visit(command)
         if command.get("Command") == "WakeField":
             command["Slice set"] = copy_slice(command["Slice set"])

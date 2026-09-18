@@ -19,23 +19,23 @@ class VelocityLaw:
         elif self.kind == "factorized":
             for name in ("betas", "source", "witness"):
                 object.__setattr__(self, name, tuple(getattr(self, name)))
-            b = np.asarray(self.betas)
-            if (len(b) < 2 or b[0] < 0 or b[-1] > 1 or np.any(np.diff(b) <= 0)
-                    or len(self.source) != len(b) or len(self.witness) != len(b)
-                    or not all(np.all(np.isfinite(v)) for v in (b, self.source, self.witness))):
+            beta_values = np.asarray(self.betas)
+            if (len(beta_values) < 2 or beta_values[0] < 0 or beta_values[-1] > 1 or np.any(np.diff(beta_values) <= 0)
+                    or len(self.source) != len(beta_values) or len(self.witness) != len(beta_values)
+                    or not all(np.all(np.isfinite(v)) for v in (beta_values, self.source, self.witness))):
                 raise ValueError("Velocity coupling needs finite matching tables on increasing beta knots in [0, 1]")
         else:
             raise ValueError("Velocity law must be fixed or factorized")
 
     def validate(self, beta):
-        b = np.asarray(beta)
-        if np.any(~np.isfinite(b)) or np.any((b <= 0) | (b > 1)):
+        beta_values = np.asarray(beta)
+        if np.any(~np.isfinite(beta_values)) or np.any((beta_values <= 0) | (beta_values > 1)):
             raise ValueError("Wake beta must lie in (0, 1]")
         if self.kind == "fixed":
-            if not np.all(np.isclose(b, self.beta, rtol=1e-12, atol=0)):
+            if not np.all(np.isclose(beta_values, self.beta, rtol=1e-12, atol=0)):
                 raise ValueError(f"Fixed-beta response at beta={self.beta} cannot describe this trajectory; "
                                  "provide a model with source and witness velocity coupling")
-        elif np.any((b < self.betas[0]) | (b > self.betas[-1])):
+        elif np.any((beta_values < self.betas[0]) | (beta_values > self.betas[-1])):
             raise ValueError("Particle beta is outside the supplied velocity-coupling table")
 
     def source_factor(self, beta):
@@ -47,9 +47,7 @@ class VelocityLaw:
         return np.ones_like(beta, dtype=float) if self.kind == "fixed" else np.interp(beta, self.betas, self.witness)
 
 
-# ----------------------------------------------------------------------------
 # GPU: source and witness velocity factors
-# ----------------------------------------------------------------------------
 
 
 def factor_gpu(component, betas, witness=False):
@@ -67,30 +65,38 @@ def factor_gpu(component, betas, witness=False):
 def velocity_gpu(component):
     """Packed coupling data shared by fused response and transfer kernels."""
     from .wake_models import device_arrays
-    law=component.velocity
-    if law is None or law.kind=='fixed':
-        return 0, device_arrays(component, 'empty_velocity', (np.empty(0),))[0]
-    if all(v==law.source[0] for v in law.source) and all(v==law.witness[0] for v in law.witness):
-        return 1, device_arrays(law,'constant_velocity',(np.array([law.source[0],law.witness[0]]),))[0]
-    return len(law.betas),device_arrays(law,'packed_velocity',(np.r_[law.betas,law.source,law.witness],))[0]
+    law = component.velocity
+    if law is None or law.kind == 'fixed':
+        return 0, device_arrays(component, 'empty_velocity', (np.empty(0), ))[0]
+    if all(v == law.source[0] for v in law.source) and all(v == law.witness[0] for v in law.witness):
+        return 1, device_arrays(law, 'constant_velocity', (np.array([law.source[0], law.witness[0]]), ))[0]
+    return len(law.betas), device_arrays(law, 'packed_velocity', (np.r_[law.betas, law.source, law.witness], ))[0]
 
 
 def apply_factor_gpu(component, betas, values=None, *, witness=False, out=None, scale=1.):
     import cupy as cp
     from .wake_models import response_gpu
-    response=response_gpu(component.model,component.longitudinal)
-    nv,velocity=velocity_gpu(component)
-    if out is None:out=cp.empty(betas.shape,dtype=cp.float64)
+    response = response_gpu(component.model, component.longitudinal)
+    nv, velocity = velocity_gpu(component)
+    if out is None:
+        out = cp.empty(betas.shape, dtype=cp.float64)
     if out.size:
-        response.kernel('apply_velocity',r'''
-        extern "C" __global__ void apply_velocity(const double* beta,const double* input,
-            const double* v,int nv,int side,int has_values,double scale,long long n,double* out){
-            long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i<n)
-                out[i]=scale*coupling(beta[i],v,nv,side)*(has_values?input[i]:1.);
-        }''')(((out.size+255)//256,), (256,),
-            (betas,betas if values is None else values,velocity,np.int32(nv),np.int32(witness),
-             np.int32(values is not None),np.float64(scale),np.int64(out.size),out))
+        response.kernel(
+            'apply_velocity', r'''
+extern "C" __global__ void apply_velocity(
+    const double* beta,
+    const double* input,
+    const double* v,
+    int nv,
+    int side,
+    int has_values,
+    double scale,
+    long long n,
+    double* out
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n)
+        out[i] = scale * coupling(beta[i], v, nv, side) * (has_values ? input[i] : 1.);
+}''')(((out.size + 255) // 256, ), (256, ), (betas, betas if values is None else values, velocity, np.int32(nv), np.int32(witness),
+                                             np.int32(values is not None), np.float64(scale), np.int64(out.size), out))
     return out
-
-
-

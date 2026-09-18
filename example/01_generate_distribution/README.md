@@ -1,12 +1,15 @@
 # Example 01 - Particle Distribution Generation
 
+Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+workflow entry points for input generation, tracking, and result analysis.
+
 This is the first PASS distribution-generation example. It introduces the
 three basic steps used by the other examples:
 
-1. `make_input.py` generates `beam0_*.json` using the PASS Python API.
-2. `run.py` reads a JSON input, performs one injection, and saves the initial
+1. `generate_input.py` generates `beam0_*.json` using the PASS Python API.
+2. `run_simulation.py` reads a JSON input, performs one injection, and saves the initial
    particle distribution.
-3. `analyse.py` reads the generated TFS files, validates the distribution
+3. `analyze_results.py` reads the generated TFS files, validates the distribution
    types, calculates statistics, and compares them with theory.
 
 This example contains no transport elements. `Num Turns = 1` lets PASS finish
@@ -14,7 +17,7 @@ the injection and then stop. It is therefore intended to verify that input
 parameters reach the distribution generators correctly, rather than to study
 transport through magnets, RF cavities, or space charge.
 
-`make_input.py` fixes the Injection random seed to `2026`, so regenerating and
+`generate_input.py` fixes the Injection random seed to `2026`, so regenerating and
 running the same case produces the same initial particle distribution.
 
 ## Run A Minimal Workflow
@@ -23,34 +26,34 @@ From the repository root, run:
 
 ```powershell
 cd C:\Users\changmx\Documents\PASS\example\01_generate_distribution
-python make_input.py --case transverse
-python run.py --case transverse
-python analyse.py --case transverse
+python generate_input.py --case transverse
+python run_simulation.py --case transverse
+python analyze_results.py --case transverse
 ```
 
 The scripts generate, run, and analyse the case in that order. In normal use,
 do not edit the generated JSON directly. Modify constants or `CASES` in
-`make_input.py`, then regenerate the input.
+`generate_input.py`, then regenerate the input.
 
 To process every predefined case:
 
 ```powershell
-python make_input.py --case all
-python run.py --case all
-python analyse.py --case all
+python generate_input.py --case all
+python run_simulation.py --case all
+python analyze_results.py --case all
 ```
 
-`run.py` defaults to `transverse`, so this is equivalent to
-`python run.py --case transverse`:
+`run_simulation.py` defaults to `transverse`, so this is equivalent to
+`python run_simulation.py --case transverse`:
 
 ```powershell
-python run.py
+python run_simulation.py
 ```
 
 An existing input can also be run directly, without the case mapping:
 
 ```powershell
-python run.py --beam0 C:\path\to\beam0.json
+python run_simulation.py --beam0 C:\path\to\beam0.json
 ```
 
 ## Case Design
@@ -76,7 +79,7 @@ a local bunch.
 
 ## How The Input Is Generated
 
-The important sections in `make_input.py` are:
+The important sections in `generate_input.py` are:
 
 - `CASES`: declares the bunch count and transverse/longitudinal distribution
   types for every case.
@@ -121,7 +124,7 @@ consistent input structure, but it is not a simultaneous matching target.
 
 ## Analysis Output
 
-`analyse.py` finds the latest completed run for each selected case and writes:
+`analyze_results.py` finds the latest completed run for each selected case and writes:
 
 ```text
 output/<case>/<date>/<time>/
@@ -154,7 +157,7 @@ values are printed to the terminal and written to the summary CSV.
 The original `matchz` setting, `Sigma z = 30 m`, is larger than the maximum
 matched bunch length supported by the current RF bucket. PASS automatically
 reduces the target to approximately `0.99` of its limit during generation.
-For this case, `analyse.py` reports the measured `sigma_z`, the requested
+For this case, `analyze_results.py` reports the measured `sigma_z`, the requested
 value, and the RF bucket boundaries rather than treating 30 m as the final
 theoretical RMS. This is expected behavior, not a failed run. Reduce
 `MATCH_SIGMA_Z` or increase RF voltage to avoid clipping.
@@ -191,9 +194,9 @@ and the RF bucket theory.
 
 ## Common Issues
 
-- `Input file does not exist`: run `python make_input.py --case <case>` first.
-- `No completed run found`: run `python run.py --case <case>` before analysis.
-- Results do not change after editing `make_input.py`: regenerate the JSON
+- `Input file does not exist`: run `python generate_input.py --case <case>` first.
+- `No completed run found`: run `python run_simulation.py --case <case>` before analysis.
+- Results do not change after editing `generate_input.py`: regenerate the JSON
   because it is a generated file.
 - Measured `sigma_z` is smaller than requested for `matchz`: check whether the
   RF bucket is large enough. The retained original parameters intentionally

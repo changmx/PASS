@@ -1,12 +1,13 @@
+import logging
+
+import numpy as np
+
 from PASS.core.config import Config
 from PASS.utils.program import LinearProgram
 from PASS.core.bunch import BunchInfo
 from PASS.core.particle import ParticlePool
 from PASS.utils.constants import const
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-
-import logging
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,11 @@ class Beam:
         for i in range(self.harmonic_number):
             key = f"bunch{i}"
             if key not in inj:
-                raise ValueError(
-                    f"bunch{i} not declared in the injection configuration; "
-                    f"harmonic number {self.harmonic_number} requires "
-                    f"{self.harmonic_number} bunch dicts (one per group). "
-                    f"Declare empty bunches with 0 particles if a group is "
-                    f"unfilled."
-                )
+                raise ValueError(f"bunch{i} not declared in the injection configuration; "
+                                 f"harmonic number {self.harmonic_number} requires "
+                                 f"{self.harmonic_number} bunch dicts (one per group). "
+                                 f"Declare empty bunches with 0 particles if a group is "
+                                 f"unfilled.")
             bunch = BunchInfo(self._data, i)
             self.bunches.append(bunch)
             harmonic_ids.append(bunch.harmonic_id)
@@ -53,12 +52,10 @@ class Beam:
         expected_ids = set(range(self.harmonic_number))
         actual_ids = set(harmonic_ids)
         if len(actual_ids) != len(harmonic_ids) or actual_ids != expected_ids:
-            raise ValueError(
-                "The injection bunch harmonic ids must be unique and cover "
-                f"[0, {self.harmonic_number}); got {harmonic_ids}. "
-                "The beam harmonic number is the bunch grouping count, so "
-                "declare one bunch dict per group slot."
-            )
+            raise ValueError("The injection bunch harmonic ids must be unique and cover "
+                             f"[0, {self.harmonic_number}); got {harmonic_ids}. "
+                             "The beam harmonic number is the bunch grouping count, so "
+                             "declare one bunch dict per group slot.")
 
         self.Np_total = 0
         for bunch in self.bunches:
@@ -77,11 +74,9 @@ class Beam:
             try:
                 import cupy as cp
             except (ImportError, OSError) as exc:
-                raise RuntimeError(
-                    "The GPU backend was requested, but CuPy is unavailable. "
-                    "Install PASS with the optional [cuda] extra or select "
-                    "'cpu' in the input configuration."
-                ) from exc
+                raise RuntimeError("The GPU backend was requested, but CuPy is unavailable. "
+                                   "Install PASS with the optional [cuda] extra or select "
+                                   "'cpu' in the input configuration.") from exc
             xp = cp
         else:
             xp = np
@@ -118,17 +113,15 @@ class Beam:
 
 def initialize_reference_clock(beam, data):
     """One prescribed grouping/RF clock; never follows a tracked bunch's energy."""
-    values = {k.lower(): v for k,v in (data.get('reference clock') or {}).items()}
-    initial = min(beam.bunches, key=lambda b:b.harmonic_id)
-    frequency = values.get('revolution frequency (hz)', initial.beta*const.c/initial.circum)
-    beam.reference_program = LinearProgram(frequency, values.get('time (s)'), origin=values.get('time origin (s)',0.))
-    if (np.any(beam.reference_program.values <= 0)
-            or np.any(beam.reference_program.values*initial.circum >= const.c)):
+    values = {k.lower(): v for k, v in (data.get('reference clock') or {}).items()}
+    initial = min(beam.bunches, key=lambda b: b.harmonic_id)
+    frequency = values.get('revolution frequency (hz)', initial.beta * const.c / initial.circum)
+    beam.reference_program = LinearProgram(frequency, values.get('time (s)'), origin=values.get('time origin (s)', 0.))
+    if (np.any(beam.reference_program.values <= 0) or np.any(beam.reference_program.values * initial.circum >= const.c)):
         raise ValueError("Reference clock must define a positive subluminal design velocity")
     for b in beam.bunches:
         item = data['sequence']['injection'][f'bunch{b.bunch_id}']
         supplied = item.get('reference arrival time (s)')
-        b.t0 = (float(supplied) if supplied is not None else
-                beam.reference_program.inverse_integral(-b.harmonic_id/b.harmonic_number))
+        b.t0 = (float(supplied) if supplied is not None else beam.reference_program.inverse_integral(-b.harmonic_id / b.harmonic_number))
         if not np.isfinite(b.t0):
             raise ValueError("Reference arrival time must be finite")

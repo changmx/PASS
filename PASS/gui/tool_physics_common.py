@@ -6,19 +6,33 @@ from pathlib import Path
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from PySide6.QtCore import QSignalBlocker, QSize, QTimer, Signal, Qt
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QComboBox, QFileDialog, QFormLayout,
-    QGridLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSplitter,
-    QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from PASS.gui.appearance import THEMES
 from PASS.gui.structured import IntegerSpinBox
-from PASS.gui.tool_beam import format_number, hint, number, output, ParticleEditor
+from PASS.gui.tool_beam import format_number, hint, create_number_input, output, ParticleEditor
 from PASS.gui.tool_formulas import FormulaDialog
 from PASS.gui.beam_calculator import solve_kinematics
 from PASS.tool.particles import ParticleSpec
 
 
-def integer(value, minimum=0, maximum=10000):
+def create_integer_input(value, minimum=0, maximum=10000):
     widget = IntegerSpinBox(value, minimum, maximum)
     widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
     return widget
@@ -36,7 +50,7 @@ class ReferenceBeamBox(QWidget):
         outer.addWidget(self.editor)
         for name in ("mass_number", "charge_state", "atomic_number", "species", "identity"):
             setattr(self, name, getattr(self.editor, name))
-        self.ek = number(100)
+        self.ek = create_number_input(100)
         self.ek_label = QLabel("Ek (AMeV)")
         self.import_button = QPushButton("读取束流计算器")
         self.import_button.setEnabled(source is not None)
@@ -47,8 +61,7 @@ class ReferenceBeamBox(QWidget):
         self.editor.layout().addLayout(row, 3, 0, 1, 4)
         self.mass_results = {}
         self.mass_labels = {}
-        for column, (key, label) in enumerate((("rest_mass", "静止质量 m₀/A (MeV/c²)"),
-                                               ("mass_ratio", "质量比 μ = m₀/u"))):
+        for column, (key, label) in enumerate((("rest_mass", "静止质量 m₀/A (MeV/c²)"), ("mass_ratio", "质量比 μ = m₀/u"))):
             self.mass_results[key] = output()
             self.mass_labels[key] = QLabel(label)
             self.editor.layout().addWidget(self.mass_labels[key], 4, 2 * column)
@@ -88,14 +101,19 @@ class ReferenceBeamBox(QWidget):
 
     def snapshot(self):
         particle = self.editor.current()
-        return {"A": self.mass_number.value(), "q": self.charge_state.value(), "Z": self.atomic_number.value(),
-                "mu_mass_ratio": self.mass_results["mass_ratio"].text(),
-                "energy_normalization": "per_nucleon" if particle.uses_nucleon_units else "per_particle",
-                "Ek_AMeV" if particle.uses_nucleon_units else "Ek_MeV": self.ek.value(),
-                "species": self.species.currentData()}
+        return {
+            "A": self.mass_number.value(),
+            "q": self.charge_state.value(),
+            "Z": self.atomic_number.value(),
+            "mu_mass_ratio": self.mass_results["mass_ratio"].text(),
+            "energy_normalization": "per_nucleon" if particle.uses_nucleon_units else "per_particle",
+            "Ek_AMeV" if particle.uses_nucleon_units else "Ek_MeV": self.ek.value(),
+            "species": self.species.currentData()
+        }
 
 
 class ResultFields(QGroupBox):
+
     def __init__(self, fields, title="计算结果", columns=1):
         super().__init__(title)
         self.fields = fields  # key, displayed label, multiplier from SI/eV
@@ -108,8 +126,8 @@ class ResultFields(QGroupBox):
             layout.addWidget(self.labels[key], row, col)
             widget = output()
             self.outputs[key] = widget
-            layout.addWidget(widget, row, col+1)
-            layout.setColumnStretch(col+1, 1)
+            layout.addWidget(widget, row, col + 1)
+            layout.setColumnStretch(col + 1, 1)
 
     def clear(self):
         for widget in self.outputs.values():
@@ -126,6 +144,7 @@ class ResultFields(QGroupBox):
 
 class PhysicsToolPage(QWidget):
     """Base for lazy tool pages. Subclasses supply recalculate and CSV rows."""
+
     def __init__(self, title, formulas, source=None, *, plot=False, stacked=False):
         super().__init__()
         self.title, self.formulas = title, formulas
@@ -229,8 +248,11 @@ class PhysicsToolPage(QWidget):
         return colors
 
     def finish_plot(self):
-        self.ax.legend(loc="upper right", fontsize=8, facecolor=THEMES[self.theme]["panel"],
-                                edgecolor=THEMES[self.theme]["line"], labelcolor=THEMES[self.theme]["text"])
+        self.ax.legend(loc="upper right",
+                       fontsize=8,
+                       facecolor=THEMES[self.theme]["panel"],
+                       edgecolor=THEMES[self.theme]["line"],
+                       labelcolor=THEMES[self.theme]["text"])
         self.toolbar.update()
         self.canvas.draw_idle()
 

@@ -14,22 +14,33 @@ from PASS.gui.project import resolved_file
 def bump_preview_error(error):
     """Present form errors in Chinese without exposing Pydantic diagnostics."""
     from pydantic import ValidationError
-    labels = {"Waveform file": "波形文件", "Time mode": "时间模式", "Time offset (s)": "时间偏移（秒）",
-              "S (m)": "位置（米）", "Length (m)": "元件长度（米）", "Num slices": "本体切片数",
-              "Enable": "启用开关", "Space charge": "内部空间电荷"}
+    labels = {
+        "Waveform file": "波形文件",
+        "Time mode": "时间模式",
+        "Time offset (s)": "时间偏移（秒）",
+        "S (m)": "位置（米）",
+        "Length (m)": "元件长度（米）",
+        "Num slices": "本体切片数",
+        "Enable": "启用开关",
+        "Space charge": "内部空间电荷"
+    }
     if isinstance(error, ValidationError):
         lines = []
         for issue in error.errors():
             path = issue["loc"]
             field = " / ".join(labels.get(str(part), str(part)) for part in path) or "Bump 参数"
             kind, context = issue["type"], issue.get("ctx", {})
-            if path == ("Waveform file",):
+            if path == ("Waveform file", ):
                 message = "请先选择波形文件（TFS 格式）"
-            elif kind == "literal_error" and path == ("Time mode",):
+            elif kind == "literal_error" and path == ("Time mode", ):
                 message = "请选择规定参考时钟（reference）或实际粒子到达时间（particle）"
             elif kind in {"greater_than", "greater_than_equal", "less_than", "less_than_equal"}:
-                relation, bound = {"greater_than": ("大于", "gt"), "greater_than_equal": ("大于或等于", "ge"),
-                                   "less_than": ("小于", "lt"), "less_than_equal": ("小于或等于", "le")}[kind]
+                relation, bound = {
+                    "greater_than": ("大于", "gt"),
+                    "greater_than_equal": ("大于或等于", "ge"),
+                    "less_than": ("小于", "lt"),
+                    "less_than_equal": ("小于或等于", "le")
+                }[kind]
                 message = f"必须{relation} {context[bound]}"
             elif kind in {"int_type", "int_parsing"}:
                 message = "请填写整数"
@@ -94,7 +105,8 @@ def read_bump_preview(command, base_dir):
             translated = "波形文件的踢量约定必须为积分动量变化 ΔP/P0；KICK_CONVENTION 应设为 delta_p_over_p0。"
         elif "must hold its endpoint values" in message:
             translated = "各平面在其原始时间范围外必须保持端点值，请检查 HKICK/VKICK 与范围表头。"
-        elif "Bump requires both" in message or any(key in message for key in ("HKICK_START", "HKICK_END", "VKICK_START", "VKICK_END")) or "range must be strictly increasing" in message:
+        elif "Bump requires both" in message or any(
+                key in message for key in ("HKICK_START", "HKICK_END", "VKICK_START", "VKICK_END")) or "range must be strictly increasing" in message:
             translated = "各平面的原始时间范围表头须成对填写，起止时间必须有限、严格递增并对应 TIME 节点。"
         else:
             translated = "波形表格无法解析，请检查列数及数据类型；TIME、HKICK、VKICK 必须填写数值。"
@@ -102,7 +114,7 @@ def read_bump_preview(command, base_dir):
 
 
 def rf_waveforms(command, data, base_dir):
-    from PASS.commands.element.rfcavity import Waveform
+    from PASS.commands.element.rfcavity import RFWaveform
     from PASS.gui.clock import reference_clock_snapshot
     from PASS.utils.program import LinearProgram
     clock = reference_clock_snapshot(data)
@@ -111,23 +123,23 @@ def rf_waveforms(command, data, base_dir):
     for item in components:
         if item.get("Program file"):
             item["Program file"] = str(resolved_file(item["Program file"], Path(base_dir)))
-    return [Waveform(item, reference) for item in components]
+    return [RFWaveform(item, reference) for item in components]
 
 
 def sample_rf(waveforms, start, end):
     if not np.isfinite([start, end]).all() or end <= start:
         raise ValueError("时间窗口需要有限的开始、结束值且结束 > 开始")
-    rate = max(float(np.max(w.frequency.values)) * w.harmonic
-               + float(np.max(np.abs(w.phase.slopes))) / (2 * np.pi) for w in waveforms)
-    count = max(1000, math.ceil((end-start) * rate * 32) + 1)
+    rate = max(float(np.max(w.frequency.values)) * w.harmonic + float(np.max(np.abs(w.phase.slopes))) / (2 * np.pi) for w in waveforms)
+    count = max(1000, math.ceil((end - start) * rate * 32) + 1)
     if count > 200000:
         raise ValueError("窗口内频率过高；请缩短时间窗口（每周期至少 32 点，上限 200000 点）")
     time = np.linspace(start, end, count)
-    values = [np.broadcast_to(w.value(start, time-start), time.shape) for w in waveforms]
+    values = [np.broadcast_to(w.value(start, time - start), time.shape) for w in waveforms]
     return time, values
 
 
 class ParameterPreview(QDialog):
+
     def __init__(self, command, data, base_dir, parent=None):
         # Reject bad files before allocating a dialog/canvas, so failed previews
         # do not leave partially constructed widgets attached to the form.
@@ -147,7 +159,7 @@ class ParameterPreview(QDialog):
             self.waveforms = rf_waveforms(command, data, base_dir)
             start = self.waveforms[0].frequency.origin
             rate = min(float(w.frequency.value(start)) * w.harmonic for w in self.waveforms)
-            self.start, self.end = QLineEdit(str(start)), QLineEdit(str(start + 2/rate))
+            self.start, self.end = QLineEdit(str(start)), QLineEdit(str(start + 2 / rate))
             form = QFormLayout()
             form.addRow("物理时间开始 / s", self.start)
             form.addRow("物理时间结束 / s", self.end)
@@ -158,16 +170,17 @@ class ParameterPreview(QDialog):
             self.draw_rf()
         elif kind == "Bump":
             times = samples[:, 0] - command.get("Time offset (s)", 0.)
-            pad = .05*(times[-1]-times[0])
+            pad = .05 * (times[-1] - times[0])
             ax = self.figure.subplots()
             for i, label in enumerate(("HKICK", "VKICK"), 1):
                 ax.plot(times, samples[:, i], label=label)
-                ax.plot([times[0]-pad, times[0]], [samples[0, i]]*2, color="gray", linestyle="--")
-                ax.plot([times[-1], times[-1]+pad], [samples[-1, i]]*2, color="gray", linestyle="--")
+                ax.plot([times[0] - pad, times[0]], [samples[0, i]] * 2, color="gray", linestyle="--")
+                ax.plot([times[-1], times[-1] + pad], [samples[-1, i]] * 2, color="gray", linestyle="--")
             ax.set(xlabel="Sampling time before offset (s)", ylabel="Integrated kick: delta P / P0")
             ax.grid(alpha=.25)
             ax.legend()
-            self.status.setText("TFS 线性插值，端点包含在内；两平面在各自原始时间范围外保持最近端点值，跟踪时每个元件警告一次。横轴已减 Time offset；reference 使用规定时钟的圈时刻，particle 使用实际局部粒子到达时间。此图是输入波形，不是跟踪轨迹。")
+            self.status.setText(
+                "TFS 线性插值，端点包含在内；两平面在各自原始时间范围外保持最近端点值，跟踪时每个元件警告一次。横轴已减 Time offset；reference 使用规定时钟的圈时刻，particle 使用实际局部粒子到达时间。此图是输入波形，不是跟踪轨迹。")
         else:
             self.draw_separator()
         root.addWidget(NavigationToolbar2QT(self.canvas, self))
@@ -193,17 +206,22 @@ class ParameterPreview(QDialog):
     def draw_separator(self):
         from matplotlib.patches import Polygon
         from PASS.commands.element.elseparator import _aperture_primitives
-        from PASS.para.schema.elements import ElSeparatorElement
+        from PASS.para.schema.elements import ElSeparatorItem
         from PASS.utils.aperture import build_aperture, IntersectionAperture
-        keys = ("Gap (m)", "Septum position (m)", "Septum thickness (m)",
-                "Tilt (rad)", "Length (m)", "Aperture type", "Aperture value")
+        keys = ("Gap (m)", "Septum position (m)", "Septum thickness (m)", "Tilt (rad)", "Length (m)", "Aperture type", "Aperture value")
         # Reuse the physical geometry checks, independently of tracking settings.
         # Unspecified strength permits geometry only; never report it as zero.
         voltage, voltage_length = self.command.get("V (V)"), self.command.get("VL (V m)")
         geometry_only = voltage is None and voltage_length is None
-        p = ElSeparatorElement.model_validate({"S (m)": 0.,
-            "V (V)": 0. if geometry_only else voltage, "VL (V m)": voltage_length,
-            **{k: self.command[k] for k in keys if k in self.command}}).model_dump(by_alias=True)
+        p = ElSeparatorItem.model_validate({
+            "S (m)": 0.,
+            "V (V)": 0. if geometry_only else voltage,
+            "VL (V m)": voltage_length,
+            **{
+                k: self.command[k]
+                for k in keys if k in self.command
+            }
+        }).model_dump(by_alias=True)
         d, thickness, gap = (p[k] for k in ("Septum position (m)", "Septum thickness (m)", "Gap (m)"))
         angle = p["Tilt (rad)"]
         ax = self.figure.subplots()
@@ -215,35 +233,34 @@ class ParameterPreview(QDialog):
         # line interiors lets the preview clip edges whose endpoints lie outside
         # the other component instead of drawing the full component outlines.
         count = 257 if isinstance(geometry, IntersectionAperture) else 2
-        curves = [np.column_stack((np.linspace(x1,x2,count),np.linspace(y1,y2,count)))
-                  for x1,y1,x2,y2 in segments]
+        curves = [np.column_stack((np.linspace(x1, x2, count), np.linspace(y1, y2, count))) for x1, y1, x2, y2 in segments]
         for cx, cy, a, b, side in ellipses:
-            angles = np.linspace(np.pi/2,3*np.pi/2,129) if side < 0 else (
-                np.linspace(-np.pi/2,np.pi/2,129) if side > 0 else np.linspace(0,2*np.pi,257))
-            curves.append(np.column_stack((cx+a*np.cos(angles),cy+b*np.sin(angles))))
+            angles = np.linspace(np.pi / 2, 3 * np.pi / 2, 129) if side < 0 else (np.linspace(-np.pi / 2, np.pi /
+                                                                                              2, 129) if side > 0 else np.linspace(0, 2 * np.pi, 257))
+            curves.append(np.column_stack((cx + a * np.cos(angles), cy + b * np.sin(angles))))
         if isinstance(geometry, IntersectionAperture):
             for curve in curves:
                 # All supported intersection components are convex and centered
                 # at the origin; the tiny inward offset avoids trig roundoff.
-                inward = curve*(1-16*np.finfo(float).eps)
-                curve[~geometry.mask(inward[:,0],inward[:,1])] = np.nan
+                inward = curve * (1 - 16 * np.finfo(float).eps)
+                curve[~geometry.mask(inward[:, 0], inward[:, 1])] = np.nan
         # These bounds crop the drawing, not the infinitely tall electrodes.
-        lower, upper, span = min(0.,d-2*gap), d+thickness+1.3*gap, 2*gap
+        lower, upper, span = min(0., d - 2 * gap), d + thickness + 1.3 * gap, 2 * gap
         if curves:
             points = np.concatenate(curves)
             local = points[np.isfinite(points).all(axis=1)] @ rotation
-            lower, upper = min(lower,float(local[:,0].min())), max(upper,float(local[:,0].max()))
-            span = max(span,1.1*float(np.abs(local[:,1]).max()))
+            lower, upper = min(lower, float(local[:, 0].min())), max(upper, float(local[:, 0].max()))
+            span = max(span, 1.1 * float(np.abs(local[:, 1]).max()))
         for left, right, color, label in (
             (lower, d, "#dcebd9", "Circulating-beam field-free region"),
-            (d, d+thickness, "#bb5555", "Septum"),
-            (d+thickness, d+thickness+gap, "#abd9ec", "Field region"),
-            (d+thickness+gap, upper, "#777777", "High-voltage electrode"),
+            (d, d + thickness, "#bb5555", "Septum"),
+            (d + thickness, d + thickness + gap, "#abd9ec", "Field region"),
+            (d + thickness + gap, upper, "#777777", "High-voltage electrode"),
         ):
-            vertices = np.array([[left,-span],[right,-span],[right,span],[left,span]]) @ rotation.T
+            vertices = np.array([[left, -span], [right, -span], [right, span], [left, span]]) @ rotation.T
             ax.add_patch(Polygon(vertices, closed=True, facecolor=color, edgecolor="none", label=label))
-        for surface in (d,d+thickness,d+thickness+gap):
-            ends = np.array([[surface,-span],[surface,span]]) @ rotation.T
+        for surface in (d, d + thickness, d + thickness + gap):
+            ends = np.array([[surface, -span], [surface, span]]) @ rotation.T
             ax.plot(*ends.T, color="#753e3e", linewidth=1)
         for i, curve in enumerate(curves):
             ax.plot(*curve.T, color="black", linestyle="--", label="Vacuum aperture (beam frame)" if i == 0 else None)
@@ -257,8 +274,7 @@ class ParameterPreview(QDialog):
             field = "V、VL 未填写，仅预览几何，不计算电场"
         elif voltage_length is not None:
             field = f"积分电场 VL/g={voltage_length/gap:.6g} V"
-            field += (f"，等效 Eu={voltage_length/gap/p['Length (m)']:.6g} V/m"
-                      if p["Length (m)"] > 0 else "，零长度薄冲量")
+            field += (f"，等效 Eu={voltage_length/gap/p['Length (m)']:.6g} V/m" if p["Length (m)"] > 0 else "，零长度薄冲量")
         else:
             field = f"有场区 Eu=V/g={voltage/gap:.6g} V/m"
         self.status.setText(f"{field}。循环束无场区和有场区均保留粒子，septum 与高压电极吸收粒子。电极沿局部 v 无限延伸，图中只显示截取范围；黑色虚线为独立孔径，Tilt 不旋转它。")

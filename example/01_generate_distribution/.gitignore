@@ -1,4 +1,7 @@
 /*
+!generate_input.py
+!run_simulation.py
+!analyze_results.py
 !/.gitignore
 !/README.md
 !/make_input.py

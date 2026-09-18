@@ -21,6 +21,38 @@ API/schema compatibility > testing, documentation, and style.
 - Avoid global variables whenever practical; prefer local variables, explicit
   arguments, or instance attributes for state.
 - Keep CPU and GPU implementations of the same component in the same source file.
+- Format new and edited Python files with YAPF 0.43.0 using `pyproject.toml`
+  (`pep8`, four-space indentation, 150 columns). Do not introduce another formatter.
+- Expand Python control-flow statements onto separate lines. Group ordinary
+  imports as standard library, third-party, then project imports; preserve
+  initialization order and imports required for lazy loading or circular dependencies.
+- In embedded CUDA/C++, put each function declaration/definition parameter on its
+  own line, with four-space indentation. Keep calls compact and declare precision
+  types explicitly instead of relying on whitespace-sensitive source replacement.
+- Check embedded CUDA with `python tools/format_cuda.py --check`; use `--write`
+  to apply `.clang-format` with clang-format 23.x. Review reported dynamic fragments
+  manually; YAPF does not format string contents.
+- Use `snake_case` for variables and functions, `PascalCase` for classes, and
+  action-plus-object names for operations. Prefix implementation-only helpers with
+  `_`; retain framework callback names and established physics symbols.
+- Use `command_kwargs` for received command arguments and `kwargs` for normalized
+  arguments; simple dictionary comprehensions may use `k` and `v`. Preserve input semantics.
+- Use `p` for a single local particle pool or an implementation-only helper parameter.
+  Keep `particles` in object attributes and public parameters. Distinguish multiple
+  pools by role, and avoid collisions with scalar momentum symbols.
+- Name reference and particle quantities explicitly when they coexist:
+  `reference_beta_gamma`, `particle_beta_gamma`, `particle_beta`, and
+  `momentum_ratio` for `P/P0`. Write velocity ratios as `beta_over_beta0` or
+  `beta0_over_beta`; use matching names in CPU and GPU implementations.
+- Prefer `grid` for a local grid geometry, `start`/`end` for a single particle range,
+  and `n_particles`, `n_slices`, and `n_alive` when several counts coexist; `n` is
+  suitable for one obvious local count. Avoid redundant aliases for existing parameters.
+  Use matching local names in CPU and GPU code. Keep role names such as `workspace`,
+  `resources`, `slice_index` (scalar), and `slice_indices` (array), and familiar
+  physics symbols such as `q_macro`. Preserve public keyword names.
+- Write short English comments explaining physics conventions, units, numerical
+  constraints, or non-obvious choices. Keep derivations in the physics documentation.
+- Keep the original `PASS/tool/calc_*.py` filenames and public function names.
 
 ## Tests
 

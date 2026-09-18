@@ -1,7 +1,7 @@
 """Offline, typeset formula references for the independent GUI tools."""
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QVBoxLayout
-from PASS.gui.tool_math import FormulaBrowser
 
+from PASS.gui.tool_math import FormulaBrowser
 
 MASS_REFERENCE_FORMULAS = r"""
 <h2>质量数据与来源</h2>
@@ -107,6 +107,7 @@ r 是共振阶数。坐标范围可以跨整数或使用负值。</p>
 
 
 class FormulaDialog(QDialog):
+
     def __init__(self, title, html, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
@@ -117,7 +118,7 @@ class FormulaDialog(QDialog):
         layout.addWidget(self.browser)
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
         self.copy_formulas = buttons.addButton("复制公式（LaTeX）", QDialogButtonBox.ActionRole)
-        self.copy_formulas.clicked.connect(lambda: QApplication.clipboard().setText(
-            "\n\n".join(f"\\[{tex}\\]" for tex in self.browser.rendered_equations)))
+        self.copy_formulas.clicked.connect(
+            lambda: QApplication.clipboard().setText("\n\n".join(f"\\[{tex}\\]" for tex in self.browser.rendered_equations)))
         buttons.rejected.connect(self.close)
         layout.addWidget(buttons)

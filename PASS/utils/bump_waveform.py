@@ -1,5 +1,6 @@
 """Bump tables use seconds and integrated Delta(Px,Py)/P0."""
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import tfs
@@ -33,12 +34,16 @@ def read_bump_waveform(path):
     for column in columns:
         if column not in types:
             raise KeyError(column)
-        if (not np.issubdtype(types[column], np.number)
-                or np.issubdtype(types[column], np.complexfloating)):
+        if (not np.issubdtype(types[column], np.number) or np.issubdtype(types[column], np.complexfloating)):
             raise ValueError(f"Bump {column} must contain real numbers")
-    frame = pd.read_csv(path, sep=r"\s+", names=metadata.column_names,
-                        usecols=columns, dtype=np.float64, engine="c",
-                        skiprows=metadata.non_data_lines, float_precision="round_trip",
+    frame = pd.read_csv(path,
+                        sep=r"\s+",
+                        names=metadata.column_names,
+                        usecols=columns,
+                        dtype=np.float64,
+                        engine="c",
+                        skiprows=metadata.non_data_lines,
+                        float_precision="round_trip",
                         na_values=["nil"])
     values = frame[columns].to_numpy(dtype=np.float64)
     headers = metadata.headers
@@ -80,15 +85,19 @@ def convert_cisp_bump(horizontal, vertical, output):
     """
     arrays = [np.loadtxt(path, delimiter=",", ndmin=2) for path in (horizontal, vertical)]
     for values in arrays:
-        if (values.shape[1] != 2 or len(values) < 2 or not np.all(np.isfinite(values))
-                or np.any(np.diff(values[:, 0]) <= 0)):
+        if (values.shape[1] != 2 or len(values) < 2 or not np.all(np.isfinite(values)) or np.any(np.diff(values[:, 0]) <= 0)):
             raise ValueError("CISP kick CSV requires two finite columns and increasing time")
     times = np.unique(np.concatenate([a[:, 0] for a in arrays]))
-    headers = {"TIME_UNIT": "s", "KICK_CONVENTION": "delta_p_over_p0",
-               "H_SOURCE": str(Path(horizontal).resolve()), "V_SOURCE": str(Path(vertical).resolve()),
-               "HKICK_START": float(arrays[0][0, 0]), "HKICK_END": float(arrays[0][-1, 0]),
-               "VKICK_START": float(arrays[1][0, 0]), "VKICK_END": float(arrays[1][-1, 0])}
-    frame = tfs.TfsDataFrame({"TIME": times, "HKICK": np.interp(times, *arrays[0].T),
-                             "VKICK": np.interp(times, *arrays[1].T)}, headers=headers)
+    headers = {
+        "TIME_UNIT": "s",
+        "KICK_CONVENTION": "delta_p_over_p0",
+        "H_SOURCE": str(Path(horizontal).resolve()),
+        "V_SOURCE": str(Path(vertical).resolve()),
+        "HKICK_START": float(arrays[0][0, 0]),
+        "HKICK_END": float(arrays[0][-1, 0]),
+        "VKICK_START": float(arrays[1][0, 0]),
+        "VKICK_END": float(arrays[1][-1, 0])
+    }
+    frame = tfs.TfsDataFrame({"TIME": times, "HKICK": np.interp(times, *arrays[0].T), "VKICK": np.interp(times, *arrays[1].T)}, headers=headers)
     tfs.write(output, frame, colwidth=25, headerswidth=25)
     return frame

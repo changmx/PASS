@@ -25,10 +25,15 @@ class SpaceChargeResourceConfig(BaseModel):
     grid_half_width_y: float | None = Field(default=None, gt=0.0, alias="Grid Half Width Y (m)")
     method: Literal["pic", "frozen", "quasi-frozen"] = Field(default="pic", alias="Method")
     solver: Literal[
-        "fft_free_space", "fd_dirichlet", "dst_dirichlet",
-        "gaussian_round_free_space", "gaussian_ellipse_free_space",
-        "uniform_round_free_space", "uniform_ellipse_free_space",
-        "parabolic_round_free_space", "parabolic_ellipse_free_space",
+        "fft_free_space",
+        "fd_dirichlet",
+        "dst_dirichlet",
+        "gaussian_round_free_space",
+        "gaussian_ellipse_free_space",
+        "uniform_round_free_space",
+        "uniform_ellipse_free_space",
+        "parabolic_round_free_space",
+        "parabolic_ellipse_free_space",
     ] = Field(default="fd_dirichlet", alias="Solver")
     deposition_method: Literal["CIC", "TSC"] | None = Field(
         default=None,
@@ -94,8 +99,7 @@ class SpaceChargeConfig(BaseModel):
     enabled: StrictBool = Field(default=False, alias="Enabled")
     coverage_check: Literal["warn", "error", "off"] = Field(default="warn", alias="Coverage check")
     coverage_mode: Literal["full-ring", "partial"] = Field(default="full-ring", alias="Coverage mode")
-    expected_sc_length: float | None = Field(default=None, ge=0, allow_inf_nan=False,
-                                             alias="Expected SC length (m)")
+    expected_sc_length: float | None = Field(default=None, ge=0, allow_inf_nan=False, alias="Expected SC length (m)")
     configurations: dict[str, SpaceChargeResourceConfig] = Field(
         default_factory=dict,
         alias="Configurations",
@@ -118,16 +122,12 @@ class SpaceChargeConfig(BaseModel):
 
     @field_validator("configurations")
     @classmethod
-    def validate_configuration_names(
-        cls, configurations: dict[str, SpaceChargeResourceConfig]
-    ) -> dict[str, SpaceChargeResourceConfig]:
+    def validate_configuration_names(cls, configurations: dict[str, SpaceChargeResourceConfig]) -> dict[str, SpaceChargeResourceConfig]:
         for name in configurations:
             if not isinstance(name, str) or not name.strip():
                 raise ValueError("space-charge configuration names must be non-empty strings")
             if name != name.strip():
-                raise ValueError(
-                    f"space-charge configuration name {name!r} must not have surrounding whitespace"
-                )
+                raise ValueError(f"space-charge configuration name {name!r} must not have surrounding whitespace")
         return configurations
 
     @model_validator(mode="after")
@@ -139,8 +139,7 @@ class SpaceChargeConfig(BaseModel):
 
 def validate_loss_aperture(aperture_type: str, value: list) -> list:
     """Validate point-local loss geometry without building field resources."""
-    sizes = {"circle": 1, "rectangle": 2, "ellipse": 2, "rectcircle": 3,
-             "rectellipse": 4, "racetrack": 4, "octagon": 3}
+    sizes = {"circle": 1, "rectangle": 2, "ellipse": 2, "rectcircle": 3, "rectellipse": 4, "racetrack": 4, "octagon": 3}
     if aperture_type not in {"off", "default", "polygon", *sizes}:
         raise ValueError(f"Unsupported particle loss aperture type: {aperture_type!r}")
     if not isinstance(value, list):
@@ -168,7 +167,7 @@ def validate_loss_aperture(aperture_type: str, value: list) -> list:
     return result
 
 
-class SpaceCharge(BaseModel):
+class SpaceChargeItem(BaseModel):
     """A position-local command referencing one named resource configuration."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -181,14 +180,18 @@ class SpaceCharge(BaseModel):
         description="Name in the top-level Space charge.Configurations mapping",
     )
     sc_length: float = Field(default=0.0, ge=0.0, alias="SC length (m)")
-    sc_start: float | None = Field(default=None, allow_inf_nan=False, alias="SC start (m)",
-                                  description="Optional start of the represented integration interval; does not transport particles")
+    sc_start: float | None = Field(default=None,
+                                   allow_inf_nan=False,
+                                   alias="SC start (m)",
+                                   description="Optional start of the represented integration interval; does not transport particles")
     aperture_type: str = Field(
-        default="default", alias="Aperture type",
+        default="default",
+        alias="Aperture type",
         description="Particle aperture and Dirichlet conducting boundary; default is the configuration grid rectangle",
     )
     aperture_value: list = Field(
-        default_factory=list, alias="Aperture value",
+        default_factory=list,
+        alias="Aperture value",
         description="Aperture dimensions in meters, using the standard element aperture syntax",
     )
     save_field: bool = Field(default=False, alias="Save field")
@@ -216,8 +219,9 @@ class ElementSpaceCharge(BaseModel):
 
     configuration: str = Field(min_length=1, alias="Configuration")
     num_kicks: StrictInt = Field(default=1, ge=1, alias="Num kicks")
-    aperture_type: str = Field(default="default", alias="Aperture type",
-        description="default inherits the parent element; conflicting explicit values warn and are overridden")
+    aperture_type: str = Field(default="default",
+                               alias="Aperture type",
+                               description="default inherits the parent element; conflicting explicit values warn and are overridden")
     aperture_value: list = Field(default_factory=list, alias="Aperture value")
     save_field: StrictBool = Field(default=False, alias="Save field")
     save_potential: StrictBool = Field(default=False, alias="Save potential")
@@ -238,8 +242,16 @@ class ElementSpaceCharge(BaseModel):
 
 
 SLICED_ELEMENT_COMMANDS = frozenset({
-    "drift", "sbend", "quadrupole", "sextupole", "octupole",
-    "multipole", "kicker", "bump", "solenoid", "elseparator",
+    "drift",
+    "sbend",
+    "quadrupole",
+    "sextupole",
+    "octupole",
+    "multipole",
+    "kicker",
+    "bump",
+    "solenoid",
+    "elseparator",
 })
 
 

@@ -11,14 +11,38 @@ from PySide6.QtWidgets import QAbstractScrollArea, QApplication, QComboBox, QWid
 
 THEMES = {
     # Core colors from Binaryify/OneDark-Pro, themes/OneDark-Pro.json.
-    "dark": dict(bg="#282c34", panel="#21252b", input="#1d1f23", line="#3e4452",
-                 text="#abb2bf", muted="#9da5b4", accent="#61afef", active="#2c313a",
-                 section="#282c34", guide="#4b5363", error="#e06c75", warning="#e5c07b",
-                 string="#98c379", number="#d19a66", keyword="#c678dd"),
-    "light": dict(bg="#fafafa", panel="#f0f0f0", input="#ffffff", line="#d5d7dc",
-                  text="#383a42", muted="#666a73", accent="#2965cf", active="#e4eaf5",
-                  section="#e8e9ec", guide="#bec3cd", error="#c63440", warning="#8a5b0a",
-                  string="#397b31", number="#986801", keyword="#a626a4"),
+    "dark":
+    dict(bg="#282c34",
+         panel="#21252b",
+         input="#1d1f23",
+         line="#3e4452",
+         text="#abb2bf",
+         muted="#9da5b4",
+         accent="#61afef",
+         active="#2c313a",
+         section="#282c34",
+         guide="#4b5363",
+         error="#e06c75",
+         warning="#e5c07b",
+         string="#98c379",
+         number="#d19a66",
+         keyword="#c678dd"),
+    "light":
+    dict(bg="#fafafa",
+         panel="#f0f0f0",
+         input="#ffffff",
+         line="#d5d7dc",
+         text="#383a42",
+         muted="#666a73",
+         accent="#2965cf",
+         active="#e4eaf5",
+         section="#e8e9ec",
+         guide="#bec3cd",
+         error="#c63440",
+         warning="#8a5b0a",
+         string="#397b31",
+         number="#986801",
+         keyword="#a626a4"),
 }
 
 UI_FAMILIES = '"Segoe UI Variable Text", "Microsoft YaHei UI", "Segoe UI"'
@@ -46,9 +70,11 @@ def _indicator_url(glyph: str, color: str) -> str:
     path = Path(_indicator_dir.path()) / f"{glyph}-{color.lstrip('#')}.svg"
     if not path.exists():
         drawing = {"down": "M4 6l4 4 4-4", "check": "M3 8l3 3 7-7", "partial": "M3 8h10"}[glyph]
-        path.write_text(f'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
-                        f'<path d="{drawing}" fill="none" stroke="{color}" stroke-width="1.8" '
-                        'stroke-linecap="round" stroke-linejoin="round"/></svg>', encoding="utf-8")
+        path.write_text(
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
+            f'<path d="{drawing}" fill="none" stroke="{color}" stroke-width="1.8" '
+            'stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            encoding="utf-8")
     return f'url("{path.as_posix()}")'
 
 
@@ -102,6 +128,7 @@ def _native_title_bar(window: QWidget, theme: str) -> None:
 
 
 class _WindowThemeController(QObject):
+
     def __init__(self, app):
         super().__init__(app)
         self.theme = "dark"
@@ -109,8 +136,7 @@ class _WindowThemeController(QObject):
         app.installEventFilter(self)
 
     def apply_window(self, window):
-        if (self._applying or window.windowHandle() is None
-                or window.windowType() not in (Qt.Window, Qt.Dialog)):
+        if (self._applying or window.windowHandle() is None or window.windowType() not in (Qt.Window, Qt.Dialog)):
             return
         self._applying = True
         try:
@@ -135,19 +161,16 @@ class _WindowThemeController(QObject):
             while parent is not None:
                 if isinstance(parent, QAbstractScrollArea):
                     viewport = parent.viewport()
-                    forwarded = QWheelEvent(viewport.mapFromGlobal(event.globalPosition()),
-                        event.globalPosition(), event.pixelDelta(), event.angleDelta(),
-                        event.buttons(), event.modifiers(), event.phase(), event.inverted(),
-                        event.source(), event.pointingDevice())
+                    forwarded = QWheelEvent(viewport.mapFromGlobal(event.globalPosition()), event.globalPosition(), event.pixelDelta(),
+                                            event.angleDelta(), event.buttons(), event.modifiers(), event.phase(), event.inverted(), event.source(),
+                                            event.pointingDevice())
                     QApplication.sendEvent(viewport, forwarded)
                     break
                 parent = parent.parentWidget()
             event.ignore()
             return True
-        if (event.type() in (QEvent.Show, QEvent.WinIdChange, QEvent.PaletteChange, QEvent.ThemeChange)
-                and isinstance(watched, QWidget) and watched.isWindow()
-                and watched.testAttribute(Qt.WA_WState_Created)
-                and watched.windowHandle() is not None):
+        if (event.type() in (QEvent.Show, QEvent.WinIdChange, QEvent.PaletteChange, QEvent.ThemeChange) and isinstance(watched, QWidget)
+                and watched.isWindow() and watched.testAttribute(Qt.WA_WState_Created) and watched.windowHandle() is not None):
             self.update_window(watched)
         return False
 
@@ -172,6 +195,7 @@ def apply_application_theme(theme: str) -> None:
         if window.windowHandle() is not None:
             controller.update_window(window)
 
+
 PATHS = {
     "file": '<path d="M4 1.5h5l3 3v10H4zM9 1.5v3h3"/>',
     "folder": '<path d="M1.5 4V2.5h5l2 2H14v2M1.5 6.5h13l-2 7h-11z"/>',
@@ -180,7 +204,8 @@ PATHS = {
     "check": '<path d="M2.5 8l3.5 3.5L13.5 4"/>',
     "settings": '<path d="M2 4h12M2 8h12M2 12h12"/><circle cx="6" cy="4" r="1.5"/><circle cx="10" cy="8" r="1.5"/><circle cx="5" cy="12" r="1.5"/>',
     "beam": '<circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="1.5"/><path d="M8 .5v2M8 13.5v2M.5 8h2M13.5 8h2"/>',
-    "calculator": '<rect x="2.5" y="1" width="11" height="14" rx="1.5"/><path d="M5 4h6M5 7h.01M8 7h.01M11 7h.01M5 10h.01M8 10h.01M11 10v2.5M5 12.5h.01M8 12.5h.01"/>',
+    "calculator":
+    '<rect x="2.5" y="1" width="11" height="14" rx="1.5"/><path d="M5 4h6M5 7h.01M8 7h.01M11 7h.01M5 10h.01M8 10h.01M11 10v2.5M5 12.5h.01M8 12.5h.01"/>',
     "resonance": '<path d="M2 1.5V14h12.5M4 4l8 8M4 12l8-8M4 8h8"/><circle cx="11.5" cy="2" r="1.2"/>',
     "rf_bucket": '<path d="M1 8h14M3 8c2-8 8-8 10 0-2 8-8 8-10 0zM8 1v14"/>',
     "phase_ellipse": '<path d="M1 8h14M8 1v14"/><ellipse cx="8" cy="8" rx="3" ry="6.5" transform="rotate(35 8 8)"/>',
@@ -215,12 +240,10 @@ def icon(name: str, color: str) -> QIcon:
 def theme_palette(theme: str) -> QPalette:
     c = THEMES[theme]
     palette = QPalette()
-    for role, key in ((QPalette.Window, "bg"), (QPalette.Base, "input"), (QPalette.AlternateBase, "panel"),
-                      (QPalette.WindowText, "text"), (QPalette.Text, "text"), (QPalette.Button, "panel"),
-                      (QPalette.ButtonText, "text"), (QPalette.Highlight, "active"),
-                      (QPalette.HighlightedText, "text"), (QPalette.ToolTipBase, "input"),
-                      (QPalette.ToolTipText, "text"), (QPalette.PlaceholderText, "muted"),
-                      (QPalette.Mid, "line"), (QPalette.Link, "accent")):
+    for role, key in ((QPalette.Window, "bg"), (QPalette.Base, "input"), (QPalette.AlternateBase, "panel"), (QPalette.WindowText, "text"),
+                      (QPalette.Text, "text"), (QPalette.Button, "panel"), (QPalette.ButtonText, "text"), (QPalette.Highlight, "active"),
+                      (QPalette.HighlightedText, "text"), (QPalette.ToolTipBase, "input"), (QPalette.ToolTipText, "text"),
+                      (QPalette.PlaceholderText, "muted"), (QPalette.Mid, "line"), (QPalette.Link, "accent")):
         palette.setColor(role, QColor(c[key]))
     for role in (QPalette.Text, QPalette.ButtonText, QPalette.WindowText):
         palette.setColor(QPalette.Disabled, role, QColor(c["muted"]))
@@ -229,8 +252,10 @@ def theme_palette(theme: str) -> QPalette:
 
 def stylesheet(theme: str) -> str:
     c = dict(THEMES[theme], ui_fonts=UI_FAMILIES, code_fonts=CODE_FAMILIES)
-    c.update(arrow=_indicator_url("down", c["text"]), arrow_disabled=_indicator_url("down", c["muted"]),
-             tick=_indicator_url("check", c["text"]), tick_disabled=_indicator_url("check", c["muted"]),
+    c.update(arrow=_indicator_url("down", c["text"]),
+             arrow_disabled=_indicator_url("down", c["muted"]),
+             tick=_indicator_url("check", c["text"]),
+             tick_disabled=_indicator_url("check", c["muted"]),
              partial=_indicator_url("partial", c["text"]))
     return """
     QWidget { background: %(bg)s; color: %(text)s; font-family: %(ui_fonts)s; font-size: 12px; }

@@ -16,8 +16,7 @@ def finite_number(value, name, *, minimum=None, positive=False, nonzero=False):
     if isinstance(value, bool):
         raise ValueError(f"{name} 必须是数值。")
     value = float(value)
-    if (not math.isfinite(value) or (minimum is not None and value < minimum)
-            or (positive and value <= 0) or (nonzero and value == 0)):
+    if (not math.isfinite(value) or (minimum is not None and value < minimum) or (positive and value <= 0) or (nonzero and value == 0)):
         condition = "有限正数" if positive else "有限非零数" if nonzero else f"不小于 {minimum} 的有限数" if minimum is not None else "有限数"
         raise ValueError(f"{name} 必须是{condition}。")
     return value
@@ -35,7 +34,7 @@ def twiss_from(beta, *, alpha=None, gamma=None, alpha_sign=1):
         gamma = finite_number(gamma, "Twiss γ", positive=True)
         if alpha_sign not in (-1, 1):
             raise ValueError("α 的分支符号必须为 +1 或 -1。")
-        square = beta*gamma - 1
+        square = beta * gamma - 1
         if square < -1e-12:
             raise ValueError("Twiss βγ 必须不小于 1，才能得到实数 α。")
         alpha = alpha_sign * math.sqrt(max(0., square))
@@ -62,8 +61,8 @@ class EmittanceResult:
         n = finite_number(n_sigma, "椭圆倍数", positive=True)
         phase = np.linspace(0, 2 * np.pi, samples)
         if projected or self.betatron_covariance is not None:
-            covariance = np.array([[self.sigma_x**2, self.covariance],
-                                   [self.covariance, self.sigma_xp**2]] if projected else self.betatron_covariance)
+            covariance = np.array(
+                [[self.sigma_x**2, self.covariance], [self.covariance, self.sigma_xp**2]] if projected else self.betatron_covariance)
             values, vectors = np.linalg.eigh(covariance)
             return n * (vectors * np.sqrt(np.maximum(values, 0))) @ np.array([np.cos(phase), np.sin(phase)])
         x = math.sqrt(self.geometric * self.beta) * np.cos(phase)
@@ -71,8 +70,14 @@ class EmittanceResult:
         return n * np.array([x, xp])
 
 
-def emittance_from(kinematics: Kinematics, known: str, value: float, beta: float, alpha=0.,
-                   dispersion=0., dispersion_prime=0., sigma_delta=0.) -> EmittanceResult:
+def emittance_from(kinematics: Kinematics,
+                   known: str,
+                   value: float,
+                   beta: float,
+                   alpha=0.,
+                   dispersion=0.,
+                   dispersion_prime=0.,
+                   sigma_delta=0.) -> EmittanceResult:
     """Uncorrelated betatron and momentum coordinates, one transverse plane.
 
     ``known``: geometric/normalized RMS emittance (m rad) or sigma (m).
@@ -103,12 +108,11 @@ def emittance_from(kinematics: Kinematics, known: str, value: float, beta: float
     sigma_xp = math.hypot(math.sqrt(gamma * emit), dp * spread)
     cov = -alpha * emit + d * dp * spread**2
     # Expanded determinant avoids cancellation for strongly tilted ellipses.
-    dispersion_term = (math.sqrt(beta) * dp + alpha * d / math.sqrt(beta))**2 + d*d/beta
+    dispersion_term = (math.sqrt(beta) * dp + alpha * d / math.sqrt(beta))**2 + d * d / beta
     projected = math.sqrt(emit) * math.sqrt(emit + spread**2 * dispersion_term)
     correlation = cov / (sigma_x * sigma_xp) if sigma_x and sigma_xp else None
-    result = EmittanceResult(emit, emit * kinematics.beta_gamma, projected, gamma,
-                            math.sqrt(beta * emit), sigma_x, sigma_xp, cov,
-                            correlation, beta, alpha)
+    result = EmittanceResult(emit, emit * kinematics.beta_gamma, projected, gamma, math.sqrt(beta * emit), sigma_x, sigma_xp, cov, correlation, beta,
+                             alpha)
     for name, number in result.__dict__.items():
         if name == "betatron_covariance":
             continue
@@ -134,8 +138,15 @@ def _rms_matrix(a, b, c, name, scales=None):
     return a, b, c, emit, rho
 
 
-def emittance_from_rms(kinematics: Kinematics, sigma_x, sigma_xp, *, correlation=None,
-                       covariance=None, dispersion=0., dispersion_prime=0., sigma_delta=0.):
+def emittance_from_rms(kinematics: Kinematics,
+                       sigma_x,
+                       sigma_xp,
+                       *,
+                       correlation=None,
+                       covariance=None,
+                       dispersion=0.,
+                       dispersion_prime=0.,
+                       sigma_delta=0.):
     """Invert centered projected RMS statistics, subtracting uncorrelated dispersion.
 
     All inputs use SI units. Exactly one of correlation or covariance is required.
@@ -156,13 +167,12 @@ def emittance_from_rms(kinematics: Kinematics, sigma_x, sigma_xp, *, correlation
         if sx == 0 or sp == 0:
             raise ValueError("RMS 为零时相关系数未定义，请改用协方差输入 0。")
         covariance = rho * sx * sp
-    a, b, c, projected, rho = _rms_matrix(sx*sx, sp*sp, covariance, "投影协方差")
+    a, b, c, projected, rho = _rms_matrix(sx * sx, sp * sp, covariance, "投影协方差")
     da, db = d * spread, dp * spread
-    ba, bb, bc, emit, _ = _rms_matrix(a-da*da, b-db*db, c-da*db,
-        "扣除色散后的 betatron 协方差", (max(a, da*da), max(b, db*db)))
-    beta, alpha, gamma = (ba/emit, -bc/emit, bb/emit) if emit else (None, None, None)
-    result = EmittanceResult(emit, emit*kinematics.beta_gamma, projected, gamma,
-        math.sqrt(ba), math.sqrt(a), math.sqrt(b), c, rho, beta, alpha, ((ba, bc), (bc, bb)))
+    ba, bb, bc, emit, _ = _rms_matrix(a - da * da, b - db * db, c - da * db, "扣除色散后的 betatron 协方差", (max(a, da * da), max(b, db * db)))
+    beta, alpha, gamma = (ba / emit, -bc / emit, bb / emit) if emit else (None, None, None)
+    result = EmittanceResult(emit, emit * kinematics.beta_gamma, projected, gamma, math.sqrt(ba), math.sqrt(a), math.sqrt(b), c, rho, beta, alpha,
+                             ((ba, bc), (bc, bb)))
     for name, value in result.__dict__.items():
         if name != "betatron_covariance" and value is not None:
             finite_number(value, "计算结果")
@@ -202,8 +212,7 @@ def dipole_from(brho: float, length: float, known: str, value: float) -> DipoleR
         curvature = value / brho / length
     else:
         raise ValueError(f"未知二极铁输入量：{known}")
-    result = DipoleResult(curvature * brho, 1 / curvature if curvature else None,
-                          curvature, curvature * length, curvature * brho * length)
+    result = DipoleResult(curvature * brho, 1 / curvature if curvature else None, curvature, curvature * length, curvature * brho * length)
     for item in result.__dict__.values():
         if item is not None:
             finite_number(item, "计算结果")
@@ -240,8 +249,7 @@ def quadrupole_from(brho: float, length: float, known: str, value: float, radius
     else:
         raise ValueError(f"未知四极铁输入量：{known}")
     k1l = k1 * length
-    result = QuadrupoleResult(k1 * brho, k1, k1l, k1l * brho,
-                              1 / k1l if k1l else None, -1 / k1l if k1l else None, k1*brho*radius)
+    result = QuadrupoleResult(k1 * brho, k1, k1l, k1l * brho, 1 / k1l if k1l else None, -1 / k1l if k1l else None, k1 * brho * radius)
     for item in result.__dict__.values():
         if item is not None:
             finite_number(item, "计算结果")
@@ -281,8 +289,7 @@ def multipole_from(order, brho, length, known, value, radius=.03):
     else:
         raise ValueError(f"未知多极铁输入量：{known}")
     kn = derivative / brho
-    result = MultipoleResult(derivative, kn, kn*length, derivative*length,
-                             derivative*radius**order / math.factorial(order))
+    result = MultipoleResult(derivative, kn, kn * length, derivative * length, derivative * radius**order / math.factorial(order))
     for item in result.__dict__.values():
         finite_number(item, "计算结果")
     return result
@@ -315,12 +322,11 @@ def solenoid_from(brho, length, known, value):
     elif known == "angle":
         ks = 2 * value / length
     elif known == "integrated_field":
-        ks = value / (brho*length)
+        ks = value / (brho * length)
     else:
         raise ValueError(f"未知螺线管输入量：{known}")
     kappa = ks / 2
-    result = SolenoidResult(ks*brho, ks, kappa, kappa*length, ks*brho*length,
-                           kappa**2, 1/(kappa*kappa*length) if kappa else None)
+    result = SolenoidResult(ks * brho, ks, kappa, kappa * length, ks * brho * length, kappa**2, 1 / (kappa * kappa * length) if kappa else None)
     for item in result.__dict__.values():
         if item is not None:
             finite_number(item, "计算结果")

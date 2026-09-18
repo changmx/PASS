@@ -11,18 +11,18 @@ Reads PASS ParticleMonitor TBT data and StatMonitor CSV, then verifies:
                            constant for periodic lattice)
 
 Usage:
-    python analyse.py
-    python analyse.py --output-dir output/2026_0801/1820_23
+    python analyze_results.py
+    python analyze_results.py --output-dir output/2026_0801/1820_23
 """
+
+from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-from pathlib import Path
-
 import tfs
 
 # ============================================================
-# Lattice parameters (must match make_input.py)
+# Lattice parameters (must match generate_input.py)
 # ============================================================
 
 CIRCUM = 251.327
@@ -43,10 +43,10 @@ DPX = 0.0
 DQX = -2.0
 DQY = -2.0
 GAMMA_T = 4.8
-EMIT_X = 200e-6           # m'rad
-EMIT_Y = 100e-6           # m'rad
+EMIT_X = 200e-6  # m'rad
+EMIT_Y = 100e-6  # m'rad
 
-# Test particles (must match make_input.py)
+# Test particles (must match generate_input.py)
 # tag 1:  x=2mm (Qx)
 # tag 2:  y=2mm (Qy)
 # tag 3:  x=y=1mm, dp=+1e-4
@@ -60,18 +60,18 @@ EMIT_Y = 100e-6           # m'rad
 # tag 11: x=5mm (large amplitude)
 # tag 12: y=5mm (large amplitude)
 TEST_PARTICLES = [
-    [2e-3, 0, 0, 0, 0, 0],          # tag 1
-    [0, 0, 2e-3, 0, 0, 0],          # tag 2
-    [1e-3, 0, 1e-3, 0, 0, +1e-4],   # tag 3
-    [1e-3, 0, 1e-3, 0, 0, -1e-4],   # tag 4
-    [1e-3, 0, 1e-3, 0, 0, +5e-4],   # tag 5
-    [1e-3, 0, 1e-3, 0, 0, -5e-4],   # tag 6
-    [1e-3, 0, 1e-3, 0, 0, +1e-3],   # tag 7
-    [1e-3, 0, 1e-3, 0, 0, -1e-3],   # tag 8
-    [0, 0, 0, 0, 0.1, 0],           # tag 9
-    [0, 0, 0, 0, 0, 0],             # tag 10
-    [5e-3, 0, 0, 0, 0, 0],          # tag 11
-    [0, 0, 5e-3, 0, 0, 0],          # tag 12
+    [2e-3, 0, 0, 0, 0, 0],  # tag 1
+    [0, 0, 2e-3, 0, 0, 0],  # tag 2
+    [1e-3, 0, 1e-3, 0, 0, +1e-4],  # tag 3
+    [1e-3, 0, 1e-3, 0, 0, -1e-4],  # tag 4
+    [1e-3, 0, 1e-3, 0, 0, +5e-4],  # tag 5
+    [1e-3, 0, 1e-3, 0, 0, -5e-4],  # tag 6
+    [1e-3, 0, 1e-3, 0, 0, +1e-3],  # tag 7
+    [1e-3, 0, 1e-3, 0, 0, -1e-3],  # tag 8
+    [0, 0, 0, 0, 0.1, 0],  # tag 9
+    [0, 0, 0, 0, 0, 0],  # tag 10
+    [5e-3, 0, 0, 0, 0, 0],  # tag 11
+    [0, 0, 5e-3, 0, 0, 0],  # tag 12
 ]
 
 TAG_INFO = {
@@ -95,7 +95,6 @@ CHROM_PAIRS = [
     (5, 6, 5e-4),
     (7, 8, 1e-3),
 ]
-
 
 # ============================================================
 # Analytic one-turn transfer matrix
@@ -142,9 +141,7 @@ def compute_longitudinal_matrix(transfer="off", mu_z=0.0, sigma_z=1.0, sigma_dp=
     return np.array([[m11, m12], [m21, m22]])
 
 
-def analytic_track_one_turn(x, px, y, py, z, dp,
-                            mx, my, mz, dx_prev=0.0, dpx_prev=0.0,
-                            dx=0.0, dpx=0.0, dqx=0.0, dqy=0.0):
+def analytic_track_one_turn(x, px, y, py, z, dp, mx, my, mz, dx_prev=0.0, dpx_prev=0.0, dx=0.0, dpx=0.0, dqx=0.0, dqy=0.0):
     """Apply one-turn Twiss map analytically.
 
     Order: longitudinal → remove old dispersion → rotate → add new dispersion.
@@ -161,10 +158,8 @@ def analytic_track_one_turn(x, px, y, py, z, dp,
     py1 = py
 
     # chromatic phase advance: mu + dp * DQ
-    mx_chrom = compute_twiss_matrix(ALPHA_X, BETA_X, ALPHA_X, BETA_X,
-                                    MU_X + dp * dqx)
-    my_chrom = compute_twiss_matrix(ALPHA_Y, BETA_Y, ALPHA_Y, BETA_Y,
-                                    MU_Y + dp * dqy)
+    mx_chrom = compute_twiss_matrix(ALPHA_X, BETA_X, ALPHA_X, BETA_X, MU_X + dp * dqx)
+    my_chrom = compute_twiss_matrix(ALPHA_Y, BETA_Y, ALPHA_Y, BETA_Y, MU_Y + dp * dqy)
 
     x2 = x1 * mx_chrom[0, 0] + px1 * mx_chrom[0, 1] + dx * dp2
     px2 = x1 * mx_chrom[1, 0] + px1 * mx_chrom[1, 1] + dpx * dp2
@@ -189,9 +184,21 @@ def analytic_track_n_turns(init, n_turns, mx, my, mz):
     x, px, y, py, z, dp = init
     for t in range(1, n_turns + 1):
         x, px, y, py, z, dp = analytic_track_one_turn(
-            x, px, y, py, z, dp, mx, my, mz,
-            dx_prev=DX, dpx_prev=DPX, dx=DX, dpx=DPX,
-            dqx=DQX, dqy=DQY,
+            x,
+            px,
+            y,
+            py,
+            z,
+            dp,
+            mx,
+            my,
+            mz,
+            dx_prev=DX,
+            dpx_prev=DPX,
+            dx=DX,
+            dpx=DPX,
+            dqx=DQX,
+            dqy=DQY,
         )
         coords[t] = [x, px, y, py, z, dp]
     return coords
@@ -338,12 +345,10 @@ def plot_tune_fft(pass_data, tag, plane, expected_tune, ax):
 
     spectrum[0] = 0
     ax.plot(freqs, spectrum, "b-", linewidth=1)
-    ax.axvline(expected_tune, color="r", linestyle="--", linewidth=1,
-               label=f"expected Q={expected_tune:.4f}")
+    ax.axvline(expected_tune, color="r", linestyle="--", linewidth=1, label=f"expected Q={expected_tune:.4f}")
 
     measured, _ = measure_tune(signal, n)
-    ax.axvline(measured, color="g", linestyle=":", linewidth=1,
-               label=f"measured Q={measured:.6f}")
+    ax.axvline(measured, color="g", linestyle=":", linewidth=1, label=f"measured Q={measured:.6f}")
 
     ax.set_xlabel("tune")
     ax.set_ylabel("amplitude")
@@ -388,9 +393,7 @@ def plot_matrix_comparison(pass_data, tags, n_turns_plot, axes):
 
         n_pass = len(d["turn"])
         n_analytic = min(n_pass, n_turns_plot)
-        analytic = analytic_track_n_turns(
-            TEST_PARTICLES[tag - 1], n_analytic, mx, my, mz
-        )
+        analytic = analytic_track_n_turns(TEST_PARTICLES[tag - 1], n_analytic, mx, my, mz)
 
         turns_pass = d["turn"][:n_turns_plot]
         x_pass = d["x"][:n_turns_plot]
@@ -478,8 +481,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Analyse one-turn map tracking")
-    parser.add_argument("--output-dir", default=None,
-                        help="Specific output directory (default: latest)")
+    parser.add_argument("--output-dir", default=None, help="Specific output directory (default: latest)")
     args = parser.parse_args()
 
     script_dir = Path(__file__).resolve().parent
@@ -575,9 +577,7 @@ if __name__ == "__main__":
 
         d = pass_data[tag]
         n_ana = min(len(d["turn"]), n_turns)
-        analytic = analytic_track_n_turns(
-            TEST_PARTICLES[tag - 1], n_ana, mx, my, mz
-        )
+        analytic = analytic_track_n_turns(TEST_PARTICLES[tag - 1], n_ana, mx, my, mz)
 
         n = min(len(d["x"]), n_ana)
         dx = d["x"][:n] - analytic[:n, 0]
@@ -634,10 +634,8 @@ if __name__ == "__main__":
 
     if len(dp_meas) >= 1:
         # Method 1: average of per-pair DQ
-        dqx_pairs = [(qx_pos_list[i] - qx_neg_list[i]) / (2 * dp_meas[i])
-                     for i in range(len(dp_meas))]
-        dqy_pairs = [(qy_pos_list[i] - qy_neg_list[i]) / (2 * dp_meas[i])
-                     for i in range(len(dp_meas))]
+        dqx_pairs = [(qx_pos_list[i] - qx_neg_list[i]) / (2 * dp_meas[i]) for i in range(len(dp_meas))]
+        dqy_pairs = [(qy_pos_list[i] - qy_neg_list[i]) / (2 * dp_meas[i]) for i in range(len(dp_meas))]
 
         print(f"\n  Per-pair average: DQx={np.mean(dqx_pairs):.3f} "
               f"(expected {DQX})")
@@ -713,8 +711,7 @@ if __name__ == "__main__":
     tags_plot = [t for t in [1, 2, 3, 7, 9, 11] if t in pass_data]
     n_tags = len(tags_plot)
     fig3, axes3 = plt.subplots(n_tags, 1, figsize=(14, 3.5 * n_tags), squeeze=False)
-    fig3.suptitle("TBT x: PASS vs Analytic Matrix (first 100 turns)",
-                  fontsize=14, fontweight="bold")
+    fig3.suptitle("TBT x: PASS vs Analytic Matrix (first 100 turns)", fontsize=14, fontweight="bold")
     plot_matrix_comparison(pass_data, tags_plot, min(100, n_turns), axes3[:, 0])
     fig3.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()

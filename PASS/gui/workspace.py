@@ -14,16 +14,30 @@ from uuid import uuid4
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
-    QApplication, QAbstractItemView, QComboBox, QDialog, QFileDialog, QHBoxLayout,
-    QHeaderView, QLabel, QLineEdit, QMenu, QMessageBox, QPlainTextEdit,
-    QPushButton, QSplitter, QTabWidget, QTableWidget, QTableWidgetItem,
-    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QApplication,
+    QAbstractItemView,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
+    QSplitter,
+    QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
-from PASS.gui.project import (
-    Project, ProjectError, atomic_write, file_references, json_bytes,
-    read_json, resolved_file,
-)
+from PASS.gui.project import Project, ProjectError, atomic_write, file_references, json_bytes, read_json, resolved_file
 
 
 def display_json(value) -> str:
@@ -170,8 +184,10 @@ class ResourceDialog(QDialog):
         if kind == "config":
             data = self.project.configs[identifier].data
             name = self.location.currentData()
-            self.value = ({k: v for k, v in data.items() if k != "Sequence"} if name == "__global__" else
-                          data.get("Sequence", {}).get(name) if name else data)
+            self.value = ({
+                k: v
+                for k, v in data.items() if k != "Sequence"
+            } if name == "__global__" else data.get("Sequence", {}).get(name) if name else data)
             self.copy_command_button.setEnabled(bool(name and name != "__global__"))
         elif kind == "recipe":
             self.value = self.project.recipes[identifier]
@@ -196,6 +212,7 @@ class ResourceDialog(QDialog):
             self.raw.setPlainText(text[:2 * 1024 * 1024] + ("\n[预览截断]" if len(text) > 2 * 1024 * 1024 else ""))
             self.tabs.setCurrentIndex(0)
         self.parameter_values = []
+
         def flatten(value, prefix=""):
             if len(self.parameter_values) >= 5000:
                 return
@@ -204,6 +221,7 @@ class ResourceDialog(QDialog):
                     flatten(item, f"{prefix} / {key}" if prefix else str(key))
             else:
                 self.parameter_values.append((prefix, value))
+
         flatten(self.value)
         self.parameters.setRowCount(len(self.parameter_values))
         for row, (name, value) in enumerate(self.parameter_values):
@@ -211,8 +229,7 @@ class ResourceDialog(QDialog):
             cell = QTableWidgetItem(json.dumps(value, ensure_ascii=False)[:200])
             cell.setToolTip(json.dumps(value, ensure_ascii=False)[:1000])
             self.parameters.setItem(row, 1, cell)
-        self.info.setText("只读预览 · 参数表最多显示 5,000 项；完整内容可导出。" if len(self.parameter_values) >= 5000 else
-                          "只读预览 · 复制完整命令会带入引用的计算配置、切片器和文件依赖。")
+        self.info.setText("只读预览 · 参数表最多显示 5,000 项；完整内容可导出。" if len(self.parameter_values) >= 5000 else "只读预览 · 复制完整命令会带入引用的计算配置、切片器和文件依赖。")
         self._filter(self.search.text())
 
     def _preview_table(self, suffix, text):
@@ -326,6 +343,7 @@ class DocumentWindowMixin:
         self._standalone_sources: list[Project] = []
         self.actions = {}
         menu = self.file_menu
+
         def action(key, text, handler, shortcut=None):
             item = QAction(text, self)
             if shortcut:
@@ -334,6 +352,7 @@ class DocumentWindowMixin:
             menu.addAction(item)
             self.actions[key] = item
             return item
+
         menu.addSection("JSON 输入")
         action("new_json", "新建 JSON", self.new_json, QKeySequence.New)
         action("open_json", "打开 JSON…", self.open_json, QKeySequence.Open)
@@ -396,9 +415,7 @@ class DocumentWindowMixin:
     def _confirm_replace(self) -> bool:
         if not self._dirty():
             return True
-        result = QMessageBox.question(self, "未保存修改", "是否保存当前输入后继续？",
-                                      QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                                      QMessageBox.Save)
+        result = QMessageBox.question(self, "未保存修改", "是否保存当前输入后继续？", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Save)
         return self.save_document() if result == QMessageBox.Save else result == QMessageBox.Discard
 
     def _set_input(self, data, path="", recipes=None, base=None):
@@ -660,9 +677,8 @@ class DocumentWindowMixin:
                 choice = QMessageBox(self)
                 choice.setWindowTitle("命令的规定时钟不同")
                 choice.setText("复制的命令依赖规定时钟。请选择它在目标项目中使用的时钟。")
-                choice.setInformativeText("源：" + display_json(difference["source"]) + "\n目标：" + display_json(difference["target"])
-                                          + ("\n" + difference["detail"] if difference.get("detail") else "")
-                                          + "\n复制源时钟也会影响目标中已有的谐波 RF、Bump 和到达相位切片。")
+                choice.setInformativeText("源：" + display_json(difference["source"]) + "\n目标：" + display_json(difference["target"]) +
+                                          ("\n" + difference["detail"] if difference.get("detail") else "") + "\n复制源时钟也会影响目标中已有的谐波 RF、Bump 和到达相位切片。")
                 keep = choice.addButton("使用目标时钟", QMessageBox.AcceptRole)
                 copy_clock = choice.addButton("复制源时钟", QMessageBox.ActionRole)
                 choice.addButton(QMessageBox.Cancel)
@@ -698,8 +714,7 @@ class DocumentWindowMixin:
         value = deepcopy(recipe)
         if project:
             value = deepcopy(next((r for r in project.recipes if r.get("id") == recipe.get("id")), recipe))
-            value["source_files"] = {key: str(project.root / project.assets[aid].path)
-                                     for key, aid in value.get("source_assets", {}).items()}
+            value["source_files"] = {key: str(project.root / project.assets[aid].path) for key, aid in value.get("source_assets", {}).items()}
         return value
 
     def restore_project_recipe(self, project, recipe):
@@ -740,7 +755,8 @@ class DocumentWindowMixin:
             return
         project = self.project
         dirty = self._dirty()
-        label = (project.path.name if project.path else "未保存项目.passproj") if project else (Path(self.config.path).name if self.config.path else "beam.json")
+        label = (project.path.name if project.path else "未保存项目.passproj") if project else (
+            Path(self.config.path).name if self.config.path else "beam.json")
         self.config.file_label.setText(label + (" ●" if dirty else ""))
         self.config.file_label.setToolTip(str(project.path or "") if project else self.config.path)
         self.config.input_selector.setVisible(project is not None)

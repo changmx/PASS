@@ -12,9 +12,6 @@ from PASS.utils.logger import center_string, set_normal_logging, set_simple_logg
 logger = logging.getLogger(__name__)
 
 
-TIMING_MODES = {"off", "turn", "command", "synchronized-command"}
-
-
 @dataclass
 class CommandTiming:
     """Accumulated timing for one command class."""
@@ -61,11 +58,12 @@ class ExecutionProfiler:
         self._cupy = None
         self._gpu_synchronized = False
 
-        if self.mode not in TIMING_MODES:
+        timing_modes = {"off", "turn", "command", "synchronized-command"}
+        if self.mode not in timing_modes:
             logger.warning(
                 "Unknown timing mode %r; using 'command'. Supported modes: %s",
                 self.mode,
-                ", ".join(sorted(TIMING_MODES)),
+                ", ".join(sorted(timing_modes)),
             )
             self.mode = "command"
         if self.log_interval < 1:
@@ -84,10 +82,8 @@ class ExecutionProfiler:
         try:
             import cupy as cp
         except (ImportError, OSError) as exc:
-            raise RuntimeError(
-                "GPU command timing requires CuPy; use timing mode 'turn' "
-                "or install the optional CUDA dependencies."
-            ) from exc
+            raise RuntimeError("GPU command timing requires CuPy; use timing mode 'turn' "
+                               "or install the optional CUDA dependencies.") from exc
         self._cupy = cp
         return cp
 
@@ -200,12 +196,10 @@ class ExecutionProfiler:
         average = sum(usable) / len(usable) if usable else 0.0
         remaining = max(self.total_turns - completed, 0)
         eta = remaining * average
-        return (
-            f"Turn: {turn}/{self.total_turns} | turn: {self._format_seconds(turn_time)} | "
-            f"avg: {self._format_seconds(average)}/turn | "
-            f"elapsed: {self._format_long_duration(elapsed)} | "
-            f"ETA: {self._format_long_duration(eta)}"
-        )
+        return (f"Turn: {turn}/{self.total_turns} | turn: {self._format_seconds(turn_time)} | "
+                f"avg: {self._format_seconds(average)}/turn | "
+                f"elapsed: {self._format_long_duration(elapsed)} | "
+                f"ETA: {self._format_long_duration(eta)}")
 
     def print_summary(self):
         if self.mode == "off":
@@ -233,22 +227,18 @@ class ExecutionProfiler:
             turns = max(len(self.turn_seconds), 1)
             names = sorted(self.command_timings)
             command_width = max(len("Command"), *(len(name) for name in names), len("Total"))
-            headers = (
-                f"{'Command':<{command_width}} | {'Calls':>8} | {'Calls/Turn':>10} | "
-                f"{'Total Time':>12} | {'Avg/Turn':>12} | {'Avg/Call':>12} | {'Time Percentage':>16}"
-            )
+            headers = (f"{'Command':<{command_width}} | {'Calls':>8} | {'Calls/Turn':>10} | "
+                       f"{'Total Time':>12} | {'Avg/Turn':>12} | {'Avg/Call':>12} | {'Time Percentage':>16}")
             logger.info(headers)
             logger.info("-" * len(headers))
 
             def format_row(name: str, calls: int, total_seconds: float, percentage: float) -> str:
                 avg_turn = total_seconds / turns
                 avg_call = total_seconds / calls if calls else 0.0
-                return (
-                    f"{name:<{command_width}} | {calls:>8d} | {calls / turns:>10.2f} | "
-                    f"{self._format_seconds(total_seconds):>12} | "
-                    f"{self._format_seconds(avg_turn):>12} | "
-                    f"{self._format_seconds(avg_call):>12} | {percentage:>15.2f}%"
-                )
+                return (f"{name:<{command_width}} | {calls:>8d} | {calls / turns:>10.2f} | "
+                        f"{self._format_seconds(total_seconds):>12} | "
+                        f"{self._format_seconds(avg_turn):>12} | "
+                        f"{self._format_seconds(avg_call):>12} | {percentage:>15.2f}%")
 
             for name in names:
                 item = self.command_timings[name]

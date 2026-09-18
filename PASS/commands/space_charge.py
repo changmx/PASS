@@ -19,28 +19,19 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.solver.analytic import solve_analytic, sample_analytic_grid
-from PASS.commands.solver.pic import (
-    GridGeometry,
-    build_grid_geometry,
-    build_pic_resources,
-    gather_bilinear,
-    gather_quadratic,
-    solve_pic,
-)
+from PASS.commands.solver.pic import GridGeometry, build_grid_geometry, build_pic_resources, gather_bilinear, gather_quadratic, solve_pic
 from PASS.utils.aperture import build_aperture, aperture_bounds, RectangleAperture
 from PASS.utils.constants import const
 from PASS.utils.slicing import resolve_internal_sc_aperture
 from PASS.utils.aperture import check_aperture_cpu
-from PASS.para.schema.space_charge import (
-    validate_loss_aperture, parse_element_space_charge, SLICED_ELEMENT_COMMANDS,
-)
+from PASS.para.schema.space_charge import validate_loss_aperture, parse_element_space_charge, SLICED_ELEMENT_COMMANDS
 from PASS.utils.logger import set_simple_logging, set_normal_logging
 
 logger = logging.getLogger(__name__)
 
 
-def _normalise_kwargs(values: Mapping[str, Any]) -> dict[str, Any]:
-    return {str(key).strip().lower(): value for key, value in values.items()}
+def _normalize_kwargs(values: Mapping[str, Any]) -> dict[str, Any]:
+    return {str(k).strip().lower(): v for k, v in values.items()}
 
 
 def _first(values: Mapping[str, Any], *names: str, default: Any = None) -> Any:
@@ -131,12 +122,11 @@ def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeC
             if str(command.get("command", "")).lower() not in SLICED_ELEMENT_COMMANDS:
                 raise ValueError(f"Command {name!r} does not support internal Space charge")
             config = parse_element_space_charge(command["space charge"])
-            config = resolve_internal_sc_aperture(config, command.get("aperture type", "off"),
-                                                  command.get("aperture value", []), name, sim, beam_id)
+            config = resolve_internal_sc_aperture(config, command.get("aperture type", "off"), command.get("aperture value", []), name, sim, beam_id)
             length = float(command.get("length (m)", 0.0))
             if not np.isfinite(length) or length <= const.eps:
                 raise ValueError(f"Internal Space charge in {name!r} requires a thick element")
-            values = _normalise_kwargs(config.model_dump(by_alias=True))
+            values = _normalize_kwargs(config.model_dump(by_alias=True))
             commands.append((f"{name} (internal)", values))
 
         configurations = settings.configurations
@@ -162,22 +152,27 @@ def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeC
                 )
 
         for name, command_names in references.items():
-            configuration = configurations[name]
+            sc_cfg = configurations[name]
             try:
-                geometry = build_grid_geometry(configuration.model_dump())
+                geometry = build_grid_geometry(sc_cfg.model_dump())
                 backend = 'gpu' if (getattr(cfg, 'use_gpu', False) or getattr(cfg, 'backend', 'cpu') == 'gpu') else 'cpu'
-                slice_counts = {ss.num_slices for beam in getattr(sim, 'beams', [])[beam_id:beam_id+1]
-                                for bunch in beam.bunches
-                                if (ss := bunch.slice_sets.get(configuration.slice_set)) is not None
-                                and hasattr(ss, 'num_slices')}
-                configured = SpaceChargeConfiguredResources(name, configuration.slice_set, configuration, geometry,
-                    backend=backend, dtype=getattr(cfg, 'particle_precision', 'float64'),
-                    num_slices=next(iter(slice_counts)) if len(slice_counts) == 1 else None)
+                slice_counts = {
+                    ss.num_slices
+                    for beam in getattr(sim, 'beams', [])[beam_id:beam_id + 1]
+                    for bunch in beam.bunches if (ss := bunch.slice_sets.get(sc_cfg.slice_set)) is not None and hasattr(ss, 'num_slices')
+                }
+                configured = SpaceChargeConfiguredResources(name,
+                                                            sc_cfg.slice_set,
+                                                            sc_cfg,
+                                                            geometry,
+                                                            backend=backend,
+                                                            dtype=getattr(cfg, 'particle_precision', 'float64'),
+                                                            num_slices=next(iter(slice_counts)) if len(slice_counts) == 1 else None)
                 # Validate every referenced command, even before allocating a
                 # Poisson matrix for any of its apertures.
                 apertures = []
                 for command_name, command in command_names:
-                    values = _normalise_kwargs(command)
+                    values = _normalize_kwargs(command)
                     try:
                         apertures.append(_resolve_aperture(configured, values))
                     except (TypeError, ValueError) as exc:
@@ -187,8 +182,8 @@ def initialize_space_charge_resources(sim) -> dict[tuple[int, str], SpaceChargeC
             except Exception as exc:
                 raise ValueError(f"invalid Space-charge configuration {name!r} for beam {beam_id}: {exc}") from exc
             registry[(beam_id, name)] = configured
-            logger.info("Space-charge configuration %r for beam %d: %d commands, %d solver resource sets.",
-                        name, beam_id, len(command_names), len(configured.pic))
+            logger.info("Space-charge configuration %r for beam %d: %d commands, %d solver resource sets.", name, beam_id, len(command_names),
+                        len(configured.pic))
 
     sim.space_charge_resources = registry
     sim.space_charge_enabled = enabled_by_beam
@@ -201,21 +196,16 @@ def _resolve_aperture(configured, values):
     dimensions = validate_loss_aperture(kind, values.get("aperture value", []))
     grid, config = configured.geometry, configured.configuration
     if kind == "default":
-        kind, dimensions = "rectangle", [(grid.x_max - grid.x_min) / 2,
-                                         (grid.y_max - grid.y_min) / 2]
+        kind, dimensions = "rectangle", [(grid.x_max - grid.x_min) / 2, (grid.y_max - grid.y_min) / 2]
     spec = build_aperture({"Type": kind, "Value": dimensions})
     bounds = aperture_bounds(spec)
     if config.solver in {"fd_dirichlet", "dst_dirichlet"} and bounds is None:
         raise ValueError("Dirichlet solvers require a finite command aperture; use default or an explicit shape")
     if config.method == "pic" and bounds is not None:
-        if (bounds[0] < grid.x_min or bounds[1] > grid.x_max
-                or bounds[2] < grid.y_min or bounds[3] > grid.y_max):
+        if (bounds[0] < grid.x_min or bounds[1] > grid.x_max or bounds[2] < grid.y_min or bounds[3] > grid.y_max):
             raise ValueError(f"command aperture bounds {bounds} exceed grid bounds "
                              f"{(grid.x_min, grid.x_max, grid.y_min, grid.y_max)}")
-    if config.solver == "dst_dirichlet" and not (
-        isinstance(spec, RectangleAperture)
-        and bounds == (grid.x_min, grid.x_max, grid.y_min, grid.y_max)
-    ):
+    if config.solver == "dst_dirichlet" and not (isinstance(spec, RectangleAperture) and bounds == (grid.x_min, grid.x_max, grid.y_min, grid.y_max)):
         raise ValueError("dst_dirichlet requires the command aperture to be the full grid-aligned rectangle")
     return kind, dimensions
 
@@ -235,9 +225,14 @@ def _pic_resources(configured, kind, dimensions):
             from PASS.commands.solver.pic import build_pic_resources_gpu
             builder = build_pic_resources_gpu
             extra = dict(dtype=configured.dtype, num_slices=configured.num_slices)
-        resources = builder(configured.geometry, aperture=aperture, **extra,
-            field_solver={"fft_free_space": "fft_free_space", "fd_dirichlet": "fd",
-                          "dst_dirichlet": "dst_rectangle"}[solver])
+        resources = builder(configured.geometry,
+                            aperture=aperture,
+                            **extra,
+                            field_solver={
+                                "fft_free_space": "fft_free_space",
+                                "fd_dirichlet": "fd",
+                                "dst_dirichlet": "dst_rectangle"
+                            }[solver])
         if not np.any(resources.field_solver.interior_mask):
             raise ValueError("command aperture has no active grid nodes; increase grid resolution")
         configured.pic[key] = resources
@@ -255,16 +250,16 @@ class SpaceCharge(Command):
     """
 
     def __init__(self, beam_id: int, sim, **command_kwargs):
-        values = _normalise_kwargs(command_kwargs)
+        kwargs = _normalize_kwargs(command_kwargs)
         self.beam_id = int(beam_id)
         self.cmd_type = self.__class__.__name__
-        self.cmd_name = str(values.get("name", "space_charge"))
-        self.s = float(_first(values, "s (m)", "s", default=0.0))
+        self.cmd_name = str(kwargs.get("name", "space_charge"))
+        self.s = float(_first(kwargs, "s (m)", "s", default=0.0))
         if not np.isfinite(self.s):
             raise ValueError("SpaceCharge 'S (m)' must be finite")
         registry = initialize_space_charge_resources(sim)
         self.is_enabled = bool(getattr(sim, "space_charge_enabled", {}).get(self.beam_id, False))
-        self.configuration_name = str(values.get("configuration", "")).strip()
+        self.configuration_name = str(kwargs.get("configuration", "")).strip()
         self.aperture_type = "off"
         self.aperture_value = []
         self.sc_start = None
@@ -297,7 +292,7 @@ class SpaceCharge(Command):
             "aperture type",
             "aperture value",
         }
-        unknown = sorted(set(values) - allowed)
+        unknown = sorted(set(kwargs) - allowed)
         if unknown:
             raise ValueError(f"SpaceCharge command {self.cmd_name!r} has unsupported field(s): {unknown}")
         if not self.configuration_name:
@@ -308,30 +303,30 @@ class SpaceCharge(Command):
             raise KeyError(f"SpaceCharge command {self.cmd_name!r} references undefined configuration "
                            f"{self.configuration_name!r} for beam {self.beam_id}") from exc
 
-        self.sc_length = float(_first(values, "sc length (m)", "sc_length", default=0.0))
+        self.sc_length = float(_first(kwargs, "sc length (m)", "sc_length", default=0.0))
         if not np.isfinite(self.sc_length) or self.sc_length < 0:
             raise ValueError("SpaceCharge 'SC length (m)' must be finite and non-negative")
-        raw_start = values.get("sc start (m)")
+        raw_start = kwargs.get("sc start (m)")
         if raw_start is not None:
             self.sc_start = float(raw_start)
             if not np.isfinite(self.sc_start):
                 raise ValueError("SpaceCharge 'SC start (m)' must be finite")
         self.slice_set_name = configured.slice_set_name
-        self.save_field = _first(values, "save field", default=False)
-        self.save_potential = _first(values, "save potential", default=False)
-        self.save_density = _first(values, "save density", default=False)
+        self.save_field = kwargs.get("save field", False)
+        self.save_potential = kwargs.get("save potential", False)
+        self.save_density = kwargs.get("save density", False)
         for name in ("save_field", "save_potential", "save_density"):
             value = getattr(self, name)
             if not isinstance(value, (bool, np.bool_)):
                 raise TypeError(f"SpaceCharge '{name}' must be boolean")
             setattr(self, name, bool(value))
-        self._save_turn_ranges = _save_turn_ranges(_first(values, "save turns", default=[]))
+        self._save_turn_ranges = _save_turn_ranges(kwargs.get("save turns", []))
         self.configuration = configured.configuration
         self.method = self.configuration.method
         self.solver = self.configuration.solver
         self.deposition_method = (self.configuration.deposition_method or "CIC") if self.method == "pic" else "none"
         self._geometry = configured.geometry
-        self.aperture_type, self.aperture_value = _resolve_aperture(configured, values)
+        self.aperture_type, self.aperture_value = _resolve_aperture(configured, kwargs)
         self._resources = _pic_resources(configured, self.aperture_type, self.aperture_value)
         if self.method != "pic":
             if self.save_potential:
@@ -342,25 +337,25 @@ class SpaceCharge(Command):
         if not self.is_enabled:
             logger.info(f"SpaceCharge {self.cmd_name}: disabled by top-level Space charge.Enabled")
             return
-        logger.info(
-            "S=%g m, Command=%s, Name=%s, Configuration=%s, SC length=%g m, Slice set=%s, Method=%s, Solver=%s",
-            self.s, self.cmd_type, self.cmd_name, self.configuration_name, self.sc_length,
-            self.slice_set_name, self.method, self.solver)
+        logger.info("S=%g m, Command=%s, Name=%s, Configuration=%s, SC length=%g m, Slice set=%s, Method=%s, Solver=%s", self.s, self.cmd_type,
+                    self.cmd_name, self.configuration_name, self.sc_length, self.slice_set_name, self.method, self.solver)
         logger.info("SC integration interval start=%s m (coverage metadata)", self.sc_start)
         if self.geometry is not None:
             grid = self.geometry
             logger.info("%s grid=%dx%d nodes, x=[%g, %g] m, y=[%g, %g] m, dx=%g m, dy=%g m",
-                        "PIC" if self.method == "pic" else "Diagnostic/default-aperture",
-                        grid.nx, grid.ny, grid.x_min, grid.x_max, grid.y_min, grid.y_max, grid.dx, grid.dy)
+                        "PIC" if self.method == "pic" else "Diagnostic/default-aperture", grid.nx, grid.ny, grid.x_min, grid.x_max, grid.y_min,
+                        grid.y_max, grid.dx, grid.dy)
         if self.method == "pic":
             logger.info("Deposition=%s", self.deposition_method)
         elif self.method == "frozen":
-            logger.info("Fixed transverse parameters: %s", {key: value for key, value in
-                        self.configuration.model_dump(by_alias=True, exclude_none=True).items()
-                        if key.startswith(("Center", "Sigma", "Semi-axis", "Radius", "Angle"))})
+            logger.info(
+                "Fixed transverse parameters: %s", {
+                    key: value
+                    for key, value in self.configuration.model_dump(by_alias=True, exclude_none=True).items()
+                    if key.startswith(("Center", "Sigma", "Semi-axis", "Radius", "Angle"))
+                })
         logger.info("Aperture: Type=%s, Value=%s; %s", self.aperture_type, self.aperture_value,
-                    "loss and conducting boundary" if self.solver in {"fd_dirichlet", "dst_dirichlet"}
-                    else "loss only; fields are free space")
+                    "loss and conducting boundary" if self.solver in {"fd_dirichlet", "dst_dirichlet"} else "loss only; fields are free space")
         set_normal_logging()
 
     @property
@@ -397,7 +392,7 @@ class SpaceCharge(Command):
     def _turn_selected(self, turn: int) -> bool:
         return any(start <= turn <= end and (turn - start) % step == 0 for start, end, step in self._save_turn_ranges)
 
-    def _apply_bunch_cpu(self, beam, bunch, particles, sim, turn: int) -> bool:
+    def _apply_bunch_cpu(self, beam, bunch, p, sim, turn: int) -> bool:
         try:
             slice_set = bunch.slice_sets[self.slice_set_name]
         except KeyError as exc:
@@ -428,9 +423,9 @@ class SpaceCharge(Command):
             raise ValueError("SliceSet.slice_id must be -1 or a valid slice index")
         local_sid = local_sid.astype(np.int64, copy=False)
 
-        x = np.asarray(particles.x[start:end], dtype=float)
-        y = np.asarray(particles.y[start:end], dtype=float)
-        tag = np.asarray(particles.tag[start:end])
+        x = np.asarray(p.x[start:end], dtype=float)
+        y = np.asarray(p.y[start:end], dtype=float)
+        tag = np.asarray(p.tag[start:end])
         valid = (tag > 0) & (local_sid >= 0)
         if np.any(~np.isfinite(x[valid])) or np.any(~np.isfinite(y[valid])):
             raise ValueError("SpaceCharge requires finite transverse coordinates for participating particles")
@@ -465,8 +460,8 @@ class SpaceCharge(Command):
         kick_factor = np.sign(float(bunch.num_charge)) / (beta * const.c * brho * gamma * gamma)
         if self._turn_selected(turn) and (self.save_field or self.save_potential or self.save_density):
             self._save_hdf5(sim, beam, bunch, result, delta_z, q_macro, turn, analytic)
-        particles.px[start:end] += np.asarray(kick_factor * self.sc_length * average_ex, dtype=particles.px.dtype)
-        particles.py[start:end] += np.asarray(kick_factor * self.sc_length * average_ey, dtype=particles.py.dtype)
+        p.px[start:end] += np.asarray(kick_factor * self.sc_length * average_ex, dtype=p.px.dtype)
+        p.py[start:end] += np.asarray(kick_factor * self.sc_length * average_ey, dtype=p.py.dtype)
         return bool(np.any(valid))
 
     def _pic_fields(self, x, y, tag, local_sid, n_slices, q_macro, turn):
@@ -525,9 +520,12 @@ class SpaceCharge(Command):
             handle.attrs.update({
                 "schema_version":
                 "3",
-                "method": self.method,
-                "grid_role": "tracking" if self.method == "pic" else "diagnostic",
-                "aperture_role": "loss_and_conductor" if self.solver in {"fd_dirichlet", "dst_dirichlet"} else "loss_only",
+                "method":
+                self.method,
+                "grid_role":
+                "tracking" if self.method == "pic" else "diagnostic",
+                "aperture_role":
+                "loss_and_conductor" if self.solver in {"fd_dirichlet", "dst_dirichlet"} else "loss_only",
                 "backend":
                 str(getattr(cfg, "backend", "cpu")),
                 "solver":
@@ -570,8 +568,10 @@ class SpaceCharge(Command):
                 self.s,
                 "sc_length":
                 self.sc_length,
-                "aperture_type": self.aperture_type,
-                "aperture_value": json.dumps(self.aperture_value),
+                "aperture_type":
+                self.aperture_type,
+                "aperture_value":
+                json.dumps(self.aperture_value),
                 "configuration":
                 self.configuration_name,
                 "slice_set":
@@ -604,10 +604,8 @@ class SpaceCharge(Command):
             handle.create_dataset("delta_z", data=np.asarray(delta_z, dtype=np.float64))
             handle.create_dataset("slice_charge", data=np.asarray(result.deposited_charge, dtype=np.float64))
             if analytic is not None:
-                handle.attrs["size_convention"] = (
-                    "principal_rms" if self.solver.startswith("gaussian") else
-                    "parabolic_semi_axes" if self.solver.startswith("parabolic") else "uniform_semi_axes"
-                )
+                handle.attrs["size_convention"] = ("principal_rms" if self.solver.startswith("gaussian") else
+                                                   "parabolic_semi_axes" if self.solver.startswith("parabolic") else "uniform_semi_axes")
                 handle.attrs["parameter_source"] = "configuration" if self.method == "frozen" else "current_slice_population_moments"
                 handle.create_dataset("macro_count", data=analytic.macro_count)
                 for column, name in enumerate(("center_x", "center_y", "size_x", "size_y", "angle")):
@@ -651,54 +649,40 @@ class SpaceCharge(Command):
         import cupy as cp
         from .solver.analytic import AnalyticResult, solve_analytic_gpu
         from .solver.pic import PICResult, pic_gpu, gather_fields_gpu
-        from .solver.field_result import _launch_gpu
+        from .solver.field_result import launch_gpu_kernel
 
         p = beam.particles
         start, end = int(bunch.start_idx), int(bunch.end_idx)
         try:
             slices = bunch.slice_sets[self.slice_set_name]
         except KeyError as exc:
-            raise KeyError(
-                f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}"
-            ) from exc
+            raise KeyError(f"Bunch {bunch.bunch_id} has no SliceSet {self.slice_set_name!r}") from exc
         if getattr(slices, "coordinate", None) != "z_periodic":
             raise ValueError("SpaceCharge requires Coordinate='z_periodic' slices")
         if end <= start:
             return False
         table = getattr(slices, "slice_table", None)
-        if (
-            getattr(slices, "slice_id", None) is None
-            or not isinstance(table, Mapping)
-            or "delta_z" not in table
-        ):
+        if (getattr(slices, "slice_id", None) is None or not isinstance(table, Mapping) or "delta_z" not in table):
             raise RuntimeError("SliceSet requires slice_id and slice_table.delta_z")
-        sid = cp.asarray(slices.slice_id)
-        if sid.ndim != 1 or sid.size != end - start or sid.dtype.kind not in "iu":
-            raise ValueError(
-                "SliceSet.slice_id must contain one integer per bunch particle"
-            )
-        sid = cp.ascontiguousarray(sid, dtype=cp.int64)
+        slice_indices = cp.asarray(slices.slice_id)
+        if slice_indices.ndim != 1 or slice_indices.size != end - start or slice_indices.dtype.kind not in "iu":
+            raise ValueError("SliceSet.slice_id must contain one integer per bunch particle")
+        slice_indices = cp.ascontiguousarray(slice_indices, dtype=cp.int64)
         dz = cp.asarray(table["delta_z"], dtype=p.x.dtype)
         if dz.ndim != 1 or not dz.size:
             raise ValueError("SliceSet.delta_z must contain finite positive widths")
-        ns = dz.size
+        n_slices = dz.size
         x, y, tag = p.x[start:end], p.y[start:end], p.tag[start:end]
-        valid = (tag > 0) & (sid >= 0)
+        valid = (tag > 0) & (slice_indices >= 0)
         checks = [
             cp.any(~cp.isfinite(dz) | (dz <= 0)),
-            cp.any((sid < -1) | (sid >= ns)),
+            cp.any((slice_indices < -1) | (slice_indices >= n_slices)),
             cp.any(valid & (~cp.isfinite(x) | ~cp.isfinite(y))),
         ]
         if self.method == "pic":
-            g = self.geometry
+            grid = self.geometry
             xx, yy = x.astype(cp.float64, copy=False), y.astype(cp.float64, copy=False)
-            inside = (
-                (xx >= g.x_min)
-                & (xx <= g.x_max)
-                & (yy >= g.y_min)
-                & (yy <= g.y_max)
-                & self._resources.aperture.mask(xx, yy)
-            )
+            inside = ((xx >= grid.x_min) & (xx <= grid.x_max) & (yy >= grid.y_min) & (yy <= grid.y_max) & self._resources.aperture.mask(xx, yy))
             checks.append(cp.any(valid & ~inside))
         checks.append(cp.any(valid))
         flags = cp.stack(checks).get()
@@ -711,64 +695,57 @@ class SpaceCharge(Command):
         for index, failed in enumerate(flags[:-1]):
             if failed:
                 raise ValueError(messages[index])
-        q = float(bunch.ratio) * float(bunch.num_charge) * const.e
+        q_macro = float(bunch.ratio) * float(bunch.num_charge) * const.e
         beta, gamma, brho = float(bunch.beta), float(bunch.gamma), float(bunch.brho)
-        if not np.isfinite(q):
+        if not np.isfinite(q_macro):
             raise ValueError("SpaceCharge macro-particle charge must be finite")
-        if (
-            beta <= 0
-            or gamma <= 1
-            or abs(brho) <= const.eps
-            or not np.isfinite(beta * gamma * brho)
-        ):
-            raise ValueError(
-                "Bunch relativistic parameters are invalid for SpaceCharge kick"
-            )
+        if (beta <= 0 or gamma <= 1 or abs(brho) <= const.eps or not np.isfinite(beta * gamma * brho)):
+            raise ValueError("Bunch relativistic parameters are invalid for SpaceCharge kick")
         turn = int(sim.state.turn)
         selected = self._turn_selected(turn)
-        save = selected and (
-            self.save_field or self.save_potential or self.save_density
-        )
+        save = selected and (self.save_field or self.save_potential or self.save_density)
         analytic = None
         if self.method == "pic":
             result = pic_gpu(
                 x,
                 y,
-                sid,
-                q,
+                slice_indices,
+                q_macro,
                 geometry=self.geometry,
                 tag=tag,
                 method=self.deposition_method,
-                num_slices=ns,
+                num_slices=n_slices,
                 resources=self._resources,
                 compute_potential=selected and self.save_potential,
                 validate=False,
                 copy=False,
             )
             if int(result.diagnostics["lost_count"]):
-                raise ValueError(
-                    "participating particles have no active deposition nodes; increase grid resolution"
-                )
+                raise ValueError("participating particles have no active deposition nodes; increase grid resolution")
             ex, ey = gather_fields_gpu(
-                result.ex,
-                result.ey,
-                {"x": x, "y": y, "tag": tag},
+                result.integrated_ex,
+                result.integrated_ey,
+                {
+                    "x": x,
+                    "y": y,
+                    "tag": tag
+                },
                 self.geometry,
                 self._resources,
-                sid,
+                slice_indices,
                 method=self.deposition_method,
                 validate=False,
             )
         else:
-            analytic = solve_analytic_gpu(x, y, sid, valid, ns, q, self.configuration)
+            analytic = solve_analytic_gpu(x, y, slice_indices, valid, n_slices, q_macro, self.configuration)
             ex, ey = analytic.integrated_ex, analytic.integrated_ey
         if save:
             if analytic is None:
                 host = PICResult(
                     cp.asnumpy(result.density),
                     None if result.potential is None else cp.asnumpy(result.potential),
-                    cp.asnumpy(result.ex),
-                    cp.asnumpy(result.ey),
+                    cp.asnumpy(result.integrated_ex),
+                    cp.asnumpy(result.integrated_ey),
                     self.geometry,
                     cp.asnumpy(result.deposited_charge),
                 )
@@ -781,16 +758,10 @@ class SpaceCharge(Command):
                     cp.asnumpy(analytic.macro_count),
                     cp.asnumpy(analytic.parameters),
                 )
-                host = sample_analytic_grid(
-                    analytic, self.configuration, self.geometry
-                )
-            self._save_hdf5(sim, beam, bunch, host, cp.asnumpy(dz), q, turn, analytic)
-        factor = (
-            np.sign(float(bunch.num_charge))
-            * self.sc_length
-            / (beta * const.c * brho * gamma * gamma)
-        )
-        _launch_gpu(
+                host = sample_analytic_grid(analytic, self.configuration, self.geometry)
+            self._save_hdf5(sim, beam, bunch, host, cp.asnumpy(dz), q_macro, turn, analytic)
+        factor = (np.sign(float(bunch.num_charge)) * self.sc_length / (beta * const.c * brho * gamma * gamma))
+        launch_gpu_kernel(
             _SPACE_CHARGE_CUDA,
             "space_charge_kick",
             x.size,
@@ -799,25 +770,38 @@ class SpaceCharge(Command):
                 p.py[start:end],
                 ex,
                 ey,
-                sid,
+                slice_indices,
                 tag,
                 dz,
                 np.int64(x.size),
-                np.int32(ns),
+                np.int32(n_slices),
                 np.float64(factor),
             ),
             x.dtype,
         )
         return bool(flags[-1])
 
+
 _SPACE_CHARGE_CUDA = r"""
-extern "C" __global__ void space_charge_kick(T* px,T* py,const T* ex,const T* ey,
-    const long long* sid,const int* tag,const T* dz,long long n,int ns,double factor) {
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
-    if(i>=n || tag[i]<=0 || sid[i]<0 || sid[i]>=ns) return;
+extern "C" __global__ void space_charge_kick(
+    T* px,
+    T* py,
+    const T* ex,
+    const T* ey,
+    const long long* slice_indices,
+    const int* tag,
+    const T* dz,
+    long long n,
+    int n_slices,
+    double factor
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n || tag[i] <= 0 || slice_indices[i] < 0 || slice_indices[i] >= n_slices)
+        return;
     // Round the increment to the configured particle precision before adding,
     // matching the CPU kick convention rather than silently widening px/py.
-    T kx=(T)(factor*(double)ex[i]/dz[sid[i]]),ky=(T)(factor*(double)ey[i]/dz[sid[i]]);
-    px[i]+=kx;py[i]+=ky;
+    T kx = (T)(factor * (double)ex[i] / dz[slice_indices[i]]), ky = (T)(factor * (double)ey[i] / dz[slice_indices[i]]);
+    px[i] += kx;
+    py[i] += ky;
 }
 """

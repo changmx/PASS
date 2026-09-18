@@ -23,16 +23,15 @@ The engine reads ramping TFS files via tfs.read() and indexes by row
 (row 0 = turn 1). TURN column is for human readability; TIME (S) is optional.
 """
 
-import numpy as np
-import tfs
 from pathlib import Path
 from typing import Callable
+
+import numpy as np
+import tfs
 from scipy.interpolate import interp1d
 
-
-# ============================================================
 # Step 1: Read external data
-# ============================================================
+
 
 def load_raw_data(
     file_path: str,
@@ -75,7 +74,7 @@ def load_raw_data(
             str(path),
             delimiter=delimiter if delimiter != "whitespace" else None,
             skip_header=skiprows,
-            names=True,   # read header row as field names
+            names=True,  # read header row as field names
             dtype=None,
             encoding="utf-8",
             deletechars="",
@@ -125,9 +124,8 @@ def load_raw_data(
     return result
 
 
-# ============================================================
 # Step 2: Time ↔ Turn conversion
-# ============================================================
+
 
 def time_to_turn(
     time_arr: np.ndarray,
@@ -200,9 +198,8 @@ def turn_to_time(
         return turn_arr / revolution_freq
 
 
-# ============================================================
 # Step 3: Interpolate to continuous turns
-# ============================================================
+
 
 def interpolate_to_continuous_turns(
     turn_arr: np.ndarray,
@@ -245,7 +242,8 @@ def interpolate_to_continuous_turns(
             result[col] = np.full(len(continuous_turns), values[0])
         else:
             interp = interp1d(
-                turn_arr, values,
+                turn_arr,
+                values,
                 kind=method,
                 bounds_error=False,
                 fill_value=(values[0], values[-1]),
@@ -255,9 +253,8 @@ def interpolate_to_continuous_turns(
     return continuous_turns, result
 
 
-# ============================================================
 # Step 4: Write TFS file
-# ============================================================
+
 
 def write_tfs_ramping(
     output_path: str,
@@ -304,9 +301,8 @@ def write_tfs_ramping(
     return output_path
 
 
-# ============================================================
 # High-level API: full pipeline
-# ============================================================
+
 
 def convert_external_to_tfs(
     input_path: str,
@@ -357,16 +353,17 @@ def convert_external_to_tfs(
     elif raw["time"] is not None and revolution_freq is not None:
         turn_arr = time_to_turn(raw["time"], revolution_freq, num_turns)
     else:
-        raise ValueError(
-            "Cannot determine turn axis: need either a 'turn' column "
-            "or a 'time' column + revolution_freq"
-        )
+        raise ValueError("Cannot determine turn axis: need either a 'turn' column "
+                         "or a 'time' column + revolution_freq")
 
     # Step 3: interpolate to continuous turns
     end_turn = num_turns if num_turns else int(np.max(turn_arr))
     turn_cont, data_cont = interpolate_to_continuous_turns(
-        turn_arr, raw["data"],
-        start_turn=1, end_turn=end_turn, method=method,
+        turn_arr,
+        raw["data"],
+        start_turn=1,
+        end_turn=end_turn,
+        method=method,
     )
 
     # Step 4: generate time column
@@ -376,6 +373,10 @@ def convert_external_to_tfs(
 
     # Step 5: write TFS
     return write_tfs_ramping(
-        output_path, turn_cont, time_cont, data_cont,
-        title=title, data_type=data_type,
+        output_path,
+        turn_cont,
+        time_cont,
+        data_cont,
+        title=title,
+        data_type=data_type,
     )

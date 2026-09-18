@@ -4,8 +4,9 @@ Each function wraps data_converter.convert_external_to_tfs with
 the correct data column names for that element type.
 """
 
-from PASS.para.tools.data_converter import convert_external_to_tfs
 from typing import Callable
+
+from PASS.para.tools.data_converter import convert_external_to_tfs
 
 
 def convert_k0l_ramping(
@@ -17,11 +18,14 @@ def convert_k0l_ramping(
 ) -> str:
     """Dipole K0L ramping → TFS."""
     return convert_external_to_tfs(
-        input_path, output_path,
+        input_path,
+        output_path,
         data_cols=["k0l"],
-        revolution_freq=revolution_freq, num_turns=num_turns,
+        revolution_freq=revolution_freq,
+        num_turns=num_turns,
         method=method,
-        title="Dipole K0L Ramping", data_type="RAMPING",
+        title="Dipole K0L Ramping",
+        data_type="RAMPING",
     )
 
 
@@ -34,11 +38,14 @@ def convert_k1l_ramping(
 ) -> str:
     """Quadrupole K1L/K1SL ramping → TFS."""
     return convert_external_to_tfs(
-        input_path, output_path,
+        input_path,
+        output_path,
         data_cols=["k1l", "k1sl"],
-        revolution_freq=revolution_freq, num_turns=num_turns,
+        revolution_freq=revolution_freq,
+        num_turns=num_turns,
         method=method,
-        title="Quadrupole K1L Ramping", data_type="RAMPING",
+        title="Quadrupole K1L Ramping",
+        data_type="RAMPING",
     )
 
 
@@ -51,11 +58,14 @@ def convert_k2l_ramping(
 ) -> str:
     """Sextupole K2L/K2SL ramping → TFS."""
     return convert_external_to_tfs(
-        input_path, output_path,
+        input_path,
+        output_path,
         data_cols=["k2l", "k2sl"],
-        revolution_freq=revolution_freq, num_turns=num_turns,
+        revolution_freq=revolution_freq,
+        num_turns=num_turns,
         method=method,
-        title="Sextupole K2L Ramping", data_type="RAMPING",
+        title="Sextupole K2L Ramping",
+        data_type="RAMPING",
     )
 
 
@@ -68,11 +78,14 @@ def convert_k3l_ramping(
 ) -> str:
     """Octupole K3L/K3SL ramping → TFS."""
     return convert_external_to_tfs(
-        input_path, output_path,
+        input_path,
+        output_path,
         data_cols=["k3l", "k3sl"],
-        revolution_freq=revolution_freq, num_turns=num_turns,
+        revolution_freq=revolution_freq,
+        num_turns=num_turns,
         method=method,
-        title="Octupole K3L Ramping", data_type="RAMPING",
+        title="Octupole K3L Ramping",
+        data_type="RAMPING",
     )
 
 
@@ -85,9 +98,12 @@ def convert_kick_ramping(
 ) -> str:
     """Kicker hkick/vkick ramping → TFS."""
     return convert_external_to_tfs(
-        input_path, output_path,
+        input_path,
+        output_path,
         data_cols=["hkick", "vkick"],
-        revolution_freq=revolution_freq, num_turns=num_turns,
+        revolution_freq=revolution_freq,
+        num_turns=num_turns,
         method=method,
-        title="Kicker Ramping", data_type="RAMPING",
+        title="Kicker Ramping",
+        data_type="RAMPING",
     )

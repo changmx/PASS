@@ -1,10 +1,13 @@
 # Example 05 - RF Cavity Longitudinal Dynamics Test
 
+Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+workflow entry points for input generation, tracking, and result analysis.
+
 ## Overview
 
 This example verifies the physical correctness and functionality of PASS's RF cavity element `RFCavity` (`PASS/commands/element/rfcavity.py`). The beam is a low-energy heavy ion, 238U35+ at 17 MeV/u, and the ring optics use the FODO lattice from examples 03/04 (`fodo.tfs`, with headers C = 234.4 m and gamma_t = 3.3746).
 
-Five cases are covered. They are driven from a single `CASES` source in `make_input.py`, and `analyse.py` imports that source to avoid duplicate parameter definitions and theory values.
+Five cases are covered. They are driven from a single `CASES` source in `generate_input.py`, and `analyze_results.py` imports that source to avoid duplicate parameter definitions and theory values.
 
 | case | lattice | RF mode | harmonic | focus |
 |------|---------|---------|----------|-------|
@@ -15,7 +18,7 @@ Five cases are covered. They are driven from a single `CASES` source in `make_in
 
 The additional `twiss_h1_waveform` case prescribes a sinusoidally modulated design voltage. Every case now generates `rf_physical_h<h>_<lattice>_<mode>.tfs`.
 
-`make_input.py` fixes the Injection random seed to `2026`, so every case uses a
+`generate_input.py` fixes the Injection random seed to `2026`, so every case uses a
 reproducible generated particle distribution.
 
 ### Optics and transition
@@ -39,7 +42,7 @@ $$t_i=T_b-\frac{z_i}{\beta_b c},\qquad
 
 The input generator explicitly constructs a synchronous design trajectory from the requested voltages and passage phases. The TFS columns are `TIME, VOLTAGE, FREQUENCY, PHASE` in seconds, volts, Hz and radians. Frequency is integrated; PHASE is an unwrapped additive modulation. Samples are linearly interpolated with held endpoints. Tracked bunches do not reset their phase to the design phase each turn. For a time-varying waveform, particles separated by the instantaneous RF wavelength need not receive exactly identical kicks: they sample different physical times.
 
-RF components are supplied through `RFCavityElement(components=[dict(program_file=...)])`. For a fixed hardware frequency, use an inline `frequency` value instead of this synchronous design generator. A component's `harmonic` multiplies a prescribed shared reference-clock frequency, which is constant at its initial value unless an explicit clock program is provided. Grouping harmonics impose no divisibility restriction.
+RF components are supplied through `RFCavityItem(components=[dict(program_file=...)])`. For a fixed hardware frequency, use an inline `frequency` value instead of this synchronous design generator. A component's `harmonic` multiplies a prescribed shared reference-clock frequency, which is constant at its initial value unless an explicit clock program is provided. Grouping harmonics impose no divisibility restriction.
 
 CPU and CUDA implement the same thin-kick model. Effective voltage excludes additional finite-gap and transverse RF focusing models. The exact kick does not remove the separate approximations in a Twiss map or quasi-static space charge. User-controlled saved z slice intervals, widths and memberships remain unchanged across RF; only an explicit Slicer updates them.
 
@@ -71,7 +74,7 @@ The separatrix is obtained numerically from the longitudinal Hamiltonian contour
 
 **Why 2048 turns instead of 1024?** Qs is about 3.5e-3, so the synchrotron period is about 287 turns. With only 1024 turns, the FFT sees just 3.6 periods and the frequency resolution is poor. With 2048 turns, the tune resolution improves to about 4.9e-4, and zero-padding plus parabolic interpolation reaches about 1e-5. In addition, the bucket-edge particle (tag 12) needs about 500 turns to slip into loss, so 1024 turns leaves too little margin.
 
-**Theory values** (`make_input.calc_theory()` computes these automatically):
+**Theory values** (`generate_input.calc_theory()` computes these automatically):
 
 | quantity | h=1 | h=2 |
 |----|-----|-----|
@@ -196,9 +199,9 @@ The historical measurements above do not establish correctness of the migrated i
 
 ```text
 05_rf_cavity_longitudinal/
-├── make_input.py   # single source of truth: CASES + calc_theory() + build_case()
-├── run.py          # --case/--beam0 -> PASS.main
-├── analyse.py      # verification modules + A/B comparison (imports make_input)
+├── generate_input.py   # single source of truth: CASES + calc_theory() + build_case()
+├── run_simulation.py          # --case/--beam0 -> PASS.main
+├── analyze_results.py      # verification modules + A/B comparison (imports generate_input)
 ├── fodo.madx/.seq/.ps/.tfs  # FODO lattice from examples 03/04 (provides C and gamma_t)
 ├── rf_physical_h<h>_<lattice>_<mode>.tfs  # physical-time programs
 ├── beam0_<case>.json
@@ -209,18 +212,18 @@ The historical measurements above do not establish correctness of the migrated i
 
 ```bash
 cd example/05_rf_cavity_longitudinal
-python make_input.py    # generate 5 JSON inputs and physical-time RF tables
-python run.py           # run the 5 cases serially
-python analyse.py       # print all verification results + interactive plots
+python generate_input.py    # generate 5 JSON inputs and physical-time RF tables
+python run_simulation.py           # run the 5 cases serially
+python analyze_results.py       # print all verification results + interactive plots
 ```
 
 You can also generate or run a single case:
 
 ```bash
-python make_input.py --case twiss_h1_fixed
-python run.py --case twiss_h1_fixed
-python run.py --case all
-python run.py --beam0 beam0_twiss_h1_fixed.json
+python generate_input.py --case twiss_h1_fixed
+python run_simulation.py --case twiss_h1_fixed
+python run_simulation.py --case all
+python run_simulation.py --beam0 beam0_twiss_h1_fixed.json
 ```
 
 ## Notes
@@ -232,13 +235,13 @@ python run.py --beam0 beam0_twiss_h1_fixed.json
 5. **K-value normalization**: K1L in `fodo.tfs` is normalized strength and does not depend on beam energy. The element case can therefore use the real FODO elements directly without rigidity scaling.
 6. **FFT Qs measurement**: Qs is very small, so zero padding to 65536 plus parabolic interpolation is needed, and the result should be compared against the adiabatic-average theory <Qs(gamma)> rather than the initial value.
 
-RF tables and monitor metadata are written with sufficient significant digits to retain float64 timing. The design generator uses the same rest-mass constant as tracking. The approximate tune, bucket and h=2 symmetry plots in `analyse.py` are diagnostics; accelerating, time-varying programs do not have an exact stationary separatrix or exact instantaneous-wavelength symmetry.
+RF tables and monitor metadata are written with sufficient significant digits to retain float64 timing. The design generator uses the same rest-mass constant as tracking. The approximate tune, bucket and h=2 symmetry plots in `analyze_results.py` are diagnostics; accelerating, time-varying programs do not have an exact stationary separatrix or exact instantaneous-wavelength symmetry.
 
 `python blond_compare.py --case twiss_h1_fixed` produces a standalone `pass_blond_report.html` with embedded plots. This example comparison starts after kick 0 and explicitly uses BLonD's simple energy-linear drift and a local RF phase/voltage approximation; finite-amplitude differences are expected. Use `--output-dir PATH` to compare an existing run with reference columns.
 
-Ordinary `make_input.py` runs leave ParticleMonitor's `include_reference` option
+Ordinary `generate_input.py` runs leave ParticleMonitor's `include_reference` option
 disabled: the output has 11 columns, and no reference values are saved in headers.
-`analyse.py` accepts this default output. When `blond_compare.py` runs PASS itself,
+`analyze_results.py` accepts this default output. When `blond_compare.py` runs PASS itself,
 it explicitly enables `include_reference=True` (`"Include reference": true in JSON).
 The three extra columns, `referenceTime`, `referenceBeta`, and `referenceMomentum`,
 are required to reconstruct physical arrival times and energies for comparison.
@@ -246,8 +249,8 @@ are required to reconstruct physical arrival times and energies for comparison.
 To prepare an existing run for BLonD comparison manually:
 
 ```bash
-python make_input.py --case twiss_h1_fixed --include-reference
-python run.py --case twiss_h1_fixed
+python generate_input.py --case twiss_h1_fixed --include-reference
+python run_simulation.py --case twiss_h1_fixed
 python blond_compare.py --case twiss_h1_fixed --output-dir PATH_TO_RUN
 ```
 

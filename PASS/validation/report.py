@@ -46,10 +46,17 @@ class ValidationReport:
             self.diagnostics.append(issue)
 
     def to_dict(self):
-        return {"valid": self.ok, "full": self.full, "commands": self.command_count,
-                "errors": len(self.errors), "warnings": len(self.warnings),
-                "checked_files": self.checked_files,
-                "diagnostics": [{**asdict(item), "pointer": item.pointer} for item in self.diagnostics]}
+        return {
+            "valid": self.ok,
+            "full": self.full,
+            "commands": self.command_count,
+            "errors": len(self.errors),
+            "warnings": len(self.warnings),
+            "checked_files": self.checked_files,
+            "diagnostics": [{
+                **asdict(item), "pointer": item.pointer
+            } for item in self.diagnostics]
+        }
 
     def text(self):
         summary = f"{len(self.errors)} 错误，{len(self.warnings)} 警告；检查 {self.command_count} 个命令、{len(self.checked_files)} 个文件"

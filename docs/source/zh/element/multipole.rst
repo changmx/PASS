@@ -3,7 +3,7 @@
 
 本模块介绍 PASS 中的通用多极铁元件 **Multipole** ，用于模拟带电粒子在任意阶多极磁铁中的运动。与四极铁、六极铁、八极铁等单阶元件不同，多极铁通过 ``knl`` / ``ksl`` 数组同时支持任意阶（含混合阶）多极分量，适用于场误差注入、组合多极元件、高阶多极铁等场景。
 
-PASS 中的多极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式，厚元件采用精确漂移-踢角-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。踢角采用 Horner 嵌套求值，与 Xsuite ``kick_simple_single_coordinates`` 在公式层面完全一致。
+PASS 中的多极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式，厚元件采用精确漂移-踢角-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。踢角采用 Horner 嵌套求值。
 
 **代码位置**
 
@@ -26,7 +26,7 @@ PASS 中的多极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
 坐标约定
 --------
 
-PASS 采用与 Xsuite 一致的归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
+PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
 
 .. list-table::
   :header-rows: 1
@@ -228,7 +228,7 @@ Horner 嵌套求值
 
   P(z) = \sum_{n=0}^{N} c_n z^n, \qquad z = x + i y
 
-其中 :math:`c_n = \chi \cdot K_{nL} / n!` 。直接展开高阶项计算量大且数值不稳定。PASS 采用 Horner 嵌套求值，与 Xsuite ``kick_simple_single_coordinates`` （ ``track_magnet_kick.h:182-228`` ）在算法层面一致。
+其中 :math:`c_n = \chi \cdot K_{nL} / n!` 。直接展开高阶项计算量大且数值不稳定。PASS 采用 Horner 嵌套求值。
 
 Horner 递推从最高阶系数开始，逐步向下：
 
@@ -380,40 +380,15 @@ DKD-exact 对理想多极铁自然包含所有非线性效应，无需额外项�
   * - 各阶多极踢角的完整非线性
     - Horner 递推保留 :math:`(x+iy)^n` 的所有项
 
-唯一近似来源是积分器的截断误差（uniform 为 :math:`O(\Delta s^2)` ，yoshida4 为 :math:`O(\Delta s^4)` ）。
+分裂映射的截断误差在 uniform 下为 :math:`O(\Delta s^2)`，在 yoshida4 下为
+:math:`O(\Delta s^4)`。有限精度运算也会带来误差；系数、子步及粒子存储的
+精度约定见 :ref:`zh-element-integration-precision`。
 
 
-与 Xsuite 的差异：hxl 曲率修正
---------------------------------
+参考轨道范围
+------------
 
-Xsuite 的 ``Multipole`` 元件支持 ``hxl`` 参数（水平参考轨迹旋转角），用于描述 **组合功能磁铁** ——即参考轨道在磁铁内有弯曲的多极元件。PASS 当前不实现 ``hxl`` ，仅支持直铁（ ``hxl = 0`` ）。
-
-Xsuite 中 ``hxl`` 产生三组修正（源码 ``track_magnet_kick.h:97-143`` ）：
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 30 45
-
-  * - 修正项
-    - 触发条件
-    - 表达式
-  * - rot_frame
-    - :math:`h_{xl} \neq 0` （与 knl 无关）
-    - :math:`\Delta p_x \mathrel{+}= h_{xl}(1+\delta)` ， :math:`\Delta \zeta \mathrel{+}= -\frac{\beta_0}{\beta} h_{xl} x`
-  * - k0h 修正
-    - :math:`h_{xl} \neq 0` 且 :math:`k_{0L} \neq 0`
-    - :math:`\Delta p_x \mathrel{+}= -\chi \, k_{0L} \cdot \frac{h_{xl}}{L} \cdot x`
-  * - k1h 修正
-    - :math:`h_{xl} \neq 0` 且 :math:`k_{1L} \neq 0`
-    - :math:`\Delta p_x \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot (-x^2 + \frac{1}{2}y^2)` ， :math:`\Delta p_y \mathrel{+}= \chi \, k_{1L} \cdot \frac{h_{xl}}{L} \cdot xy`
-
-其中 ``rot_frame`` 修正描述参考轨迹偏转的几何效应， **与磁场分量无关** ——即使 knl/ksl 全为零（纯漂移），只要 :math:`h_{xl} \neq 0` 就会触发。 ``k0h`` 和 ``k1h`` 修正则是曲率与多极分量的耦合项，需要同时满足 ``hxl`` 和对应的 knl 分量非零。
-
-.. note::
-
-  - PASS 多极铁设 :math:`h_{xl} = 0` ，三组修正均为零，与 Xsuite 直铁（ ``hxl=0`` ）在 kick 公式层面完全一致
-  - 当 :math:`h_{xl} = 0` 时，无论 knl/ksl 取何值，PASS 与 Xsuite 的结果逐粒子一致（已验证，精度 :math:`< 10^{-12}` ）
-  - 若需模拟组合功能磁铁（有弯曲参考轨道的多极元件），需在 PASS 中增加 ``hxl`` 支持，这是未来扩展项
+多极铁使用直线参考轨道，未提供用于弯曲参考轨道的 ``hxl`` 曲率修正。
 
 
 接口参数

@@ -17,13 +17,13 @@ def equation_png(tex, color):
     buffer = BytesIO()
     display_tex = tex.strip().replace(r"\frac", r"\dfrac")
     with rc_context({"mathtext.fontset": "stix", "text.usetex": False, "savefig.transparent": True}):
-        math_to_image(f"${display_tex}$", buffer, prop=FontProperties(size=18),
-                      dpi=192, format="png", color=color)
+        math_to_image(f"${display_tex}$", buffer, prop=FontProperties(size=18), dpi=192, format="png", color=color)
     return buffer.getvalue()
 
 
 class FormulaBrowser(QTextBrowser):
     """Render <eq>MathText</eq> blocks without a web engine or network assets."""
+
     def __init__(self, html, parent=None):
         super().__init__(parent)
         self.source_html = html
@@ -54,8 +54,8 @@ class FormulaBrowser(QTextBrowser):
                 raise ValueError(f"Cannot render formula: {tex}")
             url = QUrl(f"formula:{len(resources)}")
             # 192 dpi assets, 96 dpi logical layout: crisp at desktop scaling.
-            width, height = image.width()/2, image.height()/2
-            scale = min(1., max(240, self.viewport().width()-48)/width)
+            width, height = image.width() / 2, image.height() / 2
+            scale = min(1., max(240, self.viewport().width() - 48) / width)
             resources.append((url, image))
             self.rendered_equations.append(tex)
             return (f'<p class="equation"><img src="{url.toString()}" '

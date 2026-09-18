@@ -4,23 +4,35 @@ import math
 import numpy as np
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QCheckBox, QColorDialog, QComboBox, QFormLayout,
-    QGroupBox, QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QColorDialog,
+    QComboBox,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 from PASS.gui.appearance import THEMES
-from PASS.gui.tool_beam import hint, number
+from PASS.gui.tool_beam import hint, create_number_input
 from PASS.gui.tool_optics_formulas import EMITTANCE_FORMULAS
 from PASS.gui.tool_physics_common import PhysicsToolPage, ResultFields
 from PASS.gui.optics_calculator import emittance_from, emittance_from_rms, finite_number, twiss_from
 
-
 CALCULATION_ERRORS = (ValueError, OverflowError, ZeroDivisionError, FloatingPointError, np.linalg.LinAlgError)
 PALETTE = ("#5399df", "#e18b45", "#4eaf87", "#bd7ad5", "#d96578", "#57aeb6", "#aaa142")
 
+
 class EmittanceInput(QWidget):
     """One independently validated set of centered statistics and plot settings."""
-    numeric_fields = ("value", "beta", "alpha", "gamma", "dispersion", "dispersion_prime",
-                      "sigma_delta", "n_sigma", "rms_x", "rms_xp", "correlation", "covariance", "center_x", "center_xp")
+    numeric_fields = ("value", "beta", "alpha", "gamma", "dispersion", "dispersion_prime", "sigma_delta", "n_sigma", "rms_x", "rms_xp", "correlation",
+                      "covariance", "center_x", "center_xp")
     combo_fields = ("known", "twiss_mode", "alpha_sign", "correlation_mode")
     check_fields = ("draw_phase", "draw_projected")
     text_fields = ("legend_name", "projected_name")
@@ -31,8 +43,7 @@ class EmittanceInput(QWidget):
         self.page_name = f"第{page_id}页"
         self.result = self.payload = None
         self.curves = None
-        self.color = (PALETTE[page_id-1] if page_id <= len(PALETTE) else
-                      QColor.fromHsv(int(page_id * 137.508) % 360, 150, 195).name())
+        self.color = (PALETTE[page_id - 1] if page_id <= len(PALETTE) else QColor.fromHsv(int(page_id * 137.508) % 360, 150, 195).name())
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         display = QGroupBox("绘图设置")
@@ -52,8 +63,8 @@ class EmittanceInput(QWidget):
         self.color_button.clicked.connect(self.choose_color)
         form.addRow("曲线颜色", self.color_button)
         self.update_color_button()
-        self.center_x, self.center_xp = number(0, -1e100), number(0, -1e100)
-        self.n_sigma = number(1)
+        self.center_x, self.center_xp = create_number_input(0, -1e100), create_number_input(0, -1e100)
+        self.n_sigma = create_number_input(1)
         form.addRow("中心 x₀ (mm)", self.center_x)
         form.addRow("中心 x′₀ (mrad)", self.center_xp)
         form.addRow("椭圆倍数 n", self.n_sigma)
@@ -62,49 +73,44 @@ class EmittanceInput(QWidget):
         box = QGroupBox("单平面 RMS 参数")
         self.form = form = QFormLayout(box)
         self.known = QComboBox()
-        for label, key in (("几何 rms 发射度", "geometric"), ("归一化 rms 发射度", "normalized"),
-                           ("投影 rms 束斑 σx", "sigma"), ("投影 RMS 与相关性 → ε、Twiss", "rms")):
+        for label, key in (("几何 rms 发射度", "geometric"), ("归一化 rms 发射度", "normalized"), ("投影 rms 束斑 σx", "sigma"), ("投影 RMS 与相关性 → ε、Twiss", "rms")):
             self.known.addItem(label, key)
         form.addRow("已知量", self.known)
-        self.value, self.value_label = number(1), QLabel("ε (π·mm·mrad)")
+        self.value, self.value_label = create_number_input(1), QLabel("ε (π·mm·mrad)")
         form.addRow(self.value_label, self.value)
-        self.rms_x, self.rms_xp = number(math.sqrt(10)), number(math.sqrt(.1))
+        self.rms_x, self.rms_xp = create_number_input(math.sqrt(10)), create_number_input(math.sqrt(.1))
         self.correlation_mode = QComboBox()
         self.correlation_mode.addItem("相关系数 r", "correlation")
         self.correlation_mode.addItem("协方差 Cov(x,x′)", "covariance")
-        self.correlation, self.covariance = number(0, -1e100), number(0, -1e100)
+        self.correlation, self.covariance = create_number_input(0, -1e100), create_number_input(0, -1e100)
         # Keep out-of-range r editable so invalid input receives an explicit error.
-        for label, widget in (("投影 σx (mm)", self.rms_x), ("投影 σx′ (mrad)", self.rms_xp),
-                              ("相关性已知量", self.correlation_mode), ("相关系数 r", self.correlation),
-                              ("Cov (mm·mrad)", self.covariance)):
+        for label, widget in (("投影 σx (mm)", self.rms_x), ("投影 σx′ (mrad)", self.rms_xp), ("相关性已知量", self.correlation_mode),
+                              ("相关系数 r", self.correlation), ("Cov (mm·mrad)", self.covariance)):
             form.addRow(label, widget)
-        self.beta, self.alpha, self.gamma = number(10), number(0, -1e100), number(.1)
+        self.beta, self.alpha, self.gamma = create_number_input(10), create_number_input(0, -1e100), create_number_input(.1)
         self.twiss_mode = QComboBox()
         self.twiss_mode.addItem("α、β → γ", "alpha")
         self.twiss_mode.addItem("β、γ → α", "gamma")
         self.alpha_sign = QComboBox()
         self.alpha_sign.addItem("α ≥ 0", 1)
         self.alpha_sign.addItem("α ≤ 0", -1)
-        for label, widget in (("Twiss 已知量", self.twiss_mode), ("Twiss β (m)", self.beta),
-                              ("Twiss α", self.alpha), ("Twiss γ (1/m)", self.gamma), ("α 分支", self.alpha_sign)):
+        for label, widget in (("Twiss 已知量", self.twiss_mode), ("Twiss β (m)", self.beta), ("Twiss α", self.alpha), ("Twiss γ (1/m)", self.gamma),
+                              ("α 分支", self.alpha_sign)):
             form.addRow(label, widget)
-        self.dispersion, self.dispersion_prime = number(0, -1e100), number(0, -1e100)
-        self.sigma_delta = number(.1)
-        for label, widget in (("色散 D (m)", self.dispersion), ("色散 D′", self.dispersion_prime),
-                              ("σδ = rms Δp/p (%)", self.sigma_delta)):
+        self.dispersion, self.dispersion_prime = create_number_input(0, -1e100), create_number_input(0, -1e100)
+        self.sigma_delta = create_number_input(.1)
+        for label, widget in (("色散 D (m)", self.dispersion), ("色散 D′", self.dispersion_prime), ("σδ = rms Δp/p (%)", self.sigma_delta)):
             form.addRow(label, widget)
         layout.addWidget(box)
         layout.addWidget(hint("RMS 输入均为含色散的中心统计量；反算先扣除色散贡献。质心偏移仅平移曲线。"))
         self.error = hint()
         layout.addWidget(self.error)
-        self.results = ResultFields([
-            ("geometric", "Betatron ε (π·mm·mrad)", 1e6), ("normalized", "归一化 εn (π·mm·mrad)", 1e6),
-            ("projected", "投影 ε (π·mm·mrad)", 1e6),
-            ("sigma_betatron", "Betatron σx (mm)", 1e3), ("sigma_betatron_xp", "Betatron σx′ (mrad)", 1e3),
-            ("sigma_x", "投影 σx (mm)", 1e3), ("sigma_xp", "投影 σx′ (mrad)", 1e3),
-            ("covariance", "投影 Cov (mm·mrad)", 1e6), ("correlation", "投影相关系数 r", 1),
-            ("beta", "Betatron Twiss β (m)", 1), ("alpha", "Betatron Twiss α", 1),
-            ("twiss_gamma", "Betatron Twiss γ (1/m)", 1)])
+        self.results = ResultFields([("geometric", "Betatron ε (π·mm·mrad)", 1e6), ("normalized", "归一化 εn (π·mm·mrad)", 1e6),
+                                     ("projected", "投影 ε (π·mm·mrad)", 1e6), ("sigma_betatron", "Betatron σx (mm)", 1e3),
+                                     ("sigma_betatron_xp", "Betatron σx′ (mrad)", 1e3), ("sigma_x", "投影 σx (mm)", 1e3),
+                                     ("sigma_xp", "投影 σx′ (mrad)", 1e3), ("covariance", "投影 Cov (mm·mrad)", 1e6), ("correlation", "投影相关系数 r", 1),
+                                     ("beta", "Betatron Twiss β (m)", 1), ("alpha", "Betatron Twiss α", 1),
+                                     ("twiss_gamma", "Betatron Twiss γ (1/m)", 1)])
         layout.addWidget(self.results)
         layout.addWidget(hint("ε=1 π·mm·mrad 按 10⁻⁶ m·rad 计算，不额外乘 π。二维高斯 n=1 椭圆包含约 39.35%。零发射度反算的 Twiss 未定义。"))
         layout.addStretch()
@@ -233,32 +239,45 @@ class EmittanceInput(QWidget):
         d, dp, spread = self.dispersion.value(), self.dispersion_prime.value(), self.sigma_delta.value() * .01
         if key == "rms":
             mode = self.correlation_mode.currentData()
-            r = emittance_from_rms(reference, self.rms_x.value()*1e-3, self.rms_xp.value()*1e-3,
-                **{mode: self.correlation.value() if mode == "correlation" else self.covariance.value()*1e-6},
-                dispersion=d, dispersion_prime=dp, sigma_delta=spread)
+            r = emittance_from_rms(reference,
+                                   self.rms_x.value() * 1e-3,
+                                   self.rms_xp.value() * 1e-3,
+                                   **{mode: self.correlation.value() if mode == "correlation" else self.covariance.value() * 1e-6},
+                                   dispersion=d,
+                                   dispersion_prime=dp,
+                                   sigma_delta=spread)
         else:
             inverse = self.twiss_mode.currentData() == "gamma"
-            alpha, gamma = twiss_from(self.beta.value(), **({"gamma": self.gamma.value(), "alpha_sign": self.alpha_sign.currentData()}
-                                     if inverse else {"alpha": self.alpha.value()}))
+            alpha, gamma = twiss_from(
+                self.beta.value(),
+                **({
+                    "gamma": self.gamma.value(),
+                    "alpha_sign": self.alpha_sign.currentData()
+                } if inverse else {
+                    "alpha": self.alpha.value()
+                }))
             self.set_number("alpha" if inverse else "gamma", alpha if inverse else gamma)
-            r = emittance_from(reference, key, self.value.value()*(1e-3 if key == "sigma" else 1e-6),
-                              self.beta.value(), alpha, d, dp, spread)
-        center = np.array([[finite_number(self.center_x.value(), "中心 x₀")],
-                           [finite_number(self.center_xp.value(), "中心 x′₀")]]) * 1e-3
+            r = emittance_from(reference, key, self.value.value() * (1e-3 if key == "sigma" else 1e-6), self.beta.value(), alpha, d, dp, spread)
+        center = np.array([[finite_number(self.center_x.value(), "中心 x₀")], [finite_number(self.center_xp.value(), "中心 x′₀")]]) * 1e-3
         curves = tuple(r.ellipse(n, projected=projected) + center for projected in (False, True))
         if not all(np.isfinite(curve).all() for curve in curves):
             raise ValueError("曲线超出有限数值范围。")
         values = dict(r.__dict__)
-        values["sigma_betatron_xp"] = (math.sqrt(r.betatron_covariance[1][1]) if r.betatron_covariance is not None
-                                        else math.sqrt(r.geometric * r.twiss_gamma))
+        values["sigma_betatron_xp"] = (math.sqrt(r.betatron_covariance[1][1]) if r.betatron_covariance is not None else math.sqrt(r.geometric *
+                                                                                                                                  r.twiss_gamma))
         self.results.set_values(values)
         for field in ("beta", "alpha", "twiss_gamma", "correlation"):
             if values[field] is None:
                 self.results.outputs[field].setText("未定义")
         self.error.clear()
         self.result, self.curves = r, curves
-        self.payload = {"page_id": self.page_id, "page_name": self.page_name, "status": "valid",
-                        "inputs": self.settings(), "results": self.results.snapshot()}
+        self.payload = {
+            "page_id": self.page_id,
+            "page_name": self.page_name,
+            "status": "valid",
+            "inputs": self.settings(),
+            "results": self.results.snapshot()
+        }
 
     def invalidate(self, message):
         self.result = self.curves = self.payload = None
@@ -267,6 +286,7 @@ class EmittanceInput(QWidget):
 
 
 class EmittancePage(PhysicsToolPage):
+
     def __init__(self, source=None):
         super().__init__("相空间绘制及发射度计算", EMITTANCE_FORMULAS, source, plot=True, stacked=True)
         self.sections = []
@@ -308,7 +328,7 @@ class EmittancePage(PhysicsToolPage):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidget(section)
         self.tabs.addTab(scroll, section.page_name)
-        self.tabs.setCurrentIndex(len(self.sections)-1)
+        self.tabs.setCurrentIndex(len(self.sections) - 1)
         self.tabs.setTabsClosable(len(self.sections) > 1)
         self.recalculate()
         return section
@@ -353,9 +373,12 @@ class EmittancePage(PhysicsToolPage):
                         label = (section.projected_name if projected else section.legend_name).text().strip()
                         xy = curve * 1e3
                         point = np.all(xy == xy[:, :1])
-                        line, = self.ax.plot(*xy, color=section.color, lw=1.6,
-                            linestyle="--" if projected else "-", marker="o" if point else None,
-                            markevery=[0] if point else None)
+                        line, = self.ax.plot(*xy,
+                                             color=section.color,
+                                             lw=1.6,
+                                             linestyle="--" if projected else "-",
+                                             marker="o" if point else None,
+                                             markevery=[0] if point else None)
                         if label:
                             handles.append(line)
                             labels.append(label)
@@ -364,14 +387,23 @@ class EmittancePage(PhysicsToolPage):
                 self.tabs.setTabText(index, section.page_name + " ⚠")
                 self.tabs.setTabToolTip(index, str(exc))
                 errors.append(f"{section.page_name}：{exc}")
-                payloads.append({"page_id": section.page_id, "page_name": section.page_name,
-                                 "status": "invalid", "inputs": section.settings(), "error": str(exc)})
+                payloads.append({
+                    "page_id": section.page_id,
+                    "page_name": section.page_name,
+                    "status": "invalid",
+                    "inputs": section.settings(),
+                    "error": str(exc)
+                })
         self.ax.set_xlabel("x (mm)", color=colors["text"])
         self.ax.set_ylabel("x′ (mrad)", color=colors["text"])
         if self.show_legend.isChecked() and handles:
             # Assign text explicitly: names starting with '_' are user labels too.
-            legend = self.ax.legend(handles, [f"curve{i}" for i in range(len(handles))], loc="upper right", fontsize=8,
-                facecolor=THEMES[self.theme]["panel"], edgecolor=colors["line"], labelcolor=colors["text"])
+            legend = self.ax.legend(handles, [f"curve{i}" for i in range(len(handles))],
+                                    loc="upper right",
+                                    fontsize=8,
+                                    facecolor=THEMES[self.theme]["panel"],
+                                    edgecolor=colors["line"],
+                                    labelcolor=colors["text"])
             for text, label in zip(legend.get_texts(), labels):
                 text.set_text(label)
                 text.set_fontfamily(["Microsoft YaHei", "DejaVu Sans"])
@@ -379,11 +411,26 @@ class EmittancePage(PhysicsToolPage):
         self.canvas.draw_idle()
         self.summary.setText(f"{valid_count}/{len(self.sections)} 页计算有效 · 已绘制 {len(self.ax.lines)} 条曲线 · 各页独立计算，不合并束流")
         if valid_count:
-            self.set_valid({"show_legend": self.show_legend.isChecked(), "pages": payloads,
-                "input_units": {"value": "mm for sigma; pi*mm*mrad otherwise (no extra pi)",
-                    "rms_x": "mm", "rms_xp": "mrad", "covariance": "mm*mrad", "correlation": "1",
-                    "beta": "m", "alpha": "1", "gamma": "1/m", "dispersion": "m", "dispersion_prime": "1",
-                    "sigma_delta": "%", "center_x": "mm", "center_xp": "mrad", "n_sigma": "1"}})
+            self.set_valid({
+                "show_legend": self.show_legend.isChecked(),
+                "pages": payloads,
+                "input_units": {
+                    "value": "mm for sigma; pi*mm*mrad otherwise (no extra pi)",
+                    "rms_x": "mm",
+                    "rms_xp": "mrad",
+                    "covariance": "mm*mrad",
+                    "correlation": "1",
+                    "beta": "m",
+                    "alpha": "1",
+                    "gamma": "1/m",
+                    "dispersion": "m",
+                    "dispersion_prime": "1",
+                    "sigma_delta": "%",
+                    "center_x": "mm",
+                    "center_xp": "mrad",
+                    "n_sigma": "1"
+                }
+            })
         else:
             self.copy_payload = None
             for button in (self.copy_button, self.data_button, self.export_button):
@@ -393,14 +440,14 @@ class EmittancePage(PhysicsToolPage):
     def export_rows(self):
         if self.timer.isActive():
             self.recalculate()
-        columns = ("page_id", "page_name", "betatron_label", "projected_label", "draw_betatron", "draw_projected",
-                   "betatron_x_m", "betatron_xprime_rad", "projected_x_m", "projected_xprime_rad")
+        columns = ("page_id", "page_name", "betatron_label", "projected_label", "draw_betatron", "draw_projected", "betatron_x_m",
+                   "betatron_xprime_rad", "projected_x_m", "projected_xprime_rad")
         rows = []
         for section in self.sections:
             if section.result is None:
                 continue
             settings = section.payload["inputs"]
-            metadata = (section.page_id, section.page_name, settings["legend_name"], settings["projected_name"],
-                        settings["draw_phase"], settings["draw_phase"] and settings["draw_projected"])
+            metadata = (section.page_id, section.page_name, settings["legend_name"], settings["projected_name"], settings["draw_phase"],
+                        settings["draw_phase"] and settings["draw_projected"])
             rows.extend((*metadata, *point) for point in zip(*section.curves[0], *section.curves[1]))
         return columns, rows

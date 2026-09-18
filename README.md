@@ -64,6 +64,46 @@ The run page selects one or two inputs and creates a fixed input snapshot before
 
 ## Development
 
+Install the development dependency in the Python environment selected in VS Code:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Open the repository root as a VS Code folder and enable the recommended YAPF
+extension. The shared workspace settings format Python files on save, including
+new files, using `pyproject.toml` (YAPF 0.43.0, `pep8`, four spaces, 150 columns).
+To format a file from the repository root without the editor:
+
+```bash
+python -m yapf --style pyproject.toml --in-place path/to/file.py
+```
+
+Formatting controls layout; naming and comment conventions are recorded in
+`AGENTS.md` and still require review.
+
+YAPF does not format CUDA inside Python strings. Use the repository tool for
+triple-quoted strings containing `__global__` or `__device__` functions:
+
+```bash
+python tools/format_cuda.py --check
+python tools/format_cuda.py --write PASS/commands/solver/pic.py
+```
+
+With no paths, it scans `PASS/`, including new Python files. Checking is the
+default; only `--write` changes files. The tool uses `.clang-format` and requires
+clang-format 23.x (verified with 23.1.0). It searches `PATH`, then the standard
+VS Code C/C++ extension directories; use `--clang-format /path/to/clang-format`
+or the `CLANG_FORMAT` environment variable for another installation. No CUDA
+runtime is needed for formatting.
+
+All selected files are checked for unchanged C++ tokens, preprocessor directives,
+and surrounding Python syntax before writing. Dynamic f-strings and single-line
+fragments are reported for manual review; strings without CUDA qualifiers are
+outside the scan. Exit codes are `0` for no differences (or successful writing),
+`1` for formatting differences in check mode, and `2` for a tool or validation
+error. A successful check does not cover the reported manual-review fragments.
+
 The `tests/` directory is maintained locally and excluded from Git. Fresh clones
 do not include the test suite. If you have the local test files, install the
 package in editable mode and run the suite from the repository root:

@@ -1,3 +1,5 @@
+import logging
+
 from PASS.core.simulation import Simulation
 from PASS.core.bunch import BunchInfo
 from PASS.core.beam import Beam
@@ -7,8 +9,6 @@ from PASS.core.sequence import CommandSequence
 from PASS.core.timing import ExecutionProfiler
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.plot.plot_main import plot_main
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +31,8 @@ class Executor:
             return True
         if isinstance(result, bool):
             return result
-        raise TypeError(
-            "Command execute_cpu/execute_gpu must return bool or None, "
-            f"got {type(result).__name__}"
-        )
+        raise TypeError("Command execute_cpu/execute_gpu must return bool or None, "
+                        f"got {type(result).__name__}")
 
     def run(self, sim: Simulation, seqs: list[CommandSequence]):
 
@@ -88,11 +86,7 @@ class Executor:
         finally:
             # Preserve timing for a turn interrupted by an exception when
             # possible, then always print the partial or complete summary.
-            if (
-                current_turn is not None
-                and profiler.mode != "off"
-                and current_turn not in profiler.turn_seconds
-            ):
+            if (current_turn is not None and profiler.mode != "off" and current_turn not in profiler.turn_seconds):
                 profiler.finish_turn(current_turn)
             profiler.print_summary()
 

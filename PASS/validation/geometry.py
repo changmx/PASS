@@ -22,8 +22,8 @@ def validate_polygon(vertices):
             if j == i + 1 or i == 0 and j == n - 1:
                 continue
             c, d = vertices[j], vertices[(j + 1) % n]
-            if (cross(a, b, c) * cross(a, b, d) < 0 and cross(c, d, a) * cross(c, d, b) < 0
-                    or on(a, b, c) or on(a, b, d) or on(c, d, a) or on(c, d, b)):
+            if (cross(a, b, c) * cross(a, b, d) < 0 and cross(c, d, a) * cross(c, d, b) < 0 or on(a, b, c) or on(a, b, d) or on(c, d, a)
+                    or on(c, d, b)):
                 raise ValueError(f"多边形的第 {i + 1} 与第 {j + 1} 条边相交或接触")
 
 

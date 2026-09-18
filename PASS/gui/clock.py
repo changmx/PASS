@@ -8,12 +8,11 @@ from PASS.utils.constants import const
 def reference_clock_snapshot(data):
     if data.get("Reference clock") is not None:
         return ReferenceClock.model_validate(data["Reference clock"]).model_dump(by_alias=True)
-    injection = next((v for v in data.get("Sequence", {}).values()
-                      if isinstance(v, dict) and v.get("Command") == "Injection"), None)
+    injection = next((v for v in data.get("Sequence", {}).values() if isinstance(v, dict) and v.get("Command") == "Injection"), None)
     if injection is None:
         raise ValueError("默认时钟需要 Injection")
-    bunch = next((v for k, v in injection.items() if k.startswith("bunch") and isinstance(v, dict)
-                  and v.get("Harmonic ID of this bunch", 0) == 0), None)
+    bunch = next((v for k, v in injection.items() if k.startswith("bunch") and isinstance(v, dict) and v.get("Harmonic ID of this bunch", 0) == 0),
+                 None)
     if bunch is None:
         raise ValueError("默认时钟需要 harmonic ID=0 的束团")
     # Match BunchInfo's tracking mass convention, not the independent Tools catalog.

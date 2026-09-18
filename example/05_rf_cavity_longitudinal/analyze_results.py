@@ -1,7 +1,7 @@
 """Analyse RF cavity longitudinal tracking results (Example 05).
 
 Reads PASS ParticleMonitor TBT + StatMonitor CSV for one or more cases and
-verifies, against the theory in make_input.calc_theory():
+verifies, against the theory in generate_input.calc_theory():
 
   energy_gain    - synchronous particle Ek(n) slope vs (q/A) V sin(phi_s)
   qs_fft         - synchrotron tune Qs from z / dp TBT FFT (Hann + zero pad)
@@ -20,10 +20,10 @@ Turn convention (after RFCavity priority fix in PASS.core.sequence):
   So turn n records the state AFTER kick n (before transport n+1).
 
 Usage:
-    python analyse.py
-    python analyse.py --case twiss_h1_fixed
-    python analyse.py --case all
-    python analyse.py --no-plot
+    python analyze_results.py
+    python analyze_results.py --case twiss_h1_fixed
+    python analyze_results.py --case all
+    python analyze_results.py --no-plot
 """
 
 import argparse
@@ -34,15 +34,30 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from make_input import (CASES, CASE_PAIRS, calc_theory, CIRCUM, RADIUS,
-                        BETA_0, GAMMA_0, ETA_0, E_TOTAL_0, QM_RATIO, M0,
-                        GAMMA_T, SIGMA_Z, SIGMA_DP, selected_cases)
+from generate_input import (
+    CASES,
+    CASE_PAIRS,
+    calc_theory,
+    CIRCUM,
+    RADIUS,
+    BETA_0,
+    GAMMA_0,
+    ETA_0,
+    E_TOTAL_0,
+    QM_RATIO,
+    M0,
+    GAMMA_T,
+    SIGMA_Z,
+    SIGMA_DP,
+    selected_cases,
+)
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 # ============================================================
 # I/O
 # ============================================================
+
 
 def find_latest_output(case_name: str):
     """Most recent complete output/<case_name>/YYYY_MMDD/HHMM_SS directory."""
@@ -54,10 +69,7 @@ def find_latest_output(case_name: str):
             continue
         for time_dir in sorted(date_dir.iterdir(), reverse=True):
             particle_dir = time_dir / "particle"
-            if (time_dir.is_dir()
-                    and particle_dir.is_dir()
-                    and any(particle_dir.glob("*.tfs"))
-                    and any(time_dir.glob("*_stat_*.csv"))):
+            if (time_dir.is_dir() and particle_dir.is_dir() and any(particle_dir.glob("*.tfs")) and any(time_dir.glob("*_stat_*.csv"))):
                 return time_dir
     return None
 
@@ -72,8 +84,7 @@ def read_pass_tbt(output_dir, max_tag=20):
             continue
         import tfs as tfs_lib
         df = tfs_lib.read(str(f))
-        data[tag] = {k: df[k].to_numpy()
-                     for k in ["turn", "x", "px", "y", "py", "z", "dp"]}
+        data[tag] = {k: df[k].to_numpy() for k in ["turn", "x", "px", "y", "py", "z", "dp"]}
     return data
 
 
@@ -90,6 +101,7 @@ def read_pass_stat(output_dir):
 # ============================================================
 # FFT tune measurement (Hann window + zero padding + parabolic peak)
 # ============================================================
+
 
 def measure_tune(signal, n_pad=65536):
     """Fractional tune from a TBT signal (same method as example 03/04)."""
@@ -117,6 +129,7 @@ def measure_tune(signal, n_pad=65536):
 # Theory helpers (same formulas as PASS RFCavity / injection)
 # ============================================================
 
+
 def bucket_separatrix(voltage, harmonic, phase, n_z=400):
     """Numerical (z, dp) separatrix: H(z, dp) = H_sep (first-order theory).
 
@@ -132,13 +145,11 @@ def bucket_separatrix(voltage, harmonic, phase, n_z=400):
 
     def pot(z):
         phi = phase - harmonic * z / RADIUS
-        return coeff * (np.cos(phi) - math.cos(phase)
-                        + (phi - phase) * math.sin(phase))
+        return coeff * (np.cos(phi) - math.cos(phase) + (phi - phase) * math.sin(phase))
 
     z_max = RADIUS * (math.pi - 2.0 * phase) / harmonic
     phi_ufp = math.pi - phase
-    h_sep = coeff * (math.cos(phi_ufp) - math.cos(phase)
-                     + (phi_ufp - phase) * math.sin(phase))
+    h_sep = coeff * (math.cos(phi_ufp) - math.cos(phase) + (phi_ufp - phase) * math.sin(phase))
 
     z = np.linspace(-z_max, z_max, n_z)
     arg = 2.0 * (h_sep - pot(z)) / (harmonic * w0 * ETA_0)
@@ -167,11 +178,12 @@ def freeze_turn(arr, tol=0.0):
 # Verification modules
 # ============================================================
 
+
 def check_energy_gain(case, data, stat, theory, ax=None):
     print("--- energy_gain ---")
-    ek = stat["Ek"]                       # eV/u, after kick n
+    ek = stat["Ek"]  # eV/u, after kick n
     turn = np.arange(len(ek))
-    slope = np.polyfit(turn, ek, 1)[0]    # dE per turn
+    slope = np.polyfit(turn, ek, 1)[0]  # dE per turn
     rel = abs(slope - theory["dE_syn"]) / theory["dE_syn"]
     print(f"  Ek slope      = {slope:12.6f} eV/u/turn")
     print(f"  theory dE_syn = {theory['dE_syn']:12.6f} eV/u/turn")
@@ -180,8 +192,11 @@ def check_energy_gain(case, data, stat, theory, ax=None):
         ax.plot(turn, (ek - ek[0]) / 1e3, "b-", label="PASS Ek")
         model = theory["dE_syn"] * turn
         ax.plot(turn, model / 1e3, "r--", label=f"theory {theory['dE_syn']:.1f} eV/u")
-        ax.set_xlabel("turn"); ax.set_ylabel(r"$\Delta E_k$ (keV/u)")
-        ax.set_title("energy gain"); ax.legend(); ax.grid(alpha=0.3)
+        ax.set_xlabel("turn")
+        ax.set_ylabel(r"$\Delta E_k$ (keV/u)")
+        ax.set_title("energy gain")
+        ax.legend()
+        ax.grid(alpha=0.3)
     return rel
 
 
@@ -197,9 +212,7 @@ def qs_theory_series(case, stat, n_pad=None):
     gamma = 1.0 + ek / M0
     beta2 = 1.0 - 1.0 / gamma**2
     eta = 1.0 / GAMMA_T**2 - 1.0 / gamma**2
-    qs = np.sqrt(-(QM_RATIO * case["harmonic"] * case["voltage"]
-                   * eta * math.cos(case["phase"]))
-                 / (2.0 * math.pi * beta2 * gamma * M0))
+    qs = np.sqrt(-(QM_RATIO * case["harmonic"] * case["voltage"] * eta * math.cos(case["phase"])) / (2.0 * math.pi * beta2 * gamma * M0))
     return qs
 
 
@@ -227,13 +240,13 @@ def check_qs_fft(case, data, stat, theory, ax=None):
             padded[:n] = (sig - np.mean(sig)) * np.hanning(n)
             spec = np.abs(np.fft.rfft(padded))
             freqs = np.fft.rfftfreq(65536)
-            ax.plot(freqs, spec / spec.max(), color, lw=1,
-                    label=f"tag {tag} ({plane})")
-        ax.axvline(theory["Qs"], color="r", ls="--", lw=1.5,
-                   label=f"theory Qs={theory['Qs']:.5f}")
+            ax.plot(freqs, spec / spec.max(), color, lw=1, label=f"tag {tag} ({plane})")
+        ax.axvline(theory["Qs"], color="r", ls="--", lw=1.5, label=f"theory Qs={theory['Qs']:.5f}")
         ax.set_xlim(0, 0.02)
-        ax.set_xlabel("tune"); ax.set_ylabel("normalized amplitude")
-        ax.set_title("synchrotron tune (FFT)"); ax.legend(fontsize=8)
+        ax.set_xlabel("tune")
+        ax.set_ylabel("normalized amplitude")
+        ax.set_title("synchrotron tune (FFT)")
+        ax.legend(fontsize=8)
         ax.grid(alpha=0.3)
     return rel_avg
 
@@ -247,9 +260,7 @@ def check_bucket_scan(case, data, theory, ax=None):
         z = data[tag]["z"]
         ft = freeze_turn(dp)
         alive = ft is None
-        rows.append((tag, dp[0] / dpmax, alive,
-                     np.max(np.abs(dp)), np.max(np.abs(z)),
-                     -1 if alive else ft))
+        rows.append((tag, dp[0] / dpmax, alive, np.max(np.abs(dp)), np.max(np.abs(z)), -1 if alive else ft))
     print(f"  {'tag':>3s} {'dp0/dpmax':>9s} {'alive':>5s} {'max|dp|':>10s} "
           f"{'max|z|(m)':>10s} {'lost_turn':>9s}")
     for tag, frac, alive, md, mz, lt in rows:
@@ -263,37 +274,36 @@ def plot_bucket(case, data, theory, ax=None):
     print("--- bucket_plot ---")
     if ax is None:
         return
-    z, dp_up, dp_lo = bucket_separatrix(case["voltage"], case["harmonic"],
-                                        case["phase"])
-    colors = {2: "C0", 3: "C0", 4: "C1", 5: "C1", 6: "C2", 7: "C2",
-              8: "C3", 9: "C3", 10: "C4", 11: "C4", 12: "C5"}
+    z, dp_up, dp_lo = bucket_separatrix(case["voltage"], case["harmonic"], case["phase"])
+    colors = {2: "C0", 3: "C0", 4: "C1", 5: "C1", 6: "C2", 7: "C2", 8: "C3", 9: "C3", 10: "C4", 11: "C4", 12: "C5"}
     for tag in range(2, 13):
         zz = data[tag]["z"]
         ddp = data[tag]["dp"]
-        ax.plot(zz, ddp, color=colors[tag], lw=0.6, alpha=0.9,
-                label=f"tag {tag}" if tag in (4, 12) else None)
+        ax.plot(zz, ddp, color=colors[tag], lw=0.6, alpha=0.9, label=f"tag {tag}" if tag in (4, 12) else None)
     ax.plot(z, dp_up, "k--", lw=1.5, label="separatrix (theory)")
     ax.plot(z, dp_lo, "k--", lw=1.5)
-    ax.axhline(+theory["dp_aperture"], color="m", ls=":", lw=1,
-               label=f"dp aperture +-{theory['dp_aperture']:.3e}")
+    ax.axhline(+theory["dp_aperture"], color="m", ls=":", lw=1, label=f"dp aperture +-{theory['dp_aperture']:.3e}")
     ax.axhline(-theory["dp_aperture"], color="m", ls=":", lw=1)
-    ax.set_xlabel(r"$z$ (m)"); ax.set_ylabel(r"$\delta p$")
+    ax.set_xlabel(r"$z$ (m)")
+    ax.set_ylabel(r"$\delta p$")
     ax.set_title("longitudinal phase space + separatrix")
-    ax.legend(fontsize=8); ax.grid(alpha=0.3)
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
 
 
 def check_damping(case, data, stat, theory, ax=None):
     print("--- damping (adiabatic, bunch level: sigma_py * p0 conserved) ---")
     ek = stat["Ek"]
-    p0 = np.sqrt((ek + M0)**2 - M0**2)          # reference momentum eV/c
-    sp = stat["sigmaPy"]                        # y momentum spread (KV dist.)
-    inv = sp * p0                               # conserved by px rescale
+    p0 = np.sqrt((ek + M0)**2 - M0**2)  # reference momentum eV/c
+    sp = stat["sigmaPy"]  # y momentum spread (KV dist.)
+    inv = sp * p0  # conserved by px rescale
     rel = np.std(inv) / np.mean(inv)
     print(f"  std(sigma_py*p0)/mean = {rel:.3e}  (statistical noise ~1% "
           f"for N=5000)")
     # Single-particle info: Jx does NOT scale as p0^-2 exactly because the
     # x^2/beta term is unchanged by the kick (only px is rescaled).
-    x = data[13]["x"]; px = data[13]["px"]
+    x = data[13]["x"]
+    px = data[13]["px"]
     jx = x**2 / 10.0 + 10.0 * px**2
     rel_jx = np.std(jx * p0**2) / np.mean(jx * p0**2)
     print(f"  tag 13 Jx*p0^2 rel. var = {rel_jx:.3e} "
@@ -340,8 +350,8 @@ def check_ramping_gain(case, data, stat, theory, ax=None):
     ek = stat["Ek"]
     n = len(ek)
     v_k = v0 * (1.0 + slope * np.minimum(np.arange(n), n_rows - 1))
-    de_k = QM_RATIO * v_k * math.sin(case["phase"])      # eV/u per kick
-    model = ek[0] - de_k[0] + np.cumsum(de_k)            # E0 + sum_{k=0..n} dE
+    de_k = QM_RATIO * v_k * math.sin(case["phase"])  # eV/u per kick
+    model = ek[0] - de_k[0] + np.cumsum(de_k)  # E0 + sum_{k=0..n} dE
     rel = np.max(np.abs(ek - model)) / np.abs(ek[0] - ek[-1] + 1e-30)
     print(f"  max|Ek - model| / |dE_total| = {rel:.3e}")
     print(f"  Ek(0)={ek[0]:.6e}, Ek({n-1})={ek[-1]:.6e} eV/u, "
@@ -349,8 +359,11 @@ def check_ramping_gain(case, data, stat, theory, ax=None):
     if ax is not None:
         ax.plot(np.arange(n), ek / 1e3, "b-", label="PASS Ek")
         ax.plot(np.arange(n), model / 1e3, "r--", label="ramp model")
-        ax.set_xlabel("turn"); ax.set_ylabel(r"$E_k$ (keV/u)")
-        ax.set_title("ramping energy gain"); ax.legend(); ax.grid(alpha=0.3)
+        ax.set_xlabel("turn")
+        ax.set_ylabel(r"$E_k$ (keV/u)")
+        ax.set_title("ramping energy gain")
+        ax.legend()
+        ax.grid(alpha=0.3)
     return rel
 
 
@@ -363,9 +376,7 @@ def check_ramping_clamp(case, data, stat, theory):
         print(f"  n_turns={n} <= n_rows={n_rows}: clamp not exercised")
         return None
     slope_last = np.polyfit(np.arange(n_rows, n), ek[n_rows:], 1)[0]
-    de_last = (QM_RATIO * case["voltage"]
-               * (1.0 + case["ramp_slope"] * (n_rows - 1))
-               * math.sin(case["phase"]))
+    de_last = (QM_RATIO * case["voltage"] * (1.0 + case["ramp_slope"] * (n_rows - 1)) * math.sin(case["phase"]))
     rel = abs(slope_last - de_last) / de_last
     print(f"  slope after row {n_rows-1} = {slope_last:.6f} eV/u/turn")
     print(f"  expected frozen dE       = {de_last:.6f} eV/u/turn")
@@ -414,7 +425,8 @@ def compare_twiss_element(pair, ax=None):
         dp0s = [r[1] for r in rows]
         dzs = [r[2] for r in rows]
         ax.semilogy(dp0s, dzs, "bo-")
-        ax.set_xlabel(r"initial $\delta p$"); ax.set_ylabel(r"$\max|\Delta z|$ (m)")
+        ax.set_xlabel(r"initial $\delta p$")
+        ax.set_ylabel(r"$\max|\Delta z|$ (m)")
         ax.set_title("twiss vs element drift difference")
         ax.grid(alpha=0.3, which="both")
     return rows
@@ -424,12 +436,13 @@ def compare_twiss_element(pair, ax=None):
 # Case dispatcher
 # ============================================================
 
+
 def analyse_case(name, output_dir=None, is_plot=True):
     case = CASES[name]
     theory = calc_theory(case["voltage"], case["harmonic"], case["phase"])
     out = Path(output_dir) if output_dir else find_latest_output(name)
     if out is None:
-        print(f"[{name}] no output directory found (run run.py first)")
+        print(f"[{name}] no output directory found (run run_simulation.py first)")
         return
 
     data = read_pass_tbt(out)
@@ -477,8 +490,7 @@ if __name__ == "__main__":
         default="all",
         help="Case to analyse (default: all).",
     )
-    parser.add_argument("--no-plot", action="store_true",
-                        help="Disable interactive plots.")
+    parser.add_argument("--no-plot", action="store_true", help="Disable interactive plots.")
     args = parser.parse_args()
 
     case_names = selected_cases(args.case)

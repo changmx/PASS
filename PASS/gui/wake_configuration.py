@@ -9,13 +9,16 @@ from PASS.para.schema.wake_field import WakeFieldConfig, WakeResourceConfig
 
 
 class WakeConfigurationEditor(StructuredField):
+
     def __init__(self, block, sequence, base_dir):
         super().__init__()
         self.base_dir = base_dir
         self.resources = deepcopy(block.get("Configurations", {}))
-        self.references = {name: point["Configuration"] for name, point in sequence.items()
-                           if isinstance(point, dict) and point.get("Command") == "WakeField"
-                           and point.get("Configuration") is not None}
+        self.references = {
+            name: point["Configuration"]
+            for name, point in sequence.items()
+            if isinstance(point, dict) and point.get("Command") == "WakeField" and point.get("Configuration") is not None
+        }
         self.active = None
         self.editor = None
         self.root = QVBoxLayout(self)
@@ -70,8 +73,7 @@ class WakeConfigurationEditor(StructuredField):
         if name != self.active and name in self.resources:
             raise ValueError(f"尾场配置名称 {name!r} 已存在")
         value = self.editor.get_value()
-        self.resources = {name if k == self.active else k: value if k == self.active else v
-                          for k, v in self.resources.items()}
+        self.resources = {name if k == self.active else k: value if k == self.active else v for k, v in self.resources.items()}
         self.references = {point: name if ref == self.active else ref for point, ref in self.references.items()}
         self.active = name
 
@@ -128,5 +130,7 @@ class WakeConfigurationEditor(StructuredField):
 
     def get_value(self):
         self._commit()
-        return WakeFieldConfig.model_validate({"Enabled": self.enabled.isChecked(),
-            "Configurations": self.resources}).model_dump(by_alias=True, mode="json")
+        return WakeFieldConfig.model_validate({
+            "Enabled": self.enabled.isChecked(),
+            "Configurations": self.resources
+        }).model_dump(by_alias=True, mode="json")

@@ -102,10 +102,9 @@ def solve_kinematics(particle: ParticleSpec, known: str, value: float) -> Kinema
     beta = momentum / total
     gamma = 1 + kinetic / e0
     brho = momentum / (abs(particle.charge_state) * const.c) if particle.charge_state else None
-    result = Kinematics(particle, kinetic / particle.energy_divisor, kinetic, total,
-                        momentum, gamma, beta, momentum / e0, beta * const.c, brho)
-    if not all(math.isfinite(getattr(result, name)) for name in result.__dataclass_fields__
-               if name != "particle" and getattr(result, name) is not None):
+    result = Kinematics(particle, kinetic / particle.energy_divisor, kinetic, total, momentum, gamma, beta, momentum / e0, beta * const.c, brho)
+    if not all(
+            math.isfinite(getattr(result, name)) for name in result.__dataclass_fields__ if name != "particle" and getattr(result, name) is not None):
         raise ValueError("输入过大，计算结果超出浮点数范围。")
     return result
 
@@ -152,8 +151,7 @@ def circulating_beam(kinematics: Kinematics, num_particles: float, circumference
     length = _finite(circumference, "环周长", positive=True)
     frequency = _result(kinematics.velocity / length)
     period = _result(1 / frequency) if frequency else None
-    return CirculatingBeam(frequency, period,
-                           _result(count * abs(kinematics.particle.charge_state) * const.e * frequency),
+    return CirculatingBeam(frequency, period, _result(count * abs(kinematics.particle.charge_state) * const.e * frequency),
                            _result(count * (kinematics.kinetic_energy_ev * const.e)))
 
 
@@ -166,8 +164,7 @@ class PulsedBeam:
     pulse_power_w: float | None
 
 
-def pulsed_beam(kinematics: Kinematics, num_particles: float, repetition_frequency: float,
-                pulse_duration: float | None = None) -> PulsedBeam:
+def pulsed_beam(kinematics: Kinematics, num_particles: float, repetition_frequency: float, pulse_duration: float | None = None) -> PulsedBeam:
     count = _finite(num_particles, "每脉冲真实粒子数")
     frequency = _finite(repetition_frequency, "重复频率")
     duration = None if pulse_duration is None else _finite(pulse_duration, "脉宽", positive=True)

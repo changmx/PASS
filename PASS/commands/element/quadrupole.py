@@ -1,8 +1,10 @@
+from functools import lru_cache
+import logging
+
+import numpy as np
+
 from PASS.commands.command import Command
-from PASS.utils.slicing import (
-    print_element_slicing,
-    configure_element_slicing, run_body_slices, transport_with_center,
-)
+from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -13,59 +15,12 @@ from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
 from PASS.commands.element.multipole import launch_multipole
 
-import numpy as np
-import logging
-
 logger = logging.getLogger(__name__)
-
-
-# ============================================================
-# Yoshida 4th-order coefficients
-# ============================================================
-_YOSHIDA_Z1 = 1.0 / (2.0 - 2.0**(1.0/3.0))   # ≈ 1.3512071919596
-_YOSHIDA_Z0 = 1.0 - 2.0 * _YOSHIDA_Z1          # ≈ -1.7024143839193
 
 
 @Command.register("quadrupole")
 class Quadrupole(Command):
-    """
-    Quadrupole magnet with multiple tracking models.
-
-    Tracking sequence:
-      Thin lens (length=0):  single quadrupole kick
-      Thick lens (length>0): model-dependent
-
-    Models (self.model):
-      'drift-kick-drift-exact' [default]:
-          N slices of drift-kick-drift with exact drift.
-          - uniform:   Drift(ds/2) → Kick(ds) → Drift(ds/2)  (2nd order symplectic)
-          - yoshida4:  4th order Yoshida composition of DKD steps
-          Preserves full nonlinear kinematics (exact pz).
-          Linear chromaticity is approximate (O(1/N^2) splitting error).
-
-      'mat-kick-mat':
-          Exact linear transport matrix with chromaticity.
-          k1 and k1s are diagonalized via rotation into K_eff,
-          then the exact linear matrix M(L, K_eff*chi/(1+delta)) is applied.
-          - If k1s != 0: rotation by theta = 0.5*arctan2(k1s, k1) diagonalizes
-            the quadrupole into focusing/defocusing planes.
-          - theta is delta-independent (k1 and k1s scale identically with delta).
-          Linear chromaticity and R56 are exact.
-          Nonlinear kinematics (pz higher-order terms) are not included.
-          For pure k1 + k1s (no higher-order multipoles), this is a single
-          matrix multiplication — no kick needed.
-
-    Quadrupole kick (integrated strength k1l_eff = k1 * ds):
-      dpx = -chi * k1l_eff * x + chi * k1sl_eff * y
-      dpy =  chi * k1l_eff * y + chi * k1sl_eff * x
-
-    Drift: exact drift (Table 1.1, map D), Eq. 1.86-1.88
-
-    Coordinate convention (PASS):
-      x, px, y, py, z, dp(=delta)
-      px = Px/P0,  py = Py/P0,  dp = (P-P0)/P0
-      z  = s - beta0*c*t  (zeta coordinate)
-    """
+    """Track a quadrupole with a linear matrix or exact drift-kick-drift slices."""
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
         kwargs = {k.lower(): v for k, v in command_kwargs.items()}
@@ -94,12 +49,14 @@ class Quadrupole(Command):
         if abs(self.k1l) < const.eps and abs(self.k1sl) < const.eps:
             logger.warning(f"Quadrupole {self.cmd_name} has zero integrated strength (k1l=0, k1sl=0). It will act as a pure drift.")
         if abs(self.k1l) > const.eps and abs(self.k1sl) > const.eps:
-            logger.warning(f"Quadrupole {self.cmd_name} has both normal and skew components (k1l={self.k1l}, k1sl={self.k1sl}). It will act as a combined quadrupole.")
+            logger.warning(
+                f"Quadrupole {self.cmd_name} has both normal and skew components (k1l={self.k1l}, k1sl={self.k1sl}). It will act as a combined quadrupole."
+            )
 
-        # ---- Model selection ----
         self.model = kwargs.get("model", "adaptive")
         if self.model not in ["adaptive", "drift-kick-drift-exact", "mat-kick-mat"]:
-            raise ValueError(f"The model of Quadrupole {self.cmd_name} is {self.model}, which should be 'adaptive', 'drift-kick-drift-exact' or 'mat-kick-mat'.")
+            raise ValueError(
+                f"The model of Quadrupole {self.cmd_name} is {self.model}, which should be 'adaptive', 'drift-kick-drift-exact' or 'mat-kick-mat'.")
         if self.model == "adaptive":
             self.model = "mat-kick-mat"
 
@@ -110,11 +67,12 @@ class Quadrupole(Command):
 
         self.integrator = kwargs.get("integrator", "adaptive")
         if self.integrator not in ["adaptive", "uniform", "yoshida4"]:
-            raise ValueError(f"The integrator of Quadrupole {self.cmd_name} is {self.integrator}, which should be 'adaptive', 'uniform' or 'yoshida4'.")
+            raise ValueError(
+                f"The integrator of Quadrupole {self.cmd_name} is {self.integrator}, which should be 'adaptive', 'uniform' or 'yoshida4'.")
         if self.integrator == "adaptive":
             self.integrator = "uniform"
 
-        # ---- MKM precomputation: rotation diagonalization ----
+        # MKM precomputation: rotation diagonalization
         # theta = 0.5 * arctan2(k1s, k1) is delta-independent
         # (k1 and k1s both scale by chi/(1+delta), so the ratio is unchanged)
         if abs(self.k1s) > const.eps:
@@ -146,10 +104,6 @@ class Quadrupole(Command):
         print_element_slicing(self)
         set_normal_logging()
 
-    # ============================================================
-    # Main execution
-    # ============================================================
-
     def execute_cpu(self, sim):
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
@@ -166,29 +120,25 @@ class Quadrupole(Command):
         if self._sc_nodes:
             from PASS.utils.slicing import execute_internal_sc_gpu
             return execute_internal_sc_gpu(self, sim)
-        if self.is_thick and self.model == "mat-kick-mat":
+        all_zero = (abs(self.k1l) < const.eps and abs(self.k1sl) < const.eps)
+        if self.is_thick and self.model == "mat-kick-mat" and not all_zero:
             launch_quadrupole_matrix(self, sim)
             return True
         if self.is_thick:
-            all_zero = (abs(self.k1l) < const.eps and
-                        abs(self.k1sl) < const.eps)
             mode = 2 if all_zero else 1
-            knl = np.array([0.0, self.k1,], dtype=np.float64)
+            knl = np.array([
+                0.0,
+                self.k1,
+            ], dtype=np.float64)
             ksl = np.array([0.0, self.k1s], dtype=np.float64)
         else:
             mode = 0
             knl = np.array([0.0, self.k1l], dtype=np.float64)
             ksl = np.array([0.0, self.k1sl], dtype=np.float64)
-        launch_multipole(self, sim, knl, ksl,
-                         np.array([1.0, 1.0], dtype=np.float64), mode)
+        launch_multipole(self, sim, knl, ksl, np.array([1.0, 1.0], dtype=np.float64), mode)
         return True
 
-    # ============================================================
-    # Full quadrupole tracking (CPU)
-    # ============================================================
-
     def _track_quadrupole_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
-        """Track particles through the quadrupole: thin lens or thick lens."""
 
         beta0 = bunch.beta
         start = bunch.start_idx
@@ -208,50 +158,44 @@ class Quadrupole(Command):
         # chi = q/q0 * m0/m  (for same-species beam, chi = 1)
         chi = 1.0
 
-        # mask for alive particles
         mask = (tag > 0).astype(np.float64)
 
         if not self.is_thick:
-            # Thin lens: single quadrupole kick
-            self._quadrupole_kick_cpu(self.k1l, self.k1sl,
-                                      x, px, y, py, tag, mask, chi)
+            self._quadrupole_kick_cpu(self.k1l, self.k1sl, x, px, y, py, tag, mask, chi)
             return
 
         if self._sc_nodes:
+
             def transport(ds, on_center):
                 if self.model == "mat-kick-mat":
+
                     def advance(length):
                         mask[:] = tag > 0
                         self._mat_kick_mat_cpu(x, px, y, py, z, dp, tag, mask, chi, beta0, length)
+
                     transport_with_center(advance, ds, on_center)
                 else:
-                    step = self._dkd_uniform_cpu if self.integrator == "uniform" else self._dkd_yoshida4_cpu
-                    step(x, px, y, py, z, dp, tag, mask, ds,
-                         self.k1, self.k1s, chi, beta0, on_center=on_center)
+                    step = self._dkd_step_cpu if self.integrator == "uniform" else self._dkd_yoshida4_cpu
+                    step(x, px, y, py, z, dp, tag, mask, ds, self.k1, self.k1s, chi, beta0, on_center=on_center)
+
             run_body_slices(self, beam, bunch, turn, transport)
             return
 
-        # Thick lens
         if abs(self.k1l) < const.eps and abs(self.k1sl) < const.eps:
-            # No field: pure drift
             self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag, mask, beta0)
         else:
             if self.model == "mat-kick-mat":
                 ds = self.length / self.num_slice
                 for _ in range(self.num_slice):
-                    self._mat_kick_mat_cpu(x, px, y, py, z, dp, tag, mask,
-                                           chi, beta0, ds)
+                    self._mat_kick_mat_cpu(x, px, y, py, z, dp, tag, mask, chi, beta0, ds)
             else:  # drift-kick-drift-exact
                 ds = self.length / self.num_slice
                 for _ in range(self.num_slice):
                     if self.integrator == "uniform":
-                        self._dkd_uniform_cpu(x, px, y, py, z, dp, tag, mask,
-                                              ds, self.k1, self.k1s, chi, beta0)
+                        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask, ds, self.k1, self.k1s, chi, beta0)
                     elif self.integrator == "yoshida4":
-                        self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask,
-                                               ds, self.k1, self.k1s, chi, beta0)
+                        self._dkd_yoshida4_cpu(x, px, y, py, z, dp, tag, mask, ds, self.k1, self.k1s, chi, beta0)
 
-        # ---- Update lost particle info ----
         newly_lost = alive_before & (tag < 0)
         if np.any(newly_lost):
             lost_position = p.lost_position[start:end]
@@ -259,68 +203,29 @@ class Quadrupole(Command):
             lost_position[newly_lost] = self.s
             lost_turn[newly_lost] = turn
 
-    # ============================================================
-    # Body: mat-kick-mat (exact linear transport matrix)
-    # ============================================================
+    def _mat_kick_mat_cpu(self, x, px, y, py, z, dp, tag, mask, chi, beta0, ds):
+        """Apply the linear map in the quadrupole's principal axes.
 
-    def _mat_kick_mat_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          chi, beta0, ds):
-        """
-        Exact linear quadrupole transport with chromaticity (one slice).
-
-        For k1 + k1s combined quadrupole:
-          1. Rotate to principal axes by theta = 0.5*arctan2(-k1s, k1)
-          2. Apply exact linear matrix with K_eff = sqrt(k1^2 + k1s^2)
-             K_eff_scaled = K_eff * chi / (1 + delta)   [per-particle]
-          3. Rotate back
-
-        For pure k1 (k1s = 0):
-          theta = 0, rotation is identity, directly apply matrix with K_eff = k1.
-
-        The matrix is the exact solution of:
-          u'' + K_eff * chi / (1+delta) * u = 0
-
-        which includes exact linear chromaticity.
-        Nonlinear kinematics (pz higher-order terms) are not included.
-
-        For pure k1 + k1s (no higher-order multipoles), the matrix is exact
-        for any slice length ds, so num_slice=1 is sufficient. Multiple slices
-        only matter when nonlinear multipole kicks (k2, k2s, ...) are inserted
-        between matrix steps (future feature).
-
-        Longitudinal (z) update:
-          Uses the linearized path length from the matrix transport,
-          analogous to Xsuite's track_expanded_combined_dipole_quad.
-          dzeta = ds - L_path / rvv
-          where L_path is computed from the linearized trajectory.
-        """
+        K includes the particle momentum ratio. The z update uses the path
+        length of the linearized trajectory; nonlinear pz terms are omitted."""
         L = ds
-        one_plus_delta = 1.0 + dp
+        momentum_ratio = 1.0 + dp
 
-        # ---- Step 1: Rotate to principal axes (if skew) ----
         if self.is_skew:
-            ct = self.cos_theta
-            st = self.sin_theta
-            u  =  ct * x + st * y
-            pu =  ct * px + st * py
-            v  = -st * x + ct * y
-            pv = -st * px + ct * py
+            cos_theta = self.cos_theta
+            sin_theta = self.sin_theta
+            u = cos_theta * x + sin_theta * y
+            pu = cos_theta * px + sin_theta * py
+            v = -sin_theta * x + cos_theta * y
+            pv = -sin_theta * px + cos_theta * py
         else:
-            u  = x
+            u = x
             pu = px
-            v  = y
+            v = y
             pv = py
 
-        # ---- Step 2: Apply exact linear matrix ----
-        # K_eff_scaled = k_eff_base * chi / (1+delta)  [per-particle]
-        K = self.k_eff_base * chi / one_plus_delta
+        K = self.k_eff_base * chi / momentum_ratio
 
-        # u-plane (focusing for K > 0): sin/cos
-        # v-plane (defocusing for K > 0): sinh/cosh
-        # For K < 0, the roles swap: u uses sinh/cosh, v uses sin/cos
-        # We handle this by computing based on sign of K.
-
-        # u-plane
         K_pos_u = K > 0.0
         K_neg_u = K < 0.0
         K_zero_u = np.abs(K) < 1e-15
@@ -328,16 +233,11 @@ class Quadrupole(Command):
         sqrt_K = np.sqrt(np.abs(K))
         KL = sqrt_K * L
 
-        # For K > 0: cos, sin/sqrt_K
-        # For K < 0: cosh, sinh/sqrt_K
         Cu = np.where(K_pos_u, np.cos(KL), np.cosh(KL))
-        Su = np.where(K_pos_u, np.sin(KL) / np.where(K_zero_u, 1.0, sqrt_K),
-                                 np.sinh(KL) / np.where(K_zero_u, 1.0, sqrt_K))
-        # Handle K ≈ 0: Cu=1, Su=L
+        Su = np.where(K_pos_u, np.sin(KL) / np.where(K_zero_u, 1.0, sqrt_K), np.sinh(KL) / np.where(K_zero_u, 1.0, sqrt_K))
         Su = np.where(K_zero_u, L, Su)
         Cu = np.where(K_zero_u, 1.0, Cu)
 
-        # v-plane: opposite sign of K
         K_v = -K
         K_pos_v = K_v > 0.0
         K_neg_v = K_v < 0.0
@@ -347,194 +247,91 @@ class Quadrupole(Command):
         KLv = sqrt_Kv * L
 
         Cv = np.where(K_pos_v, np.cos(KLv), np.cosh(KLv))
-        Sv = np.where(K_pos_v, np.sin(KLv) / np.where(K_zero_v, 1.0, sqrt_Kv),
-                                 np.sinh(KLv) / np.where(K_zero_v, 1.0, sqrt_Kv))
+        Sv = np.where(K_pos_v, np.sin(KLv) / np.where(K_zero_v, 1.0, sqrt_Kv), np.sinh(KLv) / np.where(K_zero_v, 1.0, sqrt_Kv))
         Sv = np.where(K_zero_v, L, Sv)
         Cv = np.where(K_zero_v, 1.0, Cv)
 
-        # Linearized slopes: xp = pu / (1+delta), yp = pv / (1+delta)
-        xp = pu / one_plus_delta
-        yp = pv / one_plus_delta
+        slope_u = pu / momentum_ratio
+        slope_v = pv / momentum_ratio
 
-        # Transport: u' = u*Cu + xp*Su, pu' = (-K*u*Su + xp*Cu) * (1+delta)
-        u_new  = u * Cu + xp * Su
-        pu_new = (-K * u * Su + xp * Cu) * one_plus_delta
+        u_new = u * Cu + slope_u * Su
+        pu_new = (-K * u * Su + slope_u * Cu) * momentum_ratio
 
-        v_new  = v * Cv + yp * Sv
-        pv_new = (-K_v * v * Sv + yp * Cv) * one_plus_delta
+        v_new = v * Cv + slope_v * Sv
+        pv_new = (-K_v * v * Sv + slope_v * Cv) * momentum_ratio
 
-        # ---- Step 3: Rotate back (if skew) ----
         if self.is_skew:
-            x_new  =  ct * u_new - st * v_new
-            px_new =  ct * pu_new - st * pv_new
-            y_new  =  st * u_new + ct * v_new
-            py_new =  st * pu_new + ct * pv_new
+            x_new = cos_theta * u_new - sin_theta * v_new
+            px_new = cos_theta * pu_new - sin_theta * pv_new
+            y_new = sin_theta * u_new + cos_theta * v_new
+            py_new = sin_theta * pu_new + cos_theta * pv_new
         else:
-            x_new  = u_new
+            x_new = u_new
             px_new = pu_new
-            y_new  = v_new
+            y_new = v_new
             py_new = pv_new
 
-        # ---- Step 4: Longitudinal (z) update ----
-        # Path length from linearized trajectory:
-        # L_path = L + 0.5 * (xp^2 * L + ...) terms
-        # For the quadrupole matrix, the path length correction comes from
-        # the transverse motion. Using the linearized approximation:
-        #   delta_ell = L * (xp^2 + yp^2) / 2  (first-order path length)
-        # plus higher-order terms from the focusing.
-        #
-        # Following Xsuite's track_expanded_combined_dipole_quad:
-        # For Kx != 0 (here K_u):
-        #   L_path corrections involve A = -K*u, B = xp
-        # For Ky != 0 (here K_v):
-        #   L_path corrections involve C = -K_v*v, D = yp
-        #
-        # We use the same analytical formulas.
+        # Integrate the squared transverse slopes along the matrix trajectory.
 
-        A = -K * u      # = -K_eff_scaled * u
-        B = xp
+        A = -K * u
+        B = slope_u
         C_coeff = -K_v * v
-        D = yp
+        D = slope_v
 
-        L_path = L * np.ones_like(x)  # Start with nominal length
+        path_length_excess = np.zeros_like(x)
 
         # u-plane path length correction (Kx = K)
-        # With h=0, k0=0, the first Xsuite term (h*(...)) vanishes.
         Kx_nonzero = ~K_zero_u
         K_safe_u = np.where(K_zero_u, 1.0, K)
-        # The full Xsuite formula (with k0=0, h=0 simplifications):
-        # length_ -= (h * ((Cx-1)*xp + Sx*A + length*(k0-h))) / Kx
-        #         += 0.5 * (-(A^2*Cx*Sx)/(2*Kx) + (B^2*Cx*Sx)/2
-        #                   + (A^2*length)/(2*Kx) + (B^2*length)/2
-        #                   - (A*B*Cx^2)/Kx + (A*B)/Kx)
-        # With h=0, k0=0: the first term vanishes, leaving:
-        L_path = np.where(
-            Kx_nonzero,
-            L_path + 0.5 * (
-                -(A**2 * Cu * Su) / (2.0 * K_safe_u)
-                + (B**2 * Cu * Su) / 2.0
-                + (A**2 * L) / (2.0 * K_safe_u)
-                + (B**2 * L) / 2.0
-                - (A * B * Cu**2) / K_safe_u
-                + (A * B) / K_safe_u
-            ),
-            L_path
-        )
-        # Kx ≈ 0 case: L_path += 0.5 * B^2 * L
-        L_path = np.where(
-            K_zero_u,
-            L_path + 0.5 * B**2 * L,
-            L_path
-        )
+        path_length_excess = np.where(
+            Kx_nonzero, path_length_excess + 0.5 * (-(A**2 * Cu * Su) / (2.0 * K_safe_u) + (B**2 * Cu * Su) / 2.0 + (A**2 * L) / (2.0 * K_safe_u) +
+                                                    (B**2 * L) / 2.0 - (A * B * Cu**2) / K_safe_u + (A * B) / K_safe_u), path_length_excess)
+        path_length_excess = np.where(K_zero_u, path_length_excess + 0.5 * B**2 * L, path_length_excess)
 
         # v-plane path length correction (Ky = K_v = -K)
         Ky_nonzero = ~K_zero_v
         K_safe_v = np.where(K_zero_v, 1.0, K_v)
 
-        L_path = np.where(
+        path_length_excess = np.where(
             Ky_nonzero,
-            L_path + 0.5 * (
-                -(C_coeff**2 * Cv * Sv) / (2.0 * K_safe_v)
-                + (D**2 * Cv * Sv) / 2.0
-                + (C_coeff**2 * L) / (2.0 * K_safe_v)
-                + (D**2 * L) / 2.0
-                - (C_coeff * D * Cv**2) / K_safe_v
-                + (C_coeff * D) / K_safe_v
-            ),
-            L_path
-        )
-        L_path = np.where(
-            K_zero_v,
-            L_path + 0.5 * D**2 * L,
-            L_path
-        )
+            path_length_excess + 0.5 * (-(C_coeff**2 * Cv * Sv) / (2.0 * K_safe_v) + (D**2 * Cv * Sv) / 2.0 + (C_coeff**2 * L) / (2.0 * K_safe_v) +
+                                        (D**2 * L) / 2.0 - (C_coeff * D * Cv**2) / K_safe_v + (C_coeff * D) / K_safe_v), path_length_excess)
+        path_length_excess = np.where(K_zero_v, path_length_excess + 0.5 * D**2 * L, path_length_excess)
 
-        # dzeta = L - L_path / rvv
-        gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
-        bg = beta0 * gamma0
-        bg_new = one_plus_delta * bg
-        beta = bg_new / np.sqrt(1.0 + bg_new**2)
-        rvv = beta / beta0
+        # Keep the small path excess and velocity correction separate from L.
+        inv_gamma_sq = max(0.0, 1.0 - beta0**2)
+        beta_ratio_squared_change = -inv_gamma_sq * dp * (2.0 + dp) / momentum_ratio**2
+        beta0_over_beta_minus_one = beta_ratio_squared_change / (np.sqrt(1.0 + beta_ratio_squared_change) + 1.0)
+        delta_z = -path_length_excess - (L + path_length_excess) * beta0_over_beta_minus_one
 
-        dzeta = L - L_path / rvv
+        active_mask = mask
+        x[:] = x_new * active_mask + x * (1.0 - active_mask)
+        px[:] = px_new * active_mask + px * (1.0 - active_mask)
+        y[:] = y_new * active_mask + y * (1.0 - active_mask)
+        py[:] = py_new * active_mask + py * (1.0 - active_mask)
+        z += delta_z * active_mask
 
-        # ---- Apply results (only alive particles) ----
-        m = mask
-        x[:]  = x_new * m + x * (1.0 - m)
-        px[:] = px_new * m + px * (1.0 - m)
-        y[:]  = y_new * m + y * (1.0 - m)
-        py[:] = py_new * m + py * (1.0 - m)
-        z += dzeta * m
+    def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask, ds, k1, k1s, chi, beta0, on_center=None):
+        """Compose three drift-kick-drift steps with Yoshida coefficients."""
+        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask, ds * const.yoshida_z1, k1, k1s, chi, beta0)
+        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask, ds * const.yoshida_z0, k1, k1s, chi, beta0, on_center=on_center)
+        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask, ds * const.yoshida_z1, k1, k1s, chi, beta0)
 
-    # ============================================================
-    # Body: Drift-Kick-Drift exact (uniform integrator)
-    # ============================================================
-
-    def _dkd_uniform_cpu(self, x, px, y, py, z, dp, tag, mask,
-                         ds, k1, k1s, chi, beta0, on_center=None):
-        """
-        One DKD slice (uniform/leapfrog, 2nd order symplectic):
-
-          Drift(ds/2) → Kick(ds) → Drift(ds/2)
-        """
+    def _dkd_step_cpu(self, x, px, y, py, z, dp, tag, mask, ds, k1, k1s, chi, beta0, on_center=None):
+        """Apply one drift-kick-drift step; Yoshida composition may use negative ds."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
-        self._quadrupole_kick_cpu(k1 * ds, k1s * ds,
-                                  x, px, y, py, tag, mask, chi)
+        self._quadrupole_kick_cpu(k1 * ds, k1s * ds, x, px, y, py, tag, mask, chi)
         if on_center is not None:
             on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
-
-    # ============================================================
-    # Body: Drift-Kick-Drift exact (Yoshida 4th order)
-    # ============================================================
-
-    def _dkd_yoshida4_cpu(self, x, px, y, py, z, dp, tag, mask,
-                          ds, k1, k1s, chi, beta0, on_center=None):
-        """
-        One Yoshida-4 slice:
-
-          S4(ds) = S2(z1*ds) ∘ S2(z0*ds) ∘ S2(z1*ds)
-
-        where S2 is the standard DKD (leapfrog) step.
-        """
-        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z1, k1, k1s, chi, beta0)
-        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z0, k1, k1s, chi, beta0, on_center=on_center)
-        self._dkd_step_cpu(x, px, y, py, z, dp, tag, mask,
-                           ds * _YOSHIDA_Z1, k1, k1s, chi, beta0)
-
-    def _dkd_step_cpu(self, x, px, y, py, z, dp, tag, mask,
-                      ds, k1, k1s, chi, beta0, on_center=None):
-        """Single DKD step with given effective length ds (can be negative)."""
-        self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
-        self._quadrupole_kick_cpu(k1 * ds, k1s * ds,
-                                  x, px, y, py, tag, mask, chi)
-        if on_center is not None:
-            on_center()
-        self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
-
-    # ============================================================
-    # Exact drift map (Table 1.1, map D)
-    # Eq. 1.86-1.88
-    # ============================================================
 
     def _drift_exact_cpu(self, L, x, px, y, py, z, dp, tag, mask, beta0):
-        """
-        Exact drift: free propagation in a straight, field-free region.
-
-        x  += (px / pz) * L
-        y  += (py / pz) * L
-        z  += L * (1 - (beta0/beta) * (1+dp) / pz)
-
-        where pz = sqrt((1+dp)^2 - px^2 - py^2)
-              beta = (1+dp)*beta0*gamma0 / sqrt(1 + ((1+dp)*beta0*gamma0)^2)
-        """
+        """Advance live particles in a straight, field-free region."""
         if abs(L) < const.eps:
             return
 
-        one_plus_delta = 1.0 + dp
-        pz_sq = one_plus_delta**2 - px**2 - py**2
+        momentum_ratio = 1.0 + dp
+        pz_sq = momentum_ratio**2 - px**2 - py**2
 
         valid = pz_sq > 0.0
         alive = tag > 0
@@ -543,9 +340,11 @@ class Quadrupole(Command):
         pz = np.sqrt(pz_sq_safe)
         inv_pz = 1.0 / pz
 
-        gamma0 = 1.0 / np.sqrt(1.0 - beta0**2) if beta0 < 1.0 else 1e30
-        bg = beta0 * gamma0
-        beta = one_plus_delta_beta(one_plus_delta=one_plus_delta, bg=bg)
+        # Rationalize 1 - beta0/beta * p/pz to retain high-energy time slip.
+        inv_gamma_sq = max(0.0, 1.0 - beta0**2)
+        transverse_momentum_squared = px * px + py * py
+        energy_ratio = np.sqrt(inv_gamma_sq + (1.0 - inv_gamma_sq) * momentum_ratio**2)
+        slip = (dp * (2.0 + dp) * inv_gamma_sq - transverse_momentum_squared) / (pz * (pz + energy_ratio))
 
         # A particle that becomes invalid at this drift exits immediately;
         # do not transport it with the stale entry mask.
@@ -553,23 +352,10 @@ class Quadrupole(Command):
 
         x += L_mask * px * inv_pz
         y += L_mask * py * inv_pz
-        z += L_mask * (1.0 - (beta0 / beta) * one_plus_delta * inv_pz)
+        z += L_mask * slip
 
-    # ============================================================
-    # Quadrupole kick (thin lens)
-    # ============================================================
-
-    def _quadrupole_kick_cpu(self, k1l_eff, k1sl_eff,
-                             x, px, y, py, tag, mask, chi):
-        """
-        Thin quadrupole kick with integrated strengths.
-
-        dpx = -chi * k1l_eff * x + chi * k1sl_eff * y
-        dpy =  chi * k1l_eff * y + chi * k1sl_eff * x
-
-        For thin lens mode: k1l_eff = k1l, k1sl_eff = k1sl
-        For DKD mode:       k1l_eff = k1 * ds, k1sl_eff = k1s * ds
-        """
+    def _quadrupole_kick_cpu(self, k1l_eff, k1sl_eff, x, px, y, py, tag, mask, chi):
+        """Apply normal and skew kicks using integrated quadrupole strengths."""
         if abs(k1l_eff) < const.eps and abs(k1sl_eff) < const.eps:
             return
 
@@ -579,27 +365,12 @@ class Quadrupole(Command):
         px -= chi * k1l_mask * x
         py += chi * k1l_mask * y
 
-        # Skew quadrupole
         if abs(k1sl_eff) > const.eps:
             k1sl_mask = k1sl_eff * active
             px += chi * k1sl_mask * y
             py += chi * k1sl_mask * x
 
 
-# ============================================================
-# Helper: compute beta from (1+delta) and beta0*gamma0
-# ============================================================
-
-def one_plus_delta_beta(one_plus_delta, bg):
-    """
-    Compute beta = v/c given (1+delta) and beta0*gamma0.
-
-    From: P/P0 = 1+delta = beta*gamma / (beta0*gamma0)
-    => beta*gamma = (1+delta) * beta0*gamma0
-    => beta = (beta*gamma) / sqrt(1 + (beta*gamma)^2)
-    """
-    bg_new = one_plus_delta * bg
-    return bg_new / np.sqrt(1.0 + bg_new**2)
 CUDA_REAL_PREAMBLE = r'''
 #ifndef PASS_USE_FLOAT
 #define PASS_USE_FLOAT 0
@@ -611,20 +382,29 @@ using pass_real_t = double;
 #endif
 '''
 
-
 QUAD_MATRIX_BODY = r'''
-extern "C" __global__
-void track_quadrupole_matrix(
-    pass_real_t* __restrict__ x, pass_real_t* __restrict__ px,
-    pass_real_t* __restrict__ y, pass_real_t* __restrict__ py,
-    pass_real_t* __restrict__ z, const pass_real_t* __restrict__ dp,
-    const int* __restrict__ tag, int start_index, int end_index,
-    pass_real_t beta0, pass_real_t beta_gamma, pass_real_t inv_gamma,
-    pass_real_t ds, pass_real_t cos_theta, pass_real_t sin_theta,
-    pass_real_t k_eff_base, int num_slice)
-{
+extern "C" __global__ void track_quadrupole_matrix(
+    pass_real_t* __restrict__ x,
+    pass_real_t* __restrict__ px,
+    pass_real_t* __restrict__ y,
+    pass_real_t* __restrict__ py,
+    pass_real_t* __restrict__ z,
+    const pass_real_t* __restrict__ dp,
+    const int* __restrict__ tag,
+    int start_index,
+    int end_index,
+    pass_real_t beta0,
+    pass_real_t reference_beta_gamma,
+    pass_real_t inv_gamma,
+    pass_real_t ds,
+    pass_real_t cos_theta,
+    pass_real_t sin_theta,
+    pass_real_t k_eff_base,
+    int num_slice
+) {
     int index = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (index >= end_index || tag[index] <= 0) return;
+    if (index >= end_index || tag[index] <= 0)
+        return;
 
     pass_real_t xi = x[index], pxi = px[index];
     pass_real_t yi = y[index], pyi = py[index];
@@ -632,23 +412,26 @@ void track_quadrupole_matrix(
     pass_real_t one = (pass_real_t)1;
 
     for (int slice = 0; slice < num_slice; ++slice) {
-        pass_real_t opd = one + dpi;
+        pass_real_t momentum_ratio = one + dpi;
         pass_real_t u = cos_theta * xi + sin_theta * yi;
         pass_real_t pu = cos_theta * pxi + sin_theta * pyi;
         pass_real_t v = -sin_theta * xi + cos_theta * yi;
         pass_real_t pv = -sin_theta * pxi + cos_theta * pyi;
 
-        pass_real_t K = k_eff_base / opd;
+        pass_real_t K = k_eff_base / momentum_ratio;
         pass_real_t absK = fabs(K);
         pass_real_t sqrtK = sqrt(absK);
         pass_real_t KL = sqrtK * ds;
         pass_real_t Cu, Su;
         if (absK < (pass_real_t)1e-15) {
-            Cu = one; Su = ds;
+            Cu = one;
+            Su = ds;
         } else if (K > (pass_real_t)0) {
-            Cu = cos(KL); Su = sin(KL) / sqrtK;
+            Cu = cos(KL);
+            Su = sin(KL) / sqrtK;
         } else {
-            Cu = cosh(KL); Su = sinh(KL) / sqrtK;
+            Cu = cosh(KL);
+            Su = sinh(KL) / sqrtK;
         }
 
         pass_real_t Kv = -K;
@@ -657,81 +440,82 @@ void track_quadrupole_matrix(
         pass_real_t KLv = sqrtKv * ds;
         pass_real_t Cv, Sv;
         if (absKv < (pass_real_t)1e-15) {
-            Cv = one; Sv = ds;
+            Cv = one;
+            Sv = ds;
         } else if (Kv > (pass_real_t)0) {
-            Cv = cos(KLv); Sv = sin(KLv) / sqrtKv;
+            Cv = cos(KLv);
+            Sv = sin(KLv) / sqrtKv;
         } else {
-            Cv = cosh(KLv); Sv = sinh(KLv) / sqrtKv;
+            Cv = cosh(KLv);
+            Sv = sinh(KLv) / sqrtKv;
         }
 
-        pass_real_t xp = pu / opd;
-        pass_real_t yp = pv / opd;
+        pass_real_t slope_u = pu / momentum_ratio;
+        pass_real_t slope_v = pv / momentum_ratio;
         pass_real_t A = -K * u;
-        pass_real_t B = xp;
+        pass_real_t B = slope_u;
         pass_real_t C = -Kv * v;
-        pass_real_t D = yp;
+        pass_real_t D = slope_v;
 
-        pass_real_t Lpath = ds;
+        pass_real_t path_length_excess = 0;
         if (absK < (pass_real_t)1e-15) {
-            Lpath += (pass_real_t)0.5 * B * B * ds;
+            path_length_excess += (pass_real_t)0.5 * B * B * ds;
         } else {
-            Lpath += (pass_real_t)0.5 * (
-                -(A*A*Cu*Su) / ((pass_real_t)2*K)
-                + (B*B*Cu*Su) / (pass_real_t)2
-                + (A*A*ds) / ((pass_real_t)2*K)
-                + (B*B*ds) / (pass_real_t)2
-                - (A*B*Cu*Cu) / K + (A*B) / K);
+            path_length_excess +=
+                (pass_real_t)0.5 * (-(A * A * Cu * Su) / ((pass_real_t)2 * K) + (B * B * Cu * Su) / (pass_real_t)2 +
+                                    (A * A * ds) / ((pass_real_t)2 * K) + (B * B * ds) / (pass_real_t)2 - (A * B * Cu * Cu) / K + (A * B) / K);
         }
         if (absKv < (pass_real_t)1e-15) {
-            Lpath += (pass_real_t)0.5 * D * D * ds;
+            path_length_excess += (pass_real_t)0.5 * D * D * ds;
         } else {
-            Lpath += (pass_real_t)0.5 * (
-                -(C*C*Cv*Sv) / ((pass_real_t)2*Kv)
-                + (D*D*Cv*Sv) / (pass_real_t)2
-                + (C*C*ds) / ((pass_real_t)2*Kv)
-                + (D*D*ds) / (pass_real_t)2
-                - (C*D*Cv*Cv) / Kv + (C*D) / Kv);
+            path_length_excess +=
+                (pass_real_t)0.5 * (-(C * C * Cv * Sv) / ((pass_real_t)2 * Kv) + (D * D * Cv * Sv) / (pass_real_t)2 +
+                                    (C * C * ds) / ((pass_real_t)2 * Kv) + (D * D * ds) / (pass_real_t)2 - (C * D * Cv * Cv) / Kv + (C * D) / Kv);
         }
 
-        pass_real_t un = u * Cu + xp * Su;
-        pass_real_t pun = (-K * u * Su + xp * Cu) * opd;
-        pass_real_t vn = v * Cv + yp * Sv;
-        pass_real_t pvn = (-Kv * v * Sv + yp * Cv) * opd;
+        pass_real_t un = u * Cu + slope_u * Su;
+        pass_real_t pun = (-K * u * Su + slope_u * Cu) * momentum_ratio;
+        pass_real_t vn = v * Cv + slope_v * Sv;
+        pass_real_t pvn = (-Kv * v * Sv + slope_v * Cv) * momentum_ratio;
 
         xi = cos_theta * un - sin_theta * vn;
         pxi = cos_theta * pun - sin_theta * pvn;
         yi = sin_theta * un + cos_theta * vn;
         pyi = sin_theta * pun + cos_theta * pvn;
 
-        pass_real_t bg = opd * beta_gamma;
-        pass_real_t beta = bg / sqrt(one + bg * bg);
-        zi += ds - Lpath * beta0 / beta;
+        pass_real_t inv_gamma_sq = inv_gamma * inv_gamma;
+        pass_real_t beta_ratio_squared_change = -inv_gamma_sq * dpi * ((pass_real_t)2 + dpi) / (momentum_ratio * momentum_ratio);
+        pass_real_t beta0_over_beta_minus_one = beta_ratio_squared_change / (sqrt(one + beta_ratio_squared_change) + one);
+        zi += -path_length_excess - (ds + path_length_excess) * beta0_over_beta_minus_one;
     }
 
-    x[index] = xi; px[index] = pxi;
-    y[index] = yi; py[index] = pyi; z[index] = zi;
+    x[index] = xi;
+    px[index] = pxi;
+    y[index] = yi;
+    py[index] = pyi;
+    z[index] = zi;
 }
 '''
 
-_kernels = {}
 
-
-def launch_quadrupole_matrix(element, sim):
+@lru_cache(maxsize=None)
+def _get_quadrupole_kernel(dtype):
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError(
-            "GPU quadrupole tracking requires the optional 'cuda' dependencies."
-        ) from exc
+        raise RuntimeError("GPU quadrupole tracking requires the optional 'cuda' dependencies.") from exc
+
+    dtype = np.dtype(dtype)
+    return cp.RawKernel(
+        CUDA_REAL_PREAMBLE + QUAD_MATRIX_BODY,
+        "track_quadrupole_matrix",
+        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}"),
+    )
+
+
+def launch_quadrupole_matrix(element, sim):
     p = sim.beams[element.beam_id].particles
-    key = np.dtype(p.dtype)
-    if key not in _kernels:
-        _kernels[key] = cp.RawKernel(
-            CUDA_REAL_PREAMBLE + QUAD_MATRIX_BODY,
-            "track_quadrupole_matrix",
-            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
-        )
-    kernel = _kernels[key]
+    kernel = _get_quadrupole_kernel(p.dtype.str)
     beam = sim.beams[element.beam_id]
     real = p.real
     threads = 256
@@ -739,16 +523,11 @@ def launch_quadrupole_matrix(element, sim):
         n = bunch.end_idx - bunch.start_idx
         if n > 0:
             blocks = (n + threads - 1) // threads
-            kernel((blocks,), (threads,),
-                   (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
-                    np.int32(bunch.start_idx), np.int32(bunch.end_idx),
-                    real(bunch.beta), real(bunch.beta * bunch.gamma),
-                    real(1.0 / bunch.gamma), real(element.length / element.num_slice),
-                    real(element.cos_theta), real(element.sin_theta),
-                    real(element.k_eff_base), np.int32(element.num_slice)))
+            kernel((blocks, ), (threads, ), (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(bunch.start_idx), np.int32(
+                bunch.end_idx), real(bunch.beta), real(bunch.beta * bunch.gamma), real(1.0 / bunch.gamma), real(element.length / element.num_slice),
+                                             real(element.cos_theta), real(element.sin_theta), real(element.k_eff_base), np.int32(element.num_slice)))
         if n > 0:
             from PASS.utils.aperture import check_aperture_gpu
-            check_aperture_gpu(beam, bunch, element.aperture_type,
-                               element.aperture_value, element.s, sim.state.turn)
+            check_aperture_gpu(beam, bunch, element.aperture_type, element.aperture_value, element.s, sim.state.turn)
         if abs(element.length) >= const.eps:
             bunch.t0 += element.length / (bunch.beta * const.c)

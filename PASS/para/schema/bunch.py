@@ -8,8 +8,9 @@ The injection JSON node is nested inside Sequence as:
     "Injection": {"S (m)": 0.0, "Command": "Injection", "bunch0": {...}}
 """
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 
 class OffsetConfig(BaseModel):
@@ -78,7 +79,8 @@ class BunchConfig(BaseModel):
         alias="Distribution File Path",
     )
     file_mode: Literal["sequential", "repeat"] = Field(
-        default="sequential", alias="Distribution File Mode",
+        default="sequential",
+        alias="Distribution File Mode",
         description="Read successive bunch-local rows, or repeat the first batch each event.",
     )
 
@@ -86,11 +88,13 @@ class BunchConfig(BaseModel):
 
     # --- injection timing ---
     injection_turns: int = Field(
-        default=1, ge=1,
+        default=1,
+        ge=1,
         alias="Total Injection Turns",
     )
     injection_interval: int = Field(
-        default=1, ge=1,
+        default=1,
+        ge=1,
         alias="Injection Interval",
     )
 
@@ -138,14 +142,14 @@ class BunchConfig(BaseModel):
         default=0.0,
         alias="Momentum Offset dp",
         description="Bunch-level average momentum deviation (dp/p). "
-                    "Mutually exclusive with kinetic energy offset.",
+        "Mutually exclusive with kinetic energy offset.",
     )
     kinetic_energy_offset: float = Field(
         default=0.0,
         alias="Kinetic Energy Offset (eV)",
         description="Bunch-level kinetic energy offset in eV. "
-                    "Converted to dp internally. "
-                    "Mutually exclusive with momentum offset dp.",
+        "Converted to dp internally. "
+        "Mutually exclusive with momentum offset dp.",
     )
 
     # --- offsets ---
@@ -196,15 +200,15 @@ class InjectionItem(BaseModel):
         ge=1,
         alias="Harmonic Number",
         description="Beam bunch grouping count. Determines the number of "
-                    "longitudinal groups (C/h spacing) and the number of "
-                    "bunch dictionaries created at injection. It does not "
-                    "restrict RF cavity harmonics.",
+        "longitudinal groups (C/h spacing) and the number of "
+        "bunch dictionaries created at injection. It does not "
+        "restrict RF cavity harmonics.",
     )
     random_seed: StrictInt | None = Field(
         default=None,
         alias="Random Seed",
         description="Optional seed for Injection particle-distribution "
-                    "generation. Omit it for a non-deterministic seed.",
+        "generation. Omit it for a non-deterministic seed.",
     )
     bunches: list[BunchConfig] = Field(
         default_factory=lambda: [BunchConfig(
@@ -218,23 +222,18 @@ class InjectionItem(BaseModel):
     def to_sequence_dict(self) -> dict:
         """Convert to engine-compatible dict with bunch0/bunch1/... keys."""
         if len(self.bunches) != self.harmonic_number:
-            raise ValueError(
-                "InjectionItem requires exactly one BunchConfig per "
-                f"harmonic group: harmonic_number={self.harmonic_number}, "
-                f"bunches={len(self.bunches)}"
-            )
+            raise ValueError("InjectionItem requires exactly one BunchConfig per "
+                             f"harmonic group: harmonic_number={self.harmonic_number}, "
+                             f"bunches={len(self.bunches)}")
         harmonic_ids = [bunch.harmonic_id for bunch in self.bunches]
         if set(harmonic_ids) != set(range(self.harmonic_number)):
-            raise ValueError(
-                "InjectionItem bunch harmonic ids must be a permutation of "
-                f"[0, {self.harmonic_number}); got {harmonic_ids}"
-            )
+            raise ValueError("InjectionItem bunch harmonic ids must be a permutation of "
+                             f"[0, {self.harmonic_number}); got {harmonic_ids}")
 
         populated = [b for b in self.bunches if b.num_macro_particles > 0]
         if populated:
             source = populated[0]
-            if any(b.num_real_particles * source.num_macro_particles !=
-                   source.num_real_particles * b.num_macro_particles for b in populated):
+            if any(b.num_real_particles * source.num_macro_particles != source.num_real_particles * b.num_macro_particles for b in populated):
                 raise ValueError("All populated bunches in a beam must have the same fixed macro-particle weight")
 
         result = {

@@ -1,14 +1,15 @@
+import os
+from pathlib import Path
+import logging
+
+import numpy as np
+import tfs
+
 from PASS.plot.plot_distribution import plot_distribution
 from PASS.core.simulation import Simulation
 from PASS.core.bunch import BunchInfo
 from PASS.core.beam import Beam
 from PASS.core.config import Config
-
-import numpy as np
-import os
-from pathlib import Path
-import logging
-import tfs
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def plot_main(sim: Simulation):
     Path(output_dir_plot).mkdir(parents=True, exist_ok=True)
 
     # 1. Plot distribution
-    dist_all_path = get_file_in_dir(cfg.output_dir_dist)
+    dist_all_path = list_files(cfg.output_dir_dist)
 
     for dist_path in dist_all_path:
         logger.info(f"Plotting distribution: {dist_path}")
@@ -78,7 +79,7 @@ def plot_main(sim: Simulation):
                                   save_dir=output_dir_plot)
 
 
-def get_file_in_dir(target_dir: str, recursive: bool = False) -> list[str]:
+def list_files(target_dir: str, recursive: bool = False) -> list[str]:
     root = Path(target_dir).resolve()
     if not root.exists() or not root.is_dir():
         return []

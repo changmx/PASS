@@ -1,4 +1,4 @@
-"""WakeField sequence schema. Kernel units follow the chosen component order."""
+"""WakeFieldItem sequence schema. Kernel units follow the chosen component order."""
 from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, model_validator, field_validator
@@ -51,8 +51,7 @@ class TabulatedWake(WakeParameters):
 
     @model_validator(mode="after")
     def table(self):
-        if (len(self.times) != len(self.values) or (self.causal and self.times[0] != 0)
-                or any(b <= a for a, b in zip(self.times, self.times[1:]))):
+        if (len(self.times) != len(self.values) or (self.causal and self.times[0] != 0) or any(b <= a for a, b in zip(self.times, self.times[1:]))):
             raise ValueError("Tabulated wake needs matching increasing times; causal tables start at zero")
         return self
 
@@ -66,8 +65,8 @@ class ImpedanceWake(WakeParameters):
 
     @model_validator(mode="after")
     def samples(self):
-        if (len(self.frequencies) != len(self.real) or len(self.real) != len(self.imag)
-                or self.frequencies[0] < 0 or any(b <= a for a, b in zip(self.frequencies, self.frequencies[1:]))):
+        if (len(self.frequencies) != len(self.real) or len(self.real) != len(self.imag) or self.frequencies[0] < 0
+                or any(b <= a for a, b in zip(self.frequencies, self.frequencies[1:]))):
             raise ValueError("Impedance samples must match increasing nonnegative frequencies")
         return self
 
@@ -163,12 +162,11 @@ class WakeSpatialTerm(WakeParameters):
         return self
 
 
-WakeModelConfig = Annotated[Union[ConstantWake, ResonatorWake, ResistiveWallWake,
-    UltrarelativisticWallWake, TabulatedWake, ImpedanceWake, FittedImpedanceWake,
-    ModalWake, FileWake], Field(discriminator="kind")]
-WakeComponentKind = Literal["longitudinal", "constant_x", "constant_y", "dipolar_x", "dipolar_y",
-                            "dipolar_xy", "dipolar_yx", "quadrupolar_x", "quadrupolar_y",
-                            "quadrupolar_xy", "quadrupolar_yx", "custom"]
+WakeModelConfig = Annotated[Union[ConstantWake, ResonatorWake, ResistiveWallWake, UltrarelativisticWallWake, TabulatedWake, ImpedanceWake,
+                                  FittedImpedanceWake, ModalWake, FileWake],
+                            Field(discriminator="kind")]
+WakeComponentKind = Literal["longitudinal", "constant_x", "constant_y", "dipolar_x", "dipolar_y", "dipolar_xy", "dipolar_yx", "quadrupolar_x",
+                            "quadrupolar_y", "quadrupolar_xy", "quadrupolar_yx", "custom"]
 
 
 class WakeComponentConfig(WakeParameters):
@@ -177,7 +175,8 @@ class WakeComponentConfig(WakeParameters):
     spatial: WakeSpatialTerm | None = Field(default=None, alias="Spatial")
     scale: float = Field(default=1.0, alias="Scale")
     velocity: WakeVelocity | None = Field(default=None, alias="Velocity")
-    field_content: Literal["wake", "finite_conductivity_correction", "pec_image", "direct_space_charge", "total"] = Field(default="wake", alias="Field content")
+    field_content: Literal["wake", "finite_conductivity_correction", "pec_image", "direct_space_charge", "total"] = Field(default="wake",
+                                                                                                                          alias="Field content")
 
     @field_validator("model", mode="before")
     @classmethod
@@ -292,7 +291,7 @@ class WakeSolverGroup(WakeParameters):
             two_sided = (m.kind == "resistive_wall" or m.kind == "tabulated" and not m.causal
                          or m.kind == "impedance" and m.reconstruction == "two_sided"
                          or m.kind == "file" and (m.convention.data_kind == "wake_function" and not m.causal
-                             or m.convention.data_kind == "impedance" and m.reconstruction == "two_sided"))
+                                                  or m.convention.data_kind == "impedance" and m.reconstruction == "two_sided"))
             if two_sided and self.boundary == "causal_passages":
                 raise ValueError("Two-sided responses require explicit isolated or periodic spatial boundary")
             if self.boundary != "causal_passages" and c.velocity.kind != "fixed":
@@ -324,7 +323,7 @@ class WakeFieldConfig(WakeParameters):
         return value
 
 
-class WakeField(WakeParameters):
+class WakeFieldItem(WakeParameters):
     s: float = Field(ge=0, alias="S (m)")
     command: Literal["WakeField"] = Field(default="WakeField", alias="Command")
     slice_set: str = Field(min_length=1, alias="Slice set")
@@ -352,7 +351,7 @@ class WakeField(WakeParameters):
 
 def resolve_wake_point(point: dict, block: WakeFieldConfig | None = None) -> dict:
     """Return an independent inline command, keeping the input unmodified."""
-    config = WakeField.model_validate(point)
+    config = WakeFieldItem.model_validate(point)
     if config.configuration is not None:
         resources = {} if block is None else block.configurations
         if config.configuration not in resources:

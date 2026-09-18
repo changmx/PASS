@@ -9,10 +9,7 @@ import platform
 from PySide6 import __version__ as pyside_version
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QTextCursor
-from PySide6.QtWidgets import (
-    QApplication, QDialog, QHBoxLayout, QLabel, QMenu, QMessageBox,
-    QPlainTextEdit, QProgressBar, QPushButton, QVBoxLayout,
-)
+from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QLabel, QMenu, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QVBoxLayout
 
 from PASS import __version__
 from PASS.gui.appearance import code_font
@@ -20,6 +17,7 @@ from PASS.gui.documentation import DocumentationBuilder, local_document, source_
 
 
 class HelpMenu(QMenu):
+
     def __init__(self, owner) -> None:
         super().__init__(owner)
         self.owner = owner
@@ -121,8 +119,11 @@ class HelpMenu(QMenu):
         if not self.builder.running:
             return True
         return QMessageBox.question(
-            self.owner, "文档仍在编译", "停止文档编译并关闭 PASS？",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            self.owner,
+            "文档仍在编译",
+            "停止文档编译并关闭 PASS？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
         ) == QMessageBox.Yes
 
     def show_about(self) -> None:
@@ -136,21 +137,18 @@ class HelpMenu(QMenu):
             brand = QLabel("PASS")
             brand.setObjectName("brand")
             layout.addWidget(brand)
-            info = QLabel(
-                f"<b>{escape(self.title)}</b><p>用于粒子加速器束流动力学建模、粒子追踪与分析。</p>"
-                f"<p>版本：{escape(__version__)}</p><p>作者：{escape(self.authors)}</p>"
-                "<p>中国科学院近代物理研究所<br>"
-                "Institute of Modern Physics, Chinese Academy of Sciences</p>"
-                '<p>许可证：<a href="license">Apache License 2.0</a></p>'
-                "<p>© 2025–2026 Institute of Modern Physics,<br>Chinese Academy of Sciences</p>"
-            )
+            info = QLabel(f"<b>{escape(self.title)}</b><p>用于粒子加速器束流动力学建模、粒子追踪与分析。</p>"
+                          f"<p>版本：{escape(__version__)}</p><p>作者：{escape(self.authors)}</p>"
+                          "<p>中国科学院近代物理研究所<br>"
+                          "Institute of Modern Physics, Chinese Academy of Sciences</p>"
+                          '<p>许可证：<a href="license">Apache License 2.0</a></p>'
+                          "<p>© 2025–2026 Institute of Modern Physics,<br>Chinese Academy of Sciences</p>")
             info.setWordWrap(True)
             info.setTextInteractionFlags(Qt.TextBrowserInteraction)
             info.linkActivated.connect(self.show_license)
             layout.addWidget(info)
             links = QHBoxLayout()
-            for label, url in (("在线文档", self.urls["Documentation"]),
-                               ("源代码", self.urls["Repository"]), ("问题反馈", self.urls["Issues"])):
+            for label, url in (("在线文档", self.urls["Documentation"]), ("源代码", self.urls["Repository"]), ("问题反馈", self.urls["Issues"])):
                 link = QLabel(f'<a href="{escape(url, quote=True)}">{label}</a>')
                 link.linkActivated.connect(self.open_url)
                 links.addWidget(link)
@@ -170,18 +168,15 @@ class HelpMenu(QMenu):
         self.about_dialog.activateWindow()
 
     def copy_environment(self) -> None:
-        QApplication.clipboard().setText(
-            f"PASS: {__version__}\nPython: {platform.python_version()}\n"
-            f"PySide6: {pyside_version}\nOS: {platform.platform()}\nArchitecture: {platform.machine()}"
-        )
+        QApplication.clipboard().setText(f"PASS: {__version__}\nPython: {platform.python_version()}\n"
+                                         f"PySide6: {pyside_version}\nOS: {platform.platform()}\nArchitecture: {platform.machine()}")
         self.owner.statusBar().showMessage("已复制版本与环境信息。", 5000)
 
     def show_license(self, _link=None) -> None:
         if self.license_dialog is None:
             candidates = [self.root / "LICENSE"] if self.root else []
             if self.package is not None:
-                candidates.extend(self.package.locate_file(path) for path in self.package.files or []
-                                  if path.name == "LICENSE")
+                candidates.extend(self.package.locate_file(path) for path in self.package.files or [] if path.name == "LICENSE")
             content = None
             for path in candidates:
                 try:
@@ -208,6 +203,7 @@ class HelpMenu(QMenu):
 
 
 class DocumentationDialog(QDialog):
+
     def __init__(self, menu: HelpMenu, parent) -> None:
         super().__init__(parent)
         self.menu = menu

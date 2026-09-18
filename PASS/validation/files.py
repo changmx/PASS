@@ -4,11 +4,21 @@ import re
 
 import numpy as np
 
-
 INPUT_FILE_FIELDS = frozenset({
-    "waveform file", "distribution file path", "file path", "file_path", "program file", "k0l ramping file",
-    "k1l ramping file", "k1sl ramping file", "k2l ramping file", "k2sl ramping file",
-    "k3l ramping file", "k3sl ramping file", "kl ramping file", "kick ramping file",
+    "waveform file",
+    "distribution file path",
+    "file path",
+    "file_path",
+    "program file",
+    "k0l ramping file",
+    "k1l ramping file",
+    "k1sl ramping file",
+    "k2l ramping file",
+    "k2sl ramping file",
+    "k3l ramping file",
+    "k3sl ramping file",
+    "kl ramping file",
+    "kick ramping file",
 })
 
 
@@ -145,7 +155,7 @@ def check_table(check, value, path, kind, active, minimum_rows):
                 check.add(path, "distribution.rows", f"该 bunch 在粒子池中的索引要求文件至少 {minimum_rows} 行，实际 {len(frame)} 行；不足部分不会正确初始化", not active)
             dp, px, py = arrays["dp"], arrays["px"], arrays["py"]
             with np.errstate(over="ignore", invalid="ignore"):
-                bad = np.flatnonzero((dp <= -1) | ((1 + dp) ** 2 <= px ** 2 + py ** 2))
+                bad = np.flatnonzero((dp <= -1) | ((1 + dp)**2 <= px**2 + py**2))
             if len(bad):
                 check.add(path, "distribution.momentum", f"{len(bad)} 行无法得到正的实数纵向动量；首个数据行 {bad[0] + 1}", not active)
         if kind.startswith("offset_"):
@@ -164,7 +174,7 @@ def check_rf_files(check, values, path):
     if not check.check_files:
         return
     from copy import deepcopy
-    from PASS.commands.element.rfcavity import Waveform
+    from PASS.commands.element.rfcavity import RFWaveform
     from PASS.utils.program import LinearProgram
     entries = values.get('Components', [])
     if not isinstance(entries, list):
@@ -177,7 +187,7 @@ def check_rf_files(check, values, path):
         prepared = deepcopy(item)
         resolve_input_paths(prepared, check.base)
         try:
-            Waveform(prepared, LinearProgram(1.))
+            RFWaveform(prepared, LinearProgram(1.))
             check.report.checked_files.append(prepared['Program file'])
         except (OSError, ValueError, KeyError, TypeError) as exc:
-            check.add((*path,'Components',index,'Program file'),'rf.program',str(exc))
+            check.add((*path, 'Components', index, 'Program file'), 'rf.program', str(exc))

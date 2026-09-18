@@ -16,7 +16,7 @@ def resolve_slice_coordinate(coordinate=None, periodic=False):
     return coordinate
 
 
-
 def ring_interval(lower, upper, circumference):
-    if not np.all(np.isfinite([lower,upper,circumference])) or circumference<=0 or not np.isclose(upper-lower,circumference,rtol=1e-13,atol=0.):
+    if not np.all(np.isfinite([lower, upper, circumference])) or circumference <= 0 or not np.isclose(
+            upper - lower, circumference, rtol=1e-13, atol=0.):
         raise ValueError('Arrival-phase interval must span one design circumference')

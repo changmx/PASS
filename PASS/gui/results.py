@@ -21,10 +21,14 @@ def read_result(path):
         with h5py.File(path, "r") as stream:
             if any(isinstance(value, h5py.Dataset) and value.ndim > 1 for value in stream.values()):
                 raise ValueError("该 HDF5 包含多维场数组；请使用专门的切片场分析，不能将网格轴当作粒子列配对。")
-            metadata = {key: value.decode() if isinstance(value, bytes) else value.item() if isinstance(value, np.generic) else value
-                        for key, value in stream.attrs.items()}
-            columns = {key: np.asarray(value).tolist() for key, value in stream.items()
-                       if isinstance(value, h5py.Dataset) and value.ndim == 1 and np.issubdtype(value.dtype, np.number)}
+            metadata = {
+                key: value.decode() if isinstance(value, bytes) else value.item() if isinstance(value, np.generic) else value
+                for key, value in stream.attrs.items()
+            }
+            columns = {
+                key: np.asarray(value).tolist()
+                for key, value in stream.items() if isinstance(value, h5py.Dataset) and value.ndim == 1 and np.issubdtype(value.dtype, np.number)
+            }
         if not columns:
             raise ValueError("该 HDF5 没有一维粒子数据列；切片场等多维数组需要专门的场图。")
     else:
@@ -52,8 +56,8 @@ def read_result(path):
         time = columns.get(names.get("referencetime"), refs.get("referencearrivaltime"))
         beta = columns.get(names.get("referencebeta"), refs.get("referencebeta"))
         if time is not None and beta is not None:
-            t = np.broadcast_to(np.asarray(time, dtype=float), (count,))
-            b = np.broadcast_to(np.asarray(beta, dtype=float), (count,))
+            t = np.broadcast_to(np.asarray(time, dtype=float), (count, ))
+            b = np.broadcast_to(np.asarray(beta, dtype=float), (count, ))
             z = np.asarray(columns[names["z"]], dtype=float)
             tag = np.asarray(columns[names["tag"]])
             valid = (tag > 0) & (b > 0) & (b < 1) & np.isfinite(t) & np.isfinite(b) & np.isfinite(z)

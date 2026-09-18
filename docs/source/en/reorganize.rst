@@ -9,7 +9,7 @@ This page describes the PASS **ReorganizeBunch** command. At a selected turn, th
 - Regrouping algorithm: ``PASS/commands/sort_bunch.py``
 - Class: ``ReorganizeBunch`` (inherits from ``Command``)
 - Registered name: ``reorganizebunch``
-- Schema: ``ReorganizeBunchElement`` in ``PASS/para/schema/elements.py``
+- Schema: ``ReorganizeBunchItem`` in ``PASS/para/schema/elements.py``
 
 
 Operation and group boundaries

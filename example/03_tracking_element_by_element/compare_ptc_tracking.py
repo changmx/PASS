@@ -13,10 +13,10 @@ Usage:
     python compare_ptc_tracking.py --output-dir output/2026_0730/1149_06
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 
+import numpy as np
+import matplotlib.pyplot as plt
 import tfs
 from cpymad.madx import Madx
 
@@ -37,7 +37,7 @@ TAG_INFO = {
 }
 
 # ============================================================
-# Initial coordinates (must match make_input.py)
+# Initial coordinates (must match generate_input.py)
 # ============================================================
 
 
@@ -267,8 +267,8 @@ def plot_relative_difference(pass_data, ptc_data, tags, turn_range=None):
         ax = axes[idx, 0]
 
         plane = TAG_INFO[tag]["plane"]
-        col = plane                      # "x" or "y"
-        pcol = "p" + plane               # "px" or "py"
+        col = plane  # "x" or "y"
+        pcol = "p" + plane  # "px" or "py"
 
         mask_p = _turn_mask(pass_data[tag]["turn"], turn_range)
         mask_t = _turn_mask(ptc_data[tag]["turn"], turn_range)

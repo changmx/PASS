@@ -6,4 +6,5 @@ def main() -> None:
 
     launch()
 
+
 __all__ = ["main"]

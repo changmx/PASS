@@ -52,6 +52,13 @@ Beam size (standard deviation):
 
 Similarly, :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` are computed.
 
+The implementation evaluates the equivalent centered moments instead of subtracting
+large raw moments. CPU and GPU use FP64 accumulators for both FP32 and FP64
+particles: first find the centroid relative to a surviving particle, then accumulate
+moments about that centroid. This also stabilizes covariance, emittance, skewness
+and kurtosis for narrow or displaced bunches. Particle storage precision is unchanged.
+The temporary ring projection for z statistics is evaluated in FP64.
+
 ``sigmaZ`` and z moments retain a temporary ring-period projection, without changing stored continuous z. The new ``sigmaTime`` uses the standard deviation of unwrapped z divided by :math:`\beta_b c`, giving the physical passage-time spread. Rows include ``referenceTime``, ``referenceBeta`` and ``referenceMomentum``. Nominal zCenter cannot reconstruct a laboratory centroid.
 
 Emittance and Twiss Parameters

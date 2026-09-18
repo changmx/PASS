@@ -15,8 +15,18 @@ from typing import Annotated, Literal, Union, get_args, get_origin
 from pydantic import BaseModel
 from PySide6.QtGui import QValidator
 from PySide6.QtWidgets import (
-    QCheckBox, QComboBox, QFileDialog, QFormLayout, QGroupBox, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QWidget, QVBoxLayout, QSizePolicy,
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QWidget,
+    QVBoxLayout,
+    QSizePolicy,
 )
 
 from PASS.gui.structured import Column, NumericTable, StructuredField
@@ -27,12 +37,13 @@ class IntegerValidator(QValidator):
     """Python integers, without Qt's signed 32-bit input limit."""
 
     def validate(self, text, position):
-        state = (QValidator.Acceptable if re.fullmatch(r"[+-]?\d+", text.strip()) else
-                 QValidator.Intermediate if text.strip() in {"", "+", "-"} else QValidator.Invalid)
+        state = (QValidator.Acceptable
+                 if re.fullmatch(r"[+-]?\d+", text.strip()) else QValidator.Intermediate if text.strip() in {"", "+", "-"} else QValidator.Invalid)
         return state, text, position
 
 
 class Choice(QComboBox):
+
     def wheelEvent(self, event):
         event.ignore()
 
@@ -40,8 +51,7 @@ class Choice(QComboBox):
         # A narrow form column must not truncate the choices in its popup.
         view = self.view()
         view.ensurePolished()
-        width = max((self.fontMetrics().horizontalAdvance(self.itemText(i))
-                     for i in range(self.count())), default=0) + 64
+        width = max((self.fontMetrics().horizontalAdvance(self.itemText(i)) for i in range(self.count())), default=0) + 64
         screen = self.screen().availableGeometry()
         view.setMinimumWidth(min(max(self.width(), width), screen.width() - 24))
         # Styled row padding is not included in Qt's default popup height.
@@ -72,8 +82,7 @@ def model_draft(model, supplied=None):
             value = value.model_dump(by_alias=True, mode="json")
         result[field.alias or name] = deepcopy(value)
     if supplied:
-        aliases = {str(field.alias or name).casefold(): field.alias or name
-                   for name, field in model.model_fields.items()}
+        aliases = {str(field.alias or name).casefold(): field.alias or name for name, field in model.model_fields.items()}
         aliases.update({name.casefold(): field.alias or name for name, field in model.model_fields.items()})
         for key, value in supplied.items():
             result[aliases.get(str(key).casefold(), key)] = deepcopy(value)
@@ -81,6 +90,7 @@ def model_draft(model, supplied=None):
 
 
 class ScalarField(StructuredField):
+
     def __init__(self, annotation, value, label, base_dir):
         super().__init__()
         self.annotation, self.label = bare(annotation), label
@@ -157,6 +167,7 @@ class ScalarField(StructuredField):
 
 
 class OptionalField(StructuredField):
+
     def __init__(self, annotation, value, label, base_dir):
         super().__init__()
         root = QVBoxLayout(self)
@@ -179,6 +190,7 @@ class OptionalField(StructuredField):
 
 
 class ArrayField(NumericTable):
+
     def __init__(self, annotation, value, label):
         self.annotation = bare(annotation)
         item_type = bare(get_args(self.annotation)[0])
@@ -186,11 +198,9 @@ class ArrayField(NumericTable):
         self.matrix = get_origin(item_type) in (tuple, list)
         width = len(get_args(self.annotation)) if self.vector else len(get_args(item_type)) if self.matrix else 1
         names = (["实部", "虚部"] if "poles" in label.casefold() or label == "Residues" else
-                 ["x 次数", "y 次数"] if label.endswith("powers") else
-                 [label] if width == 1 else [f"{label} · {i+1}" for i in range(width)])
+                 ["x 次数", "y 次数"] if label.endswith("powers") else [label] if width == 1 else [f"{label} · {i+1}" for i in range(width)])
         integer = (bare(get_args(item_type)[0]) if self.matrix else item_type) is int
-        columns = [Column(name, integer, -2147483647 if integer else -1e100,
-                          2147483647 if integer else 1e100) for name in names]
+        columns = [Column(name, integer, -2147483647 if integer else -1e100, 2147483647 if integer else 1e100) for name in names]
         rows = [list(value)] if self.vector and value is not None else value if self.matrix else [[v] for v in value or []]
         super().__init__(columns, rows or [], "按行填写；可粘贴 CSV/制表符数据。")
 
@@ -204,6 +214,7 @@ class ArrayField(NumericTable):
 
 class ActiveStack(QWidget):
     """An unused file-model form must not set a scalar editor's minimum size."""
+
     def __init__(self):
         super().__init__()
         self.pages, self.index = [], 0
@@ -228,6 +239,7 @@ class ActiveStack(QWidget):
 
 class UnionField(StructuredField):
     """Keep drafts for each scalar/table or discriminated model alternative."""
+
     def __init__(self, annotation, value, label, base_dir):
         super().__init__()
         self.types = get_args(bare(annotation))
@@ -280,6 +292,7 @@ class UnionField(StructuredField):
 
 
 class ModelListEditor(StructuredField):
+
     def __init__(self, model, value, label, base_dir):
         super().__init__()
         self.model, self.base_dir, self.label = model, base_dir, label
@@ -358,6 +371,7 @@ def make_editor(annotation, value, label, base_dir):
 
 
 class SchemaEditor(StructuredField):
+
     def __init__(self, model, value=None, base_dir=Path(".")):
         super().__init__()
         self.model = model
@@ -441,8 +455,7 @@ class SchemaEditor(StructuredField):
 
     def _solver_changed(self):
         solver = self._choice_value("Solver")
-        history = ("partitioned" if solver in {"partitioned_fft", "time_fft"} else
-                   "state" if solver in {"recursive", "modal"} else "none")
+        history = ("partitioned" if solver in {"partitioned_fft", "time_fft"} else "state" if solver in {"recursive", "modal"} else "none")
         field = self.fields["History"].input
         field.setCurrentIndex(field.findData(history))
         for key, enabled in (("Convolution grid", solver == "partitioned_fft"), ("Time grid", solver == "time_fft"),
@@ -452,12 +465,16 @@ class SchemaEditor(StructuredField):
 
     def _wake_modes(self):
         solver, history, boundary = (self._choice_value(k) for k in ("Solver", "History", "Boundary"))
-        active = {"Convolution grid": solver == "partitioned_fft", "Time grid": solver == "time_fft",
-                  "Memory turns": history in {"direct", "partitioned"} and solver != "time_fft",
-                  "Memory time (s)": history in {"direct", "partitioned"} and solver != "partitioned_fft",
-                  "Partition": solver in {"partitioned_fft", "time_fft"},
-                  "Max workspace (MiB)": solver in {"partitioned_fft", "time_fft"},
-                  "Period (s)": boundary == "periodic", "Periodic images": boundary == "periodic"}
+        active = {
+            "Convolution grid": solver == "partitioned_fft",
+            "Time grid": solver == "time_fft",
+            "Memory turns": history in {"direct", "partitioned"} and solver != "time_fft",
+            "Memory time (s)": history in {"direct", "partitioned"} and solver != "partitioned_fft",
+            "Partition": solver in {"partitioned_fft", "time_fft"},
+            "Max workspace (MiB)": solver in {"partitioned_fft", "time_fft"},
+            "Period (s)": boundary == "periodic",
+            "Periodic images": boundary == "periodic"
+        }
         for key, enabled in active.items():
             self._active(key, enabled)
         self.changed.emit()

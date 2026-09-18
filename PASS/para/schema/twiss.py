@@ -1,26 +1,19 @@
-"""Twiss transport point (TwissPoint).
-
-Consumed by:
-    - PASS.commands.twiss.Twiss.__init__
-
-Each twiss point stores current + previous optical functions.
-The engine computes the transfer matrix from (previous → current).
-"""
+"""Twiss transport configuration with current and previous optical functions."""
 
 from pydantic import BaseModel, Field, ConfigDict
 
 
-class TwissPoint(BaseModel):
+class TwissItem(BaseModel):
     """A single twiss transport point in the sequence."""
 
     model_config = ConfigDict(populate_by_name=True)
 
-    # --- position ---
+    # Position
     s: float = Field(alias="S (m)")
     command: str = Field(default="Twiss", alias="Command")
     s_previous: float = Field(alias="S previous (m)")
 
-    # --- current twiss ---
+    # Current twiss
     alpha_x: float = Field(alias="Alpha x")
     alpha_y: float = Field(alias="Alpha y")
     beta_x: float = Field(alias="Beta x (m)")
@@ -31,7 +24,7 @@ class TwissPoint(BaseModel):
     dx: float = Field(alias="Dx (m)")
     dpx: float = Field(alias="Dpx")
 
-    # --- previous twiss ---
+    # Previous twiss
     alpha_x_previous: float = Field(alias="Alpha x previous")
     alpha_y_previous: float = Field(alias="Alpha y previous")
     beta_x_previous: float = Field(alias="Beta x previous (m)")
@@ -42,11 +35,11 @@ class TwissPoint(BaseModel):
     dx_previous: float = Field(default=0.0, alias="Dx previous (m)")
     dpx_previous: float = Field(default=0.0, alias="Dpx previous")
 
-    # --- chromaticity ---
+    # Chromaticity
     dqx: float = Field(default=0.0, alias="DQx")
     dqy: float = Field(default=0.0, alias="DQy")
 
-    # --- longitudinal ---
+    # Longitudinal
     longitudinal_transfer: str = Field(
         default="off",
         alias="Longitudinal transfer",

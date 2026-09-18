@@ -1,7 +1,7 @@
 """CPU/GPU finite-difference Poisson solver for the transverse PIC pipeline.
 
 The matrix is assembled and factorized once in :func:`build_fd_resources`.
-``FDSolver.solve`` accepts a stack of slice densities and passes all right-hand
+``FDRectangleSolver.solve`` accepts a stack of slice densities and passes all right-hand
 sides to the same sparse LU factorization.  This is deliberately a batched
 operation: a space-charge call must not solve one linear system per slice.
 """
@@ -15,14 +15,11 @@ from scipy.sparse import csc_matrix, lil_matrix
 from scipy.sparse.linalg import splu
 
 from PASS.utils.constants import const
-from .field_result import FieldResult, GPUFieldSolver, _launch_gpu
-
-
-EPSILON_0 = const.epsilon0
+from .field_result import FieldResult, GPUFieldSolver, launch_gpu_kernel
 
 
 @dataclass
-class FDSolver:
+class FDRectangleSolver:
     """Five-point Dirichlet finite-difference solver on a nodal grid."""
 
     geometry: object
@@ -50,15 +47,13 @@ class FDSolver:
         if squeeze:
             source = source[None, ...]
         if source.ndim != 3 or source.shape[1:] != self.aperture_mask.shape:
-            raise ValueError(
-                "density must have shape (n_slice, ny, nx) matching the grid"
-            )
+            raise ValueError("density must have shape (n_slice, ny, nx) matching the grid")
 
         n_slice, ny, nx = source.shape
         potential = np.zeros_like(source)
         interior = self.interior_indices
         if interior.size:
-            rhs = (source.reshape(n_slice, ny * nx)[:, interior].T / EPSILON_0)
+            rhs = (source.reshape(n_slice, ny * nx)[:, interior].T / const.epsilon0)
             # splu.solve supports a dense matrix RHS.  Keep the slice axis as
             # columns so all slices use one factorization and one solve call.
             values = self._lu.solve(rhs)
@@ -88,12 +83,7 @@ def _interior_mask(aperture_mask: np.ndarray) -> np.ndarray:
     interior = mask.copy()
     interior[[0, -1], :] = False
     interior[:, [0, -1]] = False
-    interior[1:-1, 1:-1] &= (
-        mask[:-2, 1:-1]
-        & mask[2:, 1:-1]
-        & mask[1:-1, :-2]
-        & mask[1:-1, 2:]
-    )
+    interior[1:-1, 1:-1] &= (mask[:-2, 1:-1] & mask[2:, 1:-1] & mask[1:-1, :-2] & mask[1:-1, 2:])
     return interior
 
 
@@ -111,10 +101,8 @@ def build_fd_resources(geometry, aperture_mask=None, *, factorize=True):
     if aperture_mask.shape != (geometry.ny, geometry.nx):
         raise ValueError("aperture_mask shape must match geometry")
     if not np.all(aperture_mask):
-        raise ValueError(
-            "an arbitrary aperture needs continuous geometry; use "
-            "build_fd_arbitrary_resources(..., aperture)"
-        )
+        raise ValueError("an arbitrary aperture needs continuous geometry; use "
+                         "build_fd_arbitrary_resources(..., aperture)")
 
     interior = _interior_mask(aperture_mask)
     indices = np.flatnonzero(interior.ravel())
@@ -127,8 +115,10 @@ def build_fd_resources(geometry, aperture_mask=None, *, factorize=True):
         iy, ix = divmod(int(flat), geometry.nx)
         matrix[row, row] = 2.0 * (dx2 + dy2)
         for neighbor, coefficient in (
-            (flat - 1, -dx2), (flat + 1, -dx2),
-            (flat - geometry.nx, -dy2), (flat + geometry.nx, -dy2),
+            (flat - 1, -dx2),
+            (flat + 1, -dx2),
+            (flat - geometry.nx, -dy2),
+            (flat + geometry.nx, -dy2),
         ):
             column = index_map[neighbor]
             if column >= 0:
@@ -137,7 +127,7 @@ def build_fd_resources(geometry, aperture_mask=None, *, factorize=True):
     # splu does not accept a 0x0 matrix.  A None handle is equivalent to a
     # zero field for an aperture with no interior nodes.
     lu = splu(sparse) if indices.size and factorize else None
-    return FDSolver(geometry, aperture_mask.copy(), interior, sparse, lu)
+    return FDRectangleSolver(geometry, aperture_mask.copy(), interior, sparse, lu)
 
 
 def build_fd_rectangle_resources(geometry):
@@ -153,10 +143,10 @@ def solve_poisson_fd(
     dy: float | None = None,
     aperture_mask=None,
 ):
-    """One-shot compatibility wrapper around the reusable :class:`FDSolver`.
+    """Solve once using the reusable :class:`FDRectangleSolver`.
 
     ``density`` may contain one or many slices.  Prefer
-    :func:`build_fd_resources` plus ``FDSolver.solve`` for repeated calls so
+    :func:`build_fd_resources` plus ``FDRectangleSolver.solve`` for repeated calls so
     the sparse factorization is reused.
     """
     source = np.asarray(density)
@@ -177,7 +167,7 @@ def solve_poisson_fd(
     return build_fd_resources(geometry, aperture_mask).solve(source)
 
 
-class GPUFDSolver(GPUFieldSolver):
+class GPUFDRectangleSolver(GPUFieldSolver):
     """cuDSS factorization and batched solves for a full rectangular chamber."""
 
     arbitrary = False
@@ -192,7 +182,7 @@ class GPUFDSolver(GPUFieldSolver):
         super().__init__(geometry, dtype)
         from nvmath.bindings import cudss
 
-        self.api = d = cudss
+        self.api = cudss_api = cudss
         self.handle = self.config = self.data = self.matrix_handle = None
         self._dense_handles = []
         self._factored = False
@@ -211,15 +201,13 @@ class GPUFDSolver(GPUFieldSolver):
         self.row = cp.asarray(self.matrix.indptr, dtype=cp.int32)
         self.col = cp.asarray(self.matrix.indices, dtype=cp.int32)
         self.values = cp.asarray(self.matrix.data)
-        self.value_type = (
-            0 if self.dtype.itemsize == 4 else 1
-        )  # CUDA_R_32F / CUDA_R_64F
+        self.value_type = (0 if self.dtype.itemsize == 4 else 1)  # CUDA_R_32F / CUDA_R_64F
         try:
-            self.handle = d.create()
-            d.set_stream(self.handle, self.stream.ptr)
-            self.config = d.config_create()
-            self.data = d.data_create(self.handle)
-            self.matrix_handle = d.matrix_create_csr(
+            self.handle = cudss_api.create()
+            cudss_api.set_stream(self.handle, self.stream.ptr)
+            self.config = cudss_api.config_create()
+            self.data = cudss_api.data_create(self.handle)
+            self.matrix_handle = cudss_api.matrix_create_csr(
                 self.n,
                 self.n,
                 self.matrix.nnz,
@@ -230,9 +218,9 @@ class GPUFDSolver(GPUFieldSolver):
                 10,  # CUDA_R_32I row offsets (cuDSS 0.8 has separate types)
                 10,  # CUDA_R_32I column indices
                 self.value_type,
-                d.MatrixType.GENERAL if self.arbitrary else d.MatrixType.SPD,
-                d.MatrixViewType.FULL,
-                d.IndexBase.ZERO,
+                cudss_api.MatrixType.GENERAL if self.arbitrary else cudss_api.MatrixType.SPD,
+                cudss_api.MatrixViewType.FULL,
+                cudss_api.IndexBase.ZERO,
             )
             self.prepare(1)
         except Exception:
@@ -242,27 +230,23 @@ class GPUFDSolver(GPUFieldSolver):
     def _prepare_geometry(self, reference):
         self.coefficients = None
 
-    def _prepare(self, ns):
+    def _prepare(self, n_slices):
         import cupy as cp
 
         if not self.n:
             return
-        d, w = self.api, self._work
+        cudss_api, workspace = self.api, self._work
         self.stream.synchronize()  # Batch resize only; never part of a stable solve.
         for handle in self._dense_handles:
-            d.matrix_destroy(handle)
+            cudss_api.matrix_destroy(handle)
         self._dense_handles = []
-        w["rhs"] = cp.empty((ns, self.n), self.dtype)
-        w["solution"] = cp.empty_like(w["rhs"])
-        for a in (w["solution"], w["rhs"]):
-            self._dense_handles.append(
-                d.matrix_create_dn(
-                    self.n, ns, self.n, a.data.ptr, self.value_type, d.Layout.COL_MAJOR
-                )
-            )
+        workspace["rhs"] = cp.empty((n_slices, self.n), self.dtype)
+        workspace["solution"] = cp.empty_like(workspace["rhs"])
+        for a in (workspace["solution"], workspace["rhs"]):
+            self._dense_handles.append(cudss_api.matrix_create_dn(self.n, n_slices, self.n, a.data.ptr, self.value_type, cudss_api.Layout.COL_MAJOR))
         if not self._factored:
-            for phase in (d.Phase.ANALYSIS, d.Phase.FACTORIZATION):
-                d.execute(
+            for phase in (cudss_api.Phase.ANALYSIS, cudss_api.Phase.FACTORIZATION):
+                cudss_api.execute(
                     self.handle,
                     phase,
                     self.config,
@@ -273,10 +257,10 @@ class GPUFDSolver(GPUFieldSolver):
             self.stream.synchronize()
             info = np.zeros(1, dtype=np.int32)
             written = np.zeros(1, dtype=np.uintp)
-            d.data_get(
+            cudss_api.data_get(
                 self.handle,
                 self.data,
-                d.DataParam.INFO,
+                cudss_api.DataParam.INFO,
                 info.ctypes.data,
                 info.nbytes,
                 written.ctypes.data,
@@ -287,35 +271,35 @@ class GPUFDSolver(GPUFieldSolver):
 
     def solve(self, density, *, compute_potential=True, validate=True, copy=True):
         src, squeeze = self._source(density, validate)
-        g, w = self.geometry, self._work
+        grid, workspace = self.geometry, self._work
         if self.n:
-            size = w["slices"] * self.n
-            args = (np.int32(self.n), np.int32(g.nx * g.ny), np.int64(size))
-            _launch_gpu(
+            size = workspace["slices"] * self.n
+            args = (np.int32(self.n), np.int32(grid.nx * grid.ny), np.int64(size))
+            launch_gpu_kernel(
                 _FD_CUDA,
                 "fd_rhs",
                 size,
-                (src, w["rhs"], self.indices, *args, self.scalar(1 / const.epsilon0)),
+                (src, workspace["rhs"], self.indices, *args, self.scalar(1 / const.epsilon0)),
                 self.dtype,
             )
-            d = self.api
-            d.execute(
+            cudss_api = self.api
+            cudss_api.execute(
                 self.handle,
-                d.Phase.SOLVE,
+                cudss_api.Phase.SOLVE,
                 self.config,
                 self.data,
                 self.matrix_handle,
                 *self._dense_handles,
             )
-            _launch_gpu(
+            launch_gpu_kernel(
                 _FD_CUDA,
                 "fd_scatter",
                 size,
-                (w["solution"], w["phi"], self.indices, *args),
+                (workspace["solution"], workspace["phi"], self.indices, *args),
                 self.dtype,
             )
         self._gradient()
-        return self._result(w["phi"], squeeze, copy)
+        return self._result(workspace["phi"], squeeze, copy)
 
     def close(self):
         import cupy as cp
@@ -347,15 +331,31 @@ class GPUFDSolver(GPUFieldSolver):
         except Exception:
             pass  # Interpreter teardown; explicit close propagates errors.
 
+
 _FD_CUDA = r"""
-extern "C" __global__ void fd_rhs(const T* rho, T* rhs, const int* indices,
-    int n, int grid, long long size, T scale) {
+extern "C" __global__ void fd_rhs(
+    const T* rho,
+    T* rhs,
+    const int* indices,
+    int n,
+    int grid,
+    long long size,
+    T scale
+) {
     long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < size) rhs[i] = rho[(i/n)*grid + indices[i%n]] * scale;
+    if (i < size)
+        rhs[i] = rho[(i / n) * grid + indices[i % n]] * scale;
 }
-extern "C" __global__ void fd_scatter(const T* values, T* phi, const int* indices,
-    int n, int grid, long long size) {
+extern "C" __global__ void fd_scatter(
+    const T* values,
+    T* phi,
+    const int* indices,
+    int n,
+    int grid,
+    long long size
+) {
     long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < size) phi[(i/n)*grid + indices[i%n]] = values[i];
+    if (i < size)
+        phi[(i / n) * grid + indices[i % n]] = values[i];
 }
 """

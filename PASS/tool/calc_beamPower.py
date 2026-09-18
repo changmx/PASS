@@ -2,15 +2,14 @@ import numpy as np
 
 
 def calc_beam_average_power(
-    m_static,  # statistic mass of electron/proton/nucleon
-    Ek,  # kinetic energy of electron/proton/nucleon
-    N,  # particles per pulse
-    repetition_frequency,
-    N_particle=1,
-    N_charge=1,
-    is_print=True,
-    **kwargs
-):
+        m_static,  # statistic mass of electron/proton/nucleon
+        Ek,  # kinetic energy of electron/proton/nucleon
+        N,  # particles per pulse
+        repetition_frequency,
+        N_particle=1,
+        N_charge=1,
+        is_print=True,
+        **kwargs):
     """
     对于电子/质子来说, N_particle=1, N_charge=1
     对于离子来说, N_particle=离子中的核子数目, N_charge=离子中的电子数目
@@ -44,23 +43,18 @@ def calc_beam_average_power(
     P = N * N_particle * Ek * e * repetition_frequency / T
 
     if is_print:
-        print(
-            "Ek: {0:.6f} MeV/u, I_average: {1:.4f} uA, P: {2:.4f} kW".format(
-                Ek / 1e6, I_avg * 1e6, P / 1e3
-            )
-        )
+        print("Ek: {0:.6f} MeV/u, I_average: {1:.4f} uA, P: {2:.4f} kW".format(Ek / 1e6, I_avg * 1e6, P / 1e3))
 
 
 def calc_beam_peak_power(
-    m_static,  # statistic mass of electron/proton/nucleon
-    Ek,  # kinetic energy of electron/proton/nucleon
-    N,  # particles per pulse
-    T,
-    N_particle=1,
-    N_charge=1,
-    is_print=True,
-    **kwargs
-):
+        m_static,  # statistic mass of electron/proton/nucleon
+        Ek,  # kinetic energy of electron/proton/nucleon
+        N,  # particles per pulse
+        T,
+        N_particle=1,
+        N_charge=1,
+        is_print=True,
+        **kwargs):
     """
     对于电子/质子来说, N_particle=1, N_charge=1
     对于离子来说, N_particle=离子中的核子数目, N_charge=离子中的电子数目
@@ -104,19 +98,9 @@ if __name__ == "__main__":
     m_pion = 139.57039e6
 
     calc_beam_average_power(m_proton, 1.0e9, 1.5e13, 200, N_particle=1, N_charge=1)
-    calc_beam_average_power(
-        m_unified_atomic_mass, 300e6, 1.0e12, 200, N_particle=4, N_charge=2
-    )
+    calc_beam_average_power(m_unified_atomic_mass, 300e6, 1.0e12, 200, N_particle=4, N_charge=2)
 
-    calc_beam_peak_power(
-        m_proton, 1.4e9, 8e11, 150e-9, N_particle=1, N_charge=1
-    )  # bunch length = 150 ns
-    calc_beam_peak_power(
-        m_unified_atomic_mass, 500e6, 1e10, 150e-9, N_particle=12, N_charge=6
-    )  # bunch length = 150 ns
-    calc_beam_peak_power(
-        m_unified_atomic_mass, 60e6, 5e8, 150e-9, N_particle=209, N_charge=32
-    )  # bunch length = 150 ns
-    calc_beam_peak_power(
-        m_unified_atomic_mass, 60e6, 5e8, 150e-9, N_particle=238, N_charge=37
-    )  # bunch length = 150 ns
+    calc_beam_peak_power(m_proton, 1.4e9, 8e11, 150e-9, N_particle=1, N_charge=1)  # bunch length = 150 ns
+    calc_beam_peak_power(m_unified_atomic_mass, 500e6, 1e10, 150e-9, N_particle=12, N_charge=6)  # bunch length = 150 ns
+    calc_beam_peak_power(m_unified_atomic_mass, 60e6, 5e8, 150e-9, N_particle=209, N_charge=32)  # bunch length = 150 ns
+    calc_beam_peak_power(m_unified_atomic_mass, 60e6, 5e8, 150e-9, N_particle=238, N_charge=37)  # bunch length = 150 ns

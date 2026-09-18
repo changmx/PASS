@@ -1,7 +1,3 @@
-from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-from PASS.utils.helper import convert_keys_to_lower
-from PASS.utils.program import LinearProgram
-
 from dataclasses import dataclass, field
 from typing import Literal
 from datetime import datetime
@@ -14,7 +10,12 @@ import socket
 import platform
 import logging
 import time
+
 import numpy as np
+
+from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
+from PASS.utils.helper import convert_keys_to_lower
+from PASS.utils.program import LinearProgram
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,7 @@ class Config:
     output_dir_slice: str = ""
     output_dir_slowExt_particle: str = ""
 
-    def load_input(self, beam0_path: str, beam1_path: str | None = None, *,
-                   flat_output: bool = False) -> None:
+    def load_input(self, beam0_path: str, beam1_path: str | None = None, *, flat_output: bool = False) -> None:
         """Load inputs; optionally write a caller-managed run into one directory.
 
         ``flat_output`` is a runtime option for isolated verification workflows.
@@ -143,18 +143,14 @@ class Config:
         self.particle_precision = data0.get("particle precision", "float64").lower()
         if self.particle_precision not in {"float32", "float64"}:
             self.particle_precision = "float64"
-            logger.warning(
-                f"Particle Precision must be 'float32' or 'float64', but got "
-                f"{self.particle_precision!r}. Defaulting to 'float64'."
-            )
+            logger.warning(f"Particle Precision must be 'float32' or 'float64', but got "
+                           f"{self.particle_precision!r}. Defaulting to 'float64'.")
         if self.num_beam == 2:
             beam1_precision = data1.get("particle precision", "float64").lower()
             if beam1_precision != self.particle_precision:
-                logger.warning(
-                    f"Both beam input files must use the same Particle Precision; "
-                    f"got {self.particle_precision!r} and {beam1_precision!r}. "
-                    f"Defaulting to 'float64'."
-                )
+                logger.warning(f"Both beam input files must use the same Particle Precision; "
+                               f"got {self.particle_precision!r} and {beam1_precision!r}. "
+                               f"Defaulting to 'float64'.")
                 self.particle_precision = "float64"
 
         if self.use_gpu:
@@ -252,16 +248,10 @@ class Config:
         from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
 
         keys = {str(key).casefold(): key for key in data}
-        obsolete = [
-            keys[name]
-            for name in ("is space charge", "space-charge simulation parameters")
-            if name in keys
-        ]
+        obsolete = [keys[name] for name in ("is space charge", "space-charge simulation parameters") if name in keys]
         if obsolete:
-            raise ValueError(
-                "obsolete space-charge input key(s) "
-                f"{obsolete}; use the top-level 'Space charge' block"
-            )
+            raise ValueError("obsolete space-charge input key(s) "
+                             f"{obsolete}; use the top-level 'Space charge' block")
 
         actual_key = keys.get("space charge")
         if actual_key is None:
@@ -298,20 +288,19 @@ class Config:
             resource_keys[field_name.casefold()] = alias
             resource_keys[str(alias).casefold()] = alias
         canonical_configurations = {}
-        for name, configuration in raw_configurations.items():
-            if not isinstance(configuration, dict):
-                canonical_configurations[name] = configuration
+        for name, sc_cfg in raw_configurations.items():
+            if not isinstance(sc_cfg, dict):
+                canonical_configurations[name] = sc_cfg
                 continue
-            canonical_configurations[name] = {
-                resource_keys.get(str(key).casefold(), key): value
-                for key, value in configuration.items()
+            canonical_configurations[name] = {resource_keys.get(str(k).casefold(), k): v for k, v in sc_cfg.items()}
+        return SpaceChargeConfig.model_validate({
+            "Enabled": enabled,
+            "Configurations": canonical_configurations,
+            **{
+                SpaceChargeConfig.model_fields[field].alias: raw[raw_keys[key]]
+                for key, field in (("coverage check", "coverage_check"), ("coverage mode", "coverage_mode"), ("expected sc length (m)", "expected_sc_length")) if key in raw_keys
             }
-        return SpaceChargeConfig.model_validate(
-            {"Enabled": enabled, "Configurations": canonical_configurations,
-             **{SpaceChargeConfig.model_fields[field].alias: raw[raw_keys[key]]
-                for key, field in (("coverage check", "coverage_check"), ("coverage mode", "coverage_mode"),
-                                   ("expected sc length (m)", "expected_sc_length")) if key in raw_keys}}
-        ), configuration_count
+        }), configuration_count
 
     def get_log_path(self):
         return Path(self.output_dir_log) / f"{self.output_hms}.log"
@@ -339,10 +328,8 @@ class Config:
 
         mode = str(get_value("mode", default=timing["mode"])).lower().strip()
         if mode not in {"off", "turn", "command", "synchronized-command"}:
-            logger.warning(
-                "Timing mode must be one of off, turn, command, synchronized-command; "
-                "using 'command'."
-            )
+            logger.warning("Timing mode must be one of off, turn, command, synchronized-command; "
+                           "using 'command'.")
             mode = timing["mode"]
         timing["mode"] = mode
 
@@ -390,21 +377,16 @@ class Config:
         try:
             import cupy as cp
         except (ImportError, OSError) as exc:
-            raise RuntimeError(
-                "The GPU backend was requested, but CuPy is unavailable. "
-                "Install PASS with the optional [cuda] extra."
-            ) from exc
+            raise RuntimeError("The GPU backend was requested, but CuPy is unavailable. "
+                               "Install PASS with the optional [cuda] extra.") from exc
 
         selected_gpu_id = int(self.gpu_id[0])
         device_count = cp.cuda.runtime.getDeviceCount()
         if selected_gpu_id < 0 or selected_gpu_id >= device_count:
-            raise ValueError(
-                f"Configured GPU device id {selected_gpu_id} is out of range "
-                f"for {device_count} visible CUDA device(s)"
-            )
+            raise ValueError(f"Configured GPU device id {selected_gpu_id} is out of range "
+                             f"for {device_count} visible CUDA device(s)")
 
         cp.cuda.Device(selected_gpu_id).use()
-        # logger.info(f"Selected GPU device: {selected_gpu_id}")
 
     def get_stat_path(self, beam_name, bunch_id):
         return Path(self.output_dir_stat / f"{beam_name}_bunch{bunch_id}_stat_{self.output_hms}")
@@ -425,7 +407,6 @@ class Config:
         logger.info(center_string(f" Configuration "))
         logger.info(f"Num Beam: {self.num_beam}")
         logger.info(f"Num Turn: {self.num_turn}")
-        # logger.info(f"Num collision : {self.num_collision}")
 
         logger.info(f"Is Plot: {self.is_plot}")
         logger.info(f"Input Path: {self.input_path}")
@@ -519,8 +500,8 @@ def print_cuda_system_info():
             logger.warning(f"Memory query failed : {e}")
 
         try:
-            temp = dev.temperature.get_sensor()
-            logger.info(f"Temperature : {temp} °C")
+            temperature = dev.temperature.get_sensor()
+            logger.info(f"Temperature : {temperature} °C")
         except Exception as e:
             logger.warning(f"Temperature query failed : {e}")
 
@@ -570,10 +551,8 @@ def print_cuda_device_info(selected_gpu_id: int | None = None):
         # GPU Memory
         try:
             mem = dev.memory_info
-            logger.info(
-                f"Global memory total/free : "
-                f"{fmt_bytes(mem.total)}/{fmt_bytes(mem.total - mem.used)}"
-            )
+            logger.info(f"Global memory total/free : "
+                        f"{fmt_bytes(mem.total)}/{fmt_bytes(mem.total - mem.used)}")
         except Exception as e:
             logger.warning(f"Failed to get global memory: {e}")
         logger.info(f"Memory clock rate : {fmt_hz(props.memory_clock_rate)}")

@@ -11,18 +11,16 @@ import numpy as np
 from scipy.interpolate import BPoly, CubicHermiteSpline, PPoly
 
 
-OPTICS_COLUMNS = ("BETX", "ALFX", "MUX", "BETY", "ALFY", "MUY", "DX", "DPX")
-
-
 class RingTwissInterpolator:
     """Interpolate a complete ring TFS table, without changing its source data."""
 
     def __init__(self, table):
+        optics_columns = ("BETX", "ALFX", "MUX", "BETY", "ALFY", "MUY", "DX", "DPX")
         self.circumference = float(table.headers["LENGTH"])
         if not np.isfinite(self.circumference) or self.circumference <= 0:
             raise ValueError("TFS LENGTH must be finite and positive.")
         s = table["S"].to_numpy(dtype=float, copy=True)
-        optics = table[list(OPTICS_COLUMNS)].to_numpy(dtype=float, copy=True)
+        optics = table[list(optics_columns)].to_numpy(dtype=float, copy=True)
         if len(s) < 2 or not np.all(np.isfinite(s)) or not np.all(np.isfinite(optics)):
             raise ValueError("TFS needs at least two rows with finite S and optical functions.")
         if np.any(optics[:, (0, 3)] <= 0):
@@ -38,7 +36,7 @@ class RingTwissInterpolator:
         for i in range(1, len(s)):
             if abs(s[i] - s[starts[-1]]) > tol:
                 starts.append(i)
-        ends = np.r_[np.asarray(starts[1:]) - 1, len(s)-1]
+        ends = np.r_[np.asarray(starts[1:]) - 1, len(s) - 1]
         self.s = s[starts]
         self.left = optics[starts]
         self.right = optics[ends]
@@ -48,7 +46,7 @@ class RingTwissInterpolator:
         # All states at the same position must have the same cumulative phase.
         # Their alpha/dispersion can differ across a thin lens.
         for first, last in zip(starts, ends):
-            if not np.allclose(optics[first:last+1, (2, 5)], optics[first, (2, 5)], rtol=0, atol=1e-12):
+            if not np.allclose(optics[first:last + 1, (2, 5)], optics[first, (2, 5)], rtol=0, atol=1e-12):
                 raise ValueError(f"Repeated S={s[first]:.12g} has different phases; cannot resolve a zero-length phase advance.")
 
         self.tunes = self.right[-1, (2, 5)] - self.left[0, (2, 5)]
@@ -62,16 +60,16 @@ class RingTwissInterpolator:
         self._phase = [[], []]
         self._dispersion = []
         for i, h in enumerate(np.diff(self.s)):
-            a, b = self.right[i], self.left[i+1]
+            a, b = self.right[i], self.left[i + 1]
             for plane, offset in enumerate((0, 3)):
-                beta0, alpha0, mu0 = a[offset:offset+3]
-                beta1, alpha1, mu1 = b[offset:offset+3]
+                beta0, alpha0, mu0 = a[offset:offset + 3]
+                beta1, alpha1, mu1 = b[offset:offset + 3]
                 if mu1 <= mu0:
                     raise ValueError(f"TFS phase must increase between S={self.s[i]:.12g} and {self.s[i+1]:.12g}.")
                 # Local phase offsets and a unit interval avoid large-S/large-Q
                 # cancellation when differentiating the polynomial.
-                data = [[0., h/(2*np.pi*beta0), h*h*alpha0/(np.pi*beta0**2)],
-                        [mu1-mu0, h/(2*np.pi*beta1), h*h*alpha1/(np.pi*beta1**2)]]
+                data = [[0., h / (2 * np.pi * beta0), h * h * alpha0 / (np.pi * beta0**2)],
+                        [mu1 - mu0, h / (2 * np.pi * beta1), h * h * alpha1 / (np.pi * beta1**2)]]
                 if not np.all(np.isfinite(data)):
                     raise ValueError("TFS optical scales exceed finite interpolation precision.")
                 p = BPoly.from_derivatives([0., 1.], data, extrapolate=False)
@@ -82,14 +80,12 @@ class RingTwissInterpolator:
                 rate = p(probes, 1)
                 if not np.all(np.isfinite(rate)) or np.min(rate) <= 0:
                     axis = "x" if plane == 0 else "y"
-                    raise ValueError(
-                        f"{axis} 平面 S=[{self.s[i]:.12g}, {self.s[i+1]:.12g}] 的高阶插值相位不单调。"
-                        "请增加此区间的原始 MAD-X 采样密度；增加输出点数不能修复源数据。")
+                    raise ValueError(f"{axis} 平面 S=[{self.s[i]:.12g}, {self.s[i+1]:.12g}] 的高阶插值相位不单调。"
+                                     "请增加此区间的原始 MAD-X 采样密度；增加输出点数不能修复源数据。")
                 self._phase[plane].append(p)
             # In the supported on-reference, paraxial convention DPX is the
             # s derivative of DX. Retain the TFS dispersion normalization.
-            self._dispersion.append(CubicHermiteSpline(
-                [0., 1.], [a[6], b[6]], [h*a[7], h*b[7]], extrapolate=False))
+            self._dispersion.append(CubicHermiteSpline([0., 1.], [a[6], b[6]], [h * a[7], h * b[7]], extrapolate=False))
 
     @property
     def discontinuities(self):
@@ -100,38 +96,35 @@ class RingTwissInterpolator:
     def at(self, position: float, side: str = "right") -> np.ndarray:
         """Return BETX, ALFX, MUX, BETY, ALFY, MUY, DX, DPX at one position."""
         tol = self.position_tolerance
-        if not np.isfinite(position) or position < -tol or position > self.circumference+tol:
+        if not np.isfinite(position) or position < -tol or position > self.circumference + tol:
             raise ValueError("Requested S lies outside the TFS ring.")
         position = min(max(position, 0.), self.circumference)
         index = int(np.searchsorted(self.s, position))
-        for knot in (index, index-1):
-            if 0 <= knot < len(self.s) and abs(self.s[knot]-position) <= self.position_tolerance:
+        for knot in (index, index - 1):
+            if 0 <= knot < len(self.s) and abs(self.s[knot] - position) <= self.position_tolerance:
                 return (self.left if side == "left" else self.right)[knot].copy()
-        i = index-1
-        h = self.s[i+1]-self.s[i]
-        t = (position-self.s[i])/h
+        i = index - 1
+        h = self.s[i + 1] - self.s[i]
+        t = (position - self.s[i]) / h
         result = np.empty(8)
         for plane, offset in enumerate((0, 3)):
             p = self._phase[plane][i]
             rate, acceleration = p(t, 1), p(t, 2)
-            result[offset:offset+3] = (h/(2*np.pi*rate),
-                                      acceleration/(4*np.pi*rate**2),
-                                      self.right[i, offset+2]+p(t))
+            result[offset:offset + 3] = (h / (2 * np.pi * rate), acceleration / (4 * np.pi * rate**2), self.right[i, offset + 2] + p(t))
         d = self._dispersion[i]
-        result[6:] = d(t), d(t, 1)/h
+        result[6:] = d(t), d(t, 1) / h
         if not np.all(np.isfinite(result)) or np.any(result[[0, 3]] <= 0):
             raise ValueError(f"Nonfinite or nonpositive interpolated optics at S={position:.12g}.")
         return result
 
 
-def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
-                       is_field_error, insert_patterns, longitudinal_transfer, interp_kind):
+def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer, interp_kind):
     """Build a uniform Twiss sequence with splits at kicks and optical jumps."""
     import tfs
     from PASS.commands import command_priority
     from PASS.para.madx import _insert_elements, _make_match_key, read_madx_errors
-    from PASS.para.schema.elements import MultipoleElement
-    from PASS.para.schema.twiss import TwissPoint
+    from PASS.para.schema.elements import MultipoleItem
+    from PASS.para.schema.twiss import TwissItem
 
     if isinstance(num_interp_slice, (bool, np.bool_)) or not isinstance(num_interp_slice, (int, np.integer)) or num_interp_slice < 2:
         raise ValueError("num_interp_slice must be an integer >= 2 (including 0 and C).")
@@ -164,15 +157,15 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
         for key, errors in read_madx_errors(error_file).items():
             if key not in positions:
                 raise ValueError(f"Field-error element {key!r} is missing from the source TFS.")
-            extras.append(MultipoleElement(s=positions[key], length=0., knl=errors["knl"], ksl=errors["ksl"]))
+            extras.append(MultipoleItem(s=positions[key], length=0., knl=errors["knl"], ksl=errors["ksl"]))
             extra_names.append(f"{key}_error")
 
     base = np.linspace(0., circumference, num_interp_slice)
     required = np.unique(np.r_[optics.discontinuities, [item.s for item in extras]])
     # Snap coincident grid positions to the exact kick S, without moving kicks.
     for s in required:
-        nearest = int(np.argmin(np.abs(base-s)))
-        if abs(base[nearest]-s) <= optics.position_tolerance:
+        nearest = int(np.argmin(np.abs(base - s)))
+        if abs(base[nearest] - s) <= optics.position_tolerance:
             base[nearest] = s
     positions = np.unique(np.r_[base, required])
     items, names = [], []
@@ -180,13 +173,15 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
 
     def append_transport(s, previous_s, current, previous):
         values = {key: float(value) for key, value in zip(fields, current)}
-        values.update({key+"_previous": float(value) for key, value in zip(fields, previous)})
-        item = TwissPoint(
-            s=float(s), s_previous=float(previous_s), **values,
-            mu_z=s/circumference*muz, mu_z_previous=previous_s/circumference*muz,
-            dqx=dqx*(current[2]-previous[2])/optics.tunes[0],
-            dqy=dqy*(current[5]-previous[5])/optics.tunes[1],
-            longitudinal_transfer=longitudinal_transfer)
+        values.update({key + "_previous": float(value) for key, value in zip(fields, previous)})
+        item = TwissItem(s=float(s),
+                         s_previous=float(previous_s),
+                         **values,
+                         mu_z=s / circumference * muz,
+                         mu_z_previous=previous_s / circumference * muz,
+                         dqx=dqx * (current[2] - previous[2]) / optics.tunes[0],
+                         dqy=dqy * (current[5] - previous[5]) / optics.tunes[1],
+                         longitudinal_transfer=longitudinal_transfer)
         names.append(f"twiss_interp_{len(items):06d}")
         items.append(item)
 
@@ -205,7 +200,7 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
     for i, name in enumerate(names):
         candidate, suffix = name, 2
         while candidate in used:
-            candidate, suffix = f"{name}_{suffix}", suffix+1
+            candidate, suffix = f"{name}_{suffix}", suffix + 1
         names[i] = candidate
         used.add(candidate)
     ordered = sorted(zip(items, names), key=lambda pair: (pair[0].s, command_priority(pair[0].command)))

@@ -140,7 +140,7 @@ buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 
     - ``"Include reference"``
     - bool
     - false
-    - 逐行追加参考时间、beta 和动量，用于物理时间/能量分析，例如 BLonD 对比
+    - 逐行追加参考时间、beta 和动量，用于物理时间/能量分析
 
 .. note::
 

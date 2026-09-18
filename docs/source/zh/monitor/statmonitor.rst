@@ -52,6 +52,11 @@
 
 同理计算 :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` 。
 
+实现中计算等价的中心矩，避免两个较大的原点矩相减。对于 FP32 和 FP64
+粒子，CPU 与 GPU 均使用 FP64 累加：先以一个存活粒子为基准求质心，
+再围绕质心累计各阶矩。这也改善了窄束团或偏心束团的协方差、发射度、
+偏度与峰度的数值稳定性。粒子存储精度不变，z 统计的临时环周投影使用 FP64。
+
 ``sigmaZ`` 和 z 矩仍按临时环周代表值计算，不回写连续存储 z。新增 ``sigmaTime`` 使用未折叠 z 的标准差除以 :math:`\beta_b c`，表示实际通过时间展宽。输出逐行包含 ``referenceTime``、``referenceBeta``、``referenceMomentum``；名义 zCenter 不能用来重建实验室质心。
 
 发射度与 Twiss 参数

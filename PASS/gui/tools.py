@@ -1,7 +1,6 @@
 """Top-level tools workspace; calculations never change the active input."""
 from PySide6.QtCore import QSize, Signal
-from PySide6.QtWidgets import (QButtonGroup, QFrame, QHBoxLayout, QPushButton,
-    QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QPushButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 
 from PASS.gui.appearance import THEMES, icon
 from PASS.gui.tool_beam import BeamCalculatorPage
@@ -43,6 +42,7 @@ class ToolNavigation(QFrame):
 
 
 class ToolsPage(QWidget):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.theme = "dark"

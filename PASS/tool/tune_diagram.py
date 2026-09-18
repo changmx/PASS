@@ -8,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 
-
 _ORDER_COLORS = (
     "#e41a1c",
     "#1f77b4",
@@ -103,7 +102,7 @@ def resonance_lines(orders, qx_range, qy_range, kinds=("single", "sum", "diff"))
                 direction = ResonanceLine(m, n, 0)
                 if direction.kind not in kinds:
                     continue
-                corners = (m*x0+n*y0, m*x0+n*y1, m*x1+n*y0, m*x1+n*y1)
+                corners = (m * x0 + n * y0, m * x0 + n * y1, m * x1 + n * y0, m * x1 + n * y1)
                 if not all(isfinite(v) for v in corners):
                     raise ValueError("Tune range is too large.")
                 lo, hi = ceil(min(corners)), floor(max(corners))
@@ -256,7 +255,7 @@ def plot_tune_diagram(
         color = _ORDER_COLORS[(order - 1) % len(_ORDER_COLORS)]
         _draw_order(ax, order, color, drawn_lines, x_min, x_max, y_min, y_max, kind)
         linestyle = "--" if kind == "diff" else "-"
-        legend_handles.append(Line2D((0,), (0,), color=color, linewidth=1.2, linestyle=linestyle, label=f"{order}-order"))
+        legend_handles.append(Line2D((0, ), (0, ), color=color, linewidth=1.2, linestyle=linestyle, label=f"{order}-order"))
 
     if nat_tunes is not None:
         ax.plot(qx, qy, ".", color="red", markersize=5, zorder=5, label="working point")

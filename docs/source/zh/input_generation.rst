@@ -28,7 +28,7 @@ PASS 采用 **JSON 文件** 作为仿真输入。引擎（ ``Config`` 、 ``Beam
    ├── schema/       参数定义（唯一数据源）
    │   ├── main.py         MainConfig：全局仿真参数
    │   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
-   │   ├── twiss.py        TwissPoint：twiss 传输点
+   │   ├── twiss.py        TwissItem：twiss 传输点
    │   ├── elements.py     12 种元件（Drift→RFCavity）
    │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
    │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
@@ -382,14 +382,14 @@ Sequence（序列容器）
 
    seq = Sequence()
    seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
-   seq.add("qd1", QuadrupoleElement(s=1.0, k1l=0.2, length=0.5))
+   seq.add("qd1", QuadrupoleItem(s=1.0, k1l=0.2, length=0.5))
    seq.add("stat1", StatMonitor(s=0.0))
 
 支持的序列项类型：
 
 - ``InjectionItem`` — 注入点（必须 ``s=0`` ）
-- ``TwissPoint`` — twiss 传输点
-- ``DriftElement`` 、 ``QuadrupoleElement`` 、 ``SBendElement`` 等 — 物理元件
+- ``TwissItem`` — twiss 传输点
+- ``DriftItem`` 、 ``QuadrupoleItem`` 、 ``SBendItem`` 等 — 物理元件
 - ``StatMonitor`` 、 ``DistMonitor`` 、 ``PhaseAdvanceMonitor`` — 监测器
 
 
@@ -401,7 +401,7 @@ PASS 支持三种Lattice序列生成方式，可根据需要选择或混合使�
 方式一：从 MADX twiss 文件读取
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-读取 MADX 生成的 twiss TFS 文件，每个元件转为一个 ``TwissPoint`` 传输点。适用于 **逐 twiss 传输** 模式。
+读取 MADX 生成的 twiss TFS 文件，每个元件转为一个 ``TwissItem`` 传输点。适用于 **逐 twiss 传输** 模式。
 
 .. code-block:: python
 
@@ -470,7 +470,7 @@ DQx/DQy 现默认 ``"from_file"``，Mu z 默认零；纵向相位仅在
 方式二：从 MADX twiss 文件读取为元件
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-读取 twiss 文件，但每个元件转为对应的物理元件对象（ ``QuadrupoleElement`` 、 ``SBendElement`` 等）。适用于 **逐元件追踪** 模式。
+读取 twiss 文件，但每个元件转为对应的物理元件对象（ ``QuadrupoleItem`` 、 ``SBendItem`` 等）。适用于 **逐元件追踪** 模式。
 
 .. code-block:: python
 
@@ -506,7 +506,7 @@ twiss 传输点和物理元件可以在同一个序列中混合使用。例如�
 
 .. code-block:: python
 
-   from PASS.para.schema.elements import RFCavityElement
+   from PASS.para.schema.elements import RFCavityItem
 
    seq = Sequence()
    seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
@@ -516,7 +516,7 @@ twiss 传输点和物理元件可以在同一个序列中混合使用。例如�
        seq.add(f"twiss_{i:04d}", item)
 
    # 插入 RF 腔（在 s=0 处）
-   seq.add("rf1", RFCavityElement(s=0.0, components=[dict(voltage=100e3, harmonic=1, phase=0.5236)]))
+   seq.add("rf1", RFCavityItem(s=0.0, components=[dict(voltage=100e3, harmonic=1, phase=0.5236)]))
 
 
 外部数据文件转换

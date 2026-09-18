@@ -6,7 +6,6 @@ import numpy as np
 from scipy.special import wofz
 
 from PASS.utils.constants import const
-
 from .formula_gaussian_round import gaussian_round_field
 
 
@@ -42,11 +41,7 @@ def gaussian_elliptic_field(x, y, slice_charge, sigma_x, sigma_y, *, epsilon_0=c
     z1 = (abs_x + 1j * abs_y) / denominator
     z2 = (abs_x * sigma_y / sigma_x + 1j * abs_y * sigma_x / sigma_y) / denominator
     gaussian = np.exp(-x**2 / (2.0 * sigma_x**2) - y**2 / (2.0 * sigma_y**2))
-    complex_field = (
-        1j * charge
-        / (2.0 * epsilon * np.sqrt(2.0 * const.pi * difference))
-        * (wofz(z1) - gaussian * wofz(z2))
-    )
+    complex_field = (1j * charge / (2.0 * epsilon * np.sqrt(2.0 * const.pi * difference)) * (wofz(z1) - gaussian * wofz(z2)))
     ex = -complex_field.real * np.sign(x)
     ey = complex_field.imag * np.sign(y)
     # Close to the origin even upper-half-plane terms almost cancel. Use
@@ -55,16 +50,8 @@ def gaussian_elliptic_field(x, y, slice_charge, sigma_x, sigma_y, *, epsilon_0=c
     near_center = (x / sigma_x)**2 + (y / sigma_y)**2 <= 1.0e-6
     widths_sum = sigma_x + sigma_y
     factor = charge / (2.0 * const.pi * epsilon * widths_sum)
-    local_ex = factor * (x / sigma_x) * (
-        1.0 - (x / sigma_x)**2 * (2.0 * sigma_x + sigma_y) / (6.0 * widths_sum)
-        - (y / sigma_y)**2 * sigma_y / (2.0 * widths_sum)
-    )
-    local_ey = factor * (y / sigma_y) * (
-        1.0 - (y / sigma_y)**2 * (2.0 * sigma_y + sigma_x) / (6.0 * widths_sum)
-        - (x / sigma_x)**2 * sigma_x / (2.0 * widths_sum)
-    )
+    local_ex = factor * (x / sigma_x) * (1.0 - (x / sigma_x)**2 * (2.0 * sigma_x + sigma_y) / (6.0 * widths_sum) - (y / sigma_y)**2 * sigma_y /
+                                         (2.0 * widths_sum))
+    local_ey = factor * (y / sigma_y) * (1.0 - (y / sigma_y)**2 * (2.0 * sigma_y + sigma_x) / (6.0 * widths_sum) - (x / sigma_x)**2 * sigma_x /
+                                         (2.0 * widths_sum))
     return np.where(near_center, local_ex, ex), np.where(near_center, local_ey, ey)
-
-
-# Naming alias using the common "ellipse" terminology.
-gaussian_ellipse_field = gaussian_elliptic_field

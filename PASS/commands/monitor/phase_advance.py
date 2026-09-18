@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import logging
 import math
 from pathlib import Path
@@ -68,7 +69,7 @@ class PhaseAdvanceMonitor(Command):
     """
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
-        kwargs = {str(key).lower(): value for key, value in command_kwargs.items()}
+        kwargs = {str(k).lower(): v for k, v in command_kwargs.items()}
         self.beam_id = int(beam_id)
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
@@ -112,8 +113,7 @@ class PhaseAdvanceMonitor(Command):
         self._inv_sqrt_beta_y = 1.0 / self._sqrt_beta_y
         self._action_threshold = 2.0 * self.min_action
         self._kernel_coefficients = tuple(
-            self._kernel_real(value)
-            for value in (
+            self._kernel_real(value) for value in (
                 self._sqrt_beta_x,
                 self._inv_sqrt_beta_x,
                 self._sqrt_beta_y,
@@ -127,8 +127,7 @@ class PhaseAdvanceMonitor(Command):
                 self.y_co,
                 self.py_co,
                 self._action_threshold,
-            )
-        )
+            ))
 
         self.windows = self._compile_windows(kwargs.get("turn ranges", 0))
         self._active_windows = {}
@@ -177,13 +176,12 @@ class PhaseAdvanceMonitor(Command):
             start = max(0, start)
             end = min(self.num_turn, end)
             if (start, end) != (original_start, original_end):
-                logger.warning("PhaseAdvanceMonitor '%s': clipping range [%s, %s) to [%s, %s)", self.cmd_name, original_start, original_end,
-                               start, end)
+                logger.warning("PhaseAdvanceMonitor '%s': clipping range [%s, %s) to [%s, %s)", self.cmd_name, original_start, original_end, start,
+                               end)
             if end < start:
                 raise ValueError(f"PhaseAdvanceMonitor '{self.cmd_name}': range [{original_start}, {original_end}) has end before start")
             if end - start < 2:
-                logger.warning("PhaseAdvanceMonitor '%s': ignoring range [%s, %s) because phase advance needs two samples", self.cmd_name,
-                               start, end)
+                logger.warning("PhaseAdvanceMonitor '%s': ignoring range [%s, %s) because phase advance needs two samples", self.cmd_name, start, end)
                 continue
             key = (start, end)
             if key in seen:
@@ -214,8 +212,8 @@ class PhaseAdvanceMonitor(Command):
     def print(self):
         set_simple_logging()
         window_text = ", ".join(f"[{item.start},{item.end})" for item in self.windows) or "disabled"
-        logger.info("S=%.4f, Command=%s, Name=%s, Enable=%s, TurnRanges=%s, MinAction=%.3e", self.s, self.cmd_type, self.cmd_name, self.enable, window_text,
-                    self.min_action)
+        logger.info("S=%.4f, Command=%s, Name=%s, Enable=%s, TurnRanges=%s, MinAction=%.3e", self.s, self.cmd_type, self.cmd_name, self.enable,
+                    window_text, self.min_action)
         set_normal_logging()
 
     def execute_cpu(self, sim: Simulation):
@@ -248,15 +246,15 @@ class PhaseAdvanceMonitor(Command):
                 del self._active_windows[index]
         return True
 
-    def _sample_bunch(self, particles, bunch, window_state: _WindowRuntime, backend: str) -> None:
+    def _sample_bunch(self, p, bunch, window_state: _WindowRuntime, backend: str) -> None:
         start, end = int(bunch.start_idx), int(bunch.end_idx)
         if end <= start:
             return
         if backend == "gpu":
-            self._sample_bunch_gpu(particles, start, end, window_state)
+            self._sample_bunch_gpu(p, start, end, window_state)
             return
         xp = self._xp
-        tags = particles.tag[start:end]
+        tags = p.tag[start:end]
         alive = tags > 0
         raw_indices = tags[alive] - 1
         in_range = (raw_indices >= 0) & (raw_indices < self._capacity)
@@ -265,11 +263,11 @@ class PhaseAdvanceMonitor(Command):
         indices = raw_indices[in_range]
 
         alive_indices = np.flatnonzero(alive)[in_range]
-        dp = particles.dp[start:end][alive_indices]
-        x = particles.x[start:end][alive_indices] - self.x_co - self.dx * dp
-        px = particles.px[start:end][alive_indices] - self.px_co - self.dpx * dp
-        y = particles.y[start:end][alive_indices] - self.y_co
-        py = particles.py[start:end][alive_indices] - self.py_co
+        dp = p.dp[start:end][alive_indices]
+        x = p.x[start:end][alive_indices] - self.x_co - self.dx * dp
+        px = p.px[start:end][alive_indices] - self.px_co - self.dpx * dp
+        y = p.y[start:end][alive_indices] - self.y_co
+        py = p.py[start:end][alive_indices] - self.py_co
         ux = x * self._inv_sqrt_beta_x
         vx = self.alpha_x * ux + self._sqrt_beta_x * px
         uy = y * self._inv_sqrt_beta_y
@@ -296,48 +294,49 @@ class PhaseAdvanceMonitor(Command):
         previous_v = prev_v[accepted_indices]
         # theta=atan2(v,u) decreases under the PASS Courant-Snyder rotation.
         # atan2(sin(theta_prev-theta_now), cos(...)) therefore gives +mu.
-        delta = xp.remainder(xp.arctan2(previous_v * u[accepted] - previous_u * v[accepted], previous_u * u[accepted] + previous_v * v[accepted]), 2.0 * const.pi)
+        delta = xp.remainder(xp.arctan2(previous_v * u[accepted] - previous_u * v[accepted], previous_u * u[accepted] + previous_v * v[accepted]),
+                             2.0 * const.pi)
         phase_sum[accepted_indices] += delta
         count[accepted_indices] += 1
 
-    def _sample_bunch_gpu(self, particles, start: int, end: int, window_state: _WindowRuntime) -> None:
-        import cupy as cp
-
-        dtype = np.dtype(particles.dtype)
+    def _sample_bunch_gpu(self, p, start: int, end: int, window_state: _WindowRuntime) -> None:
         kernel = self._phase_kernel
         if kernel is None:
-            kernel = _phase_kernels.get(dtype)
-            if kernel is None:
-                kernel = cp.RawKernel(
-                    _PHASE_KERNEL_SOURCE,
-                    "phase_advance",
-                    options=(
-                        "--std=c++14",
-                        f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}",
-                        f"-DPASS_STATE_FLOAT={int(dtype == np.dtype(np.float32))}",
-                    ),
-                )
-                _phase_kernels[dtype] = kernel
+            kernel = _get_phase_kernel(p.dtype.str)
             self._phase_kernel = kernel
 
         threads = 256
         blocks = (end - start + threads - 1) // threads
         kernel(
-            (blocks,), (threads,),
+            (blocks, ),
+            (threads, ),
             (
-                particles.x, particles.px, particles.y, particles.py, particles.dp,
-                particles.tag, np.int32(start), np.int32(end), np.int32(self._capacity),
-                *self._kernel_coefficients, const.pi,
-                window_state.prev_ux, window_state.prev_vx,
-                window_state.prev_uy, window_state.prev_vy,
-                window_state.prev_valid_x, window_state.prev_valid_y,
-                window_state.phase_x_sum, window_state.phase_y_sum,
-                window_state.interval_x_count, window_state.interval_y_count,
+                p.x,
+                p.px,
+                p.y,
+                p.py,
+                p.dp,
+                p.tag,
+                np.int32(start),
+                np.int32(end),
+                np.int32(self._capacity),
+                *self._kernel_coefficients,
+                const.pi,
+                window_state.prev_ux,
+                window_state.prev_vx,
+                window_state.prev_uy,
+                window_state.prev_vy,
+                window_state.prev_valid_x,
+                window_state.prev_valid_y,
+                window_state.phase_x_sum,
+                window_state.phase_y_sum,
+                window_state.interval_x_count,
+                window_state.interval_y_count,
             ),
         )
 
     def _write_window(self, beam: Beam, window_state: _WindowRuntime, spec: _WindowSpec, backend: str) -> None:
-        particles = beam.particles
+        p = beam.particles
         host_accumulators = (
             _as_host(window_state.phase_x_sum),
             _as_host(window_state.phase_y_sum),
@@ -348,12 +347,18 @@ class PhaseAdvanceMonitor(Command):
             start, end = int(bunch.start_idx), int(bunch.end_idx)
             if end <= start:
                 self._write_bunch(
-                    beam, bunch, spec, backend, np.empty(0, dtype=np.int32),
-                    np.empty(0, dtype=np.int32), np.empty(0, dtype=np.float64),
-                    np.empty(0, dtype=np.float32), host_accumulators,
+                    beam,
+                    bunch,
+                    spec,
+                    backend,
+                    np.empty(0, dtype=np.int32),
+                    np.empty(0, dtype=np.int32),
+                    np.empty(0, dtype=np.float64),
+                    np.empty(0, dtype=np.float32),
+                    host_accumulators,
                 )
                 continue
-            tags = _as_host(particles.tag[start:end]).astype(np.int32, copy=False)
+            tags = _as_host(p.tag[start:end]).astype(np.int32, copy=False)
             tag_ids = np.abs(tags) - 1
             self._write_bunch(
                 beam,
@@ -362,8 +367,8 @@ class PhaseAdvanceMonitor(Command):
                 backend,
                 tags,
                 tag_ids,
-                _as_host(particles.lost_turn[start:end]),
-                _as_host(particles.lost_position[start:end]),
+                _as_host(p.lost_turn[start:end]),
+                _as_host(p.lost_position[start:end]),
                 host_accumulators,
             )
 
@@ -467,32 +472,47 @@ using pass_state_t = float;
 #else
 using pass_state_t = double;
 #endif
-extern "C" __global__
-void phase_advance(
+extern "C" __global__ void phase_advance(
     const pass_real_t* __restrict__ x,
     const pass_real_t* __restrict__ px,
     const pass_real_t* __restrict__ y,
     const pass_real_t* __restrict__ py,
     const pass_real_t* __restrict__ dp,
     const int* __restrict__ tag,
-    int start_index, int end_index, int capacity,
-    pass_real_t sqrt_beta_x, pass_real_t inv_sqrt_beta_x,
-    pass_real_t sqrt_beta_y, pass_real_t inv_sqrt_beta_y,
-    pass_real_t alpha_x, pass_real_t alpha_y,
-    pass_real_t dx, pass_real_t dpx,
-    pass_real_t x_co, pass_real_t px_co,
-    pass_real_t y_co, pass_real_t py_co,
-    pass_real_t action_threshold, double pi_value,
-    pass_state_t* __restrict__ prev_ux, pass_state_t* __restrict__ prev_vx,
-    pass_state_t* __restrict__ prev_uy, pass_state_t* __restrict__ prev_vy,
-    unsigned char* __restrict__ prev_valid_x, unsigned char* __restrict__ prev_valid_y,
-    double* __restrict__ phase_x_sum, double* __restrict__ phase_y_sum,
-    int* __restrict__ interval_x_count, int* __restrict__ interval_y_count)
-{
+    int start_index,
+    int end_index,
+    int capacity,
+    pass_real_t sqrt_beta_x,
+    pass_real_t inv_sqrt_beta_x,
+    pass_real_t sqrt_beta_y,
+    pass_real_t inv_sqrt_beta_y,
+    pass_real_t alpha_x,
+    pass_real_t alpha_y,
+    pass_real_t dx,
+    pass_real_t dpx,
+    pass_real_t x_co,
+    pass_real_t px_co,
+    pass_real_t y_co,
+    pass_real_t py_co,
+    pass_real_t action_threshold,
+    double pi_value,
+    pass_state_t* __restrict__ prev_ux,
+    pass_state_t* __restrict__ prev_vx,
+    pass_state_t* __restrict__ prev_uy,
+    pass_state_t* __restrict__ prev_vy,
+    unsigned char* __restrict__ prev_valid_x,
+    unsigned char* __restrict__ prev_valid_y,
+    double* __restrict__ phase_x_sum,
+    double* __restrict__ phase_y_sum,
+    int* __restrict__ interval_x_count,
+    int* __restrict__ interval_y_count
+) {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (i >= end_index || tag[i] <= 0) return;
+    if (i >= end_index || tag[i] <= 0)
+        return;
     int index = abs(tag[i]) - 1;
-    if (index < 0 || index >= capacity) return;
+    if (index < 0 || index >= capacity)
+        return;
 
     pass_real_t delta = dp[i];
     pass_real_t ux = (x[i] - x_co - dx * delta) * inv_sqrt_beta_x;
@@ -506,7 +526,8 @@ void phase_advance(
         double cross = (double)prev_vx[index] * (double)ux - (double)prev_ux[index] * (double)vx;
         double dot = (double)prev_ux[index] * (double)ux + (double)prev_vx[index] * (double)vx;
         double angle = atan2(cross, dot);
-        if (angle < 0.0) angle += 2.0 * pi_value;
+        if (angle < 0.0)
+            angle += 2.0 * pi_value;
         phase_x_sum[index] += angle;
         interval_x_count[index] += 1;
     }
@@ -514,13 +535,32 @@ void phase_advance(
         double cross = (double)prev_vy[index] * (double)uy - (double)prev_uy[index] * (double)vy;
         double dot = (double)prev_uy[index] * (double)uy + (double)prev_vy[index] * (double)vy;
         double angle = atan2(cross, dot);
-        if (angle < 0.0) angle += 2.0 * pi_value;
+        if (angle < 0.0)
+            angle += 2.0 * pi_value;
         phase_y_sum[index] += angle;
         interval_y_count[index] += 1;
     }
-    prev_ux[index] = (pass_state_t)ux; prev_vx[index] = (pass_state_t)vx;
-    prev_uy[index] = (pass_state_t)uy; prev_vy[index] = (pass_state_t)vy;
-    prev_valid_x[index] = valid_x; prev_valid_y[index] = valid_y;
+    prev_ux[index] = (pass_state_t)ux;
+    prev_vx[index] = (pass_state_t)vx;
+    prev_uy[index] = (pass_state_t)uy;
+    prev_vy[index] = (pass_state_t)vy;
+    prev_valid_x[index] = valid_x;
+    prev_valid_y[index] = valid_y;
 }
 '''
-_phase_kernels = {}
+
+
+@lru_cache(maxsize=None)
+def _get_phase_kernel(dtype):
+    import cupy as cp
+
+    dtype = np.dtype(dtype)
+    return cp.RawKernel(
+        _PHASE_KERNEL_SOURCE,
+        "phase_advance",
+        options=(
+            "--std=c++14",
+            f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}",
+            f"-DPASS_STATE_FLOAT={int(dtype == np.dtype(np.float32))}",
+        ),
+    )

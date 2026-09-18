@@ -1,21 +1,23 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import logging
+from pathlib import Path
+import os
+
+import numpy as np
+import pandas as pd
+import tfs
+
 from PASS.commands.command import Command
 from PASS.core.config import Config
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
-from PASS.core.state import State
+from PASS.core.state import SimulationState
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
-
-import numpy as np
-import pandas as pd
-import logging
-import tfs
-from pathlib import Path
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +51,17 @@ class ParticleMonitor(Command):
         self.cmd_name = kwargs["name"]
         self.include_reference: bool = kwargs.get("include reference", False)
         self._column_names = (
-            "turn", "x", "px", "y", "py", "z", "dp", "tag", "lostTurn",
-            "lostPosition", "zCenter",
+            "turn",
+            "x",
+            "px",
+            "y",
+            "py",
+            "z",
+            "dp",
+            "tag",
+            "lostTurn",
+            "lostPosition",
+            "zCenter",
         )
         if self.include_reference:
             self._column_names += ("referenceTime", "referenceBeta", "referenceMomentum")
@@ -95,12 +106,8 @@ class ParticleMonitor(Command):
             # Edge case: nothing to record, use a tiny placeholder
             self.buffer = xp.zeros((1, 1, self._num_columns), dtype=xp.float64)
 
-        self._first_index = (
-            xp.empty(self.max_tag, dtype=xp.int32)
-            if self.max_tag >= 1 and self.num_record_turn > 0
-            and _is_cupy_array(beam.particles.x)
-            else None
-        )
+        self._first_index = (xp.empty(self.max_tag, dtype=xp.int32)
+                             if self.max_tag >= 1 and self.num_record_turn > 0 and _is_cupy_array(beam.particles.x) else None)
 
         super().__init__()
 
@@ -111,7 +118,7 @@ class ParticleMonitor(Command):
                     f"NumRecordTurn={self.num_record_turn:d}, IncludeReference={self.include_reference}")
         set_normal_logging()
 
-    def _record_one_turn(self, particles, bunch, turn):
+    def _record_one_turn(self, p, bunch, turn):
         """Fill buffer for one bunch at a given turn.
 
         Works for both CPU (numpy) and GPU (cupy) particle arrays.
@@ -124,12 +131,12 @@ class ParticleMonitor(Command):
         end = bunch.end_idx
         if end <= start:
             return
-        tag_all = particles.tag[start:end]
+        tag_all = p.tag[start:end]
         is_gpu = _is_cupy_array(tag_all)
-        nominal_center = bunch.harmonic_id*bunch.circum/bunch.harmonic_number
+        nominal_center = bunch.harmonic_id * bunch.circum / bunch.harmonic_number
 
         if is_gpu:
-            find_kernel, write_kernel = _get_monitor_kernels(particles.dtype)
+            find_kernel, write_kernel = _get_monitor_kernels(p.dtype.str)
             threads = 256
             find_blocks = ((end - start) + threads - 1) // threads
             write_blocks = (self.max_tag + threads - 1) // threads
@@ -139,20 +146,16 @@ class ParticleMonitor(Command):
             # remains unwritten, matching the zero-initialized CPU buffer.
             self._first_index.fill(np.int32(end))
             find_kernel(
-                (find_blocks,), (threads,),
-                (particles.tag, np.int32(start), np.int32(end),
-                 np.int32(self.max_tag), self._first_index),
+                (find_blocks, ),
+                (threads, ),
+                (p.tag, np.int32(start), np.int32(end), np.int32(self.max_tag), self._first_index),
             )
             write_kernel(
-                (write_blocks,), (threads,),
-                (particles.x, particles.px, particles.y, particles.py,
-                 particles.z, particles.dp, particles.tag,
-                 particles.lost_turn, particles.lost_position,
-                 self._first_index, self.buffer, np.int32(end),
-                 np.int32(self.max_tag),
-                 np.int32(record_idx), np.int32(self.num_record_turn), np.int32(self._num_columns),
-                 np.int32(turn), np.float64(nominal_center),
-                 np.float64(reference[0]), np.float64(reference[1]), np.float64(reference[2])),
+                (write_blocks, ),
+                (threads, ),
+                (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, p.lost_turn, p.lost_position, self._first_index, self.buffer, np.int32(end),
+                 np.int32(self.max_tag), np.int32(record_idx), np.int32(self.num_record_turn), np.int32(self._num_columns), np.int32(turn),
+                 np.float64(nominal_center), np.float64(reference[0]), np.float64(reference[1]), np.float64(reference[2])),
             )
             return
 
@@ -168,19 +171,19 @@ class ParticleMonitor(Command):
 
             buf_row = self.buffer[tag_val - 1, record_idx]
             buf_row[0] = float(turn)
-            buf_row[1] = float(particles.x[idx])
-            buf_row[2] = float(particles.px[idx])
-            buf_row[3] = float(particles.y[idx])
-            buf_row[4] = float(particles.py[idx])
-            buf_row[5] = float(particles.z[idx])
-            buf_row[6] = float(particles.dp[idx])
-            buf_row[7] = float(particles.tag[idx])
-            buf_row[8] = float(particles.lost_turn[idx])
-            buf_row[9] = float(particles.lost_position[idx])
+            buf_row[1] = float(p.x[idx])
+            buf_row[2] = float(p.px[idx])
+            buf_row[3] = float(p.y[idx])
+            buf_row[4] = float(p.py[idx])
+            buf_row[5] = float(p.z[idx])
+            buf_row[6] = float(p.dp[idx])
+            buf_row[7] = float(p.tag[idx])
+            buf_row[8] = float(p.lost_turn[idx])
+            buf_row[9] = float(p.lost_position[idx])
             buf_row[10] = float(nominal_center)
             if self.include_reference:
                 # Frozen loss coordinates do not belong to the current live frame.
-                live = particles.tag[idx] > 0
+                live = p.tag[idx] > 0
                 buf_row[11] = float(bunch.t0) if live else np.nan
                 buf_row[12] = float(bunch.beta) if live else np.nan
                 buf_row[13] = float(bunch.p0) if live else np.nan
@@ -188,7 +191,7 @@ class ParticleMonitor(Command):
     def execute_cpu(self, sim: Simulation):
         cfg: Config = sim.cfg
         beam: Beam = sim.beams[self.beam_id]
-        state: State = sim.state
+        state: SimulationState = sim.state
         turn = state.turn
 
         # Record within [start_turn, end_turn)
@@ -209,7 +212,7 @@ class ParticleMonitor(Command):
     def execute_gpu(self, sim: Simulation):
         cfg: Config = sim.cfg
         beam: Beam = sim.beams[self.beam_id]
-        state: State = sim.state
+        state: SimulationState = sim.state
         turn = state.turn
 
         # Record within [start_turn, end_turn)
@@ -283,9 +286,7 @@ class ParticleMonitor(Command):
         set_normal_logging()
 
 
-# ---------------------------------------------------------------------------
 # Backend-agnostic helpers (work for both numpy and cupy arrays)
-# ---------------------------------------------------------------------------
 
 
 def xp_abs(arr):
@@ -327,10 +328,15 @@ using pass_real_t = double;
 #endif
 
 extern "C" __global__ void particle_monitor_find(
-    const int* tag, int start, int end, int max_tag, int* first)
-{
+    const int* tag,
+    int start,
+    int end,
+    int max_tag,
+    int* first
+) {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start;
-    if (i >= end) return;
+    if (i >= end)
+        return;
     int value = tag[i];
     int abs_value = value < 0 ? -value : value;
     if (abs_value >= 1 && abs_value <= max_tag)
@@ -338,19 +344,35 @@ extern "C" __global__ void particle_monitor_find(
 }
 
 extern "C" __global__ void particle_monitor_write(
-    const pass_real_t* x, const pass_real_t* px,
-    const pass_real_t* y, const pass_real_t* py,
-    const pass_real_t* z, const pass_real_t* dp,
-    const int* tag, const int* lost_turn, const float* lost_position,
-    const int* first, double* out, int end, int max_tag, int record_idx,
-    int num_record_turn, int num_columns, int turn, double z_center, double t0, double beta, double p0)
-{
+    const pass_real_t* x,
+    const pass_real_t* px,
+    const pass_real_t* y,
+    const pass_real_t* py,
+    const pass_real_t* z,
+    const pass_real_t* dp,
+    const int* tag,
+    const int* lost_turn,
+    const float* lost_position,
+    const int* first,
+    double* out,
+    int end,
+    int max_tag,
+    int record_idx,
+    int num_record_turn,
+    int num_columns,
+    int turn,
+    double z_center,
+    double t0,
+    double beta,
+    double p0
+) {
     int tag_index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tag_index >= max_tag) return;
+    if (tag_index >= max_tag)
+        return;
     int i = first[tag_index];
-    if (i < 0 || i >= end) return;
-    size_t base = ((size_t)tag_index * (size_t)num_record_turn
-                   + (size_t)record_idx) * (size_t)num_columns;
+    if (i < 0 || i >= end)
+        return;
+    size_t base = ((size_t)tag_index * (size_t)num_record_turn + (size_t)record_idx) * (size_t)num_columns;
     out[base + 0] = (double)turn;
     out[base + 1] = (double)x[i];
     out[base + 2] = (double)px[i];
@@ -370,30 +392,25 @@ extern "C" __global__ void particle_monitor_write(
 }
 '''
 
-_monitor_kernels = {}
 
-
+@lru_cache(maxsize=None)
 def _get_monitor_kernels(dtype):
     """Compile monitor indexing/writing kernels once per particle precision."""
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError(
-            "GPU ParticleMonitor requires the optional 'cuda' dependencies."
-        ) from exc
+        raise RuntimeError("GPU ParticleMonitor requires the optional 'cuda' dependencies.") from exc
 
-    key = np.dtype(dtype)
-    if key not in _monitor_kernels:
-        _monitor_kernels[key] = (
-            cp.RawKernel(
-                _MONITOR_SOURCE,
-                "particle_monitor_find",
-                options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
-            ),
-            cp.RawKernel(
-                _MONITOR_SOURCE,
-                "particle_monitor_write",
-                options=("--std=c++14", f"-DPASS_USE_FLOAT={int(key == np.dtype(np.float32))}"),
-            ),
-        )
-    return _monitor_kernels[key]
+    dtype = np.dtype(dtype)
+    return (
+        cp.RawKernel(
+            _MONITOR_SOURCE,
+            "particle_monitor_find",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}"),
+        ),
+        cp.RawKernel(
+            _MONITOR_SOURCE,
+            "particle_monitor_write",
+            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(dtype == np.dtype(np.float32))}"),
+        ),
+    )

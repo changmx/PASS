@@ -46,22 +46,31 @@ from pathlib import Path
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, InjectionItem
 from PASS.para.schema.sequence import Sequence
-from PASS.para.schema.slicer import Slicer
+from PASS.para.schema.slicer import SlicerItem
 from PASS.para.schema.wake_field import (
-    WakeField, WakeComponentConfig, ConstantWake, ResonatorWake, ResistiveWallWake, TabulatedWake,
-    UltrarelativisticWallWake, ImpedanceWake, FittedImpedanceWake, ModalWake, WakeVelocity, WakeSolverGroup,
-    WakeSpatialTerm, WakeConvolutionGrid, WakeTimeGrid, FileWake, WakeFileConvention,
-    WakeFieldConfig, WakeResourceConfig,
+    WakeFieldItem,
+    WakeComponentConfig,
+    ConstantWake,
+    ResonatorWake,
+    ResistiveWallWake,
+    TabulatedWake,
+    UltrarelativisticWallWake,
+    ImpedanceWake,
+    FittedImpedanceWake,
+    ModalWake,
+    WakeVelocity,
+    WakeSolverGroup,
+    WakeSpatialTerm,
+    WakeConvolutionGrid,
+    WakeTimeGrid,
+    FileWake,
+    WakeFileConvention,
+    WakeFieldConfig,
+    WakeResourceConfig,
 )
-from PASS.para.schema.space_charge import (
-    SpaceChargeConfig,
-    SpaceChargeResourceConfig,
-    SpaceCharge,
-)
+from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem
 
-# ============================================================
 # Low-level: schema objects → JSON
-# ============================================================
 
 
 def generate_input(
@@ -132,9 +141,7 @@ def load_input(path: str) -> tuple[MainConfig, dict]:
     return main, sequence_data
 
 
-# ============================================================
 # Mid-level: assemble sequence from items + names
-# ============================================================
 
 
 def build_sequence(
@@ -147,7 +154,7 @@ def build_sequence(
     """Assemble a Sequence from lattice items + bunches + monitors.
 
     Args:
-        items: list of Element or TwissPoint schema objects.
+        items: list of Element or TwissItem schema objects.
         names: list of string names (same length as items).
         bunches: list of BunchConfig objects (injected at s=0).
         monitors: optional list of monitor objects (StatMonitor,
@@ -197,9 +204,7 @@ def build_sequence(
     return seq
 
 
-# ============================================================
 # High-level: MADX TFS → JSON in one call
-# ============================================================
 
 
 def generate_from_tfs(
@@ -322,32 +327,33 @@ def _apply_element_settings(
     Modifies items in-place. 0 / empty string means skip.
     """
     from collections import Counter
+    from PASS.para.schema.elements import QuadrupoleItem, SBendItem, SextupoleItem, OctupoleItem
     counts = Counter()
 
     for item in items:
         cmd = item.__class__.__name__
         counts[cmd] += 1
 
-        if cmd == "QuadrupoleElement":
+        if isinstance(item, QuadrupoleItem):
             if quad_slices > 0:
                 item.num_slices = quad_slices
             if quad_model:
                 item.model = quad_model
             if quad_integrator:
                 item.integrator = quad_integrator
-        elif cmd == "SBendElement":
+        elif isinstance(item, SBendItem):
             if bend_slices > 0:
                 item.num_slices = bend_slices
             if bend_model:
                 item.model = bend_model
             if bend_integrator:
                 item.integrator = bend_integrator
-        elif cmd == "SextupoleElement":
+        elif isinstance(item, SextupoleItem):
             if sext_slices > 0:
                 item.num_slices = sext_slices
             if sext_integrator:
                 item.integrator = sext_integrator
-        elif cmd == "OctupoleElement":
+        elif isinstance(item, OctupoleItem):
             if oct_slices > 0:
                 item.num_slices = oct_slices
             if oct_integrator:
@@ -361,21 +367,21 @@ def _apply_element_settings(
 def _build_monitors(monitors: list[dict]) -> list:
     """Convert monitor dicts to schema objects."""
     from PASS.para.schema.monitors import (
-        StatMonitor,
-        DistMonitor,
-        PhaseAdvanceMonitor,
-        ParticleMonitor,
+        StatMonitorItem,
+        DistMonitorItem,
+        PhaseAdvanceMonitorItem,
+        ParticleMonitorItem,
     )
 
     _monitor_map = {
-        "statmonitor": StatMonitor,
-        "stat": StatMonitor,
-        "distmonitor": DistMonitor,
-        "dist": DistMonitor,
-        "phaseadvancemonitor": PhaseAdvanceMonitor,
-        "phaseadvance": PhaseAdvanceMonitor,
-        "particlemonitor": ParticleMonitor,
-        "particle": ParticleMonitor,
+        "statmonitor": StatMonitorItem,
+        "stat": StatMonitorItem,
+        "distmonitor": DistMonitorItem,
+        "dist": DistMonitorItem,
+        "phaseadvancemonitor": PhaseAdvanceMonitorItem,
+        "phaseadvance": PhaseAdvanceMonitorItem,
+        "particlemonitor": ParticleMonitorItem,
+        "particle": ParticleMonitorItem,
     }
 
     result = []
@@ -389,22 +395,8 @@ def _build_monitors(monitors: list[dict]) -> list:
 
 
 __all__ = [
-    "generate_input",
-    "load_input",
-    "generate_from_tfs",
-    "build_sequence",
-    "MainConfig",
-    "Sequence",
-    "SpaceChargeConfig",
-    "SpaceChargeResourceConfig",
-    "SpaceCharge",
-    "WakeField",
-    "WakeFieldConfig", "WakeResourceConfig",
-    "WakeComponentConfig",
-    "ConstantWake",
-    "ResonatorWake",
-    "ResistiveWallWake",
-    "TabulatedWake",
-    "UltrarelativisticWallWake", "ImpedanceWake", "FittedImpedanceWake", "ModalWake",
-    "WakeVelocity", "WakeSolverGroup", "WakeSpatialTerm", "WakeConvolutionGrid", "WakeTimeGrid", "FileWake", "WakeFileConvention",
+    'generate_input', 'load_input', 'generate_from_tfs', 'build_sequence', 'MainConfig', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig',
+    'SpaceChargeItem', 'WakeFieldItem', 'WakeFieldConfig', 'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake',
+    'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
+    'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem'
 ]

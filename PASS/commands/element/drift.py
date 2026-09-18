@@ -1,8 +1,10 @@
+from functools import lru_cache
+import logging
+
+import numpy as np
+
 from PASS.commands.command import Command
-from PASS.utils.slicing import (
-    print_element_slicing,
-    configure_element_slicing, run_body_slices, transport_with_center,
-)
+from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -11,9 +13,6 @@ from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
-
-import numpy as np
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +25,16 @@ def drift_factors(px, py, dp, inv_gamma_sq):
     """
     real = dp.dtype.type
     with np.errstate(over="ignore", invalid="ignore"):
-        transverse = px*px + py*py
-        longitudinal = (real(1)+dp)**2 - transverse
+        transverse = px * px + py * py
+        longitudinal = (real(1) + dp)**2 - transverse
     valid = (dp > -1) & (longitudinal > 0) & np.isfinite(longitudinal)
     delta = np.where(valid, dp, real(0))
     transverse = np.where(valid, transverse, real(0))
     ps = np.sqrt(np.where(valid, longitudinal, real(1)))
     inv_g2 = real(inv_gamma_sq)
-    energy = np.sqrt(inv_g2 + (real(1)-inv_g2)*(real(1)+delta)**2)
-    slip = (delta*(real(2)+delta)*inv_g2-transverse)/(ps*(ps+energy))
-    return valid, real(1)/ps, slip
+    energy = np.sqrt(inv_g2 + (real(1) - inv_g2) * (real(1) + delta)**2)
+    slip = (delta * (real(2) + delta) * inv_g2 - transverse) / (ps * (ps + energy))
+    return valid, real(1) / ps, slip
 
 
 @Command.register("drift")
@@ -84,14 +83,17 @@ class Drift(Command):
     def _track_drift_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
         if self._sc_nodes or self.num_slice > 1:
             offset = 0.0
+
             def transport(ds, on_center):
                 nonlocal offset
+
                 def advance(length):
                     nonlocal offset
                     offset += length
-                    self._drift_segment_cpu(beam, bunch, turn, length,
-                                            self.s - self.length + offset)
+                    self._drift_segment_cpu(beam, bunch, turn, length, self.s - self.length + offset)
+
                 transport_with_center(advance, ds, on_center)
+
             run_body_slices(self, beam, bunch, turn, transport)
         else:
             self._drift_segment_cpu(beam, bunch, turn, self.length, self.s)
@@ -121,10 +123,10 @@ class Drift(Command):
         # Only particles that are alive on entry can become newly lost here.
         # Preserve the first loss location/turn for particles lost earlier.
         alive = tag > 0
-        lost_mask = alive & ~valid
-        tag[lost_mask] = -np.abs(tag[lost_mask])
-        lost_position[lost_mask] = s_position
-        lost_turn[lost_mask] = turn
+        newly_lost = alive & ~valid
+        tag[newly_lost] = -np.abs(tag[newly_lost])
+        lost_position[newly_lost] = s_position
+        lost_turn[newly_lost] = turn
         active = tag > 0
         x[active] += L * px[active] * inv_ps[active]
         y[active] += L * py[active] * inv_ps[active]
@@ -146,25 +148,27 @@ class Drift(Command):
 
             p = beam.particles  # slicing in the kernel
 
-            N = end - start
-            if N > 0 and np.abs(L) >= const.eps:
+            n = end - start
+            if n > 0 and np.abs(L) >= const.eps:
                 threads = 256
-                blocks = (N + threads - 1) // threads
-                kernel = _get_transfer_drift_kernel(p.dtype)
+                blocks = (n + threads - 1) // threads
+                kernel = _get_transfer_drift_kernel(p.dtype.str)
                 ds = L / self.num_slice
                 for j in range(self.num_slice):
                     kernel(
-                        (blocks, ), (threads, ),
-                        (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag,
-                         p.lost_position, p.lost_turn,
-                         np.int32(start), np.int32(end),
-                         p.real(1.0 / gamma**2), p.real(ds),
-                         p.real(self.s - L + (j + 1) * ds), np.int32(turn)),
+                        (blocks, ),
+                        (threads, ),
+                        (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end), p.real(
+                            1.0 / gamma**2), p.real(ds), p.real(self.s - L + (j + 1) * ds), np.int32(turn)),
                     )
-            if N > 0:
+            if n > 0:
                 check_aperture_gpu(
-                    beam, bunch, self.aperture_type, self.aperture_value,
-                    self.s, turn,
+                    beam,
+                    bunch,
+                    self.aperture_type,
+                    self.aperture_value,
+                    self.s,
+                    turn,
                 )
             if abs(L) >= const.eps:
                 bunch.t0 += L / (bunch.beta * const.c)
@@ -174,15 +178,22 @@ class Drift(Command):
 def drift_cuda_factors():
     """Same stable formula for inclusion in fused CUDA maps (pass_real_t)."""
     return r'''
-__device__ inline bool pass_drift_factors(pass_real_t px,pass_real_t py,
-    pass_real_t dp,pass_real_t inv_g2,pass_real_t& inv_ps,pass_real_t& slip) {
-    pass_real_t transverse=px*px+py*py, ratio=(pass_real_t)1+dp;
-    pass_real_t longitudinal=ratio*ratio-transverse;
-    if (!(dp>(pass_real_t)-1) || !(longitudinal>(pass_real_t)0) || !isfinite(longitudinal)) return false;
-    pass_real_t ps=sqrt(longitudinal);
-    pass_real_t energy=sqrt(inv_g2+((pass_real_t)1-inv_g2)*ratio*ratio);
-    inv_ps=(pass_real_t)1/ps;
-    slip=(dp*((pass_real_t)2+dp)*inv_g2-transverse)/(ps*(ps+energy));
+__device__ inline bool pass_drift_factors(
+    pass_real_t px,
+    pass_real_t py,
+    pass_real_t dp,
+    pass_real_t inv_g2,
+    pass_real_t& inv_ps,
+    pass_real_t& slip
+) {
+    pass_real_t transverse = px * px + py * py, ratio = (pass_real_t)1 + dp;
+    pass_real_t longitudinal = ratio * ratio - transverse;
+    if (!(dp > (pass_real_t)-1) || !(longitudinal > (pass_real_t)0) || !isfinite(longitudinal))
+        return false;
+    pass_real_t ps = sqrt(longitudinal);
+    pass_real_t energy = sqrt(inv_g2 + ((pass_real_t)1 - inv_g2) * ratio * ratio);
+    inv_ps = (pass_real_t)1 / ps;
+    slip = (dp * ((pass_real_t)2 + dp) * inv_g2 - transverse) / (ps * (ps + energy));
     return true;
 }
 '''
@@ -201,8 +212,7 @@ using pass_real_t = double;
 '''
 
 DRIFT_KERNEL_BODY = r'''
-extern "C" __global__
-void transfer_drift(
+extern "C" __global__ void transfer_drift(
     pass_real_t* __restrict__ x,
     pass_real_t* __restrict__ y,
     pass_real_t* __restrict__ z,
@@ -217,10 +227,11 @@ void transfer_drift(
     pass_real_t inv_gamma_sq,
     pass_real_t L,
     pass_real_t s_position,
-    int turn)
-{
+    int turn
+) {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (i >= end_index) return;
+    if (i >= end_index)
+        return;
 
     if (tag[i] <= 0) {
         return;
@@ -229,7 +240,7 @@ void transfer_drift(
     pass_real_t px_i = px[i];
     pass_real_t py_i = py[i];
     pass_real_t inv_pz, slip;
-    bool valid = pass_drift_factors(px_i,py_i,dp[i],inv_gamma_sq,inv_pz,slip);
+    bool valid = pass_drift_factors(px_i, py_i, dp[i], inv_gamma_sq, inv_pz, slip);
 
     if (!valid) {
         tag[i] = -abs(tag[i]);
@@ -241,29 +252,24 @@ void transfer_drift(
     x[i] += L * px_i * inv_pz;
     y[i] += L * py_i * inv_pz;
     z[i] += L * slip;
-
 }
 '''
 DRIFT_SOURCE = CUDA_REAL_PREAMBLE + drift_cuda_factors() + DRIFT_KERNEL_BODY
-_transfer_drift_kernels = {}
 
 
+@lru_cache(maxsize=None)
 def _get_transfer_drift_kernel(dtype):
     """Compile the CUDA kernel only when the GPU backend is actually used."""
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError(
-            "GPU Drift tracking requires the optional 'cuda' dependencies "
-            "(install PASS with the [cuda] extra)."
-        ) from exc
+        raise RuntimeError("GPU Drift tracking requires the optional 'cuda' dependencies "
+                           "(install PASS with the [cuda] extra).") from exc
 
-    key = np.dtype(dtype)
-    if key not in _transfer_drift_kernels:
-        use_float = key == np.dtype(np.float32)
-        _transfer_drift_kernels[key] = cp.RawKernel(
-            DRIFT_SOURCE,
-            "transfer_drift",
-            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
-        )
-    return _transfer_drift_kernels[key]
+    dtype = np.dtype(dtype)
+    use_float = dtype == np.dtype(np.float32)
+    return cp.RawKernel(
+        DRIFT_SOURCE,
+        "transfer_drift",
+        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
+    )

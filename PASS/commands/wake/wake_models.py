@@ -42,8 +42,7 @@ class WakeModel:
         finite = width > 0
         if np.any(finite):
             t, h = tau[finite], width[finite] * 0.5
-            result[finite] = (self.primitive(t + h, longitudinal)
-                              - self.primitive(t - h, longitudinal)) / (2 * h)
+            result[finite] = (self.primitive(t + h, longitudinal) - self.primitive(t - h, longitudinal)) / (2 * h)
         return result
 
     def validate_beta(self, beta):
@@ -61,8 +60,7 @@ class ConstantWakeModel(WakeModel):
             raise ValueError("Constant wake requires finite amplitude and positive finite duration")
 
     def _positive(self, t, longitudinal):
-        return self.amplitude * np.where(t < self.duration, 1.0,
-                                        np.where(t == self.duration, 0.5, 0.0))
+        return self.amplitude * np.where(t < self.duration, 1.0, np.where(t == self.duration, 0.5, 0.0))
 
     def primitive(self, tau, longitudinal=True, backend="cpu"):
         if backend == "gpu":
@@ -94,19 +92,19 @@ class ResonatorWakeModel(WakeModel):
         if self.q > 0.5:
             d = w * np.sqrt((1 - 0.5 / self.q) * (1 + 0.5 / self.q))
             decay = np.exp(-a * t)
-            return decay * np.cos(d*t), decay * t * np.sinc(d*t / np.pi)
+            return decay * np.cos(d * t), decay * t * np.sinc(d * t / np.pi)
         if self.q == 0.5:
             decay = np.exp(-a * t)
             return decay, decay * t
-        d = a * np.sqrt((1 - 2*self.q) * (1 + 2*self.q))
-        slow = -w*w / (a + d)
-        e = np.exp(slow*t)
+        d = a * np.sqrt((1 - 2 * self.q) * (1 + 2 * self.q))
+        slow = -w * w / (a + d)
+        e = np.exp(slow * t)
         # exp(slow*t)-exp(fast*t), stable at t=0 and for very small Q.
-        return e * (1 + np.exp(-2*d*t)) / 2, -e * np.expm1(-2*d*t) / (2*d)
+        return e * (1 + np.exp(-2 * d * t)) / 2, -e * np.expm1(-2 * d * t) / (2 * d)
 
     def _positive(self, t, longitudinal):
         c, s = self._cs(t)
-        return 2*self.alpha*self.r * (c-self.alpha*s if longitudinal else self.omega*s)
+        return 2 * self.alpha * self.r * (c - self.alpha * s if longitudinal else self.omega * s)
 
     def primitive(self, tau, longitudinal=True, backend="cpu"):
         if backend == "gpu":
@@ -115,27 +113,26 @@ class ResonatorWakeModel(WakeModel):
         t = np.maximum(np.asarray(tau, float), 0)
         c, s = self._cs(t)
         if longitudinal:
-            return 2*self.alpha*self.r*s
-        value = 1-c-self.alpha*s
-        small = np.maximum(self.alpha, self.omega)*t < 1e-4
+            return 2 * self.alpha * self.r * s
+        value = 1 - c - self.alpha * s
+        small = np.maximum(self.alpha, self.omega) * t < 1e-4
         # Integral of oscillator impulse response, without subtracting 1-1.
         a, w = self.alpha, self.omega
-        series = w*w*t*t*(0.5-a*t/3+(4*a*a-w*w)*t*t/24
-                           +(4*a*w*w-8*a**3)*t**3/120)
-        return 2*a*self.r/w * np.where(small, series, value)
+        series = w * w * t * t * (0.5 - a * t / 3 + (4 * a * a - w * w) * t * t / 24 + (4 * a * w * w - 8 * a**3) * t**3 / 120)
+        return 2 * a * self.r / w * np.where(small, series, value)
 
 
 class TabulatedWakeModel(WakeModel):
+
     def __init__(self, times, values, causal=True):
         self.causal = causal
         self.times = np.array(times, dtype=float, copy=True)
         self.values = np.array(values, dtype=float, copy=True)
-        if (self.times.ndim != 1 or self.times.size < 2 or self.times.shape != self.values.shape
-                or not np.all(np.isfinite(self.times)) or not np.all(np.isfinite(self.values))
-                or (causal and self.times[0] != 0) or np.any(np.diff(self.times) <= 0)):
+        if (self.times.ndim != 1 or self.times.size < 2 or self.times.shape != self.values.shape or not np.all(np.isfinite(self.times))
+                or not np.all(np.isfinite(self.values)) or (causal and self.times[0] != 0) or np.any(np.diff(self.times) <= 0)):
             raise ValueError("Tabulated wake needs finite matching increasing times; causal data start at zero")
         self.slopes = np.diff(self.values) / np.diff(self.times)
-        self.integrals = np.r_[0, np.cumsum(np.diff(self.times)*(self.values[:-1]+self.values[1:])/2)]
+        self.integrals = np.r_[0, np.cumsum(np.diff(self.times) * (self.values[:-1] + self.values[1:]) / 2)]
         for array in (self.times, self.values, self.slopes, self.integrals):
             array.flags.writeable = False
 
@@ -155,17 +152,17 @@ class TabulatedWakeModel(WakeModel):
             return evaluate_gpu(self, tau, longitudinal, primitive=True)
         require_cpu(backend)
         t = np.clip(tau, self.times[0], self.times[-1])
-        i = np.clip(np.searchsorted(self.times, t, side="right")-1, 0, len(self.slopes)-1)
-        d = t-self.times[i]
-        return self.integrals[i] + self.values[i]*d + self.slopes[i]*d*d/2
+        i = np.clip(np.searchsorted(self.times, t, side="right") - 1, 0, len(self.slopes) - 1)
+        d = t - self.times[i]
+        return self.integrals[i] + self.values[i] * d + self.slopes[i] * d * d / 2
 
 
 @lru_cache(maxsize=1)
 def _wall_quadrature():
     nodes, weights = np.polynomial.legendre.leggauss(160)
-    angle = (nodes+1)*np.pi/4
+    angle = (nodes + 1) * np.pi / 4
     x = np.tan(angle)
-    weight = weights*np.pi/4/(np.cos(angle)**2)/(x**6+8)
+    weight = weights * np.pi / 4 / (np.cos(angle)**2) / (x**6 + 8)
     return x, weight, roots_genlaguerre(80, 0.5), roots_genlaguerre(80, -0.5)
 
 
@@ -187,11 +184,11 @@ class ResistiveWallWakeModel(WakeModel):
 
     @property
     def time_scale(self):
-        return (2*self.radius**2/(const.mu0*const.c*self.conductivity))**(1/3)/const.c
+        return (2 * self.radius**2 / (const.mu0 * const.c * self.conductivity))**(1 / 3) / const.c
 
     @property
     def amplitude(self):
-        return 4*const.mu0*const.c**2*self.length/(np.pi*self.radius**2)
+        return 4 * const.mu0 * const.c**2 * self.length / (np.pi * self.radius**2)
 
     def validate_beta(self, beta):
         super().validate_beta(beta)
@@ -205,41 +202,39 @@ class ResistiveWallWakeModel(WakeModel):
         i, j = np.empty_like(r), np.empty_like(r)
         small = r < 1
         # Bound temporary storage independently of particle/slice count.
-        for ids in np.array_split(np.flatnonzero(small), max(1, int(small.sum())//2048+1)):
-            exp = np.exp(-r[ids, None]*x*x)
-            i[ids] = exp @ (weight*x*x)
+        for ids in np.array_split(np.flatnonzero(small), max(1, int(small.sum()) // 2048 + 1)):
+            exp = np.exp(-r[ids, None] * x * x)
+            i[ids] = exp @ (weight * x * x)
             j[ids] = exp @ weight
-        for ids in np.array_split(np.flatnonzero(~small), max(1, int((~small).sum())//2048+1)):
+        for ids in np.array_split(np.flatnonzero(~small), max(1, int((~small).sum()) // 2048 + 1)):
             rr = r[ids, None]
             v, weights = lag_i
-            i[ids] = np.sum(weights/((v/rr)**3+8), axis=1)/(2*r[ids]**1.5)
+            i[ids] = np.sum(weights / ((v / rr)**3 + 8), axis=1) / (2 * r[ids]**1.5)
             v, weights = lag_j
-            j[ids] = np.sum(weights/((v/rr)**3+8), axis=1)/(2*np.sqrt(r[ids]))
+            j[ids] = np.sum(weights / ((v / rr)**3 + 8), axis=1) / (2 * np.sqrt(r[ids]))
         return i.reshape(shape), j.reshape(shape)
 
     def _long_primitive(self, t):
-        r = np.asarray(t)/self.time_scale
+        r = np.asarray(t) / self.time_scale
         _, j = self._integrals(r)
-        value = (np.exp(-r)*(-np.cos(np.sqrt(3)*r)+np.sqrt(3)*np.sin(np.sqrt(3)*r))/12
-                 + np.sqrt(2)/np.pi*j)
+        value = (np.exp(-r) * (-np.cos(np.sqrt(3) * r) + np.sqrt(3) * np.sin(np.sqrt(3) * r)) / 12 + np.sqrt(2) / np.pi * j)
         # Near the origin evaluate integral(1-exp(-r*x*x)) using expm1.
         small = r < 1e-4
         if np.any(small):
             x, weight, _, _ = _wall_quadrature()
             rr = r[small]
-            osc = (-np.expm1(-rr) + np.exp(-rr)*(2*np.sin(np.sqrt(3)*rr/2)**2
-                    + np.sqrt(3)*np.sin(np.sqrt(3)*rr)))/12
-            integral = -np.expm1(-rr[:, None]*x*x) @ weight
+            osc = (-np.expm1(-rr) + np.exp(-rr) * (2 * np.sin(np.sqrt(3) * rr / 2)**2 + np.sqrt(3) * np.sin(np.sqrt(3) * rr))) / 12
+            integral = -np.expm1(-rr[:, None] * x * x) @ weight
             value = np.array(value, copy=True)
-            value[small] = osc - np.sqrt(2)/np.pi*integral
-        return self.amplitude*self.time_scale*value
+            value[small] = osc - np.sqrt(2) / np.pi * integral
+        return self.amplitude * self.time_scale * value
 
     def _positive(self, t, longitudinal):
         if not longitudinal:
-            return 2*const.c/self.radius**2*self._long_primitive(t)
-        r = t/self.time_scale
+            return 2 * const.c / self.radius**2 * self._long_primitive(t)
+        r = t / self.time_scale
         i, _ = self._integrals(r)
-        return self.amplitude*(np.exp(-r)*np.cos(np.sqrt(3)*r)/3-np.sqrt(2)/np.pi*i)
+        return self.amplitude * (np.exp(-r) * np.cos(np.sqrt(3) * r) / 3 - np.sqrt(2) / np.pi * i)
 
     @lru_cache(maxsize=8192)
     def _second_integral(self, r):
@@ -249,24 +244,24 @@ class ResistiveWallWakeModel(WakeModel):
             # The closed form cancels two O(r) terms to obtain O(r**2).
             # Integrate the cancellation-safe first primitive near zero.
             nodes, weights = np.polynomial.legendre.leggauss(24)
-            first = self._long_primitive((nodes+1)*r*self.time_scale/2)
-            return float(weights @ first)*r/(2*self.amplitude*self.time_scale)
+            first = self._long_primitive((nodes + 1) * r * self.time_scale / 2)
+            return float(weights @ first) * r / (2 * self.amplitude * self.time_scale)
         # Subtract the boundary layer analytically. Direct infinite-interval
         # quadrature loses the constant tail for r >~ 1e7, even after scaling.
         if r >= 1:
-            correction = quad(lambda u: u**4*np.exp(-u*u)/((u/np.sqrt(r))**6+8),
-                              0, np.inf, epsabs=1e-12, epsrel=2e-12)[0]/r**2.5
-            integral = np.sqrt(np.pi*r)/8-np.pi/(24*np.sqrt(2))+correction/8
-            oscillatory = (1-np.exp(-r)*(np.cos(np.sqrt(3)*r)+np.sqrt(3)*np.sin(np.sqrt(3)*r)))/24
-            return oscillatory + np.sqrt(2)/np.pi*integral
+            correction = quad(lambda u: u**4 * np.exp(-u * u) / ((u / np.sqrt(r))**6 + 8), 0, np.inf, epsabs=1e-12, epsrel=2e-12)[0] / r**2.5
+            integral = np.sqrt(np.pi * r) / 8 - np.pi / (24 * np.sqrt(2)) + correction / 8
+            oscillatory = (1 - np.exp(-r) * (np.cos(np.sqrt(3) * r) + np.sqrt(3) * np.sin(np.sqrt(3) * r))) / 24
+            return oscillatory + np.sqrt(2) / np.pi * integral
         # Scaling x=u/sqrt(r) resolves the transition region.
         def integrand(u):
             if u == 0:
-                return np.sqrt(r)/8
-            return np.sqrt(r)*(-np.expm1(-u*u))/(u*u*((u/np.sqrt(r))**6+8))
+                return np.sqrt(r) / 8
+            return np.sqrt(r) * (-np.expm1(-u * u)) / (u * u * ((u / np.sqrt(r))**6 + 8))
+
         integral = quad(integrand, 0, np.inf, epsabs=1e-11, epsrel=2e-10)[0]
-        oscillatory = (1-np.exp(-r)*(np.cos(np.sqrt(3)*r)+np.sqrt(3)*np.sin(np.sqrt(3)*r)))/24
-        return oscillatory + np.sqrt(2)/np.pi*integral
+        oscillatory = (1 - np.exp(-r) * (np.cos(np.sqrt(3) * r) + np.sqrt(3) * np.sin(np.sqrt(3) * r))) / 24
+        return oscillatory + np.sqrt(2) / np.pi * integral
 
     def primitive(self, tau, longitudinal=True, backend="cpu"):
         if backend == "gpu":
@@ -275,14 +270,12 @@ class ResistiveWallWakeModel(WakeModel):
         t = np.maximum(np.asarray(tau, float), 0)
         if longitudinal:
             return self._long_primitive(t)
-        r = t/self.time_scale
+        r = t / self.time_scale
         out = np.array([self._second_integral(float(v)) for v in r.flat]).reshape(r.shape)
-        return 2*const.c/self.radius**2*self.amplitude*self.time_scale**2*out
+        return 2 * const.c / self.radius**2 * self.amplitude * self.time_scale**2 * out
 
 
-# ----------------------------------------------------------------------------
 # GPU: device responses and bin integration
-# ----------------------------------------------------------------------------
 
 
 def evaluate_gpu(model, tau, longitudinal=True, *, primitive=False):
@@ -318,6 +311,7 @@ class DeviceResponse:
     No pair matrix is materialized by direct tracking. CuPy supplies allocation,
     compilation and launch; all response arithmetic is inside the CUDA kernels.
     """
+
     def __init__(self, model, longitudinal):
         import cupy as cp
         body, data = _response_code(model, longitudinal)
@@ -330,35 +324,37 @@ class DeviceResponse:
         import cupy as cp
         key = (name, extra)
         if key not in self.kernels:
-            self.kernels[key] = cp.RawKernel(self.code+extra, name, options=('--std=c++17',))
+            self.kernels[key] = cp.RawKernel(self.code + extra, name, options=('--std=c++17', ))
         return self.kernels[key]
 
     def evaluate(self, tau, *, width=None, primitive=False, memory_time=None, scale=1.):
         import cupy as cp
         t = cp.asarray(tau, dtype=cp.float64)
         if width is None:
-            out=cp.empty(t.shape,dtype=cp.float64)
-            if out.size:self.kernel('response_flat')(((out.size+255)//256,),(256,),
-                (cp.ascontiguousarray(t),self.data,np.int64(out.size),np.int32(primitive),
-                 np.float64(np.inf if memory_time is None else memory_time),np.float64(scale),out))
-            return out
-        w = cp.asarray(0. if width is None else width, dtype=cp.float64)
-        shape = np.broadcast_shapes(t.shape, w.shape)
+            wake_values = cp.empty(t.shape, dtype=cp.float64)
+            if wake_values.size:
+                self.kernel('response_flat')(((wake_values.size + 255) // 256, ), (256, ),
+                                             (cp.ascontiguousarray(t), self.data, np.int64(wake_values.size), np.int32(primitive),
+                                              np.float64(np.inf if memory_time is None else memory_time), np.float64(scale), wake_values))
+            return wake_values
+        source_widths = cp.asarray(0. if width is None else width, dtype=cp.float64)
+        shape = np.broadcast_shapes(t.shape, source_widths.shape)
         # broadcast_to is a view; only irregular public inputs need packing.
-        t, w = cp.broadcast_to(t, shape), cp.broadcast_to(w, shape)
-        key=(shape,tuple(s//8 for s in t.strides),tuple(s//8 for s in w.strides))
-        layouts=self.__dict__.setdefault('layouts',{})
+        t, source_widths = cp.broadcast_to(t, shape), cp.broadcast_to(source_widths, shape)
+        key = (shape, tuple(s // 8 for s in t.strides), tuple(s // 8 for s in source_widths.strides))
+        layouts = self.__dict__.setdefault('layouts', {})
         if key not in layouts:
-            if len(layouts)>=32:layouts.clear()
-            layouts[key]=cp.asarray(key,dtype=cp.int64)
-        tbase, wbase = t, w
-        out = cp.empty(shape, dtype=cp.float64)
-        if out.size:
-            self.kernel('response_array')(((out.size+255)//256,), (256,),
-                (tbase, wbase, self.data, layouts[key], np.int32(len(shape)), np.int64(out.size),
-                 np.int32(1 if primitive else 2 if width is not None else 0),
-                 np.float64(np.inf if memory_time is None else memory_time), np.float64(scale), out))
-        return out
+            if len(layouts) >= 32:
+                layouts.clear()
+            layouts[key] = cp.asarray(key, dtype=cp.int64)
+        tbase, wbase = t, source_widths
+        wake_values = cp.empty(shape, dtype=cp.float64)
+        if wake_values.size:
+            self.kernel('response_array')(((wake_values.size + 255) // 256, ), (256, ),
+                                          (tbase, wbase, self.data, layouts[key], np.int32(len(shape)), np.int64(
+                                              wake_values.size), np.int32(1 if primitive else 2 if width is not None else 0),
+                                           np.float64(np.inf if memory_time is None else memory_time), np.float64(scale), wake_values))
+        return wake_values
 
 
 def _response_code(model, longitudinal):
@@ -410,8 +406,7 @@ def _response_code(model, longitudinal):
         x, weight, (vi, wi), (vj, wj) = _wall_quadrature()
         nodes, gauss = np.polynomial.legendre.leggauss(24)
         v2, w2 = roots_genlaguerre(96, 1.5)
-        values = np.r_[model.amplitude, model.time_scale, 2*const.c/model.radius**2,
-                        x, weight, vi, wi, vj, wj, nodes, gauss, v2, w2]
+        values = np.r_[model.amplitude, model.time_scale, 2 * const.c / model.radius**2, x, weight, vi, wi, vj, wj, nodes, gauss, v2, w2]
         prefix += _WALL_DEVICE
         formula = '''
         if(t<0.)return 0.;double r=t/d[1],value;
@@ -422,79 +417,210 @@ def _response_code(model, longitudinal):
         '''
     else:
         raise TypeError(f'No CUDA response implementation for {type(model).__name__}')
-    if isinstance(model,(ConstantWakeModel,ResonatorWakeModel)):
+    if isinstance(model, (ConstantWakeModel, ResonatorWakeModel)):
         # Immutable model scalars specialize branches and oscillator constants
         # once at compilation, rather than recomputing them for each pair.
-        for i,value in enumerate(values):formula=formula.replace(f'd[{i}]',float(value).hex())
+        for i, value in enumerate(values):
+            formula = formula.replace(f'd[{i}]', float(value).hex())
     prefix += f'\n#define LONGITUDINAL {int(longitudinal)}\n'
-    return prefix+'\n__device__ double response(double t,const double* d,bool primitive){'+formula+'}\n'+_AVERAGE_DEVICE, values
+    return prefix + '''
+__device__ double response(
+    double t,
+    const double* d,
+    bool primitive
+) {
+''' + formula + '}\n' + _AVERAGE_DEVICE, values
 
 
 _AVERAGE_DEVICE = r'''
-__device__ double averaged(double t,double w,const double* d,double horizon){
-    if(w<=0.)return t<=horizon?response(t,d,false):0.;
-    return (response(fmin(t+w*.5,horizon),d,true)-response(fmin(t-w*.5,horizon),d,true))/w;
+__device__ double averaged(
+    double t,
+    double w,
+    const double* d,
+    double horizon
+) {
+    if (w <= 0.)
+        return t <= horizon ? response(t, d, false) : 0.;
+    return (response(fmin(t + w * .5, horizon), d, true) - response(fmin(t - w * .5, horizon), d, true)) / w;
 }
 '''
-
 
 _WALL_DEVICE = r'''
-__device__ double wall_i(double r,const double* d){
-    double s=0.;if(r<1.){for(int j=0;j<160;j++){double x=d[3+j];s+=exp(-r*x*x)*d[163+j]*x*x;}return s;}
-    for(int j=0;j<80;j++){double v=d[323+j]/r;s+=d[403+j]/(v*v*v+8.);}return s/(2*r*sqrt(r));
+__device__ double wall_i(
+    double r,
+    const double* d
+) {
+    double s = 0.;
+    if (r < 1.) {
+        for (int j = 0; j < 160; j++) {
+            double x = d[3 + j];
+            s += exp(-r * x * x) * d[163 + j] * x * x;
+        }
+        return s;
+    }
+    for (int j = 0; j < 80; j++) {
+        double v = d[323 + j] / r;
+        s += d[403 + j] / (v * v * v + 8.);
+    }
+    return s / (2 * r * sqrt(r));
 }
-__device__ double wall_first(double r,const double* d){
-    double s=0.,q=sqrt(3.)*r;
-    if(r<1.e-4){for(int j=0;j<160;j++){double x=d[3+j];s-=expm1(-r*x*x)*d[163+j];}
-        return (-expm1(-r)+exp(-r)*(2*pow(sin(q*.5),2)+sqrt(3.)*sin(q)))/12.-sqrt(2.)/M_PI*s;}
-    if(r<1.){for(int j=0;j<160;j++){double x=d[3+j];s+=exp(-r*x*x)*d[163+j];}}
-    else {for(int j=0;j<80;j++){double v=d[483+j]/r;s+=d[563+j]/(v*v*v+8.);}s/=2*sqrt(r);}
-    return exp(-r)*(-cos(q)+sqrt(3.)*sin(q))/12.+sqrt(2.)/M_PI*s;
+__device__ double wall_first(
+    double r,
+    const double* d
+) {
+    double s = 0., q = sqrt(3.) * r;
+    if (r < 1.e-4) {
+        for (int j = 0; j < 160; j++) {
+            double x = d[3 + j];
+            s -= expm1(-r * x * x) * d[163 + j];
+        }
+        return (-expm1(-r) + exp(-r) * (2 * pow(sin(q * .5), 2) + sqrt(3.) * sin(q))) / 12. - sqrt(2.) / M_PI * s;
+    }
+    if (r < 1.) {
+        for (int j = 0; j < 160; j++) {
+            double x = d[3 + j];
+            s += exp(-r * x * x) * d[163 + j];
+        }
+    } else {
+        for (int j = 0; j < 80; j++) {
+            double v = d[483 + j] / r;
+            s += d[563 + j] / (v * v * v + 8.);
+        }
+        s /= 2 * sqrt(r);
+    }
+    return exp(-r) * (-cos(q) + sqrt(3.) * sin(q)) / 12. + sqrt(2.) / M_PI * s;
 }
-__device__ double wall_second(double r,const double* d){
-    double s=0.;if(r<.1){for(int j=0;j<24;j++)s+=d[667+j]*wall_first((d[643+j]+1)*r*.5,d);return s*r*.5;}
-    if(r<1.){for(int j=0;j<160;j++){double x=d[3+j];s-=expm1(-r*x*x)*d[163+j]/(x*x);}}
-    else {for(int j=0;j<96;j++){double v=d[691+j]/r;s+=d[787+j]/(v*v*v+8.);}
-        s=sqrt(M_PI*r)/8.-M_PI/(24*sqrt(2.))+s/(16*r*r*sqrt(r));}
-    return (1.-exp(-r)*(cos(sqrt(3.)*r)+sqrt(3.)*sin(sqrt(3.)*r)))/24.+sqrt(2.)/M_PI*s;
+__device__ double wall_second(
+    double r,
+    const double* d
+) {
+    double s = 0.;
+    if (r < .1) {
+        for (int j = 0; j < 24; j++)
+            s += d[667 + j] * wall_first((d[643 + j] + 1) * r * .5, d);
+        return s * r * .5;
+    }
+    if (r < 1.) {
+        for (int j = 0; j < 160; j++) {
+            double x = d[3 + j];
+            s -= expm1(-r * x * x) * d[163 + j] / (x * x);
+        }
+    } else {
+        for (int j = 0; j < 96; j++) {
+            double v = d[691 + j] / r;
+            s += d[787 + j] / (v * v * v + 8.);
+        }
+        s = sqrt(M_PI * r) / 8. - M_PI / (24 * sqrt(2.)) + s / (16 * r * r * sqrt(r));
+    }
+    return (1. - exp(-r) * (cos(sqrt(3.) * r) + sqrt(3.) * sin(sqrt(3.) * r))) / 24. + sqrt(2.) / M_PI * s;
 }
 '''
 
-
 _RESPONSE_KERNELS = r'''
-extern "C" __global__ void response_flat(const double* t,const double* data,long long n,
-    int primitive,double horizon,double scale,double* out){
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
-    if(i<n)out[i]=scale*(!primitive&&t[i]>horizon?0.:response(t[i],data,primitive));
+extern "C" __global__ void response_flat(
+    const double* t,
+    const double* data,
+    long long n,
+    int primitive,
+    double horizon,
+    double scale,
+    double* out
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n)
+        out[i] = scale * (!primitive && t[i] > horizon ? 0. : response(t[i], data, primitive));
 }
-__device__ double coupling(double beta,const double* v,int n,int side){
-    if(n==0)return 1.;if(n==1)return v[side];
-    int lo=0,hi=n-1;
-    while(lo+1<hi){int m=(lo+hi)/2;if(v[m]<=beta)lo=m;else hi=m;}
-    double f=fmin(1.,fmax(0.,(beta-v[lo])/(v[lo+1]-v[lo])));
-    return v[(side+1)*n+lo]*(1.-f)+v[(side+1)*n+lo+1]*f;
+__device__ double coupling(
+    double beta,
+    const double* v,
+    int n,
+    int side
+) {
+    if (n == 0)
+        return 1.;
+    if (n == 1)
+        return v[side];
+    int lo = 0, hi = n - 1;
+    while (lo + 1 < hi) {
+        int m = (lo + hi) / 2;
+        if (v[m] <= beta)
+            lo = m;
+        else
+            hi = m;
+    }
+    double f = fmin(1., fmax(0., (beta - v[lo]) / (v[lo + 1] - v[lo])));
+    return v[(side + 1) * n + lo] * (1. - f) + v[(side + 1) * n + lo + 1] * f;
 }
-extern "C" __global__ void response_array(const double* t,const double* w,const double* data,
-    const long long* layout,int ndim,long long n,int mode,double horizon,double scale,double* out){
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;if(i>=n)return;
-    long long rem=i,ti=0,wi=0;
-    for(int k=ndim-1;k>=0;k--){long long j=rem%layout[k];rem/=layout[k];ti+=j*layout[ndim+k];wi+=j*layout[2*ndim+k];}
-    out[i]=scale*(mode==2?averaged(t[ti],w[wi],data,horizon):(mode==0&&t[ti]>horizon?0.:response(t[ti],data,mode==1)));
+extern "C" __global__ void response_array(
+    const double* t,
+    const double* w,
+    const double* data,
+    const long long* layout,
+    int ndim,
+    long long n,
+    int mode,
+    double horizon,
+    double scale,
+    double* out
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n)
+        return;
+    long long rem = i, ti = 0, wi = 0;
+    for (int k = ndim - 1; k >= 0; k--) {
+        long long j = rem % layout[k];
+        rem /= layout[k];
+        ti += j * layout[ndim + k];
+        wi += j * layout[2 * ndim + k];
+    }
+    out[i] = scale * (mode == 2 ? averaged(t[ti], w[wi], data, horizon) : (mode == 0 && t[ti] > horizon ? 0. : response(t[ti], data, mode == 1)));
 }
-extern "C" __global__ void direct_response(const double* targets,const double* source,const double* widths,
-    const double* moments,const double* beta,const double* target_beta,const double* velocity,int nv,
-    int witness,const double* data,int nt,int ns,double scale,double horizon,int point,double* out){
-    int lane=threadIdx.x&31,i=blockIdx.x*(blockDim.x/32)+threadIdx.x/32;double sum=0.;
-    if(i<nt)for(int j=lane;j<ns;j+=32){double tau=targets[i]-source[j];
-        double r=point?(tau<=horizon?response(tau,data,false):0.):averaged(tau,widths[j],data,horizon);
-        sum+=r*moments[j]*coupling(beta[j],velocity,nv,0);}
-    for(int k=16;k;k/=2)sum+=__shfl_down_sync(0xffffffff,sum,k);
-    if(lane==0&&i<nt)out[i]+=sum*scale*(witness?coupling(target_beta[i],velocity,nv,1):1.);
+extern "C" __global__ void direct_response(
+    const double* targets,
+    const double* source,
+    const double* widths,
+    const double* moments,
+    const double* beta,
+    const double* target_beta,
+    const double* velocity,
+    int nv,
+    int witness,
+    const double* data,
+    int target_count,
+    int source_count,
+    double scale,
+    double horizon,
+    int point,
+    double* out
+) {
+    int lane = threadIdx.x & 31, i = blockIdx.x * (blockDim.x / 32) + threadIdx.x / 32;
+    double sum = 0.;
+    if (i < target_count)
+        for (int j = lane; j < source_count; j += 32) {
+            double tau = targets[i] - source[j];
+            double r = point ? (tau <= horizon ? response(tau, data, false) : 0.) : averaged(tau, widths[j], data, horizon);
+            sum += r * moments[j] * coupling(beta[j], velocity, nv, 0);
+        }
+    for (int k = 16; k; k /= 2)
+        sum += __shfl_down_sync(0xffffffff, sum, k);
+    if (lane == 0 && i < target_count)
+        out[i] += sum * scale * (witness ? coupling(target_beta[i], velocity, nv, 1) : 1.);
 }
-extern "C" __global__ void response_grid(const double* data,double step,double width,int offset,int n,
-    double horizon,double scale,int point,double* out){
-    int i=blockIdx.x*blockDim.x+threadIdx.x;if(i>=n)return;
-    double t=(i-offset)*step;
-    out[i]=scale*(point?(t<=horizon?response(t,data,false):0.):averaged(t,width,data,horizon));
+extern "C" __global__ void response_grid(
+    const double* data,
+    double step,
+    double width,
+    int offset,
+    int n,
+    double horizon,
+    double scale,
+    int point,
+    double* out
+) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= n)
+        return;
+    double t = (i - offset) * step;
+    out[i] = scale * (point ? (t <= horizon ? response(t, data, false) : 0.) : averaged(t, width, data, horizon));
 }
 '''

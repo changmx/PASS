@@ -11,13 +11,11 @@ import math
 from pathlib import Path
 
 
-CATALOG_PATH = Path(__file__).with_name("mass_catalog.json")
-
-
 @lru_cache(maxsize=1)
 def load_mass_catalog():
+    catalog_path = Path(__file__).with_name("mass_catalog.json")
     try:
-        return json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+        return json.loads(catalog_path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"无法读取随包提供的权威质量数据：{exc}") from exc
 
@@ -45,8 +43,7 @@ def special_mass(key):
 def ion_mass(a, z, q):
     if z is None:
         raise ValueError("精确离子质量需要质子数 Z；请填写 Z 或使用粒子搜索。")
-    direct = {(1, 1, 1): "proton", (2, 1, 1): "deuteron", (3, 1, 1): "triton",
-              (3, 2, 2): "helion", (4, 2, 2): "alpha particle"}.get((a, z, q))
+    direct = {(1, 1, 1): "proton", (2, 1, 1): "deuteron", (3, 1, 1): "triton", (3, 2, 2): "helion", (4, 2, 2): "alpha particle"}.get((a, z, q))
     if direct:
         return MassRecord(constant_mass(direct), "NIST CODATA 2022")
     catalog = load_mass_catalog()

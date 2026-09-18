@@ -56,13 +56,9 @@ class MainConfig(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def reject_obsolete_space_charge_switch(cls, value):
-        if isinstance(value, dict) and (
-            "is_space_charge" in value or "Is space charge" in value
-        ):
-            raise ValueError(
-                "the MainConfig space-charge switch was removed; use SpaceChargeConfig "
-                "and the top-level 'Space charge' block"
-            )
+        if isinstance(value, dict) and ("is_space_charge" in value or "Is space charge" in value):
+            raise ValueError("the MainConfig space-charge switch was removed; use SpaceChargeConfig "
+                             "and the top-level 'Space charge' block")
         return value
 
     # --- particle identity ---
@@ -72,12 +68,14 @@ class MainConfig(BaseModel):
         description="Arbitrary label for the beam species",
     )
     num_proton: int = Field(
-        default=1, ge=0,
+        default=1,
+        ge=0,
         alias="Number of Protons",
         description="Proton count per particle (0 for electron/positron)",
     )
     num_neutron: int = Field(
-        default=0, ge=0,
+        default=0,
+        ge=0,
         alias="Number of Neutrons",
         description="Neutron count per particle (>0 for ion)",
     )
@@ -96,14 +94,16 @@ class MainConfig(BaseModel):
         description="Transition gamma of the lattice",
     )
     circumference: float = Field(
-        default=569.1, gt=0,
+        default=569.1,
+        gt=0,
         alias="Circumference (m)",
         description="Ring circumference in meters",
     )
 
     # --- simulation control ---
     num_turns: int = Field(
-        default=100, ge=1,
+        default=100,
+        ge=1,
         alias="Number of turns",
         description="Total number of turns to simulate",
     )
@@ -118,7 +118,8 @@ class MainConfig(BaseModel):
         description="Storage precision for the six particle coordinates",
     )
     num_gpu: int = Field(
-        default=1, ge=1,
+        default=1,
+        ge=1,
         alias="Number of GPU devices",
         description="Number of GPU devices to use",
     )

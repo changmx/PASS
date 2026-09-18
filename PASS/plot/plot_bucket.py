@@ -1,7 +1,8 @@
+from typing import Literal
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import brentq
-from typing import Literal
 
 from PASS.tool.calc_bucket import resolve_kinematics, calc_bucket_width, calc_bucket_height, compute_bucket_data
 

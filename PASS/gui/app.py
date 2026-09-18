@@ -69,19 +69,36 @@ from PASS.gui.project import FILE_FIELDS, missing_files, read_json
 from PASS.gui.tools import ToolsPage
 from PASS.gui.parameters import Choice, IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
 from PASS.gui.structured import (
-    ApertureEditor, CoefficientsEditor, DevicesEditor, InternalSpaceChargeEditor,
-    ListEditor, NumericTable, ObjectEditor, ObjectListEditor, ParticleEditor, RangeEditor,
-    StructuredField, TurnsEditor, Column,
+    ApertureEditor,
+    CoefficientsEditor,
+    DevicesEditor,
+    InternalSpaceChargeEditor,
+    ListEditor,
+    NumericTable,
+    ObjectEditor,
+    ObjectListEditor,
+    ParticleEditor,
+    RangeEditor,
+    StructuredField,
+    TurnsEditor,
+    Column,
 )
-
 
 # These values are constrained by PASS command implementations.  Unknown
 # string fields deliberately remain text fields so newer schemas stay usable.
 ENUM_OPTIONS = {
     "Backend (gpu/cpu)": ("cpu", "gpu"),
     "Aperture type": (
-        "off", "default", "circle", "rectangle", "ellipse", "rectcircle",
-        "rectellipse", "racetrack", "octagon", "polygon",
+        "off",
+        "default",
+        "circle",
+        "rectangle",
+        "ellipse",
+        "rectcircle",
+        "rectellipse",
+        "racetrack",
+        "octagon",
+        "polygon",
     ),
     "Integrator": ("adaptive", "uniform", "yoshida4"),
     "Model": ("adaptive", "drift-kick-drift-exact", "mat-kick-mat"),
@@ -94,10 +111,8 @@ ENUM_OPTIONS = {
     "Particle Precision": ("float32", "float64"),
     "Longitudinal transfer": ("off", "drift", "matrix"),
     "Method": ("pic", "frozen", "quasi-frozen"),
-    "Solver": ("fd_dirichlet", "dst_dirichlet", "fft_free_space",
-               "gaussian_round_free_space", "gaussian_ellipse_free_space",
-               "uniform_round_free_space", "uniform_ellipse_free_space",
-               "parabolic_round_free_space", "parabolic_ellipse_free_space"),
+    "Solver": ("fd_dirichlet", "dst_dirichlet", "fft_free_space", "gaussian_round_free_space", "gaussian_ellipse_free_space",
+               "uniform_round_free_space", "uniform_ellipse_free_space", "parabolic_round_free_space", "parabolic_ellipse_free_space"),
     "Particle Deposition Method": ("CIC", "TSC"),
     "Coverage check": ("warn", "error", "off"),
     "Coverage mode": ("full-ring", "partial"),
@@ -339,7 +354,7 @@ class PlotCanvas(QWidget):
         self.update()
 
     def set_values(self, values: list[float]) -> None:
-        """Compatibility helper that uses the row index as the X coordinate."""
+        """Plot values against their row indices."""
         self.set_series(list(range(len(values))), values)
 
     def _plot_area(self):
@@ -527,10 +542,10 @@ class ConfigPage(QWidget):
         )
         add_section(
             "元件",
-            (
-                ("导入 MAD-X 元件…", "读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件并追加到 Sequence。", self.configure_madx_elements),
-            ) + tuple((command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
-                  for command in ("Marker", "Drift", "SBend", "Quadrupole", "Sextupole", "Octupole", "Multipole", "Solenoid", "Kicker", "Bump", "ElSeparator", "RFCavity", "Exciter")),
+            (("导入 MAD-X 元件…", "读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件并追加到 Sequence。", self.configure_madx_elements), ) + tuple(
+                (command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
+                for command in ("Marker", "Drift", "SBend", "Quadrupole", "Sextupole", "Octupole", "Multipole", "Solenoid", "Kicker", "Bump",
+                                "ElSeparator", "RFCavity", "Exciter")),
         )
         add_section(
             "监测与诊断",
@@ -707,9 +722,9 @@ class ConfigPage(QWidget):
         self.duplicate_button.clicked.connect(self.duplicate_selected)
         self.delete_button = button("删除此项")
         self.delete_button.clicked.connect(self.delete_selected)
-        for item, row, column in [(self.madx_preview_button, 1, 0), (self.madx_import_button, 1, 1),
-                                  (self.optics_preview_button, 2, 0), (self.optics_insert_button, 2, 1),
-                                  (self.insert_button, 3, 0), (self.duplicate_button, 4, 0), (self.delete_button, 4, 1)]:
+        for item, row, column in [(self.madx_preview_button, 1, 0), (self.madx_import_button, 1, 1), (self.optics_preview_button, 2, 0),
+                                  (self.optics_insert_button, 2, 1), (self.insert_button, 3, 0), (self.duplicate_button, 4, 0),
+                                  (self.delete_button, 4, 1)]:
             item.hide()
             actions.addWidget(item, row, column)
         form_layout.addLayout(actions)
@@ -833,11 +848,9 @@ class ConfigPage(QWidget):
         self._refresh_tree()
         self.changed.emit()
 
-
     def has_unsaved_changes(self) -> bool:
         """Return whether the current project has changes not written to disk."""
         return self._data_dirty or self._json_dirty or self._form_dirty
-
 
     def apply_json(self) -> bool:
         try:
@@ -865,8 +878,6 @@ class ConfigPage(QWidget):
         self._set_sync_status("JSON 修改已确认", "ok")
         return True
 
-
-
     def _mark_json_dirty(self, _position: int, removed: int, added: int) -> None:
         # Syntax highlighting changes formats and emits textChanged even when
         # the source is untouched. Only actual character edits dirty the JSON.
@@ -888,8 +899,8 @@ class ConfigPage(QWidget):
         if not isinstance(sequence, dict):
             return {}
         position = max(
-            (item["S (m)"] for item in sequence.values() if isinstance(item, dict)
-             and type(item.get("S (m)")) in (int, float) and abs(item["S (m)"]) < 1e290),
+            (item["S (m)"]
+             for item in sequence.values() if isinstance(item, dict) and type(item.get("S (m)")) in (int, float) and abs(item["S (m)"]) < 1e290),
             default=0.0,
         )
         if command == "Injection":
@@ -904,19 +915,29 @@ class ConfigPage(QWidget):
             template["bunch0"]["Emittance y (m'rad)"] = 1e-6
             return template
         if command == "Twiss":
-            from PASS.para.schema.twiss import TwissPoint
+            from PASS.para.schema.twiss import TwissItem
 
-            return TwissPoint(
-                s=position, s_previous=position,
-                alpha_x=0.0, alpha_y=0.0, beta_x=1.0, beta_y=1.0,
-                mu_x=0.0, mu_y=0.0, dx=0.0, dpx=0.0,
-                alpha_x_previous=0.0, alpha_y_previous=0.0,
-                beta_x_previous=1.0, beta_y_previous=1.0,
-                mu_x_previous=0.0, mu_y_previous=0.0,
+            return TwissItem(
+                s=position,
+                s_previous=position,
+                alpha_x=0.0,
+                alpha_y=0.0,
+                beta_x=1.0,
+                beta_y=1.0,
+                mu_x=0.0,
+                mu_y=0.0,
+                dx=0.0,
+                dpx=0.0,
+                alpha_x_previous=0.0,
+                alpha_y_previous=0.0,
+                beta_x_previous=1.0,
+                beta_y_previous=1.0,
+                mu_x_previous=0.0,
+                mu_y_previous=0.0,
             ).model_dump(by_alias=True)
         from PASS.para.schema.elements import ELEMENT_REGISTRY
-        from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
-        from PASS.para.schema.slicer import Slicer
+        from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
+        from PASS.para.schema.slicer import SlicerItem
 
         element = ELEMENT_REGISTRY.get(command.casefold())
         if element is not None:
@@ -927,35 +948,52 @@ class ConfigPage(QWidget):
                 required["Components"] = [{"Voltage (V)": 0.0, "Harmonic": 1, "Phase (rad)": 0.0}]
             if command == "Exciter":
                 required.update({
-                    "Mode": "single_fm", "Direction": "x", "Start turn": 0, "End turn": -1,
-                    "Voltage (V)": 0.0, "Gap (m)": 0.0, "Plate length (m)": 0.0,
-                    "Period (s)": 1.0, "FM dual frequency (Hz)": 0.0, "AM t ext (s)": 0.0,
-                    "AM r0 (m)": 0.0, "AM delta0": 0.0, "AM k const": 0.0,
+                    "Mode": "single_fm",
+                    "Direction": "x",
+                    "Start turn": 0,
+                    "End turn": -1,
+                    "Voltage (V)": 0.0,
+                    "Gap (m)": 0.0,
+                    "Plate length (m)": 0.0,
+                    "Period (s)": 1.0,
+                    "FM dual frequency (Hz)": 0.0,
+                    "AM t ext (s)": 0.0,
+                    "AM r0 (m)": 0.0,
+                    "AM delta0": 0.0,
+                    "AM k const": 0.0,
                 })
             return element(**required).model_dump(by_alias=True)
         monitor_models = {
-            "StatMonitor": (StatMonitor, {}),
-            "DistMonitor": (DistMonitor, {}),
-            "ParticleMonitor": (ParticleMonitor, {"Max tag": 1}),
+            "StatMonitor": (StatMonitorItem, {}),
+            "DistMonitor": (DistMonitorItem, {}),
+            "ParticleMonitor": (ParticleMonitorItem, {
+                "Max tag": 1
+            }),
             "PhaseAdvanceMonitor": (
-                PhaseAdvanceMonitor,
-                {"Beta x (m)": 1.0, "Beta y (m)": 1.0, "Alpha x": 0.0, "Alpha y": 0.0},
+                PhaseAdvanceMonitorItem,
+                {
+                    "Beta x (m)": 1.0,
+                    "Beta y (m)": 1.0,
+                    "Alpha x": 0.0,
+                    "Alpha y": 0.0
+                },
             ),
-            "Slicer": (Slicer, {"Slice set": "slices"}),
+            "Slicer": (SlicerItem, {
+                "Slice set": "slices"
+            }),
         }
         if command == "WakeField":
-            from PASS.para.schema.wake_field import WakeField
+            from PASS.para.schema.wake_field import WakeFieldItem
             configurations = self.data.get("Wake field", {}).get("Configurations", {})
             name = next(iter(configurations), None)
-            return model_draft(WakeField, {"S (m)": position, "Slice set": "wake",
-                                          "Configuration": name, "Groups": None if name else []})
+            return model_draft(WakeFieldItem, {"S (m)": position, "Slice set": "wake", "Configuration": name, "Groups": None if name else []})
         if command == "SpaceCharge":
-            from PASS.para.schema.space_charge import SpaceCharge
+            from PASS.para.schema.space_charge import SpaceChargeItem
 
             block = self.data.get("Space charge", {})
             configurations = block.get("Configurations", {}) if isinstance(block, dict) else {}
             configuration = next(iter(configurations), "default") if isinstance(configurations, dict) else "default"
-            return SpaceCharge(s=position, configuration=configuration).model_dump(by_alias=True)
+            return SpaceChargeItem(s=position, configuration=configuration).model_dump(by_alias=True)
         if command in monitor_models:
             model, required = monitor_models[command]
             return model(**({"S (m)": position} | required)).model_dump(by_alias=True)
@@ -980,10 +1018,6 @@ class ConfigPage(QWidget):
         elif command == "SpaceCharge":
             self.form_title.setText("空间电荷 · 插入计算点")
             self.form_hint.setText("引用共享计算配置；孔径默认与网格同尺寸，壁上和壁外粒子在求场前损失。Aperture type/value 在 FD/DST 中同时定义导体边界；DST 必须使用完整网格矩形，自由空间方法仅用孔径判断损失。")
-
-    def add_command(self, command: str) -> None:
-        """Compatibility alias for browsing a command template."""
-        self.select_command(command)
 
     def select_slicer(self, purpose):
         if not self._confirm_form_navigation():
@@ -1034,11 +1068,7 @@ class ConfigPage(QWidget):
         self._optics_mode = mode
         smooth = mode == "smooth"
         self.form_title.setText("生成平滑近似 Twiss 序列" if smooth else "插入单圈传输矩阵")
-        self.form_hint.setText(
-            "N 段传输生成 N＋1 个 Twiss 点，包含 0 和 C；仅生成光学传输，不插入空间电荷计算点。"
-            if smooth else
-            "只需一组周期光学参数。自动设置起点 S=0、终点 S=C，以及一圈的相位推进。"
-        )
+        self.form_hint.setText("N 段传输生成 N＋1 个 Twiss 点，包含 0 和 C；仅生成光学传输，不插入空间电荷计算点。" if smooth else "只需一组周期光学参数。自动设置起点 S=0、终点 S=C，以及一圈的相位推进。")
         self.form_apply.hide()
         self.optics_preview_button.show()
         self.optics_insert_button.show()
@@ -1065,8 +1095,10 @@ class ConfigPage(QWidget):
             add_field(self.form_layout, "num_segments", "一圈分段数 N", 100, "正整数；生成 N 段传输、N＋1 个 Twiss 点。")
         else:
             for key, label, default in (
-                ("alpha_x", "αx", 0.0), ("alpha_y", "αy", 0.0),
-                ("beta_x", "βx (m)", 1.0), ("beta_y", "βy (m)", 1.0),
+                ("alpha_x", "αx", 0.0),
+                ("alpha_y", "αy", 0.0),
+                ("beta_x", "βx (m)", 1.0),
+                ("beta_y", "βy (m)", 1.0),
             ):
                 add_field(self.form_layout, key, label, default)
         add_field(self.form_layout, "longitudinal_transfer", "纵向传输", "off")
@@ -1135,8 +1167,7 @@ class ConfigPage(QWidget):
         self.optics_insert_button.setEnabled(False)
         self._optics_table.hide()
         self._optics_details.hide()
-        self._optics_fields["muz"].setEnabled(
-            self._optics_fields["longitudinal_transfer"].currentText() == "matrix")
+        self._optics_fields["muz"].setEnabled(self._optics_fields["longitudinal_transfer"].currentText() == "matrix")
         try:
             parameters = self._read_optics_parameters()
         except (ValueError, OverflowError) as exc:
@@ -1145,12 +1176,10 @@ class ConfigPage(QWidget):
         bx, by = parameters.betas
         segments = parameters.num_segments if parameters.mode == "smooth" else 1
         points = segments + 1 if parameters.mode == "smooth" else 1
-        self._optics_summary.setText(
-            f"βx = {bx:.8g} m，βy = {by:.8g} m\n"
-            f"{segments} 段传输，{points} 个 Twiss 点；Δs = {parameters.circumference / segments:.8g} m\n"
-            f"总相位推进：Qx = {parameters.qx:.8g}，Qy = {parameters.qy:.8g}，Qs = {parameters.muz:.8g}\n"
-            "填写完成后点击“预览生成”。"
-        )
+        self._optics_summary.setText(f"βx = {bx:.8g} m，βy = {by:.8g} m\n"
+                                     f"{segments} 段传输，{points} 个 Twiss 点；Δs = {parameters.circumference / segments:.8g} m\n"
+                                     f"总相位推进：Qx = {parameters.qx:.8g}，Qy = {parameters.qy:.8g}，Qs = {parameters.muz:.8g}\n"
+                                     "填写完成后点击“预览生成”。")
 
     def preview_optics(self) -> None:
         if not self._optics_mode:
@@ -1200,36 +1229,39 @@ class ConfigPage(QWidget):
         self._optics_details.show()
         self._optics_table.setRowCount(min(100, len(items)))
         for row, (name, item) in enumerate(zip(names[:100], items[:100])):
-            values = [name, f"{item.s_previous:.8g}", f"{item.s:.8g}",
-                      f"{item.mu_x - item.mu_x_previous:.8g} / {item.mu_y - item.mu_y_previous:.8g}"]
+            values = [name, f"{item.s_previous:.8g}", f"{item.s:.8g}", f"{item.mu_x - item.mu_x_previous:.8g} / {item.mu_y - item.mu_y_previous:.8g}"]
             for column, value in enumerate(values):
                 self._optics_table.setItem(row, column, QTableWidgetItem(value))
         self._optics_table.show()
         self._optics_preview = {
-            "parameters": parameters, "items": items, "names": names,
-            "sequence": deepcopy(sequence), "circumference": self.data.get("Circumference (m)"),
+            "parameters": parameters,
+            "items": items,
+            "names": names,
+            "sequence": deepcopy(sequence),
+            "circumference": self.data.get("Circumference (m)"),
         }
-        self._optics_summary.setText(self._optics_summary.text().replace(
-            "填写完成后点击“预览生成”。", "预览已就绪，可核对下方结果并插入。"
-        ))
+        self._optics_summary.setText(self._optics_summary.text().replace("填写完成后点击“预览生成”。", "预览已就绪，可核对下方结果并插入。"))
         self.optics_insert_button.setEnabled(True)
 
     def insert_optics(self) -> None:
         preview = self._optics_preview
         if preview is None:
             return
-        if (self._json_dirty or self.data.get("Sequence") != preview["sequence"]
-                or self.data.get("Circumference (m)") != preview["circumference"]):
+        if (self._json_dirty or self.data.get("Sequence") != preview["sequence"] or self.data.get("Circumference (m)") != preview["circumference"]):
             self.optics_insert_button.setEnabled(False)
             self._optics_preview = None
             QMessageBox.warning(self, "预览已失效", "项目已发生变化，请重新预览后插入。")
             return
         sequence = self.data["Sequence"]
-        sequence.update({name: item.model_dump(by_alias=True)
-                         for name, item in zip(preview["names"], preview["items"])})
+        sequence.update({name: item.model_dump(by_alias=True) for name, item in zip(preview["names"], preview["items"])})
         self.data["Circumference (m)"] = preview["parameters"].circumference
-        self.recipes.append({"id": uuid4().hex, "kind": "optics", "pass_version": __version__,
-                             "parameters": preview["parameters"].model_dump(), "generated_names": preview["names"]})
+        self.recipes.append({
+            "id": uuid4().hex,
+            "kind": "optics",
+            "pass_version": __version__,
+            "parameters": preview["parameters"].model_dump(),
+            "generated_names": preview["names"]
+        })
         count = len(preview["items"])
         self._form_dirty = False
         self._data_dirty = True
@@ -1338,8 +1370,7 @@ class ConfigPage(QWidget):
         interpolation = self._madx_fields["sampling"].currentText() == "等间距插值"
         self._madx_fields["merge_drift"].setEnabled(not interpolation)
         self._madx_fields["num_segments"].setEnabled(interpolation)
-        self._madx_fields["grid_summary"].setText(
-            "五次 Hermite（相位约束）；Δs=C/N。预览后显示实际间距与点数。")
+        self._madx_fields["grid_summary"].setText("五次 Hermite（相位约束）；Δs=C/N。预览后显示实际间距与点数。")
         self._madx_preview = self._madx_preview_signature = None
 
     def _add_madx_path_field(self, key: str, title: str, required: bool = False, directory: bool = False) -> None:
@@ -1364,7 +1395,10 @@ class ConfigPage(QWidget):
     @staticmethod
     def _browse_madx_file(field: QLineEdit, title: str) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            field.window(), title, "", "MAD-X Twiss/TFS (*.tfs *.TFS *.dat *.DAT *.madx *.MADX);;All files (*)",
+            field.window(),
+            title,
+            "",
+            "MAD-X Twiss/TFS (*.tfs *.TFS *.dat *.DAT *.madx *.MADX);;All files (*)",
         )
         if path:
             field.setText(path)
@@ -1387,6 +1421,7 @@ class ConfigPage(QWidget):
 
     def _madx_import_signature(self) -> tuple:
         fields = self._madx_fields
+
         def value(key: str, default: object = "") -> object:
             field = fields.get(key)
             if isinstance(field, QLineEdit):
@@ -1405,13 +1440,21 @@ class ConfigPage(QWidget):
                 stat = path.stat()
                 return str(path), stat.st_size, stat.st_mtime_ns
             except OSError:
-                return (str(path),)
+                return (str(path), )
 
         return (
-            value("source_kind"), file_signature("Twiss TFS 文件"), file_signature("误差 TFS 文件"),
-            value("merge_drift"), value("field_errors"), value("longitudinal_transfer"),
-            value("muz"), value("dqx"), value("dqy"), value("patterns"),
-            value("sampling"), value("num_segments"),
+            value("source_kind"),
+            file_signature("Twiss TFS 文件"),
+            file_signature("误差 TFS 文件"),
+            value("merge_drift"),
+            value("field_errors"),
+            value("longitudinal_transfer"),
+            value("muz"),
+            value("dqx"),
+            value("dqy"),
+            value("patterns"),
+            value("sampling"),
+            value("num_segments"),
         )
 
     def _read_madx_import(self) -> tuple[list, list[str], float] | None:
@@ -1454,7 +1497,7 @@ class ConfigPage(QWidget):
                         raise ValueError("一圈分段数 N 必须是正整数。") from exc
                     if segments < 1:
                         raise ValueError("一圈分段数 N 必须是正整数。")
-                    options = {"num_interp_slice": segments+1}
+                    options = {"num_interp_slice": segments + 1}
                     reader = read_madx_twiss_interpolated
                 items, names, circumference = reader(
                     source,
@@ -1470,11 +1513,10 @@ class ConfigPage(QWidget):
                 if interpolation:
                     twiss = [item for item in items if item.command == "Twiss"]
                     positions = len({item.s for item in twiss})
-                    self._madx_fields["grid_summary"].setText(
-                        f"五次 Hermite（相位约束）\nΔs = {circumference/segments:.10g} m；"
-                        f"基础点 {segments+1}，附加位置 {positions-segments-1}，Twiss command {len(twiss)}\n"
-                        f"累计相位差：Qx = {twiss[-1].mu_x-twiss[0].mu_x_previous:.12g}，"
-                        f"Qy = {twiss[-1].mu_y-twiss[0].mu_y_previous:.12g}")
+                    self._madx_fields["grid_summary"].setText(f"五次 Hermite（相位约束）\nΔs = {circumference/segments:.10g} m；"
+                                                              f"基础点 {segments+1}，附加位置 {positions-segments-1}，Twiss command {len(twiss)}\n"
+                                                              f"累计相位差：Qx = {twiss[-1].mu_x-twiss[0].mu_x_previous:.12g}，"
+                                                              f"Qy = {twiss[-1].mu_y-twiss[0].mu_y_previous:.12g}")
         except (OSError, ValueError, KeyError, RuntimeError) as exc:
             QMessageBox.critical(self, "导入失败", str(exc))
             return None
@@ -1542,9 +1584,7 @@ class ConfigPage(QWidget):
 
     @staticmethod
     def _format_command_counts(counts: Counter[str]) -> str:
-        return "\n".join(
-            f"{command}：{count}" for command, count in sorted(counts.items())
-        ) or "（无项目）"
+        return "\n".join(f"{command}：{count}" for command, count in sorted(counts.items())) or "（无项目）"
 
     def preview_madx_import(self) -> None:
         """Read MAD-X output and show a non-mutating import summary."""
@@ -1561,10 +1601,8 @@ class ConfigPage(QWidget):
         merge = self._madx_fields["merge_drift"].currentText() == "是"
         sampling = self._madx_fields.get("sampling")
         interpolation = isinstance(sampling, QComboBox) and sampling.currentText() == "等间距插值"
-        sampling_summary = (
-            "采样方式：等间距插值（替换原始 Twiss 点）\n"
-            + self._madx_fields["grid_summary"].text() + "\n"
-            if interpolation else f"合并连续 Drift：{'是' if merge else '否'}\n")
+        sampling_summary = ("采样方式：等间距插值（替换原始 Twiss 点）\n" + self._madx_fields["grid_summary"].text() +
+                            "\n" if interpolation else f"合并连续 Drift：{'是' if merge else '否'}\n")
         preview_names = ", ".join(str(name) for name in names[:8])
         if len(names) > 8:
             preview_names += f" 等 {len(names)} 项"
@@ -1576,17 +1614,15 @@ class ConfigPage(QWidget):
             source_summary = self._format_madx_type_counts(keyword_counts)
             source_heading = "来源元件类型（TFS 合并前）："
         command_summary = self._format_command_counts(self._command_counts(items))
-        text = (
-            f"文件：{Path(source).name}\n"
-            f"类型：MAD-X {source_kind}\n"
-            f"最终导入项目：{len(items)}\n"
-            f"环周长：{circumference:.6g} m\n"
-            f"{sampling_summary}"
-            f"\n{source_heading}\n{source_summary}\n"
-            f"\n最终 PASS command：\n{command_summary}\n"
-            f"\n项目示例：{preview_names or '（无项目）'}\n\n"
-            "预览不会修改当前配置；点击“导入到 Sequence”后才会写入。"
-        )
+        text = (f"文件：{Path(source).name}\n"
+                f"类型：MAD-X {source_kind}\n"
+                f"最终导入项目：{len(items)}\n"
+                f"环周长：{circumference:.6g} m\n"
+                f"{sampling_summary}"
+                f"\n{source_heading}\n{source_summary}\n"
+                f"\n最终 PASS command：\n{command_summary}\n"
+                f"\n项目示例：{preview_names or '（无项目）'}\n\n"
+                "预览不会修改当前配置；点击“导入到 Sequence”后才会写入。")
         QMessageBox.information(self, "MAD-X 导入预览", text)
 
     def import_madx_twiss(self) -> None:
@@ -1628,8 +1664,14 @@ class ConfigPage(QWidget):
                 parameters[key] = field.isChecked()
             elif isinstance(field, str):
                 parameters[key] = field
-        self.recipes.append({"id": uuid4().hex, "kind": "madx", "pass_version": __version__,
-                             "parameters": parameters, "source_files": sources, "generated_names": generated_names})
+        self.recipes.append({
+            "id": uuid4().hex,
+            "kind": "madx",
+            "pass_version": __version__,
+            "parameters": parameters,
+            "source_files": sources,
+            "generated_names": generated_names
+        })
         self._form_dirty = False
         self._sync_editor()
         self._data_dirty = True
@@ -1677,8 +1719,7 @@ class ConfigPage(QWidget):
         self._selected_path = ("__root__", "Wake field")
         self.form_title.setText("尾场 · 全局配置")
         self.form_hint.setText("共享模型、求解器、历史长度和网格参数；位置、切片集及单点开关在尾场点设置。每个点的历史状态独立。旧内联参数按点收集为独立命名配置。新配置需添加求解组和分量，填写实际物理参数。")
-        self._wake_configuration_editor = WakeConfigurationEditor(self._selected_mapping,
-            self.data.get("Sequence", {}), self.base_dir)
+        self._wake_configuration_editor = WakeConfigurationEditor(self._selected_mapping, self.data.get("Sequence", {}), self.base_dir)
         self._track_field(self._wake_configuration_editor)
         self.form_layout.addRow(self._wake_configuration_editor)
         self.form_apply.setEnabled(True)
@@ -1700,7 +1741,9 @@ class ConfigPage(QWidget):
 
             self.data["Space charge"] = SpaceChargeConfig(
                 enabled=True,
-                configurations={"default": SpaceChargeResourceConfig(deposition_method="CIC")},
+                configurations={
+                    "default": SpaceChargeResourceConfig(deposition_method="CIC")
+                },
             ).model_dump(by_alias=True)
         self._sync_editor()
         self._data_dirty = True
@@ -1722,9 +1765,7 @@ class ConfigPage(QWidget):
         self._selected_mapping = block
         self._selected_path = ("__root__", "Space charge")
         self.form_title.setText("空间电荷 · 全局配置")
-        self.form_hint.setText(
-            "共享切片集、网格和场模型，并设置覆盖检查；显式计算点独立设置孔径，元件内部 SC 使用元件孔径。"
-        )
+        self.form_hint.setText("共享切片集、网格和场模型，并设置覆盖检查；显式计算点独立设置孔径，元件内部 SC 使用元件孔径。")
 
         enabled = QCheckBox("启用空间电荷模块")
         enabled.setObjectName("booleanField")
@@ -1733,8 +1774,7 @@ class ConfigPage(QWidget):
         self._track_field(enabled)
         self._space_charge_enabled_field = enabled
         self.form_layout.addRow(self._field_label("Enabled", False), enabled)
-        for key, default in (("Coverage check", "warn"), ("Coverage mode", "full-ring"),
-                             ("Expected SC length (m)", None)):
+        for key, default in (("Coverage check", "warn"), ("Coverage mode", "full-ring"), ("Expected SC length (m)", None)):
             value = block.get(key, default)
             field = self._make_field(key, value)
             self._space_charge_coverage_fields[key] = field
@@ -1793,8 +1833,7 @@ class ConfigPage(QWidget):
             resource_form.setVerticalSpacing(6)
             self._space_charge_extent_mode = PropertyComboBox()
             self._space_charge_extent_mode.addItems(["全宽", "半宽"])
-            self._space_charge_extent_mode.setCurrentText(
-                "半宽" if resource.get("Grid Half Width X (m)") is not None else "全宽")
+            self._space_charge_extent_mode.setCurrentText("半宽" if resource.get("Grid Half Width X (m)") is not None else "全宽")
             self._track_field(self._space_charge_extent_mode)
             resource_form.addRow("网格范围输入", self._space_charge_extent_mode)
             for key, default_value in self._default_space_charge_resource().items():
@@ -1839,12 +1878,9 @@ class ConfigPage(QWidget):
         """Limit solver choices and expose only inputs used by the chosen method."""
         method = self._space_charge_fields["Method"].currentText()
         solver_field = self._space_charge_fields["Solver"]
-        choices = (
-            ("fft_free_space", "fd_dirichlet", "dst_dirichlet") if method == "pic" else
-            ("gaussian_round_free_space", "gaussian_ellipse_free_space",
-             "uniform_round_free_space", "uniform_ellipse_free_space",
-             "parabolic_round_free_space", "parabolic_ellipse_free_space")
-        )
+        choices = (("fft_free_space", "fd_dirichlet", "dst_dirichlet") if method == "pic" else
+                   ("gaussian_round_free_space", "gaussian_ellipse_free_space", "uniform_round_free_space", "uniform_ellipse_free_space",
+                    "parabolic_round_free_space", "parabolic_ellipse_free_space"))
         solver = solver_field.currentText()
         if solver not in choices:
             solver = "fd_dirichlet" if method == "pic" else choices[0]
@@ -1930,19 +1966,16 @@ class ConfigPage(QWidget):
             if not isinstance(original, dict):
                 raise ValueError(f"Space charge.Configurations.{old_name} 必须是对象。")
             resource = {
-                key: self._read_field_value(key, field, original.get(key))
-                if key in self._space_charge_active_fields else None
+                key: self._read_field_value(key, field, original.get(key)) if key in self._space_charge_active_fields else None
                 for key, field in self._space_charge_fields.items()
             }
             canonical_resource = SpaceChargeResourceConfig.model_validate(resource).model_dump(by_alias=True)
             candidate_configurations.pop(old_name, None)
             candidate_configurations[new_name] = canonical_resource
         enabled = self._space_charge_enabled_field.isChecked()
-        coverage = {key: self._read_field_value(key, widget, block.get(key))
-                    for key, widget in self._space_charge_coverage_fields.items()}
+        coverage = {key: self._read_field_value(key, widget, block.get(key)) for key, widget in self._space_charge_coverage_fields.items()}
         canonical_coverage = SpaceChargeConfig.model_validate({"Enabled": enabled, **coverage}).model_dump(by_alias=True)
-        candidate = {"Enabled": enabled, "Configurations": candidate_configurations,
-                     **{key: canonical_coverage[key] for key in coverage}}
+        candidate = {"Enabled": enabled, "Configurations": candidate_configurations, **{key: canonical_coverage[key] for key in coverage}}
         if enabled:
             SpaceChargeConfig.model_validate(candidate)
         block.clear()
@@ -1951,11 +1984,7 @@ class ConfigPage(QWidget):
             sequence = self.data.get("Sequence")
             if isinstance(sequence, dict):
                 for item in sequence.values():
-                    if (
-                        isinstance(item, dict)
-                        and item.get("Command") == "SpaceCharge"
-                        and item.get("Configuration") == old_name
-                    ):
+                    if (isinstance(item, dict) and item.get("Command") == "SpaceCharge" and item.get("Configuration") == old_name):
                         item["Configuration"] = new_name
                     internal = item.get("Space charge") if isinstance(item, dict) else None
                     if isinstance(internal, dict) and internal.get("Configuration") == old_name:
@@ -2031,14 +2060,8 @@ class ConfigPage(QWidget):
             return
         sequence = self.data.get("Sequence")
         references = [
-            str(command_name)
-            for command_name, item in sequence.items()
-            if (
-                isinstance(sequence, dict)
-                and isinstance(item, dict)
-                and item.get("Command") == "SpaceCharge"
-                and item.get("Configuration") == name
-            )
+            str(command_name) for command_name, item in sequence.items()
+            if (isinstance(sequence, dict) and isinstance(item, dict) and item.get("Command") == "SpaceCharge" and item.get("Configuration") == name)
         ] if isinstance(sequence, dict) else []
         replacement = None
         alternatives = [configuration_name for configuration_name in configurations if configuration_name != name]
@@ -2065,9 +2088,9 @@ class ConfigPage(QWidget):
             if not accepted:
                 return
             if QMessageBox.question(
-                self,
-                "确认替换并删除",
-                f"将 {len(references)} 个计算点改为引用 {replacement}，然后删除 {name}。是否继续？",
+                    self,
+                    "确认替换并删除",
+                    f"将 {len(references)} 个计算点改为引用 {replacement}，然后删除 {name}。是否继续？",
             ) != QMessageBox.Yes:
                 return
         elif QMessageBox.question(self, "删除空间电荷配置", f"确定删除配置 {name}？") != QMessageBox.Yes:
@@ -2135,12 +2158,9 @@ class ConfigPage(QWidget):
         label = "全面检测" if report.full else "参数预检"
         if report.errors or report.warnings:
             state = "error" if report.errors else "warning"
-            self._set_validation_status(
-                f"{label}：{len(report.errors)} 错误 · {len(report.warnings)} 警告", state, report.text())
+            self._set_validation_status(f"{label}：{len(report.errors)} 错误 · {len(report.warnings)} 警告", state, report.text())
         else:
-            self._set_validation_status(
-                "全面检测通过" if report.full else "参数预检通过", "ok",
-                report.text() + ("" if report.full else "\n点击校验可进一步检查全部输入文件内容。"))
+            self._set_validation_status("全面检测通过" if report.full else "参数预检通过", "ok", report.text() + ("" if report.full else "\n点击校验可进一步检查全部输入文件内容。"))
         return self._validation_issues
 
     def _validate_configuration(self, *, full=False) -> list[str]:
@@ -2253,9 +2273,7 @@ class ConfigPage(QWidget):
         self.sequence_command_filter.clear()
         self.sequence_command_filter.addItem("全部 Command")
         self.sequence_command_filter.addItems(commands)
-        self.sequence_command_filter.setCurrentText(
-            selected_command if selected_command in commands else "全部 Command"
-        )
+        self.sequence_command_filter.setCurrentText(selected_command if selected_command in commands else "全部 Command")
         self.sequence_command_filter.blockSignals(False)
         self.sequence_table.setRowCount(len(rows))
         self.sequence_count.setText(f"{len(rows):,} 项")
@@ -2372,7 +2390,7 @@ class ConfigPage(QWidget):
             ("模拟控制", ("Number of turns", "Particle Precision")),
             ("计算后端", ("Backend (gpu/cpu)", "Number of GPU devices", "Device Id")),
             ("输出与文件", ("Output directory", "Is plot figure")),
-            ("物理模型开关", ("Is beam-beam",)),
+            ("物理模型开关", ("Is beam-beam", )),
         )
         shown = set()
         for section_name, keys in sections:
@@ -2468,12 +2486,12 @@ class ConfigPage(QWidget):
         special = {
             "ElSeparator": [("硬件参数", ("V (V)", "VL (V m)", "Gap (m)", "Septum position (m)", "Septum thickness (m)", "Tilt (rad)"))],
             "Bump": [("脉冲波形与时钟", ("Waveform file", "Time mode", "Time offset (s)"))],
-            "WakeField": [("尾场求解组", ("Groups",))],
+            "WakeField": [("尾场求解组", ("Groups", ))],
             "Exciter": [
                 ("激励频率", ("Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)", "Period (s)", "FM dual frequency (Hz)")),
                 ("幅度调制", ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const")),
             ],
-            "RFCavity": [("射频波形", ("Components",))],
+            "RFCavity": [("射频波形", ("Components", ))],
             "Slicer": [("切片坐标与范围", ("Coordinate", "Periodic", "Max phase slip", "Z range mode", "Explicit"))],
             "PhaseAdvanceMonitor": [
                 ("参考光学", ("Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Dx (m)", "Dpx", "X CO (m)", "PX CO", "Y CO (m)", "PY CO")),
@@ -2486,7 +2504,7 @@ class ConfigPage(QWidget):
             ("孔径", ("Aperture type", "Aperture value", "Dp aperture")),
             ("Ramping", tuple(key for key in values if "ramping" in key.casefold())),
             ("诊断输出", ("Save field", "Save potential", "Save density", "Save turns")),
-            ("内部空间电荷", ("Space charge",)),
+            ("内部空间电荷", ("Space charge", )),
         ]
         sections = [(title, [key for key in keys if key in values]) for title, keys in definitions]
         grouped = {key for _, keys in sections for key in keys}
@@ -2613,9 +2631,8 @@ class ConfigPage(QWidget):
             value = deepcopy(self._selected_mapping)
             if value.get("Command") == "ElSeparator":
                 # A geometry preview should not require unrelated tracking inputs.
-                keys = ("Gap (m)", "Septum position (m)", "Septum thickness (m)",
-                        "Tilt (rad)", "V (V)", "VL (V m)", "Length (m)",
-                        "Aperture type", "Aperture value")
+                keys = ("Gap (m)", "Septum position (m)", "Septum thickness (m)", "Tilt (rad)", "V (V)", "VL (V m)", "Length (m)", "Aperture type",
+                        "Aperture value")
                 for key in keys:
                     field = self._form_fields[key]
                     if key in {"V (V)", "VL (V m)"} and not field.text().strip():
@@ -2650,7 +2667,11 @@ class ConfigPage(QWidget):
             QMessageBox.warning(self, "转换失败", str(exc))
 
     def _populate_injection_form(
-        self, title: str, target: dict, pending: bool = False, name_value: str | None = None,
+        self,
+        title: str,
+        target: dict,
+        pending: bool = False,
+        name_value: str | None = None,
     ) -> None:
         """Render Injection and its bunches as structured controls, not raw JSON."""
         requested_bunch = self._active_bunch_key
@@ -2792,8 +2813,8 @@ class ConfigPage(QWidget):
             emit_x=1e-6,
             emit_y=1e-6,
         ).model_dump(by_alias=True)
-        source = next((b for k, b in target.items() if k != f"bunch{index}" and isinstance(b, dict)
-                       and b.get("Number of Macro Particles", 0) > 0), None)
+        source = next((b for k, b in target.items() if k != f"bunch{index}" and isinstance(b, dict) and b.get("Number of Macro Particles", 0) > 0),
+                      None)
         if source:
             # Reuse a known integer pair to preserve the exact fixed weight.
             for key in ("Number of Macro Particles", "Number of Real Particles"):
@@ -2896,17 +2917,20 @@ class ConfigPage(QWidget):
         command = getattr(self, "_field_context", {}).get("Command")
         if command == "WakeField":
             reference, groups = fields["Configuration"], fields["Groups"]
+
             def wake_mode():
                 inline = reference.currentData() is None
                 groups.setEnabled(inline)
                 # Hide the group box as well, avoiding an empty tall section.
                 groups.parentWidget().setVisible(inline)
+
             reference.currentIndexChanged.connect(wake_mode)
             wake_mode()
         if command == "Slicer":
             coordinate, periodic = fields["Coordinate"], fields["Periodic"]
             periodic.setEnabled(False)
             periodic.setToolTip("兼容字段，由 Coordinate 自动决定；arrival_phase 为 true。")
+
             def slice_mode(changed=False):
                 arrival = coordinate.currentText() == "arrival_phase"
                 periodic.blockSignals(True)
@@ -2922,18 +2946,21 @@ class ConfigPage(QWidget):
                 mode.setEnabled(not arrival)
                 explicit.lower.setReadOnly(arrival)
                 explicit.upper.setReadOnly(arrival)
+
             coordinate.currentTextChanged.connect(lambda: slice_mode(True))
             slice_mode()
         if command in {"RFCavity", "Exciter"} and "Length (m)" in fields:
             fields["Length (m)"].setReadOnly(True)
             fields["Length (m)"].setToolTip("此元件为零长度踢；非零旧输入需在 JSON 中修正。")
         if command == "SpaceCharge":
+
             def output_mode():
                 resource = self.data.get("Space charge", {}).get("Configurations", {}).get(fields["Configuration"].currentText(), {})
                 potential = fields["Save potential"]
                 pic = resource.get("Method", "pic") == "pic"
                 potential.setEnabled(pic or potential.isChecked())
                 potential.setToolTip("解析求解器不提供电势；已有选项须取消，可改为保存电场或密度。" if not pic else "保存网格电势")
+
             fields["Configuration"].currentTextChanged.connect(output_mode)
             fields["Save potential"].toggled.connect(output_mode)
             output_mode()
@@ -2949,6 +2976,7 @@ class ConfigPage(QWidget):
             selector.setCurrentText("tune" if self._field_context.get("Excite tune") is not None else "frequency")
             self.form_layout.insertRow(0, "频率输入方式", selector)
             self._exciter_frequency_mode = selector
+
             def excitation_mode():
                 tune = selector.currentText() == "tune"
                 for key in ("Excite tune", "Sweep tune"):
@@ -2959,6 +2987,7 @@ class ConfigPage(QWidget):
                 fields["FM dual frequency (Hz)"].setEnabled(fields["Mode"].currentText().startswith("dual"))
                 for key in ("AM t ext (s)", "AM r0 (m)", "AM delta0", "AM k const"):
                     fields[key].setEnabled(am)
+
             selector.currentTextChanged.connect(excitation_mode)
             selector.currentTextChanged.connect(self._mark_form_dirty)
             fields["Mode"].currentTextChanged.connect(excitation_mode)
@@ -2969,8 +2998,10 @@ class ConfigPage(QWidget):
         if isinstance(devices, DevicesEditor) and isinstance(count, QLineEdit):
             count.setReadOnly(True)
             count.setToolTip("由 GPU 设备列表自动计算。")
+
             def sync_devices():
                 count.setText(str(devices.table.rowCount()))
+
             devices.changed.connect(sync_devices)
             if isinstance(backend, QComboBox):
                 devices.setEnabled(backend.currentText() == "gpu")
@@ -2990,8 +3021,10 @@ class ConfigPage(QWidget):
                 active = enabled and (from_file if key in {"File Path", "File Time Kind"} else not from_file if key.startswith("Offset ") else True)
                 fields[(offset, key)].setEnabled(active)
         try:
-            values = {key: int(fields[(key, None)].text()) for key in
-                      ("Total Injection Turns", "Injection Interval", "Number of Macro Particles", "Number of Real Particles")}
+            values = {
+                key: int(fields[(key, None)].text())
+                for key in ("Total Injection Turns", "Injection Interval", "Number of Macro Particles", "Number of Real Particles")
+            }
             turns, interval = values["Total Injection Turns"], values["Injection Interval"]
             if turns < 1 or interval < 1:
                 raise ValueError()
@@ -3020,11 +3053,24 @@ class ConfigPage(QWidget):
             return False
 
     def _field_label(self, key: str, value: object) -> QLabel:
-        short = {"S (m)": "位置 s / m", "SC length (m)": "作用长度 / m", "SC start (m)": "区间起点 / m",
-                 "Configuration": "计算配置", "Aperture type": "孔径类型", "Aperture value": "孔径参数 / m",
-                 "Save field": "保存电场", "Save potential": "保存电势", "Save density": "保存电荷密度", "Save turns": "保存圈数",
-                 "Turn ranges": "分析圈数范围", "Insert Particle Coordinate": "手动插入粒子", "Dp aperture": "动量接受范围",
-                 "Device Id": "GPU 设备列表", "Explicit": "显式切片范围", "Space charge": "内部空间电荷"}
+        short = {
+            "S (m)": "位置 s / m",
+            "SC length (m)": "作用长度 / m",
+            "SC start (m)": "区间起点 / m",
+            "Configuration": "计算配置",
+            "Aperture type": "孔径类型",
+            "Aperture value": "孔径参数 / m",
+            "Save field": "保存电场",
+            "Save potential": "保存电势",
+            "Save density": "保存电荷密度",
+            "Save turns": "保存圈数",
+            "Turn ranges": "分析圈数范围",
+            "Insert Particle Coordinate": "手动插入粒子",
+            "Dp aperture": "动量接受范围",
+            "Device Id": "GPU 设备列表",
+            "Explicit": "显式切片范围",
+            "Space charge": "内部空间电荷"
+        }
         hardware = {}
         if getattr(self, "_field_context", {}).get("Command") == "ElSeparator":
             hardware = {
@@ -3072,19 +3118,30 @@ class ConfigPage(QWidget):
             from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig
             from PASS.para.schema.elements import ELEMENT_REGISTRY
             from PASS.para.schema.main import MainConfig, TimingConfig
-            from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
+            from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
             from PASS.para.schema.space_charge import (
-                SpaceCharge,
+                SpaceChargeItem,
                 SpaceChargeConfig,
                 SpaceChargeResourceConfig,
             )
-            from PASS.para.schema.slicer import Slicer
-            from PASS.para.schema.twiss import TwissPoint
+            from PASS.para.schema.slicer import SlicerItem
+            from PASS.para.schema.twiss import TwissItem
 
             models = [
-                MainConfig, TimingConfig, BunchConfig, InjectionItem, OffsetConfig,
-                SpaceChargeConfig, SpaceChargeResourceConfig, SpaceCharge, Slicer, TwissPoint,
-                StatMonitor, DistMonitor, ParticleMonitor, PhaseAdvanceMonitor,
+                MainConfig,
+                TimingConfig,
+                BunchConfig,
+                InjectionItem,
+                OffsetConfig,
+                SpaceChargeConfig,
+                SpaceChargeResourceConfig,
+                SpaceChargeItem,
+                SlicerItem,
+                TwissItem,
+                StatMonitorItem,
+                DistMonitorItem,
+                ParticleMonitorItem,
+                PhaseAdvanceMonitorItem,
                 *ELEMENT_REGISTRY.values(),
             ]
             for model in models:
@@ -3129,13 +3186,12 @@ class ConfigPage(QWidget):
             block = self.data.get("Space charge", {})
             names = block.get("Configurations", {}) if isinstance(block, dict) else {}
             structured = InternalSpaceChargeEditor(value, names, total_turns)
-        elif (key == "Components" and isinstance(value, list)
-              and getattr(self, "_field_context", {}).get("Command") == "RFCavity"):
+        elif (key == "Components" and isinstance(value, list) and getattr(self, "_field_context", {}).get("Command") == "RFCavity"):
             from PASS.para.schema.rf import RFComponent
             structured = make_editor(list[RFComponent], value, key, self.base_dir)
         elif isinstance(value, list):
-            structured = (NumericTable([Column(f"第 {i + 1} 列") for i in range(len(value[0]))], value)
-                          if value and isinstance(value[0], list) else ListEditor(value))
+            structured = (NumericTable([Column(f"第 {i + 1} 列")
+                                        for i in range(len(value[0]))], value) if value and isinstance(value[0], list) else ListEditor(value))
         elif isinstance(value, dict):
             structured = ObjectEditor(value, self._make_field, self._read_field_value)
         if structured is not None:
@@ -3155,8 +3211,13 @@ class ConfigPage(QWidget):
             return field
         if key == "Slice set" and getattr(self, "_field_context", {}).get("Command") != "Slicer":
             field = PropertyComboBox()
-            names = list(dict.fromkeys([str(value or ""), *[item.get("Slice set", "") for item in self.data.get("Sequence", {}).values()
-                        if isinstance(item, dict) and item.get("Command") == "Slicer"]]))
+            names = list(
+                dict.fromkeys([
+                    str(value or ""), *[
+                        item.get("Slice set", "")
+                        for item in self.data.get("Sequence", {}).values() if isinstance(item, dict) and item.get("Command") == "Slicer"
+                    ]
+                ]))
             field.addItems(names)
             field.setEditable(True)
             field.setCurrentText(str(value or ""))
@@ -3204,15 +3265,17 @@ class ConfigPage(QWidget):
             choose = field.addAction(icon("folder", self.palette().color(QPalette.Text).name()), QLineEdit.TrailingPosition)
             choose.setProperty("themeIcon", "folder")
             choose.setToolTip("选择输入文件")
+
             def browse():
                 path, _ = QFileDialog.getOpenFileName(self, key, str(self.base_dir), "All files (*)")
                 if path:
                     field.setText(path)
+
             choose.triggered.connect(browse)
         if spec is not None:
             annotation = bare(spec.annotation)
             field.setProperty("nullable", nullable(annotation))
-            types = tuple(bare(t) for t in get_args(annotation)) if nullable(annotation) else (annotation,)
+            types = tuple(bare(t) for t in get_args(annotation)) if nullable(annotation) else (annotation, )
             kind = next((t.__name__ for t in types if t in (int, float, str)), None)
             field.setProperty("valueKind", kind)
         if (isinstance(value, int) and not isinstance(value, bool)) or field.property("valueKind") == "int":
@@ -3306,7 +3369,8 @@ class ConfigPage(QWidget):
             if target.get("Command") == "WakeField" and key == "Groups" and self._form_fields["Configuration"].currentData() is not None:
                 target.pop("Groups", None)
                 continue
-            if target.get("Command") == "Exciter" and key in {"Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)"} and not field.isEnabled():
+            if target.get("Command") == "Exciter" and key in {"Excite tune", "Sweep tune", "Central frequency (Hz)", "Sweep width (Hz)"
+                                                              } and not field.isEnabled():
                 target[key] = None
                 continue
             target[key] = self._read_field_value(str(key), field, target.get(key, self._field_defaults.get(key)))
@@ -3332,8 +3396,12 @@ class ConfigPage(QWidget):
         if target.get("Command") == "Injection":
             from PASS.para.schema.bunch import InjectionItem
             keys = self._injection_keys(target)
-            InjectionItem.model_validate({**{k: v for k, v in target.items() if k not in keys},
-                                          "bunches": [target[k] for k in keys]}).to_sequence_dict()
+            InjectionItem.model_validate({
+                **{
+                    k: v
+                    for k, v in target.items() if k not in keys
+                }, "bunches": [target[k] for k in keys]
+            }).to_sequence_dict()
         elif model is not None:
             model.model_validate(target)
             if target.get("Command") == "WakeField":
@@ -3597,6 +3665,7 @@ class ConfigPage(QWidget):
 
 
 class RunPage(QWidget):
+
     def __init__(self, config: ConfigPage) -> None:
         super().__init__()
         self.config = config
@@ -3704,8 +3773,11 @@ class RunPage(QWidget):
             owner._update_document_ui()
 
     def input_settings(self) -> dict:
-        return {"beam0": self.beam0.currentData() or "", "beam1": self.beam1.currentData() or "",
-                "output_directory": self.output_directory.text() or "output"}
+        return {
+            "beam0": self.beam0.currentData() or "",
+            "beam1": self.beam1.currentData() or "",
+            "output_directory": self.output_directory.text() or "output"
+        }
 
     def selected_input_ids(self) -> list[str]:
         values = [self.beam0.currentData()]
@@ -3737,8 +3809,7 @@ class RunPage(QWidget):
                 ids = self.selected_input_ids()
                 base = project.path.parent if project.path else Path.cwd()
                 from PASS.validation.rules import validate_documents
-                report = validate_documents([(project.configs[cid].name, project.configs[cid].data,
-                                               project.config_base) for cid in ids])
+                report = validate_documents([(project.configs[cid].name, project.configs[cid].data, project.config_base) for cid in ids])
                 if not report.ok:
                     raise ValueError(report.text())
             else:
@@ -3754,8 +3825,14 @@ class RunPage(QWidget):
             output = output.resolve()
             snapshot = output / "input_snapshots" / uuid4().hex
             paths = project.materialize(ids, snapshot, output)
-            atomic_write(snapshot / "run.json", json_bytes({"pass_version": __version__, "input_ids": ids,
-                         "inputs": [p.name for p in paths], "output_directory": str(output)}))
+            atomic_write(
+                snapshot / "run.json",
+                json_bytes({
+                    "pass_version": __version__,
+                    "input_ids": ids,
+                    "inputs": [p.name for p in paths],
+                    "output_directory": str(output)
+                }))
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "无法运行", str(exc))
             return
@@ -3829,6 +3906,7 @@ class RunPage(QWidget):
 
 
 class PlotPage(QWidget):
+
     def __init__(self) -> None:
         super().__init__()
         self.columns: dict[str, list[float]] = {}
@@ -3927,8 +4005,8 @@ class PlotPage(QWidget):
         self.batch_filter.blockSignals(False)
         self.status_filter.setEnabled(any(k.casefold() == "tag" for k in columns))
         self._select_series()
-        detail = " · ".join(f"{k}={result.metadata[k]}" for k in
-                             ("NumAlive", "NumLost", "NumPending", "ZCoordinate", "ReferenceArrivalTime", "ReferenceBeta", "ReferenceMomentum") if k in result.metadata)
+        detail = " · ".join(f"{k}={result.metadata[k]}" for k in ("NumAlive", "NumLost", "NumPending", "ZCoordinate", "ReferenceArrivalTime",
+                                                                  "ReferenceBeta", "ReferenceMomentum") if k in result.metadata)
         self.info.setText(f"{path} · {len(next(iter(columns.values()), []))} rows · {len(columns)} numeric columns\n{detail}")
 
     @staticmethod
@@ -3949,6 +4027,7 @@ from PASS.gui.workspace import DocumentWindowMixin
 
 
 class MainWindow(DocumentWindowMixin, QMainWindow):
+
     def __init__(self) -> None:
         super().__init__()
         self.settings = QSettings("PASS", "Editor")
@@ -4041,8 +4120,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.theme_button.setIcon(icon("moon" if theme == "dark" else "sun", THEMES[theme]["muted"]))
         for mode, action in self.theme_actions.items():
             action.setChecked(mode == preference)
-        for name, glyph in [("输入配置", "settings"), ("Twiss 与光学", "optics"), ("元件", "box"),
-                            ("序列工具", "tools"), ("监测与诊断", "chart"), ("物理效应", "layers")]:
+        for name, glyph in [("输入配置", "settings"), ("Twiss 与光学", "optics"), ("元件", "box"), ("序列工具", "tools"), ("监测与诊断", "chart"), ("物理效应", "layers")]:
             self.config.library_sections[name].header.setIcon(icon(glyph, THEMES[theme]["muted"]))
         for widget, glyph in [(self.config.validate_button, "check"), (self.config.delete_sequence_button, "trash"),
                               (self.config.contents_button, "folder"), (self.config.form_apply, "check")]:

@@ -141,7 +141,7 @@ Interface Parameters
     - ``"Include reference"``
     - bool
     - false
-    - Append per-row reference time, beta and momentum for physical-time/energy analysis, such as BLonD comparison
+    - Append per-row reference time, beta and momentum for physical-time/energy analysis
 
 .. note::
 

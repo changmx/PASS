@@ -52,24 +52,24 @@ DX_EXPECTED = _row0["DX"]
 DPX_EXPECTED = _row0["DPX"]
 CIRCUM = _tfs.headers["LENGTH"]
 
-# Distribution parameters (match make_input.py)
+# Distribution parameters (match generate_input.py)
 EMIT_X = 200e-6
 EMIT_Y = 100e-6
 
-# Test particle definitions (match make_input.py)
+# Test particle definitions (match generate_input.py)
 TEST_PARTICLES = [
-    [2e-3, 0, 0, 0, 0, 0],          # tag 1: Qx
-    [0, 0, 2e-3, 0, 0, 0],          # tag 2: Qy
-    [1e-3, 0, 1e-3, 0, 0, +1e-5],   # tag 3
-    [1e-3, 0, 1e-3, 0, 0, -1e-5],   # tag 4
-    [1e-3, 0, 1e-3, 0, 0, +5e-5],   # tag 5
-    [1e-3, 0, 1e-3, 0, 0, -5e-5],   # tag 6
-    [1e-3, 0, 1e-3, 0, 0, +1e-4],   # tag 7
-    [1e-3, 0, 1e-3, 0, 0, -1e-4],   # tag 8
-    [0, 0, 0, 0, 0.1, 0],           # tag 9
-    [0, 0, 0, 0, 0, 0],             # tag 10
-    [5e-3, 0, 0, 0, 0, 0],          # tag 11
-    [0, 0, 5e-3, 0, 0, 0],          # tag 12
+    [2e-3, 0, 0, 0, 0, 0],  # tag 1: Qx
+    [0, 0, 2e-3, 0, 0, 0],  # tag 2: Qy
+    [1e-3, 0, 1e-3, 0, 0, +1e-5],  # tag 3
+    [1e-3, 0, 1e-3, 0, 0, -1e-5],  # tag 4
+    [1e-3, 0, 1e-3, 0, 0, +5e-5],  # tag 5
+    [1e-3, 0, 1e-3, 0, 0, -5e-5],  # tag 6
+    [1e-3, 0, 1e-3, 0, 0, +1e-4],  # tag 7
+    [1e-3, 0, 1e-3, 0, 0, -1e-4],  # tag 8
+    [0, 0, 0, 0, 0.1, 0],  # tag 9
+    [0, 0, 0, 0, 0, 0],  # tag 10
+    [5e-3, 0, 0, 0, 0, 0],  # tag 11
+    [0, 0, 5e-3, 0, 0, 0],  # tag 12
 ]
 
 # Chromaticity pairs: (tag_pos, tag_neg, dp_value)
@@ -94,10 +94,10 @@ TAG_INFO = {
     12: "large amp y",
 }
 
-
 # ============================================================
 # FFT tune measurement
 # ============================================================
+
 
 def measure_tune(signal, n_turns=None):
     """Measure tune from a TBT signal via FFT with Hann window.
@@ -141,6 +141,7 @@ def measure_tune(signal, n_turns=None):
 # Courant-Snyder invariant
 # ============================================================
 
+
 def cs_invariant(x, px, alpha, beta):
     """Compute CS invariant: gamma*x^2 + 2*alpha*x*px + beta*px^2."""
     gamma = (1.0 + alpha * alpha) / beta
@@ -150,6 +151,7 @@ def cs_invariant(x, px, alpha, beta):
 # ============================================================
 # I/O
 # ============================================================
+
 
 def find_latest_output(script_dir):
     """Find the most recent output/YYYY_MMDD/HHMM_SS directory."""
@@ -217,6 +219,7 @@ def read_pass_stat(output_dir):
 # Plotting helpers
 # ============================================================
 
+
 def plot_tune_fft(pass_data, tag, plane, expected_tune, ax):
     """Plot FFT spectrum for a given tag and plane."""
     signal = pass_data[tag][plane]
@@ -234,12 +237,10 @@ def plot_tune_fft(pass_data, tag, plane, expected_tune, ax):
 
     spectrum[:2] = 0
     ax.plot(freqs, spectrum, "b-", linewidth=1)
-    ax.axvline(expected_tune, color="r", linestyle="--", linewidth=1,
-               label=f"expected Q={expected_tune:.4f}")
+    ax.axvline(expected_tune, color="r", linestyle="--", linewidth=1, label=f"expected Q={expected_tune:.4f}")
 
     measured, _ = measure_tune(signal, n)
-    ax.axvline(measured, color="g", linestyle=":", linewidth=1,
-               label=f"measured Q={measured:.6f}")
+    ax.axvline(measured, color="g", linestyle=":", linewidth=1, label=f"measured Q={measured:.6f}")
 
     ax.set_xlabel("tune")
     ax.set_ylabel("amplitude")
@@ -258,26 +259,22 @@ def plot_chromaticity(dp_values, qx_values, qy_values, ax_x, ax_y):
         cx = np.polyfit(dp_values, qx_values, 1)
         cy = np.polyfit(dp_values, qy_values, 1)
         dp_fit = np.linspace(min(dp_values), max(dp_values), 100)
-        ax_x.plot(dp_fit, np.polyval(cx, dp_fit), "b--",
-                  label=f"fit: DQx={cx[0]:.6f}\n(theory: DQx={DQX_CORRECTED:.6f})")
-        ax_y.plot(dp_fit, np.polyval(cy, dp_fit), "r--",
-                  label=f"fit: DQy={cy[0]:.6f}\n(theory: DQy={DQY_CORRECTED:.6f})")
+        ax_x.plot(dp_fit, np.polyval(cx, dp_fit), "b--", label=f"fit: DQx={cx[0]:.6f}\n(theory: DQx={DQX_CORRECTED:.6f})")
+        ax_y.plot(dp_fit, np.polyval(cy, dp_fit), "r--", label=f"fit: DQy={cy[0]:.6f}\n(theory: DQy={DQY_CORRECTED:.6f})")
 
-    ax_x.axhline(QX_EXPECTED, color="k", linestyle=":", alpha=0.3,
-                 label=f"Qx0={QX_EXPECTED:.4f}")
-    ax_y.axhline(QY_EXPECTED, color="k", linestyle=":", alpha=0.3,
-                 label=f"Qy0={QY_EXPECTED:.4f}")
+    ax_x.axhline(QX_EXPECTED, color="k", linestyle=":", alpha=0.3, label=f"Qx0={QX_EXPECTED:.4f}")
+    ax_y.axhline(QY_EXPECTED, color="k", linestyle=":", alpha=0.3, label=f"Qy0={QY_EXPECTED:.4f}")
 
     ax_x.set_xlabel(r"$\delta p$")
     ax_x.set_ylabel(r"$Q_x$")
-    ax_x.ticklabel_format(axis='x', style='sci', scilimits=(0,0))
+    ax_x.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
     ax_x.set_title(r"Chromaticity $Q_x(\delta p)$", fontsize=11)
     ax_x.legend(fontsize=9)
     ax_x.grid(True, alpha=0.3)
 
     ax_y.set_xlabel(r"$\delta p$")
     ax_y.set_ylabel(r"$Q_y$")
-    ax_y.ticklabel_format(axis='x', style='sci', scilimits=(0,0))
+    ax_y.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
     ax_y.set_title(r"Chromaticity $Q_y(\delta p)$", fontsize=11)
     ax_y.legend(fontsize=9)
     ax_y.grid(True, alpha=0.3)
@@ -398,10 +395,8 @@ if __name__ == "__main__":
               f"-> DQy={dqy_pair:.6f}")
 
     if len(dp_meas) >= 1:
-        dqx_pairs = [(qx_pos_list[i] - qx_neg_list[i]) / (2 * dp_meas[i])
-                     for i in range(len(dp_meas))]
-        dqy_pairs = [(qy_pos_list[i] - qy_neg_list[i]) / (2 * dp_meas[i])
-                     for i in range(len(dp_meas))]
+        dqx_pairs = [(qx_pos_list[i] - qx_neg_list[i]) / (2 * dp_meas[i]) for i in range(len(dp_meas))]
+        dqy_pairs = [(qy_pos_list[i] - qy_neg_list[i]) / (2 * dp_meas[i]) for i in range(len(dp_meas))]
 
         print(f"\n  Per-pair average: DQx={np.mean(dqx_pairs):.6f} "
               f"(corrected {DQX_CORRECTED:.6f})")

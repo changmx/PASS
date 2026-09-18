@@ -160,9 +160,9 @@ Each component selects one frequency definition:
 
 .. code-block:: python
 
-   from PASS.para.schema import RFCavityElement, RFComponent
+   from PASS.para.schema import RFCavityItem, RFComponent
 
-   rf = RFCavityElement(s=0.0, components=[
+   rf = RFCavityItem(s=0.0, components=[
        RFComponent(voltage=100e3, harmonic=1, phase=0.3),
        RFComponent(voltage=[0., 20e3], frequency=[10e6, 10.1e6],
                    times=[0., 0.01], phase=1.2),

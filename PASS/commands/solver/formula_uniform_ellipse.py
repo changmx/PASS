@@ -34,9 +34,9 @@ def uniform_elliptic_field(x, y, slice_charge, a, b, *, epsilon_0=const.epsilon0
     # a quadratic in lambda.  Use a cancellation-resistant form of its
     # positive root so all exterior points are handled in vectorized NumPy.
     lambda_value = np.zeros_like(x)
-    outside = (x / a) ** 2 + (y / b) ** 2 > 1.0
+    outside = (x / a)**2 + (y / b)**2 > 1.0
     if np.any(outside):
-        x2, y2 = x[outside] ** 2, y[outside] ** 2
+        x2, y2 = x[outside]**2, y[outside]**2
         aa, bb = a * a, b * b
         linear = aa + bb - x2 - y2
         constant = aa * bb - bb * x2 - aa * y2
@@ -47,12 +47,8 @@ def uniform_elliptic_field(x, y, slice_charge, a, b, *, epsilon_0=const.epsilon0
         # when linear is negative.
         positive_linear = linear >= 0.0
         positive_root = np.empty_like(root)
-        positive_root[positive_linear] = (-2.0 * constant[positive_linear]) / (
-            linear[positive_linear] + root[positive_linear]
-        )
-        positive_root[~positive_linear] = 0.5 * (
-            -linear[~positive_linear] + root[~positive_linear]
-        )
+        positive_root[positive_linear] = (-2.0 * constant[positive_linear]) / (linear[positive_linear] + root[positive_linear])
+        positive_root[~positive_linear] = 0.5 * (-linear[~positive_linear] + root[~positive_linear])
         lambda_value[outside] = np.maximum(0.0, positive_root)
 
     # Assume a >= b; swapping coordinates handles the opposite orientation.

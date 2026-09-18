@@ -3,11 +3,12 @@
 Consumed by PASS.commands.monitor.* via Command.create(**kwargs).
 """
 
-from pydantic import BaseModel, Field, ConfigDict
 from typing import Literal
 
+from pydantic import BaseModel, Field, ConfigDict
 
-class StatMonitor(BaseModel):
+
+class StatMonitorItem(BaseModel):
     """Statistic monitor: records bunch statistics at a position."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -16,7 +17,7 @@ class StatMonitor(BaseModel):
     command: str = Field(default="StatMonitor", alias="Command")
 
 
-class DistMonitor(BaseModel):
+class DistMonitorItem(BaseModel):
     """Distribution monitor: saves full particle distribution at specified turns."""
     include_injection_metadata: bool = Field(default=False, alias="Include injection metadata")
     output_format: Literal["tfs", "hdf5"] = Field(default="tfs", alias="Output format")
@@ -28,14 +29,12 @@ class DistMonitor(BaseModel):
     save_turns: list[list[int]] = Field(
         default_factory=list,
         alias="Save turns",
-        description=(
-            "Each item is [turn] or [start, end, step], with inclusive "
-            "endpoints; an empty list disables saving"
-        ),
+        description=("Each item is [turn] or [start, end, step], with inclusive "
+                     "endpoints; an empty list disables saving"),
     )
 
 
-class PhaseAdvanceMonitor(BaseModel):
+class PhaseAdvanceMonitorItem(BaseModel):
     """Measure uncoupled fractional tunes from consecutive-turn coordinates."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -56,9 +55,7 @@ class PhaseAdvanceMonitor(BaseModel):
     turn_ranges: list[list[int]] | int = Field(
         default=0,
         alias="Turn ranges",
-        description=(
-            "Each item is [start, end) with zero-based turns; 0 disables analysis"
-        ),
+        description=("Each item is [start, end) with zero-based turns; 0 disables analysis"),
     )
     min_action: float | None = Field(
         default=None,
@@ -67,7 +64,7 @@ class PhaseAdvanceMonitor(BaseModel):
     )
 
 
-class ParticleMonitor(BaseModel):
+class ParticleMonitorItem(BaseModel):
     """Particle monitor: records turn-by-turn coordinates of specified particles.
 
     Records particles with 1 <= |tag| <= max_tag every turn (within

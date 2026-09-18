@@ -1,8 +1,9 @@
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
-from pathlib import Path
 import tfs
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import MaxNLocator
@@ -110,9 +111,7 @@ def plot_trans_distribution(
     save_path=None,
 ):
 
-    # =========================
     # 2D histogram
-    # =========================
     H, xedges, yedges = np.histogram2d(x, px, bins=bins)
 
     H = H.T
@@ -121,9 +120,7 @@ def plot_trans_distribution(
     fig = plt.figure(figsize=(12, 8))
     ax_heat = fig.add_subplot(111)
 
-    # =========================
     # heatmap
-    # =========================
     base_cmap = plt.colormaps[cmap].copy()
     base_cmap.set_bad(color='white', alpha=0.0)
 
@@ -149,9 +146,7 @@ def plot_trans_distribution(
     else:
         raise ValueError(f"Direction must be 'x-px'/'y-py'/'x-y', but now is {direction}")
 
-    # =========================
     # Twiss ellipse
-    # =========================
 
     stat = {
         'x': x.mean(),
@@ -193,9 +188,7 @@ def plot_trans_distribution(
         fontsize=9,
         handlelength=0)  # 隐藏图例标志的线段
 
-    # =========================
     # colorbar
-    # =========================
     divider = make_axes_locatable(ax_heat)
     cax = divider.append_axes("right", size="3.5%", pad=0.12)
 
@@ -203,9 +196,7 @@ def plot_trans_distribution(
     cb.set_label("Counts", rotation=270, labelpad=10)
     cb.ax.tick_params(direction='in')
 
-    # =========================
     # style helper
-    # =========================
     def style(ax):
         for s in ax.spines.values():
             s.set_visible(True)
@@ -248,9 +239,7 @@ def plot_trans_distribution(
 
     if is_plot_hist:
 
-        # =========================
         # top histogram
-        # =========================
         ax_top = divider.append_axes("top", size="25%", pad=0.12)
 
         ax_top.hist(x, bins=bins, color="#3B82F6", alpha=0.85, edgecolor="white", linewidth=0.3)
@@ -262,9 +251,7 @@ def plot_trans_distribution(
 
         style(ax_top)
 
-        # =========================
         # right histogram
-        # =========================
         ax_right = divider.append_axes("right", size="28%", pad=0.85)
 
         ax_right.hist(px, bins=bins, orientation='horizontal', color="#10B981", alpha=0.85, edgecolor="white", linewidth=0.3)
@@ -310,9 +297,7 @@ def plot_longi_distribution(
     save_path=None,
 ):
 
-    # =========================
     # 2D histogram
-    # =========================
     H, xedges, yedges = np.histogram2d(z, dp, bins=bins)
 
     H = H.T
@@ -321,9 +306,7 @@ def plot_longi_distribution(
     fig = plt.figure(figsize=(12, 8))
     ax_heat = fig.add_subplot(111)
 
-    # =========================
     # heatmap
-    # =========================
     base_cmap = plt.colormaps[cmap].copy()
     base_cmap.set_bad(color='white', alpha=0.0)
 
@@ -366,9 +349,7 @@ def plot_longi_distribution(
         fontsize=9,
         handlelength=0)  # 隐藏图例标志的线段
 
-    # =========================
     # colorbar
-    # =========================
     divider = make_axes_locatable(ax_heat)
     cax = divider.append_axes("right", size="3.5%", pad=0.12)
 
@@ -376,18 +357,14 @@ def plot_longi_distribution(
     cb.set_label("Counts", rotation=270, labelpad=10)
     cb.ax.tick_params(direction='in')
 
-    # =========================
     # style helper
-    # =========================
     def style(ax):
         for s in ax.spines.values():
             s.set_visible(True)
             s.set_linewidth(1.0)
         ax.tick_params(direction='in', length=4, width=1)
 
-    # =========================
     # Bucket
-    # =========================
     if is_plot_bucket:
         ion_params = {
             'V0': 100e3,
@@ -430,9 +407,7 @@ def plot_longi_distribution(
 
     if is_plot_hist:
 
-        # =========================
         # top histogram
-        # =========================
         ax_top = divider.append_axes("top", size="25%", pad=0.12)
 
         ax_top.hist(z, bins=bins, color="#3B82F6", alpha=0.85, edgecolor="white", linewidth=0.3)
@@ -444,9 +419,7 @@ def plot_longi_distribution(
 
         style(ax_top)
 
-        # =========================
         # right histogram
-        # =========================
         ax_right = divider.append_axes("right", size="28%", pad=0.85)
 
         ax_right.hist(dp, bins=bins, orientation='horizontal', color="#10B981", alpha=0.85, edgecolor="white", linewidth=0.3)

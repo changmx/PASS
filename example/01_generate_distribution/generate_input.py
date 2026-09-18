@@ -8,8 +8,8 @@ Cases:
     coasting         One Gaussian/coasting bunch with h=1
 
 Usage:
-    python make_input.py
-    python make_input.py --case transverse
+    python generate_input.py
+    python generate_input.py --case transverse
 """
 
 from __future__ import annotations
@@ -20,7 +20,6 @@ from pathlib import Path
 from PASS.para.api import build_sequence, generate_input
 from PASS.para.schema.bunch import BunchConfig
 from PASS.para.schema.main import MainConfig
-
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -50,35 +49,64 @@ MATCH_RF_PHASE = 0.5235987755982988
 
 CASES = {
     "transverse": {
-        "input_name": "beam0_transverse.json",
-        "description": "Five transverse distributions with longitudinal Gaussian bunches.",
+        "input_name":
+        "beam0_transverse.json",
+        "description":
+        "Five transverse distributions with longitudinal Gaussian bunches.",
         "bunches": [
-            {"transverse": "gaussian", "longitudinal": "gaussian"},
-            {"transverse": "kv", "longitudinal": "gaussian"},
-            {"transverse": "waterbag", "longitudinal": "gaussian"},
-            {"transverse": "parabolic", "longitudinal": "gaussian"},
-            {"transverse": "uniform", "longitudinal": "gaussian"},
+            {
+                "transverse": "gaussian",
+                "longitudinal": "gaussian"
+            },
+            {
+                "transverse": "kv",
+                "longitudinal": "gaussian"
+            },
+            {
+                "transverse": "waterbag",
+                "longitudinal": "gaussian"
+            },
+            {
+                "transverse": "parabolic",
+                "longitudinal": "gaussian"
+            },
+            {
+                "transverse": "uniform",
+                "longitudinal": "gaussian"
+            },
         ],
     },
     "longi-gaussian": {
         "input_name": "beam0_longi_gaussian.json",
         "description": "Gaussian transverse and Gaussian longitudinal distribution.",
-        "bunches": [{"transverse": "gaussian", "longitudinal": "gaussian"}],
+        "bunches": [{
+            "transverse": "gaussian",
+            "longitudinal": "gaussian"
+        }],
     },
     "longi-matchz": {
         "input_name": "beam0_longi_matchz.json",
         "description": "Gaussian transverse and MatchZ longitudinal distribution with h=1.",
-        "bunches": [{"transverse": "gaussian", "longitudinal": "matchz"}],
+        "bunches": [{
+            "transverse": "gaussian",
+            "longitudinal": "matchz"
+        }],
     },
     "longi-matchdp": {
         "input_name": "beam0_longi_matchdp.json",
         "description": "Gaussian transverse and MatchDp longitudinal distribution with h=1.",
-        "bunches": [{"transverse": "gaussian", "longitudinal": "matchdp"}],
+        "bunches": [{
+            "transverse": "gaussian",
+            "longitudinal": "matchdp"
+        }],
     },
     "coasting": {
         "input_name": "beam0_coasting.json",
         "description": "Gaussian transverse and coasting longitudinal distribution with h=1.",
-        "bunches": [{"transverse": "gaussian", "longitudinal": "coasting"}],
+        "bunches": [{
+            "transverse": "gaussian",
+            "longitudinal": "coasting"
+        }],
     },
 }
 
@@ -146,9 +174,7 @@ def make_case(case_name: str) -> Path:
     """Generate the named PASS input JSON."""
     case = CASES[case_name]
     bunches = [make_bunch(spec) for spec in case["bunches"]]
-    sequence = build_sequence(
-        items=[], names=[], bunches=bunches, random_seed=RANDOM_SEED
-    )
+    sequence = build_sequence(items=[], names=[], bunches=bunches, random_seed=RANDOM_SEED)
     path = input_path(case_name)
 
     generate_input(make_main(case_name), sequence, str(path))
@@ -157,10 +183,8 @@ def make_case(case_name: str) -> Path:
     print(f"  {case['description']}")
     print(f"  {len(bunches)} bunch(es), injection harmonic number = {len(bunches)}")
     for bunch_id, spec in enumerate(case["bunches"]):
-        print(
-            f"  bunch{bunch_id}: transverse={spec['transverse']}, "
-            f"longitudinal={spec['longitudinal']}"
-        )
+        print(f"  bunch{bunch_id}: transverse={spec['transverse']}, "
+              f"longitudinal={spec['longitudinal']}")
     return path
 
 

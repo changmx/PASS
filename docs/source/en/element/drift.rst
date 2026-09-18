@@ -18,6 +18,22 @@ This module introduces the drift element **Drift** in PASS, used to simulate par
 Physical Derivation
 -------------------
 
+The straight drift stages inside quadrupoles, sextupoles, octupoles, general
+multipoles, bends, kickers and solenoids also use the rationalized longitudinal
+update below on CPU and GPU. With :math:`g=\gamma_0^{-2}`,
+:math:`q_\perp=p_x^2+p_y^2` and
+:math:`R=\sqrt{g+(1-g)(1+\delta)^2}`, it is
+
+.. math::
+
+   \Delta z=L\frac{\delta(2+\delta)g-q_\perp}{p_z(p_z+R)}.
+
+This avoids subtracting two nearly equal numbers at high energy, and gives
+exactly zero slip for the on-axis, on-momentum reference particle. The exact
+solenoid map uses the same expression with its mechanical transverse momenta
+:math:`p_x+k_s y/2` and :math:`p_y-k_s x/2`. The formula does not eliminate
+rounding when increments are added to the stored particle coordinate.
+
 Particles experience no force in the drift and move in a straight line with constant momentum. Let the drift length be :math:`L`, the particle's normalized transverse momenta be :math:`p_x` and :math:`p_y`, and the momentum deviation be :math:`\delta`.
 
 **Total Particle Momentum**

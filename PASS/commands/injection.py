@@ -1,5 +1,20 @@
 from __future__ import annotations
 
+import copy
+import logging
+import re
+from pathlib import Path
+import random
+import os
+from types import SimpleNamespace
+from dataclasses import dataclass
+
+import numpy as np
+import pandas as pd
+import tfs
+from scipy.optimize import brentq
+from scipy.integrate import dblquad
+
 from PASS.commands.command import Command
 from PASS.core.config import Config
 from PASS.core.simulation import Simulation
@@ -9,20 +24,6 @@ from PASS.core.particle import ParticlePool
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
-
-import numpy as np
-import pandas as pd
-import copy
-import logging
-import tfs
-import re
-from pathlib import Path
-import random
-from scipy.optimize import brentq
-from scipy.integrate import dblquad
-import os
-from types import SimpleNamespace
-from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -175,22 +176,19 @@ class Injection(Command):
                 work.Np_injected, work.Np_inj_curTurn = 0, count
                 work.file_start = source.Np_injected
                 work.current_turn = turn
-                injection_time = beam.reference_program.inverse_integral(
-                    float(turn)-source.harmonic_id/source.harmonic_number)
+                injection_time = beam.reference_program.inverse_integral(float(turn) - source.harmonic_id / source.harmonic_number)
                 if source.reference_arrival_time is not None:
-                    injection_time += source.reference_arrival_time-beam.reference_program.inverse_integral(
-                        -source.harmonic_id/source.harmonic_number)
+                    injection_time += source.reference_arrival_time - beam.reference_program.inverse_integral(
+                        -source.harmonic_id / source.harmonic_number)
                 work.current_time = injection_time
-                particles = ParticlePool(count, np, dtype=p.dtype)
-                scratch = SimpleNamespace(particles=particles)
+                batch_particles = ParticlePool(count, np, dtype=p.dtype)
+                scratch = SimpleNamespace(particles=batch_particles)
                 local = SimpleNamespace(start_idx=0, end_idx=count)
                 if work.is_load_dist:
                     self._load_dist(work, local, scratch, True)
                 else:
-                    transverse = {"kv": "kv", "gaussian": "gaussian", "uniform": "uniform",
-                                  "waterbag": "waterbag", "parabolic": "parabolic"}
-                    longitudinal = {"gaussian": "gaussian", "coasting": "coasting",
-                                    "matchz": "matchZ", "matchdp": "matchDp"}
+                    transverse = {"kv": "kv", "gaussian": "gaussian", "uniform": "uniform", "waterbag": "waterbag", "parabolic": "parabolic"}
+                    longitudinal = {"gaussian": "gaussian", "coasting": "coasting", "matchz": "matchZ", "matchdp": "matchDp"}
                     if work.dist_trans not in transverse or work.dist_longi not in longitudinal:
                         raise ValueError("Unsupported injection distribution")
                     getattr(self, "_generate_trans_" + transverse[work.dist_trans] + "_dist")(work, local, scratch, True)
@@ -200,10 +198,10 @@ class Injection(Command):
                     if work.num_insert_particles > count:
                         raise ValueError("Manual particles exceed the first injection batch")
                     self._insert_particles(work, local, scratch, True)
-                matrix = np.column_stack([getattr(particles, name) for name in ("x", "px", "y", "py", "z", "dp")])
+                matrix = np.column_stack([getattr(batch_particles, name) for name in ("x", "px", "y", "py", "z", "dp")])
                 if not np.all(np.isfinite(matrix)):
                     raise ValueError("Injection coordinates must be finite")
-                if np.any((particles.dp <= -1) | ((1 + particles.dp)**2 <= particles.px**2 + particles.py**2)):
+                if np.any((batch_particles.dp <= -1) | ((1 + batch_particles.dp)**2 <= batch_particles.px**2 + batch_particles.py**2)):
                     raise ValueError("Injection requires a real positive longitudinal momentum")
 
                 # The incoming beam keeps its specified energy while the circulating
@@ -214,16 +212,16 @@ class Injection(Command):
                     rows = np.asarray(selected) if xp is np else selected.get()
                     factor = source.p0 / bunch.p0
                     for name in ("x", "y"):
-                        getattr(p, name)[dest] = xp.asarray(getattr(particles, name)[rows])
+                        getattr(p, name)[dest] = xp.asarray(getattr(batch_particles, name)[rows])
                     for name in ("px", "py"):
-                        getattr(p, name)[dest] = xp.asarray(getattr(particles, name)[rows] * factor)
+                        getattr(p, name)[dest] = xp.asarray(getattr(batch_particles, name)[rows] * factor)
                     # Keep small momentum deviations when reference momenta are
                     # equal or nearly equal; cast only after the stable transform.
-                    incoming_delta = particles.dp[rows].astype(np.float64, copy=False)
+                    incoming_delta = batch_particles.dp[rows].astype(np.float64, copy=False)
                     reference_delta = (source.p0 - bunch.p0) / bunch.p0
                     p.dp[dest] = xp.asarray(incoming_delta * factor + reference_delta)
-                    p.z[dest] = xp.asarray(particles.z[rows].astype(np.float64)*(bunch.beta/source.beta)
-                        + bunch.beta*const.c*(bunch.t0-injection_time))
+                    p.z[dest] = xp.asarray(batch_particles.z[rows].astype(np.float64) * (bunch.beta / source.beta) + bunch.beta * const.c *
+                                           (bunch.t0 - injection_time))
                 p.tag[destination] = state.reserved_ids[destination]
                 p.lost_turn[destination], p.lost_position[destination] = -1, -1
                 state.record_batch(first, count, turn, batch)
@@ -233,17 +231,14 @@ class Injection(Command):
                 did_execute = True
             # A zero-size final event still owns the requested save. Keep it
             # separate from activation so a failed save can also be retried.
-            if (turn == source.inj_turns[-1] and source.is_save_init_dist
-                    and not source._saved_init_dist):
+            if (turn == source.inj_turns[-1] and source.is_save_init_dist and not source._saved_init_dist):
                 self._save_init_dist(source, beam.bunches[source.bunch_id], beam, sim.cfg)
                 source._saved_init_dist = True
                 did_execute = True
         self._executed.add(turn)
         self._finished = all(
-            source.Np_injected == source.planned_count
-            and (not source.planned_count or not source.is_save_init_dist or source._saved_init_dist)
-            for source in self.inj_bunchs
-        )
+            source.Np_injected == source.planned_count and (not source.planned_count or not source.is_save_init_dist or source._saved_init_dist)
+            for source in self.inj_bunchs)
         return did_execute
 
     def _load_dist(self, inj_bunch, bunch_info, beam, use_cpu):
@@ -268,7 +263,7 @@ class Injection(Command):
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         emit_x = inj_bunch.emitx
         emit_y = inj_bunch.emity
@@ -293,10 +288,10 @@ class Injection(Command):
         y_max = 4 * sigma_y
         y_min = -4 * sigma_y
 
-        x_arr = np.zeros(Np_inj, dtype=np.float64)
-        px_arr = np.zeros(Np_inj, dtype=np.float64)
-        y_arr = np.zeros(Np_inj, dtype=np.float64)
-        py_arr = np.zeros(Np_inj, dtype=np.float64)
+        x_arr = np.zeros(injection_count, dtype=np.float64)
+        px_arr = np.zeros(injection_count, dtype=np.float64)
+        y_arr = np.zeros(injection_count, dtype=np.float64)
+        py_arr = np.zeros(injection_count, dtype=np.float64)
 
         # Preserve the original KV map while evaluating its fixed coefficients once.
         F = emit_x
@@ -323,11 +318,10 @@ class Injection(Command):
         boundary_x, boundary_y = 64 * np.spacing(x_max), 64 * np.spacing(y_max)
 
         i = 0
-        while i < Np_inj:
+        while i < injection_count:
             # Draw no more than the missing count, in the original per-candidate order.
-            count = min(Np_inj - i, 65536)
-            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
-                                 count=3 * count).reshape(count, 3)
+            count = min(injection_count - i, 65536)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64, count=3 * count).reshape(count, 3)
             random_zeta = lower + (upper - lower) * values[:, 0]
             random_beta_x, random_beta_y = values[:, 1], values[:, 2]
             zeta_x_square = F * random_zeta
@@ -344,8 +338,7 @@ class Injection(Command):
 
             # As in the Gaussian sampler, keep strict-cut decisions on the
             # scalar path when transcendental roundoff could change acceptance.
-            near_boundary = ((np.abs(np.abs(x) - x_max) <= boundary_x)
-                             | (np.abs(np.abs(y) - y_max) <= boundary_y))
+            near_boundary = ((np.abs(np.abs(x) - x_max) <= boundary_x) | (np.abs(np.abs(y) - y_max) <= boundary_y))
             for row in np.flatnonzero(near_boundary):
                 zx2 = F * float(random_zeta[row])
                 zx, zy = np.sqrt(zx2), np.sqrt((F - zx2) / nu)
@@ -374,7 +367,7 @@ class Injection(Command):
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         emit_x = inj_bunch.emitx
         emit_y = inj_bunch.emity
@@ -401,10 +394,10 @@ class Injection(Command):
         y_max = 4 * sigma_y
         y_min = -4 * sigma_y
 
-        x_arr = np.zeros(Np_inj, dtype=np.float64)
-        px_arr = np.zeros(Np_inj, dtype=np.float64)
-        y_arr = np.zeros(Np_inj, dtype=np.float64)
-        py_arr = np.zeros(Np_inj, dtype=np.float64)
+        x_arr = np.zeros(injection_count, dtype=np.float64)
+        px_arr = np.zeros(injection_count, dtype=np.float64)
+        y_arr = np.zeros(injection_count, dtype=np.float64)
+        py_arr = np.zeros(injection_count, dtype=np.float64)
 
         # Twiss coefficients are fixed throughout this batch. Keep the scalar
         # formulas and operation order used by the original generator.
@@ -421,12 +414,11 @@ class Injection(Command):
         boundary_y = 64 * np.spacing(y_max)
 
         i = 0
-        while i < Np_inj:
+        while i < injection_count:
             # At most the missing count: no surplus candidate is discarded,
             # so later longitudinal samples and batches keep their RNG stream.
-            count = min(Np_inj - i, 65536)
-            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
-                                 count=4 * count).reshape(count, 4)
+            count = min(injection_count - i, 65536)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64, count=4 * count).reshape(count, 4)
             # random.Random.uniform(a, b) uses a + (b-a)*random(). Columns
             # retain its original per-candidate order: s1x, s1y, s2x, s2y.
             values = lower + (upper - lower) * values
@@ -443,8 +435,7 @@ class Injection(Command):
             # Array transcendental functions can round differently from scalar
             # calls. Recheck candidates close to either strict 4-sigma cut with
             # scalar arithmetic, before a changed decision can shift the RNG.
-            near_boundary = ((np.abs(np.abs(x) - x_max) <= boundary_x)
-                             | (np.abs(np.abs(y) - y_max) <= boundary_y))
+            near_boundary = ((np.abs(np.abs(x) - x_max) <= boundary_x) | (np.abs(np.abs(y) - y_max) <= boundary_y))
             for row in np.flatnonzero(near_boundary):
                 s1x, s1y, s2x, s2y = map(float, values[row])
                 ax = sqrt_half * np.sqrt(-np.log(s1x))
@@ -476,7 +467,7 @@ class Injection(Command):
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         emit_x = inj_bunch.emitx
         emit_y = inj_bunch.emity
@@ -487,10 +478,10 @@ class Injection(Command):
         gamma_x = inj_bunch.gammax
         gamma_y = inj_bunch.gammay
 
-        x_arr = np.zeros(Np_inj, dtype=np.float64)
-        px_arr = np.zeros(Np_inj, dtype=np.float64)
-        y_arr = np.zeros(Np_inj, dtype=np.float64)
-        py_arr = np.zeros(Np_inj, dtype=np.float64)
+        x_arr = np.zeros(injection_count, dtype=np.float64)
+        px_arr = np.zeros(injection_count, dtype=np.float64)
+        y_arr = np.zeros(injection_count, dtype=np.float64)
+        py_arr = np.zeros(injection_count, dtype=np.float64)
 
         chi_x = -np.arctan(alpha_x)
         chi_y = -np.arctan(alpha_y)
@@ -502,10 +493,9 @@ class Injection(Command):
 
         sin_x, cos_x = np.sin(chi_x), np.cos(chi_x)
         sin_y, cos_y = np.sin(chi_y), np.cos(chi_y)
-        for start in range(0, Np_inj, 65536):
-            end = min(start + 65536, Np_inj)
-            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
-                                 count=4 * (end - start)).reshape(-1, 4)
+        for start in range(0, injection_count, 65536):
+            end = min(start + 65536, injection_count)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64, count=4 * (end - start)).reshape(-1, 4)
             # Match uniform(-1, 1), ordered ux, vx, uy, vy for each particle.
             ux, vx, uy, vy = (-1.0 + 2.0 * values).T
             x_arr[start:end] = Xm * ux
@@ -528,7 +518,7 @@ class Injection(Command):
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = (bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn)
 
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         emit_x = inj_bunch.emitx
         emit_y = inj_bunch.emity
@@ -551,11 +541,11 @@ class Injection(Command):
         y_max = 4.0 * sigma_y
         y_min = -4.0 * sigma_y
 
-        x_arr = np.zeros(Np_inj, dtype=np.float64)
-        px_arr = np.zeros(Np_inj, dtype=np.float64)
+        x_arr = np.zeros(injection_count, dtype=np.float64)
+        px_arr = np.zeros(injection_count, dtype=np.float64)
 
-        y_arr = np.zeros(Np_inj, dtype=np.float64)
-        py_arr = np.zeros(Np_inj, dtype=np.float64)
+        y_arr = np.zeros(injection_count, dtype=np.float64)
+        py_arr = np.zeros(injection_count, dtype=np.float64)
 
         Xm = np.sqrt(6.0) * np.sqrt(emit_x * beta_x)
         PXm = np.sqrt(6.0) * np.sqrt(emit_x * gamma_x)
@@ -569,10 +559,9 @@ class Injection(Command):
         sin_x, cos_x = np.sin(chi_x), np.cos(chi_x)
         sin_y, cos_y = np.sin(chi_y), np.cos(chi_y)
         i = 0
-        while i < Np_inj:
-            count = min(Np_inj - i, 65536)
-            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64,
-                                 count=4 * count).reshape(count, 4)
+        while i < injection_count:
+            count = min(injection_count - i, 65536)
+            values = np.fromiter(iter(self.rng.random, None), dtype=np.float64, count=4 * count).reshape(count, 4)
             values = -1.0 + 2.0 * values
             ux, vx, uy, vy = values.T
             # Keep the scalar summation order at the inclusive 4D-ball boundary.
@@ -605,7 +594,7 @@ class Injection(Command):
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = (bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn)
 
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         emit_x = inj_bunch.emitx
         emit_y = inj_bunch.emity
@@ -628,11 +617,11 @@ class Injection(Command):
         y_max = 4.0 * sigma_y
         y_min = -4.0 * sigma_y
 
-        x_arr = np.zeros(Np_inj, dtype=np.float64)
-        px_arr = np.zeros(Np_inj, dtype=np.float64)
+        x_arr = np.zeros(injection_count, dtype=np.float64)
+        px_arr = np.zeros(injection_count, dtype=np.float64)
 
-        y_arr = np.zeros(Np_inj, dtype=np.float64)
-        py_arr = np.zeros(Np_inj, dtype=np.float64)
+        y_arr = np.zeros(injection_count, dtype=np.float64)
+        py_arr = np.zeros(injection_count, dtype=np.float64)
 
         Xm = np.sqrt(8.0) * np.sqrt(emit_x * beta_x)
         PXm = np.sqrt(8.0) * np.sqrt(emit_x * gamma_x)
@@ -647,8 +636,8 @@ class Injection(Command):
         sin_y, cos_y = np.sin(chi_y), np.cos(chi_y)
         draw = self.rng.random
         i = 0
-        while i < Np_inj:
-            count = min(Np_inj - i, 65536)
+        while i < injection_count:
+            count = min(injection_count - i, 65536)
             values = np.empty((count, 4), dtype=np.float64)
             accepted = 0
             while accepted < count:
@@ -689,7 +678,7 @@ class Injection(Command):
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
         sigma_dp = inj_bunch.dp
@@ -700,11 +689,11 @@ class Injection(Command):
         z_max = 4 * sigma_z
         z_min = -4 * sigma_z
 
-        z_arr = np.zeros(Np_inj, dtype=np.float64)
-        dp_arr = np.zeros(Np_inj, dtype=np.float64)
+        z_arr = np.zeros(injection_count, dtype=np.float64)
+        dp_arr = np.zeros(injection_count, dtype=np.float64)
 
         i = 0
-        while i < Np_inj:
+        while i < injection_count:
             z = self.rng.gauss(0, sigma_z)
             dp = self.rng.gauss(0, sigma_dp)
 
@@ -731,7 +720,7 @@ class Injection(Command):
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz  # For costing beam, this is the total length of uniform distribution, not RMS value
         sigma_dp = inj_bunch.dp
@@ -739,11 +728,11 @@ class Injection(Command):
         z_max = 0.5 * sigma_z
         z_min = -0.5 * sigma_z
 
-        z_arr = np.zeros(Np_inj, dtype=np.float64)
-        dp_arr = np.zeros(Np_inj, dtype=np.float64)
+        z_arr = np.zeros(injection_count, dtype=np.float64)
+        dp_arr = np.zeros(injection_count, dtype=np.float64)
 
         i = 0
-        while i < Np_inj:
+        while i < injection_count:
             z = self.rng.uniform(-0.5 * sigma_z, 0.5 * sigma_z)
             dp = self.rng.gauss(0, sigma_dp)
 
@@ -764,29 +753,29 @@ class Injection(Command):
 
         logger.info(f"Generate successfully")
 
-    def _generate_longi_matchZ_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
+    def _generate_longi_matched_z_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         # Generate particle's z position and momentum.
         # Use the method in PyHEADTAIL.
         logger.info(f"The initial longitudinal z-matched distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
         sigma_dp = inj_bunch.dp
 
-        zmax = inj_bunch.getZMax()
-        zmin = inj_bunch.getZMin()
-        dp = inj_bunch.getDeltaPMax()
-        Hmax = inj_bunch.getHamiltonianPhi(inj_bunch.getUFPPhi(), 0.0)
+        zmax = inj_bunch.compute_bucket_z_max()
+        zmin = inj_bunch.compute_bucket_z_min()
+        dp = inj_bunch.compute_bucket_dp_max()
+        Hmax = inj_bunch.compute_hamiltonian_from_phase(inj_bunch.compute_unstable_fixed_point_phase(), 0.0)
         H0 = 0.0
 
-        z_arr = np.zeros(Np_inj, dtype=np.float64)
-        dp_arr = np.zeros(Np_inj, dtype=np.float64)
+        z_arr = np.zeros(injection_count, dtype=np.float64)
+        dp_arr = np.zeros(injection_count, dtype=np.float64)
 
         # Check the sigmaz whether the sigmaz > sigma_max
-        sigma_max = inj_bunch.getSigmaZ(zmax)
+        sigma_max = inj_bunch.compute_sigma_z(zmax)
         sig = sigma_z
         # if sigmaz > sigma_max, use sigmaz = 0.99 * sigma_max
         if sig > sigma_max:
@@ -795,7 +784,7 @@ class Injection(Command):
 
         # Solve the matched H0
         def func(x):
-            return inj_bunch.getSigmaZ(x) - sig
+            return inj_bunch.compute_sigma_z(x) - sig
 
         x2 = sig
         x1 = 0.0
@@ -804,10 +793,10 @@ class Injection(Command):
         else:
             x1 = sig / 10
         root = brentq(func, x1, x2)
-        H0 = inj_bunch.H0FromZ(root)
+        H0 = inj_bunch.compute_hamiltonian_scale_from_z(root)
 
         i = 0
-        while i < Np_inj:
+        while i < injection_count:
 
             u = 0.0
             v = 0.0
@@ -819,15 +808,15 @@ class Injection(Command):
                 s = self.rng.uniform(0, 1)
 
                 # for stability, limit particles in the 0.9 times bucket
-                if s <= inj_bunch.psi(u, v, H0, Hmax) and np.abs(inj_bunch.getHamiltonianZ(u, v)) <= 0.9 * np.abs(Hmax):
+                if s <= inj_bunch.psi(u, v, H0, Hmax) and np.abs(inj_bunch.compute_hamiltonian_from_z(u, v)) <= 0.9 * np.abs(Hmax):
                     break
 
-            tmp_z = u
-            tmp_dp = v
+            sample_z = u
+            sample_dp = v
 
-            if (tmp_z >= (-0.5 * 4 * sigma_z) and tmp_z <= (0.5 * 4 * sigma_z)):
-                z_arr[i] = tmp_z
-                dp_arr[i] = tmp_dp
+            if (sample_z >= (-0.5 * 4 * sigma_z) and sample_z <= (0.5 * 4 * sigma_z)):
+                z_arr[i] = sample_z
+                dp_arr[i] = sample_dp
 
                 i += 1
             else:
@@ -842,29 +831,29 @@ class Injection(Command):
 
         logger.info(f"Generate successfully")
 
-    def _generate_longi_matchDp_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
+    def _generate_longi_matched_dp_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         # Generate particle's z position and momentum.
         # Use the method in PyHEADTAIL.
         logger.info(f"The initial longitudinal dp-matched distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} is being generated ...")
 
         start_index = bunch_info.start_idx + inj_bunch.Np_injected
         end_index = bunch_info.start_idx + inj_bunch.Np_injected + inj_bunch.Np_inj_curTurn
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         sigma_z = inj_bunch.sigmaz
         sigma_dp = inj_bunch.dp
 
-        zmax = inj_bunch.getZMax()
-        zmin = inj_bunch.getZMin()
-        dp = inj_bunch.getDeltaPMax()
-        Hmax = inj_bunch.getHamiltonianPhi(inj_bunch.getUFPPhi(), 0.0)
+        zmax = inj_bunch.compute_bucket_z_max()
+        zmin = inj_bunch.compute_bucket_z_min()
+        dp = inj_bunch.compute_bucket_dp_max()
+        Hmax = inj_bunch.compute_hamiltonian_from_phase(inj_bunch.compute_unstable_fixed_point_phase(), 0.0)
         H0 = 0.0
 
-        z_arr = np.zeros(Np_inj, dtype=np.float64)
-        dp_arr = np.zeros(Np_inj, dtype=np.float64)
+        z_arr = np.zeros(injection_count, dtype=np.float64)
+        dp_arr = np.zeros(injection_count, dtype=np.float64)
 
         # Check the sigmaz whether the sigmadp > sigma_max
-        sigma_max = inj_bunch.getSigmaDp(dp)
+        sigma_max = inj_bunch.compute_sigma_dp(dp)
         sig = sigma_dp
         # if sigmaz > sigma_max, use sigmaz = 0.99 * sigma_max
         if sig > sigma_max:
@@ -873,7 +862,7 @@ class Injection(Command):
 
         # Solve the matched H0
         def func(x):
-            return inj_bunch.getSigmaDp(x) - sig
+            return inj_bunch.compute_sigma_dp(x) - sig
 
         x2 = sig
         x1 = 0.0
@@ -882,10 +871,10 @@ class Injection(Command):
         else:
             x1 = sig / 10
         root = brentq(func, x1, x2)
-        H0 = inj_bunch.H0FromDeltaP(root)
+        H0 = inj_bunch.compute_hamiltonian_scale_from_dp(root)
 
         i = 0
-        while i < Np_inj:
+        while i < injection_count:
 
             u = 0.0
             v = 0.0
@@ -897,15 +886,15 @@ class Injection(Command):
                 s = self.rng.uniform(0, 1)
 
                 # for stability, limit particles in the 0.9 times bucket
-                if s <= inj_bunch.psi(u, v, H0, Hmax) and np.abs(inj_bunch.getHamiltonianZ(u, v)) <= 0.9 * np.abs(Hmax):
+                if s <= inj_bunch.psi(u, v, H0, Hmax) and np.abs(inj_bunch.compute_hamiltonian_from_z(u, v)) <= 0.9 * np.abs(Hmax):
                     break
 
-            tmp_z = u
-            tmp_dp = v
+            sample_z = u
+            sample_dp = v
 
-            if (tmp_z >= (-0.5 * 4 * sigma_z) and tmp_z <= (0.5 * 4 * sigma_z)):
-                z_arr[i] = tmp_z
-                dp_arr[i] = tmp_dp
+            if (sample_z >= (-0.5 * 4 * sigma_z) and sample_z <= (0.5 * 4 * sigma_z)):
+                z_arr[i] = sample_z
+                dp_arr[i] = sample_dp
 
                 i += 1
             else:
@@ -1004,16 +993,16 @@ class Injection(Command):
 
         # rf_position back-drift (reverse propagation s_rf -> s=0).
         # z(s=0) = z(s_rf) - (-1 * eta * rf_position * dp)
-        eta = inj_bunch.getInitEta()
+        eta = inj_bunch.compute_initial_slip_factor()
         z_arr += eta * inj_bunch.rf_position * dp_arr
 
     def _add_offset(self, inj_bunch, bunch_info, beam, use_cpu):
         p = beam.particles
         start = bunch_info.start_idx + inj_bunch.Np_injected
         end = start + inj_bunch.Np_inj_curTurn
-        sl = slice(start, end)
-        p.x[sl] += inj_bunch.dx * p.dp[sl]
-        p.px[sl] += inj_bunch.dpx * p.dp[sl]
+        bunch_slice = slice(start, end)
+        p.x[bunch_slice] += inj_bunch.dx * p.dp[bunch_slice]
+        p.px[bunch_slice] += inj_bunch.dpx * p.dp[bunch_slice]
         for axis in ("x", "y"):
             if not getattr(inj_bunch, "is_offset_" + axis, False):
                 continue
@@ -1028,8 +1017,8 @@ class Injection(Command):
                 position, momentum = np.interp(when, nodes, position), np.interp(when, nodes, momentum)
             else:
                 position, momentum = position[0], momentum[0]
-            getattr(p, axis)[sl] += position
-            getattr(p, "p" + axis)[sl] += momentum
+            getattr(p, axis)[bunch_slice] += position
+            getattr(p, "p" + axis)[bunch_slice] += momentum
 
     def _insert_particles(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
         logger.info(f"Inserting specified particles to beam{self.beam_id} bunch{inj_bunch.bunch_id} ...")
@@ -1039,7 +1028,7 @@ class Injection(Command):
 
         start_index = bunch_info.start_idx
         end_index = bunch_info.start_idx + num_insert_particles
-        Np_inj = inj_bunch.Np_inj_curTurn
+        injection_count = inj_bunch.Np_inj_curTurn
 
         insert_arr = np.asarray(insert_particles)
 
@@ -1226,18 +1215,18 @@ class InjectionBunchInfo:
         else:
             logger.info(f"\tOffset y: disabled")
 
-    def phiFromZ(self, z: float):
+    def compute_phase_from_z(self, z: float):
         return self.rf_phi - self.harmonic_num * z / self.rho
 
-    def zFromPhi(self, phi: float):
+    def compute_z_from_phase(self, phi: float):
         return self.rho * (self.rf_phi - phi) / self.harmonic_num
 
-    def getInitEta(self):
+    def compute_initial_slip_factor(self):
         return 1.0 / self.gamma_t / self.gamma_t - 1.0 / self.gamma / self.gamma
 
-    def getPhiSeparatrix(self, phi: float):
+    def compute_separatrix_dp_from_phase(self, phi: float):
         E = self.Ek + self.m0
-        eta = self.getInitEta()
+        eta = self.compute_initial_slip_factor()
         pi = const.pi
         temp = -1 * self.qm_ratio * self.rf_voltage / pi / self.beta / self.beta / E / self.harmonic_num / eta * (
             np.cos(phi) + np.cos(self.rf_phi) - (pi - phi - self.rf_phi) * np.sin(self.rf_phi))
@@ -1245,19 +1234,19 @@ class InjectionBunchInfo:
             temp = 0
         return np.sqrt(temp)
 
-    def getZSeparatrix(self, z: float):
-        phi = self.phiFromZ(z)
-        return self.getPhiSeparatrix(phi)
+    def compute_separatrix_dp_from_z(self, z: float):
+        phi = self.compute_phase_from_z(z)
+        return self.compute_separatrix_dp_from_phase(phi)
 
-    def getUFPPhi(self):
+    def compute_unstable_fixed_point_phase(self):
         return const.pi - self.rf_phi
 
-    def getDeltaPMax(self):
-        return self.getPhiSeparatrix(self.rf_phi)
+    def compute_bucket_dp_max(self):
+        return self.compute_separatrix_dp_from_phase(self.rf_phi)
 
-    def getPhiMax(self):
+    def compute_bucket_phase_max(self):
         pi = const.pi
-        if self.getInitEta() < 0:
+        if self.compute_initial_slip_factor() < 0:
             return pi - self.rf_phi
         else:
             phi_syn = self.rf_phi
@@ -1268,9 +1257,9 @@ class InjectionBunchInfo:
             root = brentq(f, phi_syn, 2 * pi)
             return root
 
-    def getPhiMin(self):
+    def compute_bucket_phase_min(self):
         pi = const.pi
-        if self.getInitEta() > 0:
+        if self.compute_initial_slip_factor() > 0:
             return pi - self.rf_phi
         else:
             phi_syn = self.rf_phi
@@ -1281,44 +1270,44 @@ class InjectionBunchInfo:
             root = brentq(f, -1 * pi, phi_syn)
             return root
 
-    def getZMax(self):
-        phi = self.getPhiMin()
-        return self.zFromPhi(phi)
+    def compute_bucket_z_max(self):
+        phi = self.compute_bucket_phase_min()
+        return self.compute_z_from_phase(phi)
 
-    def getZMin(self):
-        phi = self.getPhiMax()
-        return self.zFromPhi(phi)
+    def compute_bucket_z_min(self):
+        phi = self.compute_bucket_phase_max()
+        return self.compute_z_from_phase(phi)
 
-    def getQs(self):
+    def compute_synchrotron_tune(self):
         E = self.Ek + self.m0
-        eta = self.getInitEta()
+        eta = self.compute_initial_slip_factor()
         pi = const.pi
         Qs = np.sqrt(-1 * self.qm_ratio * self.harmonic_num * self.rf_voltage * eta * np.cos(self.rf_phi) / 2 / pi / self.beta / self.beta / E)
         return Qs
 
-    def H0FromZ(self, z: float):
+    def compute_hamiltonian_scale_from_z(self, z: float):
         E = self.Ek + self.m0
-        eta = self.getInitEta()
+        eta = self.compute_initial_slip_factor()
         pi = const.pi
-        Qs = self.getQs()
+        Qs = self.compute_synchrotron_tune()
         f0_now = self.beta * const.c / self.circum
         # H0 = -h*2*pi*f0*eta*(vs*z/eta/rho)^2
         H0 = -1 * self.harmonic_num * 2 * pi * f0_now * eta * (Qs * z / eta / self.rho) * (Qs * z / eta / self.rho)
         return H0
 
-    def H0FromDeltaP(self, dp_c: float):
+    def compute_hamiltonian_scale_from_dp(self, dp_c: float):
         E = self.Ek + self.m0
-        eta = self.getInitEta()
+        eta = self.compute_initial_slip_factor()
         pi = const.pi
-        Qs = self.getQs()
+        Qs = self.compute_synchrotron_tune()
         f0_now = self.beta * const.c / self.circum
         # H0 = -h*2*pi*f0*eta*dp^2
         H0 = -1 * self.harmonic_num * 2 * pi * f0_now * eta * dp_c * dp_c
         return H0
 
-    def getHamiltonianPhi(self, phi: float, deltap: float):
+    def compute_hamiltonian_from_phase(self, phi: float, deltap: float):
         E = self.Ek + self.m0
-        eta = self.getInitEta()
+        eta = self.compute_initial_slip_factor()
         pi = const.pi
         f0_now = self.beta * const.c / self.circum
         # H = 1/2*h*omega_0*eta*dp^2+omega_0*q*V/2/pi/beta^2/E*(cos(phi)-cos(phi_s)+(phi-phi_s)*sin(phi_s))
@@ -1327,38 +1316,34 @@ class InjectionBunchInfo:
                         (np.cos(phi) - np.cos(self.rf_phi) + (phi - self.rf_phi) * np.sin(self.rf_phi)))
         return H
 
-    def getHamiltonianZ(self, z: float, deltap: float):
-        phi = self.phiFromZ(z)
-        return self.getHamiltonianPhi(phi, deltap)
+    def compute_hamiltonian_from_z(self, z: float, deltap: float):
+        phi = self.compute_phase_from_z(z)
+        return self.compute_hamiltonian_from_phase(phi, deltap)
 
     def psi(self, z: float, dp: float, H0: float, Hmax: float):
         # Use the generating function: 1-(exp(H/H0)-1)/(exp(Hmax/H0)-1).
-        return 1 - (np.exp(self.getHamiltonianZ(z, dp) / H0) - 1) / (np.exp(Hmax / H0) - 1)
+        return 1 - (np.exp(self.compute_hamiltonian_from_z(z, dp) / H0) - 1) / (np.exp(Hmax / H0) - 1)
 
-    def getSigmaZ(self, z_c: float):
-        zmax = self.getZMax()
-        zmin = self.getZMin()
+    def compute_sigma_z(self, z_c: float):
+        zmax = self.compute_bucket_z_max()
+        zmin = self.compute_bucket_z_min()
 
         # Get the separatrix of the buncket
         def dp1(z):
-            return -self.getZSeparatrix(z)
+            return -self.compute_separatrix_dp_from_z(z)
 
         def dp2(z):
-            return self.getZSeparatrix(z)
+            return self.compute_separatrix_dp_from_z(z)
 
         # Get the H0 and Hmax used in generating function.
-        H0 = self.H0FromZ(z_c)
-        Hmax = self.getHamiltonianPhi(self.getUFPPhi(), 0.0)
-
-        # logger.info(f"H0: {H0}, Hmax: {Hmax}")
+        H0 = self.compute_hamiltonian_scale_from_z(z_c)
+        Hmax = self.compute_hamiltonian_from_phase(self.compute_unstable_fixed_point_phase(), 0.0)
 
         # Get the integral of generating function in the bucket.
         def psi_q(dp, z):
             return self.psi(z, dp, H0, Hmax)
 
         Q, _ = dblquad(psi_q, zmin, zmax, dp1, dp2)
-
-        # logger.info(f"Q: {Q}")
 
         # Get the mean value of generating function in the bucket.
         def psi_m(dp, z):
@@ -1367,31 +1352,28 @@ class InjectionBunchInfo:
         M, _ = dblquad(psi_m, zmin, zmax, dp1, dp2)
         M /= Q
 
-        # logger.info(f"M: {M}")
-
         # Get the standard deviation of generating function in the bucket.
         def psi_v(dp, z):
             return (z - M) * (z - M) * self.psi(z, dp, H0, Hmax)
 
         V, _ = dblquad(psi_v, zmin, zmax, dp1, dp2)
         V /= Q
-        # logger.info(f"V: {V}")
         return np.sqrt(V)
 
-    def getSigmaDp(self, dp_c: float):
-        zmax = self.getZMax()
-        zmin = self.getZMin()
+    def compute_sigma_dp(self, dp_c: float):
+        zmax = self.compute_bucket_z_max()
+        zmin = self.compute_bucket_z_min()
 
         # Get the separatrix of the buncket
         def dp1(z):
-            return -self.getZSeparatrix(z)
+            return -self.compute_separatrix_dp_from_z(z)
 
         def dp2(z):
-            return self.getZSeparatrix(z)
+            return self.compute_separatrix_dp_from_z(z)
 
         # Get the H0 and Hmax used in generating function.
-        H0 = self.H0FromDeltaP(dp_c)
-        Hmax = self.getHamiltonianPhi(self.getUFPPhi(), 0.0)
+        H0 = self.compute_hamiltonian_scale_from_dp(dp_c)
+        Hmax = self.compute_hamiltonian_from_phase(self.compute_unstable_fixed_point_phase(), 0.0)
 
         # Get the integral of generating function in the bucket.
         def psi_q(dp, z):
@@ -1471,8 +1453,7 @@ def _read_offset_fromfile(file_path: str, direction: str):
     if momentum_arr is None:
         raise KeyError(f"No 'px' or 'py' colums were found in file {file_path}")
 
-    if (len(time_arr) == 0 or not np.all(np.isfinite(time_arr))
-            or np.any(np.diff(time_arr) <= 0)
-            or not np.all(np.isfinite(position_arr)) or not np.all(np.isfinite(momentum_arr))):
+    if (len(time_arr) == 0 or not np.all(np.isfinite(time_arr)) or np.any(np.diff(time_arr) <= 0) or not np.all(np.isfinite(position_arr))
+            or not np.all(np.isfinite(momentum_arr))):
         raise ValueError("Injection offset requires finite values and strictly increasing nodes")
     return time_arr, position_arr, momentum_arr, time_kind

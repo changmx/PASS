@@ -5,16 +5,16 @@ fits chromaticity from dp scan, and compares with MADX reference values.
 
 Usage:
     # Auto-detect latest output directory
-    python analyze.py
+    python analyze_results.py
 
     # Specify output directory
-    python analyze.py --output-dir output/2026_0714/2127_48
+    python analyze_results.py --output-dir output/2026_0714/2127_48
 
     # Specify twiss file for reference values
-    python analyze.py --twiss bring.tfs
+    python analyze_results.py --twiss bring.tfs
 
-    # Custom chromaticity dp list (must match make_input.py)
-    python analyze.py --dp-list 5e-5,1e-4,5e-4,1e-3
+    # Custom chromaticity dp list (must match generate_input.py)
+    python analyze_results.py --dp-list 5e-5,1e-4,5e-4,1e-3
 """
 
 import sys
@@ -28,7 +28,7 @@ import tfs
 # Constants: particle group definitions
 # ============================================================
 
-# Must match make_input.py make_test_particles() ordering
+# Must match generate_input.py make_test_particles() ordering
 DEFAULT_DP_LIST = [5e-5, 1e-4, 5e-4, 1e-3]
 
 # Group ranges are 1-indexed tag numbers [start, end] inclusive
@@ -227,9 +227,9 @@ def fit_chromaticity(data: dict, dp_list: list[float]) -> dict:
 
 # Group B tag pairs: (tag+dp, tag-dp, delta_value)
 DELTA_PAIRS = [
-    (3, 4,  5e-5),
-    (5, 6,  1e-4),
-    (7, 8,  5e-4),
+    (3, 4, 5e-5),
+    (5, 6, 1e-4),
+    (7, 8, 5e-4),
     (9, 10, 1e-3),
 ]
 
@@ -367,8 +367,12 @@ def print_results(data: dict, chrom: dict, disp: dict, adts: dict, madx_ref: dic
         print(f"  {disp['delta'][i]:12.1e} {disp['Dx'][i]:14.6f} {disp['Dx_std'][i]:14.6e} "
               f"{disp['Dpx'][i]:14.6f} {disp['Dpx_std'][i]:14.6e}")
     print(f"\n  {'':20s} {'PASS':>12s} {'MADX Twiss':>12s} {'Diff':>12s}")
-    print(f"  {'Dx':20s} {_fmt(dx_pass, '12.6f')} {_fmt(dx_madx, '12.6f')} {_fmt(dx_pass - dx_madx if dx_pass is not None and dx_madx is not None else None, '+12.6f')}")
-    print(f"  {'Dpx':20s} {_fmt(dpx_pass, '12.6f')} {_fmt(dpx_madx, '12.6f')} {_fmt(dpx_pass - dpx_madx if dpx_pass is not None and dpx_madx is not None else None, '+12.6f')}")
+    print(
+        f"  {'Dx':20s} {_fmt(dx_pass, '12.6f')} {_fmt(dx_madx, '12.6f')} {_fmt(dx_pass - dx_madx if dx_pass is not None and dx_madx is not None else None, '+12.6f')}"
+    )
+    print(
+        f"  {'Dpx':20s} {_fmt(dpx_pass, '12.6f')} {_fmt(dpx_madx, '12.6f')} {_fmt(dpx_pass - dpx_madx if dpx_pass is not None and dpx_madx is not None else None, '+12.6f')}"
+    )
 
     # --- Large dp (nonlinear) ---
     print_separator("C. Large dp — Nonlinear Chromaticity (Group C)")
@@ -415,10 +419,14 @@ def print_results(data: dict, chrom: dict, disp: dict, adts: dict, madx_ref: dic
 
     # --- Summary ---
     print_separator("Summary")
-    print(f"  Qx  = {qx_pass:.6f}  (MADX PTC: {_fmt(qx_madx, '.6f').strip()}, Δ = {qx_pass - qx_madx:+.6f}" if qx_madx else f"  Qx  = {qx_pass:.6f}  (no MADX reference)")
-    print(f"  Qy  = {qy_pass:.6f}  (MADX PTC: {_fmt(qy_madx, '.6f').strip()}, Δ = {qy_pass - qy_madx:+.6f}" if qy_madx else f"  Qy  = {qy_pass:.6f}  (no MADX reference)")
-    print(f"  DQ1 = {chrom['dq1_frac']:.6f}  (MADX PTC: {_fmt(dq1_madx, '.6f').strip()}, Δ = {chrom['dq1_frac'] - dq1_madx:+.6f}" if dq1_madx else f"  DQ1 = {chrom['dq1_frac']:.6f}  (no MADX reference)")
-    print(f"  DQ2 = {chrom['dq2_frac']:.6f}  (MADX PTC: {_fmt(dq2_madx, '.6f').strip()}, Δ = {chrom['dq2_frac'] - dq2_madx:+.6f}" if dq2_madx else f"  DQ2 = {chrom['dq2_frac']:.6f}  (no MADX reference)")
+    print(f"  Qx  = {qx_pass:.6f}  (MADX PTC: {_fmt(qx_madx, '.6f').strip()}, Δ = {qx_pass - qx_madx:+.6f}"
+          if qx_madx else f"  Qx  = {qx_pass:.6f}  (no MADX reference)")
+    print(f"  Qy  = {qy_pass:.6f}  (MADX PTC: {_fmt(qy_madx, '.6f').strip()}, Δ = {qy_pass - qy_madx:+.6f}"
+          if qy_madx else f"  Qy  = {qy_pass:.6f}  (no MADX reference)")
+    print(f"  DQ1 = {chrom['dq1_frac']:.6f}  (MADX PTC: {_fmt(dq1_madx, '.6f').strip()}, Δ = {chrom['dq1_frac'] - dq1_madx:+.6f}"
+          if dq1_madx else f"  DQ1 = {chrom['dq1_frac']:.6f}  (no MADX reference)")
+    print(f"  DQ2 = {chrom['dq2_frac']:.6f}  (MADX PTC: {_fmt(dq2_madx, '.6f').strip()}, Δ = {chrom['dq2_frac'] - dq2_madx:+.6f}"
+          if dq2_madx else f"  DQ2 = {chrom['dq2_frac']:.6f}  (no MADX reference)")
 
 
 # ============================================================

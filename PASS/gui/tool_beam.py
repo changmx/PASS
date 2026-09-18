@@ -3,19 +3,33 @@ import math
 import re
 
 from PySide6.QtCore import QSignalBlocker, QStringListModel, Qt, Signal
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QCompleter,
-    QFormLayout, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QCompleter,
+    QFormLayout,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from PASS.gui.structured import IntegerSpinBox, ScientificSpinBox
 from PASS.gui.tool_formulas import BEAM_FORMULAS, FormulaDialog
-from PASS.gui.beam_calculator import (beam_current, beam_power, circulating_beam,
-    particle_rate, pulsed_beam, solve_kinematics)
+from PASS.gui.beam_calculator import beam_current, beam_power, circulating_beam, particle_rate, pulsed_beam, solve_kinematics
 from PASS.tool.particles import ParticleSpec, SPECIAL_PARTICLES, resolve_particle, search_particles
 from PASS.utils.constants import const
 
 
-def number(value=0, minimum=0):
+def create_number_input(value=0, minimum=0):
     widget = ScientificSpinBox(value)
     widget.setMinimum(minimum)
     widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
@@ -63,8 +77,8 @@ class ParticleEditor(QGroupBox):
         self.species.addItem("离子 / 原子（A、q、Z）", "ion")
         for key, entry in SPECIAL_PARTICLES.items():
             self.species.addItem(entry[0], key)
-        for col, (label, widget) in enumerate((("质量数 A", self.mass_number), ("电荷态 q", self.charge_state),
-                                             ("质子数 Z", self.atomic_number), ("粒子类型", self.species))):
+        for col, (label, widget) in enumerate(
+            (("质量数 A", self.mass_number), ("电荷态 q", self.charge_state), ("质子数 Z", self.atomic_number), ("粒子类型", self.species))):
             grid.addWidget(QLabel(label), 0, col)
             grid.addWidget(widget, 1, col)
         for widget in (self.mass_number, self.charge_state, self.atomic_number):
@@ -172,6 +186,7 @@ class ParticleEditor(QGroupBox):
 
 
 class BeamCalculatorPage(QWidget):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.kinematics = None
@@ -199,19 +214,18 @@ class BeamCalculatorPage(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
         self.particle_editor = ParticleEditor()
-        for name in ("mass_number", "charge_state", "atomic_number", "species", "identity", "search", "search_button",
-                     "search_model", "completer", "search_status"):
+        for name in ("mass_number", "charge_state", "atomic_number", "species", "identity", "search", "search_button", "search_model", "completer",
+                     "search_status"):
             setattr(self, name, getattr(self.particle_editor, name))
         self.mass_description = self.particle_editor.identity
         layout.addWidget(self.particle_editor)
         kinematics = QGroupBox("运动学与磁刚度")
         kg = QGridLayout(kinematics)
         self.known = QComboBox()
-        for label, key in (("每核子动能 Ek", "kinetic_energy"), ("每核子总能量 E/A", "total_energy"),
-                           ("每核子动量 p/A", "momentum"), ("磁刚度 Bρ", "brho"),
+        for label, key in (("每核子动能 Ek", "kinetic_energy"), ("每核子总能量 E/A", "total_energy"), ("每核子动量 p/A", "momentum"), ("磁刚度 Bρ", "brho"),
                            ("速度比 β", "beta"), ("相对论因子 γ", "gamma")):
             self.known.addItem(label, key)
-        self.known_value = number(100)
+        self.known_value = create_number_input(100)
         self.known_unit = QLabel("(AMeV)")
         known_row = QHBoxLayout()
         known_row.addWidget(QLabel("已知量"))
@@ -220,9 +234,8 @@ class BeamCalculatorPage(QWidget):
         known_row.addWidget(self.known_unit)
         kg.addLayout(known_row, 0, 0, 1, 4)
         self.results = {}
-        fields = (("brho", "Bρ (T·m)"), ("gamma", "γ"), ("beta", "β"),
-                  ("beta_gamma", "βγ"), ("velocity", "v (m/s)"), ("momentum_ev_c", "p/A (GeV/c)"),
-                  ("ek_per_nucleon_ev", "Ek (AMeV)"), ("total_energy_ev", "E/A (MeV)"),
+        fields = (("brho", "Bρ (T·m)"), ("gamma", "γ"), ("beta", "β"), ("beta_gamma", "βγ"), ("velocity", "v (m/s)"),
+                  ("momentum_ev_c", "p/A (GeV/c)"), ("ek_per_nucleon_ev", "Ek (AMeV)"), ("total_energy_ev", "E/A (MeV)"),
                   ("rest_energy", "静止质量 m₀/A (MeV/c²)"), ("mass_ratio", "质量比 μ = m₀/u"))
         self.result_labels = dict(fields)
         self.result_label_widgets = {}
@@ -261,16 +274,16 @@ class BeamCalculatorPage(QWidget):
         self.time_basis.addItem("瞬时值 / 已知峰值", "instant")
         dl.addRow("已知量", self.power_known)
         dl.addRow("时间口径", self.time_basis)
-        self.direct_value = number(0)
+        self.direct_value = create_number_input(0)
         self.direct_label = QLabel("平均电流 (mA)")
         dl.addRow(self.direct_label, self.direct_value)
         self.power_inputs.addWidget(direct)
         pulse = QWidget()
         pul = QGridLayout(pulse)
-        self.pulse_count = number(0)
-        self.repetition_frequency = number(1)
+        self.pulse_count = create_number_input(0)
+        self.repetition_frequency = create_number_input(1)
         self.use_duration = QCheckBox("提供脉宽 (μs)")
-        self.pulse_duration = number(1)
+        self.pulse_duration = create_number_input(1)
         self.pulse_duration.setEnabled(False)
         pul.addWidget(QLabel("每脉冲真实粒子数"), 0, 0)
         pul.addWidget(self.pulse_count, 0, 1)
@@ -281,8 +294,8 @@ class BeamCalculatorPage(QWidget):
         self.power_inputs.addWidget(pulse)
         ring = QWidget()
         rl = QGridLayout(ring)
-        self.ring_count = number(0)
-        self.circumference = number(100)
+        self.ring_count = create_number_input(0)
+        self.circumference = create_number_input(100)
         rl.addWidget(QLabel("环内真实粒子总数"), 0, 0)
         rl.addWidget(self.ring_count, 0, 1)
         rl.addWidget(QLabel("环周长 C (m)"), 0, 2)
@@ -315,8 +328,7 @@ class BeamCalculatorPage(QWidget):
         self.power_mode.currentIndexChanged.connect(self.change_power_mode)
         self.power_known.currentIndexChanged.connect(self.change_power_mode)
         self.time_basis.currentIndexChanged.connect(self.change_power_mode)
-        for widget in (self.direct_value, self.pulse_count, self.repetition_frequency,
-                       self.pulse_duration, self.ring_count, self.circumference):
+        for widget in (self.direct_value, self.pulse_count, self.repetition_frequency, self.pulse_duration, self.ring_count, self.circumference):
             widget.valueChanged.connect(self.recalculate_power)
         self.use_duration.toggled.connect(self.pulse_duration.setEnabled)
         self.use_duration.toggled.connect(self.recalculate_power)
@@ -389,19 +401,26 @@ class BeamCalculatorPage(QWidget):
         suffix = "/A" if per_nucleon else ""
         prefix = "每核子" if per_nucleon else "单粒子"
         with QSignalBlocker(self.known):
-            for key, label in (("kinetic_energy", f"{prefix}动能 Ek"),
-                               ("total_energy", f"{prefix}总能量 E{suffix}"),
-                               ("momentum", f"{prefix}动量 p{suffix}")):
+            for key, label in (("kinetic_energy", f"{prefix}动能 Ek"), ("total_energy", f"{prefix}总能量 E{suffix}"), ("momentum",
+                                                                                                                  f"{prefix}动量 p{suffix}")):
                 self.known.setItemText(self.known.findData(key), label)
-        labels = {"ek_per_nucleon_ev": f"Ek ({particle.kinetic_energy_unit})",
-                  "total_energy_ev": f"E{suffix} (MeV)",
-                  "momentum_ev_c": f"p{suffix} (GeV/c)",
-                  "rest_energy": f"静止质量 m₀{suffix} (MeV/c²)"}
+        labels = {
+            "ek_per_nucleon_ev": f"Ek ({particle.kinetic_energy_unit})",
+            "total_energy_ev": f"E{suffix} (MeV)",
+            "momentum_ev_c": f"p{suffix} (GeV/c)",
+            "rest_energy": f"静止质量 m₀{suffix} (MeV/c²)"
+        }
         self.result_labels.update(labels)
         for key, label in labels.items():
             self.result_label_widgets[key].setText(label)
-        unit = {"kinetic_energy": particle.kinetic_energy_unit, "total_energy": "MeV",
-                "momentum": "GeV/c", "brho": "T·m", "gamma": "", "beta": ""}[self.known.currentData()]
+        unit = {
+            "kinetic_energy": particle.kinetic_energy_unit,
+            "total_energy": "MeV",
+            "momentum": "GeV/c",
+            "brho": "T·m",
+            "gamma": "",
+            "beta": ""
+        }[self.known.currentData()]
         self.known_unit.setText(f"({unit})" if unit else "")
 
     def change_power_mode(self):
@@ -409,11 +428,16 @@ class BeamCalculatorPage(QWidget):
         self.power_inputs.setCurrentIndex({"direct": 0, "pulse": 1, "ring": 2}[mode])
         self.power_inputs.setFixedHeight(max(44, self.power_inputs.currentWidget().sizeHint().height()))
         prefix = "瞬时" if self.time_basis.currentData() == "instant" else "平均"
-        self.direct_label.setText({"current": f"{prefix}电流 (mA)", "power": f"{prefix}束流功率 (kW)",
-                                   "rate": f"{prefix}粒子率 (1/s)"}[self.power_known.currentData()])
-        self.power_note.setText({"direct": "电流、功率与 Ek 采用同一时间口径；不需要周长。仅有平均值不能确定峰值。",
+        self.direct_label.setText({
+            "current": f"{prefix}电流 (mA)",
+            "power": f"{prefix}束流功率 (kW)",
+            "rate": f"{prefix}粒子率 (1/s)"
+        }[self.power_known.currentData()])
+        self.power_note.setText({
+            "direct": "电流、功率与 Ek 采用同一时间口径；不需要周长。仅有平均值不能确定峰值。",
             "pulse": "重复频率为实际脉冲/引出频率；脉冲内平均值只有平顶波形才等于峰值。",
-            "ring": "周长用于求回旋频率。环内储能与循环电流不能当作靶上引出功率。"}[mode])
+            "ring": "周长用于求回旋频率。环内储能与循环电流不能当作靶上引出功率。"
+        }[mode])
         self.recalculate_power()
 
     def recalculate_power(self):
@@ -448,18 +472,21 @@ class BeamCalculatorPage(QWidget):
                     current = rate * abs(k.particle.charge_state) * const.e
                     power = rate * k.kinetic_energy_ev * const.e
                 else:
-                    current = self.direct_value.value()*1e-3 if known == "current" else beam_current(k, self.direct_value.value()*1e3)
+                    current = self.direct_value.value() * 1e-3 if known == "current" else beam_current(k, self.direct_value.value() * 1e3)
                     power, rate = beam_power(k, current), particle_rate(k, current)
-                values = dict(current=current*1e3, power=power/1e3, rate=rate)
+                values = dict(current=current * 1e3, power=power / 1e3, rate=rate)
             elif mode == "pulse":
-                r = pulsed_beam(k, self.pulse_count.value(), self.repetition_frequency.value(), self.pulse_duration.value()*1e-6 if self.use_duration.isChecked() else None)
-                values = dict(current=r.current_a*1e3, power=r.power_w/1e3, energy=r.pulse_energy_j)
+                r = pulsed_beam(k, self.pulse_count.value(), self.repetition_frequency.value(),
+                                self.pulse_duration.value() * 1e-6 if self.use_duration.isChecked() else None)
+                values = dict(current=r.current_a * 1e3, power=r.power_w / 1e3, energy=r.pulse_energy_j)
                 if r.pulse_current_a is not None:
-                    values.update(pulse_current=r.pulse_current_a*1e3, pulse_power=r.pulse_power_w/1e3)
+                    values.update(pulse_current=r.pulse_current_a * 1e3, pulse_power=r.pulse_power_w / 1e3)
             else:
                 r = circulating_beam(k, self.ring_count.value(), self.circumference.value())
-                values = dict(current=r.current_a*1e3, frequency=r.revolution_frequency/1e6,
-                              period=None if r.revolution_period is None else r.revolution_period*1e6, energy=r.stored_energy_j)
+                values = dict(current=r.current_a * 1e3,
+                              frequency=r.revolution_frequency / 1e6,
+                              period=None if r.revolution_period is None else r.revolution_period * 1e6,
+                              energy=r.stored_energy_j)
             for key, value in values.items():
                 self.power_results[key].setText(format_number(value))
             self.power_error.clear()

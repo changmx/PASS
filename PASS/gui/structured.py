@@ -11,10 +11,28 @@ import re
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence, QValidator
 from PySide6.QtWidgets import (
-    QApplication, QAbstractItemView, QCheckBox, QComboBox, QDialog,
-    QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QMenu, QMessageBox, QPushButton, QSpinBox, QSizePolicy,
-    QStyledItemDelegate, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QApplication,
+    QAbstractItemView,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QDoubleSpinBox,
+    QFormLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QSizePolicy,
+    QStyledItemDelegate,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
 
@@ -50,6 +68,7 @@ class ScientificSpinBox(QDoubleSpinBox):
 
 
 class IntegerSpinBox(QSpinBox):
+
     def __init__(self, value=0, minimum=0, maximum=2147483647, parent=None):
         super().__init__(parent)
         self.setRange(minimum, maximum)
@@ -92,6 +111,7 @@ class Column:
 
 
 class NumberDelegate(QStyledItemDelegate):
+
     def __init__(self, columns, parent, owner):
         super().__init__(parent)
         self.columns = columns
@@ -102,8 +122,8 @@ class NumberDelegate(QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         column = self.columns[index.column()]
-        editor = (IntegerSpinBox(minimum=int(column.minimum), maximum=int(column.maximum), parent=parent)
-                  if column.integer else ScientificSpinBox(parent=parent))
+        editor = (IntegerSpinBox(minimum=int(column.minimum), maximum=int(column.maximum), parent=parent) if column.integer else ScientificSpinBox(
+            parent=parent))
         editor.setRange(column.minimum, column.maximum)
         self.editor, self.index = editor, index
         editor.destroyed.connect(lambda: self._forget_editor(editor))
@@ -219,8 +239,8 @@ class NumericTable(StructuredField):
         if self.load_error:
             raise ValueError(self.load_error)
         self.table.itemDelegate().flush()
-        return self._validated_rows([[self.table.item(r, c).data(Qt.EditRole)
-                                     for c in range(len(self.columns))] for r in range(self.table.rowCount())])
+        return self._validated_rows([[self.table.item(r, c).data(Qt.EditRole) for c in range(len(self.columns))]
+                                     for r in range(self.table.rowCount())])
 
     def get_value(self):
         return self.serialize(self.rows())
@@ -275,8 +295,7 @@ class NumericTable(StructuredField):
     def _menu(self, point):
         menu = QMenu(self)
         menu.addAction("粘贴表格行", self._paste_clipboard)
-        menu.addAction("复制表格", lambda: QApplication.clipboard().setText(
-            "\n".join("\t".join(map(str, row)) for row in self.rows())))
+        menu.addAction("复制表格", lambda: QApplication.clipboard().setText("\n".join("\t".join(map(str, row)) for row in self.rows())))
         menu.addAction("上移当前行", lambda: self.move_row(-1))
         menu.addAction("下移当前行", lambda: self.move_row(1))
         menu.addAction("清空", lambda: self.set_rows([]))
@@ -298,11 +317,13 @@ class NumericTable(StructuredField):
         bar = QHBoxLayout()
         amount = IntegerSpinBox(1, 1, 10000)
         add = QPushButton("添加多行")
+
         def append_many():
             rows = editor.rows()
             for _ in range(amount.value()):
                 rows.append(editor.new_row(rows))
             editor.set_rows(rows)
+
         add.clicked.connect(append_many)
         paste = QPushButton("粘贴表格")
         paste.clicked.connect(editor._paste_clipboard)
@@ -313,6 +334,7 @@ class NumericTable(StructuredField):
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.button(QDialogButtonBox.Ok).setText("应用表格")
         buttons.button(QDialogButtonBox.Cancel).setText("取消")
+
         def accept():
             try:
                 rows = editor.rows()
@@ -321,6 +343,7 @@ class NumericTable(StructuredField):
                 dialog.accept()
             except ValueError as exc:
                 QMessageBox.warning(dialog, "参数无效", str(exc))
+
         buttons.accepted.connect(accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
@@ -331,6 +354,7 @@ TURN = Column("起始圈", True, 0, 2147483647)
 
 
 class TurnsEditor(NumericTable):
+
     def __init__(self, value, total_turns, analysis=False):
         self.analysis = analysis
         self.total_turns = total_turns
@@ -347,8 +371,7 @@ class TurnsEditor(NumericTable):
         columns = [TURN, Column("结束圈（不含）" if analysis else "结束圈（含）", True, 0, 2147483647)]
         if not analysis:
             columns.append(Column("步长", True, 1, 2147483647))
-        hint = ("从第 0 圈计数；分析区间不含结束圈，至少包含两圈。空表不分析。" if analysis else
-                "从第 0 圈计数；包含结束圈。起止相同表示单圈，空表不保存。")
+        hint = ("从第 0 圈计数；分析区间不含结束圈，至少包含两圈。空表不分析。" if analysis else "从第 0 圈计数；包含结束圈。起止相同表示单圈，空表不保存。")
         super().__init__(columns, rows, hint, [0, 2] if analysis else [0, 0, 1])
         shortcuts = QHBoxLayout()
         interval = QPushButton("添加区间")
@@ -372,6 +395,7 @@ class TurnsEditor(NumericTable):
 
 
 class ParticleEditor(NumericTable):
+
     def __init__(self, value):
         super().__init__([Column(title) for title in ("x / m", "px / rad", "y / m", "py / rad", "z_rel / m", "dp/p")], value,
                          "每行一个粒子，顺序为 x、px、y、py、束团相对 z、dp/p。数量由行数确定；这些粒子包含在宏粒子总数内。")
@@ -382,10 +406,10 @@ class ParticleEditor(NumericTable):
 
 
 class CoefficientsEditor(NumericTable):
+
     def __init__(self, value, key):
         self.coefficient_key = key
-        super().__init__([Column("阶次 n", True, 0, 1000), Column(key)], list(enumerate(value)),
-                         "n=0 二极，n=1 四极，n=2 六极；数值为积分强度，单位 m⁻ⁿ。未列出的阶次取 0。")
+        super().__init__([Column("阶次 n", True, 0, 1000), Column(key)], list(enumerate(value)), "n=0 二极，n=1 四极，n=2 六极；数值为积分强度，单位 m⁻ⁿ。未列出的阶次取 0。")
 
     def new_row(self, rows):
         return [max((row[0] for row in rows), default=-1) + 1, 0.0]
@@ -401,9 +425,9 @@ class CoefficientsEditor(NumericTable):
 
 
 class DevicesEditor(NumericTable):
+
     def __init__(self, value):
-        super().__init__([Column("GPU 编号", True, 0, 2147483647)], [[v] for v in value],
-                         "GPU 编号从 0 开始，每行一个设备；设备数量自动计算。")
+        super().__init__([Column("GPU 编号", True, 0, 2147483647)], [[v] for v in value], "GPU 编号从 0 开始，每行一个设备；设备数量自动计算。")
 
     def serialize(self, rows):
         values = [row[0] for row in rows]
@@ -413,8 +437,9 @@ class DevicesEditor(NumericTable):
 
 
 APERTURES = {
-    "off": ((), ()), "default": ((), ()),
-    "circle": (("半径 R / m",), (0.01,)),
+    "off": ((), ()),
+    "default": ((), ()),
+    "circle": (("半径 R / m", ), (0.01, )),
     "rectangle": (("水平半宽 / m", "垂直半高 / m"), (0.01, 0.01)),
     "ellipse": (("水平半轴 a / m", "垂直半轴 b / m"), (0.01, 0.01)),
     "rectcircle": (("矩形半宽 W / m", "矩形半高 H / m", "圆半径 R / m"), (0.01, 0.01, 0.012)),
@@ -426,6 +451,7 @@ APERTURES = {
 
 
 class ApertureEditor(StructuredField):
+
     def __init__(self, kind, value):
         super().__init__()
         self.kind = ""
@@ -459,8 +485,7 @@ class ApertureEditor(StructuredField):
             hint.setWordWrap(True)
             self.form.addRow(hint)
         elif kind == "polygon":
-            self.polygon = NumericTable([Column("顶点 x / m"), Column("顶点 y / m")], value,
-                                        "按边界顺序排列至少 3 个顶点，末点自动连接首点。", [0.0, 0.0])
+            self.polygon = NumericTable([Column("顶点 x / m"), Column("顶点 y / m")], value, "按边界顺序排列至少 3 个顶点，末点自动连接首点。", [0.0, 0.0])
             self.polygon.changed.connect(self.changed)
             self.form.addRow(self.polygon)
         else:
@@ -501,6 +526,7 @@ class ApertureEditor(StructuredField):
 
 
 class RangeEditor(StructuredField):
+
     def __init__(self, value, explicit=False):
         super().__init__()
         self.explicit = explicit
@@ -511,7 +537,8 @@ class RangeEditor(StructuredField):
         self.enabled_box.setChecked(self.active)
         if not explicit:
             root.addRow(self.enabled_box)
-        pair = [value.get("z min", -0.1), value.get("z max", 0.1)] if explicit and isinstance(value, dict) else value if isinstance(value, list) and len(value) == 2 else [-0.1, 0.1] if explicit else [-1.0, 1.0]
+        pair = [value.get("z min", -0.1), value.get("z max", 0.1)] if explicit and isinstance(
+            value, dict) else value if isinstance(value, list) and len(value) == 2 else [-0.1, 0.1] if explicit else [-1.0, 1.0]
         self.lower = ScientificSpinBox(pair[0])
         self.upper = ScientificSpinBox(pair[1])
         root.addRow("z 最小值 / m" if explicit else "最小 dp/p", self.lower)
@@ -541,6 +568,7 @@ class RangeEditor(StructuredField):
 
 
 class InternalSpaceChargeEditor(StructuredField):
+
     def __init__(self, value, configurations, total_turns):
         super().__init__()
         from PASS.para.schema.space_charge import ElementSpaceCharge
@@ -586,12 +614,14 @@ class InternalSpaceChargeEditor(StructuredField):
         self.body.setEnabled(self.enabled_box.isChecked())
         self.enabled_box.toggled.connect(self.changed)
         self.configuration.currentTextChanged.connect(self.changed)
+
         def output_modes():
             resource = configurations.get(self.configuration.currentText(), {}) if isinstance(configurations, dict) else {}
             potential = self.flags["Save potential"]
             pic = resource.get("Method", "pic") == "pic"
             potential.setEnabled(pic or potential.isChecked())
             potential.setToolTip("解析求解器不提供电势；已有选项须取消，可改为保存电场或密度。" if not pic else "保存网格电势")
+
         self.configuration.currentTextChanged.connect(output_modes)
         self.flags["Save potential"].toggled.connect(output_modes)
         output_modes()
@@ -604,9 +634,17 @@ class InternalSpaceChargeEditor(StructuredField):
         if not self.enabled_box.isChecked():
             return None
         from PASS.para.schema.space_charge import ElementSpaceCharge
-        value = {"Configuration": self.configuration.currentText(), "Num kicks": self.kicks.value(),
-                 "Aperture type": self.aperture_type.currentText(), "Aperture value": self.aperture.get_value(),
-                 "Save turns": self.turns.get_value(), **{key: item.isChecked() for key, item in self.flags.items()}}
+        value = {
+            "Configuration": self.configuration.currentText(),
+            "Num kicks": self.kicks.value(),
+            "Aperture type": self.aperture_type.currentText(),
+            "Aperture value": self.aperture.get_value(),
+            "Save turns": self.turns.get_value(),
+            **{
+                key: item.isChecked()
+                for key, item in self.flags.items()
+            }
+        }
         return ElementSpaceCharge.model_validate(value).model_dump(by_alias=True)
 
 
@@ -630,6 +668,7 @@ class ObjectEditor(StructuredField):
 
 
 class ListEditor(NumericTable):
+
     def __init__(self, value):
         super().__init__([Column("数值")], [[v] for v in value], "每行一个数值，按行序保存。")
 

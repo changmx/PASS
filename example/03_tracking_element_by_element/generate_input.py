@@ -26,7 +26,7 @@ Test particles (17 total):
         tag 17: x=3mm, y=3mm
 
 Usage:
-    python make_input.py
+    python generate_input.py
 """
 
 from pathlib import Path
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     output_path = str(input_path())
 
     insert_particles = make_test_particles()
-    
+
     num_particles = 10000
     num_turns = 1024
     backend = "cpu"

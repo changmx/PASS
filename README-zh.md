@@ -62,6 +62,41 @@ pass-gui
 
 ## 开发
 
+在 VS Code 选中的 Python 环境中安装开发依赖：
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+用 VS Code 打开仓库根目录，并启用推荐的 YAPF 扩展。项目设置会在保存 Python
+文件时自动格式化，新文件也适用。统一规则来自 `pyproject.toml`：YAPF 0.43.0，
+基于 `pep8`，四空格缩进，行宽 150。不使用编辑器时，可以在仓库根目录运行：
+
+```bash
+python -m yapf --style pyproject.toml --in-place path/to/file.py
+```
+
+格式化器只负责排版；命名和注释约定保存在 `AGENTS.md`，仍需在开发和审查时遵循。
+
+YAPF 不会格式化 Python 字符串中的 CUDA。包含 `__global__` 或 `__device__`
+函数的三引号字符串，可使用项目工具处理：
+
+```bash
+python tools/format_cuda.py --check
+python tools/format_cuda.py --write PASS/commands/solver/pic.py
+```
+
+不指定路径时扫描 `PASS/`，包括以后新增的 Python 文件。默认只检查，只有
+`--write` 才修改文件。工具使用 `.clang-format` 中的规则，需要 clang-format
+23.x（已用 23.1.0 验证）。它先搜索 `PATH`，再搜索标准 VS Code C/C++ 扩展目录；
+其他安装位置可通过 `--clang-format /path/to/clang-format` 或环境变量
+`CLANG_FORMAT` 指定。格式化不需要 CUDA 运行环境。
+
+写入前会检查全部选中文件，核对 C++ 词法标记、预处理指令和字符串外的 Python
+语法保持不变。动态 f-string 和单行片段会列出供人工检查；不含 CUDA 限定符的
+字符串不在扫描范围内。退出码 `0` 表示无需修改或写入成功，`1` 表示检查发现
+格式差异，`2` 表示工具或验证出错。检查成功不代表已验证列出的人工检查片段。
+
 `tests/` 目录仅在本地维护，不纳入 Git 版本控制，新克隆的仓库不包含测试套件。
 如果本地已有测试文件，以可编辑模式安装项目后，在仓库根目录运行测试：
 

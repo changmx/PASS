@@ -1,16 +1,19 @@
 # Example 02 — Single-Turn Twiss Map Tracking
 
+Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+workflow entry points for input generation, tracking, and result analysis.
+
 ## Overview
 
 This example validates the single-turn Twiss transfer matrix in PASS. The lattice consists of a single Twiss point at s = C (one-turn map) with periodic optical parameters (β_prev = β, α_prev = α), so the map is a pure rotation in normalized phase space.
 
 The workflow consists of three steps:
 
-1. **Generate input** (`make_input.py`) — write `beam0.json` with 12 test particles + 10000 distribution particles
-2. **Run simulation** (`run.py`) — execute PASS tracking for 1024 turns
-3. **Analyze results** (`analyse.py`) — five verification modules: tune FFT, CS invariant, analytic matrix comparison, chromaticity, beam statistics
+1. **Generate input** (`generate_input.py`) — write `beam0.json` with 12 test particles + 10000 distribution particles
+2. **Run simulation** (`run_simulation.py`) — execute PASS tracking for 1024 turns
+3. **Analyze results** (`analyze_results.py`) — five verification modules: tune FFT, CS invariant, analytic matrix comparison, chromaticity, beam statistics
 
-`make_input.py` fixes the Injection random seed to `2026`, making the generated
+`generate_input.py` fixes the Injection random seed to `2026`, making the generated
 distribution particles reproducible between runs.
 
 ## Lattice
@@ -46,7 +49,7 @@ Plus 10000 KV-distributed particles (tag=0) for beam statistics.
 
 ## Longitudinal Transfer Mode
 
-The `LONGI_TRANSFER` parameter in `make_input.py` controls the longitudinal transport and determines which FFT measurements are possible:
+The `LONGI_TRANSFER` parameter in `generate_input.py` controls the longitudinal transport and determines which FFT measurements are possible:
 
 | Mode | dp behavior | Qs (FFT) | Chromaticity (FFT) | Matrix comparison |
 |------|------------|----------|-------------------|-------------------|
@@ -55,7 +58,7 @@ The `LONGI_TRANSFER` parameter in `make_input.py` controls the longitudinal tran
 
 **Why can't both be measured simultaneously?** With `"matrix"`, dp oscillates as $dp(n) = dp_0 \cos(2\pi Q_s n)$. The chromatic tune shift $Q_x(n) = Q_x + DQ_x \cdot dp(n)$ becomes a phase-modulated signal. FFT decomposes it into a carrier at $Q_x$ plus sidebands at $Q_x \pm k Q_s$ with amplitudes given by Bessel functions $J_k(\beta)$ where $\beta = |DQ_x| \cdot dp_0 / Q_s$. The carrier stays at the original tune — chromaticity is invisible to simple peak-finding.
 
-The **analytic matrix comparison** in `analyse.py` verifies the full 6D transport (including chromaticity and longitudinal) to machine precision (~1e-15) regardless of the transfer mode. It is the definitive verification.
+The **analytic matrix comparison** in `analyze_results.py` verifies the full 6D transport (including chromaticity and longitudinal) to machine precision (~1e-15) regardless of the transfer mode. It is the definitive verification.
 
 Default: `"off"` (chromaticity measurable).
 
@@ -121,9 +124,9 @@ Statistical fluctuations ~0.1–1% are consistent with $\sigma \propto 1/\sqrt{N
 
 | File | Description |
 |------|-------------|
-| `make_input.py` | Generate `beam0.json` with PASS Python API |
-| `run.py` | Run PASS simulation |
-| `analyse.py` | Five verification modules + plots |
+| `generate_input.py` | Generate `beam0.json` with PASS Python API |
+| `run_simulation.py` | Run PASS simulation |
+| `analyze_results.py` | Five verification modules + plots |
 | `beam0.json` | Generated PASS input (overwritten each run) |
 
 ## How to Run
@@ -136,13 +139,13 @@ Statistical fluctuations ~0.1–1% are consistent with $\sigma \propto 1/\sqrt{N
 ### 1. Generate input
 
 ```bash
-python make_input.py
+python generate_input.py
 ```
 
 ### 2. Run simulation
 
 ```bash
-python run.py
+python run_simulation.py
 ```
 
 Output is saved to `output/YYYY_MMDD/HHMM_SS/`.
@@ -150,7 +153,7 @@ Output is saved to `output/YYYY_MMDD/HHMM_SS/`.
 ### 3. Analyze results
 
 ```bash
-python analyse.py
+python analyze_results.py
 ```
 
 Auto-detects the latest output directory. Prints all five verification results and displays plots via `plt.show()`.

@@ -1,7 +1,7 @@
 """Generate PASS input for RF cavity longitudinal tracking (Example 05).
 
 Five test cases, all driven by the single CASES dictionary below.
-analyse.py imports CASES from this module so that lattice / RF / particle
+analyze_results.py imports CASES from this module so that lattice / RF / particle
 parameters and theory expectations are never duplicated.
 
     twiss_h1_fixed    - one-turn Twiss map (longitudinal_transfer="drift") + RFCavity, h=1
@@ -32,9 +32,9 @@ dE = (q/A) V sin(phase - h z/R), synchronous particle at z = 0):
     zmax   = R (pi - 2 phi_s) / h                             [m]
 
 Usage:
-    python make_input.py
-    python make_input.py --case twiss_h1_fixed
-    python make_input.py --case all
+    python generate_input.py
+    python generate_input.py --case twiss_h1_fixed
+    python generate_input.py --case all
 """
 
 import math
@@ -46,9 +46,9 @@ import tfs as tfs_lib
 from PASS.para.api import generate_input, build_sequence
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, OffsetConfig
-from PASS.para.schema.monitors import StatMonitor, ParticleMonitor
-from PASS.para.schema.elements import RFCavityElement
-from PASS.para.schema.twiss import TwissPoint
+from PASS.para.schema.monitors import StatMonitorItem, ParticleMonitorItem
+from PASS.para.schema.elements import RFCavityItem
+from PASS.para.schema.twiss import TwissItem
 from PASS.utils.constants import const
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -61,16 +61,16 @@ BEAM_NAME = "uranium-238-35+"
 NUM_PROTON = 92
 NUM_NEUTRON = 146
 NUM_CHARGE = 35
-QM_RATIO = NUM_CHARGE / (NUM_PROTON + NUM_NEUTRON)   # 0.147059
+QM_RATIO = NUM_CHARGE / (NUM_PROTON + NUM_NEUTRON)  # 0.147059
 
-KINETIC_ENERGY = 17.0e6      # eV/u
-M0 = const.m_u_eV            # Same rest mass as the tracked ion reference.
+KINETIC_ENERGY = 17.0e6  # eV/u
+M0 = const.m_u_eV  # Same rest mass as the tracked ion reference.
 GAMMA_0 = 1.0 + KINETIC_ENERGY / M0
 BETA_0 = math.sqrt(1.0 - 1.0 / GAMMA_0**2)
-E_TOTAL_0 = GAMMA_0 * M0     # eV per nucleon
+E_TOTAL_0 = GAMMA_0 * M0  # eV per nucleon
 
-CIRCUM = 234.4              # m (example-03/04 FODO, fodo.tfs LENGTH)
-GAMMA_T = 3.374603832       # fodo.tfs GAMMATR
+CIRCUM = 234.4  # m (example-03/04 FODO, fodo.tfs LENGTH)
+GAMMA_T = 3.374603832  # fodo.tfs GAMMATR
 RADIUS = CIRCUM / (2.0 * math.pi)
 ETA_0 = 1.0 / GAMMA_T**2 - 1.0 / GAMMA_0**2
 
@@ -78,16 +78,16 @@ ETA_0 = 1.0 / GAMMA_T**2 - 1.0 / GAMMA_0**2
 # RF parameters (shared by all cases, per-case overrides in CASES)
 # ============================================================
 
-RF_VOLTAGE = 20.0e3          # V (cavity voltage)
+RF_VOLTAGE = 20.0e3  # V (cavity voltage)
 RF_HARMONIC = 1
-RF_PHASE = 0.1               # rad, synchronous phase (eta < 0 -> 0 < phi_s < pi/2)
-RF_PHI_OFFSET = 0.0          # rad
+RF_PHASE = 0.1  # rad, synchronous phase (eta < 0 -> 0 < phi_s < pi/2)
+RF_PHI_OFFSET = 0.0  # rad
 NUM_TURNS = 2048
 NUM_DIST = 5000
 RANDOM_SEED = 2026
 
 # Distribution (matched to the RF bucket; dp spread is the binding constraint)
-SIGMA_Z = 5.0                # m
+SIGMA_Z = 5.0  # m
 SIGMA_DP = 1.0e-3
 
 
@@ -105,12 +105,8 @@ def calc_theory(voltage: float, harmonic: int, phase: float) -> dict:
     dE_syn = QM_RATIO * voltage * math.sin(phase)
 
     beta2 = BETA_0**2
-    qs = math.sqrt(
-        -(QM_RATIO * harmonic * voltage * ETA_0 * math.cos(phase))
-        / (2.0 * math.pi * beta2 * E_TOTAL_0)
-    )
-    bracket = (2.0 * math.cos(phase)
-               - (math.pi - 2.0 * phase) * math.sin(phase))
+    qs = math.sqrt(-(QM_RATIO * harmonic * voltage * ETA_0 * math.cos(phase)) / (2.0 * math.pi * beta2 * E_TOTAL_0))
+    bracket = (2.0 * math.cos(phase) - (math.pi - 2.0 * phase) * math.sin(phase))
     temp = -(QM_RATIO * voltage * bracket) / (math.pi * beta2 * E_TOTAL_0 * harmonic * ETA_0)
     dpmax = math.sqrt(temp) if temp > 0.0 else 0.0
     zmax = RADIUS * (math.pi - 2.0 * phase) / harmonic
@@ -120,7 +116,7 @@ def calc_theory(voltage: float, harmonic: int, phase: float) -> dict:
         "Qs": qs,
         "dpmax": dpmax,
         "zmax": zmax,
-        "dp_aperture": 1.08 * dpmax,   # dp acceptance [lower, upper] = +- this
+        "dp_aperture": 1.08 * dpmax,  # dp acceptance [lower, upper] = +- this
     }
 
 
@@ -139,27 +135,27 @@ def make_test_particles(harmonic: int, dpmax: float) -> list:
     tag 13: x=3mm, px=1e-4         -> adiabatic damping (bunch-level check)
     tag 14-15 (h=2 case): z=+-C/2 -> one-period RF symmetry
     """
-    z_sync = 0.0   # bunch-relative: the bunch center is always z_rel = 0
+    z_sync = 0.0  # bunch-relative: the bunch center is always z_rel = 0
     dp_frac = [0.5, 0.8, 1.0]
     particles = [
-        [0.0, 0.0, 0.0, 0.0, z_sync, 0.0],          # tag  1: synchronous
-        [0.0, 0.0, 0.0, 0.0, z_sync + 3.0, 0.0],    # tag  2: z +
-        [0.0, 0.0, 0.0, 0.0, z_sync - 3.0, 0.0],    # tag  3: z -
-        [0.0, 0.0, 0.0, 0.0, z_sync, +1.0e-3],      # tag  4: dp +
-        [0.0, 0.0, 0.0, 0.0, z_sync, -1.0e-3],      # tag  5: dp -
+        [0.0, 0.0, 0.0, 0.0, z_sync, 0.0],  # tag  1: synchronous
+        [0.0, 0.0, 0.0, 0.0, z_sync + 3.0, 0.0],  # tag  2: z +
+        [0.0, 0.0, 0.0, 0.0, z_sync - 3.0, 0.0],  # tag  3: z -
+        [0.0, 0.0, 0.0, 0.0, z_sync, +1.0e-3],  # tag  4: dp +
+        [0.0, 0.0, 0.0, 0.0, z_sync, -1.0e-3],  # tag  5: dp -
     ]
     for frac in dp_frac:
         particles.append([0.0, 0.0, 0.0, 0.0, z_sync, +frac * dpmax])
         particles.append([0.0, 0.0, 0.0, 0.0, z_sync, -frac * dpmax])
-    particles.append([0.0, 0.0, 0.0, 0.0, z_sync, +1.2 * dpmax])   # tag 12
-    particles.append([3.0e-3, 1.0e-4, 0.0, 0.0, z_sync, 0.0])      # tag 13
+    particles.append([0.0, 0.0, 0.0, 0.0, z_sync, +1.2 * dpmax])  # tag 12
+    particles.append([3.0e-3, 1.0e-4, 0.0, 0.0, z_sync, 0.0])  # tag 13
 
     if harmonic == 2:
         # For h=2, +/-C/2 differ from z=0 by one RF period C/h.
         # Both therefore receive the same kick without coordinate folding
         # or a parity-dependent phase correction.
-        particles.append([0.0, 0.0, 0.0, 0.0, +CIRCUM / 2.0, 0.0])   # tag 14
-        particles.append([0.0, 0.0, 0.0, 0.0, -CIRCUM / 2.0, 0.0])   # tag 15
+        particles.append([0.0, 0.0, 0.0, 0.0, +CIRCUM / 2.0, 0.0])  # tag 14
+        particles.append([0.0, 0.0, 0.0, 0.0, -CIRCUM / 2.0, 0.0])  # tag 15
 
     return particles
 
@@ -169,7 +165,8 @@ def make_test_particles(harmonic: int, dpmax: float) -> list:
 # ============================================================
 
 CASES = {
-    "twiss_h1_fixed": dict(
+    "twiss_h1_fixed":
+    dict(
         lattice="twiss",
         rf_mode="fixed",
         voltage=RF_VOLTAGE,
@@ -177,10 +174,10 @@ CASES = {
         phase=RF_PHASE,
         phi_offset=RF_PHI_OFFSET,
         num_turns=NUM_TURNS,
-        checks=["energy_gain", "qs_fft", "bucket_scan", "bucket_plot",
-                "damping", "loss"],
+        checks=["energy_gain", "qs_fft", "bucket_scan", "bucket_plot", "damping", "loss"],
     ),
-    "twiss_h2_fixed": dict(
+    "twiss_h2_fixed":
+    dict(
         lattice="twiss",
         rf_mode="fixed",
         voltage=RF_VOLTAGE,
@@ -190,7 +187,8 @@ CASES = {
         num_turns=NUM_TURNS,
         checks=["energy_gain", "qs_fft", "h2_symmetry", "bucket_scan"],
     ),
-    "twiss_h1_ramping": dict(
+    "twiss_h1_ramping":
+    dict(
         lattice="twiss",
         rf_mode="file",
         voltage=RF_VOLTAGE,
@@ -199,11 +197,12 @@ CASES = {
         phi_offset=RF_PHI_OFFSET,
         num_turns=200,
         ramp_file="rf_ramp.tfs",
-        ramp_slope=0.02,          # V(n) = V0 * (1 + slope * n)
+        ramp_slope=0.02,  # V(n) = V0 * (1 + slope * n)
         ramp_rows=50,
         checks=["ramping_gain", "ramping_clamp"],
     ),
-    "twiss_h1_waveform": dict(
+    "twiss_h1_waveform":
+    dict(
         lattice="twiss",
         rf_mode="waveform",
         voltage=RF_VOLTAGE,
@@ -217,7 +216,8 @@ CASES = {
         waveform_ramp=0.15,
         checks=[],
     ),
-    "element_h1_fixed": dict(
+    "element_h1_fixed":
+    dict(
         lattice="element",
         rf_mode="fixed",
         voltage=RF_VOLTAGE,
@@ -248,19 +248,18 @@ def selected_cases(case_name: str) -> list[str]:
 def build_rf_data_tfs(script_dir: Path, case: dict) -> str:
     """Prescribe a physical waveform, with explicit design passage phases."""
     from PASS.para.tools.rf_data import synchronous_rf_program
-    n_rows=case["num_turns"]+1
-    turns=np.arange(n_rows)
-    if case["rf_mode"]=="file":
-        voltage=case["voltage"]*(1+case["ramp_slope"]*np.minimum(turns,case["ramp_rows"]-1))
-    elif case["rf_mode"]=="waveform":
-        voltage=case["voltage"]*(1+case["waveform_amplitude"]*np.sin(2*np.pi*turns/case["waveform_period"])
-                  +case["waveform_ramp"]*turns/max(case["num_turns"]-1,1))
+    n_rows = case["num_turns"] + 1
+    turns = np.arange(n_rows)
+    if case["rf_mode"] == "file":
+        voltage = case["voltage"] * (1 + case["ramp_slope"] * np.minimum(turns, case["ramp_rows"] - 1))
+    elif case["rf_mode"] == "waveform":
+        voltage = case["voltage"] * (1 + case["waveform_amplitude"] * np.sin(2 * np.pi * turns / case["waveform_period"]) +
+                                     case["waveform_ramp"] * turns / max(case["num_turns"] - 1, 1))
     else:
-        voltage=np.full(n_rows,case["voltage"])
-    table=synchronous_rf_program(voltage,case["phase"]+case["phi_offset"],case["harmonic"],
-                                CIRCUM,M0,KINETIC_ENERGY,QM_RATIO)
-    path=script_dir/f"rf_physical_h{case['harmonic']}_{case['lattice']}_{case['rf_mode']}.tfs"
-    tfs_lib.write(str(path),table,colwidth=25,headerswidth=25)
+        voltage = np.full(n_rows, case["voltage"])
+    table = synchronous_rf_program(voltage, case["phase"] + case["phi_offset"], case["harmonic"], CIRCUM, M0, KINETIC_ENERGY, QM_RATIO)
+    path = script_dir / f"rf_physical_h{case['harmonic']}_{case['lattice']}_{case['rf_mode']}.tfs"
+    tfs_lib.write(str(path), table, colwidth=25, headerswidth=25)
     return str(path)
 
 
@@ -270,17 +269,29 @@ def build_items(case: dict, script_dir: Path):
         # One Twiss point covering the whole ring (s_prev=0 -> s=C),
         # longitudinal_transfer="drift": z += -eta * C * dp per turn.
         # Horizontal tune Qx=0.2, Qy=0.15 for a well-defined linear map.
-        twiss = TwissPoint(
-            s=CIRCUM, s_previous=0.0,
-            alpha_x=0.0, alpha_y=0.0,
-            beta_x=10.0, beta_y=10.0,
-            mu_x=0.2, mu_y=0.15, mu_z=0.0,
-            dx=0.0, dpx=0.0,
-            alpha_x_previous=0.0, alpha_y_previous=0.0,
-            beta_x_previous=10.0, beta_y_previous=10.0,
-            mu_x_previous=0.0, mu_y_previous=0.0, mu_z_previous=0.0,
-            dx_previous=0.0, dpx_previous=0.0,
-            dqx=0.0, dqy=0.0,
+        twiss = TwissItem(
+            s=CIRCUM,
+            s_previous=0.0,
+            alpha_x=0.0,
+            alpha_y=0.0,
+            beta_x=10.0,
+            beta_y=10.0,
+            mu_x=0.2,
+            mu_y=0.15,
+            mu_z=0.0,
+            dx=0.0,
+            dpx=0.0,
+            alpha_x_previous=0.0,
+            alpha_y_previous=0.0,
+            beta_x_previous=10.0,
+            beta_y_previous=10.0,
+            mu_x_previous=0.0,
+            mu_y_previous=0.0,
+            mu_z_previous=0.0,
+            dx_previous=0.0,
+            dpx_previous=0.0,
+            dqx=0.0,
+            dqy=0.0,
             longitudinal_transfer="drift",
         )
         items = [twiss]
@@ -292,8 +303,7 @@ def build_items(case: dict, script_dir: Path):
         # Momentum compaction (gamma_t = 3.3746) emerges from the dipole
         # longitudinal mapping — this is what the Qs comparison verifies.
         from PASS.para.madx import read_madx_elements
-        items, names, _ = read_madx_elements(
-            str(script_dir / "fodo.tfs"), is_merge_drift=True)
+        items, names, _ = read_madx_elements(str(script_dir / "fodo.tfs"), is_merge_drift=True)
 
     return items, names
 
@@ -363,14 +373,13 @@ def build_case(name: str, script_dir: Path, *, include_reference: bool = False) 
 
     # --- monitors ---
     monitors = [
-        StatMonitor(s=0.0),
-        ParticleMonitor(s=0.0, max_tag=n_test, start_turn=0, end_turn=-1,
-                        include_reference=include_reference),
+        StatMonitorItem(s=0.0),
+        ParticleMonitorItem(s=0.0, max_tag=n_test, start_turn=0, end_turn=-1, include_reference=include_reference),
     ]
 
     # --- RF cavity (fixed mode or file mode) ---
     items, names = build_items(case, script_dir)
-    rfcavity = RFCavityElement(
+    rfcavity = RFCavityItem(
         s=0.0,
         components=[dict(program_file=rf_file)],
         is_enabled=True,
@@ -424,7 +433,8 @@ if __name__ == "__main__":
         help="Input case to generate (default: all).",
     )
     parser.add_argument(
-        "--include-reference", action="store_true",
+        "--include-reference",
+        action="store_true",
         help="Record particle reference time, beta and momentum for BLonD comparison.",
     )
     args = parser.parse_args()

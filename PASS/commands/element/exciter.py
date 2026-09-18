@@ -1,3 +1,7 @@
+import logging
+
+import numpy as np
+
 from PASS.commands.command import Command
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -8,13 +12,7 @@ from PASS.utils.logger import set_simple_logging, set_normal_logging, center_str
 from PASS.utils.constants import const
 from PASS.utils.aperture import check_aperture_cpu
 
-import numpy as np
-import logging
-
 logger = logging.getLogger(__name__)
-
-_VALID_MODES = {"single_fm", "single_fm_am", "dual_fm", "dual_fm_am"}
-_VALID_DIRECTIONS = {"x", "y"}
 
 
 @Command.register("exciter")
@@ -36,36 +34,35 @@ class Exciter(Command):
         if not isinstance(self.is_enabled, bool):
             raise ValueError(f"is_enabled must be a boolean in {self.cmd_name}, got {type(self.is_enabled)}")
 
+        valid_modes = {"single_fm", "single_fm_am", "dual_fm", "dual_fm_am"}
         self.mode: str = kwargs["mode"].lower()
-        if self.mode not in _VALID_MODES:
+        if self.mode not in valid_modes:
             raise ValueError(f"Unknown exciter mode '{self.mode}' in {self.cmd_name}. "
-                             f"Must be one of: {sorted(_VALID_MODES)}")
+                             f"Must be one of: {sorted(valid_modes)}")
 
+        valid_directions = {"x", "y"}
         self.direction: str = kwargs["direction"].lower()
-        if self.direction not in _VALID_DIRECTIONS:
+        if self.direction not in valid_directions:
             raise ValueError(f"Unknown direction '{self.direction}' in {self.cmd_name}. "
-                             f"Must be one of: {sorted(_VALID_DIRECTIONS)}")
+                             f"Must be one of: {sorted(valid_directions)}")
         self.is_x: bool = (self.direction == "x")
         self.is_y: bool = (self.direction == "y")
 
         self.start_turn: int = int(kwargs["start turn"])
         self.end_turn: int = int(kwargs["end turn"])
 
-        # --- aperture ---
         self.aperture_type: str = kwargs.get("aperture type", "off").lower()
         self.aperture_value: list = kwargs.get("aperture value", [])
         if not isinstance(self.aperture_value, list):
             raise ValueError(f"Aperture value of {self.cmd_name} must be a list, but got {type(self.aperture_value)}")
 
-        # --- exciter hardware parameters ---
         self.voltage: float = kwargs["voltage (v)"]  # signed peak interplate difference (V)
         self.gap: float = kwargs["gap (m)"]  # spacing between plates (m)
         self.plate_length: float = kwargs["plate length (m)"]  # effective length of the plates (m)
-        if not all(np.isfinite(v) for v in (self.voltage,self.gap,self.plate_length)) or self.gap <= 0 or self.plate_length < 0:
+        if not all(np.isfinite(v) for v in (self.voltage, self.gap, self.plate_length)) or self.gap <= 0 or self.plate_length < 0:
             raise ValueError("Exciter requires finite voltage, positive gap and nonnegative plate length")
         self._gpu_cache = {}
 
-        # --- frequency parameters (two input modes) ---
         # Mode 1 (tune): provide excite_tune + sweep_tune, cf/cfw computed at runtime
         # Mode 2 (freq): provide central_frequency + sweep_width directly
         self.excite_tune = kwargs.get("excite tune", None)
@@ -87,7 +84,6 @@ class Exciter(Command):
 
         self.fm_dual_frequency: float = kwargs["fm dual frequency (hz)"]
 
-        # --- AM parameters ---
         self.am_t_ext: float = kwargs["am t ext (s)"]
         self.am_r0: float = kwargs["am r0 (m)"]
         self.am_delta0: float = kwargs["am delta0"]
@@ -152,25 +148,20 @@ class Exciter(Command):
             am_factor = 1.0
             if self.mode in ("single_fm_am", "dual_fm_am"):
                 am_factor = self._kick_am_vary(effective_turn, frequency_0)
-            mode = {"single_fm": 0, "single_fm_am": 1,
-                    "dual_fm": 2, "dual_fm_am": 3}[self.mode]
-            launch_exciter(self, sim, bunch, effective_turn,
-                           (v0, kick_amplitude, cf, cfw, self.period,
-                            self.fm_dual_frequency, am_factor, mode))
+            mode = {"single_fm": 0, "single_fm_am": 1, "dual_fm": 2, "dual_fm_am": 3}[self.mode]
+            launch_exciter(self, sim, bunch, effective_turn, (v0, kick_amplitude, cf, cfw, self.period, self.fm_dual_frequency, am_factor, mode))
         return True
 
     def _reference_amplitude(self, bunch):
         """Reference impulse, subsequently multiplied by beta0*c/v_s per particle."""
         if not 0 < bunch.beta < 1 or not np.isfinite(bunch.brho) or bunch.brho <= 0:
             raise ValueError("Exciter requires a finite massive-particle reference and positive rigidity")
-        value = np.sign(bunch.num_charge)*self.voltage*self.plate_length/(self.gap*bunch.beta*const.c*bunch.brho)
+        value = np.sign(bunch.num_charge) * self.voltage * self.plate_length / (self.gap * bunch.beta * const.c * bunch.brho)
         if not np.isfinite(value):
             raise ValueError("Exciter integrated impulse must be finite")
         return value
 
-    # ------------------------------------------------------------------
     # AM (amplitude modulation) helpers
-    # ------------------------------------------------------------------
 
     def _kick_am_vary(self, effective_turn, frequency_0):
         """Time-varying amplitude factor (dimensionless), based on beam diffusion / growth model.
@@ -189,13 +180,10 @@ class Exciter(Command):
         if log_arg <= 0.0:
             return 0.0
 
-        delta2_t = (self.am_r0**2 * (1.0 - exponent) / (np.log(log_arg)**2 *
-                                                        (self.am_t_ext * exponent + temp_time * (1.0 - exponent))))
+        delta2_t = (self.am_r0**2 * (1.0 - exponent) / (np.log(log_arg)**2 * (self.am_t_ext * exponent + temp_time * (1.0 - exponent))))
         return np.sqrt(delta2_t / frequency_0 / self.am_k_const)
 
-    # ------------------------------------------------------------------
     # Kick shape helpers
-    # ------------------------------------------------------------------
 
     def _kick_saw_fm(self, effective_turn, t, amplitude, cf, cfw):
         """single_fm: sawtooth frequency modulation with constant amplitude."""
@@ -251,23 +239,15 @@ class Exciter(Command):
                               (self.fm_dual_frequency * temp[mask2] - 1.0)))
         return kick
 
-    # ------------------------------------------------------------------
     # Exciter kick (CPU)
-    # ------------------------------------------------------------------
 
     def _exciter_kick_cpu(self, beam: Beam, bunch: BunchInfo, effective_turn: int, turn: int):
-        """Compute and apply the exciter kick to particles (CPU).
-
-        Computes the kick amplitude from voltage/gap/plate_length, resolves the
-        frequency parameters (tune mode or frequency mode), dispatches to the
-        appropriate kick shape function, and applies the kick to px or py.
-        """
+        """Apply the prescribed waveform at each particle arrival time."""
         kick_amplitude = self._reference_amplitude(bunch)
 
         v0 = bunch.beta * const.c
         frequency_0 = 1.0 / (bunch.circum / v0)
 
-        # compute cf and cfw: tune mode or frequency mode
         if self.use_tune_mode:
             cf = self.excite_tune * frequency_0
             cfw = self.sweep_tune * frequency_0
@@ -288,21 +268,21 @@ class Exciter(Command):
         py = p.py[start:end]
         tag = p.tag[start:end]
         dp = p.dp[start:end].astype(np.float64)
-        px0,py0 = px.astype(np.float64),py.astype(np.float64)
-        with np.errstate(over='ignore',invalid='ignore',divide='ignore'):
-            ps2 = (1+dp)**2-px0*px0-py0*py0
-            A2 = 1/bunch.gamma**2+(1-1/bunch.gamma**2)*(1+dp)**2
-            valid = (dp>-1)&(ps2>0)&np.isfinite(ps2)&np.isfinite(A2)&np.isfinite(z)
-            valid &= np.isfinite(p.x[start:end])&np.isfinite(p.y[start:end])
-            factor = np.sqrt(np.where(valid,A2,1.)/np.where(valid,ps2,1.))
-        invalid = (tag>0)&~valid
+        px0, py0 = px.astype(np.float64), py.astype(np.float64)
+        with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
+            ps2 = (1 + dp)**2 - px0 * px0 - py0 * py0
+            A2 = 1 / bunch.gamma**2 + (1 - 1 / bunch.gamma**2) * (1 + dp)**2
+            valid = (dp > -1) & (ps2 > 0) & np.isfinite(ps2) & np.isfinite(A2) & np.isfinite(z)
+            valid &= np.isfinite(p.x[start:end]) & np.isfinite(p.y[start:end])
+            factor = np.sqrt(np.where(valid, A2, 1.) / np.where(valid, ps2, 1.))
+        invalid = (tag > 0) & ~valid
         tag[invalid] = -np.abs(tag[invalid])
         p.lost_position[start:end][invalid] = self.s
         p.lost_turn[start:end][invalid] = turn
-        alive = tag>0
+        alive = tag > 0
 
         # Local time coordinate: positive z arrives earlier.
-        time_temp = bunch.t0 - np.where(alive,np.asarray(z,dtype=np.float64),0.) / v0
+        time_temp = bunch.t0 - np.where(alive, np.asarray(z, dtype=np.float64), 0.) / v0
 
         if self.mode == "single_fm":
             kick = self._kick_saw_fm(effective_turn, time_temp, kick_amplitude, cf, cfw)
@@ -315,17 +295,19 @@ class Exciter(Command):
         else:
             kick = np.zeros(len(z), dtype=np.float64)
 
-        kick = kick*factor
+        kick = kick * factor
         if self.is_x:
             px[alive] += kick[alive]
         else:
             py[alive] += kick[alive]
-        with np.errstate(over='ignore',invalid='ignore'):
-            ps2 = (1+dp)**2-px.astype(np.float64)**2-py.astype(np.float64)**2
-        invalid = alive&(~np.isfinite(ps2)|(ps2<=0))
+        with np.errstate(over='ignore', invalid='ignore'):
+            ps2 = (1 + dp)**2 - px.astype(np.float64)**2 - py.astype(np.float64)**2
+        invalid = alive & (~np.isfinite(ps2) | (ps2 <= 0))
         tag[invalid] = -np.abs(tag[invalid])
         p.lost_position[start:end][invalid] = self.s
         p.lost_turn[start:end][invalid] = turn
+
+
 CUDA_REAL_PREAMBLE = r'''
 #ifndef PASS_USE_FLOAT
 #define PASS_USE_FLOAT 0
@@ -337,56 +319,75 @@ using pass_real_t = double;
 #endif
 '''
 
-
 EXCITER_BODY = r'''
-extern "C" __global__
-void track_exciter(
-    pass_real_t* __restrict__ px, pass_real_t* __restrict__ py,
-    const pass_real_t* __restrict__ z, const pass_real_t* __restrict__ dp,
-    const pass_real_t* __restrict__ x, const pass_real_t* __restrict__ y,
-    int* __restrict__ tag,float* lost_position,int* lost_turn,
-    int start_index, int end_index, double t0,double inv_g2,double s0,int turn,
-    double v0, double amplitude, double cf,
-    double cfw, double period, double fm_dual_frequency,
-    double am_factor, int mode, int direction)
-{
+extern "C" __global__ void track_exciter(
+    pass_real_t* __restrict__ px,
+    pass_real_t* __restrict__ py,
+    const pass_real_t* __restrict__ z,
+    const pass_real_t* __restrict__ dp,
+    const pass_real_t* __restrict__ x,
+    const pass_real_t* __restrict__ y,
+    int* __restrict__ tag,
+    float* lost_position,
+    int* lost_turn,
+    int start_index,
+    int end_index,
+    double t0,
+    double inv_g2,
+    double s0,
+    int turn,
+    double v0,
+    double amplitude,
+    double cf,
+    double cfw,
+    double period,
+    double fm_dual_frequency,
+    double am_factor,
+    int mode,
+    int direction
+) {
     int i = blockIdx.x * blockDim.x + threadIdx.x + start_index;
-    if (i >= end_index || tag[i] <= 0) return;
-    double r=1.+(double)dp[i],ps2=r*r-(double)px[i]*px[i]-(double)py[i]*py[i];
-    double A2=inv_g2+(1-inv_g2)*r*r;
-    if(!(r>0 && ps2>0) || !isfinite(ps2) || !isfinite(A2) || !isfinite(z[i]) || !isfinite(x[i]) || !isfinite(y[i])) {
-        tag[i]=-abs(tag[i]);lost_position[i]=(float)s0;lost_turn[i]=turn;return;
+    if (i >= end_index || tag[i] <= 0)
+        return;
+    double r = 1. + (double)dp[i], ps2 = r * r - (double)px[i] * px[i] - (double)py[i] * py[i];
+    double A2 = inv_g2 + (1 - inv_g2) * r * r;
+    if (!(r > 0 && ps2 > 0) || !isfinite(ps2) || !isfinite(A2) || !isfinite(z[i]) || !isfinite(x[i]) || !isfinite(y[i])) {
+        tag[i] = -abs(tag[i]);
+        lost_position[i] = (float)s0;
+        lost_turn[i] = turn;
+        return;
     }
-    amplitude*=sqrt(A2/ps2);
+    amplitude *= sqrt(A2 / ps2);
     const double pi = (double)3.1415926535897932384626433832795;
     double t = t0 - (double)z[i] / v0;
     double temp = t - floor(t / period) * period;
     double kick = (double)0;
     if (mode == 0 || mode == 1) {
-        double theta = (double)2 * pi * cf * temp
-            + pi * cfw / period * temp * (temp - period);
+        double theta = (double)2 * pi * cf * temp + pi * cfw / period * temp * (temp - period);
         kick = amplitude * (mode == 1 ? am_factor : (double)1) * sin(theta);
     } else {
         double half = period * (double)0.5;
         if (temp >= (double)0 && temp <= half) {
-            double theta = (double)2 * pi * cf * temp
-                + pi * cfw * (fm_dual_frequency * temp - (double)0.5) * temp;
-            kick = (double)2 * amplitude
-                * (mode == 3 ? am_factor : (double)1)
-                * cos(pi * (double)0.5 * cfw * temp) * sin(theta);
+            double theta = (double)2 * pi * cf * temp + pi * cfw * (fm_dual_frequency * temp - (double)0.5) * temp;
+            kick = (double)2 * amplitude * (mode == 3 ? am_factor : (double)1) * cos(pi * (double)0.5 * cfw * temp) * sin(theta);
         } else if (temp > half && temp <= period) {
-            double theta = (double)2 * pi * cf * temp
-                + pi * cfw * (temp - half) * (fm_dual_frequency * temp - (double)1);
-            kick = (double)2 * amplitude
-                * (mode == 3 ? am_factor : (double)1)
-                * cos(pi * (double)0.5 * cfw * temp) * sin(theta);
+            double theta = (double)2 * pi * cf * temp + pi * cfw * (temp - half) * (fm_dual_frequency * temp - (double)1);
+            kick = (double)2 * amplitude * (mode == 3 ? am_factor : (double)1) * cos(pi * (double)0.5 * cfw * temp) * sin(theta);
         }
     }
-    if (direction == 0) px[i] += kick; else py[i] += kick;
-    ps2=r*r-(double)px[i]*px[i]-(double)py[i]*py[i];
-    if(!isfinite(ps2) || ps2<=0) {tag[i]=-abs(tag[i]);lost_position[i]=(float)s0;lost_turn[i]=turn;}
+    if (direction == 0)
+        px[i] += kick;
+    else
+        py[i] += kick;
+    ps2 = r * r - (double)px[i] * px[i] - (double)py[i] * py[i];
+    if (!isfinite(ps2) || ps2 <= 0) {
+        tag[i] = -abs(tag[i]);
+        lost_position[i] = (float)s0;
+        lost_turn[i] = turn;
+    }
 }
 '''
+
 
 def launch_exciter(element, sim, bunch, effective_turn, params):
     try:
@@ -394,22 +395,24 @@ def launch_exciter(element, sim, bunch, effective_turn, params):
     except (ImportError, OSError) as exc:
         raise RuntimeError("GPU Exciter tracking requires the optional 'cuda' dependencies.") from exc
     p = sim.beams[element.beam_id].particles
-    key = (cp.cuda.runtime.getDevice(),np.dtype(p.dtype))
+    key = (cp.cuda.runtime.getDevice(), np.dtype(p.dtype))
     if key not in element._gpu_cache:
         element._gpu_cache[key] = cp.RawKernel(
-            CUDA_REAL_PREAMBLE + EXCITER_BODY, "track_exciter",
+            CUDA_REAL_PREAMBLE + EXCITER_BODY,
+            "track_exciter",
             options=("--std=c++14", "--fmad=false", f"-DPASS_USE_FLOAT={int(p.dtype == np.dtype(np.float32))}"),
         )
-    start, end = bunch.start_idx, bunch.end_idx; n=end-start
-    if n <= 0: return
-    real=np.float64; threads=256
+    start, end = bunch.start_idx, bunch.end_idx
+    n = end - start
+    if n <= 0:
+        return
+    real = np.float64
+    threads = 256
     blocks = (n + threads - 1) // threads
     v0, amplitude, cf, cfw, period, fm_dual_frequency, am_factor, mode = params
-    element._gpu_cache[key]((blocks,), (threads,),
-                  (p.px,p.py,p.z,p.dp,p.x,p.y,p.tag,p.lost_position,p.lost_turn,np.int32(start),np.int32(end),
-                   real(bunch.t0),real(1/bunch.gamma**2),real(element.s),np.int32(sim.state.turn),real(v0),real(amplitude),real(cf),
-                   real(cfw),real(period),real(fm_dual_frequency),real(am_factor),
-                   np.int32(mode),np.int32(0 if element.is_x else 1)))
+    element._gpu_cache[key]((blocks, ), (threads, ),
+                            (p.px, p.py, p.z, p.dp, p.x, p.y, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end), real(
+                                bunch.t0), real(1 / bunch.gamma**2), real(element.s), np.int32(sim.state.turn), real(v0), real(amplitude), real(cf),
+                             real(cfw), real(period), real(fm_dual_frequency), real(am_factor), np.int32(mode), np.int32(0 if element.is_x else 1)))
     from PASS.utils.aperture import check_aperture_gpu
-    check_aperture_gpu(sim.beams[element.beam_id], bunch, element.aperture_type,
-                       element.aperture_value, element.s, sim.state.turn)
+    check_aperture_gpu(sim.beams[element.beam_id], bunch, element.aperture_type, element.aperture_value, element.s, sim.state.turn)

@@ -2,7 +2,7 @@
 
 Consolidates three former modules:
     madx_element  — twiss TFS → Element list (element-by-element tracking)
-    madx_twiss    — twiss TFS → TwissPoint list (twiss transfer tracking)
+    madx_twiss    — twiss TFS → TwissItem list (twiss transfer tracking)
     madx_error    — error TFS → field error dict
 
 Element naming convention:
@@ -12,24 +12,14 @@ Element naming convention:
 """
 
 import re
+
 import numpy as np
 import tfs
 
-from PASS.para.schema.twiss import TwissPoint
-from PASS.para.schema.elements import (
-    DriftElement,
-    MarkerElement,
-    SBendElement,
-    QuadrupoleElement,
-    SextupoleElement,
-    OctupoleElement,
-    MultipoleElement,
-    KickerElement,
-)
+from PASS.para.schema.twiss import TwissItem
+from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem
 
-# ============================================================
 # Helpers
-# ============================================================
 
 
 def _make_name(elem_name: str, s: float) -> str:
@@ -113,9 +103,7 @@ def _read_tfs_headers(twiss_file: str) -> dict:
     }
 
 
-# ============================================================
 # Element reader (element-by-element tracking)
-# ============================================================
 
 
 def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]]:
@@ -133,8 +121,7 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
     i = 0
 
     def mergeable(item):
-        return (item.command == "Drift" and item.space_charge is None
-                and item.num_slices == 1 and item.aperture_type == "off"
+        return (item.command == "Drift" and item.space_charge is None and item.num_slices == 1 and item.aperture_type == "off"
                 and not item.aperture_value)
 
     while i < len(items):
@@ -165,7 +152,7 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
             result_items.append(current)
             result_names.append(names[i])
         else:
-            merged = DriftElement(s=s_val, length=drift_len)
+            merged = DriftItem(s=s_val, length=drift_len)
             merged_name = "_".join(names[k] for k in drift_indices)
             result_items.append(merged)
             result_names.append(merged_name)
@@ -176,9 +163,7 @@ def merge_drift_elements(items: list, names: list[str]) -> tuple[list, list[str]
     return result_items, result_names
 
 
-def merge_drift_twiss_points(
-    items: list[TwissPoint], names: list[str], keywords: list[str]
-) -> tuple[list[TwissPoint], list[str]]:
+def merge_drift_twiss_points(items: list[TwissItem], names: list[str], keywords: list[str]) -> tuple[list[TwissItem], list[str]]:
     """Collapse consecutive MAD-X DRIFT rows into one Twiss transport point.
 
     The last point in each drift run is retained so its optical functions remain
@@ -188,7 +173,7 @@ def merge_drift_twiss_points(
     """
     if not items:
         return [], []
-    result_items: list[TwissPoint] = []
+    result_items: list[TwissItem] = []
     result_names: list[str] = []
     i = 0
     while i < len(items):
@@ -203,18 +188,19 @@ def merge_drift_twiss_points(
         last = items[j - 1]
         if j - i > 1:
             first = items[i]
-            last = last.model_copy(update={
-                "s_previous": first.s_previous,
-                "alpha_x_previous": first.alpha_x_previous,
-                "alpha_y_previous": first.alpha_y_previous,
-                "beta_x_previous": first.beta_x_previous,
-                "beta_y_previous": first.beta_y_previous,
-                "mu_x_previous": first.mu_x_previous,
-                "mu_y_previous": first.mu_y_previous,
-                "mu_z_previous": first.mu_z_previous,
-                "dx_previous": first.dx_previous,
-                "dpx_previous": first.dpx_previous,
-            })
+            last = last.model_copy(
+                update={
+                    "s_previous": first.s_previous,
+                    "alpha_x_previous": first.alpha_x_previous,
+                    "alpha_y_previous": first.alpha_y_previous,
+                    "beta_x_previous": first.beta_x_previous,
+                    "beta_y_previous": first.beta_y_previous,
+                    "mu_x_previous": first.mu_x_previous,
+                    "mu_y_previous": first.mu_y_previous,
+                    "mu_z_previous": first.mu_z_previous,
+                    "dx_previous": first.dx_previous,
+                    "dpx_previous": first.dpx_previous,
+                })
             result_names.append("_".join(names[i:j]))
         else:
             result_names.append(names[i])
@@ -272,9 +258,9 @@ def read_madx_elements(
         et = elem_type.lower()
 
         if et == "marker":
-            item = MarkerElement(s=s)
+            item = MarkerItem(s=s)
         elif et == "drift":
-            item = DriftElement(s=s, length=l)
+            item = DriftItem(s=s, length=l)
         elif et in ("sbend", "rbend"):
             fint = row.get("FINT", 0.0)
             fintx = row.get("FINTX", 0.0)
@@ -285,7 +271,7 @@ def read_madx_elements(
             angle = row.get("ANGLE", 0.0)
             if abs(k0l) < 1e-15 and abs(angle) > 1e-15:
                 k0l = angle
-            item = SBendElement(
+            item = SBendItem(
                 s=s,
                 length=l,
                 k0l=k0l,
@@ -296,21 +282,21 @@ def read_madx_elements(
                 fintx=fintx,
             )
         elif et == "quadrupole":
-            item = QuadrupoleElement(
+            item = QuadrupoleItem(
                 s=s,
                 length=l,
                 k1l=row.get("K1L", 0.0),
                 k1sl=row.get("K1SL", 0.0),
             )
         elif et == "sextupole":
-            item = SextupoleElement(
+            item = SextupoleItem(
                 s=s,
                 length=l,
                 k2l=row.get("K2L", 0.0),
                 k2sl=row.get("K2SL", 0.0),
             )
         elif et == "octupole":
-            item = OctupoleElement(
+            item = OctupoleItem(
                 s=s,
                 length=l,
                 k3l=row.get("K3L", 0.0),
@@ -318,7 +304,7 @@ def read_madx_elements(
             )
         elif et == "multipole":
             knl, ksl = _extract_multipole_kl(row, twiss_table.columns)
-            item = MultipoleElement(s=s, length=l, knl=knl, ksl=ksl)
+            item = MultipoleItem(s=s, length=l, knl=knl, ksl=ksl)
         elif et in ("hkicker", "vkicker", "kicker", "tkicker"):
             hkick = row.get("HKICK", 0.0)
             vkick = row.get("VKICK", 0.0)
@@ -326,17 +312,17 @@ def read_madx_elements(
                 hkick = hkick or row.get("K0L", 0.0)
             elif et == "vkicker":
                 vkick = vkick or row.get("K0L", 0.0)
-            item = KickerElement(
+            item = KickerItem(
                 s=s,
                 length=l,
                 hkick=hkick,
                 vkick=vkick,
             )
         elif et == "monitor":
-            item = DriftElement(s=s, length=l)
+            item = DriftItem(s=s, length=l)
         else:
             print(f"[Read MADX Elements] Warning: unsupported {et} '{name}' -> drift")
-            item = DriftElement(s=s, length=l)
+            item = DriftItem(s=s, length=l)
 
         items.append(item)
         names.append(name)
@@ -379,9 +365,7 @@ def read_madx_elements(
     return items, names, circumference
 
 
-# ============================================================
 # Twiss reader (twiss transfer tracking)
-# ============================================================
 
 
 def read_madx_twiss(
@@ -397,7 +381,7 @@ def read_madx_twiss(
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (twiss_items, item_names, circumference).
 
-    Each row becomes a TwissPoint with current + previous optical functions.
+    Each row becomes a TwissItem with current + previous optical functions.
     The first point has previous = current.
 
     Optionally inserts thin-lens elements (quad/sext/oct/kicker/multipole)
@@ -415,7 +399,7 @@ def read_madx_twiss(
         longitudinal_transfer: "off" / "drift" / "matrix".
 
     Returns:
-        (items, names, circumference) where items is a list of TwissPoint
+        (items, names, circumference) where items is a list of TwissItem
         and optionally Element objects, and names is the corresponding
         list of string names.
     """
@@ -464,7 +448,7 @@ def read_madx_twiss(
         match_key = _make_match_key(elem_name, name_count[elem_name])
 
         if i == 0:
-            tp = TwissPoint(
+            tp = TwissItem(
                 s=s[i],
                 s_previous=s[i],
                 alpha_x=alfx[i],
@@ -492,7 +476,7 @@ def read_madx_twiss(
         else:
             mu_z_i = s[i] / circumference * muz
             mu_z_prev = s[i - 1] / circumference * muz
-            tp = TwissPoint(
+            tp = TwissItem(
                 s=s[i],
                 s_previous=s[i - 1],
                 alpha_x=alfx[i],
@@ -549,7 +533,7 @@ def read_madx_twiss(
                 idx = key_to_idx[key]
                 s_val = items[idx].s if hasattr(items[idx], "s") else \
                     items[idx].model_dump(by_alias=True)["S (m)"]
-                err_item = MultipoleElement(
+                err_item = MultipoleItem(
                     s=s_val,
                     length=0.0,
                     knl=errs["knl"],
@@ -585,7 +569,7 @@ def read_madx_twiss(
 def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, list[str]]:
     """Create thin-lens elements for names matching *insert_patterns*.
 
-    TwissPoint names from read_madx_twiss are prefixed with 'twiss_', so
+    TwissItem names from read_madx_twiss are prefixed with 'twiss_', so
     there is no name collision with inserted elements.
     """
     combined = re.compile("|".join(f"({p})" for p in insert_patterns))
@@ -604,21 +588,21 @@ def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, lis
         et = elem_type.lower()
 
         if et == "quadrupole":
-            item = QuadrupoleElement(
+            item = QuadrupoleItem(
                 s=s,
                 length=0.0,
                 k1l=twiss_table.iloc[i].get("K1L", 0.0),
                 k1sl=twiss_table.iloc[i].get("K1SL", 0.0),
             )
         elif et == "sextupole":
-            item = SextupoleElement(
+            item = SextupoleItem(
                 s=s,
                 length=0.0,
                 k2l=twiss_table.iloc[i].get("K2L", 0.0),
                 k2sl=twiss_table.iloc[i].get("K2SL", 0.0),
             )
         elif et == "octupole":
-            item = OctupoleElement(
+            item = OctupoleItem(
                 s=s,
                 length=0.0,
                 k3l=twiss_table.iloc[i].get("K3L", 0.0),
@@ -626,9 +610,9 @@ def _insert_elements(twiss_table, insert_patterns: list[str]) -> tuple[list, lis
             )
         elif et == "multipole":
             knl, ksl = _extract_multipole_kl(twiss_table.iloc[i], twiss_table.columns)
-            item = MultipoleElement(s=s, length=0.0, knl=knl, ksl=ksl)
+            item = MultipoleItem(s=s, length=0.0, knl=knl, ksl=ksl)
         elif et in ("hkicker", "vkicker", "kicker", "tkicker"):
-            item = KickerElement(
+            item = KickerItem(
                 s=s,
                 length=0.0,
                 hkick=twiss_table.iloc[i].get("HKICK", 0.0),
@@ -666,14 +650,11 @@ def read_madx_twiss_interpolated(
     """
     from PASS.para.twiss_interpolation import resample_madx_twiss
 
-    return resample_madx_twiss(
-        twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
-        is_field_error, insert_patterns, longitudinal_transfer, interp_kind)
+    return resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer,
+                               interp_kind)
 
 
-# ============================================================
 # Error reader
-# ============================================================
 
 
 def read_madx_errors(error_file_path: str) -> dict[str, dict]:

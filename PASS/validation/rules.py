@@ -15,11 +15,11 @@ from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig
 from PASS.para.schema.elements import ELEMENT_REGISTRY
 from PASS.para.schema.main import MainConfig
-from PASS.para.schema.monitors import DistMonitor, ParticleMonitor, PhaseAdvanceMonitor, StatMonitor
-from PASS.para.schema.slicer import Slicer
-from PASS.para.schema.wake_field import WakeField, WakeFieldConfig, resolve_wake_point
-from PASS.para.schema.space_charge import SpaceCharge, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
-from PASS.para.schema.twiss import TwissPoint
+from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
+from PASS.para.schema.slicer import SlicerItem
+from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
+from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
+from PASS.para.schema.twiss import TwissItem
 from .report import ValidationReport, parse_json
 
 
@@ -28,27 +28,33 @@ class SortBunchModel(BaseModel):
     command: str = Field(default="SortBunch", alias="Command")
 
 
-class TwissModel(TwissPoint):
+class TwissModel(TwissItem):
     # The engine supports these fields in addition to the optics schema.
     aperture_type: str = Field(default="off", alias="Aperture type")
     aperture_value: list = Field(default_factory=list, alias="Aperture value")
 
 
 MODELS = {model.model_fields["command"].default: model for model in ELEMENT_REGISTRY.values()}
-MODELS.update(Injection=InjectionItem, Twiss=TwissModel, SortBunch=SortBunchModel,
-              StatMonitor=StatMonitor, DistMonitor=DistMonitor, ParticleMonitor=ParticleMonitor,
-              PhaseAdvanceMonitor=PhaseAdvanceMonitor, Slicer=Slicer, SpaceCharge=SpaceCharge,
-              WakeField=WakeField)
+MODELS.update(Injection=InjectionItem,
+              Twiss=TwissModel,
+              SortBunch=SortBunchModel,
+              StatMonitor=StatMonitorItem,
+              DistMonitor=DistMonitorItem,
+              ParticleMonitor=ParticleMonitorItem,
+              PhaseAdvanceMonitor=PhaseAdvanceMonitorItem,
+              Slicer=SlicerItem,
+              SpaceCharge=SpaceChargeItem,
+              WakeField=WakeFieldItem)
 
 
-def number(value):
+def is_finite_number(value):
     try:
         return type(value) in (int, float) and math.isfinite(value)
     except OverflowError:
         return False
 
 
-def integer(value):
+def is_integer(value):
     return type(value) is int
 
 
@@ -90,6 +96,7 @@ def json_location(value, location):
 
 
 class Validator:
+
     def __init__(self, data, base, report, check_files):
         self.data, self.base, self.report = data, Path(base), report
         self.check_files = check_files
@@ -151,7 +158,7 @@ class Validator:
         value = data.get(key)
         if value is None:
             return
-        if not number(value):
+        if not is_finite_number(value):
             self.add((*path, key), "number.finite", "必须是有限数值")
         elif positive and value <= 0 or minimum is not None and value < minimum:
             self.add((*path, key), "number.range", "必须大于 0" if positive else f"必须 ≥ {minimum}")
@@ -186,7 +193,7 @@ class Validator:
         try:
             for row in dims:
                 for v in (row if isinstance(row, list) else [row]):
-                    if not number(v):
+                    if not is_finite_number(v):
                         raise ValueError("孔径尺寸必须是有限数值，不接受字符串或布尔值")
             validate_loss_aperture(kind, dims)
             if kind in {"off", "default"} and dims:
@@ -203,12 +210,12 @@ class Validator:
         if not isinstance(raw, list):
             self.add(path, "turns.shape", "应为圈数范围列表" + ("，或 0（关闭分析）" if analysis else ""))
             return
-        if flat and raw and all(integer(v) for v in raw):
+        if flat and raw and all(is_integer(v) for v in raw):
             raw = [[v] for v in raw]
         seen = set()
         for i, row in enumerate(raw):
             p = (*path, i)
-            if not isinstance(row, list) or len(row) not in ({2} if analysis else {1, 3}) or not all(integer(v) for v in row):
+            if not isinstance(row, list) or len(row) not in ({2} if analysis else {1, 3}) or not all(is_integer(v) for v in row):
                 self.add(p, "turns.shape", "需要两个整数 [开始圈, 结束圈)" if analysis else "需要 [单圈] 或 [开始圈, 结束圈, 步长]，且每项为整数")
                 continue
             start, end = row[:2] if len(row) > 1 else (row[0], row[0])
@@ -226,7 +233,7 @@ class Validator:
 
     def window(self, v, p, allow_minus_one=False):
         start, end = v.get("Start turn", 0), v.get("End turn", self.turn_count)
-        if not integer(start) or not integer(end):
+        if not is_integer(start) or not is_integer(end):
             return
         if allow_minus_one and end == -1:
             end = self.turn_count
@@ -239,62 +246,63 @@ class Validator:
         raw = {k: v for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field"}}
         self.wake_config = None
         if "Wake field" in self.data:
-            self.model(WakeFieldConfig, self.data["Wake field"], ("Wake field",))
+            self.model(WakeFieldConfig, self.data["Wake field"], ("Wake field", ))
             try:
                 self.wake_config = WakeFieldConfig.model_validate(self.data["Wake field"])
             except (ValueError, TypeError):
                 pass
         self.global_values = self.model(MainConfig, raw, ())
         g = self.global_values
-        self.require(raw, ["Number of turns", "Number of Protons", "Number of Neutrons", "Number of Charges",
-                           "Transition Gamma", "Circumference (m)", "Beam Name"], ())
+        self.require(
+            raw,
+            ["Number of turns", "Number of Protons", "Number of Neutrons", "Number of Charges", "Transition Gamma", "Circumference (m)", "Beam Name"],
+            ())
         self.turn_count = g.get("Number of turns", 0)
         self.circumference = g.get("Circumference (m)", 0)
-        if not integer(self.turn_count) or self.turn_count < 1:
+        if not is_integer(self.turn_count) or self.turn_count < 1:
             self.turn_count = 0
-        if not number(self.circumference) or self.circumference <= 0:
+        if not is_finite_number(self.circumference) or self.circumference <= 0:
             self.circumference = 0
         clock = g.get("Reference clock")
         if isinstance(clock, dict) and self.circumference:
             frequencies = clock.get("Revolution frequency (Hz)")
             frequencies = frequencies if isinstance(frequencies, list) else [frequencies]
             from PASS.utils.constants import const
-            if frequencies and all(number(f) for f in frequencies) and max(frequencies) * self.circumference >= const.c:
-                self.add(("Reference clock", "Revolution frequency (Hz)"), "clock.speed",
-                         "规定回旋频率 × 周长必须小于光速")
+            if frequencies and all(is_finite_number(f) for f in frequencies) and max(frequencies) * self.circumference >= const.c:
+                self.add(("Reference clock", "Revolution frequency (Hz)"), "clock.speed", "规定回旋频率 × 周长必须小于光速")
         self.backend = g.get("Backend (gpu/cpu)", "cpu")
         self.choice(g, "Backend (gpu/cpu)", {"cpu", "gpu"}, ())
         self.numeric(g, "Transition Gamma", (), positive=True)
         charge = g.get("Number of Charges")
         if charge == 0:
-            self.add(("Number of Charges",), "beam.charge", "电荷数不能为 0")
+            self.add(("Number of Charges", ), "beam.charge", "电荷数不能为 0")
         if g.get("Number of Protons") == 0 and g.get("Number of Neutrons") == 0 and charge not in {-1, 1}:
-            self.add(("Number of Charges",), "beam.species", "电子或正电子的电荷数必须为 -1 或 +1")
+            self.add(("Number of Charges", ), "beam.species", "电子或正电子的电荷数必须为 -1 或 +1")
         if g.get("Number of Protons") == 1 and g.get("Number of Neutrons") == 0 and charge not in {-1, 1}:
-            self.add(("Number of Charges",), "beam.species", "当前单质子质量模型只支持单位电荷数")
+            self.add(("Number of Charges", ), "beam.species", "当前单质子质量模型只支持单位电荷数")
         if g.get("Is beam-beam"):
-            self.add(("Is beam-beam",), "feature.unsupported", "当前引擎没有注册 BeamBeam 命令，开启此开关不会产生束束作用")
+            self.add(("Is beam-beam", ), "feature.unsupported", "当前引擎没有注册 BeamBeam 命令，开启此开关不会产生束束作用")
         ids = g.get("Device Id", [])
-        if isinstance(ids, list) and all(integer(i) for i in ids):
+        if isinstance(ids, list) and all(is_integer(i) for i in ids):
             if any(i < 0 for i in ids) or len(set(ids)) != len(ids) or self.backend == "gpu" and not ids:
-                self.add(("Device Id",), "gpu.ids", "GPU ID 必须非负且不重复；GPU 模式至少配置一个 ID")
+                self.add(("Device Id", ), "gpu.ids", "GPU ID 必须非负且不重复；GPU 模式至少配置一个 ID")
             if self.backend == "gpu" and (len(ids) != g.get("Number of GPU devices") or len(ids) > 1):
-                self.add(("Device Id",), "gpu.single_device", "当前进程只使用第一个 GPU；数量应与列表一致", True)
+                self.add(("Device Id", ), "gpu.single_device", "当前进程只使用第一个 GPU；数量应与列表一致", True)
         output = g.get("Output directory")
         if isinstance(output, str) and output != "default":
             if not output.strip():
-                self.add(("Output directory",), "output.empty", "输出目录不能留空")
+                self.add(("Output directory", ), "output.empty", "输出目录不能留空")
             elif self.check_files:
                 try:
                     p = Path(output).expanduser()
                     if not p.is_absolute():
                         p = self.base / p
                     if p.exists() and not p.is_dir():
-                        self.add(("Output directory",), "output.directory", "输出路径是文件，必须选择目录")
+                        self.add(("Output directory", ), "output.directory", "输出路径是文件，必须选择目录")
                     elif any(parent.exists() and not parent.is_dir() for parent in p.parents):
-                        self.add(("Output directory",), "output.parent", "输出路径的父级是文件")
+                        self.add(("Output directory", ), "output.parent", "输出路径的父级是文件")
                 except (OSError, ValueError) as exc:
-                    self.add(("Output directory",), "output.path", str(exc))
+                    self.add(("Output directory", ), "output.path", str(exc))
 
     def injection(self, raw, path):
         bunch_keys = sorted([k for k in raw if isinstance(k, str) and re.fullmatch(r"bunch\d+", k)], key=lambda k: int(k[5:]))
@@ -304,7 +312,7 @@ class Validator:
         if v.get("S (m)") != 0:
             self.add((*path, "S (m)"), "injection.position", "Injection 必须位于 S = 0")
         harmonic = v.get("Harmonic Number")
-        if integer(harmonic) and harmonic > 0 and (len(bunch_keys) != harmonic or any(key != f"bunch{i}" for i, key in enumerate(bunch_keys))):
+        if is_integer(harmonic) and harmonic > 0 and (len(bunch_keys) != harmonic or any(key != f"bunch{i}" for i, key in enumerate(bunch_keys))):
             self.add(path, "injection.bunches", f"Harmonic Number={harmonic}，需要连续的 bunch0 至 bunch{harmonic - 1}；空桶也要声明")
         ids, start_index = [], 0
         weight_source = None
@@ -313,28 +321,30 @@ class Validator:
             b = self.model(BunchConfig, raw[key], p)
             if not isinstance(raw[key], dict):
                 continue
-            self.require(raw[key], ["Total Injection Turns", "Injection Interval", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)",
-                                   "Emittance x (m'rad)", "Emittance y (m'rad)", "Dx (m)", "Dpx", "Sigma z (m)", "Sigma dp/p",
-                                   "Transverse dist", "Longitudinal dist", "Offset x", "Offset y", "Insert Particle Coordinate"], p)
+            self.require(raw[key], [
+                "Total Injection Turns", "Injection Interval", "Alpha x", "Alpha y", "Beta x (m)", "Beta y (m)", "Emittance x (m'rad)",
+                "Emittance y (m'rad)", "Dx (m)", "Dpx", "Sigma z (m)", "Sigma dp/p", "Transverse dist", "Longitudinal dist", "Offset x", "Offset y",
+                "Insert Particle Coordinate"
+            ], p)
             ids.append(b.get("Harmonic ID of this bunch", 0))
             self.numeric(b, "Kinetic Energy per Nucleon (eV/u)", p, positive=True)
             for field in ("Number of Real Particles", "Number of Macro Particles"):
                 self.numeric(b, field, p, minimum=0)
             n, real = b.get("Number of Macro Particles", 0), b.get("Number of Real Particles", 0)
-            n = max(n, 0) if integer(n) else 0
-            if n > 0 and integer(real) and real >= 0:
+            n = max(n, 0) if is_integer(n) else 0
+            if n > 0 and is_integer(real) and real >= 0:
                 if weight_source is None:
                     weight_source = (real, n)
                 elif real * weight_source[1] != weight_source[0] * n:
                     self.add(p, "injection.weight", "同一束流的所有非空束团必须具有相同且固定的真实粒子数/宏粒子数")
             self.total_particles += n
-            if n == 0 and number(real) and real > 0:
+            if n == 0 and is_finite_number(real) and real > 0:
                 self.add(p, "injection.empty", "存在真实粒子却没有宏粒子，束流强度将无法表示")
             elif n > 0 and real == 0:
                 self.add(p, "injection.test_particles", "宏粒子的权重为 0，可用于测试粒子，但不会产生空间电荷", True)
             stop, interval = b.get("Total Injection Turns", 1), b.get("Injection Interval", 1)
-            events = (stop + interval - 1) // interval if integer(stop) and integer(interval) and min(stop, interval) > 0 else 1
-            last = (events - 1) * interval if integer(interval) else 0
+            events = (stop + interval - 1) // interval if is_integer(stop) and is_integer(interval) and min(stop, interval) > 0 else 1
+            last = (events - 1) * interval if is_integer(interval) else 0
             self.last_injection = max(self.last_injection, last if n else 0)
             first = n // events + n % events
             if n and last >= self.turn_count:
@@ -343,7 +353,7 @@ class Validator:
             if len(rows) > first:
                 self.add((*p, "Insert Particle Coordinate"), "injection.manual_count", f"手动粒子不能超过首次注入的宏粒子数 {first}（按注入间隔计算）")
             for i, row in enumerate(rows):
-                if not isinstance(row, list) or len(row) != 6 or not all(number(x) for x in row):
+                if not isinstance(row, list) or len(row) != 6 or not all(is_finite_number(x) for x in row):
                     self.add((*p, "Insert Particle Coordinate", i), "injection.coordinates", "手动粒子每行必须有 6 个有限数值：x, px, y, py, z_rel, dp")
                 else:
                     if row[5] <= -1 or 1 + row[5] <= math.hypot(row[1], row[3]):
@@ -354,26 +364,35 @@ class Validator:
                 if any(b.get(f"Emittance {axis} (m'rad)", 0) <= 0 for axis in "xy"):
                     self.add(p, "injection.gaussian", "Gaussian generation requires positive Emittance x/y (m'rad); Gaussian 发射度必须大于 0")
             ddp, dde = b.get("Momentum Offset dp", 0), b.get("Kinetic Energy Offset (eV)", 0)
-            if number(ddp) and number(dde):
+            if is_finite_number(ddp) and is_finite_number(dde):
                 if ddp and dde:
                     self.add(p, "injection.offset_conflict", "Momentum Offset dp 与 Kinetic Energy Offset (eV) 只能有一项非零")
                 if ddp <= -1:
                     self.add((*p, "Momentum Offset dp"), "injection.momentum", "动量偏移必须 > -1")
                 energy = b.get("Kinetic Energy per Nucleon (eV/u)")
-                if number(energy) and energy + dde <= 0:
+                if is_finite_number(energy) and energy + dde <= 0:
                     self.add((*p, "Kinetic Energy Offset (eV)"), "injection.energy", "偏移后的动能必须大于 0")
             self.bunch_models.append((p, b))
-            self.file(b, "Distribution File Path", p, "distribution", active=b.get("Is Load Distribution from File", False), minimum_rows=first if b.get("Distribution File Mode") == "repeat" else n)
+            self.file(b,
+                      "Distribution File Path",
+                      p,
+                      "distribution",
+                      active=b.get("Is Load Distribution from File", False),
+                      minimum_rows=first if b.get("Distribution File Mode") == "repeat" else n)
             start_index += n
             for axis in "xy":
                 offset = b.get(f"Offset {axis}")
                 op = (*p, f"Offset {axis}")
                 if isinstance(offset, dict):
                     self.choice(offset, "File Time Kind", {"turn", "second"}, op)
-                    self.file(offset, "File Path", op, f"offset_{axis}", active=offset.get("Is Offset", False) and offset.get("Is Load From File", False))
+                    self.file(offset,
+                              "File Path",
+                              op,
+                              f"offset_{axis}",
+                              active=offset.get("Is Offset", False) and offset.get("Is Load From File", False))
                     if offset.get("Is Offset") and not offset.get("Is Load From File"):
                         self.require(raw[key].get(f"Offset {axis}", {}), ["Offset Position (m)", "Offset Momentum (rad)"], op)
-        if integer(harmonic) and harmonic > 0 and all(integer(i) for i in ids):
+        if is_integer(harmonic) and harmonic > 0 and all(is_integer(i) for i in ids):
             if len(set(ids)) != len(ids) or any(i < 0 or i >= harmonic for i in ids):
                 self.add(path, "injection.harmonic_ids", f"Harmonic ID 必须不重复并覆盖 [0, {harmonic})")
         return v
@@ -405,17 +424,23 @@ class Validator:
             if not isinstance(v.get("Groups"), list):
                 v["Groups"] = []
         self.require(raw, ["S (m)"], p)
-        required = {"Drift": ["Length (m)"], "SBend": ["Length (m)", "K0L"],
-                    "Quadrupole": ["Length (m)"], "Sextupole": ["Length (m)"],
-                    "Octupole": ["Length (m)"], "Multipole": ["Length (m)"],
-                    "Solenoid": ["Length (m)"], "Exciter": ["Enable"]}
+        required = {
+            "Drift": ["Length (m)"],
+            "SBend": ["Length (m)", "K0L"],
+            "Quadrupole": ["Length (m)"],
+            "Sextupole": ["Length (m)"],
+            "Octupole": ["Length (m)"],
+            "Multipole": ["Length (m)"],
+            "Solenoid": ["Length (m)"],
+            "Exciter": ["Enable"]
+        }
         self.require(raw, required.get(kind, []), p)
         self.commands[name] = (kind, v)
         s = v.get("S (m)")
-        if number(s) and self.circumference and not 0 <= s <= self.circumference:
+        if is_finite_number(s) and self.circumference and not 0 <= s <= self.circumference:
             self.add((*p, "S (m)"), "sequence.position", f"命令位置应在 [0, {self.circumference:g}] m 内")
         length = v.get("Length (m)", 0)
-        if number(length) and number(s) and length > s + 1e-10:
+        if is_finite_number(length) and is_finite_number(s) and length > s + 1e-10:
             self.add((*p, "Length (m)"), "sequence.body_start", "S 是元件出口位置；该元件入口 S-Length 小于 0", True)
         if kind in {"Marker", "RFCavity", "Exciter", "ReorganizeBunch"} and length != 0:
             self.add((*p, "Length (m)"), "element.thin", "该命令是点操作，Length 必须为 0")
@@ -427,7 +452,7 @@ class Validator:
         if kind == "SBend":
             self.numeric(v, "Hgap (m)", p, minimum=0)
             for edge in ("E1 (rad)", "E2 (rad)"):
-                if number(v.get(edge)) and abs(math.cos(v[edge])) < 1e-12:
+                if is_finite_number(v.get(edge)) and abs(math.cos(v[edge])) < 1e-12:
                     self.add((*p, edge), "sbend.edge", "端面角的 cos 接近 0，边缘聚焦公式奇异")
         if kind == "Multipole" and not v.get("KiL") and not v.get("KiSL"):
             self.add(p, "multipole.empty", "KiL 与 KiSL 至少有一项包含分量")
@@ -457,7 +482,7 @@ class Validator:
             self.require(raw, ["Dx previous (m)", "Dpx previous", "DQx", "DQy", "Longitudinal transfer"], p)
             self.choice(v, "Longitudinal transfer", {"off", "drift", "matrix"}, p)
             previous = v.get("S previous (m)")
-            if number(s) and number(previous) and (previous < 0 or previous > s):
+            if is_finite_number(s) and is_finite_number(previous) and (previous < 0 or previous > s):
                 self.add((*p, "S previous (m)"), "twiss.position", "要求 0 ≤ S previous ≤ S；反向间隔会产生反向漂移")
         if "Save turns" in v:
             self.turns(v["Save turns"], (*p, "Save turns"), flat=kind == "SpaceCharge")
@@ -473,7 +498,7 @@ class Validator:
             self.numeric(v, "Start turn", p, minimum=0)
         if kind == "RFCavity":
             pair = v.get("Dp aperture")
-            if pair is not None and (len(pair) != 2 or not all(number(x) for x in pair) or pair[0] >= pair[1] or pair[0] < -1):
+            if pair is not None and (len(pair) != 2 or not all(is_finite_number(x) for x in pair) or pair[0] >= pair[1] or pair[0] < -1):
                 self.add((*p, "Dp aperture"), "rf.dp_aperture", "需要 [-1 ≤ 下限 < 上限] 的两个有限数值")
             from .files import check_rf_files
             check_rf_files(self, v, p)
@@ -489,7 +514,7 @@ class Validator:
         if isinstance(internal, dict):
             self.aperture(internal, (*p, "Space charge"))
             self.turns(internal.get("Save turns", []), (*p, "Space charge", "Save turns"), flat=True)
-            if number(length) and length <= 1e-10:
+            if is_finite_number(length) and length <= 1e-10:
                 self.add((*p, "Space charge"), "sc.thick", "元件内空间电荷要求 Length > 1e-10 m（引擎厚元件阈值）")
 
     def exciter(self, v, p):
@@ -521,7 +546,7 @@ class Validator:
         if isinstance(explicit, dict):
             for key in explicit.keys() - {"z min", "z max"}:
                 self.add((*p, "Explicit", key), "field.unknown", "Explicit 只包含 z min 与 z max")
-            if not all(number(explicit.get(k)) for k in ("z min", "z max")):
+            if not all(is_finite_number(explicit.get(k)) for k in ("z min", "z max")):
                 self.add((*p, "Explicit"), "slicer.range", "z min 与 z max 必须为有限数值")
                 return
         try:
@@ -546,7 +571,7 @@ class Validator:
         self.globals()
         sequence = self.data.get("Sequence")
         if not isinstance(sequence, dict):
-            self.add(("Sequence",), "sequence.object", "Sequence 必须是对象")
+            self.add(("Sequence", ), "sequence.object", "Sequence 必须是对象")
             sequence = {}
         injection = sequence.get("injection")
         if not isinstance(injection, dict) or injection.get("Command") != "Injection":
@@ -616,7 +641,7 @@ def check_shared_inputs(inputs, result):
             return  # Each input's field errors are already present in the report.
         for field in ("Number of turns", "Backend (gpu/cpu)", "Particle Precision", "Device Id", "Number of GPU devices", "Timing", "Is plot figure"):
             if first[field] != second[field]:
-                result.add((field,), "run.mismatch", f"两个输入的 {field} 必须一致；引擎共享同一运行设置", source=str(inputs[1][0]))
+                result.add((field, ), "run.mismatch", f"两个输入的 {field} 必须一致；引擎共享同一运行设置", source=str(inputs[1][0]))
 
 
 def validate_documents(documents):

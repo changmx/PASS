@@ -1,9 +1,7 @@
 import numpy as np
 
 
-def calc_magnetic_rigidity(
-    m_static, N_particle=1, N_charge=1, is_print=False, **kwargs
-):
+def calc_magnetic_rigidity(m_static, N_particle=1, N_charge=1, is_print=False, **kwargs):
     """
     输入参数静止质量为必须, 可选参数有: E_total、gamma、beta
     """
@@ -27,26 +25,21 @@ def calc_magnetic_rigidity(
         gamma = np.sqrt(1 / (1 - beta**2))
         E_total = gamma * m_static * N_particle
 
-    p_eV = (
-        gamma * m_static * N_particle * beta
-    )  # The units of p_eV and m are eV/c and eV/c^2
-    p_kg_ms = (
-        gamma * (m_static * e / c / c) * N_particle * beta * c
-    )  # The unit of p_kg_ms is kg*m/s.
+    p_eV = (gamma * m_static * N_particle * beta)  # The units of p_eV and m are eV/c and eV/c^2
+    p_kg_ms = (gamma * (m_static * e / c / c) * N_particle * beta * c)  # The unit of p_kg_ms is kg*m/s.
     Brho = p_kg_ms / (e * N_charge)
 
     if is_print:
-        print(
-            "Brho: {0:.6f}, E total (GeV): {1:.6f}, beta: {2:.6f}, gamma: {3:.6f}, gamma*beta: {4:.6f}, p_MeV/c/u: {5:.6f}, p_kg*m/s/u: {6:.6e}".format(
-                Brho,
-                E_total / 1e9,
-                beta,
-                gamma,
-                gamma * beta,
-                p_eV / 1e6 / N_particle,
-                p_kg_ms / N_particle,
-            )
-        )
+        print("Brho: {0:.6f}, E total (GeV): {1:.6f}, beta: {2:.6f}, gamma: {3:.6f}, gamma*beta: {4:.6f}, p_MeV/c/u: {5:.6f}, p_kg*m/s/u: {6:.6e}".
+              format(
+                  Brho,
+                  E_total / 1e9,
+                  beta,
+                  gamma,
+                  gamma * beta,
+                  p_eV / 1e6 / N_particle,
+                  p_kg_ms / N_particle,
+              ))
 
     return Brho
 

@@ -15,7 +15,7 @@ import logging
 import numpy as np
 
 from .fd_arbitrary import (
-    GPUArbitraryFDSolver,
+    GPUFDArbitrarySolver,
     RectangleAperture,
     build_aperture,
     build_aperture_mask as _build_continuous_aperture_mask,
@@ -23,9 +23,8 @@ from .fd_arbitrary import (
 )
 from .dst_rectangle import GPUDSTRectangleSolver, build_dst_rectangle_resources
 from .fft_free_space import GPUFFTFreeSpaceSolver, build_fft_free_space_resources
-from .fd_rectangle import FDSolver, GPUFDSolver, build_fd_resources
-from .field_result import _gpu_module, _launch_gpu
-
+from .fd_rectangle import FDRectangleSolver, GPUFDRectangleSolver, build_fd_resources
+from .field_result import _gpu_module, launch_gpu_kernel
 
 logger = logging.getLogger(__name__)
 
@@ -124,21 +123,6 @@ class PICResult:
     deposited_charge: np.ndarray
     diagnostics: Mapping[str, Any] = field(default_factory=dict)
 
-    @property
-    def rho(self) -> np.ndarray:
-        """Compatibility alias for the deposited charge density."""
-        return self.density
-
-    @property
-    def ex(self) -> np.ndarray:
-        """Compatibility alias for the integrated horizontal field."""
-        return self.integrated_ex
-
-    @property
-    def ey(self) -> np.ndarray:
-        """Compatibility alias for the integrated vertical field."""
-        return self.integrated_ey
-
 
 @dataclass
 class PICResources:
@@ -147,11 +131,6 @@ class PICResources:
     aperture_mask: np.ndarray
     field_solver: Any
     solver_name: str | None = None
-
-    @property
-    def fd_solver(self) -> Any:
-        """Compatibility alias for the selected transverse field solver."""
-        return self.field_solver
 
 
 def build_grid_geometry(config: Mapping[str, Any] | None = None, **kwargs) -> GridGeometry:
@@ -186,16 +165,15 @@ def build_grid_geometry(config: Mapping[str, Any] | None = None, **kwargs) -> Gr
 
     nx, ny = grid_count("Nx"), grid_count("Ny")
 
-    obsolete = {"Dx", "dx", "Dy", "dy", "X min", "x_min", "X max", "x_max",
-                "Y min", "y_min", "Y max", "y_max"} & values.keys()
+    obsolete = {"Dx", "dx", "Dy", "dy", "X min", "x_min", "X max", "x_max", "Y min", "y_min", "Y max", "y_max"} & values.keys()
     if obsolete:
         raise ValueError(f"Unsupported grid extent fields: {sorted(obsolete)}; use full widths or half widths")
+
     def optional(*names):
         return next((values[name] for name in names if values.get(name) is not None), None)
-    widths = (optional("Grid Width X (m)", "grid_width_x"),
-              optional("Grid Width Y (m)", "grid_width_y"))
-    halves = (optional("Grid Half Width X (m)", "grid_half_width_x"),
-              optional("Grid Half Width Y (m)", "grid_half_width_y"))
+
+    widths = (optional("Grid Width X (m)", "grid_width_x"), optional("Grid Width Y (m)", "grid_width_y"))
+    halves = (optional("Grid Half Width X (m)", "grid_half_width_x"), optional("Grid Half Width Y (m)", "grid_half_width_y"))
     if all(value is not None for value in widths) and all(value is None for value in halves):
         hx, hy = (float(value) / 2 for value in widths)
     elif all(value is not None for value in halves) and all(value is None for value in widths):
@@ -203,7 +181,6 @@ def build_grid_geometry(config: Mapping[str, Any] | None = None, **kwargs) -> Gr
     else:
         raise ValueError("Specify either both full grid widths or both half widths")
     return GridGeometry(nx, ny, -hx, hx, -hy, hy)
-
 
 
 def build_aperture_mask(geometry: GridGeometry, aperture: Mapping[str, Any] | None = None) -> np.ndarray:
@@ -248,10 +225,8 @@ def build_pic_resources(
         if not np.all(aperture_mask):
             if name in {"dst_rectangle", "fft_free_space"}:
                 raise ValueError(f"{name} requires aperture_mask to be all True")
-            raise ValueError(
-                "boolean non-rectangular aperture masks are no longer supported; "
-                "pass a continuous aperture mapping to build_pic_resources(..., aperture=...)"
-            )
+            raise ValueError("boolean non-rectangular aperture masks are no longer supported; "
+                             "pass a continuous aperture mapping to build_pic_resources(..., aperture=...)")
     if aperture is None:
         spec = RectangleAperture(geometry.x_min, geometry.x_max, geometry.y_min, geometry.y_max)
         aperture_input = None
@@ -262,10 +237,8 @@ def build_pic_resources(
     if aperture_mask is not None and not np.array_equal(aperture_mask, derived_mask):
         raise ValueError("aperture and aperture_mask describe different domains")
 
-    full_rectangle = isinstance(spec, RectangleAperture) and (
-        spec.x_min == geometry.x_min and spec.x_max == geometry.x_max
-        and spec.y_min == geometry.y_min and spec.y_max == geometry.y_max
-    )
+    full_rectangle = isinstance(spec, RectangleAperture) and (spec.x_min == geometry.x_min and spec.x_max == geometry.x_max
+                                                              and spec.y_min == geometry.y_min and spec.y_max == geometry.y_max)
     if name in {"dst_rectangle", "fft_free_space"} and not full_rectangle:
         raise ValueError(f"{name} requires the full grid-aligned rectangular aperture")
     if full_rectangle:
@@ -280,12 +253,12 @@ def build_pic_resources(
     return PICResources(geometry, spec, solver.aperture_mask.copy(), solver, name)
 
 
-def _arrays(particles, tag=None):
+def _arrays(p, tag=None):
 
     def value(name, fallback=None):
-        if isinstance(particles, Mapping):
-            return particles.get(name, fallback)
-        return getattr(particles, name, fallback)
+        if isinstance(p, Mapping):
+            return p.get(name, fallback)
+        return getattr(p, name, fallback)
 
     x, y = value("x"), value("y")
     if x is None or y is None:
@@ -361,9 +334,9 @@ def _deposit_stencil(
         all_valid = bool(np.all(valid))
         selected = slice(None) if all_valid else np.flatnonzero(valid)
         selected_count = sid.size if all_valid else selected.size
-        stencil_inside = all(np.all((gx[selected] >= 0) & (gx[selected] < geometry.nx)
-                                    & (gy[selected] >= 0) & (gy[selected] < geometry.ny))
-                             for gx, gy, _ in entries)
+        stencil_inside = all(
+            np.all((gx[selected] >= 0) & (gx[selected] < geometry.nx)
+                   & (gy[selected] >= 0) & (gy[selected] < geometry.ny)) for gx, gy, _ in entries)
         normalizer = sum(weight[selected] for _, _, weight in entries)
         if stencil_inside and np.all(normalizer > np.finfo(float).eps):
             flat = density.ravel()
@@ -444,13 +417,13 @@ def deposit_cic(particles,
     aperture. Supply :func:`build_pic_resources` for any physical aperture.
     """
     x, y, alive = _arrays(particles, tag)
-    raw_sid = np.asarray(slice_id)
-    if raw_sid.dtype.kind not in "iu":
+    raw_slice_indices = np.asarray(slice_id)
+    if raw_slice_indices.dtype.kind not in "iu":
         raise TypeError("slice_id must be an integer array")
-    sid = raw_sid.astype(np.int64, copy=False).ravel()
-    if sid.size != x.size:
+    slice_indices = raw_slice_indices.astype(np.int64, copy=False).ravel()
+    if slice_indices.size != x.size:
         raise ValueError("slice_id must have one entry per particle")
-    ns = _slice_count(sid, num_slices)
+    n_slices = _slice_count(slice_indices, num_slices)
     try:
         charge = np.broadcast_to(np.asarray(charge_per_macro, dtype=float), x.shape)
     except ValueError as exc:
@@ -460,18 +433,22 @@ def deposit_cic(particles,
     resources = _default_rectangular_resources(geometry, resources)
     ix, iy, tx, ty, in_grid = geometry.locate(x, y)
     in_aperture = resources.aperture.mask(x, y)
-    valid = alive & in_grid & in_aperture & (sid >= 0) & (sid < ns)
-    density = np.zeros((ns, geometry.ny, geometry.nx), dtype=float)
+    valid = alive & in_grid & in_aperture & (slice_indices >= 0) & (slice_indices < n_slices)
+    density = np.zeros((n_slices, geometry.ny, geometry.nx), dtype=float)
     entries = []
     for ox, wx in ((0, 1 - tx), (1, tx)):
         for oy, wy in ((0, 1 - ty), (1, ty)):
             entries.append((ix + ox, iy + oy, wx * wy))
-    deposited, boundary_count, min_retained = _deposit_stencil(density, sid, charge, valid, entries, resources)
-    deposited_charge = np.bincount(sid[deposited], weights=charge[deposited], minlength=ns)
-    deposited_count = np.bincount(sid[deposited], minlength=ns).astype(np.int64)
+    deposited, boundary_count, min_retained = _deposit_stencil(density, slice_indices, charge, valid, entries, resources)
+    deposited_charge = np.bincount(slice_indices[deposited], weights=charge[deposited], minlength=n_slices)
+    deposited_count = np.bincount(slice_indices[deposited], minlength=n_slices).astype(np.int64)
     return DepositResult(
-        density, deposited_charge, deposited_count,
-        int(x.size - deposited.sum()), boundary_count, min_retained,
+        density,
+        deposited_charge,
+        deposited_count,
+        int(x.size - deposited.sum()),
+        boundary_count,
+        min_retained,
         int(np.count_nonzero(valid & ~deposited)),
     )
 
@@ -490,13 +467,13 @@ def deposit_tsc(particles,
     aperture. Supply :func:`build_pic_resources` for any physical aperture.
     """
     x, y, alive = _arrays(particles, tag)
-    raw_sid = np.asarray(slice_id)
-    if raw_sid.dtype.kind not in "iu":
+    raw_slice_indices = np.asarray(slice_id)
+    if raw_slice_indices.dtype.kind not in "iu":
         raise TypeError("slice_id must be an integer array")
-    sid = raw_sid.astype(np.int64, copy=False).ravel()
-    if sid.size != x.size:
+    slice_indices = raw_slice_indices.astype(np.int64, copy=False).ravel()
+    if slice_indices.size != x.size:
         raise ValueError("slice_id must have one entry per particle")
-    ns = _slice_count(sid, num_slices)
+    n_slices = _slice_count(slice_indices, num_slices)
     try:
         charge = np.broadcast_to(np.asarray(charge_per_macro, dtype=float), x.shape)
     except ValueError as exc:
@@ -507,8 +484,8 @@ def deposit_tsc(particles,
     ux = (x - geometry.x_min) / geometry.dx
     uy = (y - geometry.y_min) / geometry.dy
     valid = (alive & (ux >= 0) & (ux <= geometry.nx - 1) & (uy >= 0) & (uy <= geometry.ny - 1)
-             & resources.aperture.mask(x, y) & (sid >= 0) & (sid < ns))
-    density = np.zeros((ns, geometry.ny, geometry.nx), dtype=float)
+             & resources.aperture.mask(x, y) & (slice_indices >= 0) & (slice_indices < n_slices))
+    density = np.zeros((n_slices, geometry.ny, geometry.nx), dtype=float)
     cx, cy = np.floor(ux + 0.5).astype(np.int64), np.floor(uy + 0.5).astype(np.int64)
     entries = []
     for ox in (-1, 0, 1):
@@ -517,12 +494,16 @@ def deposit_tsc(particles,
         for oy in (-1, 0, 1):
             gy = cy + oy
             entries.append((gx, gy, wx * _tsc_weight(uy, gy)))
-    deposited, boundary_count, min_retained = _deposit_stencil(density, sid, charge, valid, entries, resources)
-    deposited_charge = np.bincount(sid[deposited], weights=charge[deposited], minlength=ns)
-    deposited_count = np.bincount(sid[deposited], minlength=ns).astype(np.int64)
+    deposited, boundary_count, min_retained = _deposit_stencil(density, slice_indices, charge, valid, entries, resources)
+    deposited_charge = np.bincount(slice_indices[deposited], weights=charge[deposited], minlength=n_slices)
+    deposited_count = np.bincount(slice_indices[deposited], minlength=n_slices).astype(np.int64)
     return DepositResult(
-        density, deposited_charge, deposited_count,
-        int(x.size - deposited.sum()), boundary_count, min_retained,
+        density,
+        deposited_charge,
+        deposited_count,
+        int(x.size - deposited.sum()),
+        boundary_count,
+        min_retained,
         int(np.count_nonzero(valid & ~deposited)),
     )
 
@@ -559,11 +540,9 @@ def solve_pic(particles,
     if resources is None:
         resources = build_pic_resources(geometry)
     elif not isinstance(resources, PICResources):
-        raise TypeError(
-            "solve_pic requires PICResources; build them with "
-            "build_pic_resources(...). Bare field solvers do not carry the "
-            "continuous aperture metadata required for particle deposition."
-        )
+        raise TypeError("solve_pic requires PICResources; build them with "
+                        "build_pic_resources(...). Bare field solvers do not carry the "
+                        "continuous aperture metadata required for particle deposition.")
     else:
         _require_matching_geometry(geometry, resources, "PICResources")
     deposited = deposit_particles(particles, slice_id, geometry, resources, method, charge_per_macro=charge_per_macro, num_slices=num_slices, tag=tag)
@@ -592,8 +571,8 @@ def solve_pic(particles,
     )
 
 
-def _gather(field, particles, geometry, slice_id, resources=None, quadratic=False, tag=None):
-    x, y, alive = _arrays(particles, tag)
+def _gather(field, p, geometry, slice_id, resources=None, quadratic=False, tag=None):
+    x, y, alive = _arrays(p, tag)
     values = np.asarray(field, dtype=float)
     if values.ndim not in (2, 3) or values.shape[-2:] != (geometry.ny, geometry.nx):
         raise ValueError("field must have shape (ny, nx) or (n_slice, ny, nx) matching the grid")
@@ -603,34 +582,28 @@ def _gather(field, particles, geometry, slice_id, resources=None, quadratic=Fals
     if not batched:
         values = values[None, ...]
     if slice_id is None:
-        sid = np.zeros(x.size, dtype=np.int64)
+        slice_indices = np.zeros(x.size, dtype=np.int64)
     else:
-        raw_sid = np.asarray(slice_id)
-        if raw_sid.dtype.kind not in "iu":
+        raw_slice_indices = np.asarray(slice_id)
+        if raw_slice_indices.dtype.kind not in "iu":
             raise TypeError("slice_id must be an integer array")
-        sid = raw_sid.astype(np.int64, copy=False).ravel()
-    if sid.size != x.size:
+        slice_indices = raw_slice_indices.astype(np.int64, copy=False).ravel()
+    if slice_indices.size != x.size:
         raise ValueError("slice_id must have one entry per particle")
-    out = np.zeros(x.size, dtype=float)
+    field_values = np.zeros(x.size, dtype=float)
     resources = _default_rectangular_resources(geometry, resources)
-    valid = (
-        alive
-        & resources.aperture.mask(x, y)
-        & geometry.inside(x, y)
-        & (sid >= 0)
-        & (sid < values.shape[0])
-    )
+    valid = (alive & resources.aperture.mask(x, y) & geometry.inside(x, y) & (slice_indices >= 0) & (slice_indices < values.shape[0]))
     if not quadratic and np.all(resources.field_solver.interior_mask) and np.all(valid):
         # In the usual loss-free open-grid run, Boolean/advanced indexing of
         # every coordinate and every weight only makes full-size copies.
         # Index the four field nodes directly instead, retaining normalization.
         ix, iy, tx, ty, in_grid = geometry.locate(x, y)
         if np.all(in_grid):
-            w00, w10 = (1-tx)*(1-ty), tx*(1-ty)
-            w01, w11 = (1-tx)*ty, tx*ty
-            normalizer = w00+w10+w01+w11
-            return (values[sid,iy,ix]*w00 + values[sid,iy,ix+1]*w10
-                    + values[sid,iy+1,ix]*w01 + values[sid,iy+1,ix+1]*w11)/normalizer
+            w00, w10 = (1 - tx) * (1 - ty), tx * (1 - ty)
+            w01, w11 = (1 - tx) * ty, tx * ty
+            normalizer = w00 + w10 + w01 + w11
+            return (values[slice_indices, iy, ix] * w00 + values[slice_indices, iy, ix + 1] * w10 + values[slice_indices, iy + 1, ix] * w01 +
+                    values[slice_indices, iy + 1, ix + 1] * w11) / normalizer
     if quadratic:
         ux, uy = (x - geometry.x_min) / geometry.dx, (y - geometry.y_min) / geometry.dy
         cx, cy = np.floor(ux + 0.5).astype(np.int64), np.floor(uy + 0.5).astype(np.int64)
@@ -656,9 +629,9 @@ def _gather(field, particles, geometry, slice_id, resources=None, quadratic=Fals
         normalizer = sum(weight[selected] for _, _, weight in entries)
         accumulated = np.zeros(selected.size)
         for gx, gy, weight in entries:
-            accumulated += values[sid[selected], gy[selected], gx[selected]] * weight[selected]
-        out[selected] = accumulated / normalizer
-        return out
+            accumulated += values[slice_indices[selected], gy[selected], gx[selected]] * weight[selected]
+        field_values[selected] = accumulated / normalizer
+        return field_values
     normalizer = np.zeros(x.size, dtype=float)
     for gx, gy, weight in entries:
         in_grid = (gx >= 0) & (gx < geometry.nx) & (gy >= 0) & (gy < geometry.ny)
@@ -674,7 +647,7 @@ def _gather(field, particles, geometry, slice_id, resources=None, quadratic=Fals
             "gather node; returning zero field",
             int(missing.sum()),
         )
-        # Keep the invalid particles out of every subsequent stencil update.
+        # Keep the invalid particles field_values of every subsequent stencil update.
         # This makes the zero-field policy explicit and prevents a future
         # change to the active-node filtering from turning this case into 0/0.
         valid &= ~missing
@@ -684,8 +657,8 @@ def _gather(field, particles, geometry, slice_id, resources=None, quadratic=Fals
         selected = np.flatnonzero(local)
         if selected.size:
             local[selected] &= active[gy[selected], gx[selected]]
-        out[local] += values[sid[local], gy[local], gx[local]] * weight[local] / normalizer[local]
-    return out
+        field_values[local] += values[slice_indices[local], gy[local], gx[local]] * weight[local] / normalizer[local]
+    return field_values
 
 
 def gather_bilinear(field, particles, geometry, resources=None, slice_id=None, tag=None):
@@ -774,24 +747,20 @@ class GPUPICResources:
     def dtype(self):
         return self.field_solver.dtype
 
-    @property
-    def fd_solver(self):
-        return self.field_solver
-
     def prepare(self, num_slices, num_particles=0):
         import cupy as cp
 
         self.field_solver.prepare(num_slices)
-        w = self._workspace
-        g = self.geometry
-        shape = (int(num_slices), g.ny, g.nx)
-        if "density" not in w or w["density"].shape != shape:
-            w["density"] = cp.empty(shape, self.dtype)
-        if "status" not in w or w["status"].size != num_particles:
+        workspace = self._workspace
+        grid = self.geometry
+        shape = (int(num_slices), grid.ny, grid.nx)
+        if "density" not in workspace or workspace["density"].shape != shape:
+            workspace["density"] = cp.empty(shape, self.dtype)
+        if "status" not in workspace or workspace["status"].size != num_particles:
             for name in ("status", "bins"):
-                w[name] = cp.empty(num_particles, cp.int32)
+                workspace[name] = cp.empty(num_particles, cp.int32)
             for name in ("q", "retained"):
-                w[name] = cp.empty(num_particles, self.dtype)
+                workspace[name] = cp.empty(num_particles, self.dtype)
 
     def close(self):
         self.field_solver.stream.synchronize()
@@ -817,48 +786,27 @@ def build_pic_resources_gpu(
 
     name = str(field_solver).strip().lower().replace("-", "_")
     if name not in ("fd", "dst_rectangle", "fft_free_space"):
-        raise ValueError(
-            "field_solver must be 'fd', 'dst_rectangle', or 'fft_free_space'"
-        )
-    g = geometry
+        raise ValueError("field_solver must be 'fd', 'dst_rectangle', or 'fft_free_space'")
     if deposition_strategy not in ("atomic", "warp", "sorted_warp"):
-        raise ValueError(
-            "deposition_strategy must be 'atomic', 'warp', or 'sorted_warp'"
-        )
-    spec = (
-        RectangleAperture(g.x_min, g.x_max, g.y_min, g.y_max)
-        if aperture is None
-        else build_aperture(aperture)
-    )
-    mask = spec.mask(*np.meshgrid(g.x, g.y))
+        raise ValueError("deposition_strategy must be 'atomic', 'warp', or 'sorted_warp'")
+    spec = (RectangleAperture(geometry.x_min, geometry.x_max, geometry.y_min, geometry.y_max) if aperture is None else build_aperture(aperture))
+    mask = spec.mask(*np.meshgrid(geometry.x, geometry.y))
     if aperture_mask is not None:
         given = np.asarray(aperture_mask, dtype=bool)
-        if (
-            given.shape != mask.shape
-            or not given.all()
-            or not np.array_equal(given, mask)
-        ):
-            raise ValueError(
-                "provide continuous aperture geometry instead of a non-rectangular Boolean mask"
-            )
+        if (given.shape != mask.shape or not given.all() or not np.array_equal(given, mask)):
+            raise ValueError("provide continuous aperture geometry instead of a non-rectangular Boolean mask")
     full = isinstance(spec, RectangleAperture) and (
         spec.x_min,
         spec.x_max,
         spec.y_min,
         spec.y_max,
-    ) == (g.x_min, g.x_max, g.y_min, g.y_max)
+    ) == (geometry.x_min, geometry.x_max, geometry.y_min, geometry.y_max)
     if name != "fd" and not full:
         raise ValueError(f"{name} requires the full grid-aligned rectangular aperture")
-    solver = (
-        (GPUFDSolver(g, dtype) if full else GPUArbitraryFDSolver(g, aperture, dtype))
-        if name == "fd"
-        else GPUDSTRectangleSolver(g, dtype, implementation=dst_implementation)
-        if name == "dst_rectangle"
-        else GPUFFTFreeSpaceSolver(g, dtype, batch_size=fft_batch_size)
-    )
-    result = GPUPICResources(
-        g, spec, solver, name, cp.asarray(solver.interior_mask), deposition_strategy
-    )
+    solver = ((GPUFDRectangleSolver(geometry, dtype) if full else GPUFDArbitrarySolver(geometry, aperture, dtype))
+              if name == "fd" else GPUDSTRectangleSolver(geometry, dtype, implementation=dst_implementation)
+              if name == "dst_rectangle" else GPUFFTFreeSpaceSolver(geometry, dtype, batch_size=fft_batch_size))
+    result = GPUPICResources(geometry, spec, solver, name, cp.asarray(solver.interior_mask), deposition_strategy)
     # Compile once during initialization, before the first particle snapshot.
     _gpu_module(_PIC_CUDA, solver.dtype.str, solver.device).get_function("deposit")
     if num_slices is not None:
@@ -866,15 +814,11 @@ def build_pic_resources_gpu(
     return result
 
 
-def _particles_gpu(particles, slice_id, resources, tag, validate):
+def _particles_gpu(p, slice_id, resources, tag, validate):
     import cupy as cp
 
     resources.field_solver._check_context()
-    get = (
-        particles.get
-        if isinstance(particles, Mapping)
-        else lambda k, default=None: getattr(particles, k, default)
-    )
+    get = (p.get if isinstance(p, Mapping) else lambda k, default=None: getattr(p, k, default))
     x, y = (cp.asarray(get(k), dtype=resources.dtype, order="C") for k in ("x", "y"))
     if x.shape != y.shape:
         raise ValueError("x and y must have the same shape")
@@ -883,26 +827,22 @@ def _particles_gpu(particles, slice_id, resources, tag, validate):
         tags = cp.asarray(tags)
         if tags.shape != x.shape:
             raise ValueError("tag must have the same shape as x and y")
-    sid = cp.asarray(slice_id)
-    if sid.dtype.kind not in "iu":
+    slice_indices = cp.asarray(slice_id)
+    if slice_indices.dtype.kind not in "iu":
         raise TypeError("slice_id must be an integer array")
-    if sid.size != x.size:
+    if slice_indices.size != x.size:
         raise ValueError("slice_id must have one entry per particle")
-    sid = cp.ascontiguousarray(
-        sid,
-        dtype=cp.int32
-        if sid.dtype.itemsize <= 4 and sid.dtype.kind == "i"
-        else cp.int64,
+    slice_indices = cp.ascontiguousarray(
+        slice_indices,
+        dtype=cp.int32 if slice_indices.dtype.itemsize <= 4 and slice_indices.dtype.kind == "i" else cp.int64,
     ).ravel()
     if validate and not bool(cp.all(cp.isfinite(x) & cp.isfinite(y))):
         raise ValueError("particle coordinates must be finite")
     x, y = x.ravel(), y.ravel()
-    valid = resources.aperture.mask(
-        x.astype(cp.float64, copy=False), y.astype(cp.float64, copy=False)
-    )
+    valid = resources.aperture.mask(x.astype(cp.float64, copy=False), y.astype(cp.float64, copy=False))
     if tags is not None:
         valid &= tags.ravel() > 0
-    return x, y, sid, valid
+    return x, y, slice_indices, valid
 
 
 def _slice_count_gpu(sid, num_slices):
@@ -913,21 +853,21 @@ def _slice_count_gpu(sid, num_slices):
     return int(num_slices)
 
 
-def _stencil_args_gpu(resources, n, ns, method, sid):
+def _stencil_args_gpu(resources, n, n_slices, method, sid):
     method = str(method).upper()
     if method not in ("CIC", "TSC"):
         raise ValueError("method must be 'CIC' or 'TSC'")
-    g = resources.geometry
+    grid = resources.geometry
     t = np.float64
     return (
         np.int64(n),
-        np.int32(ns),
-        np.int32(g.nx),
-        np.int32(g.ny),
-        t(g.x_min),
-        t(g.y_min),
-        t(g.dx),
-        t(g.dy),
+        np.int32(n_slices),
+        np.int32(grid.nx),
+        np.int32(grid.ny),
+        t(grid.x_min),
+        t(grid.y_min),
+        t(grid.dx),
+        t(grid.dy),
         np.int32(method == "TSC"),
         np.int32(sid.dtype.itemsize == 8),
     )
@@ -949,60 +889,51 @@ def deposit_particles_gpu(
     import cupy as cp
 
     if resources is None:
-        get = (
-            particles.get
-            if isinstance(particles, Mapping)
-            else lambda k: getattr(particles, k)
-        )
+        get = (particles.get if isinstance(particles, Mapping) else lambda k: getattr(particles, k))
         dtype = cp.asarray(get("x")).dtype
         resources = build_pic_resources_gpu(geometry, dtype=dtype)
     if not isinstance(resources, GPUPICResources) or resources.geometry != geometry:
         raise ValueError("matching GPUPICResources are required")
-    x, y, sid, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
-    ns = _slice_count_gpu(sid, num_slices)
-    q = cp.asarray(charge_per_macro, dtype=resources.dtype, order="C").ravel()
-    if q.size not in (1, x.size):
+    x, y, slice_indices, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
+    n_slices = _slice_count_gpu(slice_indices, num_slices)
+    macro_charges = cp.asarray(charge_per_macro, dtype=resources.dtype, order="C").ravel()
+    if macro_charges.size not in (1, x.size):
         raise ValueError("charge_per_macro must be scalar or match particle shape")
-    if validate and not bool(cp.all(cp.isfinite(q))):
+    if validate and not bool(cp.all(cp.isfinite(macro_charges))):
         raise ValueError("charge_per_macro must be finite")
-    resources.prepare(ns, x.size)
-    w = resources._workspace
-    w["density"].fill(0)
+    resources.prepare(n_slices, x.size)
+    workspace = resources._workspace
+    workspace["density"].fill(0)
     if resources.deposition_strategy == "sorted_warp" and x.size:
-        g = geometry
-        cx = cp.clip(
-            cp.floor((x.astype(cp.float64) - g.x_min) / g.dx), 0, g.nx - 1
-        ).astype(cp.int64)
-        cy = cp.clip(
-            cp.floor((y.astype(cp.float64) - g.y_min) / g.dy), 0, g.ny - 1
-        ).astype(cp.int64)
+        cx = cp.clip(cp.floor((x.astype(cp.float64) - geometry.x_min) / geometry.dx), 0, geometry.nx - 1).astype(cp.int64)
+        cy = cp.clip(cp.floor((y.astype(cp.float64) - geometry.y_min) / geometry.dy), 0, geometry.ny - 1).astype(cp.int64)
         keys = cp.where(
-            valid & (sid >= 0) & (sid < ns),
-            (cp.clip(sid, 0, ns) * g.ny + cy) * g.nx + cx,
-            ns * g.ny * g.nx,
+            valid & (slice_indices >= 0) & (slice_indices < n_slices),
+            (cp.clip(slice_indices, 0, n_slices) * geometry.ny + cy) * geometry.nx + cx,
+            n_slices * geometry.ny * geometry.nx,
         )
         order = cp.argsort(keys)
-        x, y, sid, valid = x[order], y[order], sid[order], valid[order]
-        if q.size != 1:
-            q = q[order]
-    args = _stencil_args_gpu(resources, x.size, ns, method, sid)
-    _launch_gpu(
+        x, y, slice_indices, valid = x[order], y[order], slice_indices[order], valid[order]
+        if macro_charges.size != 1:
+            macro_charges = macro_charges[order]
+    args = _stencil_args_gpu(resources, x.size, n_slices, method, slice_indices)
+    launch_gpu_kernel(
         _PIC_CUDA,
         "deposit",
         x.size,
         (
             x,
             y,
-            sid,
+            slice_indices,
             valid,
             resources.active,
-            q,
-            np.int32(q.size == 1),
-            w["density"],
-            w["status"],
-            w["bins"],
-            w["q"],
-            w["retained"],
+            macro_charges,
+            np.int32(macro_charges.size == 1),
+            workspace["density"],
+            workspace["status"],
+            workspace["bins"],
+            workspace["q"],
+            workspace["retained"],
             *args,
             np.int32(resources.deposition_strategy != "atomic"),
         ),
@@ -1010,29 +941,25 @@ def deposit_particles_gpu(
     )
     # Invalid particles occupy bin zero, keeping arbitrary invalid slice IDs
     # from increasing the histogram allocation. Counters stay on the device.
-    counts = cp.zeros(ns, cp.uint64)
-    charges = cp.zeros(ns, resources.dtype)
+    counts = cp.zeros(n_slices, cp.uint64)
+    charges = cp.zeros(n_slices, resources.dtype)
     if x.size:
-        _gpu_module(_PIC_CUDA, resources.dtype.str, resources.field_solver.device).get_function(
-            "deposition_totals"
-        )(
-            ((x.size + 255) // 256,),
-            (256,),
-            (w["bins"], w["q"], counts, charges, np.int64(x.size), np.int32(ns)),
-            shared_mem=ns * (resources.dtype.itemsize + 4) if ns <= 1024 else 0,
+        _gpu_module(_PIC_CUDA, resources.dtype.str, resources.field_solver.device).get_function("deposition_totals")(
+            ((x.size + 255) // 256, ),
+            (256, ),
+            (workspace["bins"], workspace["q"], counts, charges, np.int64(x.size), np.int32(n_slices)),
+            shared_mem=n_slices * (resources.dtype.itemsize + 4) if n_slices <= 1024 else 0,
         )
-    boundary = cp.count_nonzero(
-        (w["status"] > 0) & (~cp.isclose(w["retained"], 1.0, rtol=1e-5, atol=1e-8))
-    )
-    minimum = w["retained"].min() if x.size else cp.asarray(1.0, dtype=resources.dtype)
+    boundary = cp.count_nonzero((workspace["status"] > 0) & (~cp.isclose(workspace["retained"], 1.0, rtol=1e-5, atol=1e-8)))
+    minimum = workspace["retained"].min() if x.size else cp.asarray(1.0, dtype=resources.dtype)
     return DepositResult(
-        w["density"].copy() if copy else w["density"],
+        workspace["density"].copy() if copy else workspace["density"],
         charges,
         counts,
         x.size - counts.sum(),
         boundary,
         minimum,
-        cp.count_nonzero(w["status"] < 0),
+        cp.count_nonzero(workspace["status"] < 0),
     )
 
 
@@ -1053,43 +980,32 @@ def gather_fields_gpu(
     import cupy as cp
 
     if resources.geometry != geometry:
-        raise ValueError(
-            "GPUPICResources geometry does not match the supplied geometry"
-        )
-    x, y, sid, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
+        raise ValueError("GPUPICResources geometry does not match the supplied geometry")
+    x, y, slice_indices, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
     ex, ey = (cp.asarray(a, dtype=resources.dtype, order="C") for a in (ex, ey))
-    if (
-        ex.shape != ey.shape
-        or ex.ndim not in (2, 3)
-        or ex.shape[-2:] != (geometry.ny, geometry.nx)
-    ):
+    if (ex.shape != ey.shape or ex.ndim not in (2, 3) or ex.shape[-2:] != (geometry.ny, geometry.nx)):
         raise ValueError("fields must have matching (n_slice, ny, nx) shapes")
     if validate and not bool(cp.all(cp.isfinite(ex) & cp.isfinite(ey))):
         raise ValueError("fields must be finite")
-    ns = ex.shape[0] if ex.ndim == 3 else 1
+    n_slices = ex.shape[0] if ex.ndim == 3 else 1
     if out is None:
         out = (cp.empty_like(x), cp.empty_like(y))
-    elif any(
-        a.shape != x.shape or a.dtype != resources.dtype or not a.flags.c_contiguous
-        for a in out
-    ):
-        raise ValueError(
-            "gather output must be contiguous and match particle shape and precision"
-        )
-    _launch_gpu(
+    elif any(a.shape != x.shape or a.dtype != resources.dtype or not a.flags.c_contiguous for a in out):
+        raise ValueError("gather output must be contiguous and match particle shape and precision")
+    launch_gpu_kernel(
         _PIC_CUDA,
         "gather_pair",
         x.size,
         (
             x,
             y,
-            sid,
+            slice_indices,
             valid,
             resources.active,
             ex,
             ey,
             *out,
-            *_stencil_args_gpu(resources, x.size, ns, method, sid),
+            *_stencil_args_gpu(resources, x.size, n_slices, method, slice_indices),
         ),
         resources.dtype,
     )
@@ -1131,7 +1047,11 @@ def pic_gpu(
     if resources is None:
         resources = build_pic_resources_gpu(geometry, dtype=cp.asarray(x).dtype)
     deposited = deposit_particles_gpu(
-        {"x": x, "y": y, "tag": tag},
+        {
+            "x": x,
+            "y": y,
+            "tag": tag
+        },
         slice_id,
         geometry,
         resources,
@@ -1164,108 +1084,221 @@ def pic_gpu(
         ),
     )
 
+
 _PIC_CUDA = r"""
-__device__ long long read_sid(const void* ids, long long i, int wide) {
+__device__ long long read_sid(
+    const void* ids,
+    long long i,
+    int wide
+) {
     return wide ? ((const long long*)ids)[i] : ((const int*)ids)[i];
 }
-__device__ double tsc_weight(double u, int node) {
-    double d=fabs(u-node), outer=fmax(0.,1.5-d);
-    return d<0.5 ? 0.75-d*d : 0.5*outer*outer;
+__device__ double tsc_weight(
+    double u,
+    int node
+) {
+    double d = fabs(u - node), outer = fmax(0., 1.5 - d);
+    return d < 0.5 ? 0.75 - d * d : 0.5 * outer * outer;
 }
 
-__device__ void deposit_add(T* address,T value,int strategy) {
-    if(strategy==0) {atomicAdd(address,value);return;}
-    unsigned active=__activemask();
-    unsigned group=__match_any_sync(active,(unsigned long long)address);
-    if(__popc(group)==1) {atomicAdd(address,value);return;}
-    T sum=0;
-    for(unsigned peers=group;peers;peers&=peers-1)
-        sum+=__shfl_sync(group,value,__ffs(peers)-1);
-    if((threadIdx.x&31)==__ffs(group)-1) atomicAdd(address,sum);
+__device__ void deposit_add(
+    T* address,
+    T value,
+    int strategy
+) {
+    if (strategy == 0) {
+        atomicAdd(address, value);
+        return;
+    }
+    unsigned active = __activemask();
+    unsigned group = __match_any_sync(active, (unsigned long long)address);
+    if (__popc(group) == 1) {
+        atomicAdd(address, value);
+        return;
+    }
+    T sum = 0;
+    for (unsigned peers = group; peers; peers &= peers - 1)
+        sum += __shfl_sync(group, value, __ffs(peers) - 1);
+    if ((threadIdx.x & 31) == __ffs(group) - 1)
+        atomicAdd(address, sum);
 }
 // Only active nodes enter either stencil; deposition and gathering use the
 // same renormalization, including fractional Shortley-Weller boundaries.
-__device__ int stencil(T x,T y,int nx,int ny,double xmin,double ymin,double dx,double dy,
-    const bool* active,int quadratic,int* nodes,T* weights,T* norm) {
+__device__ int stencil(
+    T x,
+    T y,
+    int nx,
+    int ny,
+    double xmin,
+    double ymin,
+    double dx,
+    double dy,
+    const bool* active,
+    int quadratic,
+    int* nodes,
+    T* weights,
+    T* norm
+) {
     // Geometry retains host FP64 bounds even for FP32 particles. Rounding a
     // near-wall coordinate onto the wall would otherwise erase its stencil.
-    double u=((double)x-xmin)/dx,v=((double)y-ymin)/dy;
-    if(!isfinite(u)||!isfinite(v)||u<0||u>nx-1||v<0||v>ny-1) return -1;
-    int ix=quadratic ? (int)floor(u+(T)0.5) : min((int)floor(u),nx-2);
-    int iy=quadratic ? (int)floor(v+(T)0.5) : min((int)floor(v),ny-2);
-    int count=0; *norm=0;
-    for(int ox=quadratic?-1:0;ox<=1;++ox) {
-        int gx=ix+ox;
-        double wx=quadratic?tsc_weight(u,gx):(ox?u-ix:1-(u-ix));
-        for(int oy=quadratic?-1:0;oy<=1;++oy) {
-            int gy=iy+oy;
-            if(gx<0||gx>=nx||gy<0||gy>=ny||!active[gy*nx+gx]) continue;
-            double wy=quadratic?tsc_weight(v,gy):(oy?v-iy:1-(v-iy));
-            nodes[count]=gy*nx+gx; weights[count]=wx*wy; *norm+=weights[count]; ++count;
+    double u = ((double)x - xmin) / dx, v = ((double)y - ymin) / dy;
+    if (!isfinite(u) || !isfinite(v) || u < 0 || u > nx - 1 || v < 0 || v > ny - 1)
+        return -1;
+    int ix = quadratic ? (int)floor(u + (T)0.5) : min((int)floor(u), nx - 2);
+    int iy = quadratic ? (int)floor(v + (T)0.5) : min((int)floor(v), ny - 2);
+    int count = 0;
+    *norm = 0;
+    for (int ox = quadratic ? -1 : 0; ox <= 1; ++ox) {
+        int gx = ix + ox;
+        double wx = quadratic ? tsc_weight(u, gx) : (ox ? u - ix : 1 - (u - ix));
+        for (int oy = quadratic ? -1 : 0; oy <= 1; ++oy) {
+            int gy = iy + oy;
+            if (gx < 0 || gx >= nx || gy < 0 || gy >= ny || !active[gy * nx + gx])
+                continue;
+            double wy = quadratic ? tsc_weight(v, gy) : (oy ? v - iy : 1 - (v - iy));
+            nodes[count] = gy * nx + gx;
+            weights[count] = wx * wy;
+            *norm += weights[count];
+            ++count;
         }
     }
     return count;
 }
 
-extern "C" __global__ void deposit(const T* x,const T* y,const void* sid,
-    const bool* valid,const bool* active,const T* charge,int scalar_charge,
-    T* rho,int* status,int* bins,T* deposited_q,T* retained,long long size,
-    int ns,int nx,int ny,double xmin,double ymin,double dx,double dy,int quadratic,int wide,int strategy) {
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
-    if(i>=size) return;
-    status[i]=0; bins[i]=0; deposited_q[i]=0; retained[i]=1;
-    long long s=read_sid(sid,i,wide);
-    if(!valid[i]||s<0||s>=ns) return;
-    int nodes[9]; T weights[9],norm;
-    int count=stencil(x[i],y[i],nx,ny,xmin,ymin,dx,dy,active,quadratic,nodes,weights,&norm);
-    if(count<0) return;
-    if(norm<=(T)2.2204460492503131e-16) { status[i]=-1; return; }
-    status[i]=1; bins[i]=s+1; retained[i]=norm;
-    T q=charge[scalar_charge?0:i],scale=q/(norm*dx*dy);
-    deposited_q[i]=q;
-    for(int k=0;k<count;++k) deposit_add(rho+s*nx*ny+nodes[k],weights[k]*scale,strategy);
-}
-
-extern "C" __global__ void gather_pair(const T* x,const T* y,const void* sid,
-    const bool* valid,const bool* active,const T* ex,const T* ey,T* outx,T* outy,
-    long long size,int ns,int nx,int ny,double xmin,double ymin,double dx,double dy,int quadratic,int wide) {
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
-    if(i>=size) return;
-    outx[i]=0;outy[i]=0;
-    long long s=read_sid(sid,i,wide);
-    if(!valid[i]||s<0||s>=ns) return;
-    int nodes[9]; T weights[9],norm;
-    int count=stencil(x[i],y[i],nx,ny,xmin,ymin,dx,dy,active,quadratic,nodes,weights,&norm);
-    if(count<0||norm<=(T)2.2204460492503131e-16) return;
-    T a=0,b=0;
-    for(int k=0;k<count;++k) {
-        long long j=s*nx*ny+nodes[k];
-        a+=weights[k]*ex[j];b+=weights[k]*ey[j];
+extern "C" __global__ void deposit(
+    const T* x,
+    const T* y,
+    const void* slice_indices,
+    const bool* valid,
+    const bool* active,
+    const T* charge,
+    int scalar_charge,
+    T* rho,
+    int* status,
+    int* bins,
+    T* deposited_q,
+    T* retained,
+    long long size,
+    int n_slices,
+    int nx,
+    int ny,
+    double xmin,
+    double ymin,
+    double dx,
+    double dy,
+    int quadratic,
+    int wide,
+    int strategy
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= size)
+        return;
+    status[i] = 0;
+    bins[i] = 0;
+    deposited_q[i] = 0;
+    retained[i] = 1;
+    long long s = read_sid(slice_indices, i, wide);
+    if (!valid[i] || s < 0 || s >= n_slices)
+        return;
+    int nodes[9];
+    T weights[9], norm;
+    int count = stencil(x[i], y[i], nx, ny, xmin, ymin, dx, dy, active, quadratic, nodes, weights, &norm);
+    if (count < 0)
+        return;
+    if (norm <= (T)2.2204460492503131e-16) {
+        status[i] = -1;
+        return;
     }
-    outx[i]=a/norm;outy[i]=b/norm;
+    status[i] = 1;
+    bins[i] = s + 1;
+    retained[i] = norm;
+    T q = charge[scalar_charge ? 0 : i], scale = q / (norm * dx * dy);
+    deposited_q[i] = q;
+    for (int k = 0; k < count; ++k)
+        deposit_add(rho + s * nx * ny + nodes[k], weights[k] * scale, strategy);
 }
 
-extern "C" __global__ void deposition_totals(const int* bins,const T* q,
-    unsigned long long* counts,T* charges,long long size,int ns) {
+extern "C" __global__ void gather_pair(
+    const T* x,
+    const T* y,
+    const void* slice_indices,
+    const bool* valid,
+    const bool* active,
+    const T* ex,
+    const T* ey,
+    T* outx,
+    T* outy,
+    long long size,
+    int n_slices,
+    int nx,
+    int ny,
+    double xmin,
+    double ymin,
+    double dx,
+    double dy,
+    int quadratic,
+    int wide
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= size)
+        return;
+    outx[i] = 0;
+    outy[i] = 0;
+    long long s = read_sid(slice_indices, i, wide);
+    if (!valid[i] || s < 0 || s >= n_slices)
+        return;
+    int nodes[9];
+    T weights[9], norm;
+    int count = stencil(x[i], y[i], nx, ny, xmin, ymin, dx, dy, active, quadratic, nodes, weights, &norm);
+    if (count < 0 || norm <= (T)2.2204460492503131e-16)
+        return;
+    T a = 0, b = 0;
+    for (int k = 0; k < count; ++k) {
+        long long j = s * nx * ny + nodes[k];
+        a += weights[k] * ex[j];
+        b += weights[k] * ey[j];
+    }
+    outx[i] = a / norm;
+    outy[i] = b / norm;
+}
+
+extern "C" __global__ void deposition_totals(
+    const int* bins,
+    const T* q,
+    unsigned long long* counts,
+    T* charges,
+    long long size,
+    int n_slices
+) {
     extern __shared__ double storage[];
-    T* local_q=(T*)storage;
-    unsigned int* local_n=(unsigned int*)(local_q+ns);
-    bool shared=ns<=1024;
-    if(shared) {
-        for(int j=threadIdx.x;j<ns;j+=blockDim.x) {local_q[j]=0;local_n[j]=0;}
-        __syncthreads();
-    }
-    long long i=(long long)blockIdx.x*blockDim.x+threadIdx.x;
-    if(i<size && bins[i]>0) {
-        int s=bins[i]-1;
-        if(shared) {atomicAdd(local_q+s,q[i]);atomicAdd(local_n+s,1u);}
-        else {atomicAdd(charges+s,q[i]);atomicAdd(counts+s,1ull);}
-    }
-    if(shared) {
-        __syncthreads();
-        for(int j=threadIdx.x;j<ns;j+=blockDim.x) if(local_n[j]) {
-            atomicAdd(charges+j,local_q[j]);atomicAdd(counts+j,(unsigned long long)local_n[j]);
+    T* local_q = (T*)storage;
+    unsigned int* local_n = (unsigned int*)(local_q + n_slices);
+    bool shared = n_slices <= 1024;
+    if (shared) {
+        for (int j = threadIdx.x; j < n_slices; j += blockDim.x) {
+            local_q[j] = 0;
+            local_n[j] = 0;
         }
+        __syncthreads();
+    }
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size && bins[i] > 0) {
+        int s = bins[i] - 1;
+        if (shared) {
+            atomicAdd(local_q + s, q[i]);
+            atomicAdd(local_n + s, 1u);
+        } else {
+            atomicAdd(charges + s, q[i]);
+            atomicAdd(counts + s, 1ull);
+        }
+    }
+    if (shared) {
+        __syncthreads();
+        for (int j = threadIdx.x; j < n_slices; j += blockDim.x)
+            if (local_n[j]) {
+                atomicAdd(charges + j, local_q[j]);
+                atomicAdd(counts + j, (unsigned long long)local_n[j]);
+            }
     }
 }
 """

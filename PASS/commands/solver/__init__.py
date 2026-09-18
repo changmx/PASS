@@ -22,17 +22,11 @@ from .pic import (
     solve_pic,
 )
 from .field_result import FieldResult
-from .fd_rectangle import (
-    FDSolver,
-    GPUFDSolver,
-    build_fd_rectangle_resources,
-    build_fd_resources,
-    solve_poisson_fd,
-)
+from .fd_rectangle import FDRectangleSolver, GPUFDRectangleSolver, build_fd_rectangle_resources, build_fd_resources, solve_poisson_fd
 from .fd_arbitrary import (
+    FDArbitrarySolver,
+    GPUFDArbitrarySolver,
     AllSpaceAperture,
-    ArbitraryFDSolver,
-    GPUArbitraryFDSolver,
     EllipticAperture,
     IntersectionAperture,
     OctagonAperture,
@@ -47,6 +41,6 @@ from .dst_rectangle import DSTRectangleSolver, GPUDSTRectangleSolver, build_dst_
 from .fft_free_space import FFTFreeSpaceSolver, GPUFFTFreeSpaceSolver, build_fft_free_space_resources, solve_poisson_fft_free_space
 from .formula_common import macro_charge_to_physical
 from .formula_gaussian_round import gaussian_round_field
-from .formula_gaussian_ellipse import gaussian_ellipse_field, gaussian_elliptic_field
+from .formula_gaussian_ellipse import gaussian_elliptic_field
 from .formula_uniform_ellipse import uniform_elliptic_field
 from .formula_uniform_round import uniform_round_field

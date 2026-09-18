@@ -11,6 +11,8 @@ __pycache__/
 .slicer_run_output/
 runs/
 
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 *egg-info/

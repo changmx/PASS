@@ -1,12 +1,13 @@
+from typing import List
+import logging
+
 from PASS.commands import Command, command_priority
 from PASS.core.simulation import Simulation
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 
-from typing import List
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 class CommandSequence:
 

@@ -12,7 +12,6 @@ import unicodedata
 
 from PASS.tool.particle_masses import constant_mass, ion_mass, special_mass
 
-
 # Atomic-number order. The mass convention comes from PASS, not atomic weights.
 _ELEMENT_DATA = """
 H hydrogen 氢
@@ -138,23 +137,149 @@ ELEMENTS = tuple(tuple(line.split()) for line in _ELEMENT_DATA.strip().splitline
 # Explicit, manually maintained isotope presets, in atomic-number order. These
 # are convenience choices (including radioactive nuclides), not atomic weights,
 # measured masses, recommended charge states, or a complete nuclide database.
-_DEFAULT_ISOTOPES = dict(enumerate((
-    1, 4, 7, 9, 11, 12, 14, 16, 19, 20, 23, 24, 27, 28, 31, 32, 35, 40, 39, 40,
-    45, 48, 51, 52, 55, 56, 59, 58, 63, 64, 69, 74, 75, 80, 79, 84, 85, 88, 89, 90,
-    93, 98, 98, 102, 103, 106, 107, 114, 115, 120, 121, 130, 127, 129, 133, 138,
-    139, 140, 141, 142, 145, 152, 153, 158, 159, 164, 165, 166, 169, 174, 175, 180,
-    181, 184, 187, 192, 193, 195, 197, 202, 205, 208, 209, 209, 210, 222, 223, 226,
-    227, 232, 231, 238, 237, 244, 243, 247, 247, 251, 252, 257, 258, 259, 266,
-    267, 268, 269, 270, 269, 277, 281, 282, 285, 286, 290, 290, 293, 294, 294,
-), 1))
+_DEFAULT_ISOTOPES = dict(
+    enumerate((
+        1,
+        4,
+        7,
+        9,
+        11,
+        12,
+        14,
+        16,
+        19,
+        20,
+        23,
+        24,
+        27,
+        28,
+        31,
+        32,
+        35,
+        40,
+        39,
+        40,
+        45,
+        48,
+        51,
+        52,
+        55,
+        56,
+        59,
+        58,
+        63,
+        64,
+        69,
+        74,
+        75,
+        80,
+        79,
+        84,
+        85,
+        88,
+        89,
+        90,
+        93,
+        98,
+        98,
+        102,
+        103,
+        106,
+        107,
+        114,
+        115,
+        120,
+        121,
+        130,
+        127,
+        129,
+        133,
+        138,
+        139,
+        140,
+        141,
+        142,
+        145,
+        152,
+        153,
+        158,
+        159,
+        164,
+        165,
+        166,
+        169,
+        174,
+        175,
+        180,
+        181,
+        184,
+        187,
+        192,
+        193,
+        195,
+        197,
+        202,
+        205,
+        208,
+        209,
+        209,
+        210,
+        222,
+        223,
+        226,
+        227,
+        232,
+        231,
+        238,
+        237,
+        244,
+        243,
+        247,
+        247,
+        251,
+        252,
+        257,
+        258,
+        259,
+        266,
+        267,
+        268,
+        269,
+        270,
+        269,
+        277,
+        281,
+        282,
+        285,
+        286,
+        290,
+        290,
+        293,
+        294,
+        294,
+    ), 1))
 _ALIASES = {"aluminum": "aluminium", "cesium": "caesium", "sulphur": "sulfur"}
-_SPECIAL = {"p": (1, 1, 1), "p+": (1, 1, 1), "proton": (1, 1, 1), "质子": (1, 1, 1),
-            "e-": (0, -1, None), "electron": (0, -1, None), "电子": (0, -1, None),
-            "e+": (0, 1, None), "positron": (0, 1, None), "正电子": (0, 1, None),
-            "d": (2, 1, 1), "deuteron": (2, 1, 1), "氘": (2, 1, 1),
-            "t": (3, 1, 1), "triton": (3, 1, 1), "氚": (3, 1, 1),
-            "alpha": (4, 2, 2), "α": (4, 2, 2), "阿尔法": (4, 2, 2)}
-
+_SPECIAL = {
+    "p": (1, 1, 1),
+    "p+": (1, 1, 1),
+    "proton": (1, 1, 1),
+    "质子": (1, 1, 1),
+    "e-": (0, -1, None),
+    "electron": (0, -1, None),
+    "电子": (0, -1, None),
+    "e+": (0, 1, None),
+    "positron": (0, 1, None),
+    "正电子": (0, 1, None),
+    "d": (2, 1, 1),
+    "deuteron": (2, 1, 1),
+    "氘": (2, 1, 1),
+    "t": (3, 1, 1),
+    "triton": (3, 1, 1),
+    "氚": (3, 1, 1),
+    "alpha": (4, 2, 2),
+    "α": (4, 2, 2),
+    "阿尔法": (4, 2, 2)
+}
 
 SPECIAL_PARTICLES = {
     # key: label, A, q, Z, mass key, searchable names
@@ -257,8 +382,7 @@ class ParticleSpec:
     @property
     def mass_note(self):
         record = self.mass_record
-        return record.note or ("Ek = K/A，使用当前电荷态的准确质量。" if self.uses_nucleon_units
-                               else "Ek 为单粒子动能，使用该粒子的准确质量。")
+        return record.note or ("Ek = K/A，使用当前电荷态的准确质量。" if self.uses_nucleon_units else "Ek 为单粒子动能，使用该粒子的准确质量。")
 
 
 def _normalize(text):
@@ -331,8 +455,8 @@ def search_particles(query: str) -> list[str]:
         result.append((-2, SPECIAL_PARTICLES[exact.species][0]))
     for key, entry in SPECIAL_PARTICLES.items():
         aliases = entry[5].casefold()
-        if (not query or query.casefold() in aliases or
-                len(query) >= 3 and any(SequenceMatcher(None, query.casefold(), a).ratio() >= .7 for a in aliases.split())):
+        if (not query or query.casefold() in aliases
+                or len(query) >= 3 and any(SequenceMatcher(None, query.casefold(), a).ratio() >= .7 for a in aliases.split())):
             if not any(name == entry[0] for _, name in result):
                 result.append((0, entry[0]))
     for name in ("质子", "proton"):

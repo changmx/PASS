@@ -36,6 +36,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+dev = [
+    "yapf==0.43.0",
+]
 gui = [
     "PySide6>=6.6",
 ]
@@ -71,3 +74,12 @@ include = ["PASS*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
+
+[tool.yapf]
+based_on_style = "pep8"
+indent_width = 4
+column_limit = 150
+join_multiple_lines = false
+
+[tool.yapfignore]
+ignore_patterns = ["tests/**", "output/**", "runs/**", "docs/build/**"]

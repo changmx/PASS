@@ -6,11 +6,11 @@ Yoshida's signed internal stages never determine the SC integration weight.
 
 from dataclasses import dataclass
 from functools import lru_cache
-
-import numpy as np
 import logging
 import math
 from numbers import Integral
+
+import numpy as np
 
 from PASS.utils.constants import const
 
@@ -28,17 +28,14 @@ def resolve_internal_sc_aperture(config, parent_type, parent_value, name, sim, b
         kind, dimensions = "rectangle", [1.0, 1.0]
     elif kind == "off":
         dimensions = []
-    if config.aperture_type != "default" and (
-        config.aperture_type != kind or config.aperture_value != dimensions
-    ):
+    if config.aperture_type != "default" and (config.aperture_type != kind or config.aperture_value != dimensions):
         key = (beam_id, name, config.aperture_type, repr(config.aperture_value), kind, repr(dimensions))
         warned = getattr(sim, "_internal_sc_aperture_warnings", None)
         if warned is None:
             warned = sim._internal_sc_aperture_warnings = set()
         if key not in warned:
             logger.warning("Element %r internal SC aperture %s %s differs from element aperture %s %s; "
-                           "using the element aperture", name, config.aperture_type,
-                           config.aperture_value, kind, dimensions)
+                           "using the element aperture", name, config.aperture_type, config.aperture_value, kind, dimensions)
             warned.add(key)
     return config.model_copy(deep=True, update={"aperture_type": kind, "aperture_value": dimensions})
 
@@ -86,8 +83,7 @@ def make_slice_plan(length, num_slices=1, num_kicks=0):
     m = (num_slices + num_kicks - 1) // num_kicks
     sc_length = length / num_kicks
     placement = "center" if m % 2 else "boundary"
-    nodes = tuple(SCNode(j, j * m + (m - 1) // 2, placement,
-                         (j + 0.5) * sc_length, sc_length) for j in range(num_kicks))
+    nodes = tuple(SCNode(j, j * m + (m - 1) // 2, placement, (j + 0.5) * sc_length, sc_length) for j in range(num_kicks))
     return SlicePlan(length, num_slices, m * num_kicks, m, nodes)
 
 
@@ -108,8 +104,7 @@ def configure_element_slicing(element, sim, values):
     from PASS.para.schema.space_charge import parse_element_space_charge
 
     config = parse_element_space_charge(raw)
-    config = resolve_internal_sc_aperture(config, element.aperture_type, element.aperture_value,
-                                          element.cmd_name, sim, element.beam_id)
+    config = resolve_internal_sc_aperture(config, element.aperture_type, element.aperture_value, element.cmd_name, sim, element.beam_id)
     element.slice_plan = make_slice_plan(element.length, requested, config.num_kicks)
     if not math.isfinite(element.s):
         raise ValueError("Element S (m) must be finite")
@@ -117,24 +112,25 @@ def configure_element_slicing(element, sim, values):
     command_values = config.model_dump(by_alias=True)
     command_values.pop("Num kicks")
     for node in element.slice_plan.nodes:
-        command = SpaceCharge(element.beam_id, sim, **command_values,
-            **{"Name": element.cmd_name, "S (m)": element.s - element.length + node.offset,
-               "SC start (m)": element.s - element.length + node.offset - node.length / 2,
-               "SC length (m)": node.length})
+        command = SpaceCharge(
+            element.beam_id, sim, **command_values, **{
+                "Name": element.cmd_name,
+                "S (m)": element.s - element.length + node.offset,
+                "SC start (m)": element.s - element.length + node.offset - node.length / 2,
+                "SC length (m)": node.length
+            })
         command.parent_element = element.cmd_name
         command.internal_node_index = node.index
         element._sc_nodes[node.slice_index] = (node, command)
     element._sc_sim = sim
-    logger.info("%s: external slices requested=%d actual=%d, SC kicks=%d, placement=%s, SC length=%g m",
-                element.cmd_name, requested, element.slice_plan.num_slices, config.num_kicks,
-                element.slice_plan.nodes[0].placement, element.slice_plan.nodes[0].length)
+    logger.info("%s: external slices requested=%d actual=%d, SC kicks=%d, placement=%s, SC length=%g m", element.cmd_name, requested,
+                element.slice_plan.num_slices, config.num_kicks, element.slice_plan.nodes[0].placement, element.slice_plan.nodes[0].length)
 
 
 def print_element_slicing(element):
     """Report the effective plan and SC aperture from element.print()."""
     plan = element.slice_plan
-    logger.info("  Slicing: requested=%d, actual=%d, external slice length=%g m",
-                plan.requested_slices, plan.num_slices, plan.slice_length)
+    logger.info("  Slicing: requested=%d, actual=%d, external slice length=%g m", plan.requested_slices, plan.num_slices, plan.slice_length)
     if not element._sc_nodes:
         status = "disabled by top-level Space charge.Enabled" if element._sc_requested else "off"
         logger.info("  Internal SC: %s", status)
@@ -142,16 +138,13 @@ def print_element_slicing(element):
     commands = [command for _, command in element._sc_nodes.values()]
     first, last = commands[0], commands[-1]
     logger.info("  Internal SC: Configuration=%s, Method=%s, Solver=%s, Slice set=%s, "
-                "Num kicks=%d, Placement=%s",
-                first.configuration_name, first.method, first.solver, first.slice_set_name,
-                len(commands), plan.nodes[0].placement)
-    logger.info("  Internal SC lengths: per kick=%g m, total=%g m; first s=%g m, last s=%g m",
-                first.sc_length, math.fsum(command.sc_length for command in commands), first.s, last.s)
-    logger.info("  Internal SC aperture: Type=%s, Value=%s, Source=element",
-                first.aperture_type, first.aperture_value)
+                "Num kicks=%d, Placement=%s", first.configuration_name, first.method, first.solver, first.slice_set_name, len(commands),
+                plan.nodes[0].placement)
+    logger.info("  Internal SC lengths: per kick=%g m, total=%g m; first s=%g m, last s=%g m", first.sc_length,
+                math.fsum(command.sc_length for command in commands), first.s, last.s)
+    logger.info("  Internal SC aperture: Type=%s, Value=%s, Source=element", first.aperture_type, first.aperture_value)
     logger.info("  Internal SC output: Save field=%s, Save potential=%s, Save density=%s, "
-                "Save turn ranges=%s",
-                first.save_field, first.save_potential, first.save_density, first._save_turn_ranges)
+                "Save turn ranges=%s", first.save_field, first.save_potential, first.save_density, first._save_turn_ranges)
 
 
 def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
@@ -207,71 +200,111 @@ def transport_with_center(advance, ds, on_center):
 
 _GPU_STAGE_HEADER = r"""
 extern "C" __global__ void internal_stage(
-    pass_particle_t* x,pass_particle_t* px,pass_particle_t* y,pass_particle_t* py,pass_particle_t* z,
-    const pass_particle_t* dp,int* tag,float* lp,int* lt,int start,int end,
-    pass_real_t beta0,pass_real_t bg0,pass_real_t invgamma,pass_real_t L,
-    pass_real_t s0,int turn,const pass_real_t* params,const pass_real_t* kn,
-    const pass_real_t* ks,const pass_real_t* inv,int order,int action) {
-    int i=blockIdx.x*blockDim.x+threadIdx.x+start;
-    if(i>=end||tag[i]<=0) return;
-    pass_real_t xi=x[i],pxi=px[i],yi=y[i],pyi=py[i],zi=z[i],dpi=dp[i];
-    int ti=tag[i];bool alive=true;
+    pass_particle_t* x,
+    pass_particle_t* px,
+    pass_particle_t* y,
+    pass_particle_t* py,
+    pass_particle_t* z,
+    const pass_particle_t* dp,
+    int* tag,
+    float* lp,
+    int* lt,
+    int start,
+    int end,
+    pass_real_t beta0,
+    pass_real_t reference_beta_gamma,
+    pass_real_t invgamma,
+    double L,
+    pass_real_t s0,
+    int turn,
+    const pass_real_t* params,
+    const pass_real_t* kn,
+    const pass_real_t* ks,
+    const pass_real_t* inv,
+    int order,
+    int action
+) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x + start;
+    if (i >= end || tag[i] <= 0)
+        return;
+    pass_real_t xi = x[i], pxi = px[i], yi = y[i], pyi = py[i], zi = z[i], dpi = dp[i];
+    int ti = tag[i];
+    bool alive = true;
 """
 _GPU_STAGE_FOOTER = r"""
     x[i]=xi;px[i]=pxi;y[i]=yi;py[i]=pyi;z[i]=zi;tag[i]=ti;
 }
 """
 _GPU_STAGE_MULTIPOLE = r"""
-    if(action!=2) {
-        alive=pass_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,bg0,invgamma,s0,turn);
-        if(alive) pass_kick(pxi,pyi,xi,yi,kn,ks,inv,order,L);
-    }
-    if(action!=1 && alive) pass_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,bg0,invgamma,s0,turn);
+if (action != 2) {
+    alive = pass_drift(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, reference_beta_gamma, invgamma, s0, turn);
+    if (alive)
+        pass_kick(pxi, pyi, xi, yi, kn, ks, inv, order, L);
+}
+if (action != 1 && alive)
+    pass_drift(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, reference_beta_gamma, invgamma, s0, turn);
 """
 _GPU_STAGE_SOLENOID = r"""
-    if(action==3) sol_exact(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L,params[0],beta0,bg0,s0,turn);
-    else {
-        if(action!=2) {
-            alive=sol_exact(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,params[0],beta0,bg0,s0,turn);
-            if(alive) sol_kick(pxi,pyi,xi,yi,kn,ks,inv,order,L);
-        }
-        if(action!=1 && alive) sol_exact(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,params[0],beta0,bg0,s0,turn);
+if (action == 3)
+    sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L, params[0], beta0, reference_beta_gamma, s0, turn);
+else {
+    if (action != 2) {
+        alive = sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, params[0], beta0, reference_beta_gamma, s0, turn);
+        if (alive)
+            sol_kick(pxi, pyi, xi, yi, kn, ks, inv, order, L);
     }
+    if (action != 1 && alive)
+        sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, params[0], beta0, reference_beta_gamma, s0, turn);
+}
 """
 
 _GPU_STAGE_BEND = r"""
-    pass_real_t h=params[0],k0=params[1],opd=1+dpi;
-    pass_real_t bg=opd*bg0,beta_ratio=beta0*sqrt(1+bg*bg)/bg;
-    pass_real_t time_factor=sqrt(opd*opd+1/(bg0*bg0));
-    if(action==3 || action==4) {
-        pass_real_t e=params[action==3?2:3],sn=sin(-e),cs=cos(-e);
-        if(action==3) {
-            if(fabs(e)>PASS_EPS) alive=d_yrot(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,sn,cs,beta0,time_factor,s0,turn);
-            if(alive && fabs(k0)>PASS_EPS) alive=d_fringe(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,params[5],params[4],k0,beta0,time_factor,s0,turn);
-            if(alive && fabs(e)>PASS_EPS) alive=d_wedge(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,k0,sn,cs,beta0,beta_ratio,time_factor,s0,turn);
-        } else {
-            if(fabs(e)>PASS_EPS) alive=d_wedge(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,k0,sn,cs,beta0,beta_ratio,time_factor,s0,turn);
-            if(alive && fabs(k0)>PASS_EPS) alive=d_fringe(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,params[6],params[4],-k0,beta0,time_factor,s0,turn);
-            if(alive && fabs(e)>PASS_EPS) alive=d_yrot(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,-e,sn,cs,beta0,time_factor,s0,turn);
-        }
-    } else if(params[7]==0) {
-        if(action!=2) {
-            alive=d_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,beta_ratio,bg0,s0,turn);
-            if(alive) d_kick(pxi,zi,xi,dpi,L,h,k0,beta0,beta_ratio);
-        }
-        if(action!=1 && alive) d_drift(xi,pxi,yi,pyi,zi,dpi,ti,lp,lt,i,L/2,beta_ratio,bg0,s0,turn);
+pass_real_t h = params[0], k0 = params[1], momentum_ratio = 1 + dpi;
+pass_real_t particle_beta_gamma = momentum_ratio * reference_beta_gamma,
+            beta0_over_beta = beta0 * sqrt(1 + particle_beta_gamma * particle_beta_gamma) / particle_beta_gamma;
+pass_real_t time_factor = sqrt(momentum_ratio * momentum_ratio + 1 / (reference_beta_gamma * reference_beta_gamma));
+if (action == 3 || action == 4) {
+    pass_real_t e = params[action == 3 ? 2 : 3], sn = sin(-e), cs = cos(-e);
+    if (action == 3) {
+        if (fabs(e) > PASS_EPS)
+            alive = d_yrot(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, sn, cs, beta0, time_factor, s0, turn);
+        if (alive && fabs(k0) > PASS_EPS)
+            alive = d_fringe(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, params[5], params[4], k0, beta0, time_factor, s0, turn);
+        if (alive && fabs(e) > PASS_EPS)
+            alive = d_wedge(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, k0, sn, cs, beta0, beta0_over_beta, time_factor, s0, turn);
     } else {
-        pass_real_t rho=fabs(h)>PASS_EPS?1/h:0,base=h*L/4;
-        pass_real_t z1=1.3512071919596578,z0=-1.7024143839193155;
-        pass_real_t sf,cf,shf,sm,cm,shm;
-        d_polar_trig(base*z1,sf,cf,shf);
-        d_polar_trig(base*(z1+z0),sm,cm,shm);
-        if(action!=2) {
-            alive=d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,shf,sm,cm,shm,s0,turn);
-            if(alive) pxi-=L*k0*h*xi;
-        }
-        if(action!=1 && alive) d_rkr_drift(xi,pxi,yi,zi,pyi,dpi,ti,lp,lt,i,L/2,h,k0,beta0,beta_ratio,bg0,rho,sf,cf,shf,sm,cm,shm,s0,turn);
+        if (fabs(e) > PASS_EPS)
+            alive = d_wedge(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, k0, sn, cs, beta0, beta0_over_beta, time_factor, s0, turn);
+        if (alive && fabs(k0) > PASS_EPS)
+            alive = d_fringe(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, params[6], params[4], -k0, beta0, time_factor, s0, turn);
+        if (alive && fabs(e) > PASS_EPS)
+            alive = d_yrot(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, sn, cs, beta0, time_factor, s0, turn);
     }
+} else if (params[7] == 0) {
+    if (action != 2) {
+        alive = d_drift(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, beta0_over_beta, reference_beta_gamma, s0, turn);
+        if (alive)
+            d_kick(pxi, zi, xi, dpi, L, h, k0, beta0, beta0_over_beta);
+    }
+    if (action != 1 && alive)
+        d_drift(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, beta0_over_beta, reference_beta_gamma, s0, turn);
+} else {
+    pass_real_t rho = fabs(h) > PASS_EPS ? 1 / h : 0;
+    const double base = h * L / 4.0;
+    const double z1 = pass_yoshida_z1, z0 = pass_yoshida_z0;
+    pass_real_t sf, cf, shf, sm, cm, shm;
+    d_polar_trig(base * z1, sf, cf, shf);
+    d_polar_trig(base * (z1 + z0), sm, cm, shm);
+    if (action != 2) {
+        alive = d_rkr_drift(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, L / 2, h, k0, beta0, beta0_over_beta, reference_beta_gamma, rho, sf, cf, shf,
+                            sm, cm, shm, s0, turn);
+        if (alive)
+            pxi -= L * k0 * h * xi;
+    }
+    if (action != 1 && alive)
+        d_rkr_drift(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, L / 2, h, k0, beta0, beta0_over_beta, reference_beta_gamma, rho, sf, cf, shf, sm, cm,
+                    shm, s0, turn);
+}
 """
 
 
@@ -304,11 +337,7 @@ def _stage_kernel(kind, dtype, device):
         # Polar bend maps subtract a macroscopic radius from a small transverse
         # position. Keep those intermediates double even for float particles.
         return cp.RawKernel(
-            f"typedef {particle_type} pass_particle_t;\n"
-            + source
-            + _GPU_STAGE_HEADER
-            + body
-            + _GPU_STAGE_FOOTER,
+            f"typedef {particle_type} pass_particle_t;\n" + source + _GPU_STAGE_HEADER + body + _GPU_STAGE_FOOTER,
             "internal_stage",
             options=(
                 "--std=c++17",
@@ -318,11 +347,7 @@ def _stage_kernel(kind, dtype, device):
 
 
 def _dkd(launch, integrator, ds, on_center):
-    weights = (
-        (1.0,)
-        if integrator == "uniform"
-        else (1.3512071919596578, -1.7024143839193155, 1.3512071919596578)
-    )
+    weights = ((1.0, ) if integrator == "uniform" else (const.yoshida_z1, const.yoshida_z0, const.yoshida_z1))
     for index, weight in enumerate(weights):
         length = ds * weight
         if on_center is not None and index == len(weights) // 2:
@@ -357,16 +382,12 @@ def execute_internal_sc_gpu(element, sim):
         "sbend",
     }
     if name not in supported:
-        raise RuntimeError(
-            f"{name} internal GPU space charge transport is not yet supported"
-        )
+        raise RuntimeError(f"{name} internal GPU space charge transport is not yet supported")
     beam = sim.beams[element.beam_id]
     p = beam.particles
     real = p.real
     turn = sim.state.turn
-    kind = (
-        "solenoid" if name == "solenoid" else "bend" if name == "sbend" else "multipole"
-    )
+    kind = ("solenoid" if name == "solenoid" else "bend" if name == "sbend" else "multipole")
     kn = ks = np.zeros(1)
     params = np.zeros(1)
     inv = np.ones(1)
@@ -375,18 +396,16 @@ def execute_internal_sc_gpu(element, sim):
         if element.has_multipoles:
             kn, ks, inv = element.kn, element.ksp, element.inv_fact
     elif name == "sbend":
-        params = np.array(
-            [
-                element.h,
-                element.k0,
-                element.e1,
-                element.e2,
-                element.hgap,
-                element.fint,
-                element.fintx,
-                int(element.model == "rot-kick-rot"),
-            ]
-        )
+        params = np.array([
+            element.h,
+            element.k0,
+            element.e1,
+            element.e2,
+            element.hgap,
+            element.fint,
+            element.fintx,
+            int(element.model == "rot-kick-rot"),
+        ])
     elif name == "multipole":
         kn, ks, inv = element.kn, element.ks, element.inv_fact
     elif name == "kicker":
@@ -402,23 +421,20 @@ def execute_internal_sc_gpu(element, sim):
         inv = np.array([1 / math.factorial(i) for i in range(order + 1)])
     cache = getattr(element, "_gpu_internal_resources", None)
     if cache is None:
-        cache = element._gpu_internal_resources = tuple(
-            cp.asarray(a, dtype=np.float64 if kind == "bend" else p.dtype)
-            for a in (params, kn, ks, inv)
-        )
+        cache = element._gpu_internal_resources = tuple(cp.asarray(a, dtype=np.float64 if kind == "bend" else p.dtype) for a in (params, kn, ks, inv))
     for bunch in beam.bunches:
         start, end = bunch.start_idx, bunch.end_idx
         n = end - start
         if n <= 0:
             continue
-        blocks = ((n + 255) // 256,)
-        threads = (256,)
+        blocks = ((n + 255) // 256, )
+        threads = (256, )
         position = element.s - element.length
 
         def drift(length):
             from PASS.commands.element.drift import _get_transfer_drift_kernel
 
-            _get_transfer_drift_kernel(p.dtype)(
+            _get_transfer_drift_kernel(p.dtype.str)(
                 blocks,
                 threads,
                 (
@@ -442,32 +458,33 @@ def execute_internal_sc_gpu(element, sim):
 
         def launch(length, action):
             stage_real = np.float64 if kind == "bend" else real
-            _stage_kernel(kind, np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())(
-                blocks,
-                threads,
-                (
-                    p.x,
-                    p.px,
-                    p.y,
-                    p.py,
-                    p.z,
-                    p.dp,
-                    p.tag,
-                    p.lost_position,
-                    p.lost_turn,
-                    np.int32(start),
-                    np.int32(end),
-                    stage_real(bunch.beta),
-                    stage_real(bunch.beta * bunch.gamma),
-                    stage_real(1 / bunch.gamma),
-                    stage_real(length),
-                    stage_real(position),
-                    np.int32(turn),
-                    *cache,
-                    np.int32(len(kn) - 1),
-                    np.int32(action),
-                ),
-            )
+            _stage_kernel(kind,
+                          np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())(
+                              blocks,
+                              threads,
+                              (
+                                  p.x,
+                                  p.px,
+                                  p.y,
+                                  p.py,
+                                  p.z,
+                                  p.dp,
+                                  p.tag,
+                                  p.lost_position,
+                                  p.lost_turn,
+                                  np.int32(start),
+                                  np.int32(end),
+                                  stage_real(bunch.beta),
+                                  stage_real(bunch.beta * bunch.gamma),
+                                  stage_real(1 / bunch.gamma),
+                                  np.float64(length),
+                                  stage_real(position),
+                                  np.int32(turn),
+                                  *cache,
+                                  np.int32(len(kn) - 1),
+                                  np.int32(action),
+                              ),
+                          )
 
         def matrix(length):
             key = (np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())
@@ -523,9 +540,7 @@ def execute_internal_sc_gpu(element, sim):
         run_body_slices(element, beam, bunch, turn, transport, gpu=True)
         if name == "sbend":
             launch(0.0, 4)
-        check_aperture_gpu(
-            beam, bunch, element.aperture_type, element.aperture_value, element.s, turn
-        )
+        check_aperture_gpu(beam, bunch, element.aperture_type, element.aperture_value, element.s, turn)
         bunch.t0 += element.length / (bunch.beta * const.c)
     return True
 

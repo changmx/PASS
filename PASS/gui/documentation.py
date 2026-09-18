@@ -65,14 +65,10 @@ class DocumentationBuilder(QObject):
         for relative in ("conf.py", "index.rst", "zh/index.rst", "en/index.rst"):
             if not (source / relative).is_file():
                 raise ValueError(f"缺少文档源码：{source / relative}\n请获取完整的 PASS 源码。")
-        missing = [name for name in ("sphinx", "sphinx_rtd_theme")
-                   if importlib.util.find_spec(name) is None]
+        missing = [name for name in ("sphinx", "sphinx_rtd_theme") if importlib.util.find_spec(name) is None]
         if missing:
-            raise ValueError(
-                "缺少文档编译依赖：" + ", ".join(missing)
-                + f'\n请使用以下 Python 环境，在 PASS 源码目录安装依赖：\n{sys.executable}'
-                + '\npython -m pip install --editable ".[gui,docs]"'
-            )
+            raise ValueError("缺少文档编译依赖：" + ", ".join(missing) + f'\n请使用以下 Python 环境，在 PASS 源码目录安装依赖：\n{sys.executable}' +
+                             '\npython -m pip install --editable ".[gui,docs]"')
         name = datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid4().hex[:8]
         self.output_dir = self.root / "docs" / "build" / "gui" / name
         self.output_dir.mkdir(parents=True, exist_ok=False)
@@ -81,8 +77,19 @@ class DocumentationBuilder(QObject):
         self.process = QProcess(self)
         self.process.setProgram(sys.executable)
         self.process.setArguments([
-            "-u", "-X", "utf8", "-m", "sphinx", "-E", "-a", "-N", "-W",
-            "-b", "html", str(source), str(self.output_dir),
+            "-u",
+            "-X",
+            "utf8",
+            "-m",
+            "sphinx",
+            "-E",
+            "-a",
+            "-N",
+            "-W",
+            "-b",
+            "html",
+            str(source),
+            str(self.output_dir),
         ])
         self.process.setWorkingDirectory(str(self.root))
         self.process.setProcessChannelMode(QProcess.MergedChannels)
@@ -120,8 +127,7 @@ class DocumentationBuilder(QObject):
                 for relative in ("index.html", "zh/index.html", "en/index.html"):
                     if not (self.output_dir / relative).is_file():
                         raise OSError(f"缺少编译结果：{relative}")
-                atomic_write(self.output_dir.parent / "latest.json",
-                             json.dumps({"directory": self.output_dir.name}).encode("utf-8"))
+                atomic_write(self.output_dir.parent / "latest.json", json.dumps({"directory": self.output_dir.name}).encode("utf-8"))
             except OSError as exc:
                 success = False
                 message = f"无法更新本地文档入口：{exc}"

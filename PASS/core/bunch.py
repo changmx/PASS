@@ -1,7 +1,9 @@
+import logging
+
+import numpy as np
+
 from PASS.utils.constants import const
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-import logging
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -48,15 +50,11 @@ class BunchInfo:
         # --- Bunch grouping metadata (per-bunch relative z convention) ---
         # The beam harmonic number is declared once at the injection level
         # and means how many longitudinal groups the beam is organized into.
-        self.harmonic_number = int(
-            data["sequence"]["injection"]["harmonic number"]
-        )
+        self.harmonic_number = int(data["sequence"]["injection"]["harmonic number"])
         self.harmonic_id = int(bunch_data.get("harmonic id of this bunch", 0))
         if not (0 <= self.harmonic_id < self.harmonic_number):
-            raise ValueError(
-                f"bunch {bunch_id}: harmonic id {self.harmonic_id} out of "
-                f"range [0, {self.harmonic_number})"
-            )
+            raise ValueError(f"bunch {bunch_id}: harmonic id {self.harmonic_id} out of "
+                             f"range [0, {self.harmonic_number})")
         if self.num_proton == 0 and self.num_neutron == 0:  # electron or position
             if self.num_charge == -1:
                 self.particle_type = "Electron"
@@ -107,22 +105,16 @@ class BunchInfo:
 
             name = command_data.get("slice set")
             if not isinstance(name, str) or not name.strip():
-                raise ValueError(
-                    f"Slicer command {command_name!r} requires a non-empty "
-                    "'slice set' name"
-                )
+                raise ValueError(f"Slicer command {command_name!r} requires a non-empty "
+                                 "'slice set' name")
             name = name.strip()
-            candidate = SliceSet.from_command(
-                name, command_data, source_command=command_name
-            )
+            candidate = SliceSet.from_command(name, command_data, source_command=command_name)
             previous = self.slice_sets.get(name)
             if previous is not None:
                 if previous.configuration() != candidate.configuration():
-                    raise ValueError(
-                        f"SliceSet {name!r} is configured inconsistently by "
-                        f"commands {previous.source_command!r} and "
-                        f"{command_name!r}"
-                    )
+                    raise ValueError(f"SliceSet {name!r} is configured inconsistently by "
+                                     f"commands {previous.source_command!r} and "
+                                     f"{command_name!r}")
                 continue
             self.slice_sets[name] = candidate
 
@@ -158,10 +150,10 @@ def set_reference_energy(bunch, total_energy):
     """Set mutually consistent reference scalars; does not touch particles."""
     if not np.isfinite(total_energy) or total_energy <= bunch.m0:
         raise ValueError("Reference total energy must exceed rest energy")
-    momentum = np.sqrt((total_energy-bunch.m0)*(total_energy+bunch.m0))
-    bunch.Ek = float(total_energy-bunch.m0)
-    bunch.gamma = float(total_energy/bunch.m0)
-    bunch.beta = float(momentum/total_energy)
+    momentum = np.sqrt((total_energy - bunch.m0) * (total_energy + bunch.m0))
+    bunch.Ek = float(total_energy - bunch.m0)
+    bunch.gamma = float(total_energy / bunch.m0)
+    bunch.beta = float(momentum / total_energy)
     bunch.p0 = float(momentum)
-    bunch.p0_kg = float(momentum*const.e/const.c)
-    bunch.brho = bunch.p0_kg/(bunch.qm_ratio*const.e)
+    bunch.p0_kg = float(momentum * const.e / const.c)
+    bunch.brho = bunch.p0_kg / (bunch.qm_ratio * const.e)

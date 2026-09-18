@@ -1,5 +1,8 @@
 # Two-plane injection painting
 
+Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+workflow entry points for input generation, tracking, and result analysis.
+
 This example imports the real-magnet CISP injection case into PASS. Four Bump
 elements carry independent horizontal and vertical waveforms. New particles
 enter at fixed offsets; the bump magnets act on every surviving particle as it
@@ -19,8 +22,8 @@ counter-electrode potential. Do not use guessed values for physical conclusions.
 ```powershell
 $esVoltage = [double](Read-Host "ES septum-minus-counter voltage (V)")
 $esGap = [double](Read-Host "ES clear gap (m)")
-python example/06_injection_painting/make_input.py --source C:/data/thread3/cisp_cmd.txt --output tests/codex/painting_reference --turns 100 --stage aperture --clock reference --es-voltage $esVoltage --es-gap $esGap
-python example/06_injection_painting/run.py tests/codex/painting_reference/beam0.json
+python example/06_injection_painting/generate_input.py --source C:/data/thread3/cisp_cmd.txt --output tests/codex/painting_reference --turns 100 --stage aperture --clock reference --es-voltage $esVoltage --es-gap $esGap
+python example/06_injection_painting/run_simulation.py tests/codex/painting_reference/beam0.json
 ```
 
 Alternatively, replace `--es-voltage` with `--es-vl` to supply the longitudinal
@@ -167,7 +170,7 @@ To plot one completed run, use its dated directory, not a parent containing
 several runs:
 
 ```powershell
-python example/06_injection_painting/analyse.py tests/codex/painting_reference/tracking/YYYY_MMDD/HHMM_SS
+python example/06_injection_painting/analyze_results.py tests/codex/painting_reference/tracking/YYYY_MMDD/HHMM_SS
 ```
 
 The analysis writes x-px, y-py and x-y panels for the injection history, a density

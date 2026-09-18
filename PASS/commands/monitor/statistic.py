@@ -1,22 +1,24 @@
 from __future__ import annotations
 
+from functools import lru_cache
+import logging
+from pathlib import Path
+import os
+import csv
+
+import numpy as np
+import pandas as pd
+import tfs
+
 from PASS.commands.command import Command
 from PASS.core.config import Config
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
-from PASS.core.state import State
+from PASS.core.state import SimulationState
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
-
-import numpy as np
-import pandas as pd
-import logging
-import tfs
-from pathlib import Path
-import os
-import csv
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +28,26 @@ def _fold_by_ring(z, circumference):
     return ((z + 0.5 * circumference) % circumference) - 0.5 * circumference
 
 
-def _rms_from_moments(second, mean):
-    """Raw moment subtraction can round a zero variance slightly negative."""
-    return np.sqrt(np.maximum(second - mean**2, 0.0))
+def _statistics_from_centered_moments(moments, centers):
+    """Recover statistics from FP64 moments near the centroid, not the origin."""
+    residual = moments[[0, 12, 4, 13, 8, 10]]
+    means = centers + residual
+    variances = np.maximum(moments[[1, 3, 5, 7, 9, 11]] - residual**2, 0.0)
+    sigma = np.sqrt(variances)
+    stat = dict(zip(('x', 'px_avg', 'y', 'py_avg', 'z', 'dp'), means))
+    stat['sigma'] = sigma
+    stat['sig_xpx'] = moments[2] - residual[0] * residual[1]
+    stat['sig_ypy'] = moments[6] - residual[2] * residual[3]
+    for name, index, first, second in (('xz', 14, 0, 4), ('xy', 15, 0, 2), ('yz', 16, 2, 4)):
+        stat[name] = moments[index] - residual[first] * residual[second] + means[first] * means[second]
+    for name, index, third, fourth in (('x', 0, 17, 18), ('y', 2, 19, 20)):
+        shift = residual[index]
+        variance = variances[index]
+        central_third = moments[third] - 3 * shift * variance - shift**3
+        central_fourth = moments[fourth] - 4 * shift * moments[third] + 6 * shift**2 * variance + 3 * shift**4
+        stat[name + '_skew'] = central_third / sigma[index]**3 if sigma[index] > 0 else 0.0
+        stat[name + '_kurt'] = central_fourth / variance**2 if variance > 0 else 0.0
+    return stat
 
 
 @Command.register("statmonitor")
@@ -79,7 +98,7 @@ class StatMonitor(Command):
         cfg: Config = sim.cfg
         beam: Beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
-        state: State = sim.state
+        state: SimulationState = sim.state
 
         turn = state.turn
         total_turn = cfg.num_turn
@@ -88,20 +107,20 @@ class StatMonitor(Command):
         for bunch in bunches:
             bunch_id = bunch.bunch_id
 
-            start_idx = bunch.start_idx
-            end_idx = bunch.end_idx
-            Np = bunch.Np
+            start = bunch.start_idx
+            end = bunch.end_idx
+            n_particles = bunch.Np
             Ek = bunch.Ek
 
             p = beam.particles
 
-            x = p.x[start_idx:end_idx]
-            px = p.px[start_idx:end_idx]
-            y = p.y[start_idx:end_idx]
-            py = p.py[start_idx:end_idx]
-            z = p.z[start_idx:end_idx]
-            dp = p.dp[start_idx:end_idx]
-            tag = p.tag[start_idx:end_idx]
+            x = p.x[start:end]
+            px = p.px[start:end]
+            y = p.y[start:end]
+            py = p.py[start:end]
+            z = p.z[start:end]
+            dp = p.dp[start:end]
+            tag = p.tag[start:end]
 
             mask = tag > 0
 
@@ -112,51 +131,38 @@ class StatMonitor(Command):
             z = z[mask]
             dp = dp[mask]
 
-            N = len(x)
-            if N == 0:
-                if Np == 0:
+            n_alive = len(x)
+            if n_alive == 0:
+                if n_particles == 0:
                     continue
                 # Keep an explicit zero-survival row during injection/loss.
                 x = px = y = py = z = dp = np.zeros(1, dtype=p.dtype)
 
             # z is stored bunch-relative and may remain unwrapped during
             # tracking. Statistics use one full-ring representative.
-            sigma_time = float(np.std(z.astype(np.float64)))/(bunch.beta*const.c)
-            z = _fold_by_ring(z, bunch.circum)
+            sigma_time = float(np.std(z.astype(np.float64))) / (bunch.beta * const.c)
+            z = _fold_by_ring(z.astype(np.float64), bunch.circum)
 
-            stat = {
-                'x': x.mean(),
-                'x2': (x**2).mean(),
-                'xpx': (x * px).mean(),
-                'px2': (px**2).mean(),
-                'y': y.mean(),
-                'y2': (y**2).mean(),
-                'ypy': (y * py).mean(),
-                'py2': (py**2).mean(),
-                'z': z.mean(),
-                'z2': (z**2).mean(),
-                'dp': dp.mean(),
-                'dp2': (dp**2).mean(),
-                'px_avg': px.mean(),
-                'py_avg': py.mean(),
-                'xz': (x * z).mean(),
-                'xy': (x * y).mean(),
-                'yz': (y * z).mean(),
-                'x3': (x**3).mean(),
-                'x4': (x**4).mean(),
-                'y3': (y**3).mean(),
-                'y4': (y**4).mean()
-            }
-
-            sigma_x = _rms_from_moments(stat['x2'], stat['x'])
-            sigma_px = _rms_from_moments(stat['px2'], stat['px_avg'])
-            sigma_y = _rms_from_moments(stat['y2'], stat['y'])
-            sigma_py = _rms_from_moments(stat['py2'], stat['py_avg'])
-            sigma_z = _rms_from_moments(stat['z2'], stat['z'])
-            sigma_dp = _rms_from_moments(stat['dp2'], stat['dp'])
-
-            sig_xpx = stat['xpx'] - stat['x'] * stat['px_avg']
-            sig_ypy = stat['ypy'] - stat['y'] * stat['py_avg']
+            # Remove an anchor before finding the centroid to resolve narrow beams.
+            coordinates = np.array((x, px, y, py, z, dp), dtype=np.float64)
+            anchors = coordinates[:, :1].copy()
+            coordinates -= anchors
+            offsets = coordinates.mean(axis=1)
+            coordinates -= offsets[:, None]
+            centers = anchors[:, 0] + offsets
+            x, px, y, py, z, dp = coordinates
+            moments = np.array([
+                x.mean(), (x * x).mean(), (x * px).mean(), (px * px).mean(),
+                y.mean(), (y * y).mean(), (y * py).mean(), (py * py).mean(),
+                z.mean(), (z * z).mean(),
+                dp.mean(), (dp * dp).mean(),
+                px.mean(),
+                py.mean(), (x * z).mean(), (x * y).mean(), (y * z).mean(), (x**3).mean(), (x**4).mean(), (y**3).mean(), (y**4).mean()
+            ])
+            stat = _statistics_from_centered_moments(moments, centers)
+            sigma_x, sigma_px, sigma_y, sigma_py, sigma_z, sigma_dp = stat['sigma']
+            sig_xpx = stat['sig_xpx']
+            sig_ypy = stat['sig_ypy']
             emit_x = np.sqrt(max(sigma_x**2 * sigma_px**2 - sig_xpx**2, 0.0))
             emit_y = np.sqrt(max(sigma_y**2 * sigma_py**2 - sig_ypy**2, 0.0))
 
@@ -178,21 +184,11 @@ class StatMonitor(Command):
 
             xz_div = stat['xz'] / (sigma_x * sigma_z) if (sigma_x > 0 and sigma_z > 0) else 0.0
 
-            if sigma_x > 0:
-                x_skew = (stat['x3'] - 3 * stat['x'] * sigma_x**2 - stat['x']**3) / sigma_x**3
-                x_kurt = (stat['x4'] - 4 * stat['x'] * stat['x3'] + 2 * stat['x']**2 * stat['x2'] + 4 * stat['x']**2 * sigma_x**2 +
-                          stat['x']**4) / (sigma_x**4)
-            else:
-                x_skew, x_kurt = 0.0, 0.0
-            if sigma_y > 0:
-                y_skew = (stat['y3'] - 3 * stat['y'] * sigma_y**2 - stat['y']**3) / sigma_y**3
-                y_kurt = (stat['y4'] - 4 * stat['y'] * stat['y3'] + 2 * stat['y']**2 * stat['y2'] + 4 * stat['y']**2 * sigma_y**2 +
-                          stat['y']**4) / (sigma_y**4)
-            else:
-                y_skew, y_kurt = 0.0, 0.0
+            x_skew, x_kurt = stat['x_skew'], stat['x_kurt']
+            y_skew, y_kurt = stat['y_skew'], stat['y_kurt']
 
             injected = int(np.count_nonzero(tag))
-            beam_loss = injected - N
+            beam_loss = injected - n_alive
             loss_percent = 100.0 * beam_loss / injected if injected else 0.0
 
             row_dict = {
@@ -219,7 +215,7 @@ class StatMonitor(Command):
                 'gammay': gammay,
                 'invariantx': invx,
                 'invarianty': invy,
-                'zCenter': bunch.harmonic_id*bunch.circum/bunch.harmonic_number,
+                'zCenter': bunch.harmonic_id * bunch.circum / bunch.harmonic_number,
                 'referenceTime': bunch.t0,
                 'referenceBeta': bunch.beta,
                 'referenceMomentum': bunch.p0,
@@ -229,9 +225,9 @@ class StatMonitor(Command):
                 'yzAverage': stat['yz'],
                 'xzDevideSigmaxSigmaz': xz_div,
                 'beamLossTotal': beam_loss,
-                'numAlive': N,
+                'numAlive': n_alive,
                 'numInjected': injected,
-                'numPending': Np - injected,
+                'numPending': n_particles - injected,
                 'lossPercent': loss_percent,
                 'xSkewness': x_skew,
                 'xKurtosis': x_kurt,
@@ -258,14 +254,12 @@ class StatMonitor(Command):
         try:
             import cupy as cp
         except (ImportError, OSError) as exc:
-            raise RuntimeError(
-                "GPU StatMonitor requires the optional 'cuda' dependencies "
-                "(install PASS with the [cuda] extra)."
-            ) from exc
+            raise RuntimeError("GPU StatMonitor requires the optional 'cuda' dependencies "
+                               "(install PASS with the [cuda] extra).") from exc
         cfg = sim.cfg
         beam: Beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches
-        state: State = sim.state
+        state: SimulationState = sim.state
 
         turn = state.turn
         total_turn = cfg.num_turn
@@ -274,88 +268,61 @@ class StatMonitor(Command):
         for bunch in bunches:
             bunch_id = bunch.bunch_id
 
-            start_idx = bunch.start_idx
-            end_idx = bunch.end_idx
-            Np = bunch.Np
+            start = bunch.start_idx
+            end = bunch.end_idx
+            n_particles = bunch.Np
             Ek = bunch.Ek
 
             p = beam.particles
 
-            x = p.x[start_idx:end_idx]
-            px = p.px[start_idx:end_idx]
-            y = p.y[start_idx:end_idx]
-            py = p.py[start_idx:end_idx]
-            z = p.z[start_idx:end_idx]
-            dp = p.dp[start_idx:end_idx]
-            tag = p.tag[start_idx:end_idx]
+            x = p.x[start:end]
+            px = p.px[start:end]
+            y = p.y[start:end]
+            py = p.py[start:end]
+            z = p.z[start:end]
+            dp = p.dp[start:end]
+            tag = p.tag[start:end]
 
             # The maximum block is limited to 512, because there is atomicAdd in this kernel.
             # If the number of blocks is too large, the calculation will be slowed down due to atomicAdd
-            N = end_idx - start_idx
-            if N == 0:
+            n = end - start
+            if n == 0:
                 # Empty bunch: no statistics row.
                 continue
             live_z = z[tag > 0].astype(cp.float64)
-            sigma_time = float(cp.std(live_z))/(bunch.beta*const.c) if live_z.size else 0.
+            sigma_time = float(cp.std(live_z)) / (bunch.beta * const.c) if live_z.size else 0.
             threads = 256
-            blocks = min((N + threads - 1) // threads, 512)
+            blocks = min((n + threads - 1) // threads, 512)
 
-            out_gpu = cp.zeros(21, dtype=p.dtype)
+            out_gpu = cp.zeros(21, dtype=cp.float64)
             count_gpu = cp.zeros(1, dtype=cp.int32)
-            kernel = _get_stat_kernel(p.dtype)
-
-            kernel(
-                (blocks, ),
-                (threads, ),
-                (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag,
-                 np.int32(start_idx), np.int32(end_idx),
-                 p.real(bunch.circum), out_gpu, count_gpu),
-            )
-
-            cp.cuda.runtime.deviceSynchronize()
-
-            out_cpu = out_gpu.get()
-            # print(out_cpu)
-
-            count_alive = int(count_gpu.get()[0])
-            real = p.real
-            inv_count = real(1.0 / count_alive) if count_alive > 0 else real(0.0)
-
-            x_avg = out_cpu[0] * inv_count
-            x2_avg = out_cpu[1] * inv_count
-            xpx_avg = out_cpu[2] * inv_count
-            px2_avg = out_cpu[3] * inv_count
-            y_avg = out_cpu[4] * inv_count
-            y2_avg = out_cpu[5] * inv_count
-            ypy_avg = out_cpu[6] * inv_count
-            py2_avg = out_cpu[7] * inv_count
-            z_avg = out_cpu[8] * inv_count
-            z2_avg = out_cpu[9] * inv_count
-            dp_avg = out_cpu[10] * inv_count
-            dp2_avg = out_cpu[11] * inv_count
-            px_avg = out_cpu[12] * inv_count
-            py_avg = out_cpu[13] * inv_count
-            xz_avg = out_cpu[14] * inv_count
-            xy_avg = out_cpu[15] * inv_count
-            yz_avg = out_cpu[16] * inv_count
-            x3_avg = out_cpu[17] * inv_count
-            x4_avg = out_cpu[18] * inv_count
-            y3_avg = out_cpu[19] * inv_count
-            y4_avg = out_cpu[20] * inv_count
+            n_alive = int(cp.count_nonzero(tag > 0))
+            centers_gpu = cp.zeros(6, dtype=cp.float64)
+            if n_alive:
+                first_live = int(cp.argmax(tag > 0))
+                centers_gpu = cp.stack([coordinate[first_live] for coordinate in (x, px, y, py, z, dp)]).astype(cp.float64)
+                centers_gpu[4] = _fold_by_ring(centers_gpu[4], bunch.circum)
+                kernel = _get_stat_kernel(p.dtype.str)
+                arguments = (p.x, p.px, p.y, p.py, p.z, p.dp, p.tag, np.int32(start), np.int32(end), np.float64(bunch.circum), centers_gpu, out_gpu,
+                             count_gpu)
+                # First find the centroid relative to a live particle, then sum centered moments.
+                kernel((blocks, ), (threads, ), arguments)
+                centers_gpu += out_gpu[cp.asarray([0, 12, 4, 13, 8, 10])] / n_alive
+                out_gpu.fill(0.0)
+                count_gpu.fill(0)
+                kernel((blocks, ), (threads, ), arguments)
+            moments = out_gpu.get() / max(n_alive, 1)
+            stat = _statistics_from_centered_moments(moments, centers_gpu.get())
+            x_avg, px_avg, y_avg, py_avg, z_avg, dp_avg = (stat[key] for key in ('x', 'px_avg', 'y', 'py_avg', 'z', 'dp'))
+            xz_avg, xy_avg, yz_avg = stat['xz'], stat['xy'], stat['yz']
 
             injected = int((tag != 0).sum())
-            beam_loss = injected - count_alive
+            beam_loss = injected - n_alive
             loss_percent = 100.0 * beam_loss / injected if injected else 0.0
 
-            sigma_x = _rms_from_moments(x2_avg, x_avg)
-            sigma_px = _rms_from_moments(px2_avg, px_avg)
-            sigma_y = _rms_from_moments(y2_avg, y_avg)
-            sigma_py = _rms_from_moments(py2_avg, py_avg)
-            sigma_z = _rms_from_moments(z2_avg, z_avg)
-            sigma_dp = _rms_from_moments(dp2_avg, dp_avg)
-
-            sig_xpx = xpx_avg - x_avg * px_avg
-            sig_ypy = ypy_avg - y_avg * py_avg
+            sigma_x, sigma_px, sigma_y, sigma_py, sigma_z, sigma_dp = stat['sigma']
+            sig_xpx = stat['sig_xpx']
+            sig_ypy = stat['sig_ypy']
 
             emit_x = np.sqrt(max(sigma_x**2 * sigma_px**2 - sig_xpx**2, 0.0))
             emit_y = np.sqrt(max(sigma_y**2 * sigma_py**2 - sig_ypy**2, 0.0))
@@ -378,16 +345,8 @@ class StatMonitor(Command):
 
             xz_div = xz_avg / (sigma_x * sigma_z) if (sigma_x > 0 and sigma_z > 0) else 0.0
 
-            if sigma_x > 0:
-                x_skew = (x3_avg - 3 * x_avg * sigma_x**2 - x_avg**3) / sigma_x**3
-                x_kurt = (x4_avg - 4 * x_avg * x3_avg + 2 * x_avg**2 * x2_avg + 4 * x_avg**2 * sigma_x**2 + x_avg**4) / (sigma_x**4)
-            else:
-                x_skew = x_kurt = 0.0
-            if sigma_y > 0:
-                y_skew = (y3_avg - 3 * y_avg * sigma_y**2 - y_avg**3) / sigma_y**3
-                y_kurt = (y4_avg - 4 * y_avg * y3_avg + 2 * y_avg**2 * y2_avg + 4 * y_avg**2 * sigma_y**2 + y_avg**4) / (sigma_y**4)
-            else:
-                y_skew = y_kurt = 0.0
+            x_skew, x_kurt = stat['x_skew'], stat['x_kurt']
+            y_skew, y_kurt = stat['y_skew'], stat['y_kurt']
 
             row_dict = {
                 'turn': turn,
@@ -413,7 +372,7 @@ class StatMonitor(Command):
                 'gammay': gammay,
                 'invariantx': invx,
                 'invarianty': invy,
-                'zCenter': bunch.harmonic_id*bunch.circum/bunch.harmonic_number,
+                'zCenter': bunch.harmonic_id * bunch.circum / bunch.harmonic_number,
                 'referenceTime': bunch.t0,
                 'referenceBeta': bunch.beta,
                 'referenceMomentum': bunch.p0,
@@ -423,9 +382,9 @@ class StatMonitor(Command):
                 'yzAverage': yz_avg,
                 'xzDevideSigmaxSigmaz': xz_div,
                 'beamLossTotal': beam_loss,
-                'numAlive': count_alive,
+                'numAlive': n_alive,
                 'numInjected': injected,
-                'numPending': Np - injected,
+                'numPending': n_particles - injected,
                 'lossPercent': loss_percent,
                 'xSkewness': x_skew,
                 'xKurtosis': x_kurt,
@@ -464,8 +423,7 @@ using pass_real_t = double;
 '''
 
 STAT_KERNEL_BODY = r'''
-extern "C" __global__
-void calc_all_stats(
+extern "C" __global__ void calc_all_stats(
     const pass_real_t* __restrict__ x,
     const pass_real_t* __restrict__ px,
     const pass_real_t* __restrict__ y,
@@ -475,16 +433,17 @@ void calc_all_stats(
     const int* __restrict__ tag,
     int start,
     int end,
-    pass_real_t circumference,
-    pass_real_t* out,   // size 21
+    double circumference,
+    const double* __restrict__ centers,
+    double* out, // size 21
     int* count_alive
 ) {
     // ===== shared memory for warp results =====
-    __shared__ pass_real_t warp_sum[32][21];
+    __shared__ double warp_sum[32][21];
     __shared__ int warp_count[32];
 
     // ===== register accumulation (FASTEST) =====
-    pass_real_t local[21] = {pass_real_t(0.0)};
+    double local[21] = {0.0};
     int local_count = 0;
 
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -493,28 +452,28 @@ void calc_all_stats(
     // ===== 1. GRID STRIDE LOOP =====
     for (int i = start + tid; i < end; i += stride) {
 
-        if (tag[i] <= 0) continue;
+        if (tag[i] <= 0)
+            continue;
 
-        pass_real_t xi  = x[i];
-        pass_real_t pxi = px[i];
-        pass_real_t yi  = y[i];
-        pass_real_t pyi = py[i];
-        pass_real_t zi  = z[i];
-        zi = zi + pass_real_t(0.5) * circumference;
-        zi = zi - PASS_FLOOR(zi / circumference) * circumference;
-        zi = zi - pass_real_t(0.5) * circumference;
-        pass_real_t dpi = dp[i];
+        double xi = double(x[i]) - centers[0];
+        double pxi = double(px[i]) - centers[1];
+        double yi = double(y[i]) - centers[2];
+        double pyi = double(py[i]) - centers[3];
+        double zi = double(z[i]) + 0.5 * circumference;
+        zi = zi - floor(zi / circumference) * circumference;
+        zi = zi - 0.5 * circumference - centers[4];
+        double dpi = double(dp[i]) - centers[5];
 
-        local[0]  += xi;
-        local[1]  += xi * xi;
-        local[2]  += xi * pxi;
-        local[3]  += pxi * pxi;
-        local[4]  += yi;
-        local[5]  += yi * yi;
-        local[6]  += yi * pyi;
-        local[7]  += pyi * pyi;
-        local[8]  += zi;
-        local[9]  += zi * zi;
+        local[0] += xi;
+        local[1] += xi * xi;
+        local[2] += xi * pxi;
+        local[3] += pxi * pxi;
+        local[4] += yi;
+        local[5] += yi * yi;
+        local[6] += yi * pyi;
+        local[7] += pyi * pyi;
+        local[8] += zi;
+        local[9] += zi * zi;
         local[10] += dpi;
         local[11] += dpi * dpi;
         local[12] += pxi;
@@ -523,8 +482,8 @@ void calc_all_stats(
         local[15] += xi * yi;
         local[16] += yi * zi;
 
-        pass_real_t x2 = xi * xi;
-        pass_real_t y2 = yi * yi;
+        double x2 = xi * xi;
+        double y2 = yi * yi;
 
         local[17] += xi * x2;
         local[18] += x2 * x2;
@@ -538,9 +497,9 @@ void calc_all_stats(
     int lane = threadIdx.x & 31;
     int warp = threadIdx.x >> 5;
 
-    #pragma unroll
+#pragma unroll
     for (int offset = 16; offset > 0; offset >>= 1) {
-        #pragma unroll
+#pragma unroll
         for (int k = 0; k < 21; k++) {
             local[k] += __shfl_down_sync(0xffffffff, local[k], offset);
         }
@@ -549,7 +508,7 @@ void calc_all_stats(
 
     // ===== 3. WRITE WARP RESULT =====
     if (lane == 0) {
-        #pragma unroll
+#pragma unroll
         for (int k = 0; k < 21; k++) {
             warp_sum[warp][k] = local[k];
         }
@@ -561,22 +520,22 @@ void calc_all_stats(
     // ===== 4. BLOCK REDUCTION (warp0 only) =====
     if (warp == 0) {
 
-        pass_real_t sum[21] = {pass_real_t(0.0)};
+        double sum[21] = {0.0};
         int count_sum = 0;
         int num_warps = (blockDim.x + 31) >> 5;
 
         if (lane < num_warps) {
-            #pragma unroll
+#pragma unroll
             for (int k = 0; k < 21; k++) {
                 sum[k] = warp_sum[lane][k];
             }
             count_sum = warp_count[lane];
         }
 
-        // warp reduce again
-        #pragma unroll
+// warp reduce again
+#pragma unroll
         for (int offset = 16; offset > 0; offset >>= 1) {
-            #pragma unroll
+#pragma unroll
             for (int k = 0; k < 21; k++) {
                 sum[k] += __shfl_down_sync(0xffffffff, sum[k], offset);
             }
@@ -594,25 +553,21 @@ void calc_all_stats(
 }
 '''
 STAT_SOURCE = CUDA_REAL_PREAMBLE + STAT_KERNEL_BODY
-_stat_kernels = {}
 
 
+@lru_cache(maxsize=None)
 def _get_stat_kernel(dtype):
     """Compile the CUDA statistics kernel on first GPU use."""
     try:
         import cupy as cp
     except (ImportError, OSError) as exc:
-        raise RuntimeError(
-            "GPU StatMonitor requires the optional 'cuda' dependencies "
-            "(install PASS with the [cuda] extra)."
-        ) from exc
+        raise RuntimeError("GPU StatMonitor requires the optional 'cuda' dependencies "
+                           "(install PASS with the [cuda] extra).") from exc
 
-    key = np.dtype(dtype)
-    if key not in _stat_kernels:
-        use_float = key == np.dtype(np.float32)
-        _stat_kernels[key] = cp.RawKernel(
-            STAT_SOURCE,
-            "calc_all_stats",
-            options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
-        )
-    return _stat_kernels[key]
+    dtype = np.dtype(dtype)
+    use_float = dtype == np.dtype(np.float32)
+    return cp.RawKernel(
+        STAT_SOURCE,
+        "calc_all_stats",
+        options=("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}"),
+    )

@@ -1,5 +1,8 @@
 # Example 03 — Element-by-Element Tracking
 
+Use `generate_input.py`, `run_simulation.py`, and `analyze_results.py` as the
+workflow entry points for input generation, tracking, and result analysis.
+
 ## Overview
 
 This example demonstrates full-ring element-by-element particle tracking in PASS, validated against MADX PTC tracking. A FODO lattice with sextupoles is used to test linear optics and chromaticity.
@@ -7,12 +10,12 @@ This example demonstrates full-ring element-by-element particle tracking in PASS
 The workflow consists of four steps:
 
 1. **Run MADX** (`fodo.madx`) — generate a MADX Twiss TFS and SEQUENCE files
-2. **Generate input** (`make_input.py`) — read a MADX Twiss TFS, produce `beam0.json` with 17 test particles
-3. **Run simulation** (`run.py`) — execute PASS tracking for 1024 turns
-4. **Analyze results** (`analyze.py`) — extract tunes via FFT (Hanning window + zero padding + parabolic interpolation), fit chromaticity, compare with MADX PTC reference
+2. **Generate input** (`generate_input.py`) — read a MADX Twiss TFS, produce `beam0.json` with 17 test particles
+3. **Run simulation** (`run_simulation.py`) — execute PASS tracking for 1024 turns
+4. **Analyze results** (`analyze_results.py`) — extract tunes via FFT (Hanning window + zero padding + parabolic interpolation), fit chromaticity, compare with MADX PTC reference
 5. **Compare with PTC** (`compare_ptc_tracking.py`) — run MADX PTC tracking with identical initial coordinates and produce comparison plots
 
-`make_input.py` fixes the Injection random seed to `2026`, making the generated
+`generate_input.py` fixes the Injection random seed to `2026`, making the generated
 distribution particles reproducible between runs.
 
 ## Lattice
@@ -28,7 +31,7 @@ The ring circumference is 234.4 m, with design tunes Qx = 3.47, Qy = 3.43.
 
 ## Test Particles
 
-17 single-particle test particles are defined in `make_input.py`:
+17 single-particle test particles are defined in `generate_input.py`:
 
 | Group | Tags | Purpose | Initial coordinates |
 |-------|------|---------|-------------------|
@@ -47,9 +50,9 @@ Group D uses single-plane excitation (y=0 for x-scan, x=0 for y-scan) so that th
 | `fodo.seq` | MADX sequence file (lattice definition) |
 | `fodo.tfs` | MADX Twiss table (linear optics) |
 | `fodo_ptc.tfs` | PTC Twiss table (reference for tune/chromaticity) |
-| `make_input.py` | Generate `beam0.json` from Twiss TFS |
-| `run.py` | Run PASS simulation |
-| `analyze.py` | Analyze PASS output (FFT, chromaticity, ADTS) |
+| `generate_input.py` | Generate `beam0.json` from Twiss TFS |
+| `run_simulation.py` | Run PASS simulation |
+| `analyze_results.py` | Analyze PASS output (FFT, chromaticity, ADTS) |
 | `compare_ptc_tracking.py` | Compare PASS vs PTC tracking |
 | `beam0.json` | Generated PASS input (overwritten each run) |
 
@@ -72,7 +75,7 @@ MADX fodo.madx
 ### 2. Generate PASS input
 
 ```bash
-python make_input.py
+python generate_input.py
 ```
 
 This reads `fodo.tfs` and writes `beam0.json` with 17 test particles, 1024 turns, CPU backend.
@@ -80,7 +83,7 @@ This reads `fodo.tfs` and writes `beam0.json` with 17 test particles, 1024 turns
 ### 3. Run PASS tracking
 
 ```bash
-python run.py
+python run_simulation.py
 ```
 
 Output is saved to `output/YYYY_MMDD/HHMM_SS/` with per-tag TBT particle monitor files.
@@ -88,7 +91,7 @@ Output is saved to `output/YYYY_MMDD/HHMM_SS/` with per-tag TBT particle monitor
 ### 4. Analyze results
 
 ```bash
-python analyze.py
+python analyze_results.py
 ```
 
 Auto-detects the latest output directory. Prints:
@@ -109,10 +112,10 @@ where $\bar{x}$ is the turn-averaged TBT coordinate. The betatron oscillation (i
 Options:
 
 ```bash
-python analyze.py --output-dir output/2026_0731/1642_34
-python analyze.py --twiss fodo_ptc.tfs
-python analyze.py --dp-list 5e-5,1e-4,5e-4,1e-3
-python analyze.py --adts-x 5e-3,10e-3 --adts-y 5e-3,10e-3
+python analyze_results.py --output-dir output/2026_0731/1642_34
+python analyze_results.py --twiss fodo_ptc.tfs
+python analyze_results.py --dp-list 5e-5,1e-4,5e-4,1e-3
+python analyze_results.py --adts-x 5e-3,10e-3 --adts-y 5e-3,10e-3
 ```
 
 ### 5. Compare with PTC tracking

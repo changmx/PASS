@@ -5,8 +5,22 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QEvent, QThread, Signal
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QDialog, QFileDialog,
-    QHBoxLayout, QHeaderView, QLabel, QMessageBox, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout)
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
 
 from PASS.validation import validate_input, ValidationReport
 from PASS.gui.appearance import THEMES
@@ -104,7 +118,8 @@ class ValidationDialog(QDialog):
         issues = [d for d in report.diagnostics if severity is None or d.severity == severity]
         self.table.setRowCount(len(issues))
         for row, diagnostic in enumerate(issues):
-            for col, value in enumerate(("错误" if diagnostic.severity == "error" else "警告", diagnostic.pointer or "/", diagnostic.message, diagnostic.code)):
+            for col, value in enumerate(("错误" if diagnostic.severity == "error" else "警告", diagnostic.pointer
+                                         or "/", diagnostic.message, diagnostic.code)):
                 item = QTableWidgetItem(value)
                 item.setToolTip(value)
                 item.setData(Qt.UserRole, diagnostic)

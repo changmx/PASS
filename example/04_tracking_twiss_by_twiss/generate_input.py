@@ -4,7 +4,7 @@ Reads two MADX TFS files:
     fodo_natural.tfs  — K2=0, natural chromaticity in headers
     fodo.tfs          — K2≠0, corrected optics + sextupole K2L values
 
-The natural chromaticity (DQ1, DQ2) is distributed to each TwissPoint
+The natural chromaticity (DQ1, DQ2) is distributed to each TwissItem
 proportional to phase advance (standard first-order approximation).
 
 Thin-lens sextupoles (length=0) are inserted at their s-positions from
@@ -13,7 +13,7 @@ Sextupole (300) at the same s, so the sextupole kick is applied after
 the linear twiss transport — physically correct.
 
 The total chromaticity seen by particles will be:
-    DQ_total = DQ_natural (from TwissPoint dqx/dqy) + DQ_sextupole (from kicks)
+    DQ_total = DQ_natural (from TwissItem dqx/dqy) + DQ_sextupole (from kicks)
              = DQ_natural + (DQ_corrected - DQ_natural) = DQ_corrected
 
 Test particles (12 total):
@@ -26,7 +26,7 @@ Test particles (12 total):
     tag 12: y=5mm                    -> large amplitude y
 
 Usage:
-    python make_input.py
+    python generate_input.py
 """
 
 from pathlib import Path
@@ -36,11 +36,10 @@ import tfs as tfs_lib
 from PASS.para.api import generate_input, build_sequence
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, OffsetConfig
-from PASS.para.schema.monitors import StatMonitor, ParticleMonitor
+from PASS.para.schema.monitors import StatMonitorItem, ParticleMonitorItem
 from PASS.para.madx import read_madx_twiss
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-
 
 # ============================================================
 # Parameters
@@ -55,8 +54,8 @@ RANDOM_SEED = 2026
 LONGI_TRANSFER = "off"
 
 # Beam
-EMIT_X = 200e-6            # m·rad
-EMIT_Y = 100e-6            # m·rad
+EMIT_X = 200e-6  # m·rad
+EMIT_Y = 100e-6  # m·rad
 
 # Sextupole name patterns for thin-lens insertion
 SEXTUPOLE_PATTERNS = ["SF1", "SD1"]
@@ -73,19 +72,19 @@ def make_test_particles():
     dp_list = [1e-5, 5e-5, 1e-4]
 
     particles = [
-        [2e-3, 0, 0, 0, 0, 0],          # tag 1: Qx
-        [0, 0, 2e-3, 0, 0, 0],          # tag 2: Qy
+        [2e-3, 0, 0, 0, 0, 0],  # tag 1: Qx
+        [0, 0, 2e-3, 0, 0, 0],  # tag 2: Qy
     ]
 
     # Chromaticity pairs: symmetric +/-dp
     for dp in dp_list:
-        particles.append([1e-3, 0, 1e-3, 0, 0, +dp])   # odd tags
-        particles.append([1e-3, 0, 1e-3, 0, 0, -dp])   # even tags
+        particles.append([1e-3, 0, 1e-3, 0, 0, +dp])  # odd tags
+        particles.append([1e-3, 0, 1e-3, 0, 0, -dp])  # even tags
 
-    particles.append([0, 0, 0, 0, 0.1, 0])           # tag 9: longitudinal
-    particles.append([0, 0, 0, 0, 0, 0])             # tag 10: reference
-    particles.append([5e-3, 0, 0, 0, 0, 0])          # tag 11: large amp x
-    particles.append([0, 0, 5e-3, 0, 0, 0])          # tag 12: large amp y
+    particles.append([0, 0, 0, 0, 0.1, 0])  # tag 9: longitudinal
+    particles.append([0, 0, 0, 0, 0, 0])  # tag 10: reference
+    particles.append([5e-3, 0, 0, 0, 0, 0])  # tag 11: large amp x
+    particles.append([0, 0, 5e-3, 0, 0, 0])  # tag 12: large amp y
 
     return particles
 
@@ -117,7 +116,7 @@ if __name__ == "__main__":
     # --- Build twiss sequence with natural chromaticity + sextupole thin lenses ---
     items, names, _ = read_madx_twiss(
         twiss_file=corrected_tfs,
-        dqx=dq1_nat,             # natural chromaticity, distributed by phase advance
+        dqx=dq1_nat,  # natural chromaticity, distributed by phase advance
         dqy=dq2_nat,
         insert_patterns=SEXTUPOLE_PATTERNS,  # thin-lens sextupoles from corrected TFS
         longitudinal_transfer=LONGI_TRANSFER,
@@ -182,8 +181,8 @@ if __name__ == "__main__":
 
     # --- Monitors ---
     monitors = [
-        StatMonitor(s=0.0),
-        ParticleMonitor(s=0.0, max_tag=n_test, start_turn=0, end_turn=-1),
+        StatMonitorItem(s=0.0),
+        ParticleMonitorItem(s=0.0, max_tag=n_test, start_turn=0, end_turn=-1),
     ]
 
     # --- Build sequence ---

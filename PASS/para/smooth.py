@@ -6,7 +6,7 @@ beta functions can be used. Beta = C / (2πQ).
 
 import numpy as np
 
-from PASS.para.schema.twiss import TwissPoint
+from PASS.para.schema.twiss import TwissItem
 
 
 def generate_smooth_twiss(
@@ -22,7 +22,7 @@ def generate_smooth_twiss(
     dqx: float = 0.0,
     dqy: float = 0.0,
     longitudinal_transfer: str = "off",
-) -> tuple[list[TwissPoint], list[str], float]:
+) -> tuple[list[TwissItem], list[str], float]:
     """Generate smooth-approximation twiss points.
 
     Beta functions are constant: βx = C/(2πQx), βy = C/(2πQy).
@@ -39,7 +39,7 @@ def generate_smooth_twiss(
         longitudinal_transfer: "off" / "drift" / "matrix".
 
     Returns:
-        (items, names, circumference) where items is a list of TwissPoint
+        (items, names, circumference) where items is a list of TwissItem
         and names is the corresponding list of string names.
     """
     betax = circumference / (2.0 * np.pi * qx)
@@ -59,32 +59,53 @@ def generate_smooth_twiss(
         name = f"twiss_s{s[i]:.3f}"
 
         if i == 0:
-            tp = TwissPoint(
-                s=s[i], s_previous=s[i],
-                alpha_x=alpha_x, alpha_y=alpha_y,
-                beta_x=betax, beta_y=betay,
-                mu_x=mux[i], mu_y=muy[i], mu_z=0.0,
-                dx=dx, dpx=dpx,
-                alpha_x_previous=alpha_x, alpha_y_previous=alpha_y,
-                beta_x_previous=betax, beta_y_previous=betay,
-                mu_x_previous=mux[i], mu_y_previous=muy[i], mu_z_previous=0.0,
-                dx_previous=dx, dpx_previous=dpx,
-                dqx=0.0, dqy=0.0,
+            tp = TwissItem(
+                s=s[i],
+                s_previous=s[i],
+                alpha_x=alpha_x,
+                alpha_y=alpha_y,
+                beta_x=betax,
+                beta_y=betay,
+                mu_x=mux[i],
+                mu_y=muy[i],
+                mu_z=0.0,
+                dx=dx,
+                dpx=dpx,
+                alpha_x_previous=alpha_x,
+                alpha_y_previous=alpha_y,
+                beta_x_previous=betax,
+                beta_y_previous=betay,
+                mu_x_previous=mux[i],
+                mu_y_previous=muy[i],
+                mu_z_previous=0.0,
+                dx_previous=dx,
+                dpx_previous=dpx,
+                dqx=0.0,
+                dqy=0.0,
                 longitudinal_transfer=longitudinal_transfer,
             )
         else:
-            tp = TwissPoint(
-                s=s[i], s_previous=s[i - 1],
-                alpha_x=alpha_x, alpha_y=alpha_y,
-                beta_x=betax, beta_y=betay,
-                mu_x=mux[i], mu_y=muy[i],
+            tp = TwissItem(
+                s=s[i],
+                s_previous=s[i - 1],
+                alpha_x=alpha_x,
+                alpha_y=alpha_y,
+                beta_x=betax,
+                beta_y=betay,
+                mu_x=mux[i],
+                mu_y=muy[i],
                 mu_z=s[i] / circumference * muz,
-                dx=dx, dpx=dpx,
-                alpha_x_previous=alpha_x, alpha_y_previous=alpha_y,
-                beta_x_previous=betax, beta_y_previous=betay,
-                mu_x_previous=mux[i - 1], mu_y_previous=muy[i - 1],
+                dx=dx,
+                dpx=dpx,
+                alpha_x_previous=alpha_x,
+                alpha_y_previous=alpha_y,
+                beta_x_previous=betax,
+                beta_y_previous=betay,
+                mu_x_previous=mux[i - 1],
+                mu_y_previous=muy[i - 1],
                 mu_z_previous=s[i - 1] / circumference * muz,
-                dx_previous=dx, dpx_previous=dpx,
+                dx_previous=dx,
+                dpx_previous=dpx,
                 dqx=dqx * (mux[i] - mux[i - 1]) / qx,
                 dqy=dqy * (muy[i] - muy[i - 1]) / qy,
                 longitudinal_transfer=longitudinal_transfer,

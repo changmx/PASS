@@ -1,7 +1,7 @@
 """Sequence container: ordered collection of schema items.
 
 Items can be any pydantic BaseModel with a ``command`` field
-(TwissPoint, ElementBase subclasses, monitors, InjectionItem, etc.).
+(TwissItem, ElementBase subclasses, monitors, InjectionItem, etc.).
 
 The sequence dict key is the item name; the item itself does not store its name.
 On export, each item is serialized via model_dump(by_alias=True) and the
@@ -9,6 +9,7 @@ result is sorted by (s, command priority).
 """
 
 from collections import OrderedDict
+
 from pydantic import BaseModel
 
 from PASS.commands import command_priority
@@ -33,15 +34,13 @@ def _sort_sequence(sequence: dict) -> dict:
     Returns:
         Plain dict sorted by (s, priority).
     """
-    sorted_seq = OrderedDict(
-        sorted(
-            sequence.items(),
-            key=lambda item: (
-                item[1]["S (m)"],
-                command_priority(item[1].get("Command", "")),
-            ),
-        )
-    )
+    sorted_seq = OrderedDict(sorted(
+        sequence.items(),
+        key=lambda item: (
+            item[1]["S (m)"],
+            command_priority(item[1].get("Command", "")),
+        ),
+    ))
     return _convert_ordereddict(sorted_seq)
 
 
@@ -52,7 +51,7 @@ class Sequence:
 
         seq = Sequence()
         seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
-        seq.add("qd1", QuadrupoleElement(s=1.0, k1l=0.2, ...))
+        seq.add("qd1", QuadrupoleItem(s=1.0, k1l=0.2, ...))
         seq.add("stat1", StatMonitor(s=0.0))
 
         # export to engine-compatible dict

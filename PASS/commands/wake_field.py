@@ -1,11 +1,12 @@
 """Thin integrated wake command; one independent physical state per instance."""
+from functools import lru_cache
 import logging
 import hashlib
 
 import numpy as np
 
 from PASS.commands.command import Command
-from PASS.para.schema.wake_field import WakeField as WakeFieldParameters
+from PASS.para.schema.wake_field import WakeFieldItem as WakeFieldParameters
 from .wake.wake_components import WakeComponent, SpatialTerm
 from .wake.wake_models import ConstantWakeModel, ResonatorWakeModel, ResistiveWallWakeModel, TabulatedWakeModel
 from .wake.wake_spectrum import ImpedanceSpectrum, SpectrumWakeModel, RationalWakeModel, fit_spectrum
@@ -36,22 +37,28 @@ def _build_model(wake_config, longitudinal):
             raise ValueError("Causal fit requires left-half-plane initial poles")
         return fit_spectrum(spectrum, initial, **values)
     if wake_config.kind == "modes":
-        return RationalWakeModel([complex(*p) for p in values["poles"]],
-                                 [complex(*r) for r in values["residues"]], longitudinal)
-    return {"constant": ConstantWakeModel, "resonator": ResonatorWakeModel,
-            "ultrarelativistic_wall": ResistiveWallWakeModel, "tabulated": TabulatedWakeModel}[wake_config.kind](**values)
+        return RationalWakeModel([complex(*p) for p in values["poles"]], [complex(*r) for r in values["residues"]], longitudinal)
+    return {
+        "constant": ConstantWakeModel,
+        "resonator": ResonatorWakeModel,
+        "ultrarelativistic_wall": ResistiveWallWakeModel,
+        "tabulated": TabulatedWakeModel
+    }[wake_config.kind](**values)
 
 
 def _build_component(config):
-    velocity = (VelocityLaw("factorized", betas=(0., 1.), source=(1., 1.), witness=(1., 1.))
-                if config.velocity.kind == "ideal" else VelocityLaw(**config.velocity.model_dump()))
+    velocity = (VelocityLaw("factorized", betas=(0., 1.), source=(1., 1.), witness=(1., 1.)) if config.velocity.kind == "ideal" else VelocityLaw(
+        **config.velocity.model_dump()))
     spatial = None if config.spatial is None else SpatialTerm(**config.spatial.model_dump())
     longitudinal = config.component == "longitudinal" if spatial is None else spatial.plane == "z"
     if config.model.kind == "file":
         from .wake.wake_io import WakeConvention, read_wake_file
         values = config.model.model_dump(exclude={"kind", "convention", "file_path"})
-        model = read_wake_file(config.model.file_path, convention=WakeConvention(**config.model.convention.model_dump()),
-                               component=config.component, spatial=spatial, **values)
+        model = read_wake_file(config.model.file_path,
+                               convention=WakeConvention(**config.model.convention.model_dump()),
+                               component=config.component,
+                               spatial=spatial,
+                               **values)
     else:
         model = _build_model(config.model, longitudinal)
     return WakeComponent(config.component, model, config.scale, velocity, spatial)
@@ -59,11 +66,12 @@ def _build_component(config):
 
 @Command.register("wakefield")
 class WakeField(Command):
+
     def __init__(self, beam_id, sim, **command_kwargs):
-        values = {key.lower(): value for key, value in command_kwargs.items()}
-        self.cmd_name = values.pop("name")
-        values.pop("command", None)
-        self.configuration = WakeFieldParameters.model_validate(values)
+        kwargs = {k.lower(): v for k, v in command_kwargs.items()}
+        self.cmd_name = kwargs.pop("name")
+        kwargs.pop("command", None)
+        self.configuration = WakeFieldParameters.model_validate(kwargs)
         wake_cfg = self.configuration
         if wake_cfg.groups is None:
             raise ValueError("Named wake configurations must be resolved by Config.load_input before construction")
@@ -99,9 +107,12 @@ class WakeField(Command):
 
     def state_dict(self):
         identity = self._configuration_identity()
-        return {"format": "PASS-wake-2", "configuration_sha256": identity,
-                "groups": [state.state_dict() for state in self.group_states],
-                "input_sha256": [getattr(c.model, "input_metadata", {}).get("sha256") for c in self.components]}
+        return {
+            "format": "PASS-wake-2",
+            "configuration_sha256": identity,
+            "groups": [state.state_dict() for state in self.group_states],
+            "input_sha256": [getattr(c.model, "input_metadata", {}).get("sha256") for c in self.components]
+        }
 
     def load_state_dict(self, data):
         expected = self._configuration_identity()
@@ -110,7 +121,7 @@ class WakeField(Command):
         if len(data["groups"]) != len(self.group_states):
             raise ValueError("Wake checkpoint group count does not match")
         file_hashes = [getattr(c.model, "input_metadata", {}).get("sha256") for c in self.components]
-        if data.get("input_sha256", [None]*len(self.components)) != file_hashes:
+        if data.get("input_sha256", [None] * len(self.components)) != file_hashes:
             raise ValueError("Wake checkpoint input file contents do not match")
         candidates = [WakeState.from_state_dict(d) for d in data["groups"]]
         for config, components, state in zip(self.configuration.groups, self.component_groups, candidates):
@@ -167,8 +178,7 @@ class WakeField(Command):
             plans = [GroupExecution(g, c, backend) for g, c in zip(cfg.groups, self.component_groups)]
             self._execution_plans[backend] = plans
         project = self.projector.project_gpu if gpu else self.projector.project_cpu
-        options = {"stationary_batch": all(g.solver == "partitioned_fft" for g in cfg.groups)} if gpu else {}
-        projection = project(beam, cfg.slice_set, turn, self.components, "uniform", **options)
+        projection = project(beam, cfg.slice_set, turn, self.components, "uniform")
         results, candidates, updates, diagnostics = [], [], [], []
         for plan, state in zip(plans, self.group_states):
             value, candidate, update, diagnostic = plan.preview(projection.sources, state, turn)
@@ -189,7 +199,7 @@ class WakeField(Command):
                 for ci, component in enumerate(self.components):
                     a, b = component.test_powers
                     plane = {"z": 0, "x": 1, "y": 2}[component.plane]
-                    voltage[plane] += coefficients[ci, ids]*p.x[indices]**a*p.y[indices]**b
+                    voltage[plane] += coefficients[ci, ids] * p.x[indices]**a * p.y[indices]**b
                 apply_kick_cpu(p, bunch, indices, voltage, s=self.s, turn=turn)
         for update in updates:
             if update is not None:
@@ -198,108 +208,181 @@ class WakeField(Command):
         self.last_coefficients, self.last_sources = coefficients, projection.sources
         self.last_diagnostics = diagnostics
         return True
+
     def print(self):
-        logger.info("S=%.4f, Command=WakeField, Name=%s, Slice set=%s, Groups=%s, Components=%d",
-                    self.s, self.cmd_name, self.slice_set_name,
+        logger.info("S=%.4f, Command=WakeField, Name=%s, Slice set=%s, Groups=%s, Components=%d", self.s, self.cmd_name, self.slice_set_name,
                     [(g.name, g.solver, g.history) for g in self.configuration.groups], len(self.components))
 
 
-# ----------------------------------------------------------------------------
 # GPU: fused device kicks
-# ----------------------------------------------------------------------------
 
-
-_GPU_KERNELS = {}
 _GPU_CODE = r'''
 #if FLOAT_PARTICLES
-using R=float;
+using R = float;
 #else
-using R=double;
+using R = double;
 #endif
-__device__ void mechanical(int i,R* px,R* py,R* dp,int* tag,int* lost_turn,
-    float* lost_position,const double* v,double p0,double m0,double za,double position,int turn){
-    double oldp=(1+(double)dp[i])*p0,olde=hypot(oldp,m0),de=-za*v[0],energy=olde+de;
-    double inverse=oldp>0?(za/p0)*(olde/oldp):0.;
-    double dx=(double)px[i]+v[1]*inverse,dy=(double)py[i]+v[2]*inverse;
-    double delta=(double)dp[i];
-    if(v[0]!=0.){
-        double p=sqrt(fmax(0.,(energy-m0)*(energy+m0))),denominator=p0*(p+oldp);
-        if(denominator!=0.)delta+=de*(2*olde+de)/denominator;
+__device__ void mechanical(
+    int i,
+    R* px,
+    R* py,
+    R* dp,
+    int* tag,
+    int* lost_turn,
+    float* lost_position,
+    const double* v,
+    double p0,
+    double m0,
+    double za,
+    double position,
+    int turn
+) {
+    double oldp = (1 + (double)dp[i]) * p0, olde = hypot(oldp, m0), de = -za * v[0], energy = olde + de;
+    double inverse = oldp > 0 ? (za / p0) * (olde / oldp) : 0.;
+    double dx = (double)px[i] + v[1] * inverse, dy = (double)py[i] + v[2] * inverse;
+    double delta = (double)dp[i];
+    if (v[0] != 0.) {
+        double p = sqrt(fmax(0., (energy - m0) * (energy + m0))), denominator = p0 * (p + oldp);
+        if (denominator != 0.)
+            delta += de * (2 * olde + de) / denominator;
     }
-    if(oldp>0&&energy>m0&&isfinite(delta)&&isfinite(dx)&&isfinite(dy)&&(1+delta)*(1+delta)>dx*dx+dy*dy){
-        if(v[0]!=0.)dp[i]=(R)delta;px[i]=(R)dx;py[i]=(R)dy;
-    }else{tag[i]=-abs(tag[i]);lost_turn[i]=turn;lost_position[i]=(float)position;}
+    if (oldp > 0 && energy > m0 && isfinite(delta) && isfinite(dx) && isfinite(dy) && (1 + delta) * (1 + delta) > dx * dx + dy * dy) {
+        if (v[0] != 0.)
+            dp[i] = (R)delta;
+        px[i] = (R)dx;
+        py[i] = (R)dy;
+    } else {
+        tag[i] = -abs(tag[i]);
+        lost_turn[i] = turn;
+        lost_position[i] = (float)position;
+    }
 }
-__device__ double monomial(double x,int n){
-    double result=1.;
-    while(n){if(n&1)result*=x;n>>=1;if(n)x*=x;}
+__device__ double monomial(
+    double x,
+    int n
+) {
+    double result = 1.;
+    while (n) {
+        if (n & 1)
+            result *= x;
+        n >>= 1;
+        if (n)
+            x *= x;
+    }
     return result;
 }
-extern "C" __global__ void kick(R* px,R* py,R* dp,const R* x,const R* y,
-    int* tag,int* lost_turn,float* lost_position,const int* ids,const double* coeff,
-    int start,int end,int ns,int offset,int total,int nc,const int* planes,
-    const int* powers,double p0,double m0,double za,double position,int turn){
-    int i=start+blockIdx.x*blockDim.x+threadIdx.x;
-    if(i>=end||tag[i]<=0)return;
-    int id=ids[i-start];if(id<0||id>=ns)return;
-    double v[3]={0.,0.,0.};
-    for(int k=0;k<nc;k++){
-        double value=coeff[k*total+offset+id];
-        value*=monomial((double)x[i],powers[2*k])*monomial((double)y[i],powers[2*k+1]);
-        v[planes[k]]+=value;
+extern "C" __global__ void kick(
+    R* px,
+    R* py,
+    R* dp,
+    const R* x,
+    const R* y,
+    int* tag,
+    int* lost_turn,
+    float* lost_position,
+    const int* ids,
+    const double* coeff,
+    int start,
+    int end,
+    int n_slices,
+    int offset,
+    int total,
+    int nc,
+    const int* planes,
+    const int* powers,
+    double p0,
+    double m0,
+    double za,
+    double position,
+    int turn
+) {
+    int i = start + blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= end || tag[i] <= 0)
+        return;
+    int id = ids[i - start];
+    if (id < 0 || id >= n_slices)
+        return;
+    double v[3] = {0., 0., 0.};
+    for (int k = 0; k < nc; k++) {
+        double value = coeff[k * total + offset + id];
+        value *= monomial((double)x[i], powers[2 * k]) * monomial((double)y[i], powers[2 * k + 1]);
+        v[planes[k]] += value;
     }
-    mechanical(i,px,py,dp,tag,lost_turn,lost_position,v,p0,m0,za,position,turn);
+    mechanical(i, px, py, dp, tag, lost_turn, lost_position, v, p0, m0, za, position, turn);
 }
-extern "C" __global__ void kick_batch(R* px,R* py,R* dp,const R* x,const R* y,
-    int* tag,int* lost_turn,float* lost_position,const int* layout,const unsigned long long* ptr,
-    const double* reference,const double* coeff,int total,int nc,const int* planes,
-    const int* powers,double position,int turn){
-    int b=blockIdx.y,start=layout[4*b],end=layout[4*b+1],ns=layout[4*b+2],offset=layout[4*b+3];
-    const int* ids=(const int*)ptr[3*b];
-    for(int i=start+blockIdx.x*blockDim.x+threadIdx.x;i<end;i+=blockDim.x*gridDim.x){
-        if(tag[i]<=0)continue;
-        int id=ids[i-start];if(id<0||id>=ns)continue;
-        double v[3]={0.,0.,0.};
-        for(int k=0;k<nc;k++)v[planes[k]]+=coeff[k*total+offset+id]
-            *monomial((double)x[i],powers[2*k])*monomial((double)y[i],powers[2*k+1]);
-        mechanical(i,px,py,dp,tag,lost_turn,lost_position,v,reference[3*b],reference[3*b+1],reference[3*b+2],position,turn);
+extern "C" __global__ void kick_batch(
+    R* px,
+    R* py,
+    R* dp,
+    const R* x,
+    const R* y,
+    int* tag,
+    int* lost_turn,
+    float* lost_position,
+    const int* layout,
+    const unsigned long long* ptr,
+    const double* reference,
+    const double* coeff,
+    int total,
+    int nc,
+    const int* planes,
+    const int* powers,
+    double position,
+    int turn
+) {
+    int b = blockIdx.y, start = layout[4 * b], end = layout[4 * b + 1], n_slices = layout[4 * b + 2], offset = layout[4 * b + 3];
+    const int* ids = (const int*)ptr[3 * b];
+    for (int i = start + blockIdx.x * blockDim.x + threadIdx.x; i < end; i += blockDim.x * gridDim.x) {
+        if (tag[i] <= 0)
+            continue;
+        int id = ids[i - start];
+        if (id < 0 || id >= n_slices)
+            continue;
+        double v[3] = {0., 0., 0.};
+        for (int k = 0; k < nc; k++)
+            v[planes[k]] += coeff[k * total + offset + id] * monomial((double)x[i], powers[2 * k]) * monomial((double)y[i], powers[2 * k + 1]);
+        mechanical(i, px, py, dp, tag, lost_turn, lost_position, v, reference[3 * b], reference[3 * b + 1], reference[3 * b + 2], position, turn);
     }
 }
 '''
 
 
-def _gpu_kernels(p):
+@lru_cache(maxsize=None)
+def _get_gpu_kernels(dtype, device):
     import cupy as cp
-    key = (cp.cuda.runtime.getDevice(), np.dtype(p.dtype))
-    if key not in _GPU_KERNELS:
+
+    with cp.cuda.Device(device):
         names = ('kick', 'kick_batch')
-        module = cp.RawModule(code=_GPU_CODE, options=("--std=c++17",
-            f"-DFLOAT_PARTICLES={int(p.dtype == np.float32)}"), name_expressions=names)
-        _GPU_KERNELS[key] = {name: module.get_function(name) for name in names}
-    return _GPU_KERNELS[key]
+        module = cp.RawModule(code=_GPU_CODE,
+                              options=("--std=c++17", f"-DFLOAT_PARTICLES={int(np.dtype(dtype) == np.float32)}"),
+                              name_expressions=names)
+        return {name: module.get_function(name) for name in names}
 
 
 def kick_gpu(command, beam, projection, coefficients, turn):
     import cupy as cp
     from .wake.wake_models import device_arrays
     from .wake.wake_conventions import signed_charge_per_mass_unit
-    planes, powers = device_arrays(command, "kick_layout", (
-        np.array([{"z": 0, "x": 1, "y": 2}[c.plane] for c in command.components], dtype=np.int32),
-        np.array([c.test_powers for c in command.components], dtype=np.int32)))
+    planes, powers = device_arrays(command, "kick_layout", (np.array([{
+        "z": 0,
+        "x": 1,
+        "y": 2
+    }[c.plane] for c in command.components], dtype=np.int32), np.array([c.test_powers for c in command.components], dtype=np.int32)))
     p = beam.particles
     if hasattr(projection, "device_layout"):
         layout, pointers, blocks, _ = projection.device_layout
-        reference = cp.asarray([(b.p0, b.m0, signed_charge_per_mass_unit(b)) for b, *_ in projection.witnesses], dtype=cp.float64)
-        _gpu_kernels(p)["kick_batch"]((blocks, len(projection.witnesses)), (256,),
+        reference = cp.asarray([(bunch.p0, bunch.m0, signed_charge_per_mass_unit(bunch)) for bunch, *_ in projection.witnesses], dtype=cp.float64)
+        _get_gpu_kernels(p.dtype.str, cp.cuda.runtime.getDevice())["kick_batch"](
+            (blocks, len(projection.witnesses)), (256, ),
             (p.px, p.py, p.dp, p.x, p.y, p.tag, p.lost_turn, p.lost_position, layout, pointers, reference, coefficients,
              np.int32(coefficients.shape[1]), np.int32(len(command.components)), planes, powers, np.float64(command.s), np.int32(turn)))
         return
-    for b, ids, offset, ns in projection.witnesses:
-        start, end = b.start_idx, b.end_idx
+    for bunch, ids, offset, n_slices in projection.witnesses:
+        start, end = bunch.start_idx, bunch.end_idx
         if start == end:
             continue
-        _gpu_kernels(p)["kick"](((end-start+255)//256,), (256,), (p.px, p.py, p.dp, p.x, p.y, p.tag,
-            p.lost_turn, p.lost_position, ids, coefficients, np.int32(start), np.int32(end),
-            np.int32(ns), np.int32(offset), np.int32(coefficients.shape[1]), np.int32(len(command.components)),
-            planes, powers, np.float64(b.p0), np.float64(b.m0), np.float64(signed_charge_per_mass_unit(b)),
-            np.float64(command.s), np.int32(turn)))
+        _get_gpu_kernels(p.dtype.str, cp.cuda.runtime.getDevice())["kick"](
+            ((end - start + 255) // 256, ), (256, ),
+            (p.px, p.py, p.dp, p.x, p.y, p.tag, p.lost_turn, p.lost_position, ids, coefficients, np.int32(start), np.int32(end), np.int32(n_slices),
+             np.int32(offset), np.int32(coefficients.shape[1]), np.int32(len(command.components)), planes, powers, np.float64(
+                 bunch.p0), np.float64(bunch.m0), np.float64(signed_charge_per_mass_unit(bunch)), np.float64(command.s), np.int32(turn)))

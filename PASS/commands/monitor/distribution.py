@@ -133,19 +133,19 @@ class DistMonitor(Command):
             return False
 
         beam: Beam = sim.beams[self.beam_id]
-        particles = beam.particles
+        p = beam.particles
         if backend == "gpu":
             # File I/O is host-side.  Copy only fields in the output schema.
-            particles = particles.copy(np, fields=list(_DATA_FIELDS))
+            p = p.copy(np, fields=list(_DATA_FIELDS))
 
         for bunch in beam.bunches:
-            self._save_bunch(sim, beam, bunch, particles, turn, backend)
+            self._save_bunch(sim, beam, bunch, p, turn, backend)
         return True
 
-    def _save_bunch(self, sim, beam, bunch, particles, turn: int, backend: str):
+    def _save_bunch(self, sim, beam, bunch, p, turn: int, backend: str):
         start = int(bunch.start_idx)
         end = int(bunch.end_idx)
-        df = pd.DataFrame({field: getattr(particles, field)[start:end] for field in _DATA_FIELDS})
+        df = pd.DataFrame({field: getattr(p, field)[start:end] for field in _DATA_FIELDS})
         pending = int(np.count_nonzero(np.asarray(df["tag"]) == 0))
         df = df.loc[df["tag"] != 0].reset_index(drop=True)
         if self.include_injection_metadata:
@@ -176,7 +176,7 @@ class DistMonitor(Command):
             "PASSVersion": __version__,
             "Time": get_current_time(),
             "ZCoordinate": "z_rel",
-            "ZCenter": float(bunch.harmonic_id*bunch.circum/bunch.harmonic_number),
+            "ZCenter": float(bunch.harmonic_id * bunch.circum / bunch.harmonic_number),
             "ReferenceArrivalTime": float(bunch.t0),
             "ReferenceBeta": float(bunch.beta),
             "ReferenceMomentum": float(bunch.p0),

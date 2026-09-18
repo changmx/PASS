@@ -47,8 +47,8 @@ def parabolic_elliptic_field(x, y, slice_charge, a, b, *, epsilon_0=const.epsilo
     total = A + B
     rx2, ry2 = (x / A)**2, (y / B)**2
     factor = 2 * charge / (const.pi * epsilon * total)
-    ex = factor * (x / A) * (1 - rx2 * (2*A+B)/(3*total) - ry2 * B/total)
-    ey = factor * (y / B) * (1 - ry2 * (2*B+A)/(3*total) - rx2 * A/total)
+    ex = factor * (x / A) * (1 - rx2 * (2 * A + B) / (3 * total) - ry2 * B / total)
+    ey = factor * (y / B) * (1 - ry2 * (2 * B + A) / (3 * total) - rx2 * A / total)
     return ex, ey
 
 
@@ -58,17 +58,25 @@ def parabolic_round_field(x, y, slice_charge, radius, *, epsilon_0=const.epsilon
 
 
 PARABOLIC_CUDA = r"""
-__device__ void parabolic_field(double x,double y,double q,double a,double b,double* ex,double* ey) {
-    const double pi=3.14159265358979323846,eps=8.8541878128e-12;
-    double aa=a*a,bb=b*b,lambda=0;
-    if((x/a)*(x/a)+(y/b)*(y/b)>1) {
-        double linear=aa+bb-x*x-y*y,constant=aa*bb-bb*x*x-aa*y*y;
-        double root=sqrt(fmax(0.,linear*linear-4*constant));
-        lambda=fmax(0.,linear>=0 ? -2*constant/(linear+root) : (root-linear)/2);
+__device__ void parabolic_field(
+    double x,
+    double y,
+    double q,
+    double a,
+    double b,
+    double* ex,
+    double* ey
+) {
+    const double pi = 3.14159265358979323846, eps = 8.8541878128e-12;
+    double aa = a * a, bb = b * b, lambda = 0;
+    if ((x / a) * (x / a) + (y / b) * (y / b) > 1) {
+        double linear = aa + bb - x * x - y * y, constant = aa * bb - bb * x * x - aa * y * y;
+        double root = sqrt(fmax(0., linear * linear - 4 * constant));
+        lambda = fmax(0., linear >= 0 ? -2 * constant / (linear + root) : (root - linear) / 2);
     }
-    double A=sqrt(aa+lambda),B=sqrt(bb+lambda),sum=A+B;
-    double rx=x/A,ry=y/B,f=2*q/(pi*eps*sum);
-    *ex=f*rx*(1-rx*rx*(2*A+B)/(3*sum)-ry*ry*B/sum);
-    *ey=f*ry*(1-ry*ry*(2*B+A)/(3*sum)-rx*rx*A/sum);
+    double A = sqrt(aa + lambda), B = sqrt(bb + lambda), sum = A + B;
+    double rx = x / A, ry = y / B, f = 2 * q / (pi * eps * sum);
+    *ex = f * rx * (1 - rx * rx * (2 * A + B) / (3 * sum) - ry * ry * B / sum);
+    *ey = f * ry * (1 - ry * ry * (2 * B + A) / (3 * sum) - rx * rx * A / sum);
 }
 """

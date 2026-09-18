@@ -1,7 +1,6 @@
 """Source/test monomials, independent of the temporal wake model."""
 from dataclasses import dataclass
 
-
 # Name: (kick plane, source powers (x,y), witness powers (x,y)).
 COMPONENTS = {
     "longitudinal": ("z", (0, 0), (0, 0)),
@@ -51,9 +50,7 @@ class WakeComponent:
         import math
         if not math.isfinite(self.scale):
             raise ValueError("Wake component scale must be finite")
-        if getattr(self.model, "round_pipe", False) and self.kind not in {
-            "longitudinal", "dipolar_x", "dipolar_y"
-        }:
+        if getattr(self.model, "round_pipe", False) and self.kind not in {"longitudinal", "dipolar_x", "dipolar_y"}:
             raise ValueError("Round resistive wall supports longitudinal and diagonal dipolar components")
 
     @property
@@ -74,24 +71,22 @@ class WakeComponent:
 
     def source_moment(self, source):
         moment = source.moments[self.source_powers]
-        return moment if self.velocity is None else moment*self.velocity.source_factor(source.betas)
+        return moment if self.velocity is None else moment * self.velocity.source_factor(source.betas)
 
     def witness_factor(self, betas):
         return 1. if self.velocity is None else self.velocity.witness_factor(betas)
 
 
-# ----------------------------------------------------------------------------
 # GPU: coupled source moments
-# ----------------------------------------------------------------------------
 
 
 def moment_gpu(component, source):
     from .wake_velocity import apply_factor_gpu
-    moment=source.moments[component.source_powers]
-    law=component.velocity
-    if law is None or law.kind=='fixed' or all(v==1. for v in law.source):
+    moment = source.moments[component.source_powers]
+    law = component.velocity
+    if law is None or law.kind == 'fixed' or all(v == 1. for v in law.source):
         return moment
-    return apply_factor_gpu(component,source.betas,moment)
+    return apply_factor_gpu(component, source.betas, moment)
 
 
 def moments_gpu(components, source):

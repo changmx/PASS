@@ -6,8 +6,9 @@ for future use when exciter data needs to be pre-processed from external
 measurements (e.g. LLRF frequency logs, BD42TUNE voltage traces).
 """
 
-from PASS.para.tools.data_converter import convert_external_to_tfs
 from typing import Callable
+
+from PASS.para.tools.data_converter import convert_external_to_tfs
 
 
 def convert_exciter_data(
@@ -33,9 +34,12 @@ def convert_exciter_data(
         Output file path.
     """
     return convert_external_to_tfs(
-        input_path, output_path,
+        input_path,
+        output_path,
         data_cols=["frequency", "voltage"],
-        revolution_freq=revolution_freq, num_turns=num_turns,
+        revolution_freq=revolution_freq,
+        num_turns=num_turns,
         method=method,
-        title="Exciter Data", data_type="EXCITER",
+        title="Exciter Data",
+        data_type="EXCITER",
     )
