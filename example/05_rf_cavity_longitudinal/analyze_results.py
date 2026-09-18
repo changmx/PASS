@@ -34,6 +34,8 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
+from PASS.utils.table_io import find_table_files, read_table
+
 from generate_input import (
     CASES,
     CASE_PAIRS,
@@ -69,21 +71,20 @@ def find_latest_output(case_name: str):
             continue
         for time_dir in sorted(date_dir.iterdir(), reverse=True):
             particle_dir = time_dir / "particle"
-            if (time_dir.is_dir() and particle_dir.is_dir() and any(particle_dir.glob("*.tfs")) and any(time_dir.glob("*_stat_*.csv"))):
+            if (time_dir.is_dir() and particle_dir.is_dir() and bool(find_table_files(particle_dir)) and any(time_dir.glob("*_stat_*.csv"))):
                 return time_dir
     return None
 
 
 def read_pass_tbt(output_dir, max_tag=20):
-    """Read PASS ParticleMonitor TFS files -> {tag: {turn,x,px,y,py,z,dp}}."""
+    """Read PASS ParticleMonitor HDF5/TFS files -> {tag: {turn,x,px,y,py,z,dp}}."""
     particle_dir = output_dir / "particle"
     data = {}
-    for f in sorted(particle_dir.glob("*_beam*_tag*.tfs")):
+    for f in sorted(find_table_files(particle_dir, "*_beam*_tag*")):
         tag = int(f.stem.split("_tag")[-1].lstrip("_"))
         if tag > max_tag:
             continue
-        import tfs as tfs_lib
-        df = tfs_lib.read(str(f))
+        df = read_table(str(f))
         data[tag] = {k: df[k].to_numpy() for k in ["turn", "x", "px", "y", "py", "z", "dp"]}
     return data
 

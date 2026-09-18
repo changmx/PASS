@@ -1,4 +1,4 @@
-"""Validate input TFS contents using the same parser and columns as tracking."""
+"""Validate input tables using the same parser and columns as tracking."""
 from pathlib import Path
 import re
 
@@ -94,28 +94,31 @@ def check_table(check, value, path, kind, active, minimum_rows):
         if not file.is_file():
             check.add(path, "file.missing", f"输入文件不存在或不是普通文件：{file}", not active)
             return
+        if kind != "distribution" and file.suffix.lower() in (".h5", ".hdf5"):
+            check.add(path, "file.format", "此输入仍使用 TFS；HDF5 输入仅支持粒子分布", not active)
+            return
         # Check every declared table, including inactive resources, but inactive
         # failures are warnings since they cannot affect the selected execution.
         cached = check.file_cache.get(file)
         if cached is None:
-            import tfs
+            from PASS.utils.table_io import read_table
             try:
-                cached = tfs.read(file)
+                cached = read_table(file)
             except Exception as exc:
                 cached = str(exc) or type(exc).__name__
             check.file_cache[file] = cached
             check.report.checked_files.append(str(file))
         if isinstance(cached, str):
-            check.add(path, "file.format", f"无法读取 TFS：{cached}", not active)
+            check.add(path, "file.format", f"无法读取输入表格：{cached}", not active)
             return
         frame = cached
         if frame.empty:
-            check.add(path, "file.empty", "TFS 文件没有数据行", not active)
+            check.add(path, "file.empty", "输入表格没有数据行", not active)
             return
         names = list(frame.columns)
         lower = [str(name).lower() for name in names]
         if len(set(lower)) != len(lower):
-            check.add(path, "file.columns", "TFS 列名重复（包括大小写冲突）", not active)
+            check.add(path, "file.columns", "输入表格列名重复（包括大小写冲突）", not active)
             return
         required = []
         if kind == "distribution":
@@ -140,7 +143,7 @@ def check_table(check, value, path, kind, active, minimum_rows):
         for column in required:
             series = frame[column]
             if not np.issubdtype(series.dtype, np.number) or np.issubdtype(series.dtype, np.bool_):
-                check.add(path, "file.numeric", f"列 {column!r} 必须使用 TFS 数值类型", not active)
+                check.add(path, "file.numeric", f"列 {column!r} 必须使用数值类型", not active)
                 continue
             array = series.to_numpy()
             bad = np.flatnonzero(~np.isfinite(array))

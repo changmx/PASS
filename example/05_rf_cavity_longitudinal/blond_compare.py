@@ -12,11 +12,12 @@ import argparse, base64, importlib.util, importlib.metadata, io, json
 from pathlib import Path
 
 import numpy as np
-import tfs
 import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+from PASS.utils.table_io import find_table_files, read_table
 from analyze_results import find_latest_output, measure_tune
 from generate_input import CASES, CIRCUM, GAMMA_T, NUM_CHARGE, NUM_PROTON, NUM_NEUTRON, build_case, SCRIPT_DIR
 from PASS.utils.constants import const
@@ -59,12 +60,12 @@ def run_pass(case):
 
 def read_particles(output):
     result = {}
-    files = list((output / 'particle').glob('*_tag*.tfs')) or list(output.glob('*_tag*.tfs'))
+    files = find_table_files(output / 'particle', '*_tag*') or find_table_files(output, '*_tag*')
     for path in files:
         tag = int(path.stem.split('_tag')[-1].lstrip('_'))
         if tag not in TAGS:
             continue
-        table = tfs.read(path)
+        table = read_table(path)
         missing = {'referenceTime', 'referenceBeta', 'referenceMomentum'} - set(table.columns)
         if missing:
             raise ValueError(f'{path}: missing reference columns {sorted(missing)}. '
@@ -80,7 +81,7 @@ def read_particles(output):
 
 def program_functions(path, origin=0.):
     """Independent analytic integral of the physical table, outside PASS tracker."""
-    table = tfs.read(path)
+    table = read_table(path)
     t = table.TIME.to_numpy()
     f = table.FREQUENCY.to_numpy()
     phi = table.PHASE.to_numpy()

@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from PASS.core.simulation import Simulation
 from PASS.core.bunch import BunchInfo
@@ -84,11 +85,25 @@ class Executor:
                     else:
                         logger.info(profiler.format_progress(turn))
         finally:
+            interrupted = sys.exc_info()[0] is not None
+            output_error = None
+            for seq in seqs:
+                for cmd in seq.cmds:
+                    finalize = getattr(cmd, "finalize", None)
+                    if finalize is not None:
+                        try:
+                            finalize(sim)
+                        except Exception as exc:
+                            logger.exception("Failed to finalize command output")
+                            if output_error is None:
+                                output_error = exc
             # Preserve timing for a turn interrupted by an exception when
             # possible, then always print the partial or complete summary.
             if (current_turn is not None and profiler.mode != "off" and current_turn not in profiler.turn_seconds):
                 profiler.finish_turn(current_turn)
             profiler.print_summary()
+            if output_error is not None and not interrupted:
+                raise output_error
 
         set_simple_logging()
         logger.info("")

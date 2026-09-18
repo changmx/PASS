@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from PASS.utils.constants import const
+from PASS.utils.table_io import read_table
 
 
 @dataclass
@@ -21,14 +22,9 @@ def read_result(path):
         with h5py.File(path, "r") as stream:
             if any(isinstance(value, h5py.Dataset) and value.ndim > 1 for value in stream.values()):
                 raise ValueError("该 HDF5 包含多维场数组；请使用专门的切片场分析，不能将网格轴当作粒子列配对。")
-            metadata = {
-                key: value.decode() if isinstance(value, bytes) else value.item() if isinstance(value, np.generic) else value
-                for key, value in stream.attrs.items()
-            }
-            columns = {
-                key: np.asarray(value).tolist()
-                for key, value in stream.items() if isinstance(value, h5py.Dataset) and value.ndim == 1 and np.issubdtype(value.dtype, np.number)
-            }
+        frame = read_table(path)
+        metadata = dict(frame.headers)
+        columns = {key: frame[key].to_numpy().tolist() for key in frame if frame[key].dtype.kind in "biuf"}
         if not columns:
             raise ValueError("该 HDF5 没有一维粒子数据列；切片场等多维数组需要专门的场图。")
     else:

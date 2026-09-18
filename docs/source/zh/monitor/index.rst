@@ -6,6 +6,7 @@
 .. toctree::
    :maxdepth: 2
 
+   table_output
    statmonitor
    distmonitor
    phaseadvancemonitor

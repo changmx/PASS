@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import tfs
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -12,6 +11,7 @@ from matplotlib.patches import Patch
 
 from PASS.plot.plot_bucket import plot_bucket_on_ax
 from PASS.tool.calc_bucket import resolve_kinematics, calc_bucket_width, calc_bucket_height, compute_bucket_data
+from PASS.utils.table_io import read_table
 
 
 def plot_distribution(tfs_file_path,
@@ -33,7 +33,7 @@ def plot_distribution(tfs_file_path,
                       plot_bucket_num_orbits: int = 4,
                       save_dir=None):
 
-    df = tfs.read(tfs_file_path)
+    df = read_table(tfs_file_path)
 
     file_dir = Path(tfs_file_path).resolve().parent
     file_name = Path(tfs_file_path).resolve().stem

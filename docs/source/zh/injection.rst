@@ -313,7 +313,7 @@ FP32 或 FP64 类型。
   * - ``load_dist_filepath``
     - ``Distribution File Path``
     - str
-    - 分布文件路径 （ ``.tfs`` 格式）
+    - 分布文件路径（``.h5``、``.hdf5`` 或 ``.tfs`` 表格）
   * - ``load_dist_mode``
     - ``Distribution File Mode``
     - str
@@ -403,7 +403,7 @@ FP32 或 FP64 类型。
 入射分布与偏置
 ~~~~~~~~~~~~~~
 
-当 ``Is Load Distribution from File=true`` 时，每个束团读取自己的 TFS 文件，
+当 ``Is Load Distribution from File=true`` 时，每个束团读取自己的 HDF5 或 TFS 表格，
 其中必须包含 ``x``、``px``、``y``、``py``、``z``、``dp`` 六列。位置单位为米，
 动量使用指定注入参考动量归一化。``Distribution File Mode`` 控制行的选取：
 
@@ -454,7 +454,7 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 ``injection_turn`` 和 ``injection_batch``。圈号和批次从零开始；每个源束团
 独立编号批次，逐粒子匹配应使用 ``particle_id``。
 
-``Output format=tfs`` 和 ``Output format=hdf5`` 均排除预留位置、保留损失粒子，
+三种输出格式（``tfs``、``hdf5`` 和 ``hdf5-gzip1``）均排除预留位置、保留损失粒子，
 并记录 ``NumPending``。分析监视器处的存活相空间时，应选择 ``tag>0``；
 损失粒子的坐标属于其损失位置。环流粒子数及统计矩的演化可用
 :doc:`monitor/statmonitor` 观测。
@@ -1246,3 +1246,12 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
   :align: center
 
   Figure 20. Longitudinal coasting distribution: z-pz
+
+初始分布输出格式
+----------------
+
+启用 ``save_init_dist`` 时，各 ``BunchConfig`` 支持
+``output_format="hdf5-gzip1"``（默认，gzip-1 + shuffle）、
+``"hdf5"``（不压缩）或 ``"tfs"``；JSON 参数位于对应
+``bunchN`` 块中的 ``"Output format"``。此参数只控制初始分布输出，
+载入文件时按扩展名识别输入格式。详见 :doc:`monitor/table_output`。

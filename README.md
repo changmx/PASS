@@ -47,9 +47,9 @@ pass-gui
 
 The interface edits standalone JSON or single-file `.passproj` projects containing multiple input JSONs, source files, dependencies, and generation settings. The File menu separates JSON saving, project saving, and export. Project contents can be inspected and parameters or commands copied, including their dependencies. The compact interface offers dark/light/system themes, expanded property fields, and resizable sequence columns with optional columns in the header menu.
 
-The run page selects one or two inputs and creates a fixed input snapshot before starting PASS in a separate process. Exported input bundles include their dependencies and a `run.py` launcher. The plotting page loads CSV/TFS results and supports X/Y selection and zoom. See the [project workflow](docs/source/en/project_files.rst) for packaging, source reuse, and output locations.
+The run page selects one or two inputs and creates a fixed input snapshot before starting PASS in a separate process. Exported input bundles include their dependencies and a `run.py` launcher. The plotting page loads CSV/TFS/HDF5 results and supports X/Y selection and zoom. See the [project workflow](docs/source/en/project_files.rst) for packaging, source reuse, and output locations.
 
-**Validate** checks the complete input, all sequence modules, cross-command dependencies and input TFS contents, with a filterable, exportable report. Errors block execution; warnings remain visible. The same preflight runs before initialization and is available without Qt as `python -m PASS.validation beam.json --report validation-report.json`. See the [validation guide](docs/source/en/input_validation.rst) for rules and limits.
+**Validate** checks the complete input, all sequence modules, cross-command dependencies and input table contents, with a filterable, exportable report. Errors block execution; warnings remain visible. The same preflight runs before initialization and is available without Qt as `python -m PASS.validation beam.json --report validation-report.json`. See the [validation guide](docs/source/en/input_validation.rst) for rules and limits.
 
 ## Functionality
 
@@ -57,7 +57,8 @@ The run page selects one or two inputs and creates a fixed input snapshot before
 - element-by-element and Twiss-based tracking workflows;
 - configurable injection and multi-bunch beam distributions;
 - RF cavities, magnets, collective-effect interfaces, and beam monitors;
-- Python tools for generating JSON input files and analysing TFS/CSV output;
+- Python tools for generating JSON input files and analysing HDF5/TFS/CSV output;
+- [Table diagnostics](docs/source/en/monitor/table_output.rst) use `output_format="hdf5-gzip1"` by default (gzip-1 + shuffle), with `"hdf5"` (uncompressed) and `"tfs"` options; StatMonitor also writes CSV every 100 turns by default, configurable through `write_interval_turns`;
 - CPU and optional CUDA execution paths.
 
 

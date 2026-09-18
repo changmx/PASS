@@ -10,7 +10,6 @@ from types import SimpleNamespace
 from dataclasses import dataclass
 
 import numpy as np
-import pandas as pd
 import tfs
 from scipy.optimize import brentq
 from scipy.integrate import dblquad
@@ -20,10 +19,11 @@ from PASS.core.config import Config
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
-from PASS.core.particle import ParticlePool
+from PASS.core.particle import ParticlePool, convert_array
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
+from PASS.utils.table_io import normalize_output_format, read_table, table_path, write_table
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +243,7 @@ class Injection(Command):
 
     def _load_dist(self, inj_bunch, bunch_info, beam, use_cpu):
         path = Path(inj_bunch.load_dist_filepath)
-        df = tfs.read(path)
+        df = read_table(path)
         fields = ("x", "px", "y", "py", "z", "dp")
         values = df[list(fields)].to_numpy(dtype=float)
         start = 0 if inj_bunch.load_dist_mode == "repeat" else inj_bunch.file_start
@@ -913,26 +913,17 @@ class Injection(Command):
 
         output_dir = cfg.output_dir_dist
         file_name = f"{cfg.output_hms}_beam{self.beam_id}_bunch{inj_bunch.bunch_id}_{bunch_info.Np}_hor_{inj_bunch.dist_trans}_longi_{inj_bunch.dist_longi}_Dx_{inj_bunch.dx}_injection.tfs"
-        file_path = os.path.join(output_dir, file_name)
+        file_path = table_path(Path(output_dir) / file_name, inj_bunch.output_format)
         logger.info(f"Start saving initial distribution of beam{self.beam_id} bunch{inj_bunch.bunch_id} to: {file_path} ...")
 
         p = beam.particles
-        p_cpu = p.copy(np)
-
         start_index = bunch_info.start_idx
         end_index = bunch_info.end_idx
-
-        df = pd.DataFrame({
-            "x": p_cpu.x[start_index:end_index],
-            "px": p_cpu.px[start_index:end_index],
-            "y": p_cpu.y[start_index:end_index],
-            "py": p_cpu.py[start_index:end_index],
-            "z": p_cpu.z[start_index:end_index],
-            "dp": p_cpu.dp[start_index:end_index],
-            "tag": p_cpu.tag[start_index:end_index],
-            "lost_turn": p_cpu.lost_turn[start_index:end_index],
-            "lost_position": p_cpu.lost_position[start_index:end_index],
-        })
+        # A bunch snapshot needs neither other bunches nor a full host ParticlePool.
+        columns = {
+            name: convert_array(getattr(p, name)[start_index:end_index], np)
+            for name in ("x", "px", "y", "py", "z", "dp", "tag", "lost_turn", "lost_position")
+        }
 
         headers = {}
         headers["Name"] = "PASS Distribution Data"
@@ -965,8 +956,7 @@ class Injection(Command):
         headers["Turn"] = "Injection"
         headers["Time"] = get_current_time()
 
-        table = tfs.TfsDataFrame(df, headers=headers)
-        tfs.write(file_path, table)
+        write_table(file_path, columns, headers, output_format=inj_bunch.output_format)
 
         logger.info("Saving successfully")
 
@@ -1129,6 +1119,7 @@ class InjectionBunchInfo:
         if self.load_dist_mode not in {"sequential", "repeat"}:
             raise ValueError("Distribution File Mode must be sequential or repeat")
         self.is_save_init_dist = kwargs.get("is save initial distribution", True)
+        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self._saved_init_dist = False
 
         self.num_insert_particles = len(kwargs["insert particle coordinate"])

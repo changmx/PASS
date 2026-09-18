@@ -57,7 +57,7 @@ a stable angle. The precision-specific default is ``5e-17`` for float64 and
 Output
 ------
 
-One TFS file is written for each beam, bunch, monitor, and completed window in
+One HDF5 file (or TFS file when selected) is written for each beam, bunch, monitor, and completed window in
 the ``tuneSpread`` output directory. Rows remain separate by bunch and include
 lost particles. Columns are ``tag``, ``tuneXFractional``,
 ``tuneYFractional``, per-plane interval counts, ``validX/Y``, ``completeX/Y``,
@@ -67,3 +67,7 @@ accepted. Lost particles are never included in phase accumulation.
 
 Headers record the complete fixed optical reference, window endpoints,
 expected interval count, backend, precision, and ``PASSVersion``.
+
+``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
+Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for
+the HDF5 layout, compression and common reader.

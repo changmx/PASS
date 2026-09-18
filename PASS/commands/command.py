@@ -55,6 +55,9 @@ class Command(ABC):
         """
         pass
 
+    def finalize(self, sim):
+        """Flush buffered output after tracking or a handled interruption."""
+
     # future
     def execute_ad(self, sim):
         raise NotImplementedError

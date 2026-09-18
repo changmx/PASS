@@ -5,19 +5,16 @@ import json
 
 import numpy as np
 import pandas as pd
-import tfs
-import h5py
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from PASS.utils.table_io import find_table_files, read_table
+
 
 def read_snapshot(path):
-    if path.suffix == ".h5":
-        with h5py.File(path) as stream:
-            return pd.DataFrame({k: stream[k][:] for k in stream}), dict(stream.attrs)
-    frame = tfs.read(path)
+    frame = read_table(path)
     return pd.DataFrame(frame), dict(frame.headers)
 
 
@@ -97,7 +94,7 @@ def analyse(directory, output=None, max_points_per_batch=2500, beam_id=0, bunch_
     output = Path(output) if output else directory / "painting_plots"
     output.mkdir(parents=True, exist_ok=True)
     pattern = f"*_dist_beam{beam_id}_bunch{bunch_id}_*after_injection*"
-    paths = list(directory.rglob(pattern + ".h5")) + list(directory.rglob(pattern + ".tfs"))
+    paths = find_table_files(directory, pattern, recursive=True)
     if not paths:
         raise FileNotFoundError("No after_injection DistMonitor snapshots found")
     snapshots, ranges, counts, complete_snapshots = [], {}, [], []

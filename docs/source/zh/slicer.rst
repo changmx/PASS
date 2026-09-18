@@ -68,7 +68,7 @@ z 加名义槽位偏移不能给出严格的物理环位置。
 快照保存连续 z、参考时间、beta 和坐标
 定义；周期快照还保存 ``slice_coordinate``。密度单位是每米真实粒子数，不是 C/m。
 
-TFS 文件头 ``ZCoordinate="z_rel"`` 描述原始粒子 ``z`` 列，是输出元数据，
+输出元数据 ``ZCoordinate="z_rel"`` 描述原始粒子 ``z`` 列，是输出元数据，
 不是输入选项，也不是默认值赋值。``Coordinate`` 标识所选切片投影；
 ``CoordinateDefinition="z=beta*c*(T-t)"``、``ReferenceArrivalTime``（秒）和
 ``ReferenceBeta`` 定义原始粒子坐标。到达相位快照还保存 ``ObservationTime``
@@ -214,8 +214,8 @@ SliceSet 数据
 ``Save turns`` 是可选的命令级参数，不属于共享 ``SliceSet`` 的配置。每项为
 ``[turn]`` 或 ``[start, end, step]``，两端均包含。切片器每圈仍会计算，只有被
 选中的圈数才写出文件。每次保存会在 ``output/.../slice/`` 中写出同一时刻的粒子
-TFS 文件（``tag``、``z``、``slice_id`` 和损失信息）与逐切片 TFS 汇总。两个文件的
-header 都记录圈数、位置、Beam、Bunch、切片集合、模型和坐标约定。
+HDF5 文件（可选 TFS，含 ``tag``、``z``、``slice_id`` 和损失信息）与逐切片 TFS 汇总，
+汇总另保存一份 CSV。粒子文件与 TFS 汇总的元数据 都记录圈数、位置、Beam、Bunch、切片集合、模型和坐标约定。
 
 超过总圈数的结束圈会截断到最后一圈并记录 warning；起始圈大于等于总圈数的范围会
 被忽略并记录 warning。负起始圈也会截断，同时保持原始 ``start + k*step`` 的选圈
@@ -400,3 +400,8 @@ SliceSet 运行时接口
 ~~~~~~~~
 
 在束流初始化阶段，引用同一个 ``Slice set`` 的多个 ``Slicer`` 命令必须具有完全一致的 ``Slice model``、``Number of slices``、范围模式及（显式模式下的）显式参数块。配置冲突会抛出 ``ValueError``，并指出两个相关的序列命令。执行时，如果显式范围不能覆盖全部存活粒子，会记录 warning；超出范围的粒子会被限制到第一个或最后一个切片。
+
+``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``
+（gzip-1 + shuffle），也支持 ``"hdf5"``（不压缩）和 ``"tfs"``。
+此选项只影响逐粒子信息，切片汇总仍保存为 TFS 和 CSV。
+HDF5 结构和读取方式见 :doc:`monitor/table_output`。

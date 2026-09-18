@@ -211,3 +211,12 @@ whereas PASS tracks mechanical momentum deviation.
 ### Physical-time RF and slices
 
 RF conversion now writes `rf_physical_time.tfs` with TIME, VOLTAGE, FREQUENCY and PHASE columns. The RF phase integrates the prescribed carrier frequency and adds the unwrapped phase modulation. The initial cavity passage and the common waveform epoch are distinct. PASS stores `z = beta*c*(T-t)` and samples `t = T-z/(beta*c)`; nominal bunch slots do not supply arrival corrections. SC requires the latest explicit `z_periodic` slices, formed by temporarily folding z into `[-C/2,C/2)` without changing particle coordinates. RF does not rescale saved slice intervals or automatically run Slicer.
+
+Diagnostic tables now default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
+accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
+monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
+Set `output_format="hdf5"` to write uncompressed HDF5; the default
+`output_format="hdf5-gzip1"` enables gzip level 1 and shuffle. Both use `.h5` files.
+StatMonitor also writes every recorded row to CSV in batches of 100 turns
+by default, configurable with `write_interval_turns`. Slicer slice summaries
+remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).

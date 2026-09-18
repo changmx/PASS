@@ -26,6 +26,7 @@ os.environ.setdefault("CUPY_CACHE_IN_MEMORY", "1")
 from PASS import __version__
 from PASS.commands.command import Command
 from PASS.utils.helper import get_current_time
+from PASS.utils.table_io import normalize_output_format, table_path, write_table
 from PASS.utils.coordinates import resolve_slice_coordinate
 from PASS.utils.logger import set_simple_logging, set_normal_logging
 
@@ -383,7 +384,7 @@ class Slicer(Command):
         Contains ``z min`` and ``z max`` for explicit mode.
     ``save turns``
         Optional turn selections, each ``[turn]`` or ``[start, end, step]``.
-        Selected executions write a particle-to-slice TFS snapshot and a
+        Selected executions write an HDF5 or TFS particle snapshot and a
         per-slice TFS summary.
 
     The last five options are registered at beam initialization and are not
@@ -397,6 +398,7 @@ class Slicer(Command):
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.slice_set_name = str(kwargs["slice set"]).strip()
         if not self.slice_set_name:
             raise ValueError("Slicer requires a non-empty 'slice set' name")
@@ -808,6 +810,7 @@ class Slicer(Command):
         start, end = int(bunch.start_idx), int(bunch.end_idx)
         p = beam.particles
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        tags = _as_host(p.tag[start:end])
 
         common_headers = {
             "Name": "PASS Slicer Snapshot",
@@ -823,7 +826,7 @@ class Slicer(Command):
             "BunchId": int(bunch.bunch_id),
             "HarmonicId": int(bunch.harmonic_id),
             "NumSlices": slice_set.num_slices,
-            "NumAlive": int(np.count_nonzero(_as_host(p.tag[start:end]) > 0)),
+            "NumAlive": int(np.count_nonzero(tags > 0)),
             "ZCoordinate": "z_rel",
             "ReferenceArrivalTime": float(bunch.t0),
             "ReferenceBeta": float(bunch.beta),
@@ -845,16 +848,16 @@ class Slicer(Command):
             common_headers["ObservationTime"] = float(slice_set.observation_time)
             common_headers["ObservationVelocity"] = float(slice_set.observation_velocity)
             common_headers["SliceCoordinateDefinition"] = "z_slice=-C*((v_obs*(t-T_obs)/C)%1)"
-        particle_df = pd.DataFrame({
-            "tag": _as_host(p.tag[start:end]),
+        particle_columns = {
+            "tag": tags,
             "z": _as_host(p.z[start:end]),
             "slice_id": _as_host(slice_set.slice_id),
             "lost_turn": _as_host(p.lost_turn[start:end]),
             "lost_position": _as_host(p.lost_position[start:end]),
-        })
+        }
         if slice_set.coordinate != "z_rel":
             local = (slice_set._periodic_coordinate if slice_set.periodic else slice_set._ring_coordinate)
-            particle_df["slice_coordinate"] = _as_host(local)
+            particle_columns["slice_coordinate"] = _as_host(local)
 
         safe_command = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(self.cmd_name)).strip("_")
         safe_set = re.sub(r"[^A-Za-z0-9_.-]+", "_", slice_set.name).strip("_")
@@ -862,11 +865,14 @@ class Slicer(Command):
         safe_set = safe_set or "slice_set"
         stem = (f"{sim.cfg.output_hms}_slice_beam{self.beam_id}_bunch{int(bunch.bunch_id)}"
                 f"_{safe_command}_{safe_set}_s_{self.s:.4f}_turn_{turn}")
-        tfs.write(
-            str(self.output_dir / f"{stem}_particles.tfs"),
-            tfs.TfsDataFrame(particle_df, headers=common_headers),
+        particle_path = table_path(self.output_dir / f"{stem}_particles.tfs", self.output_format)
+        write_table(
+            particle_path,
+            particle_columns,
+            common_headers,
             colwidth=25,
             headerswidth=25,
+            output_format=self.output_format,
         )
 
         table = slice_set.slice_table
@@ -899,8 +905,7 @@ class Slicer(Command):
             colwidth=25,
             headerswidth=25,
         )
-        logger.info(f"Slicer '{self.cmd_name}': saved "
-                    f"{self.output_dir / f'{stem}_particles.tfs'}")
+        logger.info(f"Slicer '{self.cmd_name}': saved {particle_path}")
 
     def print(self):
         set_simple_logging()

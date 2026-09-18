@@ -1,6 +1,6 @@
 """Analyze PASS element-by-element tracking output.
 
-Reads TBT (turn-by-turn) particle monitor TFS files, extracts tunes via FFT,
+Reads TBT (turn-by-turn) particle monitor HDF5/TFS files, extracts tunes via FFT,
 fits chromaticity from dp scan, and compares with MADX reference values.
 
 Usage:
@@ -22,7 +22,8 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-import tfs
+
+from PASS.utils.table_io import find_table_files, read_table
 
 # ============================================================
 # Constants: particle group definitions
@@ -61,7 +62,7 @@ def find_latest_output(script_dir: Path) -> Path | None:
 
 
 def read_tbt_data(output_dir: Path, max_tag: int = 17) -> dict:
-    """Read all particle monitor TFS files from output directory.
+    """Read all particle monitor HDF5/TFS files from output directory.
 
     Returns:
         {tag: {"x": array, "px": array, "y": array, "py": array,
@@ -71,20 +72,20 @@ def read_tbt_data(output_dir: Path, max_tag: int = 17) -> dict:
     if not particle_dir.exists():
         raise FileNotFoundError(f"Particle directory not found: {particle_dir}")
 
-    # Find all TFS files
-    tfs_files = sorted(particle_dir.glob("*_beam*_tag*.tfs"))
-    if not tfs_files:
-        raise FileNotFoundError(f"No particle TFS files found in {particle_dir}")
+    # Find all particle tables
+    table_files = sorted(find_table_files(particle_dir, "*_beam*_tag*"))
+    if not table_files:
+        raise FileNotFoundError(f"No particle HDF5/TFS files found in {particle_dir}")
 
     data = {}
-    for f in tfs_files:
+    for f in table_files:
         # Extract tag from filename: ..._tagN.tfs or ..._tag_N.tfs
         tag_str = f.stem.split("_tag")[-1].lstrip("_")
         tag = int(tag_str)
         if tag > max_tag:
             continue
 
-        df = tfs.read(str(f))
+        df = read_table(str(f))
         data[tag] = {
             "turn": df["turn"].to_numpy(),
             "x": df["x"].to_numpy(),
@@ -465,7 +466,7 @@ def main():
     # Read MADX reference
     twiss_file = script_dir / args.twiss
     if twiss_file.exists():
-        df = tfs.read(str(twiss_file))
+        df = read_table(str(twiss_file))
         madx_ref = {
             "q1": df.headers["Q1"],
             "q2": df.headers["Q2"],
@@ -476,7 +477,7 @@ def main():
         # which has DX=0 at s=0 due to PTC output convention)
         twiss_std = script_dir / "fodo.tfs"
         if twiss_std.exists():
-            df_std = tfs.read(str(twiss_std))
+            df_std = read_table(str(twiss_std))
             s_col = df_std["S"].to_numpy()
             idx_s0 = np.argmin(np.abs(s_col))
             madx_ref["dx"] = float(df_std.loc[idx_s0, "DX"])

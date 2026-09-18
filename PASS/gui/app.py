@@ -120,7 +120,7 @@ ENUM_OPTIONS = {
     "Coordinate": ("z_rel", "z_periodic", "arrival_phase"),
     "Time mode": ("reference", "particle"),
     "Distribution File Mode": ("sequential", "repeat"),
-    "Output format": ("tfs", "hdf5"),
+    "Output format": ("hdf5-gzip1", "hdf5", "tfs"),
 }
 
 TIMING_MODE_OPTIONS = ("off", "turn", "command", "synchronized-command")

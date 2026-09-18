@@ -7,15 +7,15 @@ import re
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
-import tfs
 
 from PASS import __version__
 from PASS.commands.command import Command
 from PASS.core.beam import Beam
 from PASS.core.config import Config
+from PASS.core.particle import convert_array
 from PASS.core.simulation import Simulation
 from PASS.utils.helper import get_current_time
+from PASS.utils.table_io import normalize_output_format, table_path, write_table
 from PASS.utils.logger import set_normal_logging, set_simple_logging
 
 logger = logging.getLogger(__name__)
@@ -55,9 +55,7 @@ class DistMonitor(Command):
         self.cmd_type = self.__class__.__name__
         self.cmd_name = str(kwargs["name"])
         self.include_injection_metadata = kwargs.get("include injection metadata", False)
-        self.output_format = kwargs.get("output format", "tfs")
-        if self.output_format not in {"tfs", "hdf5"}:
-            raise ValueError("DistMonitor Output format must be tfs or hdf5")
+        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
 
         cfg: Config = sim.cfg
         self.num_turn = int(cfg.num_turn)
@@ -134,10 +132,6 @@ class DistMonitor(Command):
 
         beam: Beam = sim.beams[self.beam_id]
         p = beam.particles
-        if backend == "gpu":
-            # File I/O is host-side.  Copy only fields in the output schema.
-            p = p.copy(np, fields=list(_DATA_FIELDS))
-
         for bunch in beam.bunches:
             self._save_bunch(sim, beam, bunch, p, turn, backend)
         return True
@@ -145,17 +139,19 @@ class DistMonitor(Command):
     def _save_bunch(self, sim, beam, bunch, p, turn: int, backend: str):
         start = int(bunch.start_idx)
         end = int(bunch.end_idx)
-        df = pd.DataFrame({field: getattr(p, field)[start:end] for field in _DATA_FIELDS})
-        pending = int(np.count_nonzero(np.asarray(df["tag"]) == 0))
-        df = df.loc[df["tag"] != 0].reset_index(drop=True)
+        # Bound host copies to this bunch; HDF5 writes the column arrays directly.
+        columns = {field: convert_array(getattr(p, field)[start:end], np) for field in _DATA_FIELDS}
+        born = columns["tag"] != 0
+        pending = len(born) - int(np.count_nonzero(born))
+        if pending:
+            columns = {name: values[born] for name, values in columns.items()}
         if self.include_injection_metadata:
             injection = getattr(beam, "injection_state", None)
             if injection is None:
                 raise ValueError("DistMonitor injection metadata requires the beam's Injection state")
-            for name, values in injection.snapshot(df["tag"].to_numpy()).items():
-                df[name] = values
+            columns.update(injection.snapshot(columns["tag"]))
 
-        tags = np.asarray(df["tag"])
+        tags = columns["tag"]
         headers = {
             "Name": "PASS Distribution Data",
             "Command": self.cmd_type,
@@ -167,7 +163,7 @@ class DistMonitor(Command):
             "HarmonicId": int(bunch.harmonic_id),
             "HarmonicNumber": int(bunch.harmonic_number),
             "Turn": turn,
-            "NumParticles": len(df),
+            "NumParticles": len(tags),
             "NumAlive": int(np.count_nonzero(tags > 0)),
             "NumLost": int(np.count_nonzero(tags < 0)),
             "NumPending": pending,
@@ -191,17 +187,6 @@ class DistMonitor(Command):
         filename = (f"{self.output_hms}_dist_beam{self.beam_id}"
                     f"_bunch{int(bunch.bunch_id)}_Np_{int(bunch.Np)}"
                     f"_s_{self.s:.4f}_{safe_name}_turn_{turn}.tfs")
-        filepath = self.output_dir / filename
-        if self.output_format == "hdf5":
-            import h5py
-            filepath = filepath.with_suffix(".h5")
-            with h5py.File(filepath, "w") as stream:
-                for key, value in headers.items():
-                    stream.attrs[key] = value
-                for field in df.columns:
-                    stream.create_dataset(field, data=df[field].to_numpy(), compression="gzip", compression_opts=1)
-            logger.info("DistMonitor '%s': saved %s", self.cmd_name, filepath)
-            return
-        table = tfs.TfsDataFrame(df, headers=headers)
-        tfs.write(str(filepath), table, colwidth=25, headerswidth=25)
+        filepath = table_path(self.output_dir / filename, self.output_format)
+        write_table(filepath, columns, headers, colwidth=25, headerswidth=25, output_format=self.output_format)
         logger.info(f"DistMonitor '{self.cmd_name}': saved {filepath}")

@@ -3,11 +3,9 @@ from __future__ import annotations
 from functools import lru_cache
 import logging
 from pathlib import Path
-import os
 
 import numpy as np
 import pandas as pd
-import tfs
 
 from PASS.commands.command import Command
 from PASS.core.config import Config
@@ -18,6 +16,7 @@ from PASS.core.state import SimulationState
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
+from PASS.utils.table_io import normalize_output_format, table_path, write_table
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +35,10 @@ class ParticleMonitor(Command):
 
     A pre-allocated buffer ``(max_tag, num_record_turns, NCOLS)`` is filled
     each turn.  At the end of the simulation, each particle's TBT data is
-    written to a separate TFS file.
+    written to a separate HDF5 (default) or TFS file.
 
     File naming:
-        {hms}_particle_beam{bid}_{monitor_name}_s_{s:.3f}_tag_{tag}.tfs
+        {hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.{h5|tfs}
     """
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
@@ -49,6 +48,7 @@ class ParticleMonitor(Command):
         self.s = kwargs["s (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.include_reference: bool = kwargs.get("include reference", False)
         self._column_names = (
             "turn",
@@ -202,9 +202,9 @@ class ParticleMonitor(Command):
                     self._record_one_turn(beam.particles, bunch, turn)
                 did_execute = True
 
-        # Write TFS files on the last recorded turn
+        # Write tables on the last recorded turn.
         if turn == self.end_turn - 1:
-            self._write_tfs(sim)
+            self._write_tables(sim)
             did_execute = self.max_tag >= 1 or did_execute
 
         return did_execute
@@ -217,7 +217,7 @@ class ParticleMonitor(Command):
 
         # Record within [start_turn, end_turn)
         # GPU: buffer stays on GPU, write directly from GPU arrays
-        # No per-turn D2H copy; only one D2H copy at the end (_write_tfs)
+        # No per-turn D2H copy; only one D2H copy at the end (_write_tables).
         did_execute = False
         if self.max_tag >= 1 and self.num_record_turn > 0:
             if self.start_turn <= turn < self.end_turn:
@@ -225,15 +225,15 @@ class ParticleMonitor(Command):
                     self._record_one_turn(beam.particles, bunch, turn)
                 did_execute = True
 
-        # Write TFS files on the last recorded turn (single D2H transfer)
+        # Write tables on the last recorded turn (single D2H transfer).
         if turn == self.end_turn - 1:
-            self._write_tfs(sim)
+            self._write_tables(sim)
             did_execute = self.max_tag >= 1 or did_execute
 
         return did_execute
 
-    def _write_tfs(self, sim: Simulation):
-        """Write each particle's TBT data to a separate TFS file."""
+    def _write_tables(self, sim: Simulation):
+        """Write each particle's TBT data to a separate diagnostic table."""
         if self.max_tag < 1:
             return
 
@@ -256,7 +256,7 @@ class ParticleMonitor(Command):
 
             df = pd.DataFrame(df_data)
 
-            # TFS headers
+            # Shared metadata for HDF5 attributes and TFS headers.
             headers = {
                 "Name": "PASS Particle Monitor",
                 "Time": get_current_time(),
@@ -273,12 +273,10 @@ class ParticleMonitor(Command):
                 headers["ReferenceEvent"] = "element-exit"
                 headers["ReferenceAppliesTo"] = "live particles only; NaN for loss records"
 
-            table = tfs.TfsDataFrame(df, headers=headers)
-
             filename = (f"{self.output_hms}_beam{self.beam_id}"
                         f"_{self.cmd_name}_s{self.s:.3f}_tag{tag_val}.tfs")
-            filepath = os.path.join(output_dir, filename)
-            tfs.write(filepath, table, colwidth=25, headerswidth=25)
+            filepath = table_path(Path(output_dir) / filename, self.output_format)
+            write_table(filepath, df, headers, colwidth=25, headerswidth=25, output_format=self.output_format)
 
         set_simple_logging()
         logger.info(f"ParticleMonitor '{self.cmd_name}': "

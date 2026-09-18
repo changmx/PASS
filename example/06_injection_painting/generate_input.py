@@ -193,7 +193,7 @@ def build(source,
     selected_turns = sorted(set([0, 1] + list(range(4, batch_count, 5)) + [batch_count - 1, batch_count, 72, turns - 1]))
     selected_turns = [[t] for t in selected_turns if 0 <= t < turns]
     if snapshots:
-        seq.add("after_injection", DistMonitorItem(s=0., save_turns=selected_turns, include_injection_metadata=True, output_format="hdf5"))
+        seq.add("after_injection", DistMonitorItem(s=0., save_turns=selected_turns, include_injection_metadata=True, output_format="hdf5-gzip1"))
     sc_on = stage == "pic"
     resource = definitions["sc01"][1]
     if sc_on:

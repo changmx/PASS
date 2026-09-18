@@ -14,7 +14,7 @@ Introduction
   - Supports setting a recorded turn range ``[start_turn, end_turn)``, without needing to start tracking from turn 0;
   - Pre-allocates buffer ``(max_tag, num_record_turn, num_columns)``, avoiding runtime dynamic allocation;
   - Records 11 columns per turn by default: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter; ``Include reference`` adds three optional reference columns;
-  - After simulation, each particle is written to a separate TFS file;
+  - After simulation, each particle is written to a separate HDF5 file (or TFS file when selected);
   - Filenames include the monitor name and longitudinal position (3 decimal places), supporting multi-position deployment;
   - CPU uses numpy, GPU uses cupy, with the buffer residing on GPU throughout; only a single D2H copy is performed at the end;
 
@@ -151,12 +151,12 @@ Interface Parameters
 Output Files
 ------------
 
-Each particle generates an independent TFS file:
+Each particle generates an independent HDF5 file by default:
 
-- **Filename**: ``{hms}_particle_beam{bid}_{monitor_name}_s_{s:.3f}_tag_{tag}.tfs``
+- **Filename**: ``{hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.h5``
 - **Output directory**: ``output_dir_particle``
 
-TFS file header:
+Metadata (HDF5 attributes, or TFS headers in text mode):
 
 ::
 
@@ -286,7 +286,7 @@ The above configuration inserts 3 test particles:
 - ``tag = 2``: :math:`y = 1` mm vertical offset particle, for vertical tune measurement
 - ``tag = 3``: :math:`\delta = 10^{-3}` momentum offset particle, for dispersion and chromaticity measurement
 
-After simulation, 3 TFS files are generated in the ``output_dir_particle`` directory, each containing the 6D coordinates of that particle for all recorded turns.
+After simulation, 3 HDF5 files by default are generated in the ``output_dir_particle`` directory, each containing the 6D coordinates of that particle for all recorded turns.
 
 Delayed Recording
 ~~~~~~~~~~~~~~~~~
@@ -303,7 +303,7 @@ The following configuration does not record for the first 200 turns (to let the 
        "End turn": 1000
    }
 
-The buffer size is allocated for :math:`1000 - 200 = 800` turns, and the ``turn`` column in the output TFS file starts from 200.
+The buffer size is allocated for :math:`1000 - 200 = 800` turns, and the ``turn`` column in the output table starts from 200.
 
 Multi-position Monitoring
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -334,3 +334,7 @@ Application Scenarios
 - **Slip-factor measurement**: Record the bunch-relative coordinate :math:`z_{\mathrm{rel}}` of a momentum-offset particle turn-by-turn. For comparisons across bunches or after regrouping, enable ``Include reference`` and use the saved referenceTime and referenceBeta to reconstruct physical arrival times
 - **Closed orbit verification**: The TBT coordinates of an initially un-offset particle should remain unchanged, verifying closed orbit stability
 - **Particle loss tracking**: Locate the time and position of particle loss through ``tag`` sign changes and ``lostTurn`` / ``lostPosition``
+
+``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
+Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for
+the HDF5 layout, compression and common reader.

@@ -17,8 +17,9 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-import tfs
 from cpymad.madx import Madx
+
+from PASS.utils.table_io import find_table_files, read_table
 
 # ============================================================
 # Constants
@@ -167,7 +168,7 @@ def find_latest_output(script_dir):
 
 
 def read_pass_tbt(output_dir, max_tag=17):
-    """Read PASS ParticleMonitor TFS files.
+    """Read PASS ParticleMonitor HDF5/TFS files.
 
     Returns:
         {tag: {"turn": array, "x": array, "px": array,
@@ -177,18 +178,18 @@ def read_pass_tbt(output_dir, max_tag=17):
     if not particle_dir.exists():
         raise FileNotFoundError(f"Particle directory not found: {particle_dir}")
 
-    tfs_files = sorted(particle_dir.glob("*_beam*_tag*.tfs"))
-    if not tfs_files:
-        raise FileNotFoundError(f"No particle TFS files found in {particle_dir}")
+    table_files = sorted(find_table_files(particle_dir, "*_beam*_tag*"))
+    if not table_files:
+        raise FileNotFoundError(f"No particle HDF5/TFS files found in {particle_dir}")
 
     data = {}
-    for f in tfs_files:
+    for f in table_files:
         tag_str = f.stem.split("_tag")[-1].lstrip("_")
         tag = int(tag_str)
         if tag > max_tag:
             continue
 
-        df = tfs.read(str(f))
+        df = read_table(str(f))
         data[tag] = {
             "turn": df["turn"].to_numpy(),
             "x": df["x"].to_numpy(),

@@ -76,7 +76,7 @@ The following script generates a complete input file containing injection + smoo
    from PASS.para.schema.main import MainConfig
    from PASS.para.schema.bunch import BunchConfig, InjectionItem
    from PASS.para.schema.sequence import Sequence
-   from PASS.para.schema.monitors import StatMonitor
+   from PASS.para.schema.monitors import StatMonitorItem
    from PASS.para.smooth import generate_smooth_twiss
 
    # 1. Global parameters
@@ -111,7 +111,7 @@ The following script generates a complete input file containing injection + smoo
    seq.add("injection", InjectionItem(s=0.0, random_seed=2026, bunches=[bunch]))
    for i, item in enumerate(items):
        seq.add(f"twiss_{i:04d}", item)
-   seq.add("stat1", StatMonitor(s=0.0))
+   seq.add("stat1", StatMonitorItem(s=0.0))
 
    # 4. Generate JSON
    generate_input(main, seq, "beam0.json")
@@ -390,7 +390,7 @@ Sequence (Sequence Container)
    seq = Sequence()
    seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
    seq.add("qd1", QuadrupoleItem(s=1.0, k1l=0.2, length=0.5))
-   seq.add("stat1", StatMonitor(s=0.0))
+   seq.add("stat1", StatMonitorItem(s=0.0))
 
 Supported sequence item types:
 

@@ -153,3 +153,12 @@ python analyze_results.py
 ```
 
 Plots are displayed interactively via `plt.show()` (not saved to disk).
+
+Diagnostic tables now default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
+accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
+monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
+Set `output_format="hdf5"` to write uncompressed HDF5; the default
+`output_format="hdf5-gzip1"` enables gzip level 1 and shuffle. Both use `.h5` files.
+StatMonitor also writes every recorded row to CSV in batches of 100 turns
+by default, configurable with `write_interval_turns`. Slicer slice summaries
+remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).

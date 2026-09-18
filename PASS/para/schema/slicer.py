@@ -1,5 +1,7 @@
 """Schema for the longitudinal :class:`PASS.commands.slicer.Slicer` command."""
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 from PASS.utils.coordinates import resolve_slice_coordinate
@@ -12,6 +14,9 @@ class SlicerItem(BaseModel):
 
     s: float = Field(alias="S (m)")
     command: str = Field(default="Slicer", alias="Command")
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1",
+                                                                alias="Output format",
+                                                                description="Particle details only; slice summaries remain TFS/CSV")
     slice_set: str = Field(alias="Slice set")
     slice_model: str = Field(default="equal_length", alias="Slice model")
     num_slices: int = Field(default=10, ge=1, alias="Number of slices")

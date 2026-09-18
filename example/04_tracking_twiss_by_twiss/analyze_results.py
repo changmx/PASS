@@ -16,7 +16,8 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-import tfs as tfs_lib
+
+from PASS.utils.table_io import find_table_files, read_table
 
 # ============================================================
 # Read expected values from TFS
@@ -26,8 +27,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 TFS_FILE = str(SCRIPT_DIR / "fodo.tfs")
 TFS_NATURAL = str(SCRIPT_DIR / "fodo_natural.tfs")
 
-_tfs = tfs_lib.read(TFS_FILE)
-_nat = tfs_lib.read(TFS_NATURAL)
+_tfs = read_table(TFS_FILE)
+_nat = read_table(TFS_NATURAL)
 
 # Tunes (fractional)
 QX_EXPECTED = _tfs.headers["Q1"] % 1
@@ -170,23 +171,23 @@ def find_latest_output(script_dir):
 
 
 def read_pass_tbt(output_dir, max_tag=12):
-    """Read PASS ParticleMonitor TFS files."""
+    """Read PASS ParticleMonitor HDF5/TFS files."""
     particle_dir = output_dir / "particle"
     if not particle_dir.exists():
         raise FileNotFoundError(f"Particle directory not found: {particle_dir}")
 
-    tfs_files = sorted(particle_dir.glob("*_beam*_tag*.tfs"))
-    if not tfs_files:
-        raise FileNotFoundError(f"No particle TFS files found in {particle_dir}")
+    table_files = sorted(find_table_files(particle_dir, "*_beam*_tag*"))
+    if not table_files:
+        raise FileNotFoundError(f"No particle HDF5/TFS files found in {particle_dir}")
 
     data = {}
-    for f in tfs_files:
+    for f in table_files:
         tag_str = f.stem.split("_tag")[-1].lstrip("_")
         tag = int(tag_str)
         if tag > max_tag:
             continue
 
-        df = tfs_lib.read(str(f))
+        df = read_table(str(f))
         data[tag] = {
             "turn": df["turn"].to_numpy(),
             "x": df["x"].to_numpy(),

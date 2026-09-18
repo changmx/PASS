@@ -10,8 +10,6 @@ from pathlib import Path
 import re
 
 import numpy as np
-import pandas as pd
-import tfs
 
 from PASS import __version__
 from PASS.commands.command import Command
@@ -20,6 +18,7 @@ from PASS.core.config import Config
 from PASS.core.simulation import Simulation
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
+from PASS.utils.table_io import normalize_output_format, table_path, write_table
 from PASS.utils.logger import set_normal_logging, set_simple_logging
 
 logger = logging.getLogger(__name__)
@@ -74,6 +73,7 @@ class PhaseAdvanceMonitor(Command):
         self.s = float(kwargs["s (m)"])
         self.cmd_type = self.__class__.__name__
         self.cmd_name = str(kwargs["name"])
+        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.enable = bool(kwargs.get("enable", True))
 
         self.beta_x = float(kwargs["beta x (m)"])
@@ -401,7 +401,7 @@ class PhaseAdvanceMonitor(Command):
         valid_y = alive & has_y
         complete_x = alive & (count_x == expected)
         complete_y = alive & (count_y == expected)
-        df = pd.DataFrame({
+        columns = {
             "tag": tags,
             "tuneXFractional": tune_x,
             "tuneYFractional": tune_y,
@@ -413,7 +413,7 @@ class PhaseAdvanceMonitor(Command):
             "completeY": complete_y,
             "lostTurn": lost_turn,
             "lostPosition": lost_position,
-        })
+        }
         headers = {
             "Name": "PASS Phase Advance Tune Data",
             "Command": self.cmd_type,
@@ -448,8 +448,8 @@ class PhaseAdvanceMonitor(Command):
         filename = (f"{self.output_hms}_tune_beam{self.beam_id}_bunch{int(bunch.bunch_id)}"
                     f"_Np_{int(bunch.Np)}_s_{self.s:.4f}_{safe_name}"
                     f"_turn_{spec.start}_{spec.end}.tfs")
-        filepath = self.output_dir / filename
-        tfs.write(str(filepath), tfs.TfsDataFrame(df, headers=headers))
+        filepath = table_path(self.output_dir / filename, self.output_format)
+        write_table(filepath, columns, headers, output_format=self.output_format)
         logger.info("PhaseAdvanceMonitor '%s': saved %s", self.cmd_name, filepath)
 
 

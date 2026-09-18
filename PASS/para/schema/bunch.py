@@ -167,6 +167,9 @@ class BunchConfig(BaseModel):
         default=False,
         alias="Is Save Initial Distribution",
     )
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1",
+                                                                alias="Output format",
+                                                                description="Initial distribution output format")
     insert_particle: list[list[float]] = Field(
         default_factory=list,
         alias="Insert Particle Coordinate",

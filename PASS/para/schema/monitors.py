@@ -5,7 +5,7 @@ Consumed by PASS.commands.monitor.* via Command.create(**kwargs).
 
 from typing import Literal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, StrictInt
 
 
 class StatMonitorItem(BaseModel):
@@ -15,12 +15,14 @@ class StatMonitorItem(BaseModel):
 
     s: float = Field(alias="S (m)")
     command: str = Field(default="StatMonitor", alias="Command")
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
+    write_interval_turns: StrictInt = Field(default=100, ge=1, alias="Write interval (turns)")
 
 
 class DistMonitorItem(BaseModel):
     """Distribution monitor: saves full particle distribution at specified turns."""
     include_injection_metadata: bool = Field(default=False, alias="Include injection metadata")
-    output_format: Literal["tfs", "hdf5"] = Field(default="tfs", alias="Output format")
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -41,6 +43,7 @@ class PhaseAdvanceMonitorItem(BaseModel):
 
     s: float = Field(alias="S (m)")
     command: str = Field(default="PhaseAdvanceMonitor", alias="Command")
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
     enable: bool = Field(default=True, alias="Enable")
     beta_x: float = Field(alias="Beta x (m)")
     beta_y: float = Field(alias="Beta y (m)")
@@ -69,7 +72,7 @@ class ParticleMonitorItem(BaseModel):
 
     Records particles with 1 <= |tag| <= max_tag every turn (within
     [start_turn, end_turn)) at the monitor's s-position.
-    Each particle's TBT data is saved to a separate TFS file at the
+    Each particle's TBT data is saved to a separate HDF5 or TFS file at the
     end of the simulation.
     """
 
@@ -77,6 +80,7 @@ class ParticleMonitorItem(BaseModel):
 
     s: float = Field(alias="S (m)")
     command: str = Field(default="ParticleMonitor", alias="Command")
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
     include_reference: bool = Field(
         default=False,
         alias="Include reference",

@@ -3,13 +3,13 @@ from pathlib import Path
 import logging
 
 import numpy as np
-import tfs
 
 from PASS.plot.plot_distribution import plot_distribution
 from PASS.core.simulation import Simulation
 from PASS.core.bunch import BunchInfo
 from PASS.core.beam import Beam
 from PASS.core.config import Config
+from PASS.utils.table_io import find_table_files, read_table
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def plot_main(sim: Simulation):
     Path(output_dir_plot).mkdir(parents=True, exist_ok=True)
 
     # 1. Plot distribution
-    dist_all_path = list_files(cfg.output_dir_dist)
+    dist_all_path = [str(path) for path in find_table_files(cfg.output_dir_dist)]
 
     for dist_path in dist_all_path:
         logger.info(f"Plotting distribution: {dist_path}")
@@ -36,7 +36,7 @@ def plot_main(sim: Simulation):
                               is_plot_bucket=False,
                               save_dir=output_dir_plot)
         else:
-            df = tfs.read(dist_path)
+            df = read_table(dist_path)
             headers = df.headers
 
             if headers["Longi type"] in ("gaussian", "coasting"):

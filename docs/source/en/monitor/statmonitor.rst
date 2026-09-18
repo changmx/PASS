@@ -14,7 +14,7 @@ Introduction
   - Derives emittance and Twiss parameters (beta, alpha, gamma) from second-order moments;
   - Records beam loss count and loss percentage;
   - CPU uses numpy vectorized computation, GPU uses CUDA kernel functions + warp reduction;
-  - Appends data to CSV each turn, converts to TFS format uniformly on the final turn;
+  - Appends every turn's data to HDF5 and CSV in batches (100 turns by default);
   - Only surviving particles (``tag > 0``) are counted; lost particles are excluded.
 
 
@@ -125,7 +125,18 @@ where :math:`N_{\text{total}}` is the initial number of macro particles in the b
 GPU Implementation
 ~~~~~~~~~~~~~~~~~~
 
-The GPU version uses the CUDA kernel function ``calc_all_stats``, employing a grid stride loop to traverse particles. Each thread accumulates 22 statistics in registers, then through warp reduction (``__shfl_down_sync``) and block reduction, writes the global result via ``atomicAdd``. The maximum number of blocks is 512 (due to ``atomicAdd`` contention overhead).
+The GPU version uses ``calc_all_stats`` for two centered passes over the particles.
+Each thread accumulates 23 moment sums and the live/injected particle counts in
+FP64 registers. Warp reduction (``__shfl_down_sync``) and block reduction combine
+these values before ``atomicAdd`` writes the global result. The maximum number
+of blocks is 512 to limit atomic contention. The centering values and counts
+remain on the GPU between passes.
+
+Each turn's results are stored in a preallocated GPU buffer. At the configured
+write interval, all pending records from every bunch are transferred to the CPU
+in one copy. The existing scalar formulas then produce emittance, Twiss parameters
+and the other output columns for each record. Reference time, beta and momentum
+are already CPU values and are saved separately for every turn on the CPU.
 
 
 Interface Parameters
@@ -156,9 +167,20 @@ Interface Parameters
     - ``"StatMonitor"``
     - Command type identifier
 
+  * - ``output_format``
+    - ``"Output format"``
+    - str
+    - ``"hdf5-gzip1"``
+    - ``"hdf5-gzip1"`` (gzip-1 + shuffle), ``"hdf5"`` (uncompressed), or ``"tfs"``; CSV is always provided
+  * - ``write_interval_turns``
+    - ``"Write interval (turns)"``
+    - positive int
+    - 100
+    - Batch write interval in turns; all intervening rows are retained
+
 .. note::
 
-  ``StatMonitor`` has no additional configuration parameters. The statistics target all surviving particles in the bunch at that position (``tag > 0``); no particle indices need to be specified.
+  The statistics target all surviving particles in the bunch at that position (``tag > 0``); no particle indices need to be specified.
 
 
 Output Files
@@ -166,19 +188,20 @@ Output Files
 
 A pair of files is generated for each bunch at each monitor position:
 
-- **CSV** (appended turn-by-turn): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv``
-- **TFS** (converted from CSV on the final turn): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs``
+- **CSV** (appended in batches): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv``
+- **HDF5** (default, appended with CSV): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5``
+- **TFS** (instead of HDF5 when selected, generated at finalization): ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs``
 
 The output directory is ``output_dir_stat``.
 
-TFS file header:
+Example metadata (HDF5 attributes, or TFS headers in text mode):
 
 ::
 
    @ Name             PASS Statistic Data
    @ Time             2026-07-14 00:11:03
 
-Output columns (35 columns total):
+Output columns:
 
 .. list-table::
   :header-rows: 1
@@ -259,6 +282,18 @@ Output columns (35 columns total):
   * - ``zCenter``
     - Longitudinal reference
     - Laboratory longitudinal center of the bunch, :math:`z_{\mathrm{center}}`
+  * - ``referenceTime``
+    - Reference
+    - Reference passage time at this observation (s)
+  * - ``referenceBeta``
+    - Reference
+    - Reference velocity divided by c at this observation
+  * - ``referenceMomentum``
+    - Reference
+    - Reference mechanical momentum at this observation (eV/c)
+  * - ``sigmaTime``
+    - Beam size
+    - Passage-time standard deviation from continuous z (s)
   * - ``xzAverage``
     - Correlation
     - :math:`\langle x \, z \rangle`
@@ -306,7 +341,7 @@ The following JSON snippet places a statistics monitor at :math:`s = 0.0` m:
        "Command": "StatMonitor"
    }
 
-The statistics monitor requires no additional parameters; only the position and command type need to be specified. During simulation, the bunch statistics at that position are recorded turn-by-turn.
+Format and write interval are optional; omitting them selects HDF5 and 100 turns. During simulation, the bunch statistics at that position are recorded turn-by-turn.
 
 Multi-position Monitoring
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -344,7 +379,7 @@ Longitudinal coordinate in output
 
 Longitudinal moments use a temporary full-ring representative of bunch-relative
 z in ``[-C/2,C/2)`` on both CPU and GPU. This never changes stored particle z.
-TFS headers record ``ZCoordinate=z_rel_folded_by_ring`` and ``ZInterval``.
+HDF5 attributes and TFS headers record ``ZCoordinate=z_rel_folded_by_ring`` and ``ZInterval``.
 These are moments of the chosen representative, not unwrapped slip statistics
 or circular moments; a distribution crossing the interval cut can have a large
 reported width. ParticleMonitor and Distribution retain the continuous z_rel
@@ -358,3 +393,6 @@ reserved macro-particle counts. beamLossTotal excludes pending slots;
 lossPercent uses the injected population as its denominator. An allocated
 population with no survivors produces zero moments and explicit zero-survival
 counts on both CPU and GPU; an empty declared bunch retains the previous no-row behavior.
+
+Batching, final partial batches, live CSV inspection and HDF5 layout are
+described in :doc:`table_output`.

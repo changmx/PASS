@@ -47,9 +47,9 @@ pass-gui
 
 界面支持独立 JSON，也支持将多份输入 JSON、源文件、依赖和生成设置保存在单个 `.passproj` 项目中。文件菜单区分 JSON 保存、项目保存和导出。项目内容可以直接查看，参数或命令可连同依赖一起复制。紧凑界面提供深色/浅色/跟随系统主题、全部展开的属性字段，以及可拖动列宽和右键选择可选列的执行序列。
 
-运行页面选择一份或两份输入，先生成固定输入快照，再用独立进程启动 PASS。导出的可运行输入包包含依赖和 `run.py` 启动脚本。绘图页面可加载 CSV/TFS，选择 X/Y 列并缩放。打包、源文件复用和输出位置见[项目流程说明](docs/source/zh/project_files.rst)。
+运行页面选择一份或两份输入，先生成固定输入快照，再用独立进程启动 PASS。导出的可运行输入包包含依赖和 `run.py` 启动脚本。绘图页面可加载 CSV/TFS/HDF5，选择 X/Y 列并缩放。打包、源文件复用和输出位置见[项目流程说明](docs/source/zh/project_files.rst)。
 
-**校验** 一键检查完整输入、全部序列模块、命令间依赖及输入 TFS 内容，并提供可筛选、定位和导出的报告。错误阻止运行，警告保留显示。初始化前也执行同一套检测；无 Qt 环境可运行 `python -m PASS.validation beam.json --report validation-report.json`。规则与范围见[输入检测说明](docs/source/zh/input_validation.rst)。
+**校验** 一键检查完整输入、全部序列模块、命令间依赖及输入表格内容，并提供可筛选、定位和导出的报告。错误阻止运行，警告保留显示。初始化前也执行同一套检测；无 Qt 环境可运行 `python -m PASS.validation beam.json --report validation-report.json`。规则与范围见[输入检测说明](docs/source/zh/input_validation.rst)。
 
 ## 主要功能
 
@@ -57,7 +57,8 @@ pass-gui
 - 支持逐元件追踪和基于 Twiss 的追踪流程；
 - 可配置的注入过程和多束团粒子分布；
 - 高频腔、磁铁、集体效应接口和束流监视器；
-- 用于生成 JSON 输入文件及分析 TFS/CSV 输出的 Python 工具；
+- 用于生成 JSON 输入文件及分析 HDF5/TFS/CSV 输出的 Python 工具；
+- [表格诊断](docs/source/zh/monitor/table_output.rst)默认使用 `output_format="hdf5-gzip1"`（gzip-1 + shuffle），可选 `"hdf5"`（不压缩）和 `"tfs"`；StatMonitor 还默认每 100 圈追加 CSV，可通过 `write_interval_turns` 调整；
 - CPU 以及可选的 CUDA 执行路径。
 
 ## 开发

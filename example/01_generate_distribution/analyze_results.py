@@ -15,8 +15,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import tfs
 from scipy.optimize import brentq
+
+from PASS.utils.table_io import find_table_files, read_table
 
 from generate_input import CASES, selected_cases
 
@@ -40,7 +41,7 @@ def distribution_files(run_dir: Path) -> list[Path]:
         match = re.search(r"_bunch(\d+)_", path.name)
         return int(match.group(1)) if match else -1
 
-    return sorted((run_dir / "distribution").glob("*_injection.tfs"), key=bunch_id)
+    return sorted(find_table_files(run_dir / "distribution", "*_injection"), key=bunch_id)
 
 
 def transverse_emittance(x: np.ndarray, px: np.ndarray) -> float:
@@ -125,7 +126,7 @@ def rf_bucket_theory(headers) -> dict:
 
 def summarise(path: Path) -> dict:
     """Read one distribution file and return validation and RMS statistics."""
-    df = tfs.read(path)
+    df = read_table(path)
     values = df[["x", "px", "y", "py", "z", "dp"]].to_numpy(dtype=float)
     if not np.isfinite(values).all():
         raise ValueError(f"Non-finite particle coordinates in {path}")
@@ -243,7 +244,7 @@ def plot_distributions(case_name: str, files: list[Path], analysis_dir: Path) ->
     )
 
     for bunch_id, path in enumerate(files):
-        df = tfs.read(path)
+        df = read_table(path)
         headers = df.headers
         label = f"bunch{bunch_id}: {headers['Trans type']} / {headers['Longi type']}"
         planes = [
