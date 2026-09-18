@@ -164,6 +164,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
@@ -186,6 +187,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id2">工作原理</a></li>
@@ -511,6 +519,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../element/index.html">Element</a><ul>
@@ -533,6 +542,13 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Monitor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#working-principle">Working Principle</a></li>
@@ -783,7 +799,7 @@
 <li><p>Supports setting a recorded turn range <code class="docutils literal notranslate"><span class="pre">[start_turn,</span> <span class="pre">end_turn)</span></code>, without needing to start tracking from turn 0;</p></li>
 <li><p>Pre-allocates buffer <code class="docutils literal notranslate"><span class="pre">(max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">num_columns)</span></code>, avoiding runtime dynamic allocation;</p></li>
 <li><p>Records 11 columns per turn by default: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter; <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> adds three optional reference columns;</p></li>
-<li><p>After simulation, each particle is written to a separate TFS file;</p></li>
+<li><p>After simulation, each particle is written to a separate HDF5 file (or TFS file when selected);</p></li>
 <li><p>Filenames include the monitor name and longitudinal position (3 decimal places), supporting multi-position deployment;</p></li>
 <li><p>CPU uses numpy, GPU uses cupy, with the buffer residing on GPU throughout; only a single D2H copy is performed at the end;</p></li>
 </ul>
@@ -912,12 +928,12 @@ buffer allocation on either CPU or GPU.</p>
 </section>
 <section id="output-files">
 <h2>Output Files<a class="headerlink" href="#output-files" title="Link to this heading"></a></h2>
-<p>Each particle generates an independent TFS file:</p>
+<p>Each particle generates an independent HDF5 file by default:</p>
 <ul class="simple">
-<li><p><strong>Filename</strong>: <code class="docutils literal notranslate"><span class="pre">{hms}_particle_beam{bid}_{monitor_name}_s_{s:.3f}_tag_{tag}.tfs</span></code></p></li>
+<li><p><strong>Filename</strong>: <code class="docutils literal notranslate"><span class="pre">{hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.h5</span></code></p></li>
 <li><p><strong>Output directory</strong>: <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code></p></li>
 </ul>
-<p>TFS file header:</p>
+<p>Metadata (HDF5 attributes, or TFS headers in text mode):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Particle</span> <span class="n">Monitor</span>
 <span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
 <span class="o">@</span> <span class="n">Monitor</span>          <span class="n">pm1</span>
@@ -1067,7 +1083,7 @@ cannot reconstruct earlier turns during acceleration or regrouping.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">2</span></code>: <span class="math notranslate nohighlight">\(y = 1\)</span> mm vertical offset particle, for vertical tune measurement</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">3</span></code>: <span class="math notranslate nohighlight">\(\delta = 10^{-3}\)</span> momentum offset particle, for dispersion and chromaticity measurement</p></li>
 </ul>
-<p>After simulation, 3 TFS files are generated in the <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code> directory, each containing the 6D coordinates of that particle for all recorded turns.</p>
+<p>After simulation, 3 HDF5 files by default are generated in the <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code> directory, each containing the 6D coordinates of that particle for all recorded turns.</p>
 </section>
 <section id="delayed-recording">
 <h3>Delayed Recording<a class="headerlink" href="#delayed-recording" title="Link to this heading"></a></h3>
@@ -1081,7 +1097,7 @@ cannot reconstruct earlier turns during acceleration or regrouping.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The buffer size is allocated for <span class="math notranslate nohighlight">\(1000 - 200 = 800\)</span> turns, and the <code class="docutils literal notranslate"><span class="pre">turn</span></code> column in the output TFS file starts from 200.</p>
+<p>The buffer size is allocated for <span class="math notranslate nohighlight">\(1000 - 200 = 800\)</span> turns, and the <code class="docutils literal notranslate"><span class="pre">turn</span></code> column in the output table starts from 200.</p>
 </section>
 <section id="multi-position-monitoring">
 <h3>Multi-position Monitoring<a class="headerlink" href="#multi-position-monitoring" title="Link to this heading"></a></h3>
@@ -1111,6 +1127,9 @@ cannot reconstruct earlier turns during acceleration or regrouping.</p>
 <li><p><strong>Closed orbit verification</strong>: The TBT coordinates of an initially un-offset particle should remain unchanged, verifying closed orbit stability</p></li>
 <li><p><strong>Particle loss tracking</strong>: Locate the time and position of particle loss through <code class="docutils literal notranslate"><span class="pre">tag</span></code> sign changes and <code class="docutils literal notranslate"><span class="pre">lostTurn</span></code> / <code class="docutils literal notranslate"><span class="pre">lostPosition</span></code></p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">output_format</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>) defaults to <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>;
+Use <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> for uncompressed HDF5 or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> for text output. See <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a> for
+the HDF5 layout, compression and common reader.</p>
 </section>
 </section>
 

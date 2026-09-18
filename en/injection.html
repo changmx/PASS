@@ -164,6 +164,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../zh/injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/element/index.html">元件（Element）</a><ul>
@@ -186,6 +187,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../zh/monitor/table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../zh/monitor/table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/monitor/statmonitor.html#id2">工作原理</a></li>
@@ -511,6 +519,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">Element</a><ul>
@@ -533,6 +542,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor/table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#working-principle">Working Principle</a></li>
@@ -1207,7 +1223,7 @@ retain their common configured FP32 or FP64 dtype.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_filepath</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Path</span></code></p></td>
 <td><p>str</p></td>
-<td><p>Distribution file path ( <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> format)</p></td>
+<td><p>Distribution file path (<code class="docutils literal notranslate"><span class="pre">.h5</span></code>, <code class="docutils literal notranslate"><span class="pre">.hdf5</span></code> or <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> table)</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Mode</span></code></p></td>
@@ -1318,7 +1334,7 @@ circulating particles continue to follow the lattice and any active waveforms.</
 </section>
 <section id="incoming-distribution-and-offsets">
 <h3>Incoming distribution and offsets<a class="headerlink" href="#incoming-distribution-and-offsets" title="Link to this heading"></a></h3>
-<p>With <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File=true</span></code>, each bunch reads its own TFS file
+<p>With <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File=true</span></code>, each bunch reads its own HDF5 or TFS table
 with columns <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code>, <code class="docutils literal notranslate"><span class="pre">z</span></code> and <code class="docutils literal notranslate"><span class="pre">dp</span></code>. Positions are in metres;
 momenta use the specified injection reference momentum. <code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Mode</span></code>
 controls row selection:</p>
@@ -1378,7 +1394,7 @@ monitor, so the snapshot includes the current batch. Enable
 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">injection</span> <span class="pre">metadata</span></code> to save <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>, <code class="docutils literal notranslate"><span class="pre">injection_turn</span></code> and
 <code class="docutils literal notranslate"><span class="pre">injection_batch</span></code>. Turn and batch indices start at zero; each source bunch
 has its own batch index, so use <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> for particle matching.</p>
-<p>Both <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format=tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format=hdf5</span></code> exclude pending slots,
+<p>All three output formats (<code class="docutils literal notranslate"><span class="pre">tfs</span></code>, <code class="docutils literal notranslate"><span class="pre">hdf5</span></code> and <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code>) exclude pending slots,
 retain lost particles and report <code class="docutils literal notranslate"><span class="pre">NumPending</span></code>. Select <code class="docutils literal notranslate"><span class="pre">tag&gt;0</span></code> when examining
 the live phase-space distribution at the monitor. Coordinates of lost particles
 refer to their loss locations. Use <a class="reference internal" href="monitor/statmonitor.html"><span class="doc">StatMonitor</span></a> for the evolution
@@ -2101,6 +2117,15 @@ approximation, not an exact finite-amplitude transport map.</p>
 <p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id20" title="Link to this image"></a></p>
 </figcaption>
 </figure>
+</section>
+<section id="initial-distribution-output-format">
+<h2>Initial distribution output format<a class="headerlink" href="#initial-distribution-output-format" title="Link to this heading"></a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">save_init_dist</span></code> is enabled, each <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> accepts
+<code class="docutils literal notranslate"><span class="pre">output_format=&quot;hdf5-gzip1&quot;</span></code> (default, gzip-1 + shuffle),
+<code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>. The JSON key is
+<code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code> inside the corresponding <code class="docutils literal notranslate"><span class="pre">bunchN</span></code> block.
+This selects the initial-distribution output only; loading detects the
+input format from its extension. See <a class="reference internal" href="monitor/table_output.html"><span class="doc">Table output formats</span></a>.</p>
 </section>
 </section>
 

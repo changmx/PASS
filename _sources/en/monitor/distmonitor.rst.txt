@@ -72,36 +72,36 @@ Interface
    * - ``output_format``
      - ``"Output format"``
      - str
-     - ``"tfs"``
-     - Accepts ``"tfs"`` (text, ``.tfs``) or ``"hdf5"`` (compressed datasets, ``.h5``).
+     - ``"hdf5-gzip1"``
+     - Accepts ``"tfs"`` (text), ``"hdf5"`` (uncompressed), or ``"hdf5-gzip1"`` (gzip-1 + shuffle); both HDF5 choices use ``.h5``.
 
 The sequence key supplies the monitor name. With the high-level API, the
 schema object can be used directly:
 
 .. code-block:: python
 
-   from PASS.para.schema.monitors import DistMonitor
+   from PASS.para.schema.monitors import DistMonitorItem
 
-   monitor = DistMonitor(s=12.5, save_turns=[[0], [100, 200, 10]])
+   monitor = DistMonitorItem(s=12.5, save_turns=[[0], [100, 200, 10]])
 
 To save injection information in HDF5 snapshots:
 
 .. code-block:: python
 
-   injection_monitor = DistMonitor(
+   injection_monitor = DistMonitorItem(
        s=0.0,
        save_turns=[[0], [10, 100, 10]],
        include_injection_metadata=True,
-       output_format="hdf5",
+       output_format="hdf5-gzip1",
    )
 
 The two options serialize as ``"Include injection metadata": true`` and
-``"Output format": "hdf5"`` in the generated JSON.
+``"Output format": "hdf5-gzip1"`` in the generated JSON.
 
 Output
 ------
 
-One TFS file (or HDF5 file when selected) is written per selected turn and bunch. The filename
+One HDF5 file (or TFS file when selected) is written per selected turn and bunch. The filename
 contains the run time, beam and bunch identifiers, monitor position, monitor
 name, and turn number. All born particles in the bunch are written, including
 lost particles. Reserved slots with ``tag=0`` are omitted.
@@ -178,7 +178,12 @@ Sorting or loss does not change a born particle's identity or recorded birth
 event. Pending slots (``tag=0``) are omitted, with their count stored as
 ``NumPending``.
 
-``Output format`` accepts ``"tfs"`` (default) or ``"hdf5"``. HDF5 uses
-gzip-compressed datasets and file attributes for the same columns and headers.
+``Output format`` accepts ``"hdf5-gzip1"`` (default, gzip-1 + shuffle),
+``"hdf5"`` (uncompressed), and ``"tfs"``. Both HDF5 choices preserve the same
+columns in datasets and headers in file attributes.
 The optional birth columns require no additional device-to-host particle-array
 copies.
+
+``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
+Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for
+the HDF5 layout, compression and common reader.

@@ -164,6 +164,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
@@ -186,6 +187,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor/table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id2">工作原理</a></li>
@@ -511,6 +519,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/element/index.html">Element</a><ul>
@@ -533,6 +542,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../en/monitor/statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
@@ -1194,7 +1210,7 @@ FP32 或 FP64 类型。</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_filepath</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Path</span></code></p></td>
 <td><p>str</p></td>
-<td><p>分布文件路径 （ <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 格式）</p></td>
+<td><p>分布文件路径（<code class="docutils literal notranslate"><span class="pre">.h5</span></code>、<code class="docutils literal notranslate"><span class="pre">.hdf5</span></code> 或 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 表格）</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">load_dist_mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Mode</span></code></p></td>
@@ -1299,7 +1315,7 @@ N_{\mathrm{event}}=\left\lceil\frac{T}{\Delta n}\right\rceil.\]</div>
 </section>
 <section id="id14">
 <h3>入射分布与偏置<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
-<p>当 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File=true</span></code> 时，每个束团读取自己的 TFS 文件，
+<p>当 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">Load</span> <span class="pre">Distribution</span> <span class="pre">from</span> <span class="pre">File=true</span></code> 时，每个束团读取自己的 HDF5 或 TFS 表格，
 其中必须包含 <code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code>、<code class="docutils literal notranslate"><span class="pre">z</span></code>、<code class="docutils literal notranslate"><span class="pre">dp</span></code> 六列。位置单位为米，
 动量使用指定注入参考动量归一化。<code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">File</span> <span class="pre">Mode</span></code> 控制行的选取：</p>
 <ul class="simple">
@@ -1343,7 +1359,7 @@ Injection 在保持物理动量和到达时间的条件下，将入射动量及�
 开启 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">injection</span> <span class="pre">metadata</span></code> 后，输出增加 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>、
 <code class="docutils literal notranslate"><span class="pre">injection_turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">injection_batch</span></code>。圈号和批次从零开始；每个源束团
 独立编号批次，逐粒子匹配应使用 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code>。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format=tfs</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format=hdf5</span></code> 均排除预留位置、保留损失粒子，
+<p>三种输出格式（<code class="docutils literal notranslate"><span class="pre">tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">hdf5</span></code> 和 <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code>）均排除预留位置、保留损失粒子，
 并记录 <code class="docutils literal notranslate"><span class="pre">NumPending</span></code>。分析监视器处的存活相空间时，应选择 <code class="docutils literal notranslate"><span class="pre">tag&gt;0</span></code>；
 损失粒子的坐标属于其损失位置。环流粒子数及统计矩的演化可用
 <a class="reference internal" href="monitor/statmonitor.html"><span class="doc">统计监视器（StatMonitor）</span></a> 观测。</p>
@@ -1892,11 +1908,11 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <section id="d">
 <h2>1D 投影理论曲线<a class="headerlink" href="#d" title="Link to this heading"></a></h2>
 <p>下图展示了四种横向分布（ Uniform 、 KV 、 Waterbag 、 Parabolic ）在 1D 平面的理论投影曲线。所有曲线均归一化至 <span class="math notranslate nohighlight">\(\int_{-1}^{1} \rho(u) \, du = 1\)</span> ，横轴为归一化坐标 <span class="math notranslate nohighlight">\(u \in [-1, 1]\)</span> 。可以清晰看到从 Uniform （平顶）到 Parabolic （尖峰）的幂次递增趋势。</p>
-<figure class="align-center" id="id26">
+<figure class="align-center" id="id27">
 <a class="reference internal image-reference" href="../_images/dist_1d_projections1.png"><img alt="1D projections of transverse distributions" src="../_images/dist_1d_projections1.png" style="width: 80%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id26" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 1. 1D projections of transverse distributions (theory)</span><a class="headerlink" href="#id27" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -1906,163 +1922,171 @@ RF 直接采样 <span class="math notranslate nohighlight">\(T_d-z_d/(\beta_d c)
 <ul class="simple">
 <li><p>横向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id27">
+<figure class="align-center" id="id28">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="Gaussian x-px" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id27" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id28">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id28" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 2. Transverse gaussian distribution: x-px</span><a class="headerlink" href="#id28" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id29">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="Gaussian y-py" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 3. Transverse gaussian distribution: y-py</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id30">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="Gaussian x-y" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id29" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 4. Transverse gaussian distribution: x-y</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向 KV 分布：</p></li>
 </ul>
-<figure class="align-center" id="id30">
+<figure class="align-center" id="id31">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="kv x-px" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id30" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id31">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 5. Transverse KV distribution: x-px</span><a class="headerlink" href="#id31" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id32">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="kv y-py" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 6. Transverse KV distribution: y-py</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id33">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="kv x-y" src="../_images/ex_beam0_bunch0_100000_hor_kv_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id32" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 7. Transverse KV distribution: x-y</span><a class="headerlink" href="#id33" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向水袋分布：</p></li>
 </ul>
-<figure class="align-center" id="id33">
+<figure class="align-center" id="id34">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="waterbag x-px" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id33" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id34">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id34" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 8. Transverse waterbag distribution: x-px</span><a class="headerlink" href="#id34" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id35">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="waterbag y-py" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 9. Transverse waterbag distribution: y-py</span><a class="headerlink" href="#id35" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id36">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="waterbag x-y" src="../_images/ex_beam0_bunch0_100000_hor_waterbag_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id35" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 10. Transverse waterbag distribution: x-y</span><a class="headerlink" href="#id36" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向抛物线分布：</p></li>
 </ul>
-<figure class="align-center" id="id36">
+<figure class="align-center" id="id37">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="parabolic x-px" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id36" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id37">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id37" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 11. Transverse parabolic distribution: x-px</span><a class="headerlink" href="#id37" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id38">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="parabolic y-py" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 12. Transverse parabolic distribution: y-py</span><a class="headerlink" href="#id38" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id39">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="parabolic x-y" src="../_images/ex_beam0_bunch0_100000_hor_parabolic_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id38" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 13. Transverse parabolic distribution: x-y</span><a class="headerlink" href="#id39" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>横向均匀分布：</p></li>
 </ul>
-<figure class="align-center" id="id39">
+<figure class="align-center" id="id40">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px1.png"><img alt="uniform x-px" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-px1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id39" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-center" id="id40">
-<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id40" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 14. Transverse uniform distribution: x-px</span><a class="headerlink" href="#id40" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-center" id="id41">
+<a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png"><img alt="uniform y-py" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_y-py1.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 15. Transverse uniform distribution: y-py</span><a class="headerlink" href="#id41" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="id42">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y1.png"><img alt="uniform x-y" src="../_images/ex_beam0_bunch0_100000_hor_uniform_longi_matchz_Dx_0.0_injection_x-y1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id41" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 16. Transverse uniform distribution: x-y</span><a class="headerlink" href="#id42" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 MatchZ 分布：</p></li>
 </ul>
-<figure class="align-center" id="id42">
+<figure class="align-center" id="id43">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz1.png"><img alt="MatchZ z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchz_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id42" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 17. Longitudinal matchz distribution: z-pz</span><a class="headerlink" href="#id43" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 MatchDp 分布：</p></li>
 </ul>
-<figure class="align-center" id="id43">
+<figure class="align-center" id="id44">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz1.png"><img alt="MatchDp z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_matchdp_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id43" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 18. Longitudinal matchdp distribution: z-pz</span><a class="headerlink" href="#id44" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 Gaussian 分布：</p></li>
 </ul>
-<figure class="align-center" id="id44">
+<figure class="align-center" id="id45">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz1.png"><img alt="Gaussian z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_gaussian_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id44" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 19. Longitudinal gaussian distribution: z-pz</span><a class="headerlink" href="#id45" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ul class="simple">
 <li><p>纵向 Coasting 分布：</p></li>
 </ul>
-<figure class="align-center" id="id45">
+<figure class="align-center" id="id46">
 <a class="reference internal image-reference" href="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz1.png"><img alt="coasting z-pz" src="../_images/ex_beam0_bunch0_100000_hor_gaussian_longi_coasting_Dx_0.0_injection_z-pz1.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id45" title="Link to this image"></a></p>
+<p><span class="caption-text">Figure 20. Longitudinal coasting distribution: z-pz</span><a class="headerlink" href="#id46" title="Link to this image"></a></p>
 </figcaption>
 </figure>
+</section>
+<section id="id26">
+<h2>初始分布输出格式<a class="headerlink" href="#id26" title="Link to this heading"></a></h2>
+<p>启用 <code class="docutils literal notranslate"><span class="pre">save_init_dist</span></code> 时，各 <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> 支持
+<code class="docutils literal notranslate"><span class="pre">output_format=&quot;hdf5-gzip1&quot;``（默认，gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）、</span>
+<span class="pre">``&quot;hdf5&quot;``（不压缩）或</span> <span class="pre">``&quot;tfs&quot;</span></code>；JSON 参数位于对应
+<code class="docutils literal notranslate"><span class="pre">bunchN</span></code> 块中的 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>。此参数只控制初始分布输出，
+载入文件时按扩展名识别输入格式。详见 <a class="reference internal" href="monitor/table_output.html"><span class="doc">表格输出格式</span></a>。</p>
 </section>
 </section>
 

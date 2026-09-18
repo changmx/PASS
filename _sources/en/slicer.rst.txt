@@ -92,7 +92,7 @@ Snapshots preserve continuous z and record the reference time, beta and
 coordinate definition. Periodic snapshots also include ``slice_coordinate``.
 The density is real-particle count per metre, not coulombs per metre.
 
-The TFS header ``ZCoordinate="z_rel"`` describes the original particle ``z``
+The output metadata ``ZCoordinate="z_rel"`` describes the original particle ``z``
 column; it is output metadata, not an input option or a default assignment.
 ``Coordinate`` identifies the selected slicing projection, while
 ``CoordinateDefinition="z=beta*c*(T-t)"``, ``ReferenceArrivalTime`` (seconds)
@@ -272,8 +272,8 @@ Snapshots
 ``SliceSet`` configuration.  Each item is either ``[turn]`` or
 ``[start, end, step]`` with inclusive endpoints.  Slicing still runs on every
 turn; only selected turns write files.  Each selected execution writes a
-same-instant particle TFS file (``tag``, ``z``, ``slice_id``, loss data) and a
-per-slice TFS summary to ``output/.../slice/``.  Both files carry headers that
+same-instant particle HDF5 file (TFS when selected) (``tag``, ``z``, ``slice_id``, loss data) and a
+per-slice TFS summary, also exported to CSV, to ``output/.../slice/``.  Particle and TFS summary files carry metadata that
 identify the turn, position, beam, bunch, slice set, model and coordinate
 convention.
 
@@ -481,3 +481,8 @@ mode and (for explicit mode) the explicit block.  A conflicting definition raise
 ``ValueError`` and identifies both sequence entries.  At execution, an
 explicit range that does not cover all live particles produces a warning;
 out-of-range particles are clipped to the first or last slice.
+
+``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"`` and
+accepts ``"hdf5"`` (uncompressed) and ``"tfs"``. The default uses gzip-1
+with shuffle. The choice affects particle details only; slice summaries remain
+TFS and CSV. See :doc:`monitor/table_output` for the HDF5 layout and reader.

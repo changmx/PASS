@@ -65,35 +65,35 @@
    * - ``output_format``
      - ``"Output format"``
      - str
-     - ``"tfs"``
-     - 可选 ``"tfs"``（文本，``.tfs``）或 ``"hdf5"``（压缩数据集，``.h5``）。
+     - ``"hdf5-gzip1"``
+     - 可选 ``"tfs"``（文本）、``"hdf5"``（不压缩）或 ``"hdf5-gzip1"``（gzip-1 + shuffle）；两种 HDF5 均使用 ``.h5``。
 
 序列键名会作为监视器名称。通过高层 API 可以直接使用 schema 对象：
 
 .. code-block:: python
 
-   from PASS.para.schema.monitors import DistMonitor
+   from PASS.para.schema.monitors import DistMonitorItem
 
-   monitor = DistMonitor(s=12.5, save_turns=[[0], [100, 200, 10]])
+   monitor = DistMonitorItem(s=12.5, save_turns=[[0], [100, 200, 10]])
 
 保存带注入信息的 HDF5 快照：
 
 .. code-block:: python
 
-   injection_monitor = DistMonitor(
+   injection_monitor = DistMonitorItem(
        s=0.0,
        save_turns=[[0], [10, 100, 10]],
        include_injection_metadata=True,
-       output_format="hdf5",
+       output_format="hdf5-gzip1",
    )
 
 这两个选项在生成的 JSON 中分别为 ``"Include injection metadata": true``
-和 ``"Output format": "hdf5"``。
+和 ``"Output format": "hdf5-gzip1"``。
 
 输出内容
 --------
 
-每个选中的圈数、每个束团生成一个 TFS 文件（或指定的 HDF5 文件）。文件名
+每个选中的圈数、每个束团生成一个 HDF5 文件（或指定的 TFS 文件）。文件名
 包含运行时间、束流和束团编号、监视器位置、名称及圈数。全部已注入粒子都会
 写出，包括损失粒子；尚未注入的 ``tag=0`` 预留位置不写出。
 
@@ -125,7 +125,7 @@
      - m
      - 丢失位置（未丢失为 ``-1``）。
 
-TFS 文件头包含 ``S``、command 和监视器名称、束流/束团编号、``Turn``、
+HDF5 属性或 TFS 文件头包含 ``S``、command 和监视器名称、束流/束团编号、``Turn``、
 粒子计数、后端和精度、PASS 版本、时间，以及 ``ZCoordinate``、``ZCenter``、
 ``Circumference`` 等信息。保存时不会折叠或平移 ``z``；存活粒子的通过时刻由
 ``t = ReferenceArrivalTime - z / (ReferenceBeta*c)`` 恢复。
@@ -164,6 +164,11 @@ CPU 直接从 NumPy 粒子数组写出。GPU 在选中圈数将九个跟踪字�
 排序或损失不改变已出生粒子的身份和注入事件。不输出 ``tag=0`` 的预留位置，
 其数量记录为 ``NumPending``。
 
-``Output format`` 支持默认的 ``"tfs"`` 和 ``"hdf5"``。HDF5 使用 gzip
-压缩数据集保存相同数据列，用文件属性保存头信息。可选注入列不需要额外复制
+``Output format`` 支持 ``"hdf5-gzip1"``（默认，gzip-1 + shuffle）、
+``"hdf5"``（不压缩）和 ``"tfs"``。两种 HDF5 均用数据集保存相同数据列，
+用文件属性保存头信息。可选注入列不需要额外复制
 设备上的逐粒子数组。
+
+``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``；
+设置为 ``"hdf5"`` 使用不压缩的 HDF5，或设置为 ``"tfs"`` 使用文本输出。HDF5 结构、压缩与统一读取方式见
+:doc:`table_output`。

@@ -70,7 +70,7 @@ What is checked
   potential output, CPU-only execution and internal thick-element requirements.
   Coverage uses the same periodic interval analysis as tracking and respects
   ``Coverage check`` and ``Coverage mode``.
-* Active distribution, RF and offset TFS files: existence, parsing, required
+* Active distribution tables (HDF5 or TFS), RF and offset TFS files: existence, parsing, required
   columns, numeric types, finite data, distribution row count and momentum domain,
   integer positive RF harmonics, monotonic offset times and integer turn indices.
   Shared files are read once per input check. Relative paths resolve against the

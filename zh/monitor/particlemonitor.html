@@ -164,6 +164,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../element/index.html">元件（Element）</a><ul>
@@ -186,6 +187,13 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">监视器（Monitor）</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id2">工作原理</a></li>
@@ -511,6 +519,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/element/index.html">Element</a><ul>
@@ -533,6 +542,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/monitor/statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
@@ -783,7 +799,7 @@
 <li><p>支持设置记录圈数范围 <code class="docutils literal notranslate"><span class="pre">[start_turn,</span> <span class="pre">end_turn)</span></code> ，不必从第 0 圈开始追踪；</p></li>
 <li><p>预分配 buffer <code class="docutils literal notranslate"><span class="pre">（max_tag,</span> <span class="pre">num_record_turn,</span> <span class="pre">num_columns）</span></code> ，避免运行时动态分配；</p></li>
 <li><p>默认每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；开启 <code class="docutils literal notranslate"><span class="pre">Include</span> <span class="pre">reference</span></code> 后增加三列参考量；</p></li>
-<li><p>模拟结束后每个粒子单独写入一个 TFS 文件；</p></li>
+<li><p>模拟结束后每个粒子单独写入一个 HDF5 文件（可选 TFS）；</p></li>
 <li><p>文件名含监视器名称和纵向位置（ 3 位小数），支持多位置部署；</p></li>
 <li><p>CPU 使用 numpy ， GPU 使用 cupy ， buffer 全程驻留 GPU ，仅结束时做一次 D2H 拷贝；</p></li>
 </ul>
@@ -911,12 +927,12 @@
 </section>
 <section id="id6">
 <h2>输出文件<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<p>每个粒子生成一个独立的 TFS 文件：</p>
+<p>每个粒子默认生成一个独立的 HDF5 文件：</p>
 <ul class="simple">
-<li><p><strong>文件名</strong> ： <code class="docutils literal notranslate"><span class="pre">{hms}_particle_beam{bid}_{monitor_name}_s_{s:.3f}_tag_{tag}.tfs</span></code></p></li>
+<li><p><strong>文件名</strong> ： <code class="docutils literal notranslate"><span class="pre">{hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.h5</span></code></p></li>
 <li><p><strong>输出目录</strong> ： <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code></p></li>
 </ul>
-<p>TFS 文件头：</p>
+<p>元数据（HDF5 属性，文本模式下为 TFS 文件头）：</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Particle</span> <span class="n">Monitor</span>
 <span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
 <span class="o">@</span> <span class="n">Monitor</span>          <span class="n">pm1</span>
@@ -1061,7 +1077,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">2</span></code> ： <span class="math notranslate nohighlight">\(y = 1\)</span> mm 垂直偏移粒子，用于垂直工作点测量</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">=</span> <span class="pre">3</span></code> ： <span class="math notranslate nohighlight">\(\delta = 10^{-3}\)</span> 动量偏移粒子，用于色散和色品测量</p></li>
 </ul>
-<p>模拟结束后在 <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code> 目录下生成 3 个 TFS 文件，每个文件包含该粒子所有记录圈的 6D 坐标。</p>
+<p>模拟结束后在 <code class="docutils literal notranslate"><span class="pre">output_dir_particle</span></code> 目录下默认生成 3 个 HDF5 文件，每个文件包含该粒子所有记录圈的 6D 坐标。</p>
 </section>
 <section id="id9">
 <h3>延迟记录<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
@@ -1075,7 +1091,7 @@
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>buffer 大小按 <span class="math notranslate nohighlight">\(1000 - 200 = 800\)</span> 圈分配，输出的 TFS 文件中 <code class="docutils literal notranslate"><span class="pre">turn</span></code> 列从 200 开始。</p>
+<p>buffer 大小按 <span class="math notranslate nohighlight">\(1000 - 200 = 800\)</span> 圈分配，输出表格中 <code class="docutils literal notranslate"><span class="pre">turn</span></code> 列从 200 开始。</p>
 </section>
 <section id="id10">
 <h3>多位置监视<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
@@ -1105,6 +1121,9 @@
 <li><p><strong>闭合轨道验证</strong> ：初始无偏移粒子的 TBT 坐标应保持不变，验证闭合轨道稳定性</p></li>
 <li><p><strong>粒子损失追踪</strong> ：通过 <code class="docutils literal notranslate"><span class="pre">tag</span></code> 符号变化和 <code class="docutils literal notranslate"><span class="pre">lostTurn</span></code> / <code class="docutils literal notranslate"><span class="pre">lostPosition</span></code> 定位粒子丢失的时刻和位置</p></li>
 </ul>
+<p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）默认为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>；
+设置为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> 使用不压缩的 HDF5，或设置为 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> 使用文本输出。HDF5 结构、压缩与统一读取方式见
+<a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>。</p>
 </section>
 </section>
 

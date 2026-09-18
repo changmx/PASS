@@ -14,7 +14,7 @@
   - 支持设置记录圈数范围 ``[start_turn, end_turn)`` ，不必从第 0 圈开始追踪；
   - 预分配 buffer ``（max_tag, num_record_turn, num_columns）`` ，避免运行时动态分配；
   - 默认每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；开启 ``Include reference`` 后增加三列参考量；
-  - 模拟结束后每个粒子单独写入一个 TFS 文件；
+  - 模拟结束后每个粒子单独写入一个 HDF5 文件（可选 TFS）；
   - 文件名含监视器名称和纵向位置（ 3 位小数），支持多位置部署；
   - CPU 使用 numpy ， GPU 使用 cupy ， buffer 全程驻留 GPU ，仅结束时做一次 D2H 拷贝；
 
@@ -150,12 +150,12 @@ buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 
 输出文件
 --------
 
-每个粒子生成一个独立的 TFS 文件：
+每个粒子默认生成一个独立的 HDF5 文件：
 
-- **文件名** ： ``{hms}_particle_beam{bid}_{monitor_name}_s_{s:.3f}_tag_{tag}.tfs``
+- **文件名** ： ``{hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.h5``
 - **输出目录** ： ``output_dir_particle``
 
-TFS 文件头：
+元数据（HDF5 属性，文本模式下为 TFS 文件头）：
 
 ::
 
@@ -280,7 +280,7 @@ TFS 文件头：
 - ``tag = 2`` ： :math:`y = 1` mm 垂直偏移粒子，用于垂直工作点测量
 - ``tag = 3`` ： :math:`\delta = 10^{-3}` 动量偏移粒子，用于色散和色品测量
 
-模拟结束后在 ``output_dir_particle`` 目录下生成 3 个 TFS 文件，每个文件包含该粒子所有记录圈的 6D 坐标。
+模拟结束后在 ``output_dir_particle`` 目录下默认生成 3 个 HDF5 文件，每个文件包含该粒子所有记录圈的 6D 坐标。
 
 延迟记录
 ~~~~~~~~
@@ -297,7 +297,7 @@ TFS 文件头：
        "End turn": 1000
    }
 
-buffer 大小按 :math:`1000 - 200 = 800` 圈分配，输出的 TFS 文件中 ``turn`` 列从 200 开始。
+buffer 大小按 :math:`1000 - 200 = 800` 圈分配，输出表格中 ``turn`` 列从 200 开始。
 
 多位置监视
 ~~~~~~~~~~
@@ -328,3 +328,7 @@ buffer 大小按 :math:`1000 - 200 = 800` 圈分配，输出的 TFS 文件中 ``
 - **滑移因子测量** ：对同一束团内动量偏移粒子的相对纵向坐标 :math:`z_{\mathrm{rel}}` 逐圈记录；其每圈变化率可用于求滑移因子。跨束团比较或重分组后分析时，应开启 ``Include reference``，使用同行 referenceTime 和 referenceBeta 重建物理到达时间
 - **闭合轨道验证** ：初始无偏移粒子的 TBT 坐标应保持不变，验证闭合轨道稳定性
 - **粒子损失追踪** ：通过 ``tag`` 符号变化和 ``lostTurn`` / ``lostPosition`` 定位粒子丢失的时刻和位置
+
+``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``；
+设置为 ``"hdf5"`` 使用不压缩的 HDF5，或设置为 ``"tfs"`` 使用文本输出。HDF5 结构、压缩与统一读取方式见
+:doc:`table_output`。

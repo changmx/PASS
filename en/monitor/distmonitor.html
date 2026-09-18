@@ -163,6 +163,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
@@ -185,6 +186,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id2">工作原理</a></li>
@@ -510,6 +518,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../element/index.html">Element</a><ul>
@@ -532,6 +541,13 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Monitor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#working-principle">Working Principle</a></li>
@@ -848,33 +864,33 @@ a single bounds check and table lookup.</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
 <td><p>str</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code></p></td>
-<td><p>Accepts <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> (text, <code class="docutils literal notranslate"><span class="pre">.tfs</span></code>) or <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (compressed datasets, <code class="docutils literal notranslate"><span class="pre">.h5</span></code>).</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
+<td><p>Accepts <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> (text), <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), or <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> (gzip-1 + shuffle); both HDF5 choices use <code class="docutils literal notranslate"><span class="pre">.h5</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
 <p>The sequence key supplies the monitor name. With the high-level API, the
 schema object can be used directly:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitor</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitorItem</span>
 
-<span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
+<span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
 </pre></div>
 </div>
 <p>To save injection information in HDF5 snapshots:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">injection_monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">injection_monitor</span> <span class="o">=</span> <span class="n">DistMonitorItem</span><span class="p">(</span>
     <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span><span class="p">]],</span>
     <span class="n">include_injection_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5"</span><span class="p">,</span>
+    <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5-gzip1"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>The two options serialize as <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">injection</span> <span class="pre">metadata&quot;:</span> <span class="pre">true</span></code> and
-<code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;:</span> <span class="pre">&quot;hdf5&quot;</span></code> in the generated JSON.</p>
+<code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;:</span> <span class="pre">&quot;hdf5-gzip1&quot;</span></code> in the generated JSON.</p>
 </section>
 <section id="output">
 <h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
-<p>One TFS file (or HDF5 file when selected) is written per selected turn and bunch. The filename
+<p>One HDF5 file (or TFS file when selected) is written per selected turn and bunch. The filename
 contains the run time, beam and bunch identifiers, monitor position, monitor
 name, and turn number. All born particles in the bunch are written, including
 lost particles. Reserved slots with <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> are omitted.</p>
@@ -976,10 +992,14 @@ If the state exists but a particle ID has no matching batch record,
 Sorting or loss does not change a born particle’s identity or recorded birth
 event. Pending slots (<code class="docutils literal notranslate"><span class="pre">tag=0</span></code>) are omitted, with their count stored as
 <code class="docutils literal notranslate"><span class="pre">NumPending</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code> accepts <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>. HDF5 uses
-gzip-compressed datasets and file attributes for the same columns and headers.
+<p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code> accepts <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> (default, gzip-1 + shuffle),
+<code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), and <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>. Both HDF5 choices preserve the same
+columns in datasets and headers in file attributes.
 The optional birth columns require no additional device-to-host particle-array
 copies.</p>
+<p><code class="docutils literal notranslate"><span class="pre">output_format</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>) defaults to <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>;
+Use <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> for uncompressed HDF5 or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> for text output. See <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a> for
+the HDF5 layout, compression and common reader.</p>
 </section>
 </section>
 

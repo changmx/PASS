@@ -326,7 +326,7 @@ Distribution parameters
   * - ``load_dist_filepath``
     - ``Distribution File Path``
     - str
-    - Distribution file path ( ``.tfs`` format)
+    - Distribution file path (``.h5``, ``.hdf5`` or ``.tfs`` table)
   * - ``load_dist_mode``
     - ``Distribution File Mode``
     - str
@@ -422,7 +422,7 @@ circulating particles continue to follow the lattice and any active waveforms.
 Incoming distribution and offsets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With ``Is Load Distribution from File=true``, each bunch reads its own TFS file
+With ``Is Load Distribution from File=true``, each bunch reads its own HDF5 or TFS table
 with columns ``x``, ``px``, ``y``, ``py``, ``z`` and ``dp``. Positions are in metres;
 momenta use the specified injection reference momentum. ``Distribution File Mode``
 controls row selection:
@@ -489,7 +489,7 @@ monitor, so the snapshot includes the current batch. Enable
 ``injection_batch``. Turn and batch indices start at zero; each source bunch
 has its own batch index, so use ``particle_id`` for particle matching.
 
-Both ``Output format=tfs`` and ``Output format=hdf5`` exclude pending slots,
+All three output formats (``tfs``, ``hdf5`` and ``hdf5-gzip1``) exclude pending slots,
 retain lost particles and report ``NumPending``. Select ``tag>0`` when examining
 the live phase-space distribution at the monitor. Coordinates of lost particles
 refer to their loss locations. Use :doc:`monitor/statmonitor` for the evolution
@@ -1281,3 +1281,13 @@ Below, we show the simulated particle distribution figures obtained by keeping t
   :align: center
 
   Figure 20. Longitudinal coasting distribution: z-pz
+
+Initial distribution output format
+----------------------------------
+
+When ``save_init_dist`` is enabled, each ``BunchConfig`` accepts
+``output_format="hdf5-gzip1"`` (default, gzip-1 + shuffle),
+``"hdf5"`` (uncompressed), or ``"tfs"``. The JSON key is
+``"Output format"`` inside the corresponding ``bunchN`` block.
+This selects the initial-distribution output only; loading detects the
+input format from its extension. See :doc:`monitor/table_output`.

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>统计监视器（StatMonitor） &mdash; PASS  documentation</title>
+  <title>表格输出格式 &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
@@ -17,12 +17,11 @@
       <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
-      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="分布监视器（DistMonitor）" href="distmonitor.html" />
-    <link rel="prev" title="表格输出格式" href="table_output.html" /> 
+    <link rel="next" title="统计监视器（StatMonitor）" href="statmonitor.html" />
+    <link rel="prev" title="监视器（Monitor）" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -187,22 +186,22 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">监视器（Monitor）</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="table_output.html">表格输出格式</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="table_output.html#id2">格式选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5">HDF5 结构与元数据</a></li>
-<li class="toctree-l4"><a class="reference internal" href="table_output.html#id3">统计批量写入与运行中查看</a></li>
-<li class="toctree-l4"><a class="reference internal" href="table_output.html#id4">读取表格</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">读取表格</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">统计监视器（StatMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">简介</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id2">工作原理</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id6">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id7">输出文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id8">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id10">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id11">输出中的纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id12">注入粒子数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id1">简介</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id2">工作原理</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id6">接口参数</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id7">输出文件</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id8">使用示例</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id10">应用场景</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id11">输出中的纵向坐标</a></li>
+<li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id12">注入粒子数</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a><ul>
@@ -775,9 +774,9 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
           <li class="breadcrumb-item"><a href="index.html">监视器（Monitor）</a></li>
-      <li class="breadcrumb-item active">统计监视器（StatMonitor）</li>
+      <li class="breadcrumb-item active">表格输出格式</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/zh/monitor/statmonitor.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/zh/monitor/table_output.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -785,397 +784,167 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="statmonitor">
-<h1>统计监视器（StatMonitor）<a class="headerlink" href="#statmonitor" title="Link to this heading"></a></h1>
-<section id="id1">
-<h2>简介<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> 是束流统计监视器，在指定纵向位置逐圈记录束团的统计量，包括质心位置、束流尺寸、发射度、 Twiss 参数、高阶矩及束流损失等。它是评估束流品质演变和诊断束流动力学行为的核心工具。</p>
-<ul class="simple">
-<li><p><strong>代码位置</strong> ： <code class="docutils literal notranslate"><span class="pre">PASS/commands/monitor/statistic.py</span></code></p></li>
-<li><p><strong>类名</strong> ： <code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> ，注册名 <code class="docutils literal notranslate"><span class="pre">&quot;statmonitor&quot;</span></code></p></li>
-<li><p><strong>核心特征</strong> ：</p>
-<ul>
-<li><p>逐圈计算束团在 6D 相空间的统计量（一阶至四阶矩）；</p></li>
-<li><p>由二阶矩导出发射度和 Twiss 参数（beta、alpha、gamma）；</p></li>
-<li><p>记录束流损失数与损失百分比；</p></li>
-<li><p>CPU 使用 numpy 向量化计算， GPU 使用 CUDA 核函数 + warp 归约；</p></li>
-<li><p>逐圈计算统计量，默认每 100 圈批量追加到 HDF5 和 CSV；</p></li>
-<li><p>仅统计存活粒子（ <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），已丢失粒子不计入。</p></li>
-</ul>
-</li>
-</ul>
-</section>
+  <section id="id1">
+<h1>表格输出格式<a class="headerlink" href="#id1" title="Link to this heading"></a></h1>
 <section id="id2">
-<h2>工作原理<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<section id="id3">
-<h3>统计量计算<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
-<p>对于束团中的 <span class="math notranslate nohighlight">\(N\)</span> 个存活粒子（ <span class="math notranslate nohighlight">\(\text{tag} &gt; 0\)</span> ），各阶矩定义为：</p>
-<p>一阶矩（质心）：</p>
-<div class="math notranslate nohighlight">
-\[\langle x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i\]</div>
-<p>二阶矩：</p>
-<div class="math notranslate nohighlight">
-\[\langle x^2 \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i^2\]</div>
-<p>协方差：</p>
-<div class="math notranslate nohighlight">
-\[\langle x \, p_x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i \, p_{x,i}\]</div>
-<p>束流尺寸（标准差）：</p>
-<div class="math notranslate nohighlight">
-\[\sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}\]</div>
-<p>同理计算 <span class="math notranslate nohighlight">\(\sigma_{p_x}\)</span>, <span class="math notranslate nohighlight">\(\sigma_y\)</span>, <span class="math notranslate nohighlight">\(\sigma_{p_y}\)</span>, <span class="math notranslate nohighlight">\(\sigma_z\)</span>, <span class="math notranslate nohighlight">\(\sigma_{\delta}\)</span> 。</p>
-<p>实现中计算等价的中心矩，避免两个较大的原点矩相减。对于 FP32 和 FP64
-粒子，CPU 与 GPU 均使用 FP64 累加：先以一个存活粒子为基准求质心，
-再围绕质心累计各阶矩。这也改善了窄束团或偏心束团的协方差、发射度、
-偏度与峰度的数值稳定性。粒子存储精度不变，z 统计的临时环周投影使用 FP64。</p>
-<p><code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> 和 z 矩仍按临时环周代表值计算，不回写连续存储 z。新增 <code class="docutils literal notranslate"><span class="pre">sigmaTime</span></code> 使用未折叠 z 的标准差除以 <span class="math notranslate nohighlight">\(\beta_b c\)</span>，表示实际通过时间展宽。输出逐行包含 <code class="docutils literal notranslate"><span class="pre">referenceTime</span></code>、<code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code>、<code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code>；名义 zCenter 不能用来重建实验室质心。</p>
-</section>
-<section id="twiss">
-<h3>发射度与 Twiss 参数<a class="headerlink" href="#twiss" title="Link to this heading"></a></h3>
-<p>由二阶矩导出 2D 发射度：</p>
-<div class="math notranslate nohighlight">
-\[\varepsilon_x = \sqrt{\sigma_x^2 \, \sigma_{p_x}^2 - \sigma_{x,p_x}^2}\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(\sigma_{x,p_x} = \langle x \, p_x \rangle - \langle x \rangle \langle p_x \rangle\)</span> 为协方差。</p>
-<p>Twiss 参数：</p>
-<div class="math notranslate nohighlight">
-\[\beta_x = \frac{\sigma_x^2}{\varepsilon_x}\]</div>
-<div class="math notranslate nohighlight">
-\[\alpha_x = -\frac{\sigma_{x,p_x}}{\varepsilon_x}\]</div>
-<div class="math notranslate nohighlight">
-\[\gamma_x = \frac{\sigma_{p_x}^2}{\varepsilon_x}\]</div>
-<p>不变量校验：</p>
-<div class="math notranslate nohighlight">
-\[\gamma_x \, \beta_x - \alpha_x^2 = 1\]</div>
-<p>垂直方向（ y ）的公式形式完全相同，将下标 x 替换为 y 即可。</p>
-</section>
-<section id="id4">
-<h3>高阶矩<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
-<p>偏度（三阶标准化矩）：</p>
-<div class="math notranslate nohighlight">
-\[S_x = \frac{\langle x^3 \rangle - 3 \langle x \rangle \sigma_x^2 - \langle x \rangle^3}{\sigma_x^3}\]</div>
-<p>峰度（四阶标准化矩）：</p>
-<div class="math notranslate nohighlight">
-\[K_x = \frac{\langle x^4 \rangle - 4 \langle x \rangle \langle x^3 \rangle + 2 \langle x \rangle^2 \langle x^2 \rangle + 4 \langle x \rangle^2 \sigma_x^2 + \langle x \rangle^4}{\sigma_x^4}\]</div>
-</section>
-<section id="id5">
-<h3>束流损失<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<div class="math notranslate nohighlight">
-\[N_{\text{loss}} = N_{\text{total}} - N_{\text{alive}}\]</div>
-<div class="math notranslate nohighlight">
-\[\text{loss\%} = \frac{N_{\text{loss}}}{N_{\text{total}}} \times 100\%\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(N_{\text{total}}\)</span> 为束团初始宏粒子数， <span class="math notranslate nohighlight">\(N_{\text{alive}}\)</span> 为当前存活粒子数。</p>
-</section>
-<section id="gpu">
-<h3>GPU 实现<a class="headerlink" href="#gpu" title="Link to this heading"></a></h3>
-<p>GPU 版本使用 <code class="docutils literal notranslate"><span class="pre">calc_all_stats</span></code> 对粒子执行两遍中心化计算。
-每个线程使用 FP64 寄存器累加 23 个矩之和及存活、已注入粒子计数，
-经 warp 归约（<code class="docutils literal notranslate"><span class="pre">__shfl_down_sync</span></code>）和 block 归约后，
-通过 <code class="docutils literal notranslate"><span class="pre">atomicAdd</span></code> 写入全局结果。块数上限为 512，以限制原子操作竞争。
-两遍计算之间的中心值和计数始终保留在 GPU 上。</p>
-<p>每圈的结果填入预分配的 GPU 缓存。到达指定写入间隔后，
-该监视器所有束团的待写记录通过一次复制传回 CPU，
-再逐条沿用现有标量公式计算发射度、Twiss 参数及其他输出列。
-参考时间、beta 和动量原本位于 CPU，因此逐圈单独保存在 CPU 上。</p>
-</section>
-</section>
-<section id="id6">
-<h2>接口参数<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 20.0%" />
-<col style="width: 20.0%" />
-<col style="width: 10.0%" />
-<col style="width: 10.0%" />
-<col style="width: 40.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>属性名</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>类型</p></th>
-<th class="head"><p>默认值</p></th>
-<th class="head"><p>说明</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;S</span> <span class="pre">(m)&quot;</span></code></p></td>
-<td><p>float</p></td>
-<td><p>必填</p></td>
-<td><p>监视器在束线中的纵向位置</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cmd_name</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;name&quot;</span></code></p></td>
-<td><p>str</p></td>
-<td><p>必填</p></td>
-<td><p>监视器名称（由序列键名自动填入）</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Command&quot;</span></code></p></td>
-<td><p>str</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;StatMonitor&quot;</span></code></p></td>
-<td><p>命令类型标识</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
-<td><p>str</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;``（gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）、</span></code>”hdf5”<code class="docutils literal notranslate"><span class="pre">（不压缩）或</span> <span class="pre">``&quot;tfs&quot;</span></code>；始终额外提供 CSV</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Write</span> <span class="pre">interval</span> <span class="pre">(turns)&quot;</span></code></p></td>
-<td><p>正整数</p></td>
-<td><p>100</p></td>
-<td><p>批量写入的圈数间隔，保留期间全部逐圈记录</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>统计对象为该位置处束团内的所有存活粒子（ <code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ），无需指定粒子编号。</p>
-</div>
-</section>
-<section id="id7">
-<h2>输出文件<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
-<p>每个束团每个监视器位置生成一对文件：</p>
+<h2>格式选择<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）统一选择格式和压缩方式：</p>
 <ul class="simple">
-<li><p><strong>CSV</strong> （分批追加） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv</span></code></p></li>
-<li><p><strong>HDF5</strong> （默认，与 CSV 同批追加）： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5</span></code></p></li>
-<li><p><strong>TFS</strong> （选择后代替 HDF5，结束时生成） ： <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>：HDF5，使用无损 gzip level 1 和 shuffle（<strong>默认</strong>）。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>：不压缩的 HDF5，也不启用 shuffle。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>：TFS 文本输出。</p></li>
 </ul>
-<p>输出目录为 <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code> 。</p>
-<p>元数据示例（HDF5 属性，文本模式下为 TFS 文件头）：</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Statistic</span> <span class="n">Data</span>
-<span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
-</pre></div>
-</div>
-<p>输出列：</p>
+<p>省略此选项时使用 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>。格式选择不启用原本关闭的输出，
+也不改变配置的记录圈数。</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 25.0%" />
-<col style="width: 15.0%" />
-<col style="width: 60.0%" />
+<col style="width: 45.0%" />
+<col style="width: 30.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>列名</p></th>
-<th class="head"><p>分组</p></th>
-<th class="head"><p>说明</p></th>
+<tr class="row-odd"><th class="head"><p>输出来源</p></th>
+<th class="head"><p>文件组织</p></th>
+<th class="head"><p>附加输出</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">turn</span></code></p></td>
-<td><p>基本</p></td>
-<td><p>圈数</p></td>
+<tr class="row-even"><td><p>DistMonitor</p></td>
+<td><p>每个束团、每个选定圈一个分布快照</p></td>
+<td><p>无</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xAverage</span></code></p></td>
-<td><p>质心</p></td>
-<td><p>水平位置均值 <span class="math notranslate nohighlight">\(\langle x \rangle\)</span></p></td>
+<tr class="row-odd"><td><p>PhaseAdvanceMonitor</p></td>
+<td><p>每个束团、每个完成窗口一个表格</p></td>
+<td><p>无</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pxAverage</span></code></p></td>
-<td><p>质心</p></td>
-<td><p>水平动量均值 <span class="math notranslate nohighlight">\(\langle p_x \rangle\)</span></p></td>
+<tr class="row-even"><td><p>ParticleMonitor</p></td>
+<td><p>每个选定粒子一个逐圈历史文件</p></td>
+<td><p>无</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaX</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>水平位置标准差 <span class="math notranslate nohighlight">\(\sigma_x\)</span></p></td>
+<tr class="row-odd"><td><p>StatMonitor</p></td>
+<td><p>每个束团、每个监视器位置一个统计历史文件</p></td>
+<td><p>包含相同行的 CSV</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaPx</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>水平动量标准差 <span class="math notranslate nohighlight">\(\sigma_{p_x}\)</span></p></td>
+<tr class="row-even"><td><p>Injection</p></td>
+<td><p>启用 <code class="docutils literal notranslate"><span class="pre">save_init_dist</span></code> 时保存初始分布；
+在各 <code class="docutils literal notranslate"><span class="pre">BunchConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">bunchN</span></code> 中设置 <code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p>无</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yAverage</span></code></p></td>
-<td><p>质心</p></td>
-<td><p>垂直位置均值</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pyAverage</span></code></p></td>
-<td><p>质心</p></td>
-<td><p>垂直动量均值</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaY</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>垂直位置标准差</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaPy</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>垂直动量标准差</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">zAverage</span></code></p></td>
-<td><p>质心</p></td>
-<td><p>折叠后的束团相对纵向坐标均值 <span class="math notranslate nohighlight">\(\langle z_{\mathrm{rel}}\rangle\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dpAverage</span></code></p></td>
-<td><p>质心</p></td>
-<td><p>动量偏差均值</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>折叠后的束团相对纵向坐标标准差</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigmadp</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>动量偏差标准差</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xEmittance</span></code></p></td>
-<td><p>发射度</p></td>
-<td><p>水平 2D 发射度 <span class="math notranslate nohighlight">\(\varepsilon_x\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yEmittance</span></code></p></td>
-<td><p>发射度</p></td>
-<td><p>垂直 2D 发射度 <span class="math notranslate nohighlight">\(\varepsilon_y\)</span></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">betax</span></code></p></td>
-<td><p>Twiss</p></td>
-<td><p>水平 beta 函数</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">betay</span></code></p></td>
-<td><p>Twiss</p></td>
-<td><p>垂直 beta 函数</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alphax</span></code></p></td>
-<td><p>Twiss</p></td>
-<td><p>水平 alpha 函数</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alphay</span></code></p></td>
-<td><p>Twiss</p></td>
-<td><p>垂直 alpha 函数</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gammax</span></code></p></td>
-<td><p>Twiss</p></td>
-<td><p>水平 gamma 函数</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gammay</span></code></p></td>
-<td><p>Twiss</p></td>
-<td><p>垂直 gamma 函数</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">invariantx</span></code></p></td>
-<td><p>校验</p></td>
-<td><p>水平不变量 <span class="math notranslate nohighlight">\(\gamma_x \beta_x - \alpha_x^2\)</span> （应等于 1）</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">invarianty</span></code></p></td>
-<td><p>校验</p></td>
-<td><p>垂直不变量（应等于 1）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">zCenter</span></code></p></td>
-<td><p>纵向参考</p></td>
-<td><p>束团实验室纵向中心 <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">referenceTime</span></code></p></td>
-<td><p>参考量</p></td>
-<td><p>此次观测的参考通过时间（s）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code></p></td>
-<td><p>参考量</p></td>
-<td><p>此次观测的参考速度与 c 的比值</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code></p></td>
-<td><p>参考量</p></td>
-<td><p>此次观测的参考机械动量（eV/c）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaTime</span></code></p></td>
-<td><p>束流尺寸</p></td>
-<td><p>由连续 z 计算的通过时间标准差（s）</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xzAverage</span></code></p></td>
-<td><p>关联</p></td>
-<td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle\)</span></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xyAverage</span></code></p></td>
-<td><p>关联</p></td>
-<td><p><span class="math notranslate nohighlight">\(\langle x \, y \rangle\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yzAverage</span></code></p></td>
-<td><p>关联</p></td>
-<td><p><span class="math notranslate nohighlight">\(\langle y \, z \rangle\)</span></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xzDevideSigmaxSigmaz</span></code></p></td>
-<td><p>关联</p></td>
-<td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle / (\sigma_x \, \sigma_z)\)</span> 归一化关联</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code></p></td>
-<td><p>损失</p></td>
-<td><p>丢失粒子数</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lossPercent</span></code></p></td>
-<td><p>损失</p></td>
-<td><p>损失百分比</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xSkewness</span></code></p></td>
-<td><p>高阶矩</p></td>
-<td><p>水平偏度</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">xKurtosis</span></code></p></td>
-<td><p>高阶矩</p></td>
-<td><p>水平峰度</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ySkewness</span></code></p></td>
-<td><p>高阶矩</p></td>
-<td><p>垂直偏度</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yKurtosis</span></code></p></td>
-<td><p>高阶矩</p></td>
-<td><p>垂直峰度</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Ek</span></code></p></td>
-<td><p>能量</p></td>
-<td><p>束团动能</p></td>
+<tr class="row-odd"><td><p>Slicer</p></td>
+<td><p>每个束团、每个选定圈的逐粒子信息</p></td>
+<td><p>切片汇总仍为 TFS 和 CSV</p></td>
 </tr>
 </tbody>
 </table>
+<p>HDF5 表格使用 <code class="docutils literal notranslate"><span class="pre">.h5</span></code>，TFS 表格使用 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code>，文件名主体保持一致。
+SpaceCharge 场输出保留现有多维 HDF5 结构，不增加 TFS 导出。</p>
 </section>
-<section id="id8">
-<h2>使用示例<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<p>以下 JSON 片段在 <span class="math notranslate nohighlight">\(s = 0.0\)</span> m 处放置一个统计监视器：</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"SM1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<section id="hdf5">
+<h2>HDF5 结构与元数据<a class="headerlink" href="#hdf5" title="Link to this heading"></a></h2>
+<p>每个数值或布尔列对应文件根目录下的一个 <strong>一维 dataset</strong>，保留原列名和
+数据类型，各列长度相同。分布表的一行对应一个粒子；StatMonitor 的一行
+对应一个记录圈；ParticleMonitor 的一行对应文件所标识粒子的一个记录圈。
+例如，统计文件包含:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">turn</span>                  <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
+<span class="o">/</span><span class="n">xAverage</span>              <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
+<span class="o">/</span><span class="n">sigmaX</span>                <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
+<span class="o">/</span><span class="n">referenceTime</span>         <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
+<span class="o">/</span><span class="n">referenceBeta</span>         <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
+<span class="o">/</span><span class="n">referenceMomentum</span>     <span class="p">(</span><span class="n">N</span><span class="p">,)</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>原有 TFS headers 保存为 <strong>根目录 attributes</strong>，包括名称、现有元数据中的
+单位、参考约定和监视器位置。StatMonitor 随圈变化的参考量始终作为逐行列保存，
+保留完整历史；快照中的参考 attributes 只描述该次快照。ParticleMonitor
+仍然仅在 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">reference&quot;:</span> <span class="pre">true</span></code> 时保存参考量列。</p>
+<p>另有两个保留属性描述表格格式：<code class="docutils literal notranslate"><span class="pre">_pass_table_version=1</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">_pass_table_columns``（按输出顺序排列的列名</span> <span class="pre">JSON</span> <span class="pre">数组）。用户</span> <span class="pre">headers</span>
+<span class="pre">不能以</span> <span class="pre">``_pass_table_</span></code> 开头。统一读取器也支持没有这些属性的旧 PASS
+HDF5 分布快照。SpaceCharge 多维场文件需使用专用场数据读取器。</p>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> 使用无损 gzip level 1 压缩并启用 shuffle。
+shuffle 在压缩前重排字节，不改变保存的数值或粒子顺序。
+<code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> 同时关闭压缩和 shuffle。两者使用相同的 <code class="docutils literal notranslate"><span class="pre">.h5</span></code> 扩展名、
+逻辑结构和读取器，无需单独的压缩参数。此选项适用于上表中的表格输出；
+CSV 保持不变，SpaceCharge 继续使用独立的场数据写入器。
+例如，选择不压缩的 HDF5：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitorItem</span>
+
+<span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5"</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DistMonitor"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="nt">"Save turns"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mi">0</span><span class="p">]],</span>
+<span class="w"> </span><span class="nt">"Output format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"hdf5"</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>不压缩 HDF5 可以缩短频繁保存快照时的写入耗时，代价是文件更大。
+两种设置均不改变数值精度或表格逻辑结构。快照每列的 chunk 约以 64 KiB 为上限，
+同时不超过该列的行数。StatMonitor 每列的 chunk 行数等于配置的批量写入间隔，
+使正常的完整批次填入新块，避免重新压缩之前的块。
+分块只影响存储和压缩，不改变采样间隔或数值精度。</p>
+<p>粒子分布、初始分布、相移及 Slicer 逐粒子快照直接将各列数组交给 HDF5
+写入器，避免中间 DataFrame。分布回传限制在当前束团范围，Slicer
+复用同一份 CPU tag 数组来统计计数和保存粒子表。
+ParticleMonitor 保留完整轨迹缓存及一粒子一文件的组织方式。</p>
+</section>
+<section id="id3">
+<h2>统计批量写入与运行中查看<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>StatMonitor <strong>每圈计算并缓存一行</strong>。可选参数 <code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code> /
+<code class="docutils literal notranslate"><span class="pre">&quot;Write</span> <span class="pre">interval</span> <span class="pre">(turns)&quot;</span></code> 必须为正整数，默认 <strong>100</strong>，不使用时间触发。
+设置为 100 时，在零起始圈号 99、199 等处刷新；最后一圈补写剩余记录。
+执行器在可捕获异常或键盘中断后的清理阶段也会补写不足一批的记录；
+强制终止进程可能丢失尚未写入的一批。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitorItem</span>
+
+<span class="n">stat</span> <span class="o">=</span> <span class="n">StatMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5-gzip1"</span><span class="p">,</span> <span class="n">write_interval_turns</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span>
+<span class="w">    </span><span class="nt">"Output format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"hdf5-gzip1"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Write interval (turns)"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>输出格式和写入间隔均为可选参数；省略时使用 HDF5 和 100 圈。模拟运行过程中会逐圈记录该位置处束团的统计量。</p>
-<section id="id9">
-<h3>多位置监视<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
-<p>可在不同位置放置多个统计监视器，比较束流沿束线的统计量变化：</p>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">"SM_start"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span>
-<span class="p">},</span>
-<span class="nt">"SM_mid"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">100.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span>
-<span class="p">},</span>
-<span class="nt">"SM_end"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">250.0</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"StatMonitor"</span>
-<span class="p">}</span>
+<p>GPU 模式下，监视器根据指定圈数间隔和初始束团数预分配统计缓存，
+中间各圈只向缓存填入结果，不将统计值复制回 CPU。
+到达批次边界后，一次 GPU 到 CPU 的复制取回所有束团的待写记录；
+结束清理时也会传回最后不足一批的数据。
+参考量逐圈记录在 CPU 上，保留完整历史。
+传回后逐条使用现有 CPU 公式计算派生输出列。
+CPU 模式则在 CPU 内存中缓存已计算完毕的各行。</p>
+<p>HDF5 与 CSV 写入同一批记录，每批写完关闭文件。选择 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> 时，
+CSV 同样按批追加，完整 TFS 在结束清理时生成。
+CSV 在第一批写入后即可查看，保存全部记录，而非每批只保留一行。
+两个文件依次写入，不是原子提交的一对文件。</p>
+<p>运行中查看统计值建议使用 CSV，例如 Linux 的 <code class="docutils literal notranslate"><span class="pre">tail</span> <span class="pre">-n</span> <span class="pre">10</span> <span class="pre">-f</span> <span class="pre">path.csv</span></code>，
+或 PowerShell 的 <code class="docutils literal notranslate"><span class="pre">Get-Content</span> <span class="pre">path.csv</span> <span class="pre">-Tail</span> <span class="pre">10</span> <span class="pre">-Wait</span></code>。
+HDF5 是二进制文件，不能用 <code class="docutils literal notranslate"><span class="pre">tail</span></code> 直接查看有意义的数值。
+应在模拟完成后，或暂停于两批写入之间时读取 HDF5。
+此写入器不启用 SWMR；其他进程长期打开 HDF5 可能阻止后续写入，
+写入过程中直接复制也不能保证得到一致快照。</p>
+</section>
+<section id="id4">
+<h2>读取表格<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>绘图工具、GUI 结果读取、文件分布注入和示例分析脚本均支持两种格式。
+统一读取器返回包含数据列与原 headers 的 <code class="docutils literal notranslate"><span class="pre">TfsDataFrame</span></code>：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.utils.table_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_table</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="s2">"statistics.h5"</span><span class="p">)</span>  <span class="c1"># 也支持 .tfs 和 .hdf5</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[[</span><span class="s2">"turn"</span><span class="p">,</span> <span class="s2">"sigmaX"</span><span class="p">,</span> <span class="s2">"referenceTime"</span><span class="p">]]</span><span class="o">.</span><span class="n">tail</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
 </pre></div>
 </div>
-</section>
-</section>
-<section id="id10">
-<h2>应用场景<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p><strong>束流品质评估</strong> ：逐圈监测发射度、束流尺寸、质心位置的变化，评估束流品质是否稳定或退化</p></li>
-<li><p><strong>发射度测量</strong> ：由二阶矩计算发射度和 Twiss 参数，与设计值对比验证</p></li>
-<li><p><strong>束流损失诊断</strong> ：通过 <code class="docutils literal notranslate"><span class="pre">beamLossTotal</span></code> 和 <code class="docutils literal notranslate"><span class="pre">lossPercent</span></code> 监测束流损失率，定位损失发生的圈数和位置</p></li>
-<li><p><strong>非线性效应识别</strong> ：通过偏度和峰度的高阶矩信息，判断束流分布偏离高斯分布的程度，识别非线性共振或色散耦合</p></li>
-<li><p><strong>动量展宽监测</strong> ： <code class="docutils literal notranslate"><span class="pre">sigmadp</span></code> 和 <code class="docutils literal notranslate"><span class="pre">sigmaZ</span></code> 反映束团内部的纵向束流品质；跨束团比较绝对方位时还应使用 <code class="docutils literal notranslate"><span class="pre">zCenter</span></code></p></li>
-<li><p><strong>关联诊断</strong> ： <code class="docutils literal notranslate"><span class="pre">xzAverage</span></code> 等关联量可用于诊断色散耦合或横向-纵向耦合</p></li>
-</ul>
-</section>
-<section id="id11">
-<h2>输出中的纵向坐标<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
-<p>CPU 和 GPU 的纵向矩均使用束团相对 z 在 <code class="docutils literal notranslate"><span class="pre">[-C/2,C/2)</span></code> 的临时整环代表值，
-不会修改存储的粒子 z。HDF5 属性和 TFS header 记录 <code class="docutils literal notranslate"><span class="pre">ZCoordinate=z_rel_folded_by_ring</span></code>
-和 <code class="docutils literal notranslate"><span class="pre">ZInterval</span></code>。这些量是所选代表值的矩，不是展开滑移统计或圆周统计；
-分布跨越区间切口时，报告的宽度可能较大。需要累计纵向滑移时，可分析
-ParticleMonitor 和 Distribution 保存的连续 z_rel。</p>
-</section>
-<section id="id12">
-<h2>注入粒子数<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
-<p>numAlive、numInjected、numPending 分别记录存活、已注入（含损失）及预留宏粒子数。
-beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母。
-已分配的粒子群若无存活粒子，CPU/GPU 都输出零矩与明确的零存活计数；
-声明为空的 bunch 仍沿用不输出行的行为。</p>
-<p>批量写入、最后不足一批的处理、运行中查看 CSV 和 HDF5 结构见
-<a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>。</p>
+<p>仅需少量列或末尾几行时，可直接读取数据集：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+<span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"statistics.h5"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
+    <span class="n">turns</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"turn"</span><span class="p">][</span><span class="o">-</span><span class="mi">10</span><span class="p">:]</span>
+    <span class="n">sigma_x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">"sigmaX"</span><span class="p">][</span><span class="o">-</span><span class="mi">10</span><span class="p">:]</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -1183,8 +952,8 @@ beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="table_output.html" class="btn btn-neutral float-left" title="表格输出格式" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="distmonitor.html" class="btn btn-neutral float-right" title="分布监视器（DistMonitor）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="监视器（Monitor）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="statmonitor.html" class="btn btn-neutral float-right" title="统计监视器（StatMonitor）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -20,7 +20,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="统计监视器（StatMonitor）" href="statmonitor.html" />
+    <link rel="next" title="表格输出格式" href="table_output.html" />
     <link rel="prev" title="RF 腔（RFCavity）" href="../element/rfcavity.html" /> 
 </head>
 
@@ -163,6 +163,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../element/index.html">元件（Element）</a><ul>
@@ -185,6 +186,13 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id2">工作原理</a></li>
@@ -510,6 +518,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/element/index.html">Element</a><ul>
@@ -532,6 +541,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/monitor/statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
@@ -772,6 +788,13 @@
 <p>本模块介绍 PASS 中支持的各类束流监视器。</p>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="table_output.html">表格输出格式</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="table_output.html#id2">格式选择</a></li>
+<li class="toctree-l2"><a class="reference internal" href="table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l2"><a class="reference internal" href="table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l2"><a class="reference internal" href="table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html#id1">简介</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statmonitor.html#id2">工作原理</a></li>
@@ -824,7 +847,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../element/rfcavity.html" class="btn btn-neutral float-left" title="RF 腔（RFCavity）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="statmonitor.html" class="btn btn-neutral float-right" title="统计监视器（StatMonitor）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="table_output.html" class="btn btn-neutral float-right" title="表格输出格式" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

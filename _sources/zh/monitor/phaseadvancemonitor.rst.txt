@@ -46,6 +46,10 @@ y 平面使用同样形式但不减色散。相邻圈的有向相位推进被累
 输出
 ----
 
-每个完成窗口、每个 beam、bunch 和 monitor 各写一个 TFS 文件，保存在 ``tuneSpread``。每个 bunch 独立输出，包含已损失粒子。列包含 ``tag``、``tuneXFractional``、``tuneYFractional``、两平面各自的区间数、``validX/Y``、``completeX/Y`` 和损失信息。``valid`` 表示粒子仍存活且至少有一个有效区间；``complete`` 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。
+每个完成窗口、每个 beam、bunch 和 monitor 各写一个 HDF5 文件（可选 TFS），保存在 ``tuneSpread``。每个 bunch 独立输出，包含已损失粒子。列包含 ``tag``、``tuneXFractional``、``tuneYFractional``、两平面各自的区间数、``validX/Y``、``completeX/Y`` 和损失信息。``valid`` 表示粒子仍存活且至少有一个有效区间；``complete`` 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。
 
 文件头记录固定光学参考、窗口端点、期望区间数、后端、精度以及 ``PASSVersion``。
+
+``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``；
+设置为 ``"hdf5"`` 使用不压缩的 HDF5，或设置为 ``"tfs"`` 使用文本输出。HDF5 结构、压缩与统一读取方式见
+:doc:`table_output`。

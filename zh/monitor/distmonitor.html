@@ -163,6 +163,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../element/index.html">元件（Element）</a><ul>
@@ -185,6 +186,13 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">监视器（Monitor）</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="statmonitor.html#id2">工作原理</a></li>
@@ -510,6 +518,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/element/index.html">Element</a><ul>
@@ -532,6 +541,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../en/monitor/table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../en/monitor/table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/monitor/statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
@@ -841,32 +857,32 @@
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
 <td><p>str</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code></p></td>
-<td><p>可选 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;``（文本，</span></code>.tfs``）或 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;``（压缩数据集，</span></code>.h5``）。</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
+<td><p>可选 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;``（文本）、</span></code>”hdf5”<code class="docutils literal notranslate"><span class="pre">（不压缩）或</span> <span class="pre">``&quot;hdf5-gzip1&quot;``（gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）；两种</span> <span class="pre">HDF5</span> <span class="pre">均使用</span> <span class="pre">``.h5</span></code>。</p></td>
 </tr>
 </tbody>
 </table>
 <p>序列键名会作为监视器名称。通过高层 API 可以直接使用 schema 对象：</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitor</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DistMonitorItem</span>
 
-<span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
+<span class="n">monitor</span> <span class="o">=</span> <span class="n">DistMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">10</span><span class="p">]])</span>
 </pre></div>
 </div>
 <p>保存带注入信息的 HDF5 快照：</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">injection_monitor</span> <span class="o">=</span> <span class="n">DistMonitor</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">injection_monitor</span> <span class="o">=</span> <span class="n">DistMonitorItem</span><span class="p">(</span>
     <span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">10</span><span class="p">]],</span>
     <span class="n">include_injection_metadata</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5"</span><span class="p">,</span>
+    <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5-gzip1"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>这两个选项在生成的 JSON 中分别为 <code class="docutils literal notranslate"><span class="pre">&quot;Include</span> <span class="pre">injection</span> <span class="pre">metadata&quot;:</span> <span class="pre">true</span></code>
-和 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;:</span> <span class="pre">&quot;hdf5&quot;</span></code>。</p>
+和 <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;:</span> <span class="pre">&quot;hdf5-gzip1&quot;</span></code>。</p>
 </section>
 <section id="id3">
 <h2>输出内容<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>每个选中的圈数、每个束团生成一个 TFS 文件（或指定的 HDF5 文件）。文件名
+<p>每个选中的圈数、每个束团生成一个 HDF5 文件（或指定的 TFS 文件）。文件名
 包含运行时间、束流和束团编号、监视器位置、名称及圈数。全部已注入粒子都会
 写出，包括损失粒子；尚未注入的 <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> 预留位置不写出。</p>
 <p>默认的九个数据列如下：</p>
@@ -918,7 +934,7 @@
 </tr>
 </tbody>
 </table>
-<p>TFS 文件头包含 <code class="docutils literal notranslate"><span class="pre">S</span></code>、command 和监视器名称、束流/束团编号、<code class="docutils literal notranslate"><span class="pre">Turn</span></code>、
+<p>HDF5 属性或 TFS 文件头包含 <code class="docutils literal notranslate"><span class="pre">S</span></code>、command 和监视器名称、束流/束团编号、<code class="docutils literal notranslate"><span class="pre">Turn</span></code>、
 粒子计数、后端和精度、PASS 版本、时间，以及 <code class="docutils literal notranslate"><span class="pre">ZCoordinate</span></code>、<code class="docutils literal notranslate"><span class="pre">ZCenter</span></code>、
 <code class="docutils literal notranslate"><span class="pre">Circumference</span></code> 等信息。保存时不会折叠或平移 <code class="docutils literal notranslate"><span class="pre">z</span></code>；存活粒子的通过时刻由
 <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">ReferenceArrivalTime</span> <span class="pre">-</span> <span class="pre">z</span> <span class="pre">/</span> <span class="pre">(ReferenceBeta*c)</span></code> 恢复。
@@ -962,9 +978,13 @@
 <code class="docutils literal notranslate"><span class="pre">injection_turn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">injection_batch</span></code> 为 <code class="docutils literal notranslate"><span class="pre">-1</span></code>，表示未知。
 排序或损失不改变已出生粒子的身份和注入事件。不输出 <code class="docutils literal notranslate"><span class="pre">tag=0</span></code> 的预留位置，
 其数量记录为 <code class="docutils literal notranslate"><span class="pre">NumPending</span></code>。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code> 支持默认的 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> 和 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>。HDF5 使用 gzip
-压缩数据集保存相同数据列，用文件属性保存头信息。可选注入列不需要额外复制
+<p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code> 支持 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;``（默认，gzip-1</span> <span class="pre">+</span> <span class="pre">shuffle）、</span>
+<span class="pre">``&quot;hdf5&quot;``（不压缩）和</span> <span class="pre">``&quot;tfs&quot;</span></code>。两种 HDF5 均用数据集保存相同数据列，
+用文件属性保存头信息。可选注入列不需要额外复制
 设备上的逐粒子数组。</p>
+<p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）默认为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>；
+设置为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> 使用不压缩的 HDF5，或设置为 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> 使用文本输出。HDF5 结构、压缩与统一读取方式见
+<a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>。</p>
 </section>
 </section>
 

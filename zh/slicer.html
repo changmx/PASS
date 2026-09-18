@@ -164,6 +164,7 @@
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
@@ -186,6 +187,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="monitor/table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id2">工作原理</a></li>
@@ -511,6 +519,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/element/index.html">Element</a><ul>
@@ -533,6 +542,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/monitor/index.html">Monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../en/monitor/table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../en/monitor/statmonitor.html">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
@@ -824,7 +840,7 @@ z 加名义槽位偏移不能给出严格的物理环位置。</p>
 避免切片几何的舍入使等间距尾场网格变得不等间距；跟踪粒子坐标不变。
 快照保存连续 z、参考时间、beta 和坐标
 定义；周期快照还保存 <code class="docutils literal notranslate"><span class="pre">slice_coordinate</span></code>。密度单位是每米真实粒子数，不是 C/m。</p>
-<p>TFS 文件头 <code class="docutils literal notranslate"><span class="pre">ZCoordinate=&quot;z_rel&quot;</span></code> 描述原始粒子 <code class="docutils literal notranslate"><span class="pre">z</span></code> 列，是输出元数据，
+<p>输出元数据 <code class="docutils literal notranslate"><span class="pre">ZCoordinate=&quot;z_rel&quot;</span></code> 描述原始粒子 <code class="docutils literal notranslate"><span class="pre">z</span></code> 列，是输出元数据，
 不是输入选项，也不是默认值赋值。<code class="docutils literal notranslate"><span class="pre">Coordinate</span></code> 标识所选切片投影；
 <code class="docutils literal notranslate"><span class="pre">CoordinateDefinition=&quot;z=beta*c*(T-t)&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime``（秒）和</span>
 <span class="pre">``ReferenceBeta</span></code> 定义原始粒子坐标。到达相位快照还保存 <code class="docutils literal notranslate"><span class="pre">ObservationTime</span></code>
@@ -945,8 +961,8 @@ z_{phase,i}=-C[(-u_i)\bmod1].\]</div>
 <p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code> 是可选的命令级参数，不属于共享 <code class="docutils literal notranslate"><span class="pre">SliceSet</span></code> 的配置。每项为
 <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>，两端均包含。切片器每圈仍会计算，只有被
 选中的圈数才写出文件。每次保存会在 <code class="docutils literal notranslate"><span class="pre">output/.../slice/</span></code> 中写出同一时刻的粒子
-TFS 文件（<code class="docutils literal notranslate"><span class="pre">tag</span></code>、<code class="docutils literal notranslate"><span class="pre">z</span></code>、<code class="docutils literal notranslate"><span class="pre">slice_id</span></code> 和损失信息）与逐切片 TFS 汇总。两个文件的
-header 都记录圈数、位置、Beam、Bunch、切片集合、模型和坐标约定。</p>
+HDF5 文件（可选 TFS，含 <code class="docutils literal notranslate"><span class="pre">tag</span></code>、<code class="docutils literal notranslate"><span class="pre">z</span></code>、<code class="docutils literal notranslate"><span class="pre">slice_id</span></code> 和损失信息）与逐切片 TFS 汇总，
+汇总另保存一份 CSV。粒子文件与 TFS 汇总的元数据 都记录圈数、位置、Beam、Bunch、切片集合、模型和坐标约定。</p>
 <p>超过总圈数的结束圈会截断到最后一圈并记录 warning；起始圈大于等于总圈数的范围会
 被忽略并记录 warning。负起始圈也会截断，同时保持原始 <code class="docutils literal notranslate"><span class="pre">start</span> <span class="pre">+</span> <span class="pre">k*step</span></code> 的选圈
 序列。<code class="docutils literal notranslate"><span class="pre">end</span> <span class="pre">&lt;</span> <span class="pre">start</span></code>、非整数值和非正步长仍属于配置错误。</p>
@@ -1174,6 +1190,10 @@ header 都记录圈数、位置、Beam、Bunch、切片集合、模型和坐标�
 <section id="id12">
 <h3>配置校验<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
 <p>在束流初始化阶段，引用同一个 <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code> 的多个 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> 命令必须具有完全一致的 <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">model</span></code>、<code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">slices</span></code>、范围模式及（显式模式下的）显式参数块。配置冲突会抛出 <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>，并指出两个相关的序列命令。执行时，如果显式范围不能覆盖全部存活粒子，会记录 warning；超出范围的粒子会被限制到第一个或最后一个切片。</p>
+<p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）默认为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>
+（gzip-1 + shuffle），也支持 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;``（不压缩）和</span> <span class="pre">``&quot;tfs&quot;</span></code>。
+此选项只影响逐粒子信息，切片汇总仍保存为 TFS 和 CSV。
+HDF5 结构和读取方式见 <a class="reference internal" href="monitor/table_output.html"><span class="doc">表格输出格式</span></a>。</p>
 </section>
 </section>
 </section>

@@ -6,6 +6,7 @@ This module introduces the various beam monitors supported in PASS.
 .. toctree::
    :maxdepth: 2
 
+   table_output
    statmonitor
    distmonitor
    phaseadvancemonitor

@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="DistMonitor" href="distmonitor.html" />
-    <link rel="prev" title="Monitor" href="index.html" /> 
+    <link rel="prev" title="Table output formats" href="table_output.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -164,6 +164,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id24">分布类型选择</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#d">1D 投影理论曲线</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id25">模拟结果</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id26">初始分布输出格式</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
@@ -186,6 +187,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/monitor/index.html">监视器（Monitor）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/table_output.html">表格输出格式</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id2">格式选择</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id4">读取表格</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id1">简介</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id2">工作原理</a></li>
@@ -511,6 +519,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#distribution-selection">Distribution selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../injection.html#simulation-results">Simulation results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../element/index.html">Element</a><ul>
@@ -533,6 +542,13 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Monitor</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="table_output.html">Table output formats</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#format-selection">Format selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="table_output.html#reading-tables">Reading tables</a></li>
+</ul>
+</li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">StatMonitor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#introduction">Introduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#working-principle">Working Principle</a></li>
@@ -783,7 +799,7 @@
 <li><p>Derives emittance and Twiss parameters (beta, alpha, gamma) from second-order moments;</p></li>
 <li><p>Records beam loss count and loss percentage;</p></li>
 <li><p>CPU uses numpy vectorized computation, GPU uses CUDA kernel functions + warp reduction;</p></li>
-<li><p>Appends data to CSV each turn, converts to TFS format uniformly on the final turn;</p></li>
+<li><p>Appends every turn’s data to HDF5 and CSV in batches (100 turns by default);</p></li>
 <li><p>Only surviving particles (<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>) are counted; lost particles are excluded.</p></li>
 </ul>
 </li>
@@ -852,7 +868,17 @@ The temporary ring projection for z statistics is evaluated in FP64.</p>
 </section>
 <section id="gpu-implementation">
 <h3>GPU Implementation<a class="headerlink" href="#gpu-implementation" title="Link to this heading"></a></h3>
-<p>The GPU version uses the CUDA kernel function <code class="docutils literal notranslate"><span class="pre">calc_all_stats</span></code>, employing a grid stride loop to traverse particles. Each thread accumulates 22 statistics in registers, then through warp reduction (<code class="docutils literal notranslate"><span class="pre">__shfl_down_sync</span></code>) and block reduction, writes the global result via <code class="docutils literal notranslate"><span class="pre">atomicAdd</span></code>. The maximum number of blocks is 512 (due to <code class="docutils literal notranslate"><span class="pre">atomicAdd</span></code> contention overhead).</p>
+<p>The GPU version uses <code class="docutils literal notranslate"><span class="pre">calc_all_stats</span></code> for two centered passes over the particles.
+Each thread accumulates 23 moment sums and the live/injected particle counts in
+FP64 registers. Warp reduction (<code class="docutils literal notranslate"><span class="pre">__shfl_down_sync</span></code>) and block reduction combine
+these values before <code class="docutils literal notranslate"><span class="pre">atomicAdd</span></code> writes the global result. The maximum number
+of blocks is 512 to limit atomic contention. The centering values and counts
+remain on the GPU between passes.</p>
+<p>Each turn’s results are stored in a preallocated GPU buffer. At the configured
+write interval, all pending records from every bunch are transferred to the CPU
+in one copy. The existing scalar formulas then produce emittance, Twiss parameters
+and the other output columns for each record. Reference time, beta and momentum
+are already CPU values and are saved separately for every turn on the CPU.</p>
 </section>
 </section>
 <section id="interface-parameters">
@@ -892,27 +918,40 @@ The temporary ring projection for z statistics is evaluated in FP64.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;StatMonitor&quot;</span></code></p></td>
 <td><p>Command type identifier</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code></p></td>
+<td><p>str</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> (gzip-1 + shuffle), <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> (uncompressed), or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>; CSV is always provided</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Write</span> <span class="pre">interval</span> <span class="pre">(turns)&quot;</span></code></p></td>
+<td><p>positive int</p></td>
+<td><p>100</p></td>
+<td><p>Batch write interval in turns; all intervening rows are retained</p></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">StatMonitor</span></code> has no additional configuration parameters. The statistics target all surviving particles in the bunch at that position (<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>); no particle indices need to be specified.</p>
+<p>The statistics target all surviving particles in the bunch at that position (<code class="docutils literal notranslate"><span class="pre">tag</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>); no particle indices need to be specified.</p>
 </div>
 </section>
 <section id="output-files">
 <h2>Output Files<a class="headerlink" href="#output-files" title="Link to this heading"></a></h2>
 <p>A pair of files is generated for each bunch at each monitor position:</p>
 <ul class="simple">
-<li><p><strong>CSV</strong> (appended turn-by-turn): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv</span></code></p></li>
-<li><p><strong>TFS</strong> (converted from CSV on the final turn): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs</span></code></p></li>
+<li><p><strong>CSV</strong> (appended in batches): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv</span></code></p></li>
+<li><p><strong>HDF5</strong> (default, appended with CSV): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5</span></code></p></li>
+<li><p><strong>TFS</strong> (instead of HDF5 when selected, generated at finalization): <code class="docutils literal notranslate"><span class="pre">{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs</span></code></p></li>
 </ul>
 <p>The output directory is <code class="docutils literal notranslate"><span class="pre">output_dir_stat</span></code>.</p>
-<p>TFS file header:</p>
+<p>Example metadata (HDF5 attributes, or TFS headers in text mode):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">@</span> <span class="n">Name</span>             <span class="n">PASS</span> <span class="n">Statistic</span> <span class="n">Data</span>
 <span class="o">@</span> <span class="n">Time</span>             <span class="mi">2026</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">14</span> <span class="mi">00</span><span class="p">:</span><span class="mi">11</span><span class="p">:</span><span class="mi">03</span>
 </pre></div>
 </div>
-<p>Output columns (35 columns total):</p>
+<p>Output columns:</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 25.0%" />
@@ -1022,6 +1061,22 @@ The temporary ring projection for z statistics is evaluated in FP64.</p>
 <td><p>Longitudinal reference</p></td>
 <td><p>Laboratory longitudinal center of the bunch, <span class="math notranslate nohighlight">\(z_{\mathrm{center}}\)</span></p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">referenceTime</span></code></p></td>
+<td><p>Reference</p></td>
+<td><p>Reference passage time at this observation (s)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">referenceBeta</span></code></p></td>
+<td><p>Reference</p></td>
+<td><p>Reference velocity divided by c at this observation</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">referenceMomentum</span></code></p></td>
+<td><p>Reference</p></td>
+<td><p>Reference mechanical momentum at this observation (eV/c)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigmaTime</span></code></p></td>
+<td><p>Beam size</p></td>
+<td><p>Passage-time standard deviation from continuous z (s)</p></td>
+</tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">xzAverage</span></code></p></td>
 <td><p>Correlation</p></td>
 <td><p><span class="math notranslate nohighlight">\(\langle x \, z \rangle\)</span></p></td>
@@ -1078,7 +1133,7 @@ The temporary ring projection for z statistics is evaluated in FP64.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The statistics monitor requires no additional parameters; only the position and command type need to be specified. During simulation, the bunch statistics at that position are recorded turn-by-turn.</p>
+<p>Format and write interval are optional; omitting them selects HDF5 and 100 turns. During simulation, the bunch statistics at that position are recorded turn-by-turn.</p>
 <section id="multi-position-monitoring">
 <h3>Multi-position Monitoring<a class="headerlink" href="#multi-position-monitoring" title="Link to this heading"></a></h3>
 <p>Multiple statistics monitors can be placed at different positions to compare the variation of bunch statistics along the beamline:</p>
@@ -1113,7 +1168,7 @@ The temporary ring projection for z statistics is evaluated in FP64.</p>
 <h2>Longitudinal coordinate in output<a class="headerlink" href="#longitudinal-coordinate-in-output" title="Link to this heading"></a></h2>
 <p>Longitudinal moments use a temporary full-ring representative of bunch-relative
 z in <code class="docutils literal notranslate"><span class="pre">[-C/2,C/2)</span></code> on both CPU and GPU. This never changes stored particle z.
-TFS headers record <code class="docutils literal notranslate"><span class="pre">ZCoordinate=z_rel_folded_by_ring</span></code> and <code class="docutils literal notranslate"><span class="pre">ZInterval</span></code>.
+HDF5 attributes and TFS headers record <code class="docutils literal notranslate"><span class="pre">ZCoordinate=z_rel_folded_by_ring</span></code> and <code class="docutils literal notranslate"><span class="pre">ZInterval</span></code>.
 These are moments of the chosen representative, not unwrapped slip statistics
 or circular moments; a distribution crossing the interval cut can have a large
 reported width. ParticleMonitor and Distribution retain the continuous z_rel
@@ -1126,6 +1181,8 @@ reserved macro-particle counts. beamLossTotal excludes pending slots;
 lossPercent uses the injected population as its denominator. An allocated
 population with no survivors produces zero moments and explicit zero-survival
 counts on both CPU and GPU; an empty declared bunch retains the previous no-row behavior.</p>
+<p>Batching, final partial batches, live CSV inspection and HDF5 layout are
+described in <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>.</p>
 </section>
 </section>
 
@@ -1133,7 +1190,7 @@ counts on both CPU and GPU; an empty declared bunch retains the previous no-row 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Monitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="table_output.html" class="btn btn-neutral float-left" title="Table output formats" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="distmonitor.html" class="btn btn-neutral float-right" title="DistMonitor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -14,7 +14,7 @@
   - 由二阶矩导出发射度和 Twiss 参数（beta、alpha、gamma）；
   - 记录束流损失数与损失百分比；
   - CPU 使用 numpy 向量化计算， GPU 使用 CUDA 核函数 + warp 归约；
-  - 每圈数据追加写入 CSV ，最后一圈统一转换为 TFS 格式；
+  - 逐圈计算统计量，默认每 100 圈批量追加到 HDF5 和 CSV；
   - 仅统计存活粒子（ ``tag > 0`` ），已丢失粒子不计入。
 
 
@@ -123,7 +123,16 @@ Twiss 参数：
 GPU 实现
 ~~~~~~~~
 
-GPU 版本使用 CUDA 核函数 ``calc_all_stats`` ，采用 grid stride loop 遍历粒子，每个线程在寄存器中累加 22 个统计量，经 warp 归约（ ``__shfl_down_sync`` ）和 block 归约后，通过 ``atomicAdd`` 写入全局结果。块数上限为 512 （因 ``atomicAdd`` 竞争开销）。
+GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
+每个线程使用 FP64 寄存器累加 23 个矩之和及存活、已注入粒子计数，
+经 warp 归约（``__shfl_down_sync``）和 block 归约后，
+通过 ``atomicAdd`` 写入全局结果。块数上限为 512，以限制原子操作竞争。
+两遍计算之间的中心值和计数始终保留在 GPU 上。
+
+每圈的结果填入预分配的 GPU 缓存。到达指定写入间隔后，
+该监视器所有束团的待写记录通过一次复制传回 CPU，
+再逐条沿用现有标量公式计算发射度、Twiss 参数及其他输出列。
+参考时间、beta 和动量原本位于 CPU，因此逐圈单独保存在 CPU 上。
 
 
 接口参数
@@ -154,9 +163,20 @@ GPU 版本使用 CUDA 核函数 ``calc_all_stats`` ，采用 grid stride loop �
     - ``"StatMonitor"``
     - 命令类型标识
 
+  * - ``output_format``
+    - ``"Output format"``
+    - str
+    - ``"hdf5-gzip1"``
+    - ``"hdf5-gzip1"``（gzip-1 + shuffle）、``"hdf5"``（不压缩）或 ``"tfs"``；始终额外提供 CSV
+  * - ``write_interval_turns``
+    - ``"Write interval (turns)"``
+    - 正整数
+    - 100
+    - 批量写入的圈数间隔，保留期间全部逐圈记录
+
 .. note::
 
-  ``StatMonitor`` 无额外配置参数。统计对象为该位置处束团内的所有存活粒子（ ``tag > 0`` ），无需指定粒子编号。
+  统计对象为该位置处束团内的所有存活粒子（ ``tag > 0`` ），无需指定粒子编号。
 
 
 输出文件
@@ -164,19 +184,20 @@ GPU 版本使用 CUDA 核函数 ``calc_all_stats`` ，采用 grid stride loop �
 
 每个束团每个监视器位置生成一对文件：
 
-- **CSV** （逐圈追加） ： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv``
-- **TFS** （最后一圈由 CSV 转换） ： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs``
+- **CSV** （分批追加） ： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.csv``
+- **HDF5** （默认，与 CSV 同批追加）： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.h5``
+- **TFS** （选择后代替 HDF5，结束时生成） ： ``{hms}_stat_beam{bid}_bunch{bid}_Np_{Np}_s_{s:.4f}.tfs``
 
 输出目录为 ``output_dir_stat`` 。
 
-TFS 文件头：
+元数据示例（HDF5 属性，文本模式下为 TFS 文件头）：
 
 ::
 
    @ Name             PASS Statistic Data
    @ Time             2026-07-14 00:11:03
 
-输出列（共 35 列）：
+输出列：
 
 .. list-table::
   :header-rows: 1
@@ -257,6 +278,18 @@ TFS 文件头：
   * - ``zCenter``
     - 纵向参考
     - 束团实验室纵向中心 :math:`z_{\mathrm{center}}`
+  * - ``referenceTime``
+    - 参考量
+    - 此次观测的参考通过时间（s）
+  * - ``referenceBeta``
+    - 参考量
+    - 此次观测的参考速度与 c 的比值
+  * - ``referenceMomentum``
+    - 参考量
+    - 此次观测的参考机械动量（eV/c）
+  * - ``sigmaTime``
+    - 束流尺寸
+    - 由连续 z 计算的通过时间标准差（s）
   * - ``xzAverage``
     - 关联
     - :math:`\langle x \, z \rangle`
@@ -304,7 +337,7 @@ TFS 文件头：
        "Command": "StatMonitor"
    }
 
-统计监视器不需要额外参数，只需指定位置和命令类型。模拟运行过程中会逐圈记录该位置处束团的统计量。
+输出格式和写入间隔均为可选参数；省略时使用 HDF5 和 100 圈。模拟运行过程中会逐圈记录该位置处束团的统计量。
 
 多位置监视
 ~~~~~~~~~~
@@ -341,7 +374,7 @@ TFS 文件头：
 ----------------
 
 CPU 和 GPU 的纵向矩均使用束团相对 z 在 ``[-C/2,C/2)`` 的临时整环代表值，
-不会修改存储的粒子 z。TFS header 记录 ``ZCoordinate=z_rel_folded_by_ring``
+不会修改存储的粒子 z。HDF5 属性和 TFS header 记录 ``ZCoordinate=z_rel_folded_by_ring``
 和 ``ZInterval``。这些量是所选代表值的矩，不是展开滑移统计或圆周统计；
 分布跨越区间切口时，报告的宽度可能较大。需要累计纵向滑移时，可分析
 ParticleMonitor 和 Distribution 保存的连续 z_rel。
@@ -353,3 +386,6 @@ numAlive、numInjected、numPending 分别记录存活、已注入（含损失�
 beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母。
 已分配的粒子群若无存活粒子，CPU/GPU 都输出零矩与明确的零存活计数；
 声明为空的 bunch 仍沿用不输出行的行为。
+
+批量写入、最后不足一批的处理、运行中查看 CSV 和 HDF5 结构见
+:doc:`table_output`。
