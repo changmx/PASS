@@ -380,6 +380,7 @@ class DocumentWindowMixin:
         self.addAction(self.save_action)
         self.config.input_selector.currentIndexChanged.connect(self._switch_input)
         self.config.contents_button.clicked.connect(self.show_resources)
+        self.config.import_input_button.clicked.connect(self.import_json)
         self.config.changed.connect(self._update_document_ui)
         self.config.file_changed.connect(self._update_document_ui)
         self._update_document_ui()
@@ -412,10 +413,14 @@ class DocumentWindowMixin:
     def _dirty(self):
         return self.config.has_unsaved_changes() or bool(self.project and self.project.dirty)
 
-    def _confirm_replace(self) -> bool:
+    def _confirm_replace(self, *, force=False, target="当前输入") -> bool:
         if not self._dirty():
+            if force:
+                return QMessageBox.question(self, "确认替换", f"将替换{target}，是否继续？", QMessageBox.Yes | QMessageBox.Cancel,
+                                            QMessageBox.Cancel) == QMessageBox.Yes
             return True
-        result = QMessageBox.question(self, "未保存修改", "是否保存当前输入后继续？", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel, QMessageBox.Save)
+        result = QMessageBox.question(self, "未保存修改", f"即将替换{target}。是否先保存当前修改？", QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                                      QMessageBox.Save)
         return self.save_document() if result == QMessageBox.Save else result == QMessageBox.Discard
 
     def _set_input(self, data, path="", recipes=None, base=None):
@@ -452,14 +457,67 @@ class DocumentWindowMixin:
         path, _ = QFileDialog.getOpenFileName(self, "打开独立 JSON", "", "JSON (*.json)")
         if not path:
             return
+        self.open_json_path(path)
+
+    def open_json_path(self, path):
+        from PASS.gui.file_drop import identify_file
         try:
+            if identify_file(path) != "json":
+                raise ValueError("请选择 PASS 输入 JSON。")
             data = read_json(Path(path).read_bytes())
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "打开失败", str(exc))
             return
-        if self._confirm_replace():
+        if self.project:
+            dialog = QMessageBox(self)
+            dialog.setWindowTitle("加载输入配置")
+            name = self.project.configs[self._active_input_id].name
+            dialog.setText(f"{Path(path).name}\n当前项目输入：{name}\n选择加载方式：")
+            add = dialog.addButton("作为新配置加入项目", QMessageBox.AcceptRole)
+            replace_input = dialog.addButton("替换当前配置", QMessageBox.DestructiveRole)
+            standalone = dialog.addButton("打开为独立 JSON", QMessageBox.ActionRole)
+            dialog.addButton(QMessageBox.Cancel)
+            dialog.exec()
+            chosen = dialog.clickedButton()
+            if chosen == add:
+                self.import_json_paths([path])
+                return
+            if chosen == replace_input:
+                if not self._confirm_replace(force=True, target=f"项目中的 {name} 配置为 {Path(path).name}"):
+                    return
+                candidate = None
+                try:
+                    candidate = self._copy_project()
+                    candidate.update_config(self._active_input_id, data, Path(path).resolve().parent)
+                    candidate.add_asset(Path(path), "source-json")
+                    candidate.recipes = [r for r in candidate.recipes if r["config_id"] != self._active_input_id]
+                except (OSError, ValueError) as exc:
+                    if candidate:
+                        candidate.close()
+                    QMessageBox.warning(self, "替换失败", str(exc))
+                    return
+                old = self.project
+                self.project = candidate
+                self._activate_project_input(self._active_input_id)
+                old.close()
+                return
+            if chosen != standalone:
+                return
+        if self._confirm_replace(force=True, target=f"当前文档为 {Path(path).name}"):
             self._release_project()
             self._set_input(data, path)
+
+    def _copy_project(self):
+        """Stage edits in a private cache without changing the live document."""
+        candidate = Project()
+        try:
+            shutil.copytree(self.project.root, candidate.root, dirs_exist_ok=True)
+            for key in ("id", "created_at", "configs", "assets", "recipes", "active_config_id", "run_settings", "path", "dirty"):
+                setattr(candidate, key, deepcopy(getattr(self.project, key)))
+        except Exception:
+            candidate.close()
+            raise
+        return candidate
 
     def new_project(self):
         if not self._commit_current():
@@ -489,12 +547,15 @@ class DocumentWindowMixin:
         path, _ = QFileDialog.getOpenFileName(self, "打开 PASS 项目", "", "PASS project (*.passproj)")
         if not path:
             return
+        self.open_project_path(path)
+
+    def open_project_path(self, path):
         try:
             candidate = Project.open(Path(path))
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "打开失败", str(exc))
             return
-        if not self._confirm_replace():
+        if not self._confirm_replace(force=True, target=f"当前文档为项目 {Path(path).name}"):
             candidate.close()
             return
         self._release_project()
@@ -534,15 +595,30 @@ class DocumentWindowMixin:
         if not self.project or not self._commit_current():
             return
         paths, _ = QFileDialog.getOpenFileNames(self, "导入 JSON 及其全部输入依赖", "", "JSON (*.json)")
+        self.import_json_paths(paths)
+
+    def import_json_paths(self, paths):
+        if not paths or not self.project or not self._commit_current():
+            return
+        candidate = None
         try:
+            candidate = self._copy_project()
             last = None
             for name in paths:
+                from PASS.gui.file_drop import identify_file
+                if identify_file(name) != "json":
+                    raise ValueError("请选择 PASS 输入 JSON。")
                 path = Path(name)
-                last = self.project.add_config(path.name, read_json(path.read_bytes()), path.resolve().parent)
-                self.project.add_asset(path, "source-json")
+                last = candidate.add_config(path.name, read_json(path.read_bytes()), path.resolve().parent)
+                candidate.add_asset(path, "source-json")
             if last:
+                old = self.project
+                self.project = candidate
                 self._activate_project_input(last)
+                old.close()
         except (OSError, ValueError) as exc:
+            if candidate and candidate is not self.project:
+                candidate.close()
             QMessageBox.warning(self, "导入失败", str(exc))
             self._update_document_ui()
 
@@ -760,6 +836,10 @@ class DocumentWindowMixin:
         self.config.file_label.setText(label + (" ●" if dirty else ""))
         self.config.file_label.setToolTip(str(project.path or "") if project else self.config.path)
         self.config.input_selector.setVisible(project is not None)
+        self.config.input_count_label.setVisible(project is not None)
+        self.config.input_count_label.setText(f"当前输入配置（共 {len(project.configs)} 份）" if project else "当前输入配置")
+        self.config.input_selector.setToolTip(f"当前输入配置（共 {len(project.configs)} 份）" if project else "当前输入配置")
+        self.config.import_input_button.setVisible(project is not None)
         self.config.contents_button.setVisible(project is not None)
         self.setWindowTitle(f"PASS · {label}" + (" *" if dirty else ""))
         for key in ("save_json", "save_json_as"):

@@ -3,13 +3,85 @@ GUI tools
 
 The **Tools** workspace contains the beam calculator, tune diagram,
 **RF bucket绘制**, phase-space plotting and emittance calculation, magnet conversion, and
-Exciter preview. Its left section buttons share the configuration library's
+Exciter preview, and data format conversion. Its left section buttons share the configuration library's
 style and have individual icons. Values persist while switching pages in the
 current window. Tools do not modify the active tracking input or saved project.
-Each page provides a separate **Detailed formulas** window and result copying.
+Physics calculation pages provide separate **Detailed formulas** windows and result copying.
 Formulas are typeset offline with fractions, radicals, sums and real subscripts;
 no web engine or online math assets are required. **Copy formulas (LaTeX)** retains
 access to their editable mathematical source.
+
+.. _gui-data-conversion-en:
+
+Data format conversion
+----------------------
+
+Open or drop OMC3 SDDS, HDF5, CSV or TFS, select data, preview, then **Save as**.
+Sources remain read-only. Supported directions are OMC3 SDDS ↔ CSV/TFS,
+HDF5 ↔ CSV/TFS, and CSV ↔ TFS. Editing and direct SDDS ↔ HDF5 conversion are
+outside the scope. Install the GUI extra or, for scripts only,
+``python -m pip install --editable ".[conversion]"`` for PyLHC ``sdds`` and
+``turn-by-turn`` support.
+
+SDDS support is specifically the OMC3 **LHC/TbT SDDS1 array layout**, read through
+PyLHC ``sdds``. ``turn_by_turn`` is the Python reader used by OMC3, not another
+file format. Other SDDS layouts, SPS-specific readers and legacy ASCII TbT files
+are outside this converter's scope. Each exported row contains ``BPM``,
+``BUNCH``, ``TURN`` and the selected ``X`` and/or ``Y`` values. Select BPMs on
+the left, bunches and a turn interval on the right. Identifier columns are
+always retained. Turn and row indices start at 0; stops are exclusive.
+Row ranges and value filters apply after the BPM/bunch/turn selection.
+
+The usual controls show bunches, turn range, X/Y and output format. Row filters,
+column types and parameter selection are under the initially collapsed
+**Advanced options**. Active advanced selections remain effective when collapsed
+and are marked. BPM search only changes visibility; **Select visible** and
+**Deselect visible** affect the current search results and retain hidden choices.
+The preview summary displays selected counts, declared units, acquisition-time
+retention and turn renumbering; absent units are explicitly shown as undeclared.
+
+To convert CSV/TFS back, map its columns to ``BPM``, ``BUNCH``, ``TURN``, ``X``
+and ``Y``. Both planes and a complete BPM × bunch × consecutive-turn grid
+are required. Duplicate samples, missing combinations and gaps in turns are
+rejected. Output uses binary SDDS1, preserves float32/float64 position precision
+and is checked with ``turn_by_turn.read_tbt(..., datatype="lhc")``.
+Turns are renumbered from 0; a missing acquisition timestamp becomes
+``acqStamp=0`` with a notice. BPM names and string parameters must be ASCII.
+Extra SDDS arrays are listed as excluded; no unit or coordinate conversion is
+performed and missing units are not inferred.
+
+GUI preview checks the entire selection for return to OMC3 SDDS, including rows
+beyond the 500-row display. An incomplete table can still be saved as CSV/TFS;
+invalid CSV/TFS input disables SDDS saving and displays the reason. SDDS checking
+scans selected samples in bounded blocks; CSV/TFS checking uses the whole table
+in memory. These are format/structure checks, not an OMC3 physics analysis.
+
+Preview displays at most 500 rows without limiting export. SDDS arrays and
+CSV/TFS inputs are loaded into memory; SDDS table export uses bounded blocks.
+HDF5 reads are bounded and require explicit dataset selection: equal-length
+1-D columns, a 2-D matrix or plane, or a long table of grid points. For a PASS
+``(slice, y, x)`` field, choose **Long table**, slice ``0,:,:`` and coordinate
+paths ``/slice_id,/y,/x`` to export the first slice. Jobs can be cancelled.
+
+CSV can include a content-checked ``.metadata.json`` sidecar for units, types
+and parameters (including the exact acquisition timestamp). Keep it alongside
+the CSV for a round trip. TFS stores compatible headers plus PASS metadata.
+HDF5 output uses ``/table/<column>``; arbitrary source hierarchy is not recreated.
+Changing selections requires another preview. Source-change checks also include
+the CSV metadata sidecar. Overwriting outputs needs
+confirmation, and the source cannot be overwritten. Multi-file publication is
+not atomic; cancellation can leave already completed output files.
+
+Qt-independent functions live in ``PASS.tool.data_conversion``:
+``inspect_file``, ``preview_file``, ``convert_sdds`` and ``convert_hdf5``.
+For example, ``convert_sdds("a.sdds", "a.csv", DataSelection(bpms=["BPM.1"], turns=(0, 100)))``
+exports the first 100 turns of BPM.1 for all bunches; ``convert_sdds("a.csv", "b.sdds")``
+reconstructs OMC3 SDDS from the five standard columns, and
+``convert_hdf5("a.csv", "a.h5")`` creates an HDF5 table.
+Custom reverse mappings use ``DataSelection(tbt_columns={"BPM": "name", "BUNCH": "bunch", "TURN": "turn", "X": "x", "Y": "y"})``.
+Calls return output paths, row counts and notices; overwrite defaults to false.
+Scripts can use ``preview_file(path, selection, check_sdds=True)`` to receive
+the complete-selection result in ``sdds_check`` while limiting displayed rows.
 
 Particles and authoritative masses
 -----------------------------------

@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 from pydantic import BaseModel
 
-from PASS.commands import command_priority
+from PASS.utils.command_order import command_priority
 
 
 def _convert_ordereddict(obj):

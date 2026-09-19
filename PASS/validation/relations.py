@@ -7,7 +7,7 @@ from .rules import is_finite_number, is_integer
 
 
 def check_relations(check):
-    from PASS.commands import command_priority
+    from PASS.utils.command_order import command_priority
     from PASS.utils.constants import const
     raw = check.data.get("Space charge", {})
     root = ("Space charge", )

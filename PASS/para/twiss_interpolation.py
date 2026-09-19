@@ -121,7 +121,7 @@ class RingTwissInterpolator:
 def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer, interp_kind):
     """Build a uniform Twiss sequence with splits at kicks and optical jumps."""
     import tfs
-    from PASS.commands import command_priority
+    from PASS.utils.command_order import command_priority
     from PASS.para.madx import _insert_elements, _make_match_key, read_madx_errors
     from PASS.para.schema.elements import MultipoleItem
     from PASS.para.schema.twiss import TwissItem

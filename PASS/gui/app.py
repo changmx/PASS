@@ -471,10 +471,17 @@ class ConfigPage(QWidget):
         toolbar = QHBoxLayout()
         self.file_label = QLabel("beam.json")
         toolbar.addWidget(self.file_label)
+        self.input_count_label = QLabel("当前输入配置")
+        self.input_count_label.hide()
+        toolbar.addWidget(self.input_count_label)
         self.input_selector = PropertyComboBox()
         self.input_selector.setMinimumWidth(180)
         self.input_selector.hide()
+        self.input_selector.setToolTip("当前输入配置：项目可保存多份独立 beam 输入。")
         toolbar.addWidget(self.input_selector)
+        self.import_input_button = button("导入配置…")
+        self.import_input_button.hide()
+        toolbar.addWidget(self.import_input_button)
         toolbar.addStretch()
         self.sync_status = QLabel("JSON 输入")
         self.sync_status.setObjectName("syncStatus")
@@ -2244,7 +2251,7 @@ class ConfigPage(QWidget):
         return str(validator.report.errors[0]) if validator.report.errors else None
 
     def _refresh_sequence_table(self) -> None:
-        from PASS.commands import command_priority
+        from PASS.utils.command_order import command_priority
         from PASS.utils.constants import const
 
         sequence = self.data.get("Sequence", {})
@@ -3697,7 +3704,7 @@ class RunPage(QWidget):
         self.beam0 = PropertyComboBox()
         self.beam1 = PropertyComboBox()
         inputs.addWidget(self.beam0, 1)
-        inputs.addWidget(QLabel("Beam 1（可选）"))
+        inputs.addWidget(QLabel("Beam 1（双束运行，可选）"))
         inputs.addWidget(self.beam1, 1)
         self.beam0.currentIndexChanged.connect(self._settings_changed)
         self.beam1.currentIndexChanged.connect(self._settings_changed)
@@ -4092,6 +4099,12 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         outer.addWidget(self.stack, 1)
         self.setCentralWidget(central)
         self.setStatusBar(QStatusBar())
+        self.preload_status = QLabel("正在准备工具…")
+        self.statusBar().addPermanentWidget(self.preload_status)
+        self.tools.preparation_changed.connect(self.preload_status.setText)
+        self.tools.pause_preload = lambda: bool(self.run.process and self.run.process.state() != QProcess.NotRunning)
+        self._close_confirmed = False
+        self.tools.preloader.finished.connect(self._finish_preload_close)
         self._init_documents()
         self._show_page(0)
         geometry = self.settings.value("window/geometry")
@@ -4103,6 +4116,11 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.theme_preference = self.settings.value("theme", "dark", type=str)
         self.apply_theme(self.theme_preference)
         QApplication.instance().styleHints().colorSchemeChanged.connect(self._system_theme_changed)
+        from PASS.gui.file_drop import FileDropRouter
+        self.drop_router = FileDropRouter(self)
+        QApplication.instance().installEventFilter(self.drop_router)
+        self.setAcceptDrops(True)
+        QTimer.singleShot(150, self.tools.start_preload)
 
     def apply_theme(self, preference: str) -> None:
         if preference not in ("dark", "light", "system"):
@@ -4141,7 +4159,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             self.run.refresh_inputs()
 
     def closeEvent(self, event) -> None:
-        if not self._confirm_replace():
+        if not self._close_confirmed and not self._confirm_replace():
             event.ignore()
             return
         if not self.help_menu.confirm_close():
@@ -4155,10 +4173,21 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             self.run.stop_run()
             self.run.process.waitForFinished(2000)
         self.help_menu.builder.shutdown()
+        if not self.tools.shutdown():
+            self._close_confirmed = True
+            self.centralWidget().setEnabled(False)
+            self.preload_status.setText("正在结束资源准备…")
+            event.ignore()
+            return
+        QApplication.instance().removeEventFilter(self.drop_router)
         self.settings.setValue("window/geometry", self.saveGeometry())
         self.settings.setValue("window/splitter", self.config.splitter.saveState())
         self._release_project()
         event.accept()
+
+    def _finish_preload_close(self):
+        if self._close_confirmed and self.tools._closing:
+            self.close()
 
 
 def main() -> None:

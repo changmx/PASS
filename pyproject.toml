@@ -41,6 +41,12 @@ dev = [
 ]
 gui = [
     "PySide6>=6.6",
+    "sdds>=0.4.3",
+    "turn-by-turn>=1.4",
+]
+conversion = [
+    "sdds>=0.4.3",
+    "turn-by-turn>=1.4",
 ]
 docs = [
     "sphinx>=7.3",

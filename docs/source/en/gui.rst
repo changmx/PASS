@@ -27,6 +27,32 @@ Space charge and **Wakefields** (尾场) expand independently. The latter contai
 **Global configuration**, **Insert wake slicer**, and **Wake point**;
 Beam-beam effects and Electron cloud remain disabled placeholders.
 
+Startup and file drops
+----------------------
+
+The main configuration workspace appears first. Numerical dependencies are then
+prepared in a worker thread, and tool pages are constructed one at a time on the
+GUI thread. All tools are prepared automatically; clicking an unfinished tool
+prioritizes it. The status bar reports progress. Page construction pauses while
+a simulation, conversion, or modal dialog is active. Once prepared, pages retain
+their values when switching. This reduces initial work; cold disk caches and
+individual page construction can still affect responsiveness.
+
+Drop one local ``.passproj`` or PASS input JSON onto the window, including child
+editors. File contents are checked before replacing the current document. A
+replacement requires confirmation; unsaved changes offer Save/Discard/Cancel.
+Invalid files or cancellation keep the current document. With a project open,
+an input JSON can replace the active input, be added as another configuration,
+or open as a standalone document. The configuration selector displays the input
+count, and **导入配置…** (Import configuration) adds inputs to the same project.
+These configurations are independent alternatives; **Beam 1** on the run page
+specifically means the optional second beam in a two-beam simulation.
+
+OMC3 SDDS/HDF5 drops open the conversion tool (see :ref:`gui-data-conversion-en`) without replacing beam parameters.
+CSV/TFS drops offer conversion or plotting; dropping them directly into the
+converter selects conversion. Only one file is accepted per drop. For another
+project window, launch another ``pass-gui`` process from a terminal.
+
 Help and local documentation
 ----------------------------
 
@@ -70,7 +96,7 @@ Tools
 
 **Tools** is a peer of Configuration, Run and Plot. Its left navigation contains
 the beam calculator, tune diagram, RF bucket, phase-space plotting and emittance calculation,
-magnet converter, and exciter preview. Calculations are independent of the active simulation
+magnet converter, exciter preview, and data format conversion. Calculations are independent of the active simulation
 input. Reference masses use fixed AME2020, NIST/CODATA and PDG data. Ek uses MeV/u for every species, normalized by actual rest mass in u.
 Formula references and clickable source websites open in separate windows. See :doc:`gui_tools` for units, conventions and workflows.
 
