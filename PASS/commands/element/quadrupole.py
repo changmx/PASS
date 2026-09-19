@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.commands.element.error import FieldErrors
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -30,6 +31,7 @@ class Quadrupole(Command):
         self.length = kwargs["length (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.field_errors = FieldErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of Quadrupole {self.cmd_name} is {self.length}, which should be >= 0")
@@ -117,9 +119,12 @@ class Quadrupole(Command):
         return True
 
     def execute_gpu(self, sim):
+        if self.field_errors.active:
+            from PASS.commands.element.error import _track_field_errors_gpu
+            return _track_field_errors_gpu(self, sim)
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
+            from PASS.utils.slicing import execute_element_body_gpu
+            return execute_element_body_gpu(self, sim)
         all_zero = (abs(self.k1l) < const.eps and abs(self.k1sl) < const.eps)
         if self.is_thick and self.model == "mat-kick-mat" and not all_zero:
             launch_quadrupole_matrix(self, sim)
@@ -162,6 +167,7 @@ class Quadrupole(Command):
 
         if not self.is_thick:
             self._quadrupole_kick_cpu(self.k1l, self.k1sl, x, px, y, py, tag, mask, chi)
+            self.field_errors.kick_cpu(x, px, y, py, tag)
             return
 
         if self._sc_nodes:
@@ -169,11 +175,8 @@ class Quadrupole(Command):
             def transport(ds, on_center):
                 if self.model == "mat-kick-mat":
 
-                    def advance(length):
-                        mask[:] = tag > 0
-                        self._mat_kick_mat_cpu(x, px, y, py, z, dp, tag, mask, chi, beta0, length)
-
-                    transport_with_center(advance, ds, on_center)
+                    mask[:] = tag > 0
+                    self._mat_kick_mat_cpu(x, px, y, py, z, dp, tag, mask, chi, beta0, ds, on_center=on_center)
                 else:
                     step = self._dkd_step_cpu if self.integrator == "uniform" else self._dkd_yoshida4_cpu
                     step(x, px, y, py, z, dp, tag, mask, ds, self.k1, self.k1s, chi, beta0, on_center=on_center)
@@ -181,7 +184,7 @@ class Quadrupole(Command):
             run_body_slices(self, beam, bunch, turn, transport)
             return
 
-        if abs(self.k1l) < const.eps and abs(self.k1sl) < const.eps:
+        if (abs(self.k1l) < const.eps and abs(self.k1sl) < const.eps) and not self.field_errors.active:
             self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag, mask, beta0)
         else:
             if self.model == "mat-kick-mat":
@@ -203,7 +206,20 @@ class Quadrupole(Command):
             lost_position[newly_lost] = self.s
             lost_turn[newly_lost] = turn
 
-    def _mat_kick_mat_cpu(self, x, px, y, py, z, dp, tag, mask, chi, beta0, ds):
+    def _mat_kick_mat_cpu(self, x, px, y, py, z, dp, tag, mask, chi, beta0, ds, on_center=None):
+
+        def advance(length):
+            mask[:] = tag > 0
+            self._matrix_cpu(x, px, y, py, z, dp, tag, mask, chi, beta0, length)
+
+        if self.field_errors.active:
+            from PASS.commands.element.error import _transport_matrix_errors
+            _transport_matrix_errors(advance, lambda scale: self.field_errors.kick_cpu(x, px, y, py, tag, scale), ds, self.length, self.integrator,
+                                     on_center)
+        else:
+            transport_with_center(advance, ds, on_center)
+
+    def _matrix_cpu(self, x, px, y, py, z, dp, tag, mask, chi, beta0, ds):
         """Apply the linear map in the quadrupole's principal axes.
 
         K includes the particle momentum ratio. The z update uses the path
@@ -321,6 +337,7 @@ class Quadrupole(Command):
         """Apply one drift-kick-drift step; Yoshida composition may use negative ds."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._quadrupole_kick_cpu(k1 * ds, k1s * ds, x, px, y, py, tag, mask, chi)
+        self.field_errors.kick_cpu(x, px, y, py, tag, ds / self.length)
         if on_center is not None:
             on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)

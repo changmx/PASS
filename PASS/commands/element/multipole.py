@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.commands.element.error import FieldErrors
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -32,6 +33,7 @@ class Multipole(Command):
         self.length = kwargs["length (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.field_errors = FieldErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of Multipole {self.cmd_name} is {self.length}, which should be >= 0")
@@ -48,6 +50,7 @@ class Multipole(Command):
         if not isinstance(ksl_list, (list, np.ndarray)):
             raise ValueError(f"KiSL of {self.cmd_name} must be a list, but got {type(ksl_list)}")
 
+        knl_list, ksl_list = self.field_errors.combine(knl_list, ksl_list)
         self.knl = np.array(knl_list, dtype=np.float64)
         self.ksl = np.array(ksl_list, dtype=np.float64)
 
@@ -72,7 +75,7 @@ class Multipole(Command):
             self.kn = np.zeros_like(self.knl)
             self.ks = np.zeros_like(self.ksl)
 
-        all_zero = np.all(np.abs(self.knl) < const.eps) and np.all(np.abs(self.ksl) < const.eps)
+        all_zero = np.all(self.knl == 0) and np.all(self.ksl == 0)
         if all_zero:
             logger.warning(f"Multipole {self.cmd_name} has zero integrated strength (all knl/ksl are zero). It will act as a pure drift.")
 
@@ -126,9 +129,9 @@ class Multipole(Command):
 
     def execute_gpu(self, sim):
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
-        all_zero = (np.all(np.abs(self.knl) < const.eps) and np.all(np.abs(self.ksl) < const.eps))
+            from PASS.utils.slicing import execute_element_body_gpu
+            return execute_element_body_gpu(self, sim)
+        all_zero = (np.all(self.knl == 0) and np.all(self.ksl == 0))
         mode = 0 if not self.is_thick else (2 if all_zero else 1)
         launch_multipole(self, sim, self.knl if not self.is_thick else self.kn, self.ksl if not self.is_thick else self.ks, self.inv_fact, mode)
         return True
@@ -168,7 +171,7 @@ class Multipole(Command):
             run_body_slices(self, beam, bunch, turn, transport)
             return
 
-        all_zero = np.all(np.abs(self.knl) < const.eps) and np.all(np.abs(self.ksl) < const.eps)
+        all_zero = np.all(self.knl == 0) and np.all(self.ksl == 0)
         if all_zero:
             self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag, mask, beta0)
         else:
@@ -230,30 +233,21 @@ class Multipole(Command):
         z += L_mask * slip
 
     def _multipole_kick_cpu(self, knl_eff, ksl_eff, x, px, y, py, tag, mask, chi):
-        """Evaluate integrated normal and skew multipole kicks with Horner recursion."""
-        if np.all(np.abs(knl_eff) < const.eps) and np.all(np.abs(ksl_eff) < const.eps):
-            return
+        """Apply the common integrated multipole polynomial."""
+        _apply_multipole_kick_cpu(knl_eff, ksl_eff, self.inv_fact, x, px, y, py, tag, chi)
 
-        order = len(knl_eff) - 1
-        inv_fact = self.inv_fact  # precomputed 1/n! array
 
-        index = order
-        dpx_mul = chi * knl_eff[index] * inv_fact[index]
-        dpy_mul = chi * ksl_eff[index] * inv_fact[index]
-
-        while index > 0:
-            zre = dpx_mul * x - dpy_mul * y  # Re[(dpx+i*dpy)*(x+iy)]  (per-particle)
-            zim = dpx_mul * y + dpy_mul * x  # Im[(dpx+i*dpy)*(x+iy)]  (per-particle)
-            index -= 1
-            dpx_mul = chi * knl_eff[index] * inv_fact[index] + zre
-            dpy_mul = chi * ksl_eff[index] * inv_fact[index] + zim
-
-        active = (tag > 0).astype(mask.dtype, copy=False)
-        dpx_mul *= active
-        dpy_mul *= active
-
-        px -= dpx_mul  # sign flip on px only (rad convention)
-        py += dpy_mul
+def _apply_multipole_kick_cpu(knl, ksl, inv_fact, x, px, y, py, tag, scale=1.0):
+    """Horner kick for integrated strengths; p_x=P_x/P0 and p_y=P_y/P0."""
+    active = tag > 0
+    # Evaluate only live particles, including when lost coordinates are nonfinite.
+    xr, yi = x[active], y[active]
+    re = np.full_like(xr, knl[-1] * inv_fact[-1] * scale)
+    im = np.full_like(yi, ksl[-1] * inv_fact[-1] * scale)
+    for i in range(len(knl) - 2, -1, -1):
+        re, im = (re * xr - im * yi + knl[i] * inv_fact[i] * scale, re * yi + im * xr + ksl[i] * inv_fact[i] * scale)
+    px[active] -= re
+    py[active] += im
 
 
 CUDA_REAL_PREAMBLE = _build_yoshida_cuda_constants() + f'''
@@ -468,7 +462,7 @@ def launch_multipole(element, sim, knl, ksl, inv_fact, mode):
     if cache is None:
         cache = {}
         element._gpu_strength_cache = cache
-    key = np.dtype(p.dtype)
+    key = (np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())
     if key not in cache:
         cache[key] = (cp.asarray(knl, dtype=p.dtype), cp.asarray(ksl, dtype=p.dtype), cp.asarray(inv_fact, dtype=p.dtype))
     knl_gpu, ksl_gpu, inv_gpu = cache[key]

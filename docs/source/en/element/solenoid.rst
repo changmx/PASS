@@ -13,10 +13,10 @@ The PASS solenoid uses an **exact nonlinear map** (analytical solution of the Ha
 - Key features:
 
   - Uses exact solenoid map (Larmor rotation + focusing, :math:`p_z` computed per particle)
-  - No thin lens mode (solenoid has no thin lens limit; :math:`L=0` produces no effect)
+  - No axial thin lens mode; at :math:`L=0` only integrated transverse multipoles act
   - Supports multipole field overlay (``knl`` / ``ksl``), using SKS integrator
   - Supports uniform (2nd-order leapfrog) and yoshida4 (4th-order Yoshida composition) integrators
-  - :math:`k_s = 0` automatically degenerates to a pure drift
+  - :math:`k_s = 0` gives multipole DKD transport, or pure drift if no transverse multipoles remain
   - Chromaticity effects naturally introduced through per-particle :math:`p_z`
   - Supports aperture check
 
@@ -216,7 +216,7 @@ The thin lens limit of a solenoid (:math:`L \to 0`, :math:`k_s \to \infty`, :mat
 
 The scaling behavior of position and momentum is asymmetric: the rotation angle is finite but the focusing force diverges, so the thin lens limit does not exist.
 
-Therefore, in PASS, the solenoid with :math:`L = 0` has **no effect** (identity map) and does not provide a thin lens mode.
+Therefore PASS provides no axial thin lens map. At :math:`L=0`, ``KS`` has no effect, but nominal transverse multipoles and enabled field errors still apply their integrated thin kick.
 
 
 Multipole Field Overlay and SKS Integrator
@@ -314,8 +314,8 @@ Depending on whether multipole fields are superimposed, the solenoid has two tra
     where ds = L / N
 
   Special cases:
-    ks = 0 → degenerates to pure drift Drift(L)
-    L = 0 → no effect (solenoid has no thin lens limit)
+    ks = 0 → multipole DKD, or Drift(L) if no transverse multipoles remain
+    L = 0 → only the integrated transverse multipole kick remains
 
 The complete map is:
 
@@ -346,6 +346,8 @@ In the Larmor framework, :math:`p_z` depends on :math:`\delta` and the Larmor mo
 Particles with different momentum deviations :math:`\delta` have different :math:`p_z`, and therefore different Larmor rotation angles :math:`\theta = \text{sk} \cdot L / p_z` and different equivalent drift lengths :math:`\sin\theta / \text{sk}`. This is the physical origin of solenoid chromaticity—momentum-dependent rotation angle and focusing strength.
 
 
+Absolute normal/skew errors use the common :ref:`en-error` interface.
+
 Interface Parameters
 --------------------
 
@@ -367,7 +369,7 @@ Interface Parameters
     - ``length (m)``
     - float
     - m
-    - Element length (must be :math:`\ge 0`; :math:`= 0` produces no effect)
+    - Element length (must be :math:`\ge 0`; :math:`=0` retains only transverse multipole kicks)
   * - ``name``
     - ``name``
     - str
@@ -411,10 +413,10 @@ Interface Parameters
 
 .. note::
 
-  - ``knl`` / ``ksl`` are optional parameters. When not specified or all zero, each solenoid slice uses the exact body map; ``num_slices`` applies and ``integrator`` is unused
-  - When nonzero ``knl`` / ``ksl`` are specified, the SKS integrator is enabled, and ``num_slices`` and ``integrator`` take effect
-  - When ``ks = 0`` and the element has length, it degenerates to a pure drift
-  - When ``length = 0``, the solenoid has no effect (thin lens mode is not provided)
+  - ``knl`` / ``ksl`` are optional parameters. When their sums with enabled field errors are all zero, each solenoid slice uses the exact body map; ``num_slices`` applies and ``integrator`` is unused
+  - When nominal multipoles plus enabled field errors are nonzero, the SKS integrator is enabled, and ``num_slices`` and ``integrator`` take effect
+  - When ``ks = 0`` and the element has length, it uses multipole DKD; it is a pure drift only if nominal plus error multipoles are zero
+  - When ``length = 0``, only transverse multipoles and enabled field errors act; the axial field has no thin lens map
 
 
 Usage Examples

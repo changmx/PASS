@@ -393,6 +393,8 @@ The multipole uses a straight reference orbit. It does not provide an ``hxl``
 curvature correction for a bent reference orbit.
 
 
+Absolute normal/skew errors use the common :ref:`en-error` interface.
+
 Interface Parameters
 --------------------
 

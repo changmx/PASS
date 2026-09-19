@@ -134,8 +134,8 @@ class Drift(Command):
 
     def execute_gpu(self, sim):
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
+            from PASS.utils.slicing import execute_element_body_gpu
+            return execute_element_body_gpu(self, sim)
         L = self.length
         beam = sim.beams[self.beam_id]
         bunches: list[BunchInfo] = beam.bunches

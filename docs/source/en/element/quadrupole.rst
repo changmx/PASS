@@ -522,6 +522,8 @@ Slice Count and Integrator Recommendations
   - The yoshida4 integrator has per-slice error :math:`O(\Delta s^5)` and global error :math:`O(\Delta s^4)`, with precision far superior to uniform
 
 
+Absolute normal/skew errors use the common :ref:`en-error` interface.
+
 Interface Parameters
 --------------------
 

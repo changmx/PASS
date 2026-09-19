@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.commands.element.error import FieldErrors
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -34,6 +35,7 @@ class SBend(Command):
         self.length = kwargs["length (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.field_errors = FieldErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of SBend {self.cmd_name} is {self.length}, which should be >= 0")
@@ -65,9 +67,6 @@ class SBend(Command):
         if self.fintx <= 0.0:
             self.fintx = self.fint
 
-        self.is_field_error = kwargs.get("is field error", False)
-        self.field_err_knl = []
-        self.field_err_ksl = []
         self.is_ramping = kwargs.get("is ramping", False)
         self.k0l_ramping_filepath = kwargs.get("k0l ramping filepath", None)
 
@@ -101,7 +100,7 @@ class SBend(Command):
         set_simple_logging()
         logger.info(f"S={self.s:.4f}, Command={self.cmd_type:s}, Name={self.cmd_name:s}, Length={self.length:.4f}, "
                     f"IsThick={self.is_thick}, K0L={self.k0l:.4f}, E1={self.e1:.4f}, E2={self.e2:.4f}, HGap={self.hgap:.4f}, "
-                    f"FInt={self.fint:.4f}, FIntX={self.fintx:.4f}, IsFieldError={self.is_field_error}, "
+                    f"FInt={self.fint:.4f}, FIntX={self.fintx:.4f}, IsFieldError={self.field_errors.enabled}, "
                     f"IsRamping={self.is_ramping}, NumSlice={self.num_slice:d}, Model={self.model:s}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
         print_element_slicing(self)
@@ -120,9 +119,12 @@ class SBend(Command):
         return True
 
     def execute_gpu(self, sim):
+        if self.field_errors.active:
+            from PASS.commands.element.error import _track_field_errors_gpu
+            return _track_field_errors_gpu(self, sim)
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
+            from PASS.utils.slicing import execute_element_body_gpu
+            return execute_element_body_gpu(self, sim)
         launch_dipole(self, sim)
         return True
 
@@ -131,6 +133,9 @@ class SBend(Command):
         if not self.is_thick:
             # Thin lens: only apply k0l kick (no body, no edge)
             self._thin_kick_cpu(self.k0l, beam, bunch)
+            p = beam.particles
+            region = slice(bunch.start_idx, bunch.end_idx)
+            self.field_errors.kick_cpu(p.x[region], p.px[region], p.y[region], p.py[region], p.tag[region])
             return
 
         beta0 = bunch.beta
@@ -454,6 +459,7 @@ class SBend(Command):
         """Apply one drift-kick-drift step; Yoshida composition may use negative ds."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._dipole_kick_cpu(ds, x, px, y, py, z, dp, tag, mask, h, k0, chi, beta0)
+        self.field_errors.kick_cpu(x, px, y, py, tag, ds / self.length)
         if on_center is not None:
             on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
@@ -593,6 +599,7 @@ class SBend(Command):
         """Single DKD step for rot-kick-rot model."""
         self._rkr_drift_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0, h, k0, chi)
         self._rkr_kick_cpu(ds, x, px, y, py, z, dp, tag, mask, h, k0, chi, beta0)
+        self.field_errors.kick_cpu(x, px, y, py, tag, ds / self.length)
         if on_center is not None:
             on_center()
         self._rkr_drift_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0, h, k0, chi)

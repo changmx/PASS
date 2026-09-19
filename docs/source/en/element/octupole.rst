@@ -361,6 +361,8 @@ In the DKD-exact scheme, all nonlinear effects of an ideal octupole magnet are n
   The only approximation is the discretization error of the split-operator integrator (:math:`O(\Delta s^2)` for uniform, :math:`O(\Delta s^4)` for yoshida4), which can be controlled by increasing the number of slices. This is a truncation error of the mathematical method, not an omission of physical effects.
 
 
+Absolute normal/skew errors use the common :ref:`en-error` interface.
+
 Interface Parameters
 --------------------
 

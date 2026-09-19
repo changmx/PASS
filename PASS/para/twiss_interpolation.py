@@ -154,7 +154,7 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
             name = str(row["NAME"])
             occurrences[name] = occurrences.get(name, 0) + 1
             positions[_make_match_key(name, occurrences[name])] = float(row["S"])
-        for key, errors in read_madx_errors(error_file).items():
+        for key, errors in read_madx_errors(error_file, element_names=table["NAME"]).items():
             if key not in positions:
                 raise ValueError(f"Field-error element {key!r} is missing from the source TFS.")
             extras.append(MultipoleItem(s=positions[key], length=0., knl=errors["knl"], ksl=errors["ksl"]))

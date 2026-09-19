@@ -361,6 +361,8 @@ DKD-exact 方案中，理想八极磁铁的所有非线性效应天然包含，�
   唯一近似是 split-operator 积分器的离散化误差（uniform 为 :math:`O(\Delta s^2)` ，yoshida4 为 :math:`O(\Delta s^4)` ），可通过增加切片数控制。这是数学方法的截断误差，不是物理效应的遗漏。
 
 
+绝对正、斜多极场误差使用公共 :ref:`zh-error` 接口。
+
 接口参数
 --------
 

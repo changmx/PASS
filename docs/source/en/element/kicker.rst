@@ -211,6 +211,8 @@ where the Yoshida coefficients are:
 Truncation error :math:`O(\Delta s^4)`.
 
 
+Absolute normal/skew errors use the common :ref:`en-error` interface.
+
 Interface Parameters
 --------------------
 

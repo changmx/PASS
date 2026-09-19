@@ -35,6 +35,7 @@ Python 使用双精度系数；CUDA 接收由同一来源生成的双精度编�
 .. toctree::
    :maxdepth: 2
 
+   error
    marker
    drift
    dipole

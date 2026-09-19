@@ -9,9 +9,10 @@ Specific element types add their own physical parameters.
 Consumed by PASS.commands.element.* via Command.create(**kwargs).
 """
 
+import math
 from typing import ClassVar, Literal
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator, StrictInt
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator, StrictInt
 
 from PASS.para.schema.space_charge import ElementSpaceCharge
 
@@ -54,6 +55,20 @@ class SlicedElementBase(ElementBase):
         return self
 
 
+class MagneticElementBase(SlicedElementBase):
+    """Absolute integrated normal/skew errors, in m**(-n) for order n."""
+    is_field_error: bool = Field(default=False, alias="Is field error")
+    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
+    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
+
+    @field_validator("field_error_knl", "field_error_ksl")
+    @classmethod
+    def validate_field_error_coefficients(cls, values):
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("Field-error coefficients must be finite")
+        return values
+
+
 # Drift
 
 
@@ -73,7 +88,7 @@ class MarkerItem(ElementBase):
 # SBend (dipole)
 
 
-class SBendItem(SlicedElementBase):
+class SBendItem(MagneticElementBase):
     command: str = Field(default="SBend", alias="Command")
     k0l: float = Field(default=0.0, alias="K0L")
     e1: float = Field(default=0.0, alias="E1 (rad)")
@@ -81,11 +96,6 @@ class SBendItem(SlicedElementBase):
     hgap: float = Field(default=0.0, alias="Hgap (m)")
     fint: float = Field(default=0.0, alias="Fint")
     fintx: float = Field(default=0.0, alias="Fintx")
-
-    # field error
-    is_field_error: bool = Field(default=False, alias="Is field error")
-    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
-    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
 
     # ramping
     is_ramping: bool = Field(default=False, alias="Is ramping")
@@ -100,15 +110,10 @@ class SBendItem(SlicedElementBase):
 # Quadrupole
 
 
-class QuadrupoleItem(SlicedElementBase):
+class QuadrupoleItem(MagneticElementBase):
     command: str = Field(default="Quadrupole", alias="Command")
     k1l: float = Field(default=0.0, alias="K1L")
     k1sl: float = Field(default=0.0, alias="K1SL")
-
-    # field error
-    is_field_error: bool = Field(default=False, alias="Is field error")
-    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
-    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
 
     # ramping
     is_ramping: bool = Field(default=False, alias="Is ramping")
@@ -126,14 +131,10 @@ class QuadrupoleItem(SlicedElementBase):
 # Sextupole
 
 
-class SextupoleItem(SlicedElementBase):
+class SextupoleItem(MagneticElementBase):
     command: str = Field(default="Sextupole", alias="Command")
     k2l: float = Field(default=0.0, alias="K2L")
     k2sl: float = Field(default=0.0, alias="K2SL")
-
-    is_field_error: bool = Field(default=False, alias="Is field error")
-    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
-    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
 
     is_ramping: bool = Field(default=False, alias="Is ramping")
     k2l_ramping_file: str = Field(default="", alias="K2L ramping file")
@@ -146,14 +147,10 @@ class SextupoleItem(SlicedElementBase):
 # Octupole
 
 
-class OctupoleItem(SlicedElementBase):
+class OctupoleItem(MagneticElementBase):
     command: str = Field(default="Octupole", alias="Command")
     k3l: float = Field(default=0.0, alias="K3L")
     k3sl: float = Field(default=0.0, alias="K3SL")
-
-    is_field_error: bool = Field(default=False, alias="Is field error")
-    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
-    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
 
     is_ramping: bool = Field(default=False, alias="Is ramping")
     k3l_ramping_file: str = Field(default="", alias="K3L ramping file")
@@ -166,7 +163,7 @@ class OctupoleItem(SlicedElementBase):
 # Multipole
 
 
-class MultipoleItem(SlicedElementBase):
+class MultipoleItem(MagneticElementBase):
     command: str = Field(default="Multipole", alias="Command")
     knl: list[float] = Field(default_factory=list, alias="KiL")
     ksl: list[float] = Field(default_factory=list, alias="KiSL")
@@ -181,15 +178,11 @@ class MultipoleItem(SlicedElementBase):
 # Solenoid
 
 
-class SolenoidItem(SlicedElementBase):
+class SolenoidItem(MagneticElementBase):
     command: str = Field(default="Solenoid", alias="Command")
     ks: float = Field(default=0.0, alias="KS")
     knl: list[float] = Field(default_factory=list, alias="KiL")
     ksl: list[float] = Field(default_factory=list, alias="KiSL")
-
-    is_field_error: bool = Field(default=False, alias="Is field error")
-    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
-    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
 
     num_slices: int = Field(default=1, ge=1, alias="Num slices")
     integrator: str = Field(default="adaptive", alias="Integrator")
@@ -198,14 +191,10 @@ class SolenoidItem(SlicedElementBase):
 # Kicker
 
 
-class KickerItem(SlicedElementBase):
+class KickerItem(MagneticElementBase):
     command: str = Field(default="Kicker", alias="Command")
     hkick: float = Field(default=0.0, alias="HKICK")
     vkick: float = Field(default=0.0, alias="VKICK")
-
-    is_field_error: bool = Field(default=False, alias="Is field error")
-    field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
-    field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
 
     is_ramping: bool = Field(default=False, alias="Is ramping")
     kick_ramping_file: str = Field(default="", alias="Kick ramping file")

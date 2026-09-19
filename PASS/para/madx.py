@@ -17,7 +17,7 @@ import numpy as np
 import tfs
 
 from PASS.para.schema.twiss import TwissItem
-from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem
+from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem, SolenoidItem
 
 # Helpers
 
@@ -37,8 +37,8 @@ def _make_match_key(elem_name: str, occurrence: int) -> str:
 
     Used for error-to-element matching, which must be independent of
     the S column (error TFS S values may differ from twiss TFS).
-    Both the element reader and error reader track occurrence order
-    so the same name always produces the same key.
+    Occurrence order comes only from the complete source Twiss lattice.
+    The sparse error table resolves names against that source catalog.
     """
     return f"{elem_name}[{occurrence}]"
 
@@ -70,10 +70,13 @@ def _extract_multipole_kl(row, columns) -> tuple[list, list]:
         ksl.append(float(row[col]) if col in columns else 0.0)
 
     # Strip trailing zeros
-    while knl and abs(knl[-1]) < 1e-15:
+    while knl and knl[-1] == 0:
         knl.pop()
-    while ksl and abs(ksl[-1]) < 1e-15:
+    while ksl and ksl[-1] == 0:
         ksl.pop()
+
+    if not knl and not ksl:
+        knl = [0.0]
 
     return knl, ksl
 
@@ -305,6 +308,18 @@ def read_madx_elements(
         elif et == "multipole":
             knl, ksl = _extract_multipole_kl(row, twiss_table.columns)
             item = MultipoleItem(s=s, length=l, knl=knl, ksl=ksl)
+        elif et == "solenoid":
+            knl, ksl = _extract_multipole_kl(row, twiss_table.columns)
+            if "KSI" in twiss_table.columns:
+                ksi = float(row["KSI"])
+                if l == 0 and ksi != 0:
+                    raise ValueError(f"Solenoid {elem_name}: nonzero KSI at zero length has no supported axial thin map")
+                ks = ksi / l if l != 0 else 0.0
+            elif "KS" in twiss_table.columns:
+                ks = float(row["KS"])
+            else:
+                raise ValueError(f"Solenoid {elem_name}: export KSI in the MAD-X Twiss table (or provide KS)")
+            item = SolenoidItem(s=s, length=l, ks=ks, knl=knl, ksl=ksl)
         elif et in ("hkicker", "vkicker", "kicker", "tkicker"):
             hkick = row.get("HKICK", 0.0)
             vkick = row.get("VKICK", 0.0)
@@ -329,13 +344,11 @@ def read_madx_elements(
         # Store match_key on item for error matching (survives drift merge)
         item._match_key = match_key
 
-    # Merge drifts
-    if is_merge_drift:
-        items, names = merge_drift_elements(items, names)
-
     # Field errors — match by name[occurrence], not by s-suffixed name
-    if is_field_error and error_file:
-        error_dict = read_madx_errors(error_file)
+    if is_field_error:
+        if not error_file:
+            raise ValueError("Field-error import requires an error TFS file")
+        error_dict = read_madx_errors(error_file, element_names=twiss_table["NAME"])
         key_to_idx = {}
         for idx, item in enumerate(items):
             mk = getattr(item, "_match_key", None)
@@ -345,13 +358,19 @@ def read_madx_elements(
         for key, errs in error_dict.items():
             if key in key_to_idx:
                 idx = key_to_idx[key]
+                if "is_field_error" not in type(items[idx]).model_fields:
+                    raise ValueError(f"Field errors on {key!r} are not supported by {type(items[idx]).__name__}")
                 items[idx].is_field_error = True
                 items[idx].field_error_knl = errs["knl"]
                 items[idx].field_error_ksl = errs["ksl"]
                 error_count += 1
             else:
-                print(f"[Read MADX Elements] Warning: error '{key}' not found")
+                raise ValueError(f"Field-error element {key!r} was lost while building the element sequence")
         print(f"[Read MADX Elements] {error_count} field errors attached")
+
+    # Merge drifts
+    if is_merge_drift:
+        items, names = merge_drift_elements(items, names)
 
     # Circumference check
     length_count = sum(item.length for item in items)
@@ -508,6 +527,14 @@ def read_madx_twiss(
 
     print(f"[Read MADX Twiss] {len(items)} twiss points created")
 
+    error_dict = {}
+    if is_field_error:
+        if not error_file:
+            raise ValueError("Field-error import requires an error TFS file")
+        error_dict = read_madx_errors(error_file, element_names=twiss_table["NAME"])
+        # A localized error must retain its transport endpoint through merging.
+        keywords = ["field_error" if item._match_key in error_dict else keyword for item, keyword in zip(items, keywords)]
+
     if is_merge_drift:
         items, names = merge_drift_twiss_points(items, names, keywords)
 
@@ -519,20 +546,17 @@ def read_madx_twiss(
         print(f"[Read MADX Twiss] {len(insert_items)} thin-lens elements inserted")
 
     # --- Attach field errors ---
-    if is_field_error and error_file:
-        error_dict = read_madx_errors(error_file)
+    if is_field_error:
         error_items = []
         error_names = []
-        key_to_idx = {}
-        for idx, item in enumerate(items):
-            mk = getattr(item, "_match_key", None)
-            if mk is not None:
-                key_to_idx[mk] = idx
+        source_positions, occurrences = {}, {}
+        for _, row in twiss_table.iterrows():
+            raw_name = str(row["NAME"])
+            occurrences[raw_name] = occurrences.get(raw_name, 0) + 1
+            source_positions[_make_match_key(raw_name, occurrences[raw_name])] = float(row["S"])
         for key, errs in error_dict.items():
-            if key in key_to_idx:
-                idx = key_to_idx[key]
-                s_val = items[idx].s if hasattr(items[idx], "s") else \
-                    items[idx].model_dump(by_alias=True)["S (m)"]
+            if key in source_positions:
+                s_val = source_positions[key]
                 err_item = MultipoleItem(
                     s=s_val,
                     length=0.0,
@@ -542,7 +566,7 @@ def read_madx_twiss(
                 error_items.append(err_item)
                 error_names.append(f"{key}_error")
             else:
-                print(f"[Read MADX Twiss] Warning: error element '{key}' not found in twiss")
+                raise ValueError(f"Field-error element {key!r} was lost while building the Twiss sequence")
         items.extend(error_items)
         names.extend(error_names)
         print(f"[Read MADX Twiss] {len(error_items)} field error multipoles added")
@@ -657,55 +681,82 @@ def read_madx_twiss_interpolated(
 # Error reader
 
 
-def read_madx_errors(error_file_path: str) -> dict[str, dict]:
-    """Read field errors from a MADX error TFS file.
+def _error_instance_catalog(element_names):
+    """Build instance identities once from the unmerged source lattice."""
+    counts = {}
+    exact = {}
+    instances = {}
+    bases = {}
+    for raw in element_names:
+        raw = str(raw)
+        counts[raw] = counts.get(raw, 0) + 1
+        key = _make_match_key(raw, counts[raw])
+        exact.setdefault(raw.casefold(), []).append(key)
+        match = re.fullmatch(r"(.+?)(?:\[(\d+)\]|:(\d+))", raw)
+        if match:
+            base, occurrence = match[1], int(match[2] or match[3])
+        else:
+            base, occurrence = raw, counts[raw]
+        instances.setdefault((base.casefold(), occurrence), []).append(key)
+        bases.setdefault(base.casefold(), []).append(key)
+    return exact, instances, bases
 
-    The error file must contain columns K0L, K1L, ..., K20L and
-    K0SL, K1SL, ..., K20SL (standard MADX EFCOMP output).
 
-    Args:
-        error_file_path: path to the MADX error TFS file.
+def _match_error_instance(name, catalog):
+    """Sparse error-table row order cannot identify repeated lattice instances."""
+    exact, instances, bases = catalog
+    candidates = exact.get(name.casefold(), [])
+    if not candidates:
+        match = re.fullmatch(r"(.+?)(?:\[(\d+)\]|:(\d+))", name)
+        if match:
+            candidates = instances.get((match[1].casefold(), int(match[2] or match[3])), [])
+        else:
+            candidates = bases.get(name.casefold(), [])
+    if len(candidates) != 1:
+        reason = "ambiguous" if candidates else "not found"
+        raise ValueError(f"Field-error element {name!r} is {reason} in the source Twiss table; "
+                         "use unique MAD-X instance names or an explicit NAME occurrence such as Q[2]")
+    return candidates[0]
 
-    Returns:
-        {match_key: {"knl": [k0l, k1l, ...], "ksl": [k0sl, k1sl, ...]}}
-        Only elements with non-zero errors are included.
-        The key uses f"{madx_name}[{occurrence}]" format, matching the
-        element reader's _make_match_key() so errors can be matched
-        regardless of S column values.
+
+def read_madx_errors(error_file_path: str, *, element_names=None) -> dict[str, dict]:
+    """Read absolute integrated K<n>L/K<n>SL errors, preserving every finite value.
+
+    Missing orders are zero. Without source names only unique error-table names
+    can be checked; importers must pass the original, unmerged Twiss NAME column.
+    Non-field columns (alignment, aperture and monitor errors) are not imported.
     """
-    error_table = tfs.read(error_file_path)
-    num_elem = error_table.shape[0]
-
-    print(f"[Read MADX Errors] {num_elem} elements in error file, "
-          f"first='{error_table.iloc[0]['NAME']}', last='{error_table.iloc[-1]['NAME']}'")
-
-    error_dict = {}
-    name_count = {}
-
-    for i in range(num_elem):
-        elem_name = error_table.iloc[i]["NAME"]
-        name_count[elem_name] = name_count.get(elem_name, 0) + 1
-        match_key = _make_match_key(elem_name, name_count[elem_name])
-
-        # Find max order with non-zero error
-        max_order = -1
-        for iorder in range(0, 21):
-            kil = error_table.iloc[i][f"K{iorder}L"]
-            if abs(kil) > 1e-10:
-                max_order = max(max_order, iorder)
-        for iorder in range(0, 21):
-            kisl = error_table.iloc[i][f"K{iorder}SL"]
-            if abs(kisl) > 1e-10:
-                max_order = max(max_order, iorder)
-
-        if max_order > -1:
-            knl = []
-            ksl = []
-            for iorder in range(0, max_order + 1):
-                knl.append(error_table.iloc[i][f"K{iorder}L"])
-                ksl.append(error_table.iloc[i][f"K{iorder}SL"])
-
-            error_dict[match_key] = {"knl": knl, "ksl": ksl}
-
-    print(f"[Read MADX Errors] {len(error_dict)} elements with non-zero errors")
-    return error_dict
+    table = tfs.read(error_file_path)
+    if "NAME" not in table.columns:
+        raise ValueError("Field-error TFS must contain a NAME column")
+    columns = []
+    for column in table.columns:
+        match = re.fullmatch(r"K(\d+)(S?)L", str(column))
+        if match:
+            columns.append((column, int(match[1]), bool(match[2])))
+    if not columns:
+        raise ValueError("Field-error TFS must contain K<n>L or K<n>SL columns")
+    names = list(table["NAME"] if element_names is None else element_names)
+    catalog = _error_instance_catalog(names)
+    result = {}
+    seen = set()
+    for row_index, (_, row) in enumerate(table.iterrows(), start=1):
+        name = str(row["NAME"])
+        n = max(order for _, order, _ in columns) + 1
+        knl, ksl = np.zeros(n), np.zeros(n)
+        for column, order, skew in columns:
+            value = float(row[column])
+            if not np.isfinite(value):
+                raise ValueError(f"Nonfinite field error at row {row_index}, {name!r}, column {column}")
+            (ksl if skew else knl)[order] = value
+        nonzero = np.flatnonzero((knl != 0) | (ksl != 0))
+        if not len(nonzero):
+            continue
+        key = _match_error_instance(name, catalog)
+        if key in seen:
+            raise ValueError(f"Duplicate field-error records for {key!r}; refusing to overwrite or add them")
+        seen.add(key)
+        n = int(nonzero[-1]) + 1
+        result[key] = {"knl": knl[:n].tolist(), "ksl": ksl[:n].tolist()}
+    print(f"[Read MADX Errors] {len(table)} rows, {len(result)} nonzero absolute field errors")
+    return result

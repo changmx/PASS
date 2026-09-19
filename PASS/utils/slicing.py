@@ -130,6 +130,9 @@ def configure_element_slicing(element, sim, values):
 def print_element_slicing(element):
     """Report the effective plan and SC aperture from element.print()."""
     plan = element.slice_plan
+    errors = getattr(element, "field_errors", None)
+    if errors is not None:
+        logger.info("  Absolute field errors: enabled=%s, KNL=%s, KSL=%s", errors.enabled, errors.knl.tolist(), errors.ksl.tolist())
     logger.info("  Slicing: requested=%d, actual=%d, external slice length=%g m", plan.requested_slices, plan.num_slices, plan.slice_length)
     if not element._sc_nodes:
         status = "disabled by top-level Space charge.Enabled" if element._sc_requested else "off"
@@ -358,36 +361,12 @@ def _dkd(launch, integrator, ds, on_center):
             launch(length, 0)
 
 
-def execute_internal_sc_gpu(element, sim):
-    """Schedule shared element device maps around physical internal SC nodes.
-
-    A center SC kick splits at the integrator's central kick, including the
-    negative Yoshida stage; the positive SC integration weight is unchanged.
-    """
-    import cupy as cp
-
-    from PASS.utils.aperture import check_aperture_gpu
-
+def _prepare_body_coefficients(element):
+    """Prepare fixed stage parameters once; bunch and particle state stays live."""
+    coefficients = getattr(element, "_body_coefficients", None)
+    if coefficients is not None:
+        return coefficients
     name = type(element).__name__.lower()
-    if name == "elseparator":
-        return element.execute_gpu(sim)  # Own finite-geometry map and SC scheduling.
-    supported = {
-        "drift",
-        "quadrupole",
-        "sextupole",
-        "octupole",
-        "multipole",
-        "kicker",
-        "solenoid",
-        "sbend",
-    }
-    if name not in supported:
-        raise RuntimeError(f"{name} internal GPU space charge transport is not yet supported")
-    beam = sim.beams[element.beam_id]
-    p = beam.particles
-    real = p.real
-    turn = sim.state.turn
-    kind = ("solenoid" if name == "solenoid" else "bend" if name == "sbend" else "multipole")
     kn = ks = np.zeros(1)
     params = np.zeros(1)
     inv = np.ones(1)
@@ -416,12 +395,58 @@ def execute_internal_sc_gpu(element, sim):
         ks = kn.copy()
         kn[order] = getattr(element, f"k{order}")
         ks[order] = getattr(element, f"k{order}s")
-        import math
-
         inv = np.array([1 / math.factorial(i) for i in range(order + 1)])
-    cache = getattr(element, "_gpu_internal_resources", None)
-    if cache is None:
-        cache = element._gpu_internal_resources = tuple(cp.asarray(a, dtype=np.float64 if kind == "bend" else p.dtype) for a in (params, kn, ks, inv))
+    errors = getattr(element, "field_errors", None)
+    if errors is not None and errors.active and name in ("quadrupole", "sextupole", "octupole", "kicker"):
+        kn, ks = errors.combine(kn * element.length, ks * element.length)
+        kn, ks = kn / element.length, ks / element.length
+        inv = np.ones(len(kn))
+        for i in range(1, len(kn)):
+            inv[i] = inv[i - 1] / i
+    element._body_coefficients = (params, kn, ks, inv)
+    return element._body_coefficients
+
+
+def execute_element_body_gpu(element, sim):
+    """Schedule shared device maps with field errors and optional internal SC.
+
+    A center SC kick splits at the integrator's central kick, including the
+    negative Yoshida stage; the positive SC integration weight is unchanged.
+    """
+    import cupy as cp
+
+    from PASS.utils.aperture import check_aperture_gpu
+
+    name = type(element).__name__.lower()
+    if name == "elseparator":
+        return element.execute_gpu(sim)  # Own finite-geometry map and SC scheduling.
+    supported = {
+        "drift",
+        "quadrupole",
+        "sextupole",
+        "octupole",
+        "multipole",
+        "kicker",
+        "solenoid",
+        "sbend",
+    }
+    if name not in supported:
+        raise RuntimeError(f"{name} GPU body transport is not yet supported")
+    beam = sim.beams[element.beam_id]
+    p = beam.particles
+    real = p.real
+    turn = sim.state.turn
+    kind = ("solenoid" if name == "solenoid" else "bend" if name == "sbend" else "multipole")
+    coefficients = _prepare_body_coefficients(element)
+    errors = getattr(element, "field_errors", None)
+    resources = getattr(element, "_gpu_body_resources", None)
+    if resources is None:
+        resources = element._gpu_body_resources = {}
+    key = (np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())
+    if key not in resources:
+        resources[key] = tuple(cp.asarray(a, dtype=np.float64 if kind == "bend" else p.dtype) for a in coefficients)
+    cache = resources[key]
+    order = np.int32(len(coefficients[1]) - 1)
     for bunch in beam.bunches:
         start, end = bunch.start_idx, bunch.end_idx
         n = end - start
@@ -456,38 +481,45 @@ def execute_internal_sc_gpu(element, sim):
                 ),
             )
 
-        def launch(length, action):
+        def launch_stage(length, action):
             stage_real = np.float64 if kind == "bend" else real
-            _stage_kernel(kind,
-                          np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())(
-                              blocks,
-                              threads,
-                              (
-                                  p.x,
-                                  p.px,
-                                  p.y,
-                                  p.py,
-                                  p.z,
-                                  p.dp,
-                                  p.tag,
-                                  p.lost_position,
-                                  p.lost_turn,
-                                  np.int32(start),
-                                  np.int32(end),
-                                  stage_real(bunch.beta),
-                                  stage_real(bunch.beta * bunch.gamma),
-                                  stage_real(1 / bunch.gamma),
-                                  np.float64(length),
-                                  stage_real(position),
-                                  np.int32(turn),
-                                  *cache,
-                                  np.int32(len(kn) - 1),
-                                  np.int32(action),
-                              ),
-                          )
+            _stage_kernel(kind, *key)(
+                blocks,
+                threads,
+                (
+                    p.x,
+                    p.px,
+                    p.y,
+                    p.py,
+                    p.z,
+                    p.dp,
+                    p.tag,
+                    p.lost_position,
+                    p.lost_turn,
+                    np.int32(start),
+                    np.int32(end),
+                    stage_real(bunch.beta),
+                    stage_real(bunch.beta * bunch.gamma),
+                    stage_real(1 / bunch.gamma),
+                    np.float64(length),
+                    stage_real(position),
+                    np.int32(turn),
+                    *cache,
+                    order,
+                    np.int32(action),
+                ),
+            )
+
+        def launch(length, action):
+            if kind == "bend" and errors is not None and errors.active and action in (0, 1):
+                launch_stage(length, 1)
+                errors.kick_gpu(p, start, end, length / element.length)
+                if action == 0:
+                    launch_stage(length, 2)
+            else:
+                launch_stage(length, action)
 
         def matrix(length):
-            key = (np.dtype(p.dtype).str, cp.cuda.runtime.getDevice())
             kernel = _matrix_kernel(*key)
             kernel(
                 blocks,
@@ -528,7 +560,12 @@ def execute_internal_sc_gpu(element, sim):
             if name == "drift":
                 transport_with_center(drift, ds, callback)
             elif name == "quadrupole" and element.model == "mat-kick-mat":
-                transport_with_center(matrix, ds, callback)
+                if errors is not None and errors.active:
+                    from PASS.commands.element.error import _transport_matrix_errors
+                    _transport_matrix_errors(matrix, lambda scale: errors.kick_gpu(p, start, end, scale), ds, element.length, element.integrator,
+                                             callback)
+                else:
+                    transport_with_center(matrix, ds, callback)
             elif name == "solenoid" and not element.has_multipoles:
                 transport_with_center(lambda length: launch(length, 3), ds, callback)
             else:

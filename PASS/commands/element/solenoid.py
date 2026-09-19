@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.commands.element.error import FieldErrors
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -22,8 +23,9 @@ class Solenoid(Command):
     """Track a solenoid with the exact uniform-field map.
 
     The Larmor-frame map couples both transverse planes. Multipole errors
-    use Sol-Kick-Sol slices with uniform or Yoshida integration. Zero field
-    reduces to a drift; a zero-length solenoid has no effect."""
+    use Sol-Kick-Sol slices with uniform or Yoshida integration. Without
+    transverse multipoles, zero axial field reduces to a drift. At zero
+    length only the integrated transverse multipole kick remains."""
 
     def __init__(self, beam_id: int, sim: Simulation, **command_kwargs):
         kwargs = {k.lower(): v for k, v in command_kwargs.items()}
@@ -33,6 +35,7 @@ class Solenoid(Command):
         self.length = kwargs["length (m)"]
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.field_errors = FieldErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of Solenoid {self.cmd_name} is {self.length}, which should be >= 0")
@@ -42,10 +45,6 @@ class Solenoid(Command):
             self.is_thick = False
 
         self.ks = kwargs.get("ks", 0.0)
-        if abs(self.ks) < const.eps and not self.is_thick:
-            logger.warning(f"Solenoid {self.cmd_name} has zero length and zero ks. It will act as a marker.")
-        if abs(self.ks) < const.eps and self.is_thick:
-            logger.warning(f"Solenoid {self.cmd_name} has zero ks. It will act as a pure drift.")
 
         # Multipole components (optional, for solenoid + multipole overlay)
         knl_list = kwargs.get("kil", [])
@@ -56,6 +55,7 @@ class Solenoid(Command):
         if not isinstance(ksl_list, (list, np.ndarray)):
             raise ValueError(f"KiSL of {self.cmd_name} must be a list, but got {type(ksl_list)}")
 
+        knl_list, ksl_list = self.field_errors.combine(knl_list, ksl_list)
         self.knl = np.array(knl_list, dtype=np.float64)
         self.ksl = np.array(ksl_list, dtype=np.float64)
 
@@ -73,7 +73,10 @@ class Solenoid(Command):
                 self.ksl = np.pad(self.ksl, (0, len_n - len_s), mode='constant')
             elif len_n < len_s:
                 self.knl = np.pad(self.knl, (0, len_s - len_n), mode='constant')
-            self.has_multipoles = not (np.all(np.abs(self.knl) < const.eps) and np.all(np.abs(self.ksl) < const.eps))
+            self.has_multipoles = not (np.all(self.knl == 0) and np.all(self.ksl == 0))
+
+        if not self.has_multipoles and abs(self.ks) < const.eps:
+            logger.warning("Solenoid %s has zero axial and transverse fields; it acts as a drift or marker.", self.cmd_name)
 
         # Thick lens: compute per-unit-length multipole strength
         if self.is_thick and self.has_multipoles:
@@ -135,9 +138,13 @@ class Solenoid(Command):
         return True
 
     def execute_gpu(self, sim):
+        if not self.is_thick and self.has_multipoles:
+            from PASS.commands.element.multipole import launch_multipole
+            launch_multipole(self, sim, self.knl, self.ksl, self.inv_fact, 0)
+            return True
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
+            from PASS.utils.slicing import execute_element_body_gpu
+            return execute_element_body_gpu(self, sim)
         if not self.is_thick:
             mode = 0
         elif not self.has_multipoles:
@@ -168,7 +175,9 @@ class Solenoid(Command):
         mask = (tag > 0).astype(np.float64)
 
         if not self.is_thick:
-            # Thin lens: solenoid has no thin-lens limit, no effect
+            # The axial field has no thin kick; integrated transverse components do.
+            if self.has_multipoles:
+                self._multipole_kick_cpu(self.knl, self.ksl, x, px, y, py, tag, mask, chi)
             return
 
         if self._sc_nodes or (not self.has_multipoles and self.num_slice > 1):
@@ -311,30 +320,10 @@ class Solenoid(Command):
         z += L_mask * slip
 
     def _multipole_kick_cpu(self, knl_eff, ksl_eff, x, px, y, py, tag, mask, chi):
-        """Evaluate integrated normal and skew multipole kicks with Horner recursion."""
-        if np.all(np.abs(knl_eff) < const.eps) and np.all(np.abs(ksl_eff) < const.eps):
-            return
+        """Apply the common integrated multipole polynomial."""
+        from PASS.commands.element.multipole import _apply_multipole_kick_cpu
 
-        order = len(knl_eff) - 1
-        inv_fact = self.inv_fact
-
-        index = order
-        dpx_mul = chi * knl_eff[index] * inv_fact[index]
-        dpy_mul = chi * ksl_eff[index] * inv_fact[index]
-
-        while index > 0:
-            zre = dpx_mul * x - dpy_mul * y
-            zim = dpx_mul * y + dpy_mul * x
-            index -= 1
-            dpx_mul = chi * knl_eff[index] * inv_fact[index] + zre
-            dpy_mul = chi * ksl_eff[index] * inv_fact[index] + zim
-
-        active = (tag > 0).astype(mask.dtype, copy=False)
-        dpx_mul *= active
-        dpy_mul *= active
-
-        px -= dpx_mul
-        py += dpy_mul
+        _apply_multipole_kick_cpu(knl_eff, ksl_eff, self.inv_fact, x, px, y, py, tag, chi)
 
 
 CUDA_REAL_PREAMBLE = _build_yoshida_cuda_constants() + f'''

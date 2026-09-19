@@ -40,6 +40,7 @@ integrator truncation error; more slices need not improve FP32 accuracy.
 .. toctree::
    :maxdepth: 2
 
+   error
    marker
    drift
    dipole

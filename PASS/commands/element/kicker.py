@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.commands.element.error import FieldErrors
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -29,6 +30,7 @@ class Kicker(Command):
         self.length = kwargs.get("length (m)", 0.0)
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
+        self.field_errors = FieldErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of Kicker {self.cmd_name} is {self.length}, which should be >= 0")
@@ -96,9 +98,12 @@ class Kicker(Command):
         return True
 
     def execute_gpu(self, sim):
+        if self.field_errors.active:
+            from PASS.commands.element.error import _track_field_errors_gpu
+            return _track_field_errors_gpu(self, sim)
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_internal_sc_gpu
-            return execute_internal_sc_gpu(self, sim)
+            from PASS.utils.slicing import execute_element_body_gpu
+            return execute_element_body_gpu(self, sim)
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         p = beam.particles
@@ -153,6 +158,7 @@ class Kicker(Command):
 
         if not self.is_thick:
             self._dipole_kick_cpu(self.hkick, self.vkick, px, py, tag, mask)
+            self.field_errors.kick_cpu(x, px, y, py, tag)
             return
 
         if self._sc_nodes:
@@ -164,7 +170,7 @@ class Kicker(Command):
             run_body_slices(self, beam, bunch, turn, transport)
             return
 
-        if abs(self.hkick) < const.eps and abs(self.vkick) < const.eps:
+        if (abs(self.hkick) < const.eps and abs(self.vkick) < const.eps) and not self.field_errors.active:
             self._drift_exact_cpu(self.length, x, px, y, py, z, dp, tag, mask, beta0)
         else:
             ds = self.length / self.num_slice
@@ -188,6 +194,7 @@ class Kicker(Command):
         """Apply one drift-kick-drift step; Yoshida composition may use negative ds."""
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
         self._dipole_kick_cpu(hk * ds, vk * ds, px, py, tag, mask)
+        self.field_errors.kick_cpu(x, px, y, py, tag, ds / self.length)
         if on_center is not None:
             on_center()
         self._drift_exact_cpu(ds * 0.5, x, px, y, py, z, dp, tag, mask, beta0)
