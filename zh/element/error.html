@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>六极铁（Sextupole） &mdash; PASS  documentation</title>
+  <title>元件误差 &mdash; PASS  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
@@ -21,8 +21,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="八极铁（Octupole）" href="octupole.html" />
-    <link rel="prev" title="四极铁（Quadrupole）" href="quadrupole.html" /> 
+    <link rel="next" title="标记（Marker）" href="marker.html" />
+    <link rel="prev" title="元件（Element）" href="index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -171,12 +171,12 @@
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="error.html">元件误差</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">六极铁（Sextupole）</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="octupole.html">八极铁（Octupole）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="multipole.html">多极铁（Multipole）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="solenoid.html">螺线管（Solenoid）</a></li>
@@ -781,9 +781,9 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">PASS 文档（中文）</a></li>
           <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
-      <li class="breadcrumb-item active">六极铁（Sextupole）</li>
+      <li class="breadcrumb-item active">元件误差</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/zh/element/sextupole.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/zh/element/error.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -791,592 +791,251 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sextupole">
-<h1>六极铁（Sextupole）<a class="headerlink" href="#sextupole" title="Link to this heading"></a></h1>
-<p>本模块介绍 PASS 中的六极铁元件 <strong>Sextupole</strong> ，用于模拟带电粒子在六极磁铁中的运动。六极铁是加速器中最基本的非线性元件，通过二次磁场提供非线性聚焦力，主要用于色品校正和共振驱动。</p>
-<p>PASS 中的六极铁支持 <strong>厚元件</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ）和 <strong>薄透镜</strong> （ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ）两种模式，厚元件采用精确漂移-踢角-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。</p>
-<p><strong>代码位置</strong></p>
-<ul class="simple">
-<li><p>源文件： <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/sextupole.py</span></code></p></li>
-<li><p>类名： <code class="docutils literal notranslate"><span class="pre">Sextupole</span></code> （继承自 <code class="docutils literal notranslate"><span class="pre">Command</span></code> ）</p></li>
-<li><p>注册名： <code class="docutils literal notranslate"><span class="pre">sextupole</span></code></p></li>
-<li><p>核心特征：</p>
-<ul>
-<li><p>支持薄透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> ，仅施加六极踢角）</p></li>
-<li><p>支持厚透镜模式（ <code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> ，DKD-exact 辛积分）</p></li>
-<li><p>支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器</p></li>
-<li><p>支持正常六极（ <code class="docutils literal notranslate"><span class="pre">k2l</span></code> ）和斜六极（ <code class="docutils literal notranslate"><span class="pre">k2sl</span></code> ）及其组合</p></li>
-<li><p>零场（ <code class="docutils literal notranslate"><span class="pre">k2l</span> <span class="pre">=</span> <span class="pre">k2sl</span> <span class="pre">=</span> <span class="pre">0</span></code> ）时自动退化为纯漂移</p></li>
-<li><p>色品校正、非线性色散等高阶效应通过精确漂移自然引入</p></li>
-<li><p>支持孔径检查</p></li>
-</ul>
-</li>
-</ul>
-<section id="id1">
-<h2>坐标约定<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
-<p>PASS 采用归一化曲线坐标，六维相空间变量为 <span class="math notranslate nohighlight">\((x, p_x, y, p_y, z, \delta)\)</span> ：</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 15.0%" />
-<col style="width: 20.0%" />
-<col style="width: 65.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>变量</p></th>
-<th class="head"><p>符号</p></th>
-<th class="head"><p>定义</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(x\)</span></p></td>
-<td><p>水平偏移（相对于参考轨道）</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">px</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(p_x\)</span></p></td>
-<td><p>归一化水平动量， <span class="math notranslate nohighlight">\(p_x = P_x / P_0\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(y\)</span></p></td>
-<td><p>垂直偏移</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">py</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(p_y\)</span></p></td>
-<td><p>归一化垂直动量， <span class="math notranslate nohighlight">\(p_y = P_y / P_0\)</span></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
-<td><p>纵向坐标， <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
-<td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
-<td><p>相对动量偏差， <span class="math notranslate nohighlight">\(\delta = P / P_0 - 1\)</span></p></td>
-</tr>
-</tbody>
-</table>
-<p>其中 <span class="math notranslate nohighlight">\(P_0\)</span> 为参考粒子动量， <span class="math notranslate nohighlight">\(\beta_0 = v_0 / c\)</span> 为参考粒子归一化速度， <span class="math notranslate nohighlight">\(s\)</span> 为沿参考轨道的弧长， <span class="math notranslate nohighlight">\(t\)</span> 为时间。</p>
-<p>纵向动量分量定义为：</p>
-<div class="math notranslate nohighlight">
-\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
-<p>荷质比因子：</p>
-<div class="math notranslate nohighlight">
-\[\chi = \frac{q}{q_0} \cdot \frac{m_0}{m}\]</div>
-<p>对于同种粒子束 <span class="math notranslate nohighlight">\(\chi = 1\)</span> 。</p>
-</section>
+  <section id="zh-error">
+<span id="id1"></span><h1>元件误差<a class="headerlink" href="#zh-error" title="Link to this heading"></a></h1>
+<p>本页统一介绍元件误差模型及其配置。CPU、GPU 均支持绝对磁场误差和静态磁场准直误差
+（<code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DY</span></code>、<code class="docutils literal notranslate"><span class="pre">DPSI</span></code>）。</p>
 <section id="id2">
-<h2>六极磁场与归一化强度<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>六极磁铁的磁场在横向平面内二次分布。用复数表示：</p>
-<div class="math notranslate nohighlight">
-\[B_y + i B_x = \frac{1}{2}(B'' + i B''_s)(x + i y)^2\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(B''\)</span> 为正常六极场二阶导数， <span class="math notranslate nohighlight">\(B''_s\)</span> 为斜六极场二阶导数。展开后：</p>
-<div class="math notranslate nohighlight">
-\[B_y = \frac{1}{2} B'' (x^2 - y^2) - B''_s x y\]</div>
-<div class="math notranslate nohighlight">
-\[B_x = B'' x y + \frac{1}{2} B''_s (x^2 - y^2)\]</div>
-<p>归一化六极强度定义为：</p>
-<div class="math notranslate nohighlight">
-\[K_2 = \frac{q_0 B''}{2 P_0}\]</div>
-<div class="math notranslate nohighlight">
-\[K_{2s} = \frac{q_0 B''_s}{2 P_0}\]</div>
-<p>积分强度为：</p>
-<div class="math notranslate nohighlight">
-\[K_{2L} = K_2 \cdot L, \qquad K_{2sL} = K_{2s} \cdot L\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(L\)</span> 为磁铁长度。PASS 中用户直接指定 <span class="math notranslate nohighlight">\(K_{2L}\)</span> （ <code class="docutils literal notranslate"><span class="pre">k2l</span></code> ）和 <span class="math notranslate nohighlight">\(K_{2sL}\)</span> （ <code class="docutils literal notranslate"><span class="pre">k2sl</span></code> ），厚透镜时内部自动解出 <span class="math notranslate nohighlight">\(K_2 = K_{2L} / L\)</span> 和 <span class="math notranslate nohighlight">\(K_{2s} = K_{2sL} / L\)</span> 。</p>
-</section>
+<h2>场误差<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>SBend、Quadrupole、Sextupole、Octupole、Multipole、Solenoid 和 Kicker
+在 CPU、GPU 上均支持相同的附加正、斜多极积分场误差。误差系数在追踪期间保持固定。
+本接口只支持绝对磁场误差；相对误差生成、孔径偏移和 BPM 读数误差不在本次范围内。</p>
 <section id="id3">
-<h2>整体追踪流程<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<p>根据磁铁长度，六极铁有两种追踪模式：</p>
-<p><strong>薄透镜模式</strong> （ <span class="math notranslate nohighlight">\(L = 0\)</span> ）</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 薄透镜 (length = 0) ======
-
-单次六极踢角 Kick(K2L, K2sL)
-[位置不变，仅动量跳变]
-</pre></div>
-</div>
-<p><strong>厚透镜模式</strong> （ <span class="math notranslate nohighlight">\(L &gt; 0\)</span> ）</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>====== 厚透镜 (length &gt; 0) ======
-
-切片1 → 切片2 → ... → 切片N
-(每个切片: Drift(ds/2) → Kick(ds) → Drift(ds/2))
-
-其中 ds = L / N
-
-若 K2L = 0 且 K2sL = 0：退化为单次精确漂移 Drift(L)
-</pre></div>
-</div>
-<p>完整映射为：</p>
-<p>薄透镜：</p>
-<div class="math notranslate nohighlight">
-\[\mathcal{M}_{\text{thin}} = \text{Kick}(K_{2L}, K_{2sL})\]</div>
-<p>厚透镜（N 个切片）：</p>
-<div class="math notranslate nohighlight">
-\[\mathcal{M}_{\text{thick}} = \left[\mathcal{M}_{\text{DKD}}(\Delta s)\right]^N\]</div>
-<p>其中每个切片的 DKD 映射为：</p>
-<div class="math notranslate nohighlight">
-\[\mathcal{M}_{\text{DKD}}(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul class="simple">
-<li><p>薄透镜模式不改变粒子的位置坐标 <span class="math notranslate nohighlight">\((x, y, z)\)</span> ，仅施加动量踢角</p></li>
-<li><p>厚透镜模式的色品效应通过精确漂移中的 <span class="math notranslate nohighlight">\(p_z\)</span> 表达式自然引入（见色品校正章节）</p></li>
-<li><p>当 <span class="math notranslate nohighlight">\(K_{2L} = 0\)</span> 且 <span class="math notranslate nohighlight">\(K_{2sL} = 0\)</span> 时，厚透镜退化为纯漂移，避免无意义的空踢角循环</p></li>
-</ul>
-</div>
-</section>
-<section id="id4">
-<h2>物理推导<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<section id="id5">
-<h3>哈密顿量<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
-<p>在直线坐标系中（六极铁无曲率， <span class="math notranslate nohighlight">\(h = 0\)</span> ），六极铁的哈密顿量为：</p>
-<div class="math notranslate nohighlight">
-\[H_{\text{sext}} = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \frac{\chi}{6}\left[K_2(x^3 - 3 x y^2) + K_{2s}(3 x^2 y - y^3)\right]\]</div>
-<p>将其拆分为传播部分（精确漂移 <span class="math notranslate nohighlight">\(H_D\)</span> ）和踢角部分（ <span class="math notranslate nohighlight">\(H_K\)</span> ）：</p>
-<div class="math notranslate nohighlight">
-\[H_D = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
-<div class="math notranslate nohighlight">
-\[H_K = \frac{\chi}{6}\left[K_2(x^3 - 3 x y^2) + K_{2s}(3 x^2 y - y^3)\right]\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(H_D\)</span> 是精确漂移哈密顿量（保留 <span class="math notranslate nohighlight">\(p_z\)</span> 的根号，不做小动量展开）， <span class="math notranslate nohighlight">\(H_K\)</span> 是六极踢角。这是 <strong>分裂算符法</strong> （split-operator）的标准做法：将哈密顿量拆分为可解析求解的部分，分别施加映射，再组合为辛积分器。</p>
-</section>
-<section id="d">
-<h3>精确漂移映射 D<a class="headerlink" href="#d" title="Link to this heading"></a></h3>
-<p>传播部分的哈密顿方程给出精确直漂移：</p>
-<div class="math notranslate nohighlight">
-\[p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\]</div>
-<div class="math notranslate nohighlight">
-\[x \leftarrow x + \frac{p_x}{p_z} \cdot L_D\]</div>
-<div class="math notranslate nohighlight">
-\[y \leftarrow y + \frac{p_y}{p_z} \cdot L_D\]</div>
-<div class="math notranslate nohighlight">
-\[\zeta \leftarrow \zeta + L_D \cdot \left(1 - \frac{\beta_0}{\beta} \cdot \frac{1+\delta}{p_z}\right)\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(L_D\)</span> 为漂移长度， <span class="math notranslate nohighlight">\(\beta\)</span> 为粒子实际归一化速度：</p>
-<div class="math notranslate nohighlight">
-\[\beta = \frac{(1+\delta) \, \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \, \beta_0 \gamma_0\right]^2}}\]</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>“exact” 的含义：漂移部分保留精确根号 <span class="math notranslate nohighlight">\(p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}\)</span> ，不做 <span class="math notranslate nohighlight">\(p_x \ll 1\)</span> 的小动量展开。近似仅在于将传播部分与踢角部分分离（分裂算符法）。该公式与漂移节（Drift）和四极铁（Quadrupole）中的精确漂移完全一致。</p>
-</div>
-</section>
-<section id="k">
-<h3>六极踢角映射 K<a class="headerlink" href="#k" title="Link to this heading"></a></h3>
-<p>踢角部分为薄透镜映射（位置不变，仅动量跳变）。由哈密顿方程 <span class="math notranslate nohighlight">\(\dot{p}_x = -\partial H / \partial x\)</span> ， <span class="math notranslate nohighlight">\(\dot{p}_y = -\partial H / \partial y\)</span> 得：</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = -\frac{\chi}{2} K_{2L} (x^2 - y^2) + \chi K_{2sL} \, x y\]</div>
-<div class="math notranslate nohighlight">
-\[\Delta p_y = \chi K_{2L} \, x y + \frac{\chi}{2} K_{2sL} (x^2 - y^2)\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(L_K\)</span> 为踢角有效长度。</p>
-<p>各项物理含义：</p>
+<h3>参数与归一化<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 30.0%" />
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
 <col style="width: 15.0%" />
-<col style="width: 55.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>项</p></th>
-<th class="head"><p>来源</p></th>
-<th class="head"><p>物理含义</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(-\frac{\chi}{2} K_{2L} (x^2 - y^2)\)</span></p></td>
-<td><p><span class="math notranslate nohighlight">\(\frac{\chi K_2}{6} x^3\)</span></p></td>
-<td><p>水平非线性聚焦（正比于 <span class="math notranslate nohighlight">\(x^2\)</span> ）</p></td>
-</tr>
-<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(+\chi K_{2L} \, xy\)</span></p></td>
-<td><p><span class="math notranslate nohighlight">\(-\frac{\chi K_2}{2} x y^2\)</span></p></td>
-<td><p>水平-垂直耦合踢角</p></td>
-</tr>
-<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(+\chi K_{2sL} \, xy\)</span></p></td>
-<td><p><span class="math notranslate nohighlight">\(\frac{\chi K_{2s}}{2} x^2 y\)</span></p></td>
-<td><p>斜六极水平耦合踢角</p></td>
-</tr>
-<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(+\frac{\chi}{2} K_{2sL} (x^2 - y^2)\)</span></p></td>
-<td><p><span class="math notranslate nohighlight">\(-\frac{\chi K_{2s}}{6} y^3\)</span></p></td>
-<td><p>斜六极垂直非线性聚焦</p></td>
-</tr>
-</tbody>
-</table>
-<p>对于薄透镜模式， <span class="math notranslate nohighlight">\(L_K = 1\)</span> ，直接使用积分强度 <span class="math notranslate nohighlight">\(K_{2L}\)</span> 和 <span class="math notranslate nohighlight">\(K_{2sL}\)</span> 。对于 DKD 模式， <span class="math notranslate nohighlight">\(L_K = \Delta s\)</span> ，使用 <span class="math notranslate nohighlight">\(K_2 \Delta s\)</span> 和 <span class="math notranslate nohighlight">\(K_{2s} \Delta s\)</span> 。</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>正常六极铁（ <span class="math notranslate nohighlight">\(K_2 &gt; 0\)</span> ）在水平方向对正偏移粒子提供恢复力（正比于 <span class="math notranslate nohighlight">\(x^2\)</span> ），垂直方向则相反。六极铁的聚焦力与位置平方成正比，是非线性元件——远离轴线的粒子受到更强的偏转。</p>
-<p>斜六极铁（ <span class="math notranslate nohighlight">\(K_{2s} \neq 0\)</span> ）将六极作用旋转 <span class="math notranslate nohighlight">\(\pi / 6\)</span> ，产生不同的 <span class="math notranslate nohighlight">\(x\)</span> - <span class="math notranslate nohighlight">\(y\)</span> 耦合模式。实际中常用于模拟安装旋转误差或驱动特定共振。</p>
-<p>与四极铁的对比：四极踢角线性依赖于 <span class="math notranslate nohighlight">\(x\)</span> （ <span class="math notranslate nohighlight">\(\Delta p_x \propto x\)</span> ），六极踢角二次依赖于 <span class="math notranslate nohighlight">\(x\)</span> （ <span class="math notranslate nohighlight">\(\Delta p_x \propto x^2\)</span> ）。这意味着六极铁不改变参考轨道上的粒子（ <span class="math notranslate nohighlight">\(x = y = 0\)</span> 时踢角为零），但对偏离轴线的粒子产生非线性偏转。</p>
-</div>
-</section>
-<section id="uniform-2">
-<h3>uniform 积分器（2阶辛）<a class="headerlink" href="#uniform-2" title="Link to this heading"></a></h3>
-<p>每个切片采用漂移-踢角-漂移（DKD）结构，即二阶蛙跳（leapfrog）：</p>
-<div class="math notranslate nohighlight">
-\[S_2(\Delta s) = D\!\left(\frac{\Delta s}{2}\right) \circ K(\Delta s) \circ D\!\left(\frac{\Delta s}{2}\right)\]</div>
-<p>每个切片误差为 <span class="math notranslate nohighlight">\(O(\Delta s^3)\)</span> ，全局误差为 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> 。二阶辛积分器，每步都是正则变换。</p>
-</section>
-<section id="yoshida4-4">
-<h3>yoshida4 积分器（4阶辛）<a class="headerlink" href="#yoshida4-4" title="Link to this heading"></a></h3>
-<p>通过组合三个二阶 DKD 步构造四阶辛映射 [Yoshida 1990]：</p>
-<div class="math notranslate nohighlight">
-\[S_4(\Delta s) = S_2(z_1 \Delta s) \circ S_2(z_0 \Delta s) \circ S_2(z_1 \Delta s)\]</div>
-<p>其中 Yoshida 系数为：</p>
-<div class="math notranslate nohighlight">
-\[z_1 = \frac{1}{2 - 2^{1/3}} \approx 1.3512\]</div>
-<div class="math notranslate nohighlight">
-\[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><span class="math notranslate nohighlight">\(z_0 &lt; 0\)</span> 意味着中间一步是反向追踪（漂移和踢角的 “长度” 为负）。这是 Yoshida 组合方法的数学要求，在辛映射群中完全自洽。每个切片误差为 <span class="math notranslate nohighlight">\(O(\Delta s^5)\)</span> ，全局误差为 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> 。</p>
-</div>
-</section>
-</section>
-<section id="id6">
-<h2>色品校正<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
-<p>色品（chromaticity）描述了粒子 tune 对动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 的依赖。六极铁是色品校正的核心元件。</p>
-<section id="id7">
-<h3>物理机制<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
-<p>粒子在六极铁处的横向位置包含色散部分：</p>
-<div class="math notranslate nohighlight">
-\[x = x_\beta + \eta_x \, \delta\]</div>
-<p>其中 <span class="math notranslate nohighlight">\(x_\beta\)</span> 为 betatron 振荡部分， <span class="math notranslate nohighlight">\(\eta_x\)</span> 为色散函数。代入六极踢角：</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = -\frac{\chi}{2} K_{2L} (x_\beta + \eta_x \delta)^2\]</div>
-<p>展开后：</p>
-<div class="math notranslate nohighlight">
-\[\Delta p_x = -\frac{\chi}{2} K_{2L} \, x_\beta^2 \;-\; \chi K_{2L} \, \eta_x \, \delta \, x_\beta \;-\; \frac{\chi}{2} K_{2L} \, \eta_x^2 \, \delta^2\]</div>
-<p>第二项 <span class="math notranslate nohighlight">\(-\chi K_{2L} \eta_x \delta \, x_\beta\)</span> 是一个等效四极踢角（线性依赖于 <span class="math notranslate nohighlight">\(x_\beta\)</span> ，系数正比于 <span class="math notranslate nohighlight">\(\delta\)</span> ），它改变了 tune 对 <span class="math notranslate nohighlight">\(\delta\)</span> 的依赖，从而实现色品校正。在有色散的六极铁处，等效四极强度为：</p>
-<div class="math notranslate nohighlight">
-\[K_{1,\text{eff}} = -K_2 \, \eta_x\]</div>
-<p>对应的色品贡献为：</p>
-<div class="math notranslate nohighlight">
-\[\Delta Q'_x = \frac{1}{4\pi} \oint \beta_x K_{1,\text{eff}} \, ds = -\frac{1}{4\pi} \oint \beta_x K_2 \, \eta_x \, ds\]</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul class="simple">
-<li><p>六极铁仅在有色散的位置才能校正色品（ <span class="math notranslate nohighlight">\(\eta_x \neq 0\)</span> ）</p></li>
-<li><p>色品校正在踢角中自动产生——踢角作用于真实坐标 <span class="math notranslate nohighlight">\(x\)</span> （包含色散），不做任何展开</p></li>
-<li><p>即使薄透镜（无 drift）也有色品校正效应</p></li>
-<li><p>第三项 <span class="math notranslate nohighlight">\(-\frac{\chi}{2} K_{2L} \eta_x^2 \delta^2\)</span> 是二阶色散驱动项，也自然包含</p></li>
-<li><p>在无色散位置（ <span class="math notranslate nohighlight">\(\eta_x = 0\)</span> ），六极铁不校正一阶色品，但仍保留非线性效应（三阶共振驱动、非线性耦合、动态孔径限制等）</p></li>
-</ul>
-</div>
-</section>
-<section id="twiss">
-<h3>在 Twiss 线性传输中使用六极铁<a class="headerlink" href="#twiss" title="Link to this heading"></a></h3>
-<p>PASS 的 Twiss 传输（ <code class="docutils literal notranslate"><span class="pre">twiss.py</span></code> ）在 <span class="math notranslate nohighlight">\((x, p_x)\)</span> 归一化动量坐标下工作，色散处理为”减去→线性传输→加回”，自然色品通过 <code class="docutils literal notranslate"><span class="pre">DQx</span></code> / <code class="docutils literal notranslate"><span class="pre">DQy</span></code> 参数（相移中的 <span class="math notranslate nohighlight">\(\delta\)</span> 项）引入。在该框架中插入六极铁 kick 时需注意以下事项。</p>
-<p><strong>坐标一致性</strong></p>
-<p>Twiss 传输到达六极铁位置时，粒子的 <span class="math notranslate nohighlight">\(x\)</span> 已包含色散（ <span class="math notranslate nohighlight">\(x = x_\beta + \eta_x \delta\)</span> ），六极 kick 直接作用于该真实坐标，色品校正项 <span class="math notranslate nohighlight">\(-K_{2L}\eta_x\delta\cdot x_\beta\)</span> 自动出现。 <strong>踢角中不应除以</strong> <span class="math notranslate nohighlight">\(1+\delta\)</span> ——那是 <span class="math notranslate nohighlight">\((x, x')\)</span> 角度坐标体系的写法，与 PASS 的 <span class="math notranslate nohighlight">\((x, p_x)\)</span> 体系不兼容，混用会导致色品重复计数。</p>
-<p><strong>避免色品重复计数</strong></p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 30.0%" />
-<col style="width: 70.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>场景</p></th>
-<th class="head"><p>正确做法</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DQx</span></code> 含总色品（含六极铁贡献）</p></td>
-<td><p>不再单独施加六极 kick，否则一阶色品被双重计数</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DQx</span></code> 仅含自然色品（不含六极铁）</p></td>
-<td><p>施加六极 kick 补充色品校正及非线性效应，不冲突</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DQx</span></code> 含总色品，但仍需模拟非线性效应</p></td>
-<td><p>将 <code class="docutils literal notranslate"><span class="pre">DQx</span></code> 减去六极铁色品贡献（ <span class="math notranslate nohighlight">\(\Delta Q'_x = -\frac{1}{4\pi}\oint \beta_x K_2 \eta_x \, ds\)</span> ），再施加完整六极 kick</p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>薄透镜与厚透镜的差异</strong></p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25.0%" />
-<col style="width: 20.0%" />
-<col style="width: 55.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>效应</p></th>
-<th class="head"><p>薄透镜</p></th>
-<th class="head"><p>厚透镜 DKD-exact</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>色品校正（通过色散位置）</p></td>
-<td><p>有</p></td>
-<td><p>有</p></td>
-</tr>
-<tr class="row-odd"><td><p>元件内部 drift 色散</p></td>
-<td><p>无</p></td>
-<td><p>有</p></td>
-</tr>
-<tr class="row-even"><td><p>厚透镜分布效应</p></td>
-<td><p>无</p></td>
-<td><p>有</p></td>
-</tr>
-<tr class="row-odd"><td><p>路径长度效应（ <span class="math notranslate nohighlight">\(R_{56}\)</span> 等）</p></td>
-<td><p>无</p></td>
-<td><p>有</p></td>
-</tr>
-</tbody>
-</table>
-<p>薄透镜缺少的效应是”磁铁内部漂移”带来的——零长度磁铁物理上就没有内部漂移，这是正确的物理近似，不是遗漏。若需要这些效应，使用厚透镜模式。</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul class="simple">
-<li><p>在逐元件追踪（element-by-element tracking）模式中，不存在 <code class="docutils literal notranslate"><span class="pre">DQx</span></code> 重复计数问题——所有效应由 DKD-exact 物理模拟自然产生</p></li>
-<li><p>Twiss 线性传输是一阶模型，六极 kick 中除 <span class="math notranslate nohighlight">\(1+\delta\)</span> 会引入与模型精度不匹配的二阶非线性色散效应，应避免</p></li>
-<li><p>若六极铁强度较大或需要精确的非线性效应模拟，建议切换到完整的逐元件 DKD-exact 追踪，而非在 Twiss 线性框架中局部引入非线性 kick</p></li>
-</ul>
-</div>
-</section>
-</section>
-<section id="id8">
-<h2>自然包含的高阶效应<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<p>DKD-exact 方案中，理想六极磁铁的所有非线性效应天然包含，无需任何额外处理：</p>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 30.0%" />
-<col style="width: 70.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>效应</p></th>
-<th class="head"><p>来源</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>色品校正</p></td>
-<td><p>kick 作用于含色散的真实坐标 <span class="math notranslate nohighlight">\(x\)</span> ，展开后自动出现等效四极项</p></td>
-</tr>
-<tr class="row-odd"><td><p>自然色品</p></td>
-<td><p>drift 中精确 <span class="math notranslate nohighlight">\(p_z\)</span> 使等效聚焦强度含 <span class="math notranslate nohighlight">\(1/(1+\delta)\)</span> 依赖</p></td>
-</tr>
-<tr class="row-even"><td><p>高阶色散</p></td>
-<td><p>drift 中 <span class="math notranslate nohighlight">\(p_z\)</span> 保留完整根号，色散演化含所有阶次的 <span class="math notranslate nohighlight">\(\delta\)</span> 依赖</p></td>
-</tr>
-<tr class="row-odd"><td><p>路径长度效应（ <span class="math notranslate nohighlight">\(R_{56}\)</span> 等）</p></td>
-<td><p>drift 中 <span class="math notranslate nohighlight">\(\zeta\)</span> 更新包含完整的 <span class="math notranslate nohighlight">\(R_{56}\)</span> , <span class="math notranslate nohighlight">\(T_{566}\)</span> 等高阶项</p></td>
-</tr>
-<tr class="row-even"><td><p>厚透镜分布效应</p></td>
-<td><p>DKD 多切片中 drift 改变 <span class="math notranslate nohighlight">\(x\)</span> ，后续 kick 感受更新后的坐标</p></td>
-</tr>
-<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(x\)</span> - <span class="math notranslate nohighlight">\(y\)</span> 耦合</p></td>
-<td><p>kick 中 <span class="math notranslate nohighlight">\(xy\)</span> 交叉项</p></td>
-</tr>
-</tbody>
-</table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>唯一近似是 split-operator 积分器的离散化误差（uniform 为 <span class="math notranslate nohighlight">\(O(\Delta s^2)\)</span> ，yoshida4 为 <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span> ），可通过增加切片数控制。这是数学方法的截断误差，不是物理效应的遗漏。</p>
-</div>
-<p>绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 <a class="reference internal" href="error.html#zh-error"><span class="std std-ref">元件误差</span></a> 接口。
-准直只移动磁场，孔径和 SC 边界保持在设计坐标系。</p>
-</section>
-<section id="id9">
-<h2>接口参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 20.0%" />
-<col style="width: 25.0%" />
-<col style="width: 10.0%" />
-<col style="width: 10.0%" />
 <col style="width: 35.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>属性名</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>类型</p></th>
-<th class="head"><p>单位</p></th>
-<th class="head"><p>说明</p></th>
+<tr class="row-odd"><th class="head"><p>Python schema 字段</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>元件在束线中的纵向位置</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_field_error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">field</span> <span class="pre">error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>启用附加场误差踢角。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>元件长度（必须 <span class="math notranslate nohighlight">\(\ge 0\)</span> ； <span class="math notranslate nohighlight">\(= 0\)</span> 时为薄透镜）</p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">field_error_knl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">error</span> <span class="pre">KNL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>正多极积分误差，从第 0 阶偶极项开始。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>元件名称</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k2l</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">k2l</span></code></p></td>
-<td><p>float</p></td>
-<td><p><span class="math notranslate nohighlight">\(\text{m}^{-2}\)</span></p></td>
-<td><p>正常六极积分强度 <span class="math notranslate nohighlight">\(K_{2L}\)</span> ，默认 0</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k2sl</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">k2sl</span></code></p></td>
-<td><p>float</p></td>
-<td><p><span class="math notranslate nohighlight">\(\text{m}^{-2}\)</span></p></td>
-<td><p>斜六极积分强度 <span class="math notranslate nohighlight">\(K_{2sL}\)</span> ，默认 0</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
-<td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>切片数，默认 1（仅厚透镜有效）</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>积分器，可选： <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> ）、 <code class="docutils literal notranslate"><span class="pre">uniform</span></code> 、 <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>孔径类型，默认 <code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
-<td><p>list</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>孔径参数值，默认 <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">field_error_ksl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">error</span> <span class="pre">KSL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>斜多极积分误差，从第 0 阶偶极项开始。</p></td>
 </tr>
 </tbody>
 </table>
+<p>数组第 <span class="math notranslate nohighlight">\(n\)</span> 项单位为 <span class="math notranslate nohighlight">\(\mathrm{m}^{-n}\)</span>；第 0、1、2、3 项依次为偶极、四极、六极、八极。
+系数必须有限。缺失阶数补零，较短数组补齐；全零误差无效应，不按幅值阈值丢弃有限小量。
+开关关闭时，即使数组非零也保持名义映射。</p>
+<p>在 <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>、<span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span> 约定下，完整积分误差踢角为</p>
+<div class="math notranslate nohighlight">
+\[F(x,y) = \sum_{n=0}^{N}
+\frac{\Delta K_nL+i\Delta K_{ns}L}{n!}(x+iy)^n,
+\qquad \Delta p_x=-\Re F,\quad \Delta p_y=\Im F.\]</div>
+<p>输入系数不含阶乘；归一化动量踢角也不额外乘 <span class="math notranslate nohighlight">\(1/(1+\delta)\)</span>。
+因此正偶极误差为正时减小 <code class="docutils literal notranslate"><span class="pre">px</span></code>，与正 <code class="docutils literal notranslate"><span class="pre">HKICK</span></code> 符号相反；
+斜偶极误差为正时增大 <code class="docutils literal notranslate"><span class="pre">py</span></code>，与正 <code class="docutils literal notranslate"><span class="pre">VKICK</span></code> 一致。</p>
+<p>Multipole 和 Solenoid 的 <code class="docutils literal notranslate"><span class="pre">KiL</span></code> / <code class="docutils literal notranslate"><span class="pre">KiSL</span></code> 表示名义横向多极分量，启用的误差只与它们相加一次。
+Solenoid 的 <code class="docutils literal notranslate"><span class="pre">KS</span></code> 是独立的纵向场强 <span class="math notranslate nohighlight">\(B_z/(B\rho)\)</span>，不是斜多极数组。
+螺线管纵向主场变化应通过 <code class="docutils literal notranslate"><span class="pre">KS</span></code> 配置。</p>
+</section>
+<section id="id4">
+<h3>追踪模型<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>薄元件执行一次完整积分误差踢角。厚元件将误差沿长度均匀分布：
+每个带符号积分步 <span class="math notranslate nohighlight">\(\Delta s\)</span> 使用 <span class="math notranslate nohighlight">\(\Delta s/L\)</span> 的积分误差。
+Yoshida 子步保留负权重，因此增加切片不会增加总误差强度。</p>
+<p>保留原有名义传输。DKD/RKR/SKS 将误差加在中心踢角处；
+四极矩阵模型采用“半段名义矩阵、误差踢角、半段名义矩阵”。
+内部空间电荷仍在计划节点执行，使用自身的正积分权重。</p>
+<section id="id5">
+<h4>代码组织<a class="headerlink" href="#id5" title="Link to this heading"></a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">PASS/commands/element/error.py</span></code> 保留 <code class="docutils literal notranslate"><span class="pre">FieldErrors</span></code>、GPU 误差调度
+<code class="docutils literal notranslate"><span class="pre">_track_field_errors_gpu</span></code> 和矩阵误差组合 <code class="docutils literal notranslate"><span class="pre">_transport_matrix_errors</span></code>。
+<code class="docutils literal notranslate"><span class="pre">PASS/utils/slicing.py</span></code> 中的 <code class="docutils literal notranslate"><span class="pre">execute_element_body_gpu</span></code> 负责本体分片传输，
+只在已配置的节点调用 SC；没有 SC 时，它也用于矩阵模型和弯铁的误差追踪。
+这些传输辅助函数不负责出口孔径检查或参考时钟推进，两者统一由各元件的
+<code class="docutils literal notranslate"><span class="pre">execute_cpu/gpu</span></code> 完成。
+矩阵、弯铁的本体传输与误差踢角仍使用独立的 GPU 调用。</p>
+<p>固定的多极系数、阶乘倒数及子步参数准备一次后复用，GPU 数组按精度和设备缓存。
+粒子坐标和束团参考量仍从当前状态读取。
+输入开关 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">field</span> <span class="pre">error</span></code> 保留；运行状态由 <code class="docutils literal notranslate"><span class="pre">FieldErrors.enabled</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">FieldErrors.active</span></code> 管理，元件不再保存重复的开关变量。
+<code class="docutils literal notranslate"><span class="pre">AlignmentErrors</span></code> 及其坐标变换也保留在同一模块中。</p>
+</section>
+<section id="id6">
+<h4>模型限制<a class="headerlink" href="#id6" title="Link to this heading"></a></h4>
+<p>SBend 保留名义曲率及入、出口映射，在弯曲名义传输之间加入局部直线多极踢角。
+这是明确的薄误差近似，不是完整的曲线多极场或误差相关端场模型，
+因而不保证与 PTC 原生厚弯铁误差模型完全一致。
+PTC 某些原生元件命令也可能只处理部分误差阶数；验证本模型时应同时比较等价的显式薄 Multipole 误差格架。</p>
+<p>Solenoid 长度为零时纵向场映射无效应，但横向积分多极分量和启用的场误差仍执行薄踢角。</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.15</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Is field error"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Field error KNL"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.00001</span><span class="p">,</span><span class="w"> </span><span class="mf">0.002</span><span class="p">,</span><span class="w"> </span><span class="mf">0.3</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"Field error KSL"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">-0.00002</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.001</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="mad-x">
+<h3>MAD-X 导入<a class="headerlink" href="#mad-x" title="Link to this heading"></a></h3>
+<p>将名义光学和强度导出为 Twiss TFS，再使用 <code class="docutils literal notranslate"><span class="pre">EFCOMP,</span> <span class="pre">DKN=...,</span> <span class="pre">DKS=...</span></code>
+设置绝对积分误差并通过 <code class="docutils literal notranslate"><span class="pre">ESAVE</span></code> 导出独立误差 TFS。
+PASS 从误差表读取 <code class="docutils literal notranslate"><span class="pre">K0L</span></code>、<code class="docutils literal notranslate"><span class="pre">K1L</span></code> 等正分量和 <code class="docutils literal notranslate"><span class="pre">K0SL</span></code>、<code class="docutils literal notranslate"><span class="pre">K1SL</span></code> 等斜分量。
+这些是附加强度；不要同时把同一份误差写进名义强度或源光学，避免重复计入。
+PASS 不生成相对误差。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
+
+<span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circumference</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
+    <span class="s2">"ideal.tfs"</span><span class="p">,</span> <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span> <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>读取器在漂移合并或重采样之前，根据原始 Twiss 的 <code class="docutils literal notranslate"><span class="pre">NAME</span></code> 列匹配实例。
+唯一名称可直接匹配，不区分大小写；重复名称必须明确指定 <code class="docutils literal notranslate"><span class="pre">Q[2]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">Q:2</span></code> 等序号。
+稀疏误差表的行次序不能用于推断实例。名称歧义、目标不存在、重复非零记录及非有限系数均报错。
+至少需要一个支持的系数列，其余缺失阶数补零；接受格式有效的空表和全零误差。
+准直列仅在 <code class="docutils literal notranslate"><span class="pre">is_alignment_error=True</span></code> 时读取；孔径和监测器误差列不参与导入。</p>
+<p>逐元件导入将误差附加到物理磁铁，不支持的元件出现非零场误差时直接报错。
+Twiss 传输导入在原始元件出口 <code class="docutils literal notranslate"><span class="pre">S</span></code> 处插入一个薄 Multipole，在 Twiss 映射之后执行；
+合并和重采样保留这些必要位置。这种集中误差与逐元件追踪中的分布误差是不同近似。</p>
+<p>螺线管逐元件导入从 MAD-X 标准 Twiss 的 <code class="docutils literal notranslate"><span class="pre">KSI</span></code> 列计算 <code class="docutils literal notranslate"><span class="pre">KS</span> <span class="pre">=</span> <span class="pre">KSI/L</span></code>；
+若没有 <code class="docutils literal notranslate"><span class="pre">KSI</span></code>，也接受自定义 <code class="docutils literal notranslate"><span class="pre">KS</span></code> 列。两列均缺失，或零长度时 <code class="docutils literal notranslate"><span class="pre">KSI</span></code> 非零，均报错。</p>
+</section>
+</section>
+<section id="id7">
+<h2>准直误差<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<p>上述七类磁性元件均支持固定横向偏移 <code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DY</span></code> 和绕纵轴转角 <code class="docutils literal notranslate"><span class="pre">DPSI</span></code>。
+这些参数使名义磁场与附加场误差多极分量一起移动；元件孔径和空间电荷导体边界保持在设计位置。
+准直误差不会移动束流或初始粒子分布。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python schema 字段</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_alignment_error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">alignment</span> <span class="pre">error</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>启用磁场偏移和转角。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alignment_dx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alignment</span> <span class="pre">DX</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>在理想入口坐标系中指定的水平偏移。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">alignment_dy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alignment</span> <span class="pre">DY</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>在理想入口坐标系中指定的垂直偏移。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alignment_dpsi</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Alignment</span> <span class="pre">DPSI</span> <span class="pre">(rad)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>绕理想入口纵轴、遵循右手定则的转角。</p></td>
+</tr>
+</tbody>
+</table>
+<p>所有参数必须有限。准直与场误差开关彼此独立。关闭准直开关或参数全为精确零时，
+直接使用原有追踪路径；不按阈值丢弃有限小量。以准直分量形式传入的非零 <code class="docutils literal notranslate"><span class="pre">DS</span></code>、
+<code class="docutils literal notranslate"><span class="pre">DPHI</span></code>、<code class="docutils literal notranslate"><span class="pre">DTHETA</span></code> 明确报错，包括 schema 输入及已开启的 MAD-X 准直导入。
+其他元件不支持准直误差。本版不实现随机抽样、随时间变化的准直误差、孔径偏移
+（<code class="docutils literal notranslate"><span class="pre">AREX</span></code> / <code class="docutils literal notranslate"><span class="pre">AREY</span></code>）以及 BPM 读数或刻度误差。</p>
+<section id="id8">
+<h3>坐标变换<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<p>对于直线元件，入口变换为</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\begin{pmatrix}x_m\\y_m\end{pmatrix}
+= R(-\psi)\left[\begin{pmatrix}x\\y\end{pmatrix}
+-\begin{pmatrix}DX\\DY\end{pmatrix}\right],\qquad
+\begin{pmatrix}p_{xm}\\p_{ym}\end{pmatrix}
+= R(-\psi)\begin{pmatrix}p_x\\p_y\end{pmatrix}.\end{split}\]</div>
+<p>名义映射和已启用的场误差踢角在磁场坐标系中计算。
+出口通过逆变换恢复设计坐标，再检查固定孔径。直线元件的坐标补丁不改变 <code class="docutils literal notranslate"><span class="pre">z</span></code>、<code class="docutils literal notranslate"><span class="pre">dp</span></code>
+和参考时钟。旋转直接使用三角函数，不采用小角近似。薄元件的入、出口位于同一平面。</p>
+<p>有限长度 SBend 将整个弯曲磁场绕理想入口刚性平移、旋转。
+在出口和内部 SC 节点，磁场截面与设计截面不再重合；PASS 先旋转三维归一化动量，
+再将粒子射线投影到目标平面。若变换后位置为 <span class="math notranslate nohighlight">\(r'\)</span>、动量为 <span class="math notranslate nohighlight">\(u'\)</span>，则</p>
+<div class="math notranslate nohighlight">
+\[\lambda=-r'_z/u'_z,\qquad
+r_{\perp,\mathrm{new}}=r'_\perp+\lambda u'_\perp,\qquad
+\Delta z=-\lambda\sqrt{1-\beta_0^2+\beta_0^2(1+\delta)^2}.\]</div>
+<p>旋转前 <span class="math notranslate nohighlight">\(u_z=\sqrt{(1+\delta)^2-p_x^2-p_y^2}\)</span>。
+坐标补丁保持 <code class="docutils literal notranslate"><span class="pre">dp</span></code>，不推进 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>；元件的 <code class="docutils literal notranslate"><span class="pre">execute_cpu/gpu</span></code> 在追踪和
+出口孔径检查后统一推进一次参考时钟。
+这样保留连续束团相对时间，并计入两个截面之间的粒子飞行时间差。
+不能正向到达目标平面或无效的交点记为损失。零长度 SBend 沿用现有的直线薄踢角模型。</p>
+</section>
+<section id="id9">
+<h3>空间电荷、孔径与损失<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>同时启用两种误差和内部 SC 时，执行顺序为：</p>
+<ol class="arabic simple">
+<li><p>从设计入口变换到磁场入口坐标系。</p></li>
+<li><p>执行名义磁场分片传输和分布场误差踢角。</p></li>
+<li><p>每到计划的 SC 节点，将存活粒子转回设计坐标，用原网格和边界计算 SC，再转回磁场坐标。</p></li>
+<li><p>在出口恢复设计坐标，检查固定元件孔径。</p></li>
+<li><p>按元件长度推进一次参考时钟。</p></li>
+</ol>
+<p>SC 的位置和积分权重不变。关闭 SC 时没有第 3 步；关闭准直误差时没有坐标补丁。
+在上游已损失的粒子保持冻结；元件内部损失的粒子最终恢复到所记录损失平面的设计坐标，
+不会继续传输或复活。损失平面的精度沿用现有损失位置存储精度。
+元件孔径仍是出口检查，不是沿程连续碰壁检测。</p>
+<p>各元件的 <code class="docutils literal notranslate"><span class="pre">execute_cpu/gpu</span></code> 直接展示上述顺序，不再增加一层 <code class="docutils literal notranslate"><span class="pre">_execute</span></code> 回调。
+<code class="docutils literal notranslate"><span class="pre">AlignmentErrors.enter_frame</span></code> 保存入口存活掩码并进入磁场坐标；
+<code class="docutils literal notranslate"><span class="pre">exit_frame</span></code> 在 <code class="docutils literal notranslate"><span class="pre">finally</span></code> 中恢复设计坐标。正常传输后执行出口孔径检查和时钟更新。
+准直未启用时，这两个方法直接返回，不分配掩码，也不启动坐标变换核函数。</p>
+<p>CPU、GPU 坐标公式、损失恢复和 SC 坐标切换仍统一放在 <code class="docutils literal notranslate"><span class="pre">error.py</span></code>。
+GPU 坐标补丁使用独立核函数，
+不与传输合并；启用准直时，每个 SC 节点需要额外的往返两次变换。
+固定截面的系数按平面、精度和设备缓存，磁场本体与场误差的核函数组合保持不变。</p>
 </section>
 <section id="id10">
-<h2>使用示例<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
-<section id="id11">
-<h3>厚透镜正常六极铁<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"SF1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sextupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2L"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
+<h3>MAD-X 准直导入<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>用 <code class="docutils literal notranslate"><span class="pre">EALIGN,</span> <span class="pre">DX=...,</span> <span class="pre">DY=...,</span> <span class="pre">DPSI=...</span></code> 设置准直，再由 <code class="docutils literal notranslate"><span class="pre">ESAVE</span></code> 导出。
+同一误差 TFS 可以同时含准直和绝对场误差：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">items</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">circumference</span> <span class="o">=</span> <span class="n">read_madx_elements</span><span class="p">(</span>
+    <span class="s2">"ideal.tfs"</span><span class="p">,</span> <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>
+    <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_alignment_error</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>正常六极铁（ <span class="math notranslate nohighlight">\(K_{2L} &gt; 0\)</span> ），长度 0.5 m，5 个切片，4 阶辛积分。用于色品校正。</p>
+<p>逐元件导入的两个开关均默认为 <code class="docutils literal notranslate"><span class="pre">False</span></code>；只读取准直表时仅开启准直开关。
+<code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DY</span></code>、<code class="docutils literal notranslate"><span class="pre">DPSI</span></code> 来自 <strong>误差表</strong>；名义 Twiss 的 <code class="docutils literal notranslate"><span class="pre">DX</span></code> / <code class="docutils literal notranslate"><span class="pre">DY</span></code> 是色散，
+绝不会作为准直偏移。所选误差种类的缺失分量补零。
+非零且不支持的准直分量、不支持的元件上的非零误差均报错。
+实例匹配与重复检查和场误差共用，在漂移合并前完成。</p>
+<p><code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 同样提供 <code class="docutils literal notranslate"><span class="pre">is_alignment_error</span></code> 参数，GUI 逐元件导入增加准直复选框。
+<code class="docutils literal notranslate"><span class="pre">read_madx_twiss</span></code> 和 <code class="docutils literal notranslate"><span class="pre">read_madx_twiss_interpolated</span></code> 对此选项明确报错：
+Twiss 传输映射不能重建移动后的实际磁场。准直误差应使用逐元件追踪。
+关闭准直导入时，共享误差文件中的准直列被忽略。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Command.create</span></code> 不专门检查准直参数，也不额外维护支持准直的元件名单。
+直接向无关运行时命令传入的多余准直键会被忽略；schema 和 MAD-X 导入仍拒绝明确请求的
+不受支持的准直功能，磁性元件的 <code class="docutils literal notranslate"><span class="pre">AlignmentErrors</span></code> 也保留有限值及不支持分量检查。</p>
 </section>
-<section id="id12">
-<h3>薄透镜六极铁<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"SF2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sextupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2L"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>零长度六极铁，仅施加 <span class="math notranslate nohighlight">\(K_{2L}\)</span> 薄透镜踢角，无 body 追踪。</p>
-</section>
-<section id="id13">
-<h3>负六极铁<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"SD1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sextupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2L"</span><span class="p">:</span><span class="w"> </span><span class="mf">-5.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>负六极铁（ <span class="math notranslate nohighlight">\(K_{2L} &lt; 0\)</span> ），提供与正六极铁相反的色品校正方向。</p>
-</section>
-<section id="id14">
-<h3>斜六极铁<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"SS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sextupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>纯斜六极铁（ <span class="math notranslate nohighlight">\(K_{2L} = 0\)</span> , <span class="math notranslate nohighlight">\(K_{2sL} \neq 0\)</span> ），产生与正常六极铁旋转 <span class="math notranslate nohighlight">\(\pi / 6\)</span> 的耦合效应。</p>
-</section>
-<section id="id15">
-<h3>正常 + 斜六极组合<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"SFS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">50.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Sextupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2L"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K2SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.04</span><span class="p">]</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>同时含正常和斜六极分量的组合六极铁（模拟安装旋转误差），带圆形孔径检查。</p>
-</section>
-</section>
-<section id="id16">
-<h2>应用场景<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p><strong>色品校正</strong> ：在有色散的位置放置六极铁，补偿四极铁自然色品，使粒子 tune 对动量偏差不敏感</p></li>
-<li><p><strong>共振驱动</strong> ：驱动三阶共振（ <span class="math notranslate nohighlight">\(3Q_x\)</span> , <span class="math notranslate nohighlight">\(2Q_x \pm Q_y\)</span> 等）用于共振引出或束流刮削</p></li>
-<li><p><strong>动态孔径控制</strong> ：六极铁的非线性场限制稳定相空间区域，影响束流寿命</p></li>
-<li><p><strong>非线性耦合校正</strong> ：使用斜六极铁（ <code class="docutils literal notranslate"><span class="pre">k2sl</span></code> ）控制高阶 <span class="math notranslate nohighlight">\(x\)</span> - <span class="math notranslate nohighlight">\(y\)</span> 耦合</p></li>
-<li><p><strong>Harmonic sextupole</strong> ：在特定相位放置六极铁驱动或抑制特定共振项</p></li>
-<li><p><strong>LHC 色品方案</strong> ：在弧区分布六极铁家族（SF/SD），实现宽能范围内的色品控制</p></li>
-</ul>
-</section>
-<section id="id17">
-<h2>参考文献<a class="headerlink" href="#id17" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>Xsuite Physics Guide, Sec 1.10.3 (精确漂移), Sec 1.10.5 (六极铁)</p></li>
-<li><p>Xsuite 源码： <code class="docutils literal notranslate"><span class="pre">xtrack/beam_elements/elements_src/sextupole.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet_kick.h</span></code> , <code class="docutils literal notranslate"><span class="pre">track_magnet_drift.h</span></code></p></li>
-<li><p>Yoshida, H., “Construction of higher order symplectic integrators”, Phys. Lett. A 150 (1990)</p></li>
-<li><p>MAD-X 物理手册：六极磁场与非线性传输</p></li>
-<li><p>Wiedemann, H., “Particle Accelerator Physics”, Ch. 4 (非线性束流动力学)</p></li>
-</ul>
-</section>
-<section id="id18">
-<h2>元件内部空间电荷<a class="headerlink" href="#id18" title="Link to this heading"></a></h2>
-<p>正长度元件可设置 <code class="docutils literal notranslate"><span class="pre">space_charge``（JSON</span> <span class="pre">``Space</span> <span class="pre">charge</span></code>）为
-<code class="docutils literal notranslate"><span class="pre">ElementSpaceCharge</span></code> 对象。<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> 控制外场传输，
-<code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge.Num</span> <span class="pre">kicks</span></code> 控制 SC 积分。调度规则、共享资源、
-支持的后端和示例见 <a class="reference internal" href="../space_charge.html#zh-internal-space-charge"><span class="std std-ref">元件切片与内部空间电荷</span></a>。</p>
 </section>
 </section>
 
@@ -1384,8 +1043,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quadrupole.html" class="btn btn-neutral float-left" title="四极铁（Quadrupole）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="octupole.html" class="btn btn-neutral float-right" title="八极铁（Octupole）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="index.html" class="btn btn-neutral float-left" title="元件（Element）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="marker.html" class="btn btn-neutral float-right" title="标记（Marker）" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

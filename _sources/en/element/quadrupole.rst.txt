@@ -522,6 +522,10 @@ Slice Count and Integrator Recommendations
   - The yoshida4 integrator has per-slice error :math:`O(\Delta s^5)` and global error :math:`O(\Delta s^4)`, with precision far superior to uniform
 
 
+Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common :ref:`en-error` interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.
+
 Interface Parameters
 --------------------
 

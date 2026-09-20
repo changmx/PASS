@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/element/index.html">元件（Element）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../zh/element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">Element</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="element/index.html#integration-precision">Integration precision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a></li>
@@ -909,11 +911,15 @@ field strengths and geometry, then <code class="docutils literal notranslate"><s
 Presentation order is independent of schema inheritance and JSON key order.</p>
 <p>For example, <code class="docutils literal notranslate"><span class="pre">SBend</span></code> displays name, <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">K0L</span></code>,
 <code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Fint</span></code>, <code class="docutils literal notranslate"><span class="pre">Fintx</span></code>, <code class="docutils literal notranslate"><span class="pre">Model</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Integrator</span></code>, and <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>, followed by <strong>Field errors</strong>, <strong>Aperture</strong>,
+<code class="docutils literal notranslate"><span class="pre">Integrator</span></code>, and <code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>, followed by <strong>Field errors</strong>, <strong>Alignment errors</strong>, <strong>Aperture</strong>,
 <strong>Ramping</strong>, and <strong>Internal space charge</strong> sections. Each section keeps its
 switch and related parameters together inside a subtle border. All sections
 remain expanded, with no collapse controls. Disabled internal space-charge
 parameters stay visible.</p>
+<p>Alignment groups its switch with <code class="docutils literal notranslate"><span class="pre">DX</span></code>, <code class="docutils literal notranslate"><span class="pre">DY</span></code> and <code class="docutils literal notranslate"><span class="pre">DPSI</span></code>. MAD-X element
+import also offers an alignment checkbox using the same error TFS as field
+errors. It moves only the magnetic field; apertures and SC boundaries remain
+fixed. Twiss transfer import does not offer alignment. See <a class="reference internal" href="element/error.html#en-error"><span class="std std-ref">Element errors</span></a>.</p>
 <p>Other magnets use the same ordering for their supported parameters. RF data,
 Exciter frequency and amplitude modulation, Slicer ranges, and monitor reference
 optics and analysis ranges are grouped by purpose. Field, potential, density,

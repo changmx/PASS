@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/element/index.html">Element</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/index.html#integration-precision">Integration precision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a></li>
@@ -801,10 +803,10 @@
 <li><p>核心特征：</p>
 <ul>
 <li><p>采用精确螺线管映射（Larmor 旋转 + 聚焦， <span class="math notranslate nohighlight">\(p_z\)</span> 逐粒子计算）</p></li>
-<li><p>无薄透镜模式（螺线管无薄透镜极限， <span class="math notranslate nohighlight">\(L=0\)</span> 时无效应）</p></li>
+<li><p>无纵向主场薄透镜模式；<span class="math notranslate nohighlight">\(L=0\)</span> 时只有横向积分多极分量起作用</p></li>
 <li><p>支持多极场叠加（ <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> ），使用 SKS 积分器</p></li>
 <li><p>支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器</p></li>
-<li><p><span class="math notranslate nohighlight">\(k_s = 0\)</span> 时自动退化为纯漂移</p></li>
+<li><p><span class="math notranslate nohighlight">\(k_s = 0\)</span> 时使用多极 DKD；无横向多极分量时才退化为纯漂移</p></li>
 <li><p>色品效应通过逐粒子 <span class="math notranslate nohighlight">\(p_z\)</span> 自然引入</p></li>
 <li><p>支持孔径检查</p></li>
 </ul>
@@ -966,7 +968,7 @@
 <li><p>聚焦项 <span class="math notranslate nohighlight">\(\text{sk} \cdot \sin\theta = (k_s/2) \cdot \sin\theta \to \infty\)</span> 发散 ✗</p></li>
 </ul>
 <p>位置和动量的缩放行为不对称：旋转角有限但聚焦力发散，薄透镜极限不存在。</p>
-<p>因此 PASS 中螺线管 <span class="math notranslate nohighlight">\(L = 0\)</span> 时 <strong>无效应</strong> （恒等映射），不提供薄透镜模式。</p>
+<p>因此 PASS 不提供纵向主场的薄透镜映射。<span class="math notranslate nohighlight">\(L=0\)</span> 时 <code class="docutils literal notranslate"><span class="pre">KS</span></code> 无效应，但名义横向多极分量及启用的场误差仍执行积分薄踢角。</p>
 </section>
 <section id="sks">
 <h2>多极场叠加与 SKS 积分器<a class="headerlink" href="#sks" title="Link to this heading"></a></h2>
@@ -1048,8 +1050,8 @@
   其中 ds = L / N
 
 特殊情况:
-  ks = 0 → 退化为纯漂移 Drift(L)
-  L = 0 → 无效应（螺线管无薄透镜极限）
+  ks = 0 → 多极 DKD；无横向多极分量时为 Drift(L)
+  L = 0 → 仅执行横向积分多极踢角
 </pre></div>
 </div>
 <p>完整映射为：</p>
@@ -1067,6 +1069,8 @@
 <div class="math notranslate nohighlight">
 \[p_z = \sqrt{(1+\delta)^2 - (p_x + \text{sk} \cdot y)^2 - (p_y - \text{sk} \cdot x)^2}\]</div>
 <p>不同动量偏差 <span class="math notranslate nohighlight">\(\delta\)</span> 的粒子有不同的 <span class="math notranslate nohighlight">\(p_z\)</span> ，因此有不同的 Larmor 旋转角 <span class="math notranslate nohighlight">\(\theta = \text{sk} \cdot L / p_z\)</span> 和不同的等效漂移长度 <span class="math notranslate nohighlight">\(\sin\theta / \text{sk}\)</span> 。这就是螺线管色品的物理来源——动量依赖的旋转角和聚焦强度。</p>
+<p>绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 <a class="reference internal" href="error.html#zh-error"><span class="std std-ref">元件误差</span></a> 接口。
+准直只移动磁场，孔径和 SC 边界保持在设计坐标系。</p>
 </section>
 <section id="id9">
 <h2>接口参数<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
@@ -1097,7 +1101,7 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
 <td><p>float</p></td>
 <td><p>m</p></td>
-<td><p>元件长度 （必须 <span class="math notranslate nohighlight">\(\ge 0\)</span> ； <span class="math notranslate nohighlight">\(= 0\)</span> 时无效应）</p></td>
+<td><p>元件长度 （必须 <span class="math notranslate nohighlight">\(\ge 0\)</span> ； <span class="math notranslate nohighlight">\(= 0\)</span> 时仅保留横向多极踢角）</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
@@ -1167,10 +1171,10 @@
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 为可选参数。不指定或全零时，每个螺线管切片使用精确本体映射；<code class="docutils literal notranslate"><span class="pre">num_slices</span></code> 生效，<code class="docutils literal notranslate"><span class="pre">integrator</span></code> 不参与计算</p></li>
-<li><p>指定非零 <code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 时，启用 SKS 积分器， <code class="docutils literal notranslate"><span class="pre">num_slices</span></code> 和 <code class="docutils literal notranslate"><span class="pre">integrator</span></code> 生效</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ks</span> <span class="pre">=</span> <span class="pre">0</span></code> 且有长度时，元件退化为纯漂移</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> 时，螺线管无效应（不提供薄透镜模式）</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">knl</span></code> / <code class="docutils literal notranslate"><span class="pre">ksl</span></code> 为可选参数。与启用的场误差相加后全零时，每个螺线管切片使用精确本体映射；<code class="docutils literal notranslate"><span class="pre">num_slices</span></code> 生效，<code class="docutils literal notranslate"><span class="pre">integrator</span></code> 不参与计算</p></li>
+<li><p>名义多极分量与启用的场误差相加后非零时，启用 SKS 积分器， <code class="docutils literal notranslate"><span class="pre">num_slices</span></code> 和 <code class="docutils literal notranslate"><span class="pre">integrator</span></code> 生效</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ks</span> <span class="pre">=</span> <span class="pre">0</span></code> 且有长度时使用多极 DKD；名义与误差多极分量相加后全零时才退化为纯漂移</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code> 时，仅横向多极分量和启用的场误差起作用；纵向主场无薄透镜映射</p></li>
 </ul>
 </div>
 </section>

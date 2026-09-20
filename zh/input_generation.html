@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/element/index.html">Element</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/index.html#integration-precision">Integration precision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a></li>
@@ -1216,6 +1218,7 @@
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>绝对场误差的单位、实例匹配规则，以及逐元件分布误差与 Twiss 出口集中踢角的区别，见 <a class="reference internal" href="element/error.html#zh-error"><span class="std std-ref">元件误差</span></a>。</p>
 <p>如需均匀基础网格，改用重采样读取函数：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss_interpolated</span>
 
@@ -1264,10 +1267,16 @@ p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
     <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
     <span class="n">is_merge_drift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># 合并相邻漂移节</span>
     <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">is_alignment_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>两个误差开关独立，均默认为 <code class="docutils literal notranslate"><span class="pre">False</span></code>。准直从误差 TFS 读取 <code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DY</span></code>、<code class="docutils literal notranslate"><span class="pre">DPSI</span></code>，
+只移动磁场，孔径和 SC 边界保持固定；非零且不支持的准直分量明确报错。
+Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐元件模式。
+归一化、实例匹配和执行顺序见 <a class="reference internal" href="element/error.html#zh-error"><span class="std std-ref">元件误差</span></a>。
+<code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 同样接受 <code class="docutils literal notranslate"><span class="pre">is_alignment_error</span></code>。</p>
 </section>
 <section id="twiss">
 <h3>方式三：平滑近似 twiss<a class="headerlink" href="#twiss" title="Link to this heading"></a></h3>

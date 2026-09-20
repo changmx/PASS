@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#integration-precision">Integration precision</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
@@ -955,6 +957,9 @@ If hkick=0 and vkick=0: degenerates to a single exact drift Drift(L)
 <div class="math notranslate nohighlight">
 \[z_0 = 1 - 2 z_1 \approx -1.7024\]</div>
 <p>Truncation error <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span>.</p>
+<p>Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common <a class="reference internal" href="error.html#en-error"><span class="std std-ref">Element errors</span></a> interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.</p>
 </section>
 </section>
 <section id="interface-parameters">

@@ -1251,6 +1251,10 @@ General Parameters
     - -
     - Aperture parameter values, default ``[]``
 
+Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common :ref:`en-error` interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.
+
 Extended Parameters (Reserved)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1263,11 +1267,6 @@ Extended Parameters (Reserved)
     - Type
     - Unit
     - Description
-  * - ``is_field_error``
-    - ``is field error``
-    - bool
-    - -
-    - Whether field error is enabled, default ``false``
   * - ``is_ramping``
     - ``is ramping``
     - bool

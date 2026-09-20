@@ -136,11 +136,16 @@ Presentation order is independent of schema inheritance and JSON key order.
 
 For example, ``SBend`` displays name, ``S (m)``, ``Length (m)``, ``K0L``,
 ``E1 (rad)``, ``E2 (rad)``, ``Hgap (m)``, ``Fint``, ``Fintx``, ``Model``,
-``Integrator``, and ``Num slices``, followed by **Field errors**, **Aperture**,
+``Integrator``, and ``Num slices``, followed by **Field errors**, **Alignment errors**, **Aperture**,
 **Ramping**, and **Internal space charge** sections. Each section keeps its
 switch and related parameters together inside a subtle border. All sections
 remain expanded, with no collapse controls. Disabled internal space-charge
 parameters stay visible.
+
+Alignment groups its switch with ``DX``, ``DY`` and ``DPSI``. MAD-X element
+import also offers an alignment checkbox using the same error TFS as field
+errors. It moves only the magnetic field; apertures and SC boundaries remain
+fixed. Twiss transfer import does not offer alignment. See :ref:`en-error`.
 
 Other magnets use the same ordering for their supported parameters. RF data,
 Exciter frequency and amplitude modulation, Slicer ranges, and monitor reference

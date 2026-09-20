@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../zh/element/index.html">元件（Element）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../zh/element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../zh/element/error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../zh/element/dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">Element</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="element/index.html#integration-precision">Integration precision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html">Dipole (SBend)</a></li>
@@ -1223,6 +1225,7 @@ the prescribed clock phase while retaining unwrapped particle times.</p>
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>For absolute field-error units, instance matching and the difference between distributed element errors and Twiss exit kicks, see <a class="reference internal" href="element/error.html#en-error"><span class="std std-ref">Element errors</span></a>.</p>
 <p>For a uniform base grid, use the resampling reader instead:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_twiss_interpolated</span>
 
@@ -1281,10 +1284,18 @@ See <a class="reference internal" href="gui.html"><span class="doc">Graphical co
     <span class="n">twiss_file</span><span class="o">=</span><span class="s2">"lattice.tfs"</span><span class="p">,</span>
     <span class="n">is_merge_drift</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>            <span class="c1"># merge adjacent drift sections</span>
     <span class="n">is_field_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">is_alignment_error</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">error_file</span><span class="o">=</span><span class="s2">"errors.tfs"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>The two error switches are independent and default to <code class="docutils literal notranslate"><span class="pre">False</span></code>. Alignment
+imports <code class="docutils literal notranslate"><span class="pre">DX</span></code>, <code class="docutils literal notranslate"><span class="pre">DY</span></code>, <code class="docutils literal notranslate"><span class="pre">DPSI</span></code> from the error TFS, moving only magnetic
+fields while apertures and SC boundaries stay fixed. Nonzero unsupported
+alignment components raise an error. Twiss transfer and resampled Twiss
+imports reject alignment; use this element mode. See <a class="reference internal" href="element/error.html#en-error"><span class="std std-ref">Element errors</span></a> for
+normalization, instance matching and tracking order. <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code>
+also accepts <code class="docutils literal notranslate"><span class="pre">is_alignment_error</span></code>.</p>
 </section>
 <section id="method-3-smooth-approximation-twiss">
 <h3>Method 3: Smooth approximation twiss<a class="headerlink" href="#method-3-smooth-approximation-twiss" title="Link to this heading"></a></h3>

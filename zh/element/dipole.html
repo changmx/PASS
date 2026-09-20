@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/element/index.html">Element</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../en/element/index.html#integration-precision">Integration precision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/element/error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../en/element/dipole.html">Dipole (SBend)</a></li>
@@ -1807,6 +1809,8 @@ e1 &lt; 0 (散焦):
 </tr>
 </tbody>
 </table>
+<p>绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 <a class="reference internal" href="error.html#zh-error"><span class="std std-ref">元件误差</span></a> 接口。
+准直只移动磁场，孔径和 SC 边界保持在设计坐标系。</p>
 </section>
 <section id="id26">
 <h3>扩展参数（预留）<a class="headerlink" href="#id26" title="Link to this heading"></a></h3>
@@ -1827,16 +1831,7 @@ e1 &lt; 0 (散焦):
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_field_error</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">field</span> <span class="pre">error</span></code></p></td>
-<td><p>bool</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>是否启用磁场误差，默认 <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">ramping</span></code></p></td>
 <td><p>bool</p></td>
 <td><ul class="simple">
@@ -1845,7 +1840,7 @@ e1 &lt; 0 (散焦):
 </td>
 <td><p>是否启用磁场斜坡，默认 <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k0l_ramping_filepath</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k0l_ramping_filepath</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">k0l</span> <span class="pre">ramping</span> <span class="pre">filepath</span></code></p></td>
 <td><p>str</p></td>
 <td><ul class="simple">

@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/element/error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#integration-precision">Integration precision</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="drift.html">Drift</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">Dipole (SBend)</a></li>
@@ -1819,6 +1821,9 @@ End face normal tilts toward the bending inside relative to trajectory normal
 </tr>
 </tbody>
 </table>
+<p>Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common <a class="reference internal" href="error.html#en-error"><span class="std std-ref">Element errors</span></a> interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.</p>
 </section>
 <section id="extended-parameters-reserved">
 <h3>Extended Parameters (Reserved)<a class="headerlink" href="#extended-parameters-reserved" title="Link to this heading"></a></h3>
@@ -1839,16 +1844,7 @@ End face normal tilts toward the bending inside relative to trajectory normal
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_field_error</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">field</span> <span class="pre">error</span></code></p></td>
-<td><p>bool</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Whether field error is enabled, default <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">is</span> <span class="pre">ramping</span></code></p></td>
 <td><p>bool</p></td>
 <td><ul class="simple">
@@ -1857,7 +1853,7 @@ End face normal tilts toward the bending inside relative to trajectory normal
 </td>
 <td><p>Whether magnetic field ramping is enabled, default <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k0l_ramping_filepath</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k0l_ramping_filepath</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">k0l</span> <span class="pre">ramping</span> <span class="pre">filepath</span></code></p></td>
 <td><p>str</p></td>
 <td><ul class="simple">

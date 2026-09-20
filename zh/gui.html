@@ -171,6 +171,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="element/error.html">元件误差</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/marker.html">标记（Marker）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l4"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a></li>
@@ -528,6 +529,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/element/index.html">Element</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../en/element/index.html#integration-precision">Integration precision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/element/error.html">Element errors</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html">Marker</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html">Drift</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a></li>
@@ -877,9 +879,12 @@ JSON 源码和运行日志使用等宽字体：优先 JetBrains Mono，未安装
 界面的排列独立于 schema 的继承顺序与打开的 JSON 中键的排列。</p>
 <p>例如二极铁 <code class="docutils literal notranslate"><span class="pre">SBend</span></code> 的顺序为：名称、<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">K0L</span></code>、
 <code class="docutils literal notranslate"><span class="pre">E1</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">E2</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">Hgap</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Fint</span></code>、<code class="docutils literal notranslate"><span class="pre">Fintx</span></code>、<code class="docutils literal notranslate"><span class="pre">Model</span></code>、
-<code class="docutils literal notranslate"><span class="pre">Integrator</span></code>、<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>，之后依次为 <strong>场误差</strong>、<strong>孔径</strong>、<strong>Ramping</strong>、
+<code class="docutils literal notranslate"><span class="pre">Integrator</span></code>、<code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code>，之后依次为 <strong>场误差</strong>、<strong>准直误差</strong>、<strong>孔径</strong>、<strong>Ramping</strong>、
 <strong>内部空间电荷</strong> 分区。每个分区包含其开关与相关参数，使用轻边框保持整体感，
 全部常驻展开，不设折叠按钮。未启用的内部空间电荷参数仍显示并禁用。</p>
+<p>准直分区将开关与 <code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DY</span></code>、<code class="docutils literal notranslate"><span class="pre">DPSI</span></code> 放在一起。MAD-X 逐元件导入也提供准直复选框，
+与场误差共用误差 TFS，只移动磁场，孔径和 SC 边界固定。
+Twiss 传输导入不提供准直选项，详见 <a class="reference internal" href="element/error.html#zh-error"><span class="std std-ref">元件误差</span></a>。</p>
 <p>其他磁铁沿用相同次序与分区，只显示各自支持的参数。射频腔的射频数据、
 激励器的频率与幅度调制、Slicer 的切片范围、监测器的参考光学与分析范围，
 也按用途分区；保存电场、电势、电荷密度及保存圈数集中在 <strong>诊断输出</strong> 中。
