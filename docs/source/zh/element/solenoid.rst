@@ -346,7 +346,8 @@ yoshida4 积分器（4阶辛）
 不同动量偏差 :math:`\delta` 的粒子有不同的 :math:`p_z` ，因此有不同的 Larmor 旋转角 :math:`\theta = \text{sk} \cdot L / p_z` 和不同的等效漂移长度 :math:`\sin\theta / \text{sk}` 。这就是螺线管色品的物理来源——动量依赖的旋转角和聚焦强度。
 
 
-绝对正、斜多极场误差使用公共 :ref:`zh-error` 接口。
+绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 :ref:`zh-error` 接口。
+准直只移动磁场，孔径和 SC 边界保持在设计坐标系。
 
 接口参数
 --------

@@ -133,43 +133,31 @@ class Drift(Command):
         z[active] += L * slip[active]
 
     def execute_gpu(self, sim):
-        if self._sc_nodes:
-            from PASS.utils.slicing import execute_element_body_gpu
-            return execute_element_body_gpu(self, sim)
         L = self.length
         beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
         turn = sim.state.turn
-
-        for i, bunch in enumerate(bunches):
-            gamma = bunch.gamma
-            start = bunch.start_idx
-            end = bunch.end_idx
-
-            p = beam.particles  # slicing in the kernel
-
-            n = end - start
-            if n > 0 and np.abs(L) >= const.eps:
-                threads = 256
-                blocks = (n + threads - 1) // threads
-                kernel = _get_transfer_drift_kernel(p.dtype.str)
-                ds = L / self.num_slice
-                for j in range(self.num_slice):
-                    kernel(
-                        (blocks, ),
-                        (threads, ),
-                        (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end), p.real(
-                            1.0 / gamma**2), p.real(ds), p.real(self.s - L + (j + 1) * ds), np.int32(turn)),
-                    )
-            if n > 0:
-                check_aperture_gpu(
-                    beam,
-                    bunch,
-                    self.aperture_type,
-                    self.aperture_value,
-                    self.s,
-                    turn,
-                )
+        if self._sc_nodes:
+            from PASS.utils.slicing import execute_element_body_gpu
+            execute_element_body_gpu(self, sim)
+        else:
+            p = beam.particles
+            for bunch in beam.bunches:
+                start, end = bunch.start_idx, bunch.end_idx
+                n = end - start
+                if n > 0 and np.abs(L) >= const.eps:
+                    threads = 256
+                    blocks = (n + threads - 1) // threads
+                    kernel = _get_transfer_drift_kernel(p.dtype.str)
+                    ds = L / self.num_slice
+                    for j in range(self.num_slice):
+                        kernel(
+                            (blocks, ),
+                            (threads, ),
+                            (p.x, p.y, p.z, p.px, p.py, p.dp, p.tag, p.lost_position, p.lost_turn, np.int32(start), np.int32(end),
+                             p.real(1.0 / bunch.gamma**2), p.real(ds), p.real(self.s - L + (j + 1) * ds), np.int32(turn)),
+                        )
+        for bunch in beam.bunches:
+            check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(L) >= const.eps:
                 bunch.t0 += L / (bunch.beta * const.c)
         return True

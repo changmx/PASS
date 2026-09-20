@@ -41,6 +41,19 @@ class ElementBase(BaseModel):
                 raise ValueError(f"{cls.__name__} does not support internal Space charge")
         return value
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_alignment_on_unsupported_elements(cls, value):
+        if isinstance(value, dict) and "is_alignment_error" not in cls.model_fields:
+            keys = {
+                "is alignment error", "is_alignment_error", "alignment dx (m)", "alignment_dx", "alignment dy (m)", "alignment_dy",
+                "alignment dpsi (rad)", "alignment_dpsi", "alignment ds (m)", "alignment_ds", "alignment dphi (rad)", "alignment_dphi",
+                "alignment dtheta (rad)", "alignment_dtheta"
+            }
+            if any(v for k, v in value.items() if str(k).lower() in keys):
+                raise ValueError(f"{cls.__name__} does not support alignment errors")
+        return value
+
 
 class SlicedElementBase(ElementBase):
     """Body transport with optional internally scheduled space charge."""
@@ -56,10 +69,25 @@ class SlicedElementBase(ElementBase):
 
 
 class MagneticElementBase(SlicedElementBase):
-    """Absolute integrated normal/skew errors, in m**(-n) for order n."""
+    """Static magnetic alignment and absolute integrated multipole errors."""
     is_field_error: bool = Field(default=False, alias="Is field error")
     field_error_knl: list[float] = Field(default_factory=list, alias="Field error KNL")
     field_error_ksl: list[float] = Field(default_factory=list, alias="Field error KSL")
+    is_alignment_error: bool = Field(default=False, alias="Is alignment error")
+    alignment_dx: float = Field(default=0.0, alias="Alignment DX (m)", allow_inf_nan=False)
+    alignment_dy: float = Field(default=0.0, alias="Alignment DY (m)", allow_inf_nan=False)
+    alignment_dpsi: float = Field(default=0.0, alias="Alignment DPSI (rad)", allow_inf_nan=False)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_unsupported_alignment(cls, value):
+        if isinstance(value, dict):
+            values = {str(k).lower(): v for k, v in value.items()}
+            for name, unit in (("ds", "m"), ("dphi", "rad"), ("dtheta", "rad")):
+                for key in (f"alignment {name} ({unit})", f"alignment_{name}", name):
+                    if float(values.get(key, 0.0)) != 0.0:
+                        raise ValueError(f"Nonzero alignment {name.upper()} is not supported; use DX, DY and DPSI only")
+        return value
 
     @field_validator("field_error_knl", "field_error_ksl")
     @classmethod

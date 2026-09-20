@@ -3,7 +3,8 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
-from PASS.commands.element.error import FieldErrors
+from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -12,7 +13,6 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
-from PASS.utils.aperture import check_aperture_cpu
 from PASS.commands.element.multipole import launch_multipole
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class Sextupole(Command):
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
         self.field_errors = FieldErrors(kwargs)
+        self.alignment_errors = AlignmentErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of Sextupole {self.cmd_name} is {self.length}, which should be >= 0")
@@ -85,33 +86,47 @@ class Sextupole(Command):
 
     def execute_cpu(self, sim):
         beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
         turn = sim.state.turn
-
-        for i, bunch in enumerate(bunches):
-            self._track_sextupole_cpu(beam, bunch, turn)
+        masks = self.alignment_errors.enter_frame(self, beam, turn)
+        try:
+            for bunch in beam.bunches:
+                self._track_sextupole_cpu(beam, bunch, turn)
+        finally:
+            self.alignment_errors.exit_frame(self, beam, turn, masks)
+        for bunch in beam.bunches:
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
     def execute_gpu(self, sim):
-        if self.field_errors.active:
-            from PASS.commands.element.error import _track_field_errors_gpu
-            return _track_field_errors_gpu(self, sim)
-        if self._sc_nodes:
-            from PASS.utils.slicing import execute_element_body_gpu
-            return execute_element_body_gpu(self, sim)
-        if self.is_thick:
-            all_zero = (abs(self.k2l) < const.eps and abs(self.k2sl) < const.eps)
-            mode = 2 if all_zero else 1
-            knl = np.array([0.0, 0.0, self.k2], dtype=np.float64)
-            ksl = np.array([0.0, 0.0, self.k2s], dtype=np.float64)
-        else:
-            mode = 0
-            knl = np.array([0.0, 0.0, self.k2l], dtype=np.float64)
-            ksl = np.array([0.0, 0.0, self.k2sl], dtype=np.float64)
-        launch_multipole(self, sim, knl, ksl, np.array([1.0, 1.0, 0.5], dtype=np.float64), mode)
+        beam = sim.beams[self.beam_id]
+        turn = sim.state.turn
+        masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
+        try:
+            if self.field_errors.active:
+                from PASS.commands.element.error import _track_field_errors_gpu
+                _track_field_errors_gpu(self, sim)
+            elif self._sc_nodes:
+                from PASS.utils.slicing import execute_element_body_gpu
+                execute_element_body_gpu(self, sim)
+            else:
+                if self.is_thick:
+                    all_zero = (abs(self.k2l) < const.eps and abs(self.k2sl) < const.eps)
+                    mode = 2 if all_zero else 1
+                    knl = np.array([0.0, 0.0, self.k2], dtype=np.float64)
+                    ksl = np.array([0.0, 0.0, self.k2s], dtype=np.float64)
+                else:
+                    mode = 0
+                    knl = np.array([0.0, 0.0, self.k2l], dtype=np.float64)
+                    ksl = np.array([0.0, 0.0, self.k2sl], dtype=np.float64)
+                launch_multipole(self, sim, knl, ksl, np.array([1.0, 1.0, 0.5], dtype=np.float64), mode)
+        finally:
+            self.alignment_errors.exit_frame(self, beam, turn, masks, gpu=True)
+        for bunch in beam.bunches:
+            check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+            if abs(self.length) >= const.eps:
+                bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
     def _track_sextupole_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):

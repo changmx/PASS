@@ -346,7 +346,9 @@ In the Larmor framework, :math:`p_z` depends on :math:`\delta` and the Larmor mo
 Particles with different momentum deviations :math:`\delta` have different :math:`p_z`, and therefore different Larmor rotation angles :math:`\theta = \text{sk} \cdot L / p_z` and different equivalent drift lengths :math:`\sin\theta / \text{sk}`. This is the physical origin of solenoid chromaticity—momentum-dependent rotation angle and focusing strength.
 
 
-Absolute normal/skew errors use the common :ref:`en-error` interface.
+Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common :ref:`en-error` interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.
 
 Interface Parameters
 --------------------

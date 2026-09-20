@@ -4,7 +4,8 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
-from PASS.commands.element.error import FieldErrors
+from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -14,7 +15,6 @@ from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const, _build_yoshida_cuda_constants
 from PASS.utils.compute_kinematics import compute_particle_beta
-from PASS.utils.aperture import check_aperture_cpu
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class SBend(Command):
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
         self.field_errors = FieldErrors(kwargs)
+        self.alignment_errors = AlignmentErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of SBend {self.cmd_name} is {self.length}, which should be >= 0")
@@ -108,24 +109,38 @@ class SBend(Command):
 
     def execute_cpu(self, sim):
         beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
         turn = sim.state.turn
-
-        for i, bunch in enumerate(bunches):
-            self._track_bend_cpu(beam, bunch, turn)
+        masks = self.alignment_errors.enter_frame(self, beam, turn)
+        try:
+            for bunch in beam.bunches:
+                self._track_bend_cpu(beam, bunch, turn)
+        finally:
+            self.alignment_errors.exit_frame(self, beam, turn, masks)
+        for bunch in beam.bunches:
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
     def execute_gpu(self, sim):
-        if self.field_errors.active:
-            from PASS.commands.element.error import _track_field_errors_gpu
-            return _track_field_errors_gpu(self, sim)
-        if self._sc_nodes:
-            from PASS.utils.slicing import execute_element_body_gpu
-            return execute_element_body_gpu(self, sim)
-        launch_dipole(self, sim)
+        beam = sim.beams[self.beam_id]
+        turn = sim.state.turn
+        masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
+        try:
+            if self.field_errors.active:
+                from PASS.commands.element.error import _track_field_errors_gpu
+                _track_field_errors_gpu(self, sim)
+            elif self._sc_nodes:
+                from PASS.utils.slicing import execute_element_body_gpu
+                execute_element_body_gpu(self, sim)
+            else:
+                launch_dipole(self, sim)
+        finally:
+            self.alignment_errors.exit_frame(self, beam, turn, masks, gpu=True)
+        for bunch in beam.bunches:
+            check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+            if abs(self.length) >= const.eps:
+                bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
     def _track_bend_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
@@ -1279,8 +1294,3 @@ def launch_dipole(element, sim):
                     np.int32(0 if element.integrator == "uniform" else 1), np.int32(0 if element.model == "drift-kick-drift-exact" else 1),
                     np.int32(0 if element.is_thick else 1))
             kernel((blocks, ), (threads, ), args)
-        if n > 0:
-            from PASS.utils.aperture import check_aperture_gpu
-            check_aperture_gpu(beam, b, element.aperture_type, element.aperture_value, element.s, turn)
-        if abs(element.length) >= const.eps:
-            b.t0 += element.length / (b.beta * const.c)

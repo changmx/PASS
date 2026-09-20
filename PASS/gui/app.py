@@ -1342,6 +1342,12 @@ class ConfigPage(QWidget):
         errors.setToolTip("根据误差 TFS 为匹配元件附加场误差。")
         self._madx_fields["field_errors"] = errors
         self.form_layout.addRow(self._field_label("误差选项", ""), errors)
+        if source_kind != "twiss":
+            alignment = QCheckBox("附加准直误差")
+            alignment.setObjectName("booleanField")
+            alignment.setToolTip("从同一误差 TFS 导入 DX、DY、DPSI；仅移动磁场，孔径和 SC 边界固定。")
+            self._madx_fields["alignment_errors"] = alignment
+            self.form_layout.addRow("", alignment)
 
         transfer = PropertyComboBox()
         transfer.setObjectName("choiceField")
@@ -1455,6 +1461,7 @@ class ConfigPage(QWidget):
             file_signature("误差 TFS 文件"),
             value("merge_drift"),
             value("field_errors"),
+            value("alignment_errors", False),
             value("longitudinal_transfer"),
             value("muz"),
             value("dqx"),
@@ -1491,6 +1498,7 @@ class ConfigPage(QWidget):
                     error_file=error_file,
                     is_merge_drift=merge_drift,
                     is_field_error=self._madx_fields["field_errors"].isChecked(),
+                    is_alignment_error=self._madx_fields["alignment_errors"].isChecked(),
                 )
             else:
                 patterns = [part.strip() for part in self._madx_fields["patterns"].text().split(",") if part.strip()]
@@ -2508,6 +2516,7 @@ class ConfigPage(QWidget):
         definitions = [
             *special.get(command, []),
             ("场误差", ("Is field error", "Field error KNL", "Field error KSL")),
+            ("准直误差", ("Is alignment error", "Alignment DX (m)", "Alignment DY (m)", "Alignment DPSI (rad)")),
             ("孔径", ("Aperture type", "Aperture value", "Dp aperture")),
             ("Ramping", tuple(key for key in values if "ramping" in key.casefold())),
             ("诊断输出", ("Save field", "Save potential", "Save density", "Save turns")),

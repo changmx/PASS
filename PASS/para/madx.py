@@ -3,7 +3,7 @@
 Consolidates three former modules:
     madx_element  — twiss TFS → Element list (element-by-element tracking)
     madx_twiss    — twiss TFS → TwissItem list (twiss transfer tracking)
-    madx_error    — error TFS → field error dict
+    madx_error    — error TFS → magnetic field/alignment error dict
 
 Element naming convention:
     f"{madx_name}_s{s:.3f}"
@@ -218,6 +218,7 @@ def read_madx_elements(
     error_file: str = "",
     is_merge_drift: bool = False,
     is_field_error: bool = False,
+    is_alignment_error: bool = False,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (element_items, element_names, circumference).
 
@@ -234,6 +235,7 @@ def read_madx_elements(
         error_file: path to MADX error TFS file.
         is_merge_drift: merge consecutive drift elements.
         is_field_error: attach field errors to matching elements.
+        is_alignment_error: attach DX/DY/DPSI to magnetic elements; aperture stays fixed.
 
     Returns:
         (items, names, circumference) where items is a list of Element
@@ -344,29 +346,34 @@ def read_madx_elements(
         # Store match_key on item for error matching (survives drift merge)
         item._match_key = match_key
 
-    # Field errors — match by name[occurrence], not by s-suffixed name
-    if is_field_error:
+    # Match errors before any drift merging; both kinds share source identities.
+    if is_field_error or is_alignment_error:
         if not error_file:
-            raise ValueError("Field-error import requires an error TFS file")
-        error_dict = read_madx_errors(error_file, element_names=twiss_table["NAME"])
-        key_to_idx = {}
-        for idx, item in enumerate(items):
-            mk = getattr(item, "_match_key", None)
-            if mk is not None:
-                key_to_idx[mk] = idx
-        error_count = 0
+            raise ValueError("Magnetic-error import requires an error TFS file")
+        error_dict = read_madx_errors(error_file,
+                                      element_names=twiss_table["NAME"],
+                                      is_field_error=is_field_error,
+                                      is_alignment_error=is_alignment_error)
+        key_to_item = {item._match_key: item for item in items}
+        field_count, alignment_count = 0, 0
         for key, errs in error_dict.items():
-            if key in key_to_idx:
-                idx = key_to_idx[key]
-                if "is_field_error" not in type(items[idx]).model_fields:
-                    raise ValueError(f"Field errors on {key!r} are not supported by {type(items[idx]).__name__}")
-                items[idx].is_field_error = True
-                items[idx].field_error_knl = errs["knl"]
-                items[idx].field_error_ksl = errs["ksl"]
-                error_count += 1
-            else:
-                raise ValueError(f"Field-error element {key!r} was lost while building the element sequence")
-        print(f"[Read MADX Elements] {error_count} field errors attached")
+            if key not in key_to_item:
+                raise ValueError(f"Error element {key!r} was lost while building the element sequence")
+            item = key_to_item[key]
+            if any(errs.get("knl", [])) or any(errs.get("ksl", [])):
+                if "is_field_error" not in type(item).model_fields:
+                    raise ValueError(f"Field errors on {key!r} are not supported by {type(item).__name__}")
+                item.is_field_error = True
+                item.field_error_knl, item.field_error_ksl = errs["knl"], errs["ksl"]
+                field_count += 1
+            alignment = errs.get("alignment", {})
+            if any(alignment.values()):
+                if "is_alignment_error" not in type(item).model_fields:
+                    raise ValueError(f"Alignment errors on {key!r} are not supported by {type(item).__name__}")
+                item.is_alignment_error = True
+                item.alignment_dx, item.alignment_dy, item.alignment_dpsi = (alignment[name] for name in ("dx", "dy", "dpsi"))
+                alignment_count += 1
+        print(f"[Read MADX Elements] {field_count} field errors, {alignment_count} alignment errors attached")
 
     # Merge drifts
     if is_merge_drift:
@@ -397,6 +404,7 @@ def read_madx_twiss(
     insert_patterns: list[str] | None = None,
     longitudinal_transfer: str = "off",
     is_merge_drift: bool = False,
+    is_alignment_error: bool = False,
 ) -> tuple[list, list[str], float]:
     """Read a MADX twiss TFS file → (twiss_items, item_names, circumference).
 
@@ -414,6 +422,7 @@ def read_madx_twiss(
         dqy: chromaticity Qy. Float or "from_file" to read from headers.
         is_field_error: if True, read field errors and attach as multipole elements.
         is_merge_drift: merge consecutive Drift elements if present in the result.
+        is_alignment_error: unsupported here; use read_madx_elements.
         insert_patterns: regex patterns to match element names for thin-lens insertion.
         longitudinal_transfer: "off" / "drift" / "matrix".
 
@@ -422,6 +431,8 @@ def read_madx_twiss(
         and optionally Element objects, and names is the corresponding
         list of string names.
     """
+    if is_alignment_error:
+        raise ValueError("Alignment errors require read_madx_elements; Twiss transfer import cannot move physical magnetic fields")
     twiss_table = tfs.read(twiss_file)
     headers = twiss_table.headers
     num_elem = twiss_table.shape[0]
@@ -663,6 +674,7 @@ def read_madx_twiss_interpolated(
     insert_patterns: list[str] | None = None,
     longitudinal_transfer: str = "off",
     interp_kind: str = "phase_hermite",
+    is_alignment_error: bool = False,
 ) -> tuple[list, list[str], float]:
     """Resample a full ring using phase-constrained quintic Hermite optics.
 
@@ -671,7 +683,10 @@ def read_madx_twiss_interpolated(
     optical discontinuities add split points. Source phases and their full
     tune are preserved. No extrapolation is allowed. Only
     ``interp_kind='phase_hermite'`` is supported. DQx/DQy default to TFS headers.
+    Alignment errors require physical element maps; use read_madx_elements.
     """
+    if is_alignment_error:
+        raise ValueError("Alignment errors require read_madx_elements; interpolated Twiss import cannot move physical magnetic fields")
     from PASS.para.twiss_interpolation import resample_madx_twiss
 
     return resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer,
@@ -714,49 +729,71 @@ def _match_error_instance(name, catalog):
             candidates = bases.get(name.casefold(), [])
     if len(candidates) != 1:
         reason = "ambiguous" if candidates else "not found"
-        raise ValueError(f"Field-error element {name!r} is {reason} in the source Twiss table; "
+        raise ValueError(f"Error element {name!r} is {reason} in the source Twiss table; "
                          "use unique MAD-X instance names or an explicit NAME occurrence such as Q[2]")
     return candidates[0]
 
 
-def read_madx_errors(error_file_path: str, *, element_names=None) -> dict[str, dict]:
-    """Read absolute integrated K<n>L/K<n>SL errors, preserving every finite value.
+def read_madx_errors(error_file_path: str, *, element_names=None, is_field_error=True, is_alignment_error=False) -> dict[str, dict]:
+    """Read selected absolute field and/or DX/DY/DPSI errors from ESAVE TFS.
 
-    Missing orders are zero. Without source names only unique error-table names
-    can be checked; importers must pass the original, unmerged Twiss NAME column.
-    Non-field columns (alignment, aperture and monitor errors) are not imported.
+    Both kinds share the original Twiss instance identities. Missing components
+    are zero; finite nonzero values are never thresholded. Unsupported DS/DPHI/
+    DTHETA must be zero when alignment import is requested. Aperture and BPM
+    error columns are ignored. The default preserves the field-only return form.
     """
+    if not is_field_error and not is_alignment_error:
+        return {}
     table = tfs.read(error_file_path)
     if "NAME" not in table.columns:
-        raise ValueError("Field-error TFS must contain a NAME column")
+        raise ValueError("Error TFS must contain a NAME column")
     columns = []
-    for column in table.columns:
-        match = re.fullmatch(r"K(\d+)(S?)L", str(column))
-        if match:
-            columns.append((column, int(match[1]), bool(match[2])))
-    if not columns:
-        raise ValueError("Field-error TFS must contain K<n>L or K<n>SL columns")
+    if is_field_error:
+        for column in table.columns:
+            match = re.fullmatch(r"K(\d+)(S?)L", str(column))
+            if match:
+                columns.append((column, int(match[1]), bool(match[2])))
+        if not columns:
+            raise ValueError("Field-error TFS must contain K<n>L or K<n>SL columns")
+    if is_alignment_error and not any(column in table.columns for column in ("DX", "DY", "DPSI", "DS", "DPHI", "DTHETA")):
+        raise ValueError("Alignment-error TFS must contain alignment columns such as DX, DY or DPSI")
     names = list(table["NAME"] if element_names is None else element_names)
     catalog = _error_instance_catalog(names)
     result = {}
-    seen = set()
     for row_index, (_, row) in enumerate(table.iterrows(), start=1):
         name = str(row["NAME"])
-        n = max(order for _, order, _ in columns) + 1
-        knl, ksl = np.zeros(n), np.zeros(n)
-        for column, order, skew in columns:
-            value = float(row[column])
-            if not np.isfinite(value):
-                raise ValueError(f"Nonfinite field error at row {row_index}, {name!r}, column {column}")
-            (ksl if skew else knl)[order] = value
-        nonzero = np.flatnonzero((knl != 0) | (ksl != 0))
-        if not len(nonzero):
+        record = {}
+        nonzero = False
+        if is_field_error:
+            n = max(order for _, order, _ in columns) + 1
+            knl, ksl = np.zeros(n), np.zeros(n)
+            for column, order, skew in columns:
+                value = float(row[column])
+                if not np.isfinite(value):
+                    raise ValueError(f"Nonfinite field error at row {row_index}, {name!r}, column {column}")
+                (ksl if skew else knl)[order] = value
+            orders = np.flatnonzero((knl != 0) | (ksl != 0))
+            n = int(orders[-1]) + 1 if len(orders) else 0
+            record.update(knl=knl[:n].tolist(), ksl=ksl[:n].tolist())
+            nonzero = bool(len(orders))
+        if is_alignment_error:
+            alignment = {}
+            for column in ("DX", "DY", "DPSI", "DS", "DPHI", "DTHETA"):
+                value = float(row.get(column, 0.0))
+                if not np.isfinite(value):
+                    raise ValueError(f"Nonfinite alignment error at row {row_index}, {name!r}, column {column}")
+                if column in ("DS", "DPHI", "DTHETA"):
+                    if value != 0.0:
+                        raise ValueError(f"Nonzero alignment {column} on {name!r} is not supported; use DX, DY and DPSI only")
+                else:
+                    alignment[column.lower()] = value
+            record["alignment"] = alignment
+            nonzero = nonzero or any(alignment.values())
+        if not nonzero:
             continue
         key = _match_error_instance(name, catalog)
-        if key in seen:
-            raise ValueError(f"Duplicate field-error records for {key!r}; refusing to overwrite or add them")
-        seen.add(key)
-        n = int(nonzero[-1]) + 1
-        result[key] = {"knl": knl[:n].tolist(), "ksl": ksl[:n].tolist()}
-    print(f"[Read MADX Errors] {len(table)} rows, {len(result)} nonzero absolute field errors")
+        if key in result:
+            raise ValueError(f"Duplicate error records for {key!r}; refusing to overwrite or add them")
+        result[key] = record
+    print(f"[Read MADX Errors] {len(table)} rows, {len(result)} nonzero selected errors")
     return result

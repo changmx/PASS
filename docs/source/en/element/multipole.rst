@@ -393,7 +393,9 @@ The multipole uses a straight reference orbit. It does not provide an ``hxl``
 curvature correction for a bent reference orbit.
 
 
-Absolute normal/skew errors use the common :ref:`en-error` interface.
+Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common :ref:`en-error` interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.
 
 Interface Parameters
 --------------------

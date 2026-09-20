@@ -4,7 +4,8 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
-from PASS.commands.element.error import FieldErrors
+from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -13,7 +14,6 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const, _build_yoshida_cuda_constants
-from PASS.utils.aperture import check_aperture_cpu
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class Solenoid(Command):
         self.cmd_type = self.__class__.__name__
         self.cmd_name = kwargs["name"]
         self.field_errors = FieldErrors(kwargs)
+        self.alignment_errors = AlignmentErrors(kwargs)
 
         if self.length < 0.0:
             raise ValueError(f"The length of Solenoid {self.cmd_name} is {self.length}, which should be >= 0")
@@ -127,31 +128,44 @@ class Solenoid(Command):
 
     def execute_cpu(self, sim):
         beam = sim.beams[self.beam_id]
-        bunches: list[BunchInfo] = beam.bunches
         turn = sim.state.turn
-
-        for i, bunch in enumerate(bunches):
-            self._track_solenoid_cpu(beam, bunch, turn)
+        masks = self.alignment_errors.enter_frame(self, beam, turn)
+        try:
+            for bunch in beam.bunches:
+                self._track_solenoid_cpu(beam, bunch, turn)
+        finally:
+            self.alignment_errors.exit_frame(self, beam, turn, masks)
+        for bunch in beam.bunches:
             check_aperture_cpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
     def execute_gpu(self, sim):
-        if not self.is_thick and self.has_multipoles:
-            from PASS.commands.element.multipole import launch_multipole
-            launch_multipole(self, sim, self.knl, self.ksl, self.inv_fact, 0)
-            return True
-        if self._sc_nodes:
-            from PASS.utils.slicing import execute_element_body_gpu
-            return execute_element_body_gpu(self, sim)
-        if not self.is_thick:
-            mode = 0
-        elif not self.has_multipoles:
-            mode = 2 if abs(self.ks) < const.eps else 1
-        else:
-            mode = 3
-        launch_solenoid(self, sim, mode)
+        beam = sim.beams[self.beam_id]
+        turn = sim.state.turn
+        masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
+        try:
+            if not self.is_thick and self.has_multipoles:
+                from PASS.commands.element.multipole import launch_multipole
+                launch_multipole(self, sim, self.knl, self.ksl, self.inv_fact, 0)
+            elif self._sc_nodes:
+                from PASS.utils.slicing import execute_element_body_gpu
+                execute_element_body_gpu(self, sim)
+            else:
+                if not self.is_thick:
+                    mode = 0
+                elif not self.has_multipoles:
+                    mode = 2 if abs(self.ks) < const.eps else 1
+                else:
+                    mode = 3
+                launch_solenoid(self, sim, mode)
+        finally:
+            self.alignment_errors.exit_frame(self, beam, turn, masks, gpu=True)
+        for bunch in beam.bunches:
+            check_aperture_gpu(beam, bunch, self.aperture_type, self.aperture_value, self.s, turn)
+            if abs(self.length) >= const.eps:
+                bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
     def _track_solenoid_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
@@ -603,8 +617,3 @@ def launch_solenoid(element, sim, mode):
                        bunch.end_idx), real(bunch.beta), real(bunch.beta * bunch.gamma), np.float64(element.length), real(element.ks), real(
                            element.s), np.int32(turn), knl, ksl, inv, np.int32(len(knl) - 1), np.int32(
                                element.num_slice), np.int32(0 if element.integrator == "uniform" else 1), np.int32(mode)))
-        if n > 0:
-            from PASS.utils.aperture import check_aperture_gpu
-            check_aperture_gpu(beam, bunch, element.aperture_type, element.aperture_value, element.s, turn)
-        if abs(element.length) >= const.eps:
-            bunch.t0 += element.length / (bunch.beta * const.c)

@@ -218,6 +218,7 @@ def generate_from_tfs(
     error_file: str = "",
     is_field_error: bool = False,
     random_seed: int | None = None,
+    is_alignment_error: bool = False,
 ) -> str:
     """Generate a PASS input JSON from a MADX twiss TFS file.
 
@@ -246,6 +247,7 @@ def generate_from_tfs(
         error_file: path to MADX error TFS file.
         is_field_error: attach field errors to matching elements.
         random_seed: optional Injection particle-distribution random seed.
+        is_alignment_error: attach DX/DY/DPSI from the same error TFS file.
 
     Returns:
         The output file path.
@@ -289,6 +291,7 @@ def generate_from_tfs(
         error_file=error_file,
         is_merge_drift=is_merge_drift,
         is_field_error=is_field_error,
+        is_alignment_error=is_alignment_error,
     )
 
     # --- Apply element settings ---

@@ -482,8 +482,15 @@ DQx/DQy 现默认 ``"from_file"``，Mu z 默认零；纵向相位仅在
        twiss_file="lattice.tfs",
        is_merge_drift=True,            # 合并相邻漂移节
        is_field_error=True,
+       is_alignment_error=True,
        error_file="errors.tfs",
    )
+
+两个误差开关独立，均默认为 ``False``。准直从误差 TFS 读取 ``DX``、``DY``、``DPSI``，
+只移动磁场，孔径和 SC 边界保持固定；非零且不支持的准直分量明确报错。
+Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐元件模式。
+归一化、实例匹配和执行顺序见 :ref:`zh-error`。
+``generate_from_tfs`` 同样接受 ``is_alignment_error``。
 
 方式三：平滑近似 twiss
 ~~~~~~~~~~~~~~~~~~~~~~

@@ -1239,6 +1239,9 @@ YRotation 的 :math:`p_x'` 公式为 :math:`p_x' = \cos\alpha \cdot p_x - \sin\a
     - -
     - 孔径参数值，默认 ``[]``
 
+绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 :ref:`zh-error` 接口。
+准直只移动磁场，孔径和 SC 边界保持在设计坐标系。
+
 扩展参数（预留）
 ~~~~~~~~~~~~~~~~~~
 
@@ -1251,11 +1254,6 @@ YRotation 的 :math:`p_x'` 公式为 :math:`p_x' = \cos\alpha \cdot p_x - \sin\a
     - 类型
     - 单位
     - 说明
-  * - ``is_field_error``
-    - ``is field error``
-    - bool
-    - -
-    - 是否启用磁场误差，默认 ``false``
   * - ``is_ramping``
     - ``is ramping``
     - bool

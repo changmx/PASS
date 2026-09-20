@@ -133,6 +133,10 @@ def print_element_slicing(element):
     errors = getattr(element, "field_errors", None)
     if errors is not None:
         logger.info("  Absolute field errors: enabled=%s, KNL=%s, KSL=%s", errors.enabled, errors.knl.tolist(), errors.ksl.tolist())
+    alignment = getattr(element, "alignment_errors", None)
+    if alignment is not None:
+        logger.info("  Alignment errors: enabled=%s, DX=%g m, DY=%g m, DPSI=%g rad; aperture/SC boundary=design", alignment.enabled, alignment.dx,
+                    alignment.dy, alignment.dpsi)
     logger.info("  Slicing: requested=%d, actual=%d, external slice length=%g m", plan.requested_slices, plan.num_slices, plan.slice_length)
     if not element._sc_nodes:
         status = "disabled by top-level Space charge.Enabled" if element._sc_requested else "off"
@@ -177,10 +181,8 @@ def run_body_slices(element, beam, bunch, turn, transport, *, gpu=False):
                 p.lost_position[region][unrecorded] = command.s
                 p.lost_turn[region][unrecorded] = turn
                 entry_alive[lost] = False
-                if gpu:
-                    command.apply_bunch_gpu(element._sc_sim, beam, bunch)
-                else:
-                    command.apply_bunch_cpu(element._sc_sim, beam, bunch)
+                from PASS.commands.element.error import _apply_sc_in_design_frame
+                _apply_sc_in_design_frame(element, beam, bunch, node, command, turn, gpu=gpu)
                 entry_alive[p.tag[region] <= 0] = False
 
         transport(plan.slice_length, callback if pair and node.placement == "center" else None)
@@ -412,14 +414,11 @@ def execute_element_body_gpu(element, sim):
 
     A center SC kick splits at the integrator's central kick, including the
     negative Yoshida stage; the positive SC integration weight is unchanged.
+    The caller owns alignment, the exit aperture check and reference clock.
     """
     import cupy as cp
 
-    from PASS.utils.aperture import check_aperture_gpu
-
     name = type(element).__name__.lower()
-    if name == "elseparator":
-        return element.execute_gpu(sim)  # Own finite-geometry map and SC scheduling.
     supported = {
         "drift",
         "quadrupole",
@@ -577,8 +576,6 @@ def execute_element_body_gpu(element, sim):
         run_body_slices(element, beam, bunch, turn, transport, gpu=True)
         if name == "sbend":
             launch(0.0, 4)
-        check_aperture_gpu(beam, bunch, element.aperture_type, element.aperture_value, element.s, turn)
-        bunch.t0 += element.length / (bunch.beta * const.c)
     return True
 
 

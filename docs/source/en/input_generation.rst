@@ -499,8 +499,17 @@ Reads the twiss file, but converts each element into its corresponding physical 
        twiss_file="lattice.tfs",
        is_merge_drift=True,            # merge adjacent drift sections
        is_field_error=True,
+       is_alignment_error=True,
        error_file="errors.tfs",
    )
+
+The two error switches are independent and default to ``False``. Alignment
+imports ``DX``, ``DY``, ``DPSI`` from the error TFS, moving only magnetic
+fields while apertures and SC boundaries stay fixed. Nonzero unsupported
+alignment components raise an error. Twiss transfer and resampled Twiss
+imports reject alignment; use this element mode. See :ref:`en-error` for
+normalization, instance matching and tracking order. ``generate_from_tfs``
+also accepts ``is_alignment_error``.
 
 Method 3: Smooth approximation twiss
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -4,8 +4,8 @@ Element errors
 ==============
 
 Element error models and their configuration are documented together here.
-Currently only absolute magnetic field errors are implemented; alignment
-errors are not yet supported.
+Absolute magnetic field errors and static magnetic alignment errors
+(``DX``, ``DY``, ``DPSI``) are supported on CPU and GPU.
 
 Field errors
 ------------
@@ -13,7 +13,7 @@ Field errors
 SBend, Quadrupole, Sextupole, Octupole, Multipole, Solenoid and Kicker support
 the same additional normal and skew integrated multipoles on CPU and GPU.
 The coefficients remain fixed during tracking. Only absolute magnetic errors
-are supported; relative error generation, alignment, aperture offsets and BPM
+are supported; relative error generation, aperture offsets and BPM
 measurement errors are outside this interface.
 
 Parameters and normalization
@@ -87,6 +87,8 @@ Implementation layout
 (``_transport_matrix_errors``). The shared ``execute_element_body_gpu`` in
 ``PASS/utils/slicing.py`` advances the body slices and invokes SC only at
 configured nodes; it also serves matrix/bend error tracking without SC.
+These transport helpers do not check the exit aperture or advance the reference
+clock; each element's ``execute_cpu/gpu`` owns those operations.
 Matrix/bend transport and error kicks remain separate GPU calls.
 
 Fixed multipole coefficients, inverse factorials and stage parameters are
@@ -94,7 +96,8 @@ prepared once and reused; GPU arrays are cached per precision and device.
 Particle coordinates and bunch reference quantities remain live inputs.
 The input flag ``Is field error`` is retained; the runtime state is held by
 ``FieldErrors.enabled`` and ``FieldErrors.active`` without a duplicate
-element-level flag. Renaming the module does not add alignment errors.
+element-level flag. ``AlignmentErrors`` and its coordinate transformations
+are kept in the same module.
 
 Model limits
 ^^^^^^^^^^^^
@@ -147,7 +150,8 @@ the order of rows in a sparse error table cannot identify an occurrence.
 Ambiguous, missing, duplicate nonzero targets and nonfinite values raise an
 error. Missing coefficient columns are zero, provided at least one supported
 coefficient column exists. An empty valid table or all-zero errors is accepted.
-Alignment, aperture and monitor columns are ignored.
+Alignment columns are read only when ``is_alignment_error=True``; aperture
+and monitor error columns are ignored.
 
 Element import attaches errors to the physical magnet and rejects a nonzero
 error on an unsupported element. Twiss transfer import places one thin
@@ -158,3 +162,153 @@ from the distributed errors used in element tracking.
 Solenoid element import reads ``KS = KSI/L`` from the standard MAD-X Twiss
 ``KSI`` column. A custom ``KS`` column is accepted if ``KSI`` is absent.
 Missing both columns, or nonzero ``KSI`` at zero length, raises an error.
+
+Alignment errors
+----------------
+
+The same seven magnetic elements support a fixed transverse displacement
+``DX``, ``DY`` and roll ``DPSI``. These parameters move the nominal magnetic
+field and its field-error multipoles together. Element apertures and space-charge
+conducting boundaries stay at their design positions. Alignment does not move
+the beam or its initial distribution.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 15 35
+
+   * - Python schema field
+     - JSON key
+     - Default
+     - Meaning
+   * - ``is_alignment_error``
+     - ``Is alignment error``
+     - ``false``
+     - Enable the magnetic displacement and roll.
+   * - ``alignment_dx``
+     - ``Alignment DX (m)``
+     - ``0.0``
+     - Horizontal displacement in the ideal entrance frame.
+   * - ``alignment_dy``
+     - ``Alignment DY (m)``
+     - ``0.0``
+     - Vertical displacement in the ideal entrance frame.
+   * - ``alignment_dpsi``
+     - ``Alignment DPSI (rad)``
+     - ``0.0``
+     - Right-handed roll about the ideal entrance longitudinal axis.
+
+All values must be finite. The alignment and field-error switches are
+independent. Disabled or exactly zero alignment takes the original tracking
+path; finite small values are not discarded. Nonzero ``DS``, ``DPHI`` or
+``DTHETA`` supplied as alignment components raise an error, including through
+the schema and selected MAD-X alignment import. Other element types do not
+support alignment errors. Random sampling, time-dependent alignment, aperture
+offsets (``AREX`` / ``AREY``) and BPM measurement/calibration errors are not
+implemented.
+
+Coordinate transformations
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For a straight element, entrance coordinates are transformed as
+
+.. math::
+
+   \begin{pmatrix}x_m\\y_m\end{pmatrix}
+   = R(-\psi)\left[\begin{pmatrix}x\\y\end{pmatrix}
+   -\begin{pmatrix}DX\\DY\end{pmatrix}\right],\qquad
+   \begin{pmatrix}p_{xm}\\p_{ym}\end{pmatrix}
+   = R(-\psi)\begin{pmatrix}p_x\\p_y\end{pmatrix}.
+
+The nominal map and enabled field-error kicks run in this magnetic frame.
+The inverse transformation restores design coordinates before the exit
+aperture check. Straight-element patches leave ``z``, ``dp`` and the reference
+clock unchanged. Trigonometric rotations are evaluated without a small-angle
+approximation. A thin element uses the same entrance/exit plane.
+
+A finite-length SBend uses a rigid displacement and roll of the entire
+curved field about its ideal entrance. Its magnetic and design planes differ
+at the exit and at internal SC nodes. At each such plane, PASS rotates the
+three-dimensional normalized momentum, then projects the particle ray onto
+the target plane. If the transformed position is :math:`r'` and momentum is
+:math:`u'`, the intersection parameter and longitudinal time correction are
+
+.. math::
+
+   \lambda=-r'_z/u'_z,\qquad
+   r_{\perp,\mathrm{new}}=r'_\perp+\lambda u'_\perp,\qquad
+   \Delta z=-\lambda\sqrt{1-\beta_0^2+\beta_0^2(1+\delta)^2}.
+
+Here :math:`u_z=\sqrt{(1+\delta)^2-p_x^2-p_y^2}` before rotation.
+The patch preserves ``dp`` and does not advance ``bunch.t0``; the element's
+``execute_cpu/gpu`` advances the reference clock once after tracking and the
+exit aperture check. This preserves continuous bunch-relative
+time, including the change in particle flight time between the two planes.
+A non-forward or invalid intersection is recorded as a loss. Zero-length
+SBend retains its existing straight thin-kick model.
+
+Space charge, apertures and losses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With both error types and internal SC enabled, the order is:
+
+#. Transform from the design entrance to the magnetic entrance frame.
+#. Advance nominal magnetic slices and apply distributed field-error kicks.
+#. At each scheduled SC node, transform live particles to the design frame,
+   apply SC with its original grid and boundary, then transform back.
+#. Restore the design exit frame and check the fixed element aperture.
+#. Advance the reference clock once for the element length.
+
+SC positions and integration weights are unchanged. With SC disabled, step 3
+is absent; with alignment disabled, coordinate patches are absent. Upstream
+lost particles remain frozen. Particles lost inside the element are restored
+to design coordinates at their recorded loss plane, without further tracking
+or revival. Loss-plane accuracy follows the existing stored loss-position
+precision. Element aperture checks remain exit checks, not continuous wall
+collision detection.
+
+Each element's ``execute_cpu/gpu`` shows this order directly, without an
+additional ``_execute`` callback. ``AlignmentErrors.enter_frame`` saves the
+entry-live masks and enters the magnetic frame; ``exit_frame`` restores the
+design frame in a ``finally`` block. The exit aperture and clock update follow
+successful transport. With alignment inactive, these methods return without
+allocating masks or launching coordinate kernels.
+
+CPU/GPU coordinate formulas, loss restoration and SC frame switching remain
+together in ``error.py``.
+GPU coordinate patches are separate kernels around the existing transport;
+each SC node needs two additional patches when alignment is active. Fixed
+frame coefficients are cached per plane, precision and device. Magnetic
+transport and field-error kernel composition otherwise remain unchanged.
+
+MAD-X alignment import
+~~~~~~~~~~~~~~~~~~~~~~
+
+Export ``EALIGN, DX=..., DY=..., DPSI=...`` with ``ESAVE``. The same error
+TFS may contain both alignment and absolute field errors:
+
+.. code-block:: python
+
+   items, names, circumference = read_madx_elements(
+       "ideal.tfs", error_file="errors.tfs",
+       is_field_error=True, is_alignment_error=True)
+
+Both switches default to ``False`` in element import. Set only the alignment
+switch to import an alignment-only table. ``DX``, ``DY`` and ``DPSI`` are read
+from the **error table**; the nominal Twiss ``DX`` / ``DY`` columns describe
+dispersion and are never used as alignment offsets. Missing selected components
+are zero. Nonzero unsupported alignment components and nonzero errors targeting
+an unsupported element raise an error. Instance matching and duplicate checks
+are shared with field-error import before drift merging.
+
+``generate_from_tfs`` exposes the same ``is_alignment_error`` option, and the
+GUI element import offers an alignment checkbox. ``read_madx_twiss`` and
+``read_madx_twiss_interpolated`` explicitly reject this option: a Twiss transfer
+map cannot reconstruct the displaced physical field. Use element tracking for
+alignment errors. With alignment import disabled, alignment columns in a shared
+error file are ignored.
+
+``Command.create`` does not inspect alignment parameters or maintain a separate
+alignment-support list. Unused alignment keys passed directly to an unrelated
+runtime command are ignored. The schema and MAD-X import still reject explicit
+unsupported alignment requests, and ``AlignmentErrors`` retains finite-value
+and unsupported-component validation for magnetic elements.
