@@ -89,10 +89,12 @@ def missing_files(data: dict, base: Path) -> list[str]:
     ]
 
 
-def digest_file(path: Path) -> str:
+def digest_file(path: Path, *, context=None) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
+            if context is not None:
+                context.check()
             digest.update(block)
     return digest.hexdigest()
 
@@ -148,15 +150,64 @@ class Project:
         self.run_settings: dict = {}
         self.path: Path | None = None
         self.dirty = False
+        self._leases = 0
+        self._close_requested = False
+        self._cache_closed = False
 
     def close(self) -> None:
-        self._temporary.cleanup()
+        self._close_requested = True
+        if not self._leases and not self._cache_closed:
+            self._temporary.cleanup()
+            self._cache_closed = True
+
+    def retain(self):
+        """Keep immutable input files alive while a background task reads them."""
+        if self._cache_closed or self._close_requested:
+            raise ProjectError("Project cache is closing")
+        self._leases += 1
+        return self
+
+    def release(self):
+        if self._leases <= 0:
+            raise ProjectError("Unbalanced project cache release")
+        self._leases -= 1
+        if self._close_requested:
+            self.close()
+
+    def clone(self, *, context=None):
+        """Copy into a private staging cache; callers publish only on success."""
+        candidate = Project()
+        try:
+            for source in self.root.rglob("*"):
+                if source.is_file():
+                    target = candidate.root / source.relative_to(self.root)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    if context is not None:
+                        context.report(f"准备项目文件：{source.name}")
+                    # Imported assets are immutable. A staging cache can share
+                    # their file storage; new imports always use new asset IDs.
+                    if source.relative_to(self.root).parts[0] == "assets":
+                        try:
+                            os.link(source, target)
+                            continue
+                        except OSError:
+                            pass
+                    if context is not None:
+                        context.copy_file(source, target)
+                    else:
+                        shutil.copyfile(source, target)
+            for key in ("id", "created_at", "configs", "assets", "recipes", "active_config_id", "run_settings", "path", "dirty"):
+                setattr(candidate, key, deepcopy(getattr(self, key)))
+        except Exception:
+            candidate.close()
+            raise
+        return candidate
 
     @property
     def config_base(self) -> Path:
         return self.root / "configs"
 
-    def add_asset(self, source: Path, kind: str = "input") -> Asset:
+    def add_asset(self, source: Path, kind: str = "input", *, context=None) -> Asset:
         source = Path(source).resolve()
         if not source.is_file():
             raise ProjectError(f"Input file not found: {source}")
@@ -166,8 +217,12 @@ class Project:
         relative = safe_member(f"assets/{asset_id}/{name}")
         target = self.root / relative
         target.parent.mkdir(parents=True)
-        shutil.copyfile(source, target)
-        digest = digest_file(target)
+        if context is not None:
+            context.report(f"复制依赖：{name}")
+            context.copy_file(source, target)
+        else:
+            shutil.copyfile(source, target)
+        digest = digest_file(target, context=context)
         for asset in self.assets.values():
             if asset.sha256 == digest and asset.original_name == name and asset.kind == kind:
                 target.unlink()
@@ -178,7 +233,7 @@ class Project:
         self.dirty = True
         return asset
 
-    def _capture(self, data: dict, base: Path) -> dict:
+    def _capture(self, data: dict, base: Path, *, context=None) -> dict:
         value = deepcopy(data)
         problems = missing_files(value, base)
         if problems:
@@ -186,14 +241,14 @@ class Project:
         by_path = {(self.root / asset.path).resolve(): asset for asset in self.assets.values()}
         for mapping, key, _ in file_references(value):
             source = resolved_file(mapping[key], base)
-            asset = by_path.get(source) or self.add_asset(source)
+            asset = by_path.get(source) or self.add_asset(source, context=context)
             mapping[key] = "../" + asset.path
         # Validate JSON before publishing a change to the project.
         json_bytes(value)
         return value
 
-    def add_config(self, name: str, data: dict, base: Path) -> str:
-        value = self._capture(data, base)
+    def add_config(self, name: str, data: dict, base: Path, *, context=None) -> str:
+        value = self._capture(data, base, context=context)
         config_id = uuid4().hex
         name = unique_name(Path(name).stem or "beam", [c.name for c in self.configs.values()])
         self.configs[config_id] = InputConfig(config_id, name, value)
@@ -202,18 +257,18 @@ class Project:
         self.dirty = True
         return config_id
 
-    def update_config(self, config_id: str, data: dict, base: Path | None = None) -> None:
-        value = self._capture(data, base or self.config_base)
+    def update_config(self, config_id: str, data: dict, base: Path | None = None, *, context=None) -> None:
+        value = self._capture(data, base or self.config_base, context=context)
         config = self.configs[config_id]
         if config.data != value:
             config.data = value
             self.dirty = True
 
-    def add_recipe(self, recipe: dict, config_id: str) -> None:
+    def add_recipe(self, recipe: dict, config_id: str, *, context=None) -> None:
         value = deepcopy(recipe)
         value["config_id"] = config_id
         sources = value.pop("source_files", {})
-        value["source_assets"] = {key: self.add_asset(Path(path), "source").id for key, path in sources.items() if path}
+        value["source_assets"] = {key: self.add_asset(Path(path), "source", context=context).id for key, path in sources.items() if path}
         value.setdefault("id", uuid4().hex)
         value.setdefault("pass_version", __version__)
         self.recipes.append(value)
@@ -232,13 +287,15 @@ class Project:
             dependencies.append({"pointer": pointer, "asset_id": asset_id})
         return dependencies
 
-    def save(self, destination: Path) -> None:
+    def save(self, destination: Path, *, context=None) -> None:
         if not self.configs or self.active_config_id not in self.configs:
             raise ProjectError("Project needs an active input JSON")
         destination = Path(destination).resolve()
         entries: dict[str, bytes | Path] = {}
         configs = []
         for config in self.configs.values():
+            if context is not None:
+                context.report(f"整理输入：{config.name}")
             path = f"configs/{config.id}.json"
             content = json_bytes(config.data)
             entries[path] = content
@@ -251,8 +308,10 @@ class Project:
             })
         assets = []
         for asset in self.assets.values():
+            if context is not None:
+                context.report(f"验证依赖：{asset.original_name}")
             source = self.root / asset.path
-            if not source.is_file() or digest_file(source) != asset.sha256:
+            if not source.is_file() or digest_file(source, context=context) != asset.sha256:
                 raise ProjectError(f"Asset changed or missing: {asset.original_name}")
             entries[asset.path] = source
             assets.append(vars(asset).copy())
@@ -276,12 +335,12 @@ class Project:
             "recipes": recipes,
             "run_settings": self.run_settings,
         }
-        self._write_archive(destination, entries, manifest)
+        self._write_archive(destination, entries, manifest, context=context)
         self.path = destination
         self.dirty = False
 
     @staticmethod
-    def _write_archive(destination: Path, entries: dict, manifest: dict | None = None) -> None:
+    def _write_archive(destination: Path, entries: dict, manifest: dict | None = None, *, context=None) -> None:
         fd, temporary = tempfile.mkstemp(prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent)
         os.close(fd)
         try:
@@ -289,17 +348,33 @@ class Project:
                 if manifest is not None:
                     archive.writestr("manifest.json", json_bytes(manifest))
                 for name, value in entries.items():
+                    if context is not None:
+                        context.report(f"写入项目：{name}")
                     safe_member(name)
-                    if isinstance(value, Path):
+                    if isinstance(value, Path) and context is not None:
+                        with value.open("rb") as reader, archive.open(name, "w", force_zip64=True) as writer:
+                            while block := reader.read(1024 * 1024):
+                                context.check()
+                                writer.write(block)
+                    elif isinstance(value, Path):
                         archive.write(value, name)
                     else:
                         archive.writestr(name, value)
             with zipfile.ZipFile(temporary) as archive:
-                bad = archive.testzip()
-                if bad:
-                    raise ProjectError(f"Archive verification failed: {bad}")
+                if context is None:
+                    bad = archive.testzip()
+                    if bad:
+                        raise ProjectError(f"Archive verification failed: {bad}")
+                else:
+                    for name in archive.namelist():
+                        context.report(f"校验项目：{name}")
+                        with archive.open(name) as stream:
+                            while stream.read(1024 * 1024):
+                                context.check()
             with open(temporary, "r+b") as stream:
                 os.fsync(stream.fileno())
+            if context is not None:
+                context.check()
             os.replace(temporary, destination)
         finally:
             if os.path.exists(temporary):
@@ -424,7 +499,7 @@ class Project:
             paths.append(target)
         return paths
 
-    def export_bundle(self, config_ids: list[str], destination: Path) -> None:
+    def export_bundle(self, config_ids: list[str], destination: Path, *, context=None) -> None:
         """Export portable JSON + assets with a launcher resolving paths at run time."""
         entries: dict[str, bytes | Path] = {}
         for index, identifier in enumerate(config_ids):
@@ -447,9 +522,9 @@ class Project:
                               if len(config_ids) == 2 else 'raise SystemExit(run_inputs(str(root / "beam0.json")))\n')).encode("utf-8")
         entries[
             "README.txt"] = b"Extract all files together. Install PASS, then run: python run.py\nInputs use paths relative to this folder. Outputs are written under output/.\n"
-        self._write_archive(Path(destination), entries)
+        self._write_archive(Path(destination), entries, context=context)
 
-    def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, clock_policy: str = "check") -> str:
+    def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, clock_policy: str = "check", context=None) -> str:
         """Copy a command and its named SC/Slicer/file dependencies without overwrite."""
         source = self.configs[source_id].data
         result = deepcopy(target.configs[target_id].data)
@@ -478,7 +553,7 @@ class Project:
             replacement = unique_name(slice_name, used)
             slice_names[slice_name] = replacement
             for slicer_name, item in slicers:
-                item = target._capture(item, self.config_base)
+                item = target._capture(item, self.config_base, context=context)
                 item["Slice set"] = replacement
                 sequence[unique_name(slicer_name, sequence)] = item
             return replacement
@@ -496,7 +571,7 @@ class Project:
                         block = result.setdefault(module, {})
                         resources = block.setdefault("Configurations", {})
                         new = unique_name(old, resources)
-                        copied = target._capture(resource, self.config_base)
+                        copied = target._capture(resource, self.config_base, context=context)
                         if module == "Space charge":
                             copied["Slice set"] = copy_slice(copied["Slice set"])
                         resources[new] = copied
@@ -514,10 +589,12 @@ class Project:
         visit(command)
         if command.get("Command") == "WakeField":
             command["Slice set"] = copy_slice(command["Slice set"])
-        command = target._capture(command, self.config_base)
+        command = target._capture(command, self.config_base, context=context)
         new_name = unique_name(name, sequence)
         sequence[new_name] = command
-        target.update_config(target_id, result)
+        target.update_config(target_id, result, context=context)
+        if context is not None:
+            context.check()
         return new_name
 
     def command_clock_difference(self, source_id, name, target, target_id):

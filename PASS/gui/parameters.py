@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from PASS.gui.structured import Column, NumericTable, StructuredField
+from PASS.gui.widgets import Choice
 from PASS.validation.files import INPUT_FILE_FIELDS
 
 
@@ -40,26 +41,6 @@ class IntegerValidator(QValidator):
         state = (QValidator.Acceptable
                  if re.fullmatch(r"[+-]?\d+", text.strip()) else QValidator.Intermediate if text.strip() in {"", "+", "-"} else QValidator.Invalid)
         return state, text, position
-
-
-class Choice(QComboBox):
-
-    def wheelEvent(self, event):
-        event.ignore()
-
-    def showPopup(self):
-        # A narrow form column must not truncate the choices in its popup.
-        view = self.view()
-        view.ensurePolished()
-        width = max((self.fontMetrics().horizontalAdvance(self.itemText(i)) for i in range(self.count())), default=0) + 64
-        screen = self.screen().availableGeometry()
-        view.setMinimumWidth(min(max(self.width(), width), screen.width() - 24))
-        # Styled row padding is not included in Qt's default popup height.
-        # With two choices this used to cut the second row in half.
-        rows = min(self.count(), self.maxVisibleItems())
-        height = sum(max(view.sizeHintForRow(i), self.fontMetrics().height()) for i in range(rows))
-        view.setMinimumHeight(min(height + 2 * view.frameWidth(), screen.height() // 2))
-        super().showPopup()
 
 
 def bare(annotation):
@@ -380,6 +361,7 @@ class SchemaEditor(StructuredField):
         self.form = QFormLayout(self)
         self.form.setContentsMargins(0, 0, 0, 0)
         self.form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        self.form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         for name, info in model.model_fields.items():
             key = info.alias or name
             field = make_editor(info.annotation, self.original[key], key, base_dir)

@@ -137,7 +137,12 @@ class NumberDelegate(QStyledItemDelegate):
 
     def setEditorData(self, editor, index):
         self.loading = True
-        editor.setValue(index.data(Qt.EditRole))
+        value = index.data(Qt.EditRole)
+        try:
+            editor.setValue(self.columns[index.column()].parse(value))
+        except (ValueError, TypeError):
+            # A recovered draft can contain incomplete text; leave it editable.
+            editor.lineEdit().setText(str(value))
         editor.selectAll()
         self.loading = False
 
@@ -204,6 +209,7 @@ class NumericTable(StructuredField):
         root.addLayout(bar)
         self.count = QLabel()
         self.count.setObjectName("muted")
+        self.count.setWordWrap(True)
         root.addWidget(self.count)
         try:
             self.set_rows(rows)
@@ -462,6 +468,7 @@ class ApertureEditor(StructuredField):
         self.form = QFormLayout(self)
         self.form.setContentsMargins(0, 0, 0, 0)
         self.form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        self.form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         self.set_kind(kind, value)
 
     def set_kind(self, kind, initial=None):
@@ -500,7 +507,9 @@ class ApertureEditor(StructuredField):
                 field = ScientificSpinBox(number)
                 field.valueChanged.connect(self._dimension_changed)
                 self.fields.append(field)
-                self.form.addRow(label, field)
+                title = QLabel(label)
+                title.setWordWrap(True)
+                self.form.addRow(title, field)
         self.error_label = QLabel(self.load_error)
         self.error_label.setWordWrap(True)
         self.error_label.setVisible(bool(self.load_error))
@@ -533,6 +542,7 @@ class RangeEditor(StructuredField):
         self.active = value is not None
         root = QFormLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
+        root.setRowWrapPolicy(QFormLayout.WrapLongRows)
         self.enabled_box = QCheckBox("自定义动量范围")
         self.enabled_box.setChecked(self.active)
         if not explicit:
@@ -580,6 +590,7 @@ class InternalSpaceChargeEditor(StructuredField):
         self.body = QWidget()
         form = QFormLayout(self.body)
         form.setContentsMargins(0, 0, 0, 0)
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         initial = ElementSpaceCharge(Configuration=next(iter(configurations), "default")).model_dump(by_alias=True)
         if isinstance(value, dict):
             initial.update(value)
@@ -658,10 +669,13 @@ class ObjectEditor(StructuredField):
         self.fields = {}
         form = QFormLayout(self)
         form.setContentsMargins(0, 0, 0, 0)
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         for key, item in value.items():
             field = factory(key, item)
             self.fields[key] = field
-            form.addRow(str(key), field)
+            label = QLabel(str(key))
+            label.setWordWrap(True)
+            form.addRow(label, field)
 
     def get_value(self):
         return {key: self.reader(key, field, self.original[key]) for key, field in self.fields.items()}

@@ -8,20 +8,18 @@ control, and presentation.
 from __future__ import annotations
 
 import csv
-import codecs
 from collections import Counter
 from copy import deepcopy
 import json
 import math
 import re
 import sys
-import time
 from pathlib import Path
 from typing import get_args
 from uuid import uuid4
 
-from PySide6.QtCore import QEvent, QProcess, QTimer, Qt, Signal, QSettings, QSize
-from PySide6.QtGui import QAction, QDoubleValidator, QIntValidator, QPainter, QPalette, QPen, QTextCursor, QTextFormat
+from PySide6.QtCore import QEvent, QItemSelectionModel, QSignalBlocker, QTimer, Qt, Signal, QSettings, QSize
+from PySide6.QtGui import QAction, QDoubleValidator, QIntValidator, QPainter, QPalette, QTextFormat
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -65,9 +63,13 @@ from PySide6.QtWidgets import (
 from PASS import __version__
 from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
 from PASS.gui.help import HelpMenu
+from PASS.gui.plotting import PlotCanvas, PlotPage
 from PASS.gui.project import FILE_FIELDS, missing_files, read_json
+from PASS.gui.run_page import RunPage
 from PASS.gui.tools import ToolsPage
-from PASS.gui.parameters import Choice, IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
+from PASS.gui.parameters import IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
+from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
+from PASS.gui.property_state import capture_field, draft_value, merge_draft, named_fields, restore_field, value_changes
 from PASS.gui.structured import (
     ApertureEditor,
     CoefficientsEditor,
@@ -168,21 +170,6 @@ FIELD_HELP = {
 }
 
 
-def button(text: str, object_name: str = "") -> QPushButton:
-    item = QPushButton(text)
-    if object_name:
-        item.setObjectName(object_name)
-    item.setCursor(Qt.PointingHandCursor)
-    return item
-
-
-class PropertyComboBox(Choice):
-    """A property selector changed only through its drop-down list."""
-
-    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt API
-        event.ignore()
-
-
 class CompactFormBody(QWidget):
     """Use the form's natural height instead of distributing spare scroll space."""
 
@@ -241,44 +228,6 @@ class CollapsibleSection(QWidget):
         self.body.setVisible(expanded and self.body_layout.count() > 0)
 
 
-class BusyProgressBar(QWidget):
-    """Small indeterminate progress bar rendered without native Qt styling."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setObjectName("busyProgress")
-        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
-        self.setAutoFillBackground(False)
-        self._offset = -0.25
-        self._timer = QTimer(self)
-        self._timer.timeout.connect(self._advance)
-        self.setFixedHeight(4)
-        self.setMinimumWidth(80)
-
-    def _advance(self) -> None:
-        self._offset += 0.035
-        if self._offset > 1.0:
-            self._offset = -0.25
-        self.update()
-
-    def showEvent(self, event) -> None:
-        super().showEvent(event)
-        self._timer.start(30)
-
-    def hideEvent(self, event) -> None:
-        self._timer.stop()
-        super().hideEvent(event)
-
-    def paintEvent(self, event) -> None:
-        painter = QPainter(self)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(self.palette().base())
-        painter.drawRect(self.rect())
-        width = max(48, int(self.width() * 0.22))
-        x = int((self.width() + width) * self._offset - width)
-        painter.fillRect(x, 0, width, self.height(), self.palette().link())
-
-
 class LineNumberEditor(QPlainTextEdit):
     """Plain-text editor with a compact, non-editable line-number gutter."""
 
@@ -328,97 +277,6 @@ class LineNumberEditor(QPlainTextEdit):
             block_number += 1
 
 
-class PlotCanvas(QWidget):
-    """Small dependency-free line plot for CSV/TFS numeric columns."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.x_values: list[float] = []
-        self.values: list[float] = []
-        self._x_limits: tuple[float, float] | None = None
-        self._y_limits: tuple[float, float] | None = None
-        self.setMinimumHeight(300)
-
-    def set_series(self, x_values: list[float], values: list[float]) -> None:
-        points = [(x, y) for x, y in zip(x_values, values) if math.isfinite(x) and math.isfinite(y)]
-        self.x_values = [point[0] for point in points]
-        self.values = [point[1] for point in points]
-        self.fit_view()
-
-    def fit_view(self) -> None:
-        if self.x_values and self.values:
-            self._x_limits = (min(self.x_values), max(self.x_values))
-            self._y_limits = (min(self.values), max(self.values))
-        else:
-            self._x_limits = self._y_limits = None
-        self.update()
-
-    def set_values(self, values: list[float]) -> None:
-        """Plot values against their row indices."""
-        self.set_series(list(range(len(values))), values)
-
-    def _plot_area(self):
-        return self.rect().adjusted(52, 24, -24, -42)
-
-    @staticmethod
-    def _expanded_range(low: float, high: float) -> tuple[float, float]:
-        if low == high:
-            padding = abs(low) * 0.05 or 1.0
-            return low - padding, high + padding
-        return low, high
-
-    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt API
-        if len(self.values) < 2 or self._x_limits is None or self._y_limits is None:
-            event.ignore()
-            return
-        area = self._plot_area()
-        if not area.contains(event.position().toPoint()):
-            event.ignore()
-            return
-        factor = 0.8 if event.angleDelta().y() > 0 else 1.25
-        x_ratio = (event.position().x() - area.left()) / max(area.width(), 1)
-        y_ratio = 1.0 - (event.position().y() - area.top()) / max(area.height(), 1)
-        x_low, x_high = self._x_limits
-        y_low, y_high = self._y_limits
-        x_anchor = x_low + (x_high - x_low) * x_ratio
-        y_anchor = y_low + (y_high - y_low) * y_ratio
-        self._x_limits = (x_anchor - (x_anchor - x_low) * factor, x_anchor + (x_high - x_anchor) * factor)
-        self._y_limits = (y_anchor - (y_anchor - y_low) * factor, y_anchor + (y_high - y_anchor) * factor)
-        self.update()
-        event.accept()
-
-    def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), self.palette().color(QPalette.Base))
-        painter.setRenderHint(QPainter.Antialiasing)
-        area = self._plot_area()
-        painter.setPen(QPen(self.palette().color(QPalette.Mid), 1))
-        for fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
-            y = area.bottom() - fraction * area.height()
-            painter.drawLine(area.left(), int(y), area.right(), int(y))
-        if len(self.values) < 2 or self._x_limits is None or self._y_limits is None:
-            painter.setPen(self.palette().color(QPalette.PlaceholderText))
-            painter.drawText(area, Qt.AlignCenter, "选择 X / Y 数值列以绘图")
-            return
-        x_low, x_high = self._expanded_range(*self._x_limits)
-        low, high = self._expanded_range(*self._y_limits)
-        x_span = x_high - x_low
-        span = high - low
-        points = []
-        for x_value, value in zip(self.x_values, self.values):
-            x = area.left() + (x_value - x_low) / x_span * area.width()
-            y = area.bottom() - (value - low) / span * area.height()
-            points.append((int(x), int(y)))
-        painter.setPen(QPen(self.palette().color(QPalette.Link), 2))
-        for first, second in zip(points, points[1:]):
-            painter.drawLine(*first, *second)
-        painter.setPen(self.palette().color(QPalette.PlaceholderText))
-        painter.drawText(8, area.top() + 5, f"max {high:.5g}")
-        painter.drawText(8, area.bottom(), f"min {low:.5g}")
-        painter.drawText(area.left(), self.height() - 12, f"{x_low:.5g}")
-        painter.drawText(area.right() - 65, self.height() - 12, f"{x_high:.5g}")
-
-
 class ConfigPage(QWidget):
     file_changed = Signal(str)
     changed = Signal()
@@ -433,6 +291,10 @@ class ConfigPage(QWidget):
         self.data["Sequence"] = {}
         self.path: str = ""
         self._selected_mapping: dict | None = None
+        self._configuration_draft: dict | None = None
+        self._configuration_base: dict | None = None
+        self._configuration_renames: dict[str, str] = {}
+        self._property_tools_pending = False
         self._selected_path: tuple[str, str | None] | None = None
         self._pending_command: str | None = None
         self._form_fields: dict[str, QWidget] = {}
@@ -455,6 +317,9 @@ class ConfigPage(QWidget):
         self._space_charge_coverage_fields: dict[str, QWidget] = {}
         self._active_space_charge_configuration: str | None = None
         self._editor_syncing = False
+        self._editor_stale = False
+        self._sequence_selection_pending = False
+        self._sequence_selection = (None, [])
         self._json_dirty = False
         self._form_dirty = False
         self._data_dirty = False
@@ -657,7 +522,9 @@ class ConfigPage(QWidget):
         header.setToolTip("拖动分隔线调整列宽；右键选择可选列。")
         self._restore_columns()
         header.sectionResized.connect(self._save_columns)
-        self.sequence_table.cellClicked.connect(self._sequence_row_clicked)
+        self.sequence_table.currentCellChanged.connect(self._queue_sequence_selection)
+        self.sequence_table.itemSelectionChanged.connect(self._queue_sequence_selection)
+        self.sequence_table.cellClicked.connect(self._queue_sequence_selection)
         overview_layout.addWidget(self.sequence_table, 1)
         self.editor_tabs.addTab(overview_panel, "执行序列")
         self.editor = LineNumberEditor()
@@ -667,7 +534,21 @@ class ConfigPage(QWidget):
         self.json_highlighter = JsonHighlighter(self.editor.document())
         self.editor.setPlainText(json.dumps(self.data, indent=4, ensure_ascii=False))
         self.editor.document().contentsChange.connect(self._mark_json_dirty)
-        self.editor_tabs.addTab(self.editor, "JSON 源码")
+        source_panel = QWidget()
+        source_layout = QVBoxLayout(source_panel)
+        source_layout.setContentsMargins(0, 8, 0, 0)
+        source_actions = QHBoxLayout()
+        self.apply_json_button = button("应用源码", "primary")
+        self.apply_json_button.clicked.connect(self.apply_json)
+        source_actions.addWidget(self.apply_json_button)
+        self.discard_json_button = button("放弃源码修改")
+        self.discard_json_button.clicked.connect(self.discard_json)
+        source_actions.addWidget(self.discard_json_button)
+        source_actions.addStretch()
+        source_layout.addLayout(source_actions)
+        source_layout.addWidget(self.editor, 1)
+        self.editor_tabs.addTab(source_panel, "JSON 源码")
+        self.editor_tabs.currentChanged.connect(self._editor_tab_changed)
         editor_layout.addWidget(self.editor_tabs)
         splitter.addWidget(editor_frame)
         self.form_title = QLabel("属性")
@@ -687,19 +568,50 @@ class ConfigPage(QWidget):
         self.form_command.setToolTip("Command 类型（只读）")
         self.form_command.hide()
         form_header.addWidget(self.form_command)
+        self._property_splitter_state = None
+        self.expand_property_button = QToolButton()
+        self.expand_property_button.setText("展开")
+        self.expand_property_button.setCheckable(True)
+        self.expand_property_button.setToolTip("展开属性编辑区；再次点击还原原有三栏布局。")
+        self.expand_property_button.toggled.connect(self._set_property_expanded)
+        form_header.addWidget(self.expand_property_button)
         form_layout.addLayout(form_header)
         self.form_hint = QLabel("选择执行序列中的一项，或从组件库插入。")
         self.form_hint.setObjectName("muted")
         self.form_hint.setWordWrap(True)
         self.form_hint.setMaximumHeight(44)
         form_layout.addWidget(self.form_hint)
-        scroll = QScrollArea()
+        self.property_search = QLineEdit()
+        self.property_search.setPlaceholderText("查找当前属性、单位或说明")
+        self.property_search.setClearButtonEnabled(True)
+        self.property_search.textChanged.connect(self._refresh_property_tools)
+        self.property_search.returnPressed.connect(self._locate_property)
+        form_layout.addWidget(self.property_search)
+        property_tools = QHBoxLayout()
+        self.property_matches = PropertyComboBox()
+        self.property_matches.setMinimumContentsLength(1)
+        self.property_matches.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.property_matches.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self.property_matches.activated.connect(self._locate_property)
+        self.property_matches.currentIndexChanged.connect(self._update_property_default_action)
+        property_tools.addWidget(self.property_matches, 1)
+        self.property_default_button = button("恢复默认")
+        self.property_default_button.setToolTip("仅恢复当前选中属性的默认值；点击应用修改后才提交。")
+        self.property_default_button.clicked.connect(self._restore_property_default)
+        property_tools.addWidget(self.property_default_button)
+        self.property_diff_button = button("待应用差异")
+        self.property_diff_button.clicked.connect(self._show_property_changes)
+        property_tools.addWidget(self.property_diff_button)
+        form_layout.addLayout(property_tools)
+        self._property_matches = []
+        self.form_scroll = scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.form_body = CompactFormBody()
         self.form_layout = QFormLayout(self.form_body)
         self.form_layout.setContentsMargins(0, 4, 2, 4)
         self.form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        self.form_layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
         self.form_layout.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.form_layout.setFormAlignment(Qt.AlignTop)
         self.form_layout.setHorizontalSpacing(8)
@@ -743,6 +655,20 @@ class ConfigPage(QWidget):
         splitter.setSizes([190, 658, 312])
         root.addWidget(splitter, 1)
         self._refresh_tree()
+
+    def _set_property_expanded(self, expanded: bool) -> None:
+        if expanded:
+            self._property_splitter_state = self.splitter.saveState()
+        for index in (0, 1):
+            self.splitter.widget(index).setVisible(not expanded)
+        if not expanded and self._property_splitter_state is not None:
+            self.splitter.restoreState(self._property_splitter_state)
+            self._property_splitter_state = None
+        self.expand_property_button.setText("还原" if expanded else "展开")
+
+    def splitter_state(self):
+        """Persist the user's normal layout even while the properties are expanded."""
+        return self._property_splitter_state if self._property_splitter_state is not None else self.splitter.saveState()
 
     def configure_injection(self) -> None:
         sequence = self.data.get("Sequence", {})
@@ -800,13 +726,27 @@ class ConfigPage(QWidget):
         selected = self._selected_path
         self._form_dirty = False
         if selected and selected[0] == "Sequence" and selected[1]:
-            self._select_sequence_item(selected[1])
+            name = selected[1]
+            target = self.data.get("Sequence", {}).get(name)
+            if isinstance(target, dict):
+                self._populate_form(f"Sequence · {name}", target, name_value=name)
+                self._selected_path = selected
+                self._pending_command = None
+                self._update_action_visibility()
+            else:
+                self._clear_form()
         elif selected == ("__root__", "Space charge"):
-            self._populate_space_charge_configuration(self._active_space_charge_configuration)
+            if isinstance(self.data.get("Space charge"), dict):
+                self._populate_space_charge_configuration(self._active_space_charge_configuration)
+            else:
+                self._clear_form()
         elif selected == ("__root__", "Wake field"):
-            self._populate_wake_configuration()
+            if isinstance(self.data.get("Wake field"), dict):
+                self._populate_wake_configuration()
+            else:
+                self._clear_form()
         elif selected:
-            self.configure_global()
+            self._populate_root_configuration()
         else:
             self._clear_form()
         self.changed.emit()
@@ -822,6 +762,25 @@ class ConfigPage(QWidget):
             if self._form_dirty:
                 return False
         return True
+
+    def _guard_json_draft(self) -> bool:
+        if not self._json_dirty:
+            return True
+        QMessageBox.warning(self, "JSON 源码有修改", "请在 JSON 源码页点击“应用源码”或“放弃源码修改”，再执行此操作。")
+        return False
+
+    def discard_json(self) -> None:
+        if self._json_dirty and QMessageBox.question(self, "放弃源码修改", "放弃尚未应用的 JSON 源码修改？", QMessageBox.Yes | QMessageBox.No,
+                                                     QMessageBox.No) != QMessageBox.Yes:
+            return
+        self._json_dirty = False
+        self._sync_editor()
+        self._set_sync_status("源码与已应用参数一致", "ok")
+        self.changed.emit()
+
+    def _editor_tab_changed(self, index: int) -> None:
+        if index == 1 and self._editor_stale and not self._json_dirty:
+            self._sync_editor()
 
     def validate_input(self) -> None:
         if self.commit_pending():
@@ -860,6 +819,12 @@ class ConfigPage(QWidget):
         return self._data_dirty or self._json_dirty or self._form_dirty
 
     def apply_json(self) -> bool:
+        if self._form_dirty:
+            QMessageBox.warning(self, "属性有未应用修改", "请先应用或取消属性修改，再应用 JSON 源码。")
+            return False
+        if self._editor_stale and not self._json_dirty:
+            self._sync_editor()
+            return True
         try:
             data = read_json(self.editor.toPlainText().encode("utf-8"))
         except json.JSONDecodeError as exc:
@@ -877,6 +842,7 @@ class ConfigPage(QWidget):
         self.data = data
         self._record_history()
         self._json_dirty = False
+        self._editor_stale = False
         self._form_dirty = False
         self._data_dirty = True
         self._refresh_tree()
@@ -892,6 +858,7 @@ class ConfigPage(QWidget):
             return
         self._json_dirty = True
         self._set_sync_status("JSON 有未确认修改", "warning")
+        self.changed.emit()
 
     def _set_sync_status(self, text: str, state: str = "") -> None:
         self.sync_status.setText(text)
@@ -1035,10 +1002,12 @@ class ConfigPage(QWidget):
         self._pending_command = "Slicer"
 
     def insert_pending_command(self) -> None:
+        if not self._guard_json_draft():
+            return
         if not self._pending_command:
             return
         command = self._pending_command
-        template = dict(self._selected_mapping or self._command_template(command))
+        template = deepcopy(self._selected_mapping or self._command_template(command))
         sequence = self.data.setdefault("Sequence", {})
         if not isinstance(sequence, dict):
             QMessageBox.warning(self, "Sequence 无效", "请先修正 JSON 中的 Sequence 对象。")
@@ -1641,6 +1610,8 @@ class ConfigPage(QWidget):
         QMessageBox.information(self, "MAD-X 导入预览", text)
 
     def import_madx_twiss(self) -> None:
+        if not self._guard_json_draft():
+            return
         signature = self._madx_import_signature()
         if self._madx_preview is not None and self._madx_preview_signature == signature:
             items, names, circumference = self._madx_preview
@@ -1707,14 +1678,17 @@ class ConfigPage(QWidget):
     def configure_wake_field(self) -> None:
         if not self._confirm_form_navigation():
             return
-        block = self.data.setdefault("Wake field", {"Enabled": True, "Configurations": {}})
+        draft = deepcopy(self.data)
+        block = draft.get("Wake field")
+        if block is None:
+            block = draft["Wake field"] = {"Enabled": True, "Configurations": {}}
         if not isinstance(block, dict) or not isinstance(block.get("Configurations"), dict):
             QMessageBox.warning(self, "尾场配置无效", "Wake field.Configurations 必须是对象，请先修正 JSON。")
             return
         resources = block["Configurations"]
         # Lift old inline definitions one by one: equal definitions are not
         # silently merged, and location-specific state is never transferred.
-        for name, point in self.data.get("Sequence", {}).items():
+        for name, point in draft.get("Sequence", {}).items():
             if isinstance(point, dict) and point.get("Command") == "WakeField" and point.get("Groups") is not None and not point.get("Configuration"):
                 resource_name = self._unique_sequence_name(name, resources)
                 resources[resource_name] = {"Groups": deepcopy(point["Groups"])}
@@ -1722,19 +1696,21 @@ class ConfigPage(QWidget):
                 point.pop("Groups")
         if not resources:
             resources["default"] = {"Groups": []}
-        self._sync_editor()
-        self._data_dirty = True
-        self._refresh_tree()
-        self._populate_wake_configuration()
+        self._populate_wake_configuration(draft)
+        if draft != self.data:
+            self._mark_form_dirty()
 
-    def _populate_wake_configuration(self) -> None:
+    def _populate_wake_configuration(self, draft: dict | None = None) -> None:
         from PASS.gui.wake_configuration import WakeConfigurationEditor
+        draft = deepcopy(self.data) if draft is None else draft
         self._clear_form()
-        self._selected_mapping = self.data["Wake field"]
+        self._configuration_draft = draft
+        self._configuration_base = deepcopy(self.data)
+        self._selected_mapping = draft["Wake field"]
         self._selected_path = ("__root__", "Wake field")
         self.form_title.setText("尾场 · 全局配置")
         self.form_hint.setText("共享模型、求解器、历史长度和网格参数；位置、切片集及单点开关在尾场点设置。每个点的历史状态独立。旧内联参数按点收集为独立命名配置。新配置需添加求解组和分量，填写实际物理参数。")
-        self._wake_configuration_editor = WakeConfigurationEditor(self._selected_mapping, self.data.get("Sequence", {}), self.base_dir)
+        self._wake_configuration_editor = WakeConfigurationEditor(self._selected_mapping, draft.get("Sequence", {}), self.base_dir)
         self._track_field(self._wake_configuration_editor)
         self.form_layout.addRow(self._wake_configuration_editor)
         self.form_apply.setEnabled(True)
@@ -1742,28 +1718,28 @@ class ConfigPage(QWidget):
     def _write_wake_configuration(self) -> None:
         editor = self._wake_configuration_editor
         value = editor.get_value()
-        self.data["Wake field"] = value
+        self._configuration_draft["Wake field"] = value
         for name, reference in editor.references.items():
-            self.data["Sequence"][name]["Configuration"] = reference
+            self._configuration_draft["Sequence"][name]["Configuration"] = reference
         self._selected_mapping = value
 
     def configure_space_charge(self) -> None:
         """Create or edit the top-level named space-charge configurations."""
         if not self._confirm_form_navigation():
             return
-        if not isinstance(self.data.get("Space charge"), dict):
+        draft = deepcopy(self.data)
+        if not isinstance(draft.get("Space charge"), dict):
             from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
 
-            self.data["Space charge"] = SpaceChargeConfig(
+            draft["Space charge"] = SpaceChargeConfig(
                 enabled=True,
                 configurations={
                     "default": SpaceChargeResourceConfig(deposition_method="CIC")
                 },
             ).model_dump(by_alias=True)
-        self._sync_editor()
-        self._data_dirty = True
-        self._refresh_tree()
-        self._select_top_level_item("__root__", "Space charge")
+        self._populate_space_charge_configuration(draft=draft)
+        if draft != self.data:
+            self._mark_form_dirty()
 
     @staticmethod
     def _default_space_charge_resource() -> dict:
@@ -1771,12 +1747,15 @@ class ConfigPage(QWidget):
 
         return SpaceChargeResourceConfig(deposition_method="CIC").model_dump(by_alias=True)
 
-    def _populate_space_charge_configuration(self, active_name: str | None = None) -> None:
+    def _populate_space_charge_configuration(self, active_name: str | None = None, *, draft: dict | None = None) -> None:
         """Render the top-level block and one named PIC resource as typed fields."""
-        block = self.data.get("Space charge")
+        draft = deepcopy(self.data) if draft is None else draft
+        block = draft.get("Space charge")
         if not isinstance(block, dict):
             return
         self._clear_form()
+        self._configuration_draft = draft
+        self._configuration_base = deepcopy(self.data)
         self._selected_mapping = block
         self._selected_path = ("__root__", "Space charge")
         self.form_title.setText("空间电荷 · 全局配置")
@@ -1810,7 +1789,8 @@ class ConfigPage(QWidget):
         selector_row.addWidget(QLabel("当前配置"))
         self._space_charge_selector = PropertyComboBox()
         self._space_charge_selector.setObjectName("choiceField")
-        self._space_charge_selector.addItems(names)
+        for name in names:
+            self._space_charge_selector.addItem(name, name)
         if active_name:
             self._space_charge_selector.setCurrentText(active_name)
         self._space_charge_selector.currentTextChanged.connect(self._select_space_charge_configuration)
@@ -1841,6 +1821,7 @@ class ConfigPage(QWidget):
 
             resource = configurations[active_name]
             resource_form = QFormLayout()
+            resource_form.setRowWrapPolicy(QFormLayout.WrapLongRows)
             self._space_charge_resource_form = resource_form
             resource_form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
             resource_form.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
@@ -1948,19 +1929,21 @@ class ConfigPage(QWidget):
         selector.blockSignals(False)
 
     def _refresh_after_space_charge_change(self, active_name: str | None) -> None:
-        """Synchronize every configuration view after a structural change."""
-        self._form_dirty = False
-        self._data_dirty = True
-        self._sync_editor()
-        self._refresh_tree()
-        self._populate_space_charge_configuration(active_name)
-        self._set_sync_status("空间电荷配置已更新，尚未保存", "warning")
+        """Keep resource edits and reference changes inside the pending draft."""
+        draft = self._configuration_draft
+        base = self._configuration_base
+        renames = self._configuration_renames
+        self._populate_space_charge_configuration(active_name, draft=draft)
+        self._configuration_base = base
+        self._configuration_renames = renames
+        if draft != self.data:
+            self._mark_form_dirty()
 
     def _write_space_charge_configuration(self) -> str | None:
         """Validate and write the currently displayed top-level resource."""
         from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
 
-        block = self.data.get("Space charge")
+        block = self._configuration_draft.get("Space charge")
         if not isinstance(block, dict) or self._space_charge_enabled_field is None:
             raise ValueError("Space charge 顶层配置无效。")
         configurations = block.get("Configurations")
@@ -1996,7 +1979,8 @@ class ConfigPage(QWidget):
         block.clear()
         block.update(candidate)
         if old_name is not None and new_name != old_name:
-            sequence = self.data.get("Sequence")
+            self._rename_configuration_reference(old_name, new_name)
+            sequence = self._configuration_draft.get("Sequence")
             if isinstance(sequence, dict):
                 for item in sequence.values():
                     if (isinstance(item, dict) and item.get("Command") == "SpaceCharge" and item.get("Configuration") == old_name):
@@ -2010,19 +1994,27 @@ class ConfigPage(QWidget):
     def _select_space_charge_configuration(self, name: str) -> None:
         if not name or name == self._active_space_charge_configuration:
             return
+        if not self._guard_json_draft():
+            if self._space_charge_selector is not None:
+                blocker = QSignalBlocker(self._space_charge_selector)
+                self._space_charge_selector.setCurrentIndex(self._space_charge_selector.findData(self._active_space_charge_configuration))
+                del blocker
+            return
         try:
             self._write_space_charge_configuration()
         except ValueError as exc:
             QMessageBox.warning(self, "空间电荷配置无效", str(exc))
             if self._space_charge_selector:
                 self._space_charge_selector.blockSignals(True)
-                self._space_charge_selector.setCurrentText(self._active_space_charge_configuration or "")
+                self._space_charge_selector.setCurrentIndex(self._space_charge_selector.findData(self._active_space_charge_configuration))
                 self._space_charge_selector.blockSignals(False)
             return
         self._refresh_after_space_charge_change(name)
 
     def add_space_charge_configuration(self) -> None:
-        block = self.data.get("Space charge")
+        if not self._guard_json_draft():
+            return
+        block = self._configuration_draft.get("Space charge")
         configurations = block.get("Configurations") if isinstance(block, dict) else None
         if not isinstance(configurations, dict):
             return
@@ -2032,7 +2024,7 @@ class ConfigPage(QWidget):
             except ValueError as exc:
                 QMessageBox.warning(self, "空间电荷配置无效", str(exc))
                 return
-            block = self.data.get("Space charge")
+            block = self._configuration_draft.get("Space charge")
             configurations = block.get("Configurations") if isinstance(block, dict) else None
             if not isinstance(configurations, dict):
                 return
@@ -2045,7 +2037,9 @@ class ConfigPage(QWidget):
         self._refresh_after_space_charge_change(name)
 
     def copy_space_charge_configuration(self) -> None:
-        block = self.data.get("Space charge")
+        if not self._guard_json_draft():
+            return
+        block = self._configuration_draft.get("Space charge")
         configurations = block.get("Configurations") if isinstance(block, dict) else None
         source_name = self._active_space_charge_configuration
         if not isinstance(configurations, dict) or source_name not in configurations:
@@ -2055,7 +2049,7 @@ class ConfigPage(QWidget):
         except ValueError as exc:
             QMessageBox.warning(self, "空间电荷配置无效", str(exc))
             return
-        block = self.data.get("Space charge")
+        block = self._configuration_draft.get("Space charge")
         configurations = block.get("Configurations") if isinstance(block, dict) else None
         if not isinstance(configurations, dict) or source_name not in configurations:
             return
@@ -2068,20 +2062,32 @@ class ConfigPage(QWidget):
         self._refresh_after_space_charge_change(name)
 
     def delete_space_charge_configuration(self) -> None:
-        block = self.data.get("Space charge")
+        if not self._guard_json_draft():
+            return
+        block = self._configuration_draft.get("Space charge")
         configurations = block.get("Configurations") if isinstance(block, dict) else None
         name = self._active_space_charge_configuration
         if not isinstance(configurations, dict) or name not in configurations:
             return
-        sequence = self.data.get("Sequence")
-        references = [
-            str(command_name) for command_name, item in sequence.items()
-            if (isinstance(sequence, dict) and isinstance(item, dict) and item.get("Command") == "SpaceCharge" and item.get("Configuration") == name)
-        ] if isinstance(sequence, dict) else []
+        try:
+            sequence = self._merge_configuration_draft().get("Sequence")
+        except ValueError as exc:
+            QMessageBox.warning(self, "空间电荷配置冲突", str(exc))
+            return
+        references = []
+        if isinstance(sequence, dict):
+            for command_name, item in sequence.items():
+                if not isinstance(item, dict):
+                    continue
+                if item.get("Command") == "SpaceCharge" and item.get("Configuration") == name:
+                    references.append((command_name, False))
+                internal = item.get("Space charge")
+                if isinstance(internal, dict) and internal.get("Configuration") == name:
+                    references.append((command_name, True))
         replacement = None
         alternatives = [configuration_name for configuration_name in configurations if configuration_name != name]
         if references:
-            reference_text = "、".join(references[:8])
+            reference_text = "、".join(str(command) + ("（内部 SC）" if internal else "") for command, internal in references[:8])
             if len(references) > 8:
                 reference_text += f" 等 {len(references)} 项"
             if not alternatives:
@@ -2111,11 +2117,50 @@ class ConfigPage(QWidget):
         elif QMessageBox.question(self, "删除空间电荷配置", f"确定删除配置 {name}？") != QMessageBox.Yes:
             return
         if references and isinstance(sequence, dict):
-            for command_name in references:
-                sequence[command_name]["Configuration"] = replacement
+            self._rename_configuration_reference(name, replacement)
+            for command_name, internal in references:
+                point = self._configuration_draft.get("Sequence", {}).get(command_name)
+                if not isinstance(point, dict):
+                    continue
+                target = point["Space charge"] if internal else point
+                target["Configuration"] = replacement
         configurations.pop(name)
         next_name = replacement if replacement is not None else alternatives[0] if alternatives else None
         self._refresh_after_space_charge_change(next_name)
+
+    def _rename_configuration_reference(self, old_name: str, new_name: str) -> None:
+        self._configuration_renames = {key: new_name if value == old_name else value for key, value in self._configuration_renames.items()}
+        self._configuration_renames[old_name] = new_name
+
+    def _merge_configuration_draft(self) -> dict:
+        candidate = merge_draft(self._configuration_base, self._configuration_draft, self.data)
+        if self._selected_path == ("__root__", "Space charge"):
+            base_sequence = self._configuration_base.get("Sequence", {})
+            draft_sequence = self._configuration_draft.get("Sequence", {})
+            for command_name, item in candidate.get("Sequence", {}).items():
+                if not isinstance(item, dict):
+                    continue
+                references = [(item, False)] if item.get("Command") == "SpaceCharge" else []
+                if isinstance(item.get("Space charge"), dict):
+                    references.append((item["Space charge"], True))
+                for reference, internal in references:
+                    original = base_sequence.get(command_name, {})
+                    draft = draft_sequence.get(command_name, {})
+                    original = original if isinstance(original, dict) else {}
+                    draft = draft if isinstance(draft, dict) else {}
+                    if internal:
+                        original = original.get("Space charge", {})
+                        draft = draft.get("Space charge", {})
+                        original = original if isinstance(original, dict) else {}
+                        draft = draft if isinstance(draft, dict) else {}
+                    if original.get("Configuration") != draft.get("Configuration"):
+                        # The draft already rewrote this reference; applying a
+                        # name map again can mistake a reused name for its origin.
+                        continue
+                    name = reference.get("Configuration")
+                    if name in self._configuration_renames:
+                        reference["Configuration"] = self._configuration_renames[name]
+        return candidate
 
     def configure_global(self) -> None:
         """Open the complete root input schema from the left-side library."""
@@ -2150,15 +2195,8 @@ class ConfigPage(QWidget):
         sequence_node.setData(0, Qt.UserRole, ("Sequence", None))
         sequence_node.setToolTip(0, "按 S (m) 排序执行的 command 集合；浏览不会自动插入。")
         self.tree.addTopLevelItem(sequence_node)
-        if isinstance(sequence, dict):
-            for name, value in sequence.items():
-                if not isinstance(value, dict):
-                    continue
-                command = str(value.get("Command", ""))
-                child = QTreeWidgetItem([f"{name}  ·  {command}"])
-                child.setData(0, Qt.UserRole, ("Sequence", str(name)))
-                child.setToolTip(0, json.dumps(value, ensure_ascii=False)[:500])
-                sequence_node.addChild(child)
+        # Sequence navigation uses the visible table; do not duplicate every
+        # command as an invisible Qt item.
         self.tree.expandAll()
         self._refresh_sequence_table()
         self._validate_configuration()
@@ -2290,12 +2328,16 @@ class ConfigPage(QWidget):
         self.sequence_command_filter.addItems(commands)
         self.sequence_command_filter.setCurrentText(selected_command if selected_command in commands else "全部 Command")
         self.sequence_command_filter.blockSignals(False)
+        selected = self._sequence_selection
+        self.sequence_table.setUpdatesEnabled(False)
+        table_blocker = QSignalBlocker(self.sequence_table)
+        selection_blocker = QSignalBlocker(self.sequence_table.selectionModel())
+        old_names = [self.sequence_table.item(row, 0).text() for row in range(self.sequence_table.rowCount())]
+        new_names = [name for _, name, _, _ in rows]
+        reordered = old_names != new_names
         self.sequence_table.setRowCount(len(rows))
         self.sequence_count.setText(f"{len(rows):,} 项")
         for row_index, (position, name, command, value) in enumerate(rows):
-            self.sequence_table.setItem(row_index, 0, QTableWidgetItem(name))
-            self.sequence_table.setItem(row_index, 1, QTableWidgetItem(command))
-            self.sequence_table.setItem(row_index, 2, QTableWidgetItem(f"{position:.6g}"))
             enabled = value.get("Is enabled", value.get("Enable", True))
             if command == "SpaceCharge":
                 block = self.data.get("Space charge", {})
@@ -2303,13 +2345,24 @@ class ConfigPage(QWidget):
             if command == "WakeField":
                 enabled = enabled and self.data.get("Wake field", {}).get("Enabled", True)
             status = "启用" if enabled else "踢关闭（保留输运）" if command == "Bump" else "禁用"
-            self.sequence_table.setItem(row_index, 3, QTableWidgetItem(status))
+            texts = [name, command, f"{position:.6g}", status]
             for column, field in [(4, "Configuration"), (5, "SC length (m)"), (6, "Aperture type"), (7, "Slice set")]:
                 cell = value.get(field, value.get("Length (m)", "") if column == 5 else "")
-                self.sequence_table.setItem(row_index, column, QTableWidgetItem(str(cell)))
+                texts.append(str(cell))
+            for column, text in enumerate(texts):
+                item = self.sequence_table.item(row_index, column)
+                if item is None:
+                    self.sequence_table.setItem(row_index, column, QTableWidgetItem(text))
+                elif item.text() != text:
+                    item.setText(text)
             self.sequence_table.item(row_index, 2).setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.sequence_table.item(row_index, 2).setToolTip(repr(position) + " m")
             self.sequence_table.item(row_index, 0).setData(Qt.UserRole, name)
         self._filter_sequence_table()
+        if reordered:
+            self._restore_sequence_selection(selected)
+        del selection_blocker, table_blocker
+        self.sequence_table.setUpdatesEnabled(True)
 
     def _filter_sequence_table(self, _value: str = "") -> None:
         """Hide rows that do not match the command name or type."""
@@ -2330,6 +2383,46 @@ class ConfigPage(QWidget):
         if item is not None:
             self.editor_tabs.setCurrentIndex(0)
             self._select_sequence_item(str(item.data(Qt.UserRole)))
+
+    def _queue_sequence_selection(self, *_args) -> None:
+        if not self._sequence_selection_pending:
+            self._sequence_selection_pending = True
+            # Mouse selection is complete only after currentCellChanged returns.
+            QTimer.singleShot(0, self._sequence_selection_changed)
+
+    def _sequence_selection_changed(self) -> None:
+        self._sequence_selection_pending = False
+        item = self.sequence_table.item(self.sequence_table.currentRow(), 0)
+        if item is None:
+            return
+        name = str(item.data(Qt.UserRole))
+        if self._selected_path != ("Sequence", name):
+            if not self._select_sequence_item(name, select_row=False):
+                self._restore_sequence_selection(self._sequence_selection)
+                return
+        self._remember_sequence_selection()
+
+    def _remember_sequence_selection(self) -> None:
+        item = self.sequence_table.item(self.sequence_table.currentRow(), 0)
+        current = item.data(Qt.UserRole) if item is not None else None
+        selected = [self.sequence_table.item(index.row(), 0).data(Qt.UserRole) for index in self.sequence_table.selectionModel().selectedRows()]
+        self._sequence_selection = (current, selected)
+
+    def _restore_sequence_selection(self, snapshot) -> None:
+        model = self.sequence_table.selectionModel()
+        blocker = QSignalBlocker(model)
+        table_blocker = QSignalBlocker(self.sequence_table)
+        current, selected = snapshot
+        model.clearSelection()
+        model.setCurrentIndex(self.sequence_table.model().index(-1, -1), QItemSelectionModel.NoUpdate)
+        for row in range(self.sequence_table.rowCount()):
+            name = self.sequence_table.item(row, 0).data(Qt.UserRole)
+            index = self.sequence_table.model().index(row, 0)
+            if name in selected:
+                model.select(index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+            if name == current:
+                model.setCurrentIndex(index, QItemSelectionModel.NoUpdate)
+        del table_blocker, blocker
 
     def _tree_clicked(self, item: QTreeWidgetItem, column: int) -> None:
         if not self._confirm_form_navigation():
@@ -2413,6 +2506,7 @@ class ConfigPage(QWidget):
             box.setObjectName("configGroup")
             section_layout = QFormLayout(box)
             section_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+            section_layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
             section_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
             section_layout.setHorizontalSpacing(8)
             section_layout.setVerticalSpacing(6)
@@ -2458,6 +2552,7 @@ class ConfigPage(QWidget):
         timing_box.setObjectName("timingBox")
         layout = QFormLayout(timing_box)
         layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
         layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
         layout.setHorizontalSpacing(8)
         layout.setVerticalSpacing(6)
@@ -2542,6 +2637,7 @@ class ConfigPage(QWidget):
         box.setObjectName("propertySection")
         layout = QFormLayout(box)
         layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
         layout.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setHorizontalSpacing(8)
@@ -2583,6 +2679,7 @@ class ConfigPage(QWidget):
                 box = QGroupBox(group)
                 layout = QFormLayout(box)
                 layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+                layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
                 layout.setSizeConstraint(QLayout.SetMinimumSize)
                 twiss_layouts[group] = layout
                 self.form_layout.addRow(box)
@@ -2692,6 +2789,7 @@ class ConfigPage(QWidget):
         """Render Injection and its bunches as structured controls, not raw JSON."""
         requested_bunch = self._active_bunch_key
         self._clear_form()
+        target = deepcopy(target)
         self._selected_mapping = target
         self._injection_pending = pending
         self.form_title.setText(title)
@@ -2740,23 +2838,26 @@ class ConfigPage(QWidget):
             self._bunch_selector.setCurrentText(self._active_bunch_key)
         self._bunch_selector.currentTextChanged.connect(self._select_bunch)
         selector_row.addWidget(self._bunch_selector, 1)
+        bunch_layout.addLayout(selector_row)
+        actions_row = QHBoxLayout()
         add = button("添加")
         add.setToolTip("添加一个默认 bunch，并使 Harmonic Number 与 bunch 数保持一致。")
         add.clicked.connect(self.add_bunch)
-        selector_row.addWidget(add)
+        actions_row.addWidget(add)
         copy_button = button("复制")
         copy_button.setToolTip("复制当前 bunch 的参数。")
         copy_button.clicked.connect(self.copy_bunch)
-        selector_row.addWidget(copy_button)
+        actions_row.addWidget(copy_button)
         delete = button("删除")
         delete.setToolTip("删除当前 bunch；至少保留一个 bunch。")
         delete.clicked.connect(self.delete_bunch)
         delete.setEnabled(len(keys) > 1)
-        selector_row.addWidget(delete)
-        bunch_layout.addLayout(selector_row)
+        actions_row.addWidget(delete)
+        bunch_layout.addLayout(actions_row)
         if self._active_bunch_key and isinstance(target.get(self._active_bunch_key), dict):
             fields = QFormLayout()
             fields.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+            fields.setRowWrapPolicy(QFormLayout.WrapLongRows)
             fields.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
             fields.setHorizontalSpacing(8)
             fields.setVerticalSpacing(6)
@@ -2772,6 +2873,7 @@ class ConfigPage(QWidget):
                     offset_box = QGroupBox(str(key))
                     offset_layout = QFormLayout(offset_box)
                     offset_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+                    offset_layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
                     offset_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
                     for child_key, child_value in value.items():
                         field = self._make_field(str(child_key), child_value)
@@ -2853,8 +2955,13 @@ class ConfigPage(QWidget):
     def _select_bunch(self, key: str) -> None:
         if not key or key == self._active_bunch_key:
             return
+        if not self._guard_json_draft():
+            blocker = QSignalBlocker(self._bunch_selector)
+            self._bunch_selector.setCurrentText(self._active_bunch_key or "")
+            del blocker
+            return
         try:
-            self._write_bunch_values(self._selected_mapping)
+            self._capture_injection_draft(self._selected_mapping)
         except ValueError as exc:
             QMessageBox.warning(self, "字段无效", str(exc))
             if self._bunch_selector:
@@ -2863,6 +2970,8 @@ class ConfigPage(QWidget):
         self._rebuild_injection_form(key)
 
     def add_bunch(self) -> None:
+        if not self._guard_json_draft():
+            return
         target = self._selected_mapping
         if not isinstance(target, dict):
             return
@@ -2871,10 +2980,12 @@ class ConfigPage(QWidget):
         self._normalize_injection(target)
         self._add_default_bunch(target)
         self._normalize_injection(target)
-        self._data_dirty = True
+        self._mark_form_dirty()
         self._rebuild_injection_form(f"bunch{len(self._injection_keys(target)) - 1}")
 
     def copy_bunch(self) -> None:
+        if not self._guard_json_draft():
+            return
         target = self._selected_mapping
         key = self._active_bunch_key
         if not isinstance(target, dict) or not key or not isinstance(target.get(key), dict):
@@ -2886,10 +2997,12 @@ class ConfigPage(QWidget):
         target[new_key] = deepcopy(target[key])
         target[new_key]["Harmonic ID of this bunch"] = len(self._injection_keys(target)) - 1
         self._normalize_injection(target)
-        self._data_dirty = True
+        self._mark_form_dirty()
         self._rebuild_injection_form(new_key)
 
     def delete_bunch(self) -> None:
+        if not self._guard_json_draft():
+            return
         target = self._selected_mapping
         key = self._active_bunch_key
         if not isinstance(target, dict) or not key or len(self._injection_keys(target)) <= 1:
@@ -2904,7 +3017,7 @@ class ConfigPage(QWidget):
                 if isinstance(identifier, int) and identifier > removed_id:
                     target[other]["Harmonic ID of this bunch"] = identifier - 1
         self._normalize_injection(target)
-        self._data_dirty = True
+        self._mark_form_dirty()
         self._rebuild_injection_form("bunch0")
 
     @staticmethod
@@ -3062,11 +3175,20 @@ class ConfigPage(QWidget):
 
     def _commit_bunch_fields(self, target):
         try:
-            self._write_bunch_values(target)
+            self._capture_injection_draft(target)
             return True
         except ValueError as exc:
             QMessageBox.warning(self, "粒子参数无效", str(exc))
             return False
+
+    def _capture_injection_draft(self, target: dict) -> None:
+        """Capture visible fields atomically without validating other bunch drafts."""
+        candidate = deepcopy(target)
+        for key, field in self._form_fields.items():
+            candidate[key] = self._read_field_value(key, field, candidate.get(key, self._field_defaults.get(key)))
+        self._write_bunch_values(candidate)
+        target.clear()
+        target.update(candidate)
 
     def _field_label(self, key: str, value: object) -> QLabel:
         short = {
@@ -3326,6 +3448,291 @@ class ConfigPage(QWidget):
             return
         self._form_dirty = True
         self._set_sync_status("表单有未确认修改", "warning")
+        if not self._property_tools_pending:
+            self._property_tools_pending = True
+            QTimer.singleShot(0, self._refresh_property_tools)
+
+    def _property_fields(self):
+        fields = {(str(key), ): field for key, field in self._form_fields.items() if key != "Command"}
+        fields.update({("Timing", key): field for key, field in self._timing_fields.items()})
+        if self._active_bunch_key:
+            fields.update({
+                (self._active_bunch_key, key, *(() if child is None else (child, ))): field
+                for (key, child), field in self._bunch_fields.items()
+            })
+        fields.update({("Space charge", key): field for key, field in self._space_charge_coverage_fields.items()})
+        if self._space_charge_enabled_field is not None:
+            fields[("Space charge", "Enabled")] = self._space_charge_enabled_field
+        if self._active_space_charge_configuration:
+            fields.update({
+                ("Space charge", "Configurations", self._active_space_charge_configuration, key): field
+                for key, field in self._space_charge_fields.items()
+            })
+        if self._selected_path == ("__root__", "Wake field"):
+            fields[("Wake field", )] = self._wake_configuration_editor
+        return fields
+
+    def _property_default(self, path, field):
+        from PASS.gui.parameters import SchemaEditor
+        from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig
+        from PASS.para.schema.main import MainConfig
+        from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig
+        from PASS.validation.rules import MODELS
+        parent = field.parentWidget()
+        while parent is not None and parent is not self.form_body:
+            if isinstance(parent, SchemaEditor):
+                for name, info in parent.model.model_fields.items():
+                    key = info.alias or name
+                    if parent.fields.get(key) is field:
+                        return (not info.is_required(), info.get_default(call_default_factory=True) if not info.is_required() else None)
+            parent = parent.parentWidget()
+        command = (self._selected_mapping or {}).get("Command")
+        model = InjectionItem if command == "Injection" else MODELS.get(command) if command else MainConfig
+        if path and re.fullmatch(r"bunch\d+", path[0]):
+            model = OffsetConfig if len(path) > 2 else BunchConfig
+        elif path and path[0] == "Space charge":
+            model = SpaceChargeResourceConfig if len(path) == 4 else SpaceChargeConfig
+        elif path and path[0] == "Timing":
+            from PASS.para.schema.main import TimingConfig
+            model = TimingConfig
+        if model is not None:
+            for name, info in model.model_fields.items():
+                if (info.alias or name) == path[-1] and not info.is_required():
+                    value = info.get_default(call_default_factory=True)
+                    if hasattr(value, "model_dump"):
+                        value = value.model_dump(by_alias=True)
+                    return True, value
+        return False, None
+
+    def _refresh_property_tools(self, *_args) -> None:
+        self._property_tools_pending = False
+        if not hasattr(self, "property_matches"):
+            return
+        previous = self.property_matches.currentText()
+        needle = self.property_search.text().strip().casefold()
+        self._property_matches = []
+        seen = set()
+        for path, field in self._property_fields().items():
+            for nested_path, nested in named_fields(field, path):
+                if id(nested) in seen or not nested.isVisibleTo(self.form_body):
+                    continue
+                seen.add(id(nested))
+                label = " / ".join(nested_path)
+                if needle and needle not in (label + " " + nested.toolTip()).casefold():
+                    continue
+                self._property_matches.append((nested_path, nested))
+        blocker = QSignalBlocker(self.property_matches)
+        self.property_matches.clear()
+        self.property_matches.addItems([" / ".join(path) for path, _ in self._property_matches])
+        index = self.property_matches.findText(previous)
+        self.property_matches.setCurrentIndex(max(0, index) if self._property_matches else -1)
+        del blocker
+        self.property_matches.setToolTip(f"{len(self._property_matches)} 个匹配字段；选择后定位。全部参数仍可滚动访问。")
+        self._update_property_default_action()
+
+    def _update_property_default_action(self, *_args) -> None:
+        index = self.property_matches.currentIndex()
+        available = False
+        if 0 <= index < len(self._property_matches):
+            path, field = self._property_matches[index]
+            available = field.isEnabled() and not (isinstance(field, QLineEdit) and field.isReadOnly()) and self._property_default(path, field)[0]
+        self.property_default_button.setEnabled(available)
+
+    def _locate_property(self, *_args) -> None:
+        index = self.property_matches.currentIndex()
+        if 0 <= index < len(self._property_matches):
+            _, field = self._property_matches[index]
+            self.form_scroll.ensureWidgetVisible(field)
+            focus_parameter(field, ())
+
+    def _restore_property_default(self) -> None:
+        index = self.property_matches.currentIndex()
+        if not 0 <= index < len(self._property_matches):
+            return
+        path, field = self._property_matches[index]
+        available, value = self._property_default(path, field)
+        if not available or not field.isEnabled():
+            return
+        from PASS.gui.parameters import ScalarField, SchemaEditor
+        schema_info = None
+        parent = field.parentWidget()
+        while parent is not None and parent is not self.form_body:
+            if isinstance(parent, SchemaEditor):
+                schema_info = next((info for name, info in parent.model.model_fields.items() if parent.fields.get(info.alias or name) is field), None)
+                if schema_info is not None:
+                    break
+            parent = parent.parentWidget()
+        if schema_info is not None:
+            replacement = make_editor(schema_info.annotation, value, path[-1], self.base_dir)
+        elif isinstance(field, ScalarField):
+            replacement = make_editor(field.annotation, value, field.label, self.base_dir)
+        elif isinstance(field, SchemaEditor):
+            replacement = make_editor(field.model, value, path[-1], self.base_dir)
+        else:
+            replacement = self._make_field(path[-1], value)
+        restore_field(field, capture_field(replacement))
+        replacement.deleteLater()
+        self._mark_form_dirty()
+        self._locate_property()
+        self._refresh_property_tools()
+
+    def pending_form_changes(self):
+        selected = self._selected_path
+        command = (self._selected_mapping or {}).get("Command")
+        if selected and selected[0] == "Sequence":
+            before = deepcopy(self.data.get("Sequence", {}).get(selected[1], {}))
+        elif self._pending_command:
+            before = {}
+        else:
+            before = deepcopy(self.data)
+        after = deepcopy(self._selected_mapping if command == "Injection" else before)
+        if self._configuration_draft is not None:
+            after = deepcopy(self._configuration_draft)
+        for path, field in self._property_fields().items():
+            target = after
+            for part in path[:-1]:
+                target = target.setdefault(part, {})
+            target[path[-1]] = draft_value(field, self._read_field_value, path[-1], target.get(path[-1]))
+        if self._name_field is not None and selected and selected[0] == "Sequence":
+            before["名称"] = selected[1]
+            after["名称"] = self._name_field.text()
+        if self._space_charge_name_field is not None:
+            before["当前配置名称"] = self._active_space_charge_configuration
+            after["当前配置名称"] = self._space_charge_name_field.text()
+        return value_changes(before, after)
+
+    def _show_property_changes(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("待应用属性差异")
+        dialog.resize(850, 480)
+        layout = QVBoxLayout(dialog)
+        changes = self.pending_form_changes()
+        layout.addWidget(QLabel(f"{len(changes)} 处差异；应用修改后才写入当前输入。" if changes else "当前属性与已应用参数一致。"))
+        table = QTableWidget(len(changes), 3)
+        table.setHorizontalHeaderLabels(["参数", "已应用", "待应用"])
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        for row, (path, before, after) in enumerate(changes):
+            for column, value in enumerate((" / ".join(path), json.dumps(before, ensure_ascii=False), json.dumps(after, ensure_ascii=False))):
+                item = QTableWidgetItem(value)
+                item.setToolTip(value)
+                table.setItem(row, column, item)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        layout.addWidget(table)
+        close = button("关闭")
+        close.clicked.connect(dialog.accept)
+        layout.addWidget(close)
+        dialog.exec()
+
+    def capture_draft_state(self) -> dict:
+        """Return JSON-safe recovery state without applying or validating edits."""
+        extras = {}
+        for name in ("_name_field", "_space_charge_name_field", "_space_charge_extent_mode"):
+            field = getattr(self, name, None)
+            if field is not None and (name != "_space_charge_extent_mode" or self._space_charge_fields):
+                extras[name] = capture_field(field)
+        auxiliary = {}
+        for group in ("_optics_fields", "_madx_fields"):
+            auxiliary[group] = {key: capture_field(field) for key, field in getattr(self, group).items() if isinstance(field, QWidget)}
+        return {
+            "version": 1,
+            "data": deepcopy(self.data),
+            "path": self.path,
+            "base_dir": str(self.base_dir),
+            "recipes": deepcopy(self.recipes),
+            "history": deepcopy(self._history),
+            "history_index": self._history_index,
+            "selected_path": list(self._selected_path) if self._selected_path else None,
+            "selected_mapping": deepcopy(self._selected_mapping),
+            "configuration_draft": deepcopy(self._configuration_draft),
+            "configuration_base": deepcopy(self._configuration_base),
+            "configuration_renames": deepcopy(self._configuration_renames),
+            "pending_command": self._pending_command,
+            "active_bunch": self._active_bunch_key,
+            "active_space_charge": self._active_space_charge_configuration,
+            "form_title": self.form_title.text(),
+            "editor_text": self.editor.toPlainText(),
+            "editor_tab": self.editor_tabs.currentIndex(),
+            "editor_stale": self._editor_stale,
+            "json_dirty": self._json_dirty,
+            "form_dirty": self._form_dirty,
+            "data_dirty": self._data_dirty,
+            "fields": [{
+                "path": list(path),
+                "state": capture_field(field)
+            } for path, field in self._property_fields().items()],
+            "extras": extras,
+            "auxiliary": auxiliary,
+            "optics_mode": self._optics_mode,
+            "madx_source_kind": self._madx_fields.get("source_kind"),
+        }
+
+    def restore_draft_state(self, state: dict) -> None:
+        """Restore the editor draft, including invalid source and field text."""
+        if state.get("version") != 1 or not isinstance(state.get("data"), dict):
+            raise ValueError("不支持的编辑草稿格式。")
+        self.data = deepcopy(state["data"])
+        self.path = str(state.get("path", ""))
+        self.base_dir = Path(state.get("base_dir", Path.cwd()))
+        self.recipes = deepcopy(state.get("recipes", []))
+        self._json_dirty = self._form_dirty = False
+        self._clear_form()
+        self._history_restoring = True
+        try:
+            self._sync_editor()
+        finally:
+            self._history_restoring = False
+        self._refresh_tree()
+        selected = tuple(state["selected_path"]) if state.get("selected_path") else None
+        pending = state.get("pending_command")
+        if selected and selected[0] == "Sequence" or pending:
+            mapping = deepcopy(state.get("selected_mapping"))
+            if isinstance(mapping, dict):
+                self._active_bunch_key = state.get("active_bunch")
+                self._populate_form(state.get("form_title", "恢复的参数草稿"), mapping, pending=bool(pending), name_value=selected[1] if selected else None)
+                self._selected_path = selected
+                self._pending_command = pending
+                self._update_action_visibility()
+        elif selected == ("__root__", "Space charge"):
+            self._populate_space_charge_configuration(state.get("active_space_charge"), draft=deepcopy(state.get("configuration_draft")))
+        elif selected == ("__root__", "Wake field"):
+            self._populate_wake_configuration(deepcopy(state.get("configuration_draft")))
+        elif selected == ("__root__", "Timing"):
+            self._populate_timing_configuration()
+        elif selected:
+            self._populate_root_configuration()
+        elif state.get("optics_mode"):
+            self.configure_optics_generator(state["optics_mode"])
+        elif state.get("madx_source_kind"):
+            self.configure_madx_import(state["madx_source_kind"])
+        if self._configuration_draft is not None:
+            self._configuration_base = deepcopy(state.get("configuration_base") or self.data)
+            self._configuration_renames = deepcopy(state.get("configuration_renames", {}))
+        for name, value in state.get("extras", {}).items():
+            field = getattr(self, name, None)
+            if field is not None:
+                restore_field(field, value)
+        fields = self._property_fields()
+        for item in state.get("fields", []):
+            field = fields.get(tuple(item["path"]))
+            if field is not None:
+                restore_field(field, item["state"])
+        for name, entries in state.get("auxiliary", {}).items():
+            fields = getattr(self, name, {})
+            for key, value in entries.items():
+                if isinstance(fields.get(key), QWidget):
+                    restore_field(fields[key], value)
+        self._editor_syncing = True
+        self.editor.setPlainText(state.get("editor_text", ""))
+        self._editor_syncing = False
+        self._json_dirty = bool(state.get("json_dirty"))
+        self._editor_stale = bool(state.get("editor_stale"))
+        self._form_dirty = bool(state.get("form_dirty"))
+        self._data_dirty = bool(state.get("data_dirty"))
+        self._history = deepcopy(state.get("history") or [self.data])
+        self._history_index = max(0, min(int(state.get("history_index", 0)), len(self._history) - 1))
+        self.editor_tabs.setCurrentIndex(int(state.get("editor_tab", 0)))
+        self._refresh_property_tools()
+        self._set_sync_status("已恢复未保存草稿；请检查后应用或保存", "warning")
 
     @staticmethod
     def _read_field_value(key: str, field: QWidget, old_value: object) -> object:
@@ -3474,38 +3881,28 @@ class ConfigPage(QWidget):
             return
         if self._selected_mapping is None:
             return
+        if self._selected_path and self._selected_path[0] == "Sequence":
+            self._apply_sequence_form()
+            return
         previous_data = deepcopy(self.data)
         previous_path = self._selected_path
-        if self._name_field is not None and self._selected_path and self._selected_path[0] == "Sequence":
-            new_name = self._name_field.text().strip()
-            old_name = self._selected_path[1]
-            sequence = self.data.get("Sequence")
-            if not new_name:
-                QMessageBox.warning(self, "名称无效", "名称不能为空。")
-                return
-            if isinstance(sequence, dict) and new_name != old_name and new_name in sequence:
-                QMessageBox.warning(self, "名称重复", f"Sequence 中已存在 {new_name}。")
-                return
-            if isinstance(sequence, dict) and old_name in sequence and new_name != old_name:
-                sequence[new_name] = sequence.pop(old_name)
-                self._selected_path = ("Sequence", new_name)
         try:
             if self._selected_path == ("__root__", "Space charge"):
                 active_space_charge_name = self._write_space_charge_configuration()
+                self.data = self._merge_configuration_draft()
             elif self._selected_path == ("__root__", "Wake field"):
                 active_space_charge_name = None
                 self._write_wake_configuration()
+                self.data = self._merge_configuration_draft()
             else:
                 active_space_charge_name = None
                 self._write_form_values(self._selected_mapping)
         except ValueError as exc:
-            # A bad later field must not leave earlier fields or a rename applied.
+            # A bad later field must not leave earlier fields applied.
             self.data.clear()
             self.data.update(previous_data)
             self._selected_path = previous_path
-            if previous_path and previous_path[0] == "Sequence":
-                self._selected_mapping = self.data["Sequence"][previous_path[1]]
-            elif previous_path and previous_path[1]:
+            if previous_path and previous_path[1]:
                 self._selected_mapping = self.data.get(previous_path[1])
             else:
                 self._selected_mapping = self.data
@@ -3514,9 +3911,7 @@ class ConfigPage(QWidget):
         self._form_dirty = False
         self._sync_editor()
         self._refresh_tree()
-        if self._selected_path and self._selected_path[0] == "Sequence":
-            self._select_sequence_item(self._selected_path[1])
-        elif self._selected_path == ("__root__", "Space charge"):
+        if self._selected_path == ("__root__", "Space charge"):
             self._populate_space_charge_configuration(active_space_charge_name)
         elif self._selected_path == ("__root__", "Wake field"):
             self._populate_wake_configuration()
@@ -3524,8 +3919,46 @@ class ConfigPage(QWidget):
         self._data_dirty = True
         self._set_sync_status("表单修改已确认，尚未保存", "warning")
 
+    def _apply_sequence_form(self) -> None:
+        """Validate one command before replacing it, preserving execution order."""
+        sequence = self.data.get("Sequence", {})
+        old_name = self._selected_path[1]
+        if old_name not in sequence:
+            return
+        new_name = self._name_field.text().strip() if self._name_field is not None else old_name
+        if not new_name or (new_name != old_name and new_name in sequence):
+            QMessageBox.warning(self, "名称无效", "名称不能为空或与其他 command 重复。")
+            return
+        candidate = deepcopy(self._selected_mapping if sequence[old_name].get("Command") == "Injection" else sequence[old_name])
+        try:
+            self._write_form_values(candidate)
+        except ValueError as exc:
+            QMessageBox.warning(self, "字段无效", str(exc))
+            return
+        self._form_dirty = False
+        if candidate == sequence[old_name] and new_name == old_name:
+            self._set_sync_status("参数未变化", "ok")
+            self.changed.emit()
+            return
+        if new_name == old_name:
+            sequence[old_name] = candidate
+        else:
+            renamed = {new_name if name == old_name else name: candidate if name == old_name else value for name, value in sequence.items()}
+            sequence.clear()
+            sequence.update(renamed)
+        self._selected_mapping = candidate
+        self._selected_path = ("Sequence", new_name)
+        self._data_dirty = True
+        self._sync_editor(defer=True)
+        self._refresh_tree()
+        self._select_sequence_item(new_name)
+        self.file_changed.emit(self.path)
+        self._set_sync_status("表单修改已确认，尚未保存", "warning")
+
     def duplicate_selected(self) -> None:
         if not self._selected_path or self._selected_path[0] != "Sequence" or not self._selected_path[1]:
+            return
+        if not self._confirm_form_navigation():
             return
         sequence = self.data.get("Sequence")
         if not isinstance(sequence, dict):
@@ -3544,6 +3977,7 @@ class ConfigPage(QWidget):
         self._data_dirty = True
         self._refresh_tree()
         self._select_sequence_item(name)
+        self.file_changed.emit(self.path)
 
     def delete_selected(self) -> None:
         if not self._selected_path or self._selected_path[0] != "Sequence" or not self._selected_path[1]:
@@ -3554,6 +3988,8 @@ class ConfigPage(QWidget):
         name = self._selected_path[1]
         answer = QMessageBox.question(self, "删除 command", f"确定删除 {name}？")
         if answer != QMessageBox.Yes:
+            return
+        if not self._confirm_form_navigation():
             return
         sequence.pop(name, None)
         self._sync_editor()
@@ -3579,6 +4015,8 @@ class ConfigPage(QWidget):
         answer = QMessageBox.question(self, "删除 command", f"确定删除选中的 {len(names)} 个 command？")
         if answer != QMessageBox.Yes:
             return
+        if not self._confirm_form_navigation():
+            return
         for name in names:
             sequence.pop(name, None)
         self._sync_editor()
@@ -3588,9 +4026,16 @@ class ConfigPage(QWidget):
         self.file_changed.emit(self.path)
 
     def _clear_form(self, hint: str = "在配置概览中选择配置组或 Sequence command。") -> None:
+        self._property_matches = []
+        if hasattr(self, "property_matches"):
+            self.property_matches.clear()
+            QTimer.singleShot(0, self._refresh_property_tools)
         while self.form_layout.rowCount():
             self.form_layout.removeRow(0)
         self._selected_mapping = None
+        self._configuration_draft = None
+        self._configuration_base = None
+        self._configuration_renames = {}
         self._selected_path = None
         self._form_fields = {}
         self._field_model = None
@@ -3630,6 +4075,8 @@ class ConfigPage(QWidget):
 
     def _confirm_form_navigation(self) -> bool:
         """Ask before replacing an unconfirmed property form with another one."""
+        if not self._guard_json_draft():
+            return False
         if not self._form_dirty:
             return True
         answer = QMessageBox.question(
@@ -3645,29 +4092,34 @@ class ConfigPage(QWidget):
         self._set_sync_status("已放弃未确认的表单修改", "warning")
         return True
 
-    def _sync_editor(self) -> None:
+    def _sync_editor(self, *, defer: bool = False) -> None:
         self._record_history()
+        if self._json_dirty:
+            return
+        if defer and self.editor_tabs.currentIndex() != 1:
+            self._editor_stale = True
+            return
         self._editor_syncing = True
         self.editor.setPlainText(json.dumps(self.data, indent=4, ensure_ascii=False))
         self._editor_syncing = False
+        self._editor_stale = False
         self._json_dirty = False
 
-    def _select_sequence_item(self, name: str) -> None:
+    def _select_sequence_item(self, name: str, *, select_row: bool = True) -> bool:
         if not self._confirm_form_navigation():
-            return
+            return False
         sequence = self.data.get("Sequence")
         target = sequence.get(name) if isinstance(sequence, dict) else None
         if not isinstance(target, dict):
-            return
+            return False
         self._populate_form(f"Sequence · {name}", target, name_value=name)
         self._selected_path = ("Sequence", name)
         self._pending_command = None
         self._update_action_visibility()
-        for row in range(self.sequence_table.rowCount()):
-            item = self.sequence_table.item(row, 0)
-            if item is not None and item.data(Qt.UserRole) == name:
-                self.sequence_table.selectRow(row)
-                break
+        if select_row:
+            self._restore_sequence_selection((name, [name]))
+            self._remember_sequence_selection()
+        return True
 
     def _select_top_level_item(self, key: str, child_key: str | None = None) -> None:
         iterator = QTreeWidgetItemIterator(self.tree)
@@ -3678,365 +4130,6 @@ class ConfigPage(QWidget):
                 self._tree_clicked(item, 0)
                 return
             iterator += 1
-
-
-class RunPage(QWidget):
-
-    def __init__(self, config: ConfigPage) -> None:
-        super().__init__()
-        self.config = config
-        self.controller = None
-        self.process: QProcess | None = None
-        self.started_at = 0.0
-        self._stopped = False
-        self._input_project = None
-        self._refreshing = False
-        self._log_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-        self._progress_tail = ""
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 10, 12, 10)
-        header = QHBoxLayout()
-        header.addWidget(QLabel("运行"))
-        self.run_path = QLabel("使用当前输入")
-        self.run_path.setObjectName("muted")
-        header.addWidget(self.run_path, 1)
-        self.start_button = button("开始运行", "primary")
-        self.start_button.clicked.connect(self.start_run)
-        self.stop_button = button("停止")
-        self.stop_button.setEnabled(False)
-        self.stop_button.clicked.connect(self.stop_run)
-        header.addWidget(self.start_button)
-        header.addWidget(self.stop_button)
-        root.addLayout(header)
-        inputs = QHBoxLayout()
-        inputs.addWidget(QLabel("Beam 0"))
-        self.beam0 = PropertyComboBox()
-        self.beam1 = PropertyComboBox()
-        inputs.addWidget(self.beam0, 1)
-        inputs.addWidget(QLabel("Beam 1（双束运行，可选）"))
-        inputs.addWidget(self.beam1, 1)
-        self.beam0.currentIndexChanged.connect(self._settings_changed)
-        self.beam1.currentIndexChanged.connect(self._settings_changed)
-        root.addLayout(inputs)
-        output = QHBoxLayout()
-        output.addWidget(QLabel("输出目录"))
-        self.output_directory = QLineEdit()
-        self.output_directory.setPlaceholderText("output（相对于 JSON / 项目所在目录）")
-        self.output_directory.textChanged.connect(self._settings_changed)
-        output.addWidget(self.output_directory, 1)
-        browse = button("选择目录…")
-        browse.clicked.connect(self._choose_output)
-        output.addWidget(browse)
-        root.addLayout(output)
-        hint = QLabel("运行使用当前编辑内容的固定快照；继续编辑不会改变已经启动的任务。")
-        hint.setObjectName("muted")
-        root.addWidget(hint)
-        self.progress = BusyProgressBar()
-        self.progress.hide()
-        root.addWidget(self.progress)
-        stats = QHBoxLayout()
-        self.elapsed = QLabel("耗时：--")
-        self.eta = QLabel("预计剩余：等待日志")
-        self.state = QLabel("空闲")
-        for widget in (self.state, self.elapsed, self.eta):
-            widget.setObjectName("runStat")
-            stats.addWidget(widget)
-        stats.addStretch()
-        root.addLayout(stats)
-        self.log = QPlainTextEdit()
-        self.log.setReadOnly(True)
-        self.log.setMaximumBlockCount(20000)
-        self.log.setObjectName("codeEditor")
-        self.log.setFont(code_font())
-        root.addWidget(self.log, 1)
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self._update_elapsed)
-        self.refresh_inputs()
-
-    def refresh_inputs(self) -> None:
-        owner = self.controller
-        project = owner.project if owner and hasattr(owner, "project") else None
-        changed = (project.id if project else None) != self._input_project
-        previous = self.input_settings()
-        settings = project.run_settings if project and changed else previous
-        self._refreshing = True
-        self.beam0.clear()
-        self.beam1.clear()
-        self.beam1.addItem("不使用第二束", "")
-        if project:
-            for entry in project.configs.values():
-                self.beam0.addItem(entry.name + ".json", entry.id)
-                self.beam1.addItem(entry.name + ".json", entry.id)
-            first = settings.get("beam0", project.active_config_id)
-            self.beam0.setCurrentIndex(max(0, self.beam0.findData(first)))
-            self.beam1.setCurrentIndex(max(0, self.beam1.findData(settings.get("beam1", ""))))
-        else:
-            self.beam0.addItem("当前 JSON", "")
-        self.beam0.setEnabled(project is not None)
-        self.beam1.setEnabled(project is not None)
-        if changed or not self.output_directory.text():
-            self.output_directory.setText(settings.get("output_directory", "output"))
-        self._input_project = project.id if project else None
-        self._refreshing = False
-
-    def _settings_changed(self, *_args):
-        if self._refreshing:
-            return
-        owner = self.controller
-        if owner and getattr(owner, "project", None):
-            owner.project.run_settings = self.input_settings()
-            owner.project.dirty = True
-            owner._update_document_ui()
-
-    def input_settings(self) -> dict:
-        return {
-            "beam0": self.beam0.currentData() or "",
-            "beam1": self.beam1.currentData() or "",
-            "output_directory": self.output_directory.text() or "output"
-        }
-
-    def selected_input_ids(self) -> list[str]:
-        values = [self.beam0.currentData()]
-        if self.beam1.currentData():
-            values.append(self.beam1.currentData())
-        if not values[0] or len(set(values)) != len(values):
-            raise ValueError("请选择有效输入；双束运行使用两份独立 JSON。")
-        return values
-
-    def _choose_output(self):
-        directory = QFileDialog.getExistingDirectory(self, "选择运行输出目录", self.output_directory.text())
-        if directory:
-            self.output_directory.setText(directory)
-
-    def start_run(self) -> None:
-        from PASS.gui.project import Project, atomic_write, json_bytes
-        from uuid import uuid4
-        owner = self.controller
-        if self.process and self.process.state() != QProcess.NotRunning:
-            return
-        if owner and not owner._commit_current():
-            return
-        if not owner and not self.config.commit_pending():
-            return
-        temporary = None
-        try:
-            project = owner.project if owner else None
-            if project:
-                ids = self.selected_input_ids()
-                base = project.path.parent if project.path else Path.cwd()
-                from PASS.validation.rules import validate_documents
-                report = validate_documents([(project.configs[cid].name, project.configs[cid].data, project.config_base) for cid in ids])
-                if not report.ok:
-                    raise ValueError(report.text())
-            else:
-                issues = self.config._validate_configuration(full=True)
-                if issues:
-                    raise ValueError("\n".join(issues))
-                temporary = project = Project()
-                ids = [project.add_config("beam0", self.config.data, self.config.base_dir)]
-                base = self.config.base_dir
-            output = Path(self.output_directory.text() or "output").expanduser()
-            if not output.is_absolute():
-                output = base / output
-            output = output.resolve()
-            snapshot = output / "input_snapshots" / uuid4().hex
-            paths = project.materialize(ids, snapshot, output)
-            atomic_write(
-                snapshot / "run.json",
-                json_bytes({
-                    "pass_version": __version__,
-                    "input_ids": ids,
-                    "inputs": [p.name for p in paths],
-                    "output_directory": str(output)
-                }))
-        except (OSError, ValueError) as exc:
-            QMessageBox.warning(self, "无法运行", str(exc))
-            return
-        finally:
-            if temporary:
-                temporary.close()
-        self.process = QProcess(self)
-        self.process.setProgram(sys.executable)
-        self.process.setArguments(["-u", "-X", "utf8", "-m", "PASS.gui.runner", *map(str, paths)])
-        self.process.setWorkingDirectory(str(Path(__file__).resolve().parents[2]))
-        self.process.setProcessChannelMode(QProcess.MergedChannels)
-        self.process.readyReadStandardOutput.connect(self._read_output)
-        self.process.finished.connect(self._finished)
-        self.process.errorOccurred.connect(self._process_error)
-        self.log.clear()
-        self._log_decoder.reset()
-        self._progress_tail = ""
-        self.log.appendPlainText(f"输入快照：{snapshot}\n输出目录：{output}\n\n")
-        self.run_path.setText(" + ".join(project.configs[cid].name + ".json" for cid in ids))
-        self.started_at = time.monotonic()
-        self._stopped = False
-        self.start_button.setEnabled(False)
-        self.stop_button.setEnabled(True)
-        self.progress.show()
-        self.state.setText("运行中")
-        self.timer.start(1000)
-        self.process.start()
-
-    def _process_error(self, error):
-        if self.process:
-            self.log.appendPlainText(self.process.errorString())
-        if error == QProcess.FailedToStart:
-            self._finished(-1, QProcess.CrashExit)
-
-    def _update_elapsed(self):
-        self.elapsed.setText(f"耗时：{time.monotonic() - self.started_at:.1f} s")
-
-    def _read_output(self) -> None:
-        if self.process:
-            self._append_output(self._log_decoder.decode(bytes(self.process.readAllStandardOutput())))
-
-    def _append_output(self, output: str) -> None:
-        if not output:
-            return
-        self.log.moveCursor(QTextCursor.End)
-        self.log.insertPlainText(output)
-        self._progress_tail = (self._progress_tail + output)[-4096:]
-        turns = re.findall(r"\b[Tt]urn[:\s]+(\d+)(?:/(\d+))?", self._progress_tail)
-        if turns:
-            current, total = turns[-1]
-            self.state.setText(f"运行中 · turn {current}" + (f"/{total}" if total else ""))
-        estimates = re.findall(r"\bETA:\s*([^|\r\n]+)", self._progress_tail)
-        if estimates:
-            self.eta.setText("预计剩余：" + estimates[-1].strip())
-
-    def _finished(self, code: int, status: QProcess.ExitStatus) -> None:
-        self._read_output()
-        self._append_output(self._log_decoder.decode(b"", final=True))
-        self.timer.stop()
-        self.progress.hide()
-        self.start_button.setEnabled(True)
-        self.stop_button.setEnabled(False)
-        self.state.setText("已停止" if self._stopped else "完成" if code == 0 and status == QProcess.NormalExit else f"失败（退出码 {code}）")
-        self._update_elapsed()
-        self.eta.setText("预计剩余：--")
-
-    def stop_run(self) -> None:
-        if self.process and self.process.state() != QProcess.NotRunning:
-            self._stopped = True
-            self.process.kill()
-
-
-class PlotPage(QWidget):
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.columns: dict[str, list[float]] = {}
-        self.result_files = {}
-        root = QVBoxLayout(self)
-        root.setContentsMargins(18, 18, 18, 18)
-        header = QHBoxLayout()
-        header.addWidget(QLabel("绘图"))
-        header.addStretch()
-        load = button("加载 CSV / TFS / HDF5")
-        load.clicked.connect(self.load_data)
-        header.addWidget(load)
-        root.addLayout(header)
-        self.result_selector = QComboBox()
-        self.result_selector.currentIndexChanged.connect(self._select_result)
-        root.addWidget(self.result_selector)
-        self.canvas = PlotCanvas()
-        controls = QHBoxLayout()
-        controls.addWidget(QLabel("X 列"))
-        self.x_column_box = QComboBox()
-        self.x_column_box.currentTextChanged.connect(self._select_series)
-        controls.addWidget(self.x_column_box)
-        controls.addWidget(QLabel("Y 列"))
-        self.column_box = QComboBox()
-        self.column_box.currentTextChanged.connect(self._select_series)
-        controls.addWidget(self.column_box)
-        fit = button("适配视图")
-        fit.setToolTip("恢复到当前数据的完整范围")
-        fit.clicked.connect(self.canvas.fit_view)
-        controls.addWidget(fit)
-        controls.addWidget(QLabel("滚轮缩放，适配视图恢复完整范围"))
-        controls.addStretch()
-        root.addLayout(controls)
-        filters = QHBoxLayout()
-        self.status_filter = QComboBox()
-        for title, value in (("全部粒子", "all"), ("存活粒子", "alive"), ("已损失粒子", "lost")):
-            self.status_filter.addItem(title, value)
-        self.batch_filter = QComboBox()
-        self.batch_filter.addItem("全部注入批次", None)
-        for field in (self.status_filter, self.batch_filter):
-            field.currentIndexChanged.connect(self._select_series)
-            filters.addWidget(field)
-        root.addLayout(filters)
-        root.addWidget(self.canvas, 1)
-        self.info = QLabel("未加载数据")
-        self.info.setObjectName("muted")
-        self.info.setWordWrap(True)
-        root.addWidget(self.info)
-
-    def load_data(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(self, "加载结果文件", "", "Data files (*.csv *.tfs *.h5 *.hdf5);;All files (*)")
-        if not paths:
-            return
-        try:
-            self.load_paths(paths)
-        except (OSError, ValueError) as exc:
-            QMessageBox.critical(self, "读取失败", str(exc))
-
-    def load_paths(self, paths):
-        from PASS.gui.results import read_result
-        loaded = {str(path): read_result(path) for path in paths}
-        self.result_files.update(loaded)
-        self.result_selector.blockSignals(True)
-        self.result_selector.clear()
-        for path, result in self.result_files.items():
-            identity = " · ".join(f"{k}={result.metadata[k]}" for k in ("BeamId", "BunchId", "Turn") if k in result.metadata)
-            self.result_selector.addItem(Path(path).name + (" · " + identity if identity else ""), path)
-        self.result_selector.setCurrentIndex(self.result_selector.findData(str(paths[0])))
-        self.result_selector.blockSignals(False)
-        self._select_result()
-
-    def _select_result(self, *_args):
-        path = self.result_selector.currentData()
-        if path not in self.result_files:
-            return
-        result = self.result_files[path]
-        self.columns = columns = result.columns
-        self.x_column_box.blockSignals(True)
-        self.column_box.blockSignals(True)
-        self.column_box.clear()
-        self.x_column_box.clear()
-        self.x_column_box.addItems(list(columns))
-        self.column_box.addItems(list(columns))
-        self.x_column_box.setCurrentIndex(0)
-        if self.column_box.count() > 1:
-            self.column_box.setCurrentIndex(1)
-        self.x_column_box.blockSignals(False)
-        self.column_box.blockSignals(False)
-        self.batch_filter.blockSignals(True)
-        self.batch_filter.clear()
-        self.batch_filter.addItem("全部注入批次", None)
-        batches = next((v for k, v in columns.items() if k.casefold() == "injection_batch"), [])
-        for batch in sorted({int(b) for b in batches if math.isfinite(b)}):
-            self.batch_filter.addItem(str(batch), batch)
-        self.batch_filter.setEnabled(bool(batches))
-        self.batch_filter.blockSignals(False)
-        self.status_filter.setEnabled(any(k.casefold() == "tag" for k in columns))
-        self._select_series()
-        detail = " · ".join(f"{k}={result.metadata[k]}" for k in ("NumAlive", "NumLost", "NumPending", "ZCoordinate", "ReferenceArrivalTime",
-                                                                  "ReferenceBeta", "ReferenceMomentum") if k in result.metadata)
-        self.info.setText(f"{path} · {len(next(iter(columns.values()), []))} rows · {len(columns)} numeric columns\n{detail}")
-
-    @staticmethod
-    def _read_table(path: str) -> dict[str, list[float]]:
-        from PASS.gui.results import read_result
-        return read_result(path).columns
-
-    def _select_series(self, _column: str = "") -> None:
-        from PASS.gui.results import select_rows
-        columns = select_rows(self.columns, self.status_filter.currentData(), self.batch_filter.currentData())
-        self.canvas.set_series(
-            columns.get(self.x_column_box.currentText(), []),
-            columns.get(self.column_box.currentText(), []),
-        )
 
 
 from PASS.gui.workspace import DocumentWindowMixin
@@ -4111,10 +4204,16 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.preload_status = QLabel("正在准备工具…")
         self.statusBar().addPermanentWidget(self.preload_status)
         self.tools.preparation_changed.connect(self.preload_status.setText)
-        self.tools.pause_preload = lambda: bool(self.run.process and self.run.process.state() != QProcess.NotRunning)
+        self.tools.pause_preload = lambda: self.run.busy or self._document_busy or self.plot.busy
         self._close_confirmed = False
         self.tools.preloader.finished.connect(self._finish_preload_close)
         self._init_documents()
+        self.run.shutdown_finished.connect(self._finish_background_close)
+        self.plot.shutdown_finished.connect(self._finish_background_close)
+        self._close_force_button = button("强制结束运行")
+        self._close_force_button.clicked.connect(self.run.force_stop)
+        self._close_force_button.hide()
+        self.statusBar().addPermanentWidget(self._close_force_button)
         self._show_page(0)
         geometry = self.settings.value("window/geometry")
         if geometry:
@@ -4168,35 +4267,43 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             self.run.refresh_inputs()
 
     def closeEvent(self, event) -> None:
+        if self._document_busy:
+            self.statusBar().showMessage("请先完成或取消当前文件操作。", 5000)
+            event.ignore()
+            return
         if not self._close_confirmed and not self._confirm_replace():
             event.ignore()
             return
-        if not self.help_menu.confirm_close():
+        if not self._close_confirmed and not self.help_menu.confirm_close():
             event.ignore()
             return
-        if self.run.process and self.run.process.state() != QProcess.NotRunning:
-            answer = QMessageBox.question(self, "任务仍在运行", "停止当前运行并关闭窗口？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if not self._close_confirmed and self.run.busy:
+            answer = QMessageBox.question(self, "任务仍在运行", "请求停止当前任务，完成收尾后关闭窗口？", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if answer != QMessageBox.Yes:
                 event.ignore()
                 return
-            self.run.stop_run()
-            self.run.process.waitForFinished(2000)
+        self._close_confirmed = True
         self.help_menu.builder.shutdown()
-        if not self.tools.shutdown():
-            self._close_confirmed = True
+        ready = [self.run.shutdown(), self.plot.shutdown(), self.recovery.shutdown(), self.tools.shutdown()]
+        if not all(ready):
             self.centralWidget().setEnabled(False)
-            self.preload_status.setText("正在结束资源准备…")
+            self.preload_status.setText("正在取消后台任务并等待运行收尾…")
+            self._close_force_button.setVisible(self.run.process is not None and self.run.busy)
             event.ignore()
             return
         QApplication.instance().removeEventFilter(self.drop_router)
         self.settings.setValue("window/geometry", self.saveGeometry())
-        self.settings.setValue("window/splitter", self.config.splitter.saveState())
+        self.settings.setValue("window/splitter", self.config.splitter_state())
         self._release_project()
         event.accept()
 
     def _finish_preload_close(self):
         if self._close_confirmed and self.tools._closing:
             self.close()
+
+    def _finish_background_close(self):
+        if self._close_confirmed:
+            QTimer.singleShot(0, self.close)
 
 
 def main() -> None:

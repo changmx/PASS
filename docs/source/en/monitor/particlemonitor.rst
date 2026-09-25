@@ -52,7 +52,7 @@ The recorded turn range can be specified via ``start_turn`` and ``end_turn``:
 - ``start_turn``: starting turn for recording (inclusive), default 0
 - ``end_turn``: ending turn for recording (exclusive), default -1 meaning up to and including the last turn
 
-The actual number of recorded turns is:
+When the requested interval completes, the number of recorded turns is:
 
 .. math::
 
@@ -169,6 +169,24 @@ Metadata (HDF5 attributes, or TFS headers in text mode):
    @ NumTurn          1000
    @ StartTurn        0
    @ EndTurn          1000
+
+On a cooperative early stop, finalization writes only the turns already sampled;
+unused future rows from the preallocated buffer are omitted. ``NumTurn`` and
+``EndTurn`` describe the saved rows, with ``EndTurn`` still exclusive. A partial
+file additionally records ``RequestedEndTurn`` for the planned endpoint after
+normalizing ``-1`` or clipping to the simulation length. For example, recording
+from turn 200 and stopping after turn 499 gives ``NumTurn=300``, ``EndTurn=500``,
+and ``RequestedEndTurn=1000`` if the planned endpoint was 1000. A completed
+interval keeps its existing metadata without ``RequestedEndTurn``. If recording
+has not started, no particle table is written.
+
+This behavior is shared by CPU and GPU output. Repeated finalization does not
+rewrite an already completed table. On GPU, the buffer is sliced before the
+device-to-host copy: transfer size and the resulting host array scale with the
+recorded turns, while the initial device allocation still covers the planned interval.
+GUI normal stopping waits for a complete
+turn before finalizing; force stopping cannot guarantee that buffered data are
+written. See :doc:`../project_files` for the GUI stop controls and run records.
 
 Default output columns (11 columns total):
 

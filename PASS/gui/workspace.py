@@ -44,6 +44,52 @@ def display_json(value) -> str:
     return json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False)
 
 
+def _rebase_project_history(history, base, original, candidate):
+    """Keep undo/redo references valid when publishing a staged project cache."""
+    relocated = deepcopy(history)
+    for state in relocated:
+        for mapping, key, _ in file_references(state):
+            source = resolved_file(mapping[key], base)
+            if source.is_relative_to(original.root):
+                source = candidate.root / source.relative_to(original.root)
+            try:
+                mapping[key] = Path(os.path.relpath(source, candidate.config_base)).as_posix()
+            except ValueError:
+                mapping[key] = str(source)
+    return relocated
+
+
+def _relocate_standalone_inputs(states: list[dict], base: Path, destination: Path, sources: list[Project], *, context=None) -> list[dict]:
+    """Prepare document and history copies that resolve against the new directory."""
+    relocated = deepcopy(states)
+    destination = destination.resolve()
+    assets = {(project.root / asset.path).resolve(): asset for project in sources for asset in project.assets.values()}
+    paths = {}
+    for state in relocated:
+        for mapping, key, _ in file_references(state):
+            if context is not None:
+                context.report("整理输入与撤销历史中的文件依赖…")
+            source = resolved_file(mapping[key], base)
+            if source not in paths:
+                target = source
+                asset = assets.get(source)
+                if asset is not None:
+                    # History-only dependencies must survive closing the private cache too.
+                    target = destination.parent / (destination.stem + "_files") / asset.id / asset.original_name
+                    if target.resolve() != source:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        if context is None:
+                            shutil.copyfile(source, target)
+                        else:
+                            context.copy_atomic(source, target)
+                try:
+                    paths[source] = Path(os.path.relpath(target, destination.parent)).as_posix()
+                except ValueError:  # Different Windows volumes.
+                    paths[source] = str(target)
+            mapping[key] = paths[source]
+    return relocated
+
+
 class ResourceDialog(QDialog):
     """Read-only source browsing with explicit export and copy-into-document actions."""
 
@@ -291,6 +337,9 @@ class ResourceDialog(QDialog):
             return
         copied = self.owner.copy_project_command(self.project, self.selection[1], name)
         if copied:
+            if not self.external:
+                self.project = self.owner.project
+                self.refresh()
             self.info.setText(f"已复制为 {copied}；引用的配置和切片集发生重名时自动使用新名称。")
 
     def export_file(self):
@@ -341,6 +390,7 @@ class DocumentWindowMixin:
         self._active_input_id = ""
         self._changing_input = False
         self._standalone_sources: list[Project] = []
+        self._document_busy = False
         self.actions = {}
         menu = self.file_menu
 
@@ -374,6 +424,7 @@ class DocumentWindowMixin:
         menu.addSeparator()
         action("undo", "撤销参数修改", lambda: self._undo(False), QKeySequence.Undo)
         action("redo", "重做参数修改", lambda: self._undo(True), QKeySequence.Redo)
+        action("recover", "恢复未保存草稿…", lambda: self.recovery.restore())
         self.save_action = QAction(self)
         self.save_action.setShortcut(QKeySequence.Save)
         self.save_action.triggered.connect(self.save_document)
@@ -384,6 +435,8 @@ class DocumentWindowMixin:
         self.config.changed.connect(self._update_document_ui)
         self.config.file_changed.connect(self._update_document_ui)
         self._update_document_ui()
+        from PASS.gui.recovery import RecoveryManager
+        self.recovery = RecoveryManager(self)
 
     def _undo(self, redo):
         focused = QApplication.focusWidget()
@@ -393,6 +446,8 @@ class DocumentWindowMixin:
             self.config.undo_data(redo)
 
     def _commit_current(self) -> bool:
+        if self._document_busy:
+            return False
         if not self.config.commit_pending():
             return False
         if self.project:
@@ -414,6 +469,9 @@ class DocumentWindowMixin:
         return self.config.has_unsaved_changes() or bool(self.project and self.project.dirty)
 
     def _confirm_replace(self, *, force=False, target="当前输入") -> bool:
+        if self._document_busy:
+            self.statusBar().showMessage("请等待当前文件操作完成或取消。", 5000)
+            return False
         if not self._dirty():
             if force:
                 return QMessageBox.question(self, "确认替换", f"将替换{target}，是否继续？", QMessageBox.Yes | QMessageBox.Cancel,
@@ -437,6 +495,8 @@ class DocumentWindowMixin:
         self._update_document_ui()
 
     def _release_project(self):
+        if hasattr(self, "recovery"):
+            self.recovery.invalidate()
         if self.project:
             self.project.close()
             self.project = None
@@ -461,10 +521,23 @@ class DocumentWindowMixin:
 
     def open_json_path(self, path):
         from PASS.gui.file_drop import identify_file
-        try:
+        from PASS.gui.jobs import TaskCancelled
+
+        if self._document_busy:
+            return
+
+        def load_json(context):
+            context.report("检查并读取输入 JSON…")
             if identify_file(path) != "json":
                 raise ValueError("请选择 PASS 输入 JSON。")
             data = read_json(Path(path).read_bytes())
+            context.check()
+            return data
+
+        try:
+            data = self._run_document_task("打开输入", load_json)
+        except TaskCancelled:
+            return
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "打开失败", str(exc))
             return
@@ -509,15 +582,7 @@ class DocumentWindowMixin:
 
     def _copy_project(self):
         """Stage edits in a private cache without changing the live document."""
-        candidate = Project()
-        try:
-            shutil.copytree(self.project.root, candidate.root, dirs_exist_ok=True)
-            for key in ("id", "created_at", "configs", "assets", "recipes", "active_config_id", "run_settings", "path", "dirty"):
-                setattr(candidate, key, deepcopy(getattr(self.project, key)))
-        except Exception:
-            candidate.close()
-            raise
-        return candidate
+        return self.project.clone()
 
     def new_project(self):
         if not self._commit_current():
@@ -550,8 +615,14 @@ class DocumentWindowMixin:
         self.open_project_path(path)
 
     def open_project_path(self, path):
+        from PASS.gui.jobs import TaskCancelled
+
+        if self._document_busy:
+            return
         try:
-            candidate = Project.open(Path(path))
+            candidate = self._load_project_task(path)
+        except TaskCancelled:
+            return
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "打开失败", str(exc))
             return
@@ -562,6 +633,20 @@ class DocumentWindowMixin:
         self.project = candidate
         self._activate_project_input(candidate.active_config_id)
         self.run.refresh_inputs()
+
+    def _load_project_task(self, path):
+
+        def load(context):
+            context.report("读取项目并验证文件完整性…")
+            candidate = Project.open(Path(path))
+            try:
+                context.check()
+            except Exception:
+                candidate.close()
+                raise
+            return candidate
+
+        return self._run_document_task("打开 PASS 项目", load)
 
     def _activate_project_input(self, cid):
         self._active_input_id = cid
@@ -598,24 +683,41 @@ class DocumentWindowMixin:
         self.import_json_paths(paths)
 
     def import_json_paths(self, paths):
+        from PASS.gui.jobs import TaskCancelled
+
         if not paths or not self.project or not self._commit_current():
             return
+        original = self.project
+
+        def import_inputs(context):
+            from PASS.gui.file_drop import identify_file
+
+            candidate = original.clone(context=context)
+            try:
+                last = None
+                for name in paths:
+                    context.report(f"导入输入与文件依赖：{Path(name).name}")
+                    if identify_file(name) != "json":
+                        raise ValueError("请选择 PASS 输入 JSON。")
+                    path = Path(name)
+                    last = candidate.add_config(path.name, read_json(path.read_bytes()), path.resolve().parent, context=context)
+                    candidate.add_asset(path, "source-json", context=context)
+                context.check()
+                return candidate, last
+            except Exception:
+                candidate.close()
+                raise
+
         candidate = None
         try:
-            candidate = self._copy_project()
-            last = None
-            for name in paths:
-                from PASS.gui.file_drop import identify_file
-                if identify_file(name) != "json":
-                    raise ValueError("请选择 PASS 输入 JSON。")
-                path = Path(name)
-                last = candidate.add_config(path.name, read_json(path.read_bytes()), path.resolve().parent)
-                candidate.add_asset(path, "source-json")
+            candidate, last = self._run_document_task("导入输入配置", import_inputs)
             if last:
                 old = self.project
                 self.project = candidate
                 self._activate_project_input(last)
                 old.close()
+        except TaskCancelled:
+            return
         except (OSError, ValueError) as exc:
             if candidate and candidate is not self.project:
                 candidate.close()
@@ -623,7 +725,9 @@ class DocumentWindowMixin:
             self._update_document_ui()
 
     def save_document(self, save_as: bool = False) -> bool:
-        if not self._commit_current():
+        from PASS.gui.jobs import TaskCancelled
+
+        if self._document_busy or not self.config.commit_pending():
             return False
         if self.project:
             path = self.project.path
@@ -634,13 +738,45 @@ class DocumentWindowMixin:
                 path = Path(value)
                 if path.suffix.lower() != ".passproj":
                     path = path.with_suffix(".passproj")
+            original = self.project
+            data = deepcopy(self.config.data)
+            history = deepcopy(self.config._history)
+            history_index = self.config._history_index
+            recipes = deepcopy(self.config.recipes)
+            settings = self.run.input_settings()
+            active_id = self._active_input_id
+            base = self.config.base_dir
+
+            def save_project(context):
+                candidate = original.clone(context=context)
+                try:
+                    candidate.update_config(active_id, data, base, context=context)
+                    existing = {recipe["id"] for recipe in candidate.recipes}
+                    for recipe in recipes:
+                        if recipe["id"] not in existing:
+                            candidate.add_recipe(recipe, active_id, context=context)
+                    candidate.run_settings = settings
+                    history[:] = _rebase_project_history(history, base, original, candidate)
+                    history[history_index] = deepcopy(candidate.configs[active_id].data)
+                    candidate.save(path, context=context)
+                    return candidate
+                except Exception:
+                    candidate.close()
+                    raise
+
             try:
-                self.project.run_settings = self.run.input_settings()
-                self.project.save(path)
-                self.config.data = deepcopy(self.project.configs[self._active_input_id].data)
+                candidate = self._run_document_task("保存完整 PASS 项目", save_project)
+            except TaskCancelled:
+                self.statusBar().showMessage("已取消保存，当前文档未替换。", 5000)
+                return False
             except (OSError, ValueError) as exc:
                 QMessageBox.warning(self, "保存项目失败", str(exc))
                 return False
+            self.project = candidate
+            self.config.data = deepcopy(candidate.configs[active_id].data)
+            self.config.base_dir = candidate.config_base
+            self.config._history = history
+            original.close()
         else:
             path = Path(self.config.path) if self.config.path else None
             if not path or save_as:
@@ -648,40 +784,50 @@ class DocumentWindowMixin:
                 if not value:
                     return False
                 path = Path(value)
-            data = deepcopy(self.config.data)
-            for mapping, key, _ in file_references(data):
-                source = resolved_file(mapping[key], self.config.base_dir)
-                for cached in self._standalone_sources:
-                    asset = next((a for a in cached.assets.values() if (cached.root / a.path).resolve() == source), None)
-                    if asset:
-                        durable = path.resolve().parent / (path.stem + "_files") / asset.id / asset.original_name
-                        if durable.resolve() != source:
-                            try:
-                                durable.parent.mkdir(parents=True, exist_ok=True)
-                                shutil.copyfile(source, durable)
-                            except OSError as exc:
-                                QMessageBox.warning(self, "保存输入文件失败", str(exc))
-                                return False
-                        source = durable.resolve()
-                        break
-                try:
-                    mapping[key] = Path(os.path.relpath(source, path.resolve().parent)).as_posix()
-                except ValueError:  # Different Windows volumes.
-                    mapping[key] = str(source)
+            states = deepcopy([self.config.data, *self.config._history])
+            base = self.config.base_dir
+            sources = list(self._standalone_sources)
+
+            def save_json(context):
+                # Rebase undo and redo together; saving is not a parameter change.
+                relocated = _relocate_standalone_inputs(states, base, path, sources, context=context)
+                content = json_bytes(relocated[0])
+                context.report("写入 JSON…")
+                atomic_write(path, content)
+                return relocated
+
             try:
-                atomic_write(path, json_bytes(data))
+                data, *history = self._run_document_task("保存 JSON", save_json)
+            except TaskCancelled:
+                self.statusBar().showMessage("已取消保存，当前文档未替换。", 5000)
+                return False
             except (OSError, ValueError) as exc:
                 QMessageBox.warning(self, "保存 JSON 失败", str(exc))
                 return False
+            # Publish only after the write succeeds, preserving the history cursor.
             self.config.path = str(path.resolve())
             self.config.base_dir = path.resolve().parent
             self.config.data = data
+            self.config._history = history
         self.config._form_dirty = self.config._json_dirty = self.config._data_dirty = False
         self.config._sync_editor()
         self.config.cancel_form()
         self.config._set_sync_status("已保存")
+        if hasattr(self, "recovery"):
+            self.recovery.invalidate()
         self._update_document_ui()
         return True
+
+    def _run_document_task(self, title, operation):
+        from PASS.gui.jobs import run_task_dialog
+
+        self._document_busy = True
+        self._update_document_ui()
+        try:
+            return run_task_dialog(self, title, operation)
+        finally:
+            self._document_busy = False
+            self._update_document_ui()
 
     def export_current_json(self):
         if not self._commit_current():
@@ -696,37 +842,52 @@ class DocumentWindowMixin:
                 QMessageBox.warning(self, "导出失败", str(exc))
 
     def export_bundle(self):
+        from PASS.gui.jobs import TaskCancelled
+
         if not self._commit_current():
             return
         path, _ = QFileDialog.getSaveFileName(self, "导出运行页所选输入及依赖", "pass-inputs.zip", "ZIP (*.zip)")
         if not path:
             return
-        temporary = None
+        project = self.project
+        data, base = deepcopy(self.config.data), self.config.base_dir
         try:
-            project = self.project
-            if project:
-                ids = self.run.selected_input_ids()
-            else:
-                temporary = project = Project()
-                ids = [project.add_config("beam0", self.config.data, self.config.base_dir)]
-            project.export_bundle(ids, Path(path))
+            ids = self.run.selected_input_ids() if project else None
+
+            def export(context):
+                temporary = None
+                try:
+                    target = project
+                    selected = ids
+                    if target is None:
+                        temporary = target = Project()
+                        selected = [target.add_config("beam0", data, base, context=context)]
+                    target.export_bundle(selected, Path(path), context=context)
+                finally:
+                    if temporary:
+                        temporary.close()
+
+            self._run_document_task("导出运行输入包", export)
             self.statusBar().showMessage("已导出输入包；解压后执行 python run.py。", 10000)
+        except TaskCancelled:
+            self.statusBar().showMessage("已取消导出。", 5000)
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "导出失败", str(exc))
-        finally:
-            if temporary:
-                temporary.close()
 
     def show_resources(self):
         if self.project and self._commit_current():
             ResourceDialog(self, self.project).exec()
 
     def browse_project(self):
+        from PASS.gui.jobs import TaskCancelled
+
         path, _ = QFileDialog.getOpenFileName(self, "只读查看其他项目", "", "PASS project (*.passproj)")
         if not path:
             return
         try:
-            source = Project.open(Path(path))
+            source = self._load_project_task(path)
+        except TaskCancelled:
+            return
         except (OSError, ValueError) as exc:
             QMessageBox.warning(self, "打开失败", str(exc))
             return
@@ -736,17 +897,39 @@ class DocumentWindowMixin:
             source.close()
 
     def copy_project_command(self, source, source_id, name):
-        if not self._commit_current():
+        from PASS.gui.jobs import TaskCancelled
+
+        if self._document_busy or not self.config.commit_pending():
             return None
-        temporary = None
+        original = self.project
+        data = deepcopy(self.config.data)
+        recipes = deepcopy(self.config.recipes)
+        base = self.config.base_dir
+        active_id = self._active_input_id if original else None
+        target = None
+
+        def prepare_target(context):
+            candidate = original.clone(context=context) if original else Project()
+            try:
+                if original:
+                    candidate.update_config(active_id, data, base, context=context)
+                    target_id = active_id
+                    existing = {recipe["id"] for recipe in candidate.recipes}
+                    for recipe in recipes:
+                        if recipe["id"] not in existing:
+                            candidate.add_recipe(recipe, target_id, context=context)
+                            existing.add(recipe["id"])
+                else:
+                    target_id = candidate.add_config("beam", data, base, context=context)
+                context.check()
+                return candidate, target_id
+            except Exception:
+                candidate.close()
+                raise
+
         try:
-            if self.project:
-                target, target_id = self.project, self._active_input_id
-            else:
-                # Retain a private asset cache until this standalone document is
-                # saved/closed. Save-as then writes durable adjacent input files.
-                temporary = target = Project()
-                target_id = target.add_config("beam", self.config.data, self.config.base_dir)
+            target, target_id = self._run_document_task("准备复制命令", prepare_target)
+            before_copy = deepcopy(target.configs[target_id].data)
             policy = "check"
             difference = source.command_clock_difference(source_id, name, target, target_id)
             if difference:
@@ -762,28 +945,47 @@ class DocumentWindowMixin:
                 if choice.clickedButton() not in (keep, copy_clock):
                     return None
                 policy = "target" if choice.clickedButton() == keep else "source"
-            copied = source.copy_command(source_id, name, target, target_id, clock_policy=policy)
-            if self.project:
-                self._activate_project_input(target_id)
+            copied = self._run_document_task(
+                "复制命令与全部依赖",
+                lambda context: source.copy_command(source_id, name, target, target_id, clock_policy=policy, context=context),
+            )
+            data = deepcopy(target.configs[target_id].data)
+            if original:
+                history = _rebase_project_history(self.config._history, base, original, target)
+                history[self.config._history_index] = before_copy
+                self.project = target
+                self.config.base_dir = target.config_base
+                self.config._history = history
+                self.config.recipes = deepcopy([recipe for recipe in target.recipes if recipe["config_id"] == target_id])
             else:
-                data = deepcopy(target.configs[target_id].data)
                 for mapping, key, _ in file_references(data):
                     mapping[key] = str(resolved_file(mapping[key], target.config_base))
-                self.config.data = data
+                # Keep copied files alive across undo and redo until Save As
+                # writes durable adjacent input files.
                 self._standalone_sources.append(target)
-                temporary = None
-                self.config._sync_editor()
-                self.config._refresh_tree()
+            target = None
+            self.config.data = data
+            self.config._sync_editor()
+            self.config._refresh_tree()
             self.config._data_dirty = True
             self.config._select_sequence_item(copied)
+            self.run.refresh_inputs()
             self._update_document_ui()
+            if original:
+                try:
+                    original.close()
+                except OSError as exc:
+                    self.statusBar().showMessage(f"命令已复制，旧临时文件清理未完成：{exc}", 10000)
             return copied
+        except TaskCancelled:
+            self.statusBar().showMessage("已取消命令复制。", 5000)
+            return None
         except (OSError, ValueError, KeyError) as exc:
             QMessageBox.warning(self, "复制失败", str(exc))
             return None
         finally:
-            if temporary:
-                temporary.close()
+            if target is not None:
+                target.close()
 
     @staticmethod
     def _recipe_with_sources(project, recipe):
@@ -848,3 +1050,11 @@ class DocumentWindowMixin:
             self.actions[key].setEnabled(project is not None)
         self.actions["save_json"].setText("保存 JSON" + ("\tCtrl+S" if project is None else ""))
         self.actions["save_project"].setText("保存项目" + ("\tCtrl+S" if project else ""))
+        if self._document_busy:
+            for action in self.actions.values():
+                action.setEnabled(False)
+        else:
+            for key in ("new_json", "open_json", "new_project", "open_project", "browse_project", "export_json", "export_bundle", "undo", "redo",
+                        "recover"):
+                self.actions[key].setEnabled(True)
+        self.save_action.setEnabled(not self._document_busy)

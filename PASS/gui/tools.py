@@ -1,5 +1,7 @@
 """Top-level tools workspace; calculations never change the active input."""
-from PySide6.QtCore import QSize, Signal, QThread, QTimer
+import time
+
+from PySide6.QtCore import QEvent, QSize, Signal, QThread, QTimer
 from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QPushButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget, QLabel, QApplication
 
 from PASS.gui.appearance import THEMES, icon
@@ -70,6 +72,7 @@ class ToolsPage(QWidget):
         self._requested = 0
         self._ready = False
         self._closing = False
+        self._last_interaction = 0.
         self.pause_preload = lambda: False
         self._pending_file = None
         layout = QHBoxLayout(self)
@@ -94,6 +97,13 @@ class ToolsPage(QWidget):
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self._prepare_next)
+        QApplication.instance().installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if (not self._closing and self._pending and isinstance(watched, QWidget) and watched.window() is self.window()
+                and event.type() in (QEvent.KeyPress, QEvent.MouseButtonPress, QEvent.Wheel, QEvent.InputMethod)):
+            self._last_interaction = time.monotonic()
+        return super().eventFilter(watched, event)
 
     def start_preload(self):
         if not self.preloader.isRunning() and not self._ready and not self._closing:
@@ -155,6 +165,10 @@ class ToolsPage(QWidget):
         if busy:
             self.timer.start(250)
             return
+        remaining = 0.6 - (time.monotonic() - self._last_interaction)
+        if requested not in self._pending and remaining > 0:
+            self.timer.start(max(1, int(remaining * 1000) + 1))
+            return
         index = requested if requested in self._pending else self._pending[0]
         self._pending.remove(index)
         try:
@@ -185,6 +199,7 @@ class ToolsPage(QWidget):
 
     def shutdown(self):
         self._closing = True
+        QApplication.instance().removeEventFilter(self)
         self.timer.stop()
         if self.conversion:
             self.conversion.shutdown()

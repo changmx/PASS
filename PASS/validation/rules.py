@@ -130,9 +130,6 @@ class Validator:
                 if f.is_required():
                     self.add((*path, alias), "field.required", "缺少必需参数")
                     failed = True
-                else:
-                    default = f.get_default(call_default_factory=True)
-                    values[alias] = default.model_dump(by_alias=True) if isinstance(default, BaseModel) else default
                 continue
             value = raw[alias]
             child = _nested_models(f.annotation)
@@ -152,7 +149,13 @@ class Validator:
             except ValidationError as exc:
                 for issue in exc.errors():
                     self.add((*path, *json_location(raw, issue["loc"])), "field.constraint", issue["msg"])
-        return values
+        # Successful model validation already constructs its defaults. Only partial
+        # results need these fallbacks; never cache mutable values across inputs.
+        for alias, (_name, f) in known.items():
+            if alias not in raw and not f.is_required():
+                default = f.get_default(call_default_factory=True)
+                values[alias] = default.model_dump(by_alias=True) if isinstance(default, BaseModel) else default
+        return {alias: values[alias] for alias in known if alias in values}
 
     def numeric(self, data, key, path, *, minimum=None, positive=False):
         value = data.get(key)

@@ -87,7 +87,7 @@ class FileDropRouter(QObject):
                 if not ok:
                     return
                 if action == "绘图":
-                    self.owner.plot.load_paths([path])
+                    self.owner.plot.load_paths_async([path])
                     self.owner._show_page(2)
                 else:
                     self.owner._show_page(3)

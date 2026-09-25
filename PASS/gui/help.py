@@ -9,9 +9,9 @@ import platform
 from PySide6 import __version__ as pyside_version
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QTextCursor
-from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QLabel, QMenu, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QDialog, QHBoxLayout, QLabel, QMenu, QMessageBox, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea, QVBoxLayout
 
-from PASS import __version__
+from PASS import __version__, _source_project_metadata
 from PASS.gui.appearance import code_font
 from PASS.gui.documentation import DocumentationBuilder, local_document, source_checkout
 
@@ -28,20 +28,39 @@ class HelpMenu(QMenu):
             "Issues": "https://github.com/changmx/PASS/issues",
         }
         self.title = "Particle Accelerator Simulation Studio"
-        self.authors = "Mingxuan Chang · Jie Liu · Lei Wang"
+        self.authors = [
+            {
+                "name": "Mingxuan Chang",
+                "email": "changmx@impcas.ac.cn"
+            },
+            {
+                "name": "Jie Liu",
+                "email": "liujie115@impcas.ac.cn"
+            },
+            {
+                "name": "Lei Wang",
+                "email": "wangl@impcas.ac.cn"
+            },
+        ]
         self.package = None
         try:
             self.package = distribution("pass-sim")
             metadata = self.package.metadata
             self.title = metadata.get("Summary") or self.title
-            names = [name for name, _ in getaddresses(metadata.get_all("Author-email") or []) if name]
-            self.authors = " · ".join(names) or metadata.get("Author") or self.authors
+            authors = [{"name": name, "email": email} for name, email in getaddresses(metadata.get_all("Author-email") or []) if name or email]
+            if authors:
+                self.authors = authors
             for item in metadata.get_all("Project-URL") or []:
                 key, separator, value = item.partition(",")
                 if separator and key.strip() in self.urls:
                     self.urls[key.strip()] = value.strip()
         except PackageNotFoundError:
             pass
+        source = _source_project_metadata()
+        self.title = source.get("description") or self.title
+        if source.get("authors"):
+            self.authors = source["authors"]
+        self.urls.update({key: value for key, value in source.get("urls", {}).items() if key in self.urls})
         self.builder = DocumentationBuilder(self.root, self)
         self.build_dialog = None
         self.about_dialog = None
@@ -129,37 +148,59 @@ class HelpMenu(QMenu):
     def show_about(self) -> None:
         if self.about_dialog is None:
             dialog = self.about_dialog = QDialog(self.owner)
-            dialog.setWindowTitle("关于 PASS")
-            dialog.setMinimumWidth(520)
+            dialog.setWindowTitle("关于 PASS / About PASS")
+            dialog.setMinimumWidth(560)
+            dialog.resize(640, 520)
             layout = QVBoxLayout(dialog)
             layout.setContentsMargins(24, 20, 24, 20)
             layout.setSpacing(14)
             brand = QLabel("PASS")
             brand.setObjectName("brand")
             layout.addWidget(brand)
-            info = QLabel(f"<b>{escape(self.title)}</b><p>用于粒子加速器束流动力学建模、粒子追踪与分析。</p>"
-                          f"<p>版本：{escape(__version__)}</p><p>作者：{escape(self.authors)}</p>"
-                          "<p>中国科学院近代物理研究所<br>"
+            chinese_names = {"changmx@impcas.ac.cn": "常铭轩", "liujie115@impcas.ac.cn": "刘杰", "wangl@impcas.ac.cn": "王磊"}
+            author_rows = []
+            for author in self.authors:
+                name, email = author.get("name", ""), author.get("email", "")
+                chinese_name = chinese_names.get(email.casefold(), "")
+                name = f"{chinese_name} / {name}" if chinese_name else name
+                contact = f'<a href="{escape("mailto:" + email, quote=True)}">{escape(email)}</a>' if email else ""
+                author_rows.append(f"<tr><td>{escape(name)}</td><td>{contact}</td></tr>")
+            info = QLabel("<b>粒子加速器仿真平台</b><br>"
+                          f"<b>{escape(self.title)}</b>"
+                          "<p>用于束流动力学建模、粒子跟踪与分析。<br>"
+                          "Beam-dynamics modeling, particle tracking and analysis.</p>"
+                          f"<p><b>版本 / Version</b>　{escape(__version__)}</p>"
+                          "<p><b>作者 / Authors</b></p>"
+                          '<table cellspacing="0" cellpadding="4">' + "".join(author_rows) + "</table>"
+                          "<p><b>机构 / Institution</b><br>中国科学院近代物理研究所<br>"
                           "Institute of Modern Physics, Chinese Academy of Sciences</p>"
-                          '<p>许可证：<a href="license">Apache License 2.0</a></p>'
-                          "<p>© 2025–2026 Institute of Modern Physics,<br>Chinese Academy of Sciences</p>")
+                          '<p><b>许可证 / License</b>　<a href="license">Apache 许可证 2.0 / Apache License 2.0</a></p>'
+                          "<p><b>版权 / Copyright</b><br>© 2025–2026 中国科学院近代物理研究所<br>"
+                          "© 2025–2026 Institute of Modern Physics, Chinese Academy of Sciences</p>")
+            info.setObjectName("about_information")
             info.setWordWrap(True)
+            info.setAlignment(Qt.AlignTop | Qt.AlignLeft)
             info.setTextInteractionFlags(Qt.TextBrowserInteraction)
-            info.linkActivated.connect(self.show_license)
-            layout.addWidget(info)
+            info.linkActivated.connect(self._open_about_link)
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QScrollArea.NoFrame)
+            scroll.setWidget(info)
+            layout.addWidget(scroll, 1)
             links = QHBoxLayout()
-            for label, url in (("在线文档", self.urls["Documentation"]), ("源代码", self.urls["Repository"]), ("问题反馈", self.urls["Issues"])):
+            for label, url in (("在线文档 / Documentation", self.urls["Documentation"]), ("源代码 / Source code", self.urls["Repository"]),
+                               ("问题反馈 / Issues", self.urls["Issues"])):
                 link = QLabel(f'<a href="{escape(url, quote=True)}">{label}</a>')
                 link.linkActivated.connect(self.open_url)
                 links.addWidget(link)
             links.addStretch()
             layout.addLayout(links)
             row = QHBoxLayout()
-            copy = QPushButton("复制版本与环境信息")
+            copy = QPushButton("复制版本与环境信息 / Copy environment")
             copy.clicked.connect(self.copy_environment)
             row.addWidget(copy)
             row.addStretch()
-            close = QPushButton("关闭")
+            close = QPushButton("关闭 / Close")
             close.clicked.connect(dialog.close)
             row.addWidget(close)
             layout.addLayout(row)
@@ -167,10 +208,17 @@ class HelpMenu(QMenu):
         self.about_dialog.raise_()
         self.about_dialog.activateWindow()
 
+    def _open_about_link(self, link: str) -> None:
+        if link == "license":
+            self.show_license()
+        else:
+            self.open_url(link)
+
     def copy_environment(self) -> None:
-        QApplication.clipboard().setText(f"PASS: {__version__}\nPython: {platform.python_version()}\n"
+        installed = f"PASS installed distribution: {self.package.version}\n" if self.package is not None else ""
+        QApplication.clipboard().setText(f"PASS: {__version__}\n{installed}Python: {platform.python_version()}\n"
                                          f"PySide6: {pyside_version}\nOS: {platform.platform()}\nArchitecture: {platform.machine()}")
-        self.owner.statusBar().showMessage("已复制版本与环境信息。", 5000)
+        self.owner.statusBar().showMessage("已复制版本与环境信息。 / Version and environment copied.", 5000)
 
     def show_license(self, _link=None) -> None:
         if self.license_dialog is None:
@@ -188,14 +236,14 @@ class HelpMenu(QMenu):
                 self.open_url(self.urls["Repository"].rstrip("/") + "/blob/HEAD/LICENSE")
                 return
             dialog = self.license_dialog = QDialog(self.about_dialog or self.owner)
-            dialog.setWindowTitle("PASS · Apache License 2.0")
+            dialog.setWindowTitle("PASS · Apache 许可证 2.0 / Apache License 2.0")
             dialog.resize(760, 560)
             layout = QVBoxLayout(dialog)
             text = QPlainTextEdit(content)
             text.setReadOnly(True)
             text.setFont(code_font())
             layout.addWidget(text)
-            close = QPushButton("关闭")
+            close = QPushButton("关闭 / Close")
             close.clicked.connect(dialog.close)
             layout.addWidget(close, alignment=Qt.AlignRight)
         self.license_dialog.show()
