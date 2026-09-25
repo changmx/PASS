@@ -1,27 +1,27 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../">
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WakeField &mdash; PASS  documentation</title>
+  <title>尾场（WakeField） &mdash; PASS 0.4.0 使用手册</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=1ab5040a" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="PASS Documentation (English)" href="../en/index.html" />
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="监视器与输出" href="monitor/index.html" />
     <link rel="prev" title="横向场求解器" href="field_solver.html" /> 
 </head>
 
@@ -30,6 +30,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+  
 
           
           
@@ -39,758 +40,89 @@
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../en/wake_field.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="index.html">PASS 文档（中文）</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id2">简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id3">架构概览</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id4">快速开始</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id5">最简示例</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#json">JSON 文件结构</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id6">核心组件</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#zh-reference-clock">规定的机器时钟与初始化</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#sequence">Sequence（序列容器）</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#lattice">Lattice来源</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id8">方式二：从 MADX twiss 文件读取为元件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id9">混合模式</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id10">外部数据文件转换</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id11">四步流水线</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id12">一步到位</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id13">预置封装</a></li>
-<li class="toctree-l4"><a class="reference internal" href="input_generation.html#id14">分步调用</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#api">API 参考</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_generation.html#id15">完整示例</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="gui.html">图形界面配置流程</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id2">启动与文件拖放</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id3">帮助与本地文档</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id4">工具</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id5">主题与控件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id6">属性顺序与分区</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id7">模块职责</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id8">结构化数组参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id9">空间电荷</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#rf">注入、时钟、RF 与脉冲元件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#id10">尾场与结果文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui.html#twiss">Twiss 与光学</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="gui.html#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="gui.html#id11">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="gui.html#id12">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="gui.html#id13">手动传输点与后续编辑</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="gui_tools.html">GUI 工具</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#gui-data-conversion-zh">数据格式转换</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id2">粒子输入与权威质量数据</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id3">运动学、单位与显示精度</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id4">与原始粒子表逐条比较</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id5">流强、功率与储能</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id6">共振线图</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id7">参考束流与导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#rf-bucket">RF bucket绘制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id8">相空间绘制及发射度计算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id9">磁铁参数换算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gui_tools.html#id10">激励计算与绘制</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="project_files.html">单文件项目</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id2">保存与打开</a></li>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id3">容器格式</a></li>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id4">查看和复用参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id6">运行</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="project_files.html#id7">运行历史与复现</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id8">恢复已有草稿</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="input_validation.html#id1">一键全面检测</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_validation.html#id2">检测范围</a></li>
-<li class="toctree-l3"><a class="reference internal" href="input_validation.html#python">命令行与 Python</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="injection.html">注入粒子生成（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#zh-longitudinal-reference">纵向坐标与参考到达时间</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id2">参考变换</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id3">固定宏粒子权重</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id4">参考动量变换精度</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id5">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id6">束团参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id7">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id8">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id9">束流参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id10">分布参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id11">偏移参数</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#zh-multiturn-injection">多圈注入与横向涂抹</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id13">注入时序与粒子数量</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id14">入射分布与偏置</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#bump">Bump 磁铁与横向涂抹</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id15">注入过程的观测</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id16">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id17">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id18">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id19">多束团纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id20">束团填充方案</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id21">色散耦合</a></li>
-<li class="toctree-l4"><a class="reference internal" href="injection.html#id22">动量偏差</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id23">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id24">分布类型选择</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#d">1D 投影理论曲线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id25">模拟结果</a></li>
-<li class="toctree-l3"><a class="reference internal" href="injection.html#id26">初始分布输出格式</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="element/index.html">元件（Element）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="element/error.html">元件误差</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/marker.html">标记（Marker）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/drift.html">漂移节（Drift）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/dipole.html">二极铁（Dipole / SBend）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/quadrupole.html">四极铁（Quadrupole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/sextupole.html">六极铁（Sextupole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/octupole.html">八极铁（Octupole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/multipole.html">多极铁（Multipole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/solenoid.html">螺线管（Solenoid）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/kicker.html">冲击磁铁（Kicker）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/bump.html">Bump</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/elseparator.html">静电偏转板（ElSeparator）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/exciter.html">激励器（Exciter）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="element/rfcavity.html">RF 腔（RFCavity）</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="monitor/index.html">监视器（Monitor）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="monitor/table_output.html">表格输出格式</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id2">格式选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/table_output.html#id4">读取表格</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id1">简介</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id2">工作原理</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id6">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id7">输出文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id8">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id10">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id11">输出中的纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/statmonitor.html#id12">注入粒子数</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/distmonitor.html">分布监视器（DistMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id1">圈数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id3">输出内容</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#cpu-gpu">CPU 与 GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/distmonitor.html#id4">注入快照</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/phaseadvancemonitor.html">相位推进监视器（PhaseAdvanceMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="monitor/phaseadvancemonitor.html#id1">配置</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/phaseadvancemonitor.html#id2">输出</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id1">简介</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id2">粒子选择机制</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id3">记录圈数范围</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id4">预分配策略</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id5">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id6">输出文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id7">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="monitor/particlemonitor.html#id11">应用场景</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id1">分组操作与边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id2">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id3">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reorganize.html#id4">应用场景</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="aperture.html">孔径（Aperture）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#id2">丢失粒子处理</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#id3">各孔径类型详解</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#off">off（关闭）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#default">default（默认矩形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#circle">circle（圆形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectangle">rectangle（矩形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#ellipse">ellipse（椭圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#racetrack">racetrack（跑道形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#octagon">octagon（八角形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="aperture.html#polygon">polygon（多边形）</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#id4">参数总览表</a></li>
-<li class="toctree-l3"><a class="reference internal" href="aperture.html#id5">使用示例</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="twiss.html">Twiss 传输（Twiss）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id1">简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id2">物理推导</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id3">纵向传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id4">色散处理</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id5">横向传输矩阵</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id7">纵向坐标连续性</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#t0">t0 更新</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id8">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id9">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id10">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id11">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id12">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="twiss.html#id13">孔径参数</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id14">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="twiss.html#id15">应用场景</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="slicer.html">切片器（Slicer）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#id1">职责边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#id2">切片坐标与复用</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#id3">配置格式</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="slicer.html#id4">空间电荷的环周折叠切片</a></li>
-<li class="toctree-l4"><a class="reference internal" href="slicer.html#id5">漂移束尾场的周期到达切片</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#id6">切片模型</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#sliceset">SliceSet 数据</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#id7">快照输出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="slicer.html#id8">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="slicer.html#id9">通用命令参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="slicer.html#id10">范围模式参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="slicer.html#id11">SliceSet 运行时接口</a></li>
-<li class="toctree-l4"><a class="reference internal" href="slicer.html#id12">配置校验</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id1">概念介绍</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id2">物理模型</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id3">宏粒子电荷与横向源项</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id4">积分电势与积分场</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id5">相对论横向踢</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id6">执行流程</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id7">跟踪方法与解析分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id8">配置示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id9">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#space-charge">顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 配置块</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id10">命名资源配置</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id11"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id12">网格范围与孔径校验</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id13">配置与校验规则</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#gpu">GPU 初始化与复用</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id14">诊断输出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id15">验证文件组织</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id16">运行验证套件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#id17">解析诊断与验证</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#zh-internal-space-charge">元件切片与内部空间电荷</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id19">三个独立的分辨率</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id20">支持的元件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id21">调度规则</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id22">配置与使用</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#zh-sc-coverage">跟踪前的作用长度与覆盖检查</a></li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#fodo">FODO 工作点验证</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#pic">全粒子 PIC 跟踪</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id24">不同边界的多圈集成测试</a></li>
-<li class="toctree-l4"><a class="reference internal" href="space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="space_charge.html#z">周期 z 切片</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="field_solver.html">横向场求解器</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id2">概念介绍</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#pic">PIC 数据流</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id3">网格与源项</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id4">均匀节点网格</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id5">电荷沉积</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#poisson">Poisson 方程与单位</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id6">场求解器选择</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#fd">有限差分：<code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#dst-rectangle">正弦变换：<code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#green-fft-free-space">自由空间 Green 函数：<code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id7">场梯度</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id8">孔径接口</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#python">Python 接口</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id9">网格与 PIC 流水线</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id10">求解器构建器与一次性封装</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id11">结果对象</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id12">解析跟踪与参考场</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id13">源电荷、坐标与单位</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-round-free-space">圆高斯：gaussian_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id14">抛物型密度：四维水袋的实空间投影</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id15">直接调用公式示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="field_solver.html#id16">Python 接口与数值稳定性</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id17">高效网格数建议</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#id18">选择建议与限制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="field_solver.html#gpu">GPU 资源与执行</a></li>
-</ul>
-</li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">WakeField</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">共享配置与尾场点</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">物理范围与约定</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">响应模型</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">频谱与拟合</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">速度、加速与算法组</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">示例与恢复</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cpu-gpu">CPU 与 GPU 执行</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">自定义空间项</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id8">固定网格多束团与长历史</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id9">变周期下的一般历史计算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">漂移束适配范围</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">回归与分块接口</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">文件输入</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id13">切片坐标与响应边界</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="../en/index.html">PASS Documentation (English)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../en/input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#architecture-overview">Architecture Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#quick-start">Quick Start</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#minimal-example">Minimal Example</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#json-file-structure">JSON File Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#core-components">Core Components</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#prescribed-machine-clock-and-initialization">Prescribed machine clock and initialization</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#lattice-sources">Lattice Sources</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#mixed-mode">Mixed Mode</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#one-step-conversion">One-Step Conversion</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#api-reference">API Reference</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_generation.html#complete-example">Complete Example</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/gui.html">Graphical configuration workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#startup-and-file-drops">Startup and file drops</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#help-and-local-documentation">Help and local documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#tools">Tools</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#appearance-and-controls">Appearance and controls</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#property-ordering-and-sections">Property ordering and sections</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#module-responsibilities">Module responsibilities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#structured-array-parameters">Structured array parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#space-charge">Space charge</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#injection-clocks-rf-and-pulsed-elements">Injection, clocks, RF and pulsed elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#wakefield-and-result-files">WakeField and result files</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui.html#twiss-and-optics">Twiss and optics</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#mad-x-sampling">MAD-X sampling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#one-turn-transfer">One-turn transfer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#smooth-approximation">Smooth approximation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/gui_tools.html">GUI tools</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#data-format-conversion">Data format conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#particles-and-authoritative-masses">Particles and authoritative masses</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#kinematics-units-and-precision">Kinematics, units and precision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#comparison-with-the-original-particle-table">Comparison with the original particle table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#current-power-and-stored-energy">Current, power and stored energy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#tune-diagram">Tune diagram</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#rf-bucket">RF bucket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#magnet-conversion">Magnet conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/project_files.html">Single-file projects</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#saving-and-opening">Saving and opening</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#container-format">Container format</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#running">Running</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/input_validation.html">JSON input validation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_validation.html#one-click-preflight">One-click preflight</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_validation.html#what-is-checked">What is checked</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/input_validation.html#command-line-and-python">Command line and Python</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/injection.html">Injection / Particle Generation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#longitudinal-coordinate-and-reference-time">Longitudinal coordinate and reference time</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#reference-transformations">Reference transformations</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#fixed-macro-particle-weights">Fixed macro-particle weights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#reference-momentum-precision">Reference-momentum precision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#interface-parameters">Interface parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#bunch-parameters">Bunch parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#transverse-parameters">Transverse parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#beam-parameters">Beam parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#distribution-parameters">Distribution parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#offset-parameters">Offset parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#multi-turn-injection-and-transverse-painting">Multi-turn injection and transverse painting</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#injection-schedule-and-particle-population">Injection schedule and particle population</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#incoming-distribution-and-offsets">Incoming distribution and offsets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#transverse-painting-with-bump-magnets">Transverse painting with Bump magnets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#observing-injection">Observing injection</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#dispersion-coupling">Dispersion coupling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/injection.html#momentum-deviation">Momentum deviation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#input-file">Input file</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#distribution-selection">Distribution selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#simulation-results">Simulation results</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/element/index.html">Element</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/element/index.html#integration-precision">Integration precision</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/error.html">Element errors</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/marker.html">Marker</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/drift.html">Drift</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/dipole.html">Dipole (SBend)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/quadrupole.html">Quadrupole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/sextupole.html">Sextupole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/octupole.html">Octupole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/multipole.html">Multipole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/solenoid.html">Solenoid</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/kicker.html">Kicker</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/bump.html">Bump</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/elseparator.html">ElSeparator</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/exciter.html">Exciter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/element/rfcavity.html">RFCavity</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/monitor/index.html">Monitor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/monitor/table_output.html">Table output formats</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#format-selection">Format selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/table_output.html#reading-tables">Reading tables</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/monitor/statmonitor.html">StatMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#introduction">Introduction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#working-principle">Working Principle</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#output-files">Output Files</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#usage-example">Usage Example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#longitudinal-coordinate-in-output">Longitudinal coordinate in output</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/statmonitor.html#injection-populations">Injection populations</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/monitor/distmonitor.html">DistMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#turn-selection">Turn selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#interface">Interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#output">Output</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/distmonitor.html#injection-snapshots">Injection snapshots</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html#configuration">Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/phaseadvancemonitor.html#output">Output</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/monitor/particlemonitor.html">ParticleMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#introduction">Introduction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#output-files">Output Files</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#usage-example">Usage Example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/monitor/index.html#output-reference-information">Output reference information</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/reorganize.html#applications">Applications</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/aperture.html">Aperture</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#off-disabled">off (Disabled)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#circle-circular">circle (Circular)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/aperture.html#polygon-polygon">polygon (Polygon)</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/aperture.html#usage-example">Usage Example</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/twiss.html">Twiss Transport (Twiss)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#physics-derivation">Physics Derivation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#dispersion-handling">Dispersion Handling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#t0-update">t0 Update</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#position-parameters">Position Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#transverse-parameters">Transverse Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/twiss.html#aperture-parameters">Aperture Parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/twiss.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/slicer.html">Slicer</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#responsibilities">Responsibilities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#slice-coordinate-and-reuse">Slice coordinate and reuse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#configuration">Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#circumference-folded-slicing-for-spacecharge">Circumference-folded slicing for SpaceCharge</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#periodic-arrival-slicing-for-coasting-wakes">Periodic arrival slicing for coasting wakes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#slice-models">Slice models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#sliceset-data">SliceSet data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#snapshots">Snapshots</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/slicer.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#common-command-parameters">Common command parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#range-mode-parameters">Range-mode parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#sliceset-runtime-interface">SliceSet runtime interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/slicer.html#configuration-validation">Configuration validation</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/space_charge.html">Space-Charge Effect (SpaceCharge)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#physical-model">Physical Model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#macroparticle-charge-and-transverse-source">Macroparticle charge and transverse source</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#integrated-potential-and-field">Integrated potential and field</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#relativistic-transverse-kick">Relativistic transverse kick</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#execution-workflow">Execution Workflow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#tracking-methods-and-analytic-profiles">Tracking Methods and Analytic Profiles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-example">Configuration Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#top-level-space-charge-block">Top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#named-resource-configuration">Named resource configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#spacecharge-sequence-command"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> sequence command</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#configuration-rules">Configuration Rules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#gpu-initialization-and-reuse">GPU initialization and reuse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#diagnostic-output">Diagnostic Output</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#validation-layout">Validation Layout</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#element-slicing-and-internal-space-charge">Element Slicing and Internal Space Charge</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#three-independent-resolutions">Three independent resolutions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#supported-elements">Supported elements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#scheduling-rule">Scheduling rule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#configuration-and-use">Configuration and use</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#pre-tracking-integration-length-and-coverage-checks">Pre-tracking integration-length and coverage checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#fodo-tune-verification">FODO tune verification</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#whole-population-pic-tracking">Whole-population PIC tracking</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#multi-turn-integration-tests-across-boundaries">Multi-turn integration tests across boundaries</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/space_charge.html#periodic-z-slicing">Periodic z slicing</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/field_solver.html">Transverse Field Solvers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#pic-data-flow">PIC Data Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#grid-and-source-definition">Grid and Source Definition</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-nodal-grid">Uniform nodal grid</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#charge-deposition">Charge deposition</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#poisson-equation-and-units">Poisson Equation and Units</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#field-solver-selection">Field-Solver Selection</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#finite-difference-fd">Finite difference: <code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#sine-transform-dst-rectangle">Sine transform: <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#free-space-green-function-fft-free-space">Free-space Green function: <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#field-gradients">Field gradients</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#aperture-interface">Aperture Interface</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#python-interfaces">Python Interfaces</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#geometry-and-pic-pipeline">Geometry and PIC pipeline</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#solver-builders-and-one-shot-wrappers">Solver builders and one-shot wrappers</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#result-objects">Result Objects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#analytic-tracking-and-reference-fields">Analytic Tracking and Reference Fields</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#source-charge-coordinates-and-units">Source charge, coordinates, and units</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#round-gaussian-gaussian-round-free-space">Round Gaussian: gaussian_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#parabolic-density-the-projection-of-a-4d-waterbag">Parabolic density: the projection of a 4D waterbag</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#direct-formula-example">Direct formula example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../en/field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/field_solver.html#gpu-resources-and-execution">GPU resources and execution</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../en/wake_field.html">WakeField</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#shared-configuration-and-wake-points">Shared configuration and wake points</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#physical-scope-and-conventions">Physical scope and conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#response-models">Response models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#raw-spectra-and-fitting">Raw spectra and fitting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#velocity-and-acceleration">Velocity and acceleration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#explicit-algorithm-groups">Explicit algorithm groups</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#example">Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#diagnostics-and-state">Diagnostics and state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#cpu-and-gpu-execution">CPU and GPU execution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#custom-spatial-terms">Custom spatial terms</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#stationary-multibunch-and-long-history">Stationary multibunch and long history</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#variable-period-general-history">Variable-period general history</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#coasting-beams">Coasting beams</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#regression-and-block-contracts">Regression and block contracts</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#file-input">File input</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/wake_field.html#slice-coordinates-and-response-boundaries">Slice coordinates and response boundaries</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">尾场（WakeField）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">共享配置与尾场点</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">命令与算法参数</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">响应模型</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">示例与恢复</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">文件输入</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">非聚束束流适配范围</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">固定网格多束团与长历史</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">变周期下的一般历史计算</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">数值精度与收敛</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id10">物理范围与约定</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id11">速度、加速与算法组</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id12">频谱与拟合</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id13">自定义空间项</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id14">切片坐标与响应边界</a></li>
+</ul>
+</li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+</ul>
+
+  
 
         </div>
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../index.html">PASS</a>
+          <a href="index.html">PASS</a>
       </nav>
 
       <div class="wy-nav-content">
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+          <div role="navigation" aria-label="页面导航">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="index.html">PASS 文档（中文）</a></li>
-      <li class="breadcrumb-item active">WakeField</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
+      <li class="breadcrumb-item active">尾场（WakeField）</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/zh/wake_field.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -799,17 +131,15 @@
            <div itemprop="articleBody">
              
   <section id="wakefield">
-<h1>WakeField<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">WakeField</span></code> 使用指定的 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> 结果施加积分薄元件尾场。一个命令代表
-一个物理位置，各算法组分别保存源历史或模式状态。本页说明 CPU 与 CUDA 实现，
-数值验证结果见仓库的尾场验证报告。</p>
+<h1>尾场（WakeField）<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">WakeField</span></code> 根据命名的纵向切片集计算尾场引起的能量和横向动量变化。一个命令对应一个物理作用点，各算法组分别保存源历史或模式状态。支持解析响应、时域表格和阻抗频谱，CPU 与 NVIDIA GPU 使用相同的配置。</p>
+<p>在作用点之前执行匹配的 <a class="reference internal" href="slicer.html"><span class="doc">纵向切片（Slicer）</span></a>。普通因果响应使用连续到达时间；非聚束束流周期切片的条件见下文。响应数据必须声明单位、符号、归一化及速度模型。重分组后重新计算切片，历史源保留发出时的物理时间和宽度。坐标约定见 <a class="reference internal" href="injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
 <section id="id1">
 <h2>共享配置与尾场点<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>可选根级 <code class="docutils literal notranslate"><span class="pre">Wake</span> <span class="pre">field</span></code> 包含 <code class="docutils literal notranslate"><span class="pre">Enabled``（默认</span> <span class="pre">true）及</span> <span class="pre">``Configurations</span></code>，
 后者将唯一配置名称映射到含 <code class="docutils literal notranslate"><span class="pre">Groups</span></code> 的对象。尾场点在内联 <code class="docutils literal notranslate"><span class="pre">Groups</span></code> 与
 <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> 引用之间二选一；<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code>、<code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code>
-仍在各点设置。总开关与单点开关均为 true 才执行。没有根级块时，旧内联命令
-保持原有行为。</p>
+仍在各点设置。总开关与单点开关均为 true 才执行；未设置根级块时，可直接在命令内定义 Groups。</p>
 <p>配置仅共享输入参数。加载输入时将每个引用展开为独立定义，每个物理点分别创建
 模型、历史及求解状态。关闭总开关不能绕过非法配置或缺失引用。共享定义中的文件路径
 与内联定义相同，按输入 JSON 所在目录解析。</p>
@@ -835,114 +165,10 @@
 <p>这只是接口片段，实际输入需补齐 Injection、光学配置及尾场点之前的匹配 Slicer。
 常量模型仅作示例，不代表指定机器的阻抗。Python API 导出 <code class="docutils literal notranslate"><span class="pre">WakeFieldConfig</span></code>
 和 <code class="docutils literal notranslate"><span class="pre">WakeResourceConfig</span></code>；向 <code class="docutils literal notranslate"><span class="pre">generate_input</span></code> 传入
-<code class="docutils literal notranslate"><span class="pre">wake_field=WakeFieldConfig(...)</span></code>。<code class="docutils literal notranslate"><span class="pre">load_input</span></code> 返回展开后的内联序列，使其
-二元返回接口不会丢失共享定义。直接构造底层命令仍需内联定义；从命名配置构造时
-先使用 <code class="docutils literal notranslate"><span class="pre">resolve_wake_point</span></code>。</p>
+<code class="docutils literal notranslate"><span class="pre">wake_field=WakeFieldConfig(...)</span></code>。</p>
 </section>
 <section id="id2">
-<h2>物理范围与约定<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>PASS 追踪解析或用户提供的响应，不求解任意三维结构的 Maxwell 方程。
-响应速度耦合使用束团参考速度；横向电压到冲量的换算则使用粒子实际入射速度。
-粒子连续坐标为 <span class="math notranslate nohighlight">\(z_i=\beta_b c(T_b-t_i)\)</span>，当前位置的物理到达时间为</p>
-<div class="math notranslate nohighlight">
-\[t_i=T_b-z_i/(\beta_b c).\]</div>
-<p>不保存到达修正量。RF 改变参考能量时缩放 z 以保持此时间；重分组将 z 和动量
-变换到目标参考系。尾场适配器转换用户最近提供的 z 区间：中心时间为
-<span class="math notranslate nohighlight">\(T_b-z_{slice}/(\beta_b c)\)</span>，时间宽度为 <span class="math notranslate nohighlight">\(\Delta z/(\beta_b c)\)</span>。
-RF 不改变保存的区间或成员。新发出的源永久保留当次采样的物理时间和宽度，
-后续参考变换不重新解释因果历史。参见 <a class="reference internal" href="injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
-<div class="math notranslate nohighlight">
-\[F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad Z_\parallel=F,\qquad Z_\perp=iF.\]</div>
-<p>源和测试横向单项式总阶数为 <span class="math notranslate nohighlight">\(n\)</span> 时，积分尾函数单位为 V/C/m<sup>n</sup>，
-阻抗单位为 ohm/m<sup>n</sup>。源矩使用带符号真实电荷，测试宏粒子权重约去。
-纵向为正表示损失能量，横向为正表示正方向 Lorentz 力。每核子能量变化
-<span class="math notranslate nohighlight">\(\Delta E=-Z_{\mathrm{ion}}V_\parallel/A\)</span>，随后精确换算动量；横向
-<span class="math notranslate nohighlight">\(\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)\)</span> 使用实际入射速度。
-因果核零点取有限跳跃的一半。<code class="docutils literal notranslate"><span class="pre">uniform</span></code> 对整个切片时间宽度均匀积分，
-<code class="docutils literal notranslate"><span class="pre">point</span></code> 位于切片中心。切片和参数收敛由用户扫描，没有自动切片误差控制。</p>
-</section>
-<section id="id3">
-<h2>响应模型<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
-<table class="docutils align-default" id="id14">
-<caption><span class="caption-text">Model 中的 Kind</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
-<colgroup>
-<col style="width: 23.0%" />
-<col style="width: 77.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Kind</p></th>
-<th class="head"><p>参数与含义</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constant</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Amplitude</span></code>、<code class="docutils literal notranslate"><span class="pre">Duration</span> <span class="pre">(s)</span></code>；有限因果测试响应。</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resonator</span></code></p></td>
-<td><p>正值 <code class="docutils literal notranslate"><span class="pre">R</span></code>、<code class="docutils literal notranslate"><span class="pre">Q</span></code>、<code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>。R 为谐振阻抗实部；振幅衰减率 <span class="math notranslate nohighlight">\(\pi f_r/Q\)</span>。支持欠阻尼、临界阻尼及过阻尼。</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tabulated</span></code></p></td>
-<td><p>递增 <code class="docutils literal notranslate"><span class="pre">Times</span> <span class="pre">(s)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Values</span></code>、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）。线性插值，表外为零。因果表从零开始，双侧表可含负延迟。</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
-<td><p>数值 table 或 headtail 文件，显式声明列、单位、符号与归一化；只在初始化读取，保存内容指纹，详见文件输入。</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">impedance</span></code></p></td>
-<td><p>递增非负 <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Real</span></code>/<code class="docutils literal notranslate"><span class="pre">Imag</span></code>、显式 <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>；保留不可变原始采样。</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fitted_impedance</span></code></p></td>
-<td><p>频谱及 <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">poles</span> <span class="pre">(1/s)``（[实部,</span> <span class="pre">虚部]）、``Optimize</span> <span class="pre">poles</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">evaluations</span></code>、<code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>、<code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>。共轭对只输入正虚部极点，实极点单独输入。</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">modes</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Poles</span> <span class="pre">(1/s)</span></code>、<code class="docutils literal notranslate"><span class="pre">Residues</span></code> （[实部, 虚部]），须含完整共轭对；实极点对应实留数。</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resistive_wall</span></code></p></td>
-<td><p>有限 β 圆管良导体厚壁：<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Beta</span></code>、<code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>。可选 <code class="docutils literal notranslate"><span class="pre">Wall</span> <span class="pre">thickness</span> <span class="pre">(m)</span></code> 仅检查厚壁条件，不启用有限壁厚场匹配求解器。</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ultrarelativistic_wall</span></code></p></td>
-<td><p>Bane-Sands 圆管 DC 壁：<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>。要求 beta &gt;= 0.99，另须检查短束团适用性。</p></td>
-</tr>
-</tbody>
-</table>
-<p>有限 β 壁模型采用 Stupakov，PRAB <strong>23</strong>, 094401 (2020)，
-<a class="reference external" href="https://doi.org/10.1103/PhysRevAccelBeams.23.094401">doi:10.1103/PhysRevAccelBeams.23.094401</a>。
-支持纵向与对角偶极分量，减去相同几何的理想导体响应，仅提供有限电导率修正。
-缩放 Bessel 函数避免溢出并保留有限 β 依赖。DC 不在适用范围内。
-<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">skin</span> <span class="pre">depth</span> <span class="pre">ratio</span></code> 限制趋肤深度与半径（及给定壁厚）之比，
-<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">surface</span> <span class="pre">impedance</span> <span class="pre">ratio</span></code> 限制归一化表面阻抗，默认及最大值均为 0.1。
-有限壁厚、磁性或色散材料及任意几何须提供相应已验证响应，不能从该模型推断。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">wake</span></code>、<code class="docutils literal notranslate"><span class="pre">finite_conductivity_correction</span></code>、<code class="docutils literal notranslate"><span class="pre">pec_image</span></code>、
-<code class="docutils literal notranslate"><span class="pre">direct_space_charge</span></code> 或 <code class="docutils literal notranslate"><span class="pre">total</span></code>。程序不自动减去空间电荷。现有 SpaceCharge
-为横向计算，不能据此认为纵向或所有像场项已包含；组合前须检查几何、归一化及
-物理内容，防止重复或遗漏。</p>
-</section>
-<section id="id4">
-<h2>频谱与拟合<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
-<p>原始路径对分段线性频谱做振荡积分，保留非均匀频率采样，不引入 FFT 的人工
-周期时间窗口。频带外明确为零，频带与间距需要独立收敛检查。有限带宽逆变换
-一般为双侧函数。<code class="docutils literal notranslate"><span class="pre">two_sided</span></code> 保留该结果；<code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> 明确截去
-负时间部分，零点取跳跃一半，会改变有效频率响应，是带宽近似。</p>
-<p>拟合采用变量投影：非线性优化用户选定的极点，以实数最小二乘确定留数，
-不自动选模式数。保留原始频谱及诊断；最大相对误差须满足 <code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>，
-分母下限为 <code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>。极点半平面受到约束，但不自动强制或认证无源性。
-纵向标量无源条件不能套用于所有横向分量；缺失频带不推断为 delta 或其导数项。
-右半平面极点只表示向负时间衰减的空间分支，不作为增长时间状态向前递推。
-<code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> 拟合要求左半平面初始极点；一般双侧拟合选择 <code class="docutils literal notranslate"><span class="pre">two_sided</span></code>
-及明确空间边界。CST 工程/二进制解析暂缓；数值导出可使用下述显式文件约定。</p>
-</section>
-<section id="id5">
-<h2>速度、加速与算法组<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p>每个分量的 <code class="docutils literal notranslate"><span class="pre">Velocity</span></code> 显式选择：</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">fixed</span></code> 加 <code class="docutils literal notranslate"><span class="pre">Beta</span></code>：同一参考速度的稳态响应，追踪中参考速度变化会被拒绝。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">factorized</span></code> 加递增 <code class="docutils literal notranslate"><span class="pre">Betas</span></code>、实数 <code class="docutils literal notranslate"><span class="pre">Source</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Witness</span></code> 表：
-<span class="math notranslate nohighlight">\(W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)\)</span>，只在表内线性插值。
-历史激励保存源通过时的速度；当前观察应用测试束团因子。</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ideal</span></code>：显式定义速度无关点响应，不是对实际腔体渡越时间因子的推导。</p></li>
-</ul>
-<p>有限 β 壁自动设置相同固定速度。单个稳态谱不能确定任意不同速度轨迹、复数
-渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
-保持不变，不施加通用 β 缩放。</p>
+<h2>命令与算法参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p>命令字段为 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Command=&quot;WakeField&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code>、<code class="docutils literal notranslate"><span class="pre">Groups</span></code> 或 <code class="docutils literal notranslate"><span class="pre">Configuration</span></code>、
 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code>。组名 <code class="docutils literal notranslate"><span class="pre">Name</span></code> 必须唯一，<code class="docutils literal notranslate"><span class="pre">Components</span></code> 不为空。分量包含
 <code class="docutils literal notranslate"><span class="pre">Component</span></code>、<code class="docutils literal notranslate"><span class="pre">Model</span></code>、<code class="docutils literal notranslate"><span class="pre">Velocity</span></code>，可选 <code class="docutils literal notranslate"><span class="pre">Scale</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code>。</p>
@@ -996,12 +222,67 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 <p>FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History=direct 时历史
 明确直接求和。没有 auto 或静默回退。模式按实际时间推进，保留无限衰减历史，
 状态内存随模式数增长。因果批次须按物理时间排序且不重叠（包括均匀源支撑）；
-跨圈重叠会报错，按圈追踪不能推断未来轨迹。isolated 声明完整源列已在当前
+跨圈重叠会报错，按圈跟踪不能推断未来轨迹。isolated 声明完整源列已在当前
 批次，periodic 声明其周期稳态；都要求固定 β 且无瞬态历史，不能表示任意
 加速或瞬态环形分布。用户选择周期镜像数并检查收敛。</p>
 </section>
-<section id="id6">
-<h2>示例与恢复<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<section id="id3">
+<h2>响应模型<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id16">
+<caption><span class="caption-text">Model 中的 Kind</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 23.0%" />
+<col style="width: 77.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Kind</p></th>
+<th class="head"><p>参数与含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constant</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Amplitude</span></code>、<code class="docutils literal notranslate"><span class="pre">Duration</span> <span class="pre">(s)</span></code>；有限因果测试响应。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resonator</span></code></p></td>
+<td><p>正值 <code class="docutils literal notranslate"><span class="pre">R</span></code>、<code class="docutils literal notranslate"><span class="pre">Q</span></code>、<code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>。R 为谐振阻抗实部；振幅衰减率 <span class="math notranslate nohighlight">\(\pi f_r/Q\)</span>。支持欠阻尼、临界阻尼及过阻尼。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tabulated</span></code></p></td>
+<td><p>递增 <code class="docutils literal notranslate"><span class="pre">Times</span> <span class="pre">(s)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Values</span></code>、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）。线性插值，表外为零。因果表从零开始，双侧表可含负延迟。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
+<td><p>数值 table 或 headtail 文件，显式声明列、单位、符号与归一化；只在初始化读取，保存内容指纹，详见文件输入。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">impedance</span></code></p></td>
+<td><p>递增非负 <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Real</span></code>/<code class="docutils literal notranslate"><span class="pre">Imag</span></code>、显式 <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>；保留不可变原始采样。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fitted_impedance</span></code></p></td>
+<td><p>频谱及 <code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">poles</span> <span class="pre">(1/s)``（[实部,</span> <span class="pre">虚部]）、``Optimize</span> <span class="pre">poles</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">evaluations</span></code>、<code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>、<code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>。共轭对只输入正虚部极点，实极点单独输入。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">modes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Poles</span> <span class="pre">(1/s)</span></code>、<code class="docutils literal notranslate"><span class="pre">Residues</span></code> （[实部, 虚部]），须含完整共轭对；实极点对应实留数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resistive_wall</span></code></p></td>
+<td><p>有限 β 圆管良导体厚壁：<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Beta</span></code>、<code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>。可选 <code class="docutils literal notranslate"><span class="pre">Wall</span> <span class="pre">thickness</span> <span class="pre">(m)</span></code> 仅检查厚壁条件，不启用有限壁厚场匹配求解器。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ultrarelativistic_wall</span></code></p></td>
+<td><p>Bane-Sands 圆管 DC 壁：<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Conductivity</span> <span class="pre">(S/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>。要求 beta &gt;= 0.99，另须检查短束团适用性。</p></td>
+</tr>
+</tbody>
+</table>
+<p>有限 β 壁模型采用 Stupakov，PRAB <strong>23</strong>, 094401 (2020)，
+<a class="reference external" href="https://doi.org/10.1103/PhysRevAccelBeams.23.094401">doi:10.1103/PhysRevAccelBeams.23.094401</a>。
+支持纵向与对角偶极分量，减去相同几何的理想导体响应，仅提供有限电导率修正。
+缩放 Bessel 函数避免溢出并保留有限 β 依赖。DC 不在适用范围内。
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">skin</span> <span class="pre">depth</span> <span class="pre">ratio</span></code> 限制趋肤深度与半径（及给定壁厚）之比，
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">surface</span> <span class="pre">impedance</span> <span class="pre">ratio</span></code> 限制归一化表面阻抗，默认及最大值均为 0.1。
+有限壁厚、磁性或色散材料及任意几何须提供相应已验证响应，不能从该模型推断。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Field</span> <span class="pre">content</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">wake</span></code>、<code class="docutils literal notranslate"><span class="pre">finite_conductivity_correction</span></code>、<code class="docutils literal notranslate"><span class="pre">pec_image</span></code>、
+<code class="docutils literal notranslate"><span class="pre">direct_space_charge</span></code> 或 <code class="docutils literal notranslate"><span class="pre">total</span></code>。程序不自动减去空间电荷。现有 SpaceCharge
+为横向计算，不能据此认为纵向或所有像场项已包含；组合前须检查几何、归一化及
+物理内容，防止重复或遗漏。</p>
+</section>
+<section id="id4">
+<h2>示例与恢复<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeField</span>
 <span class="n">wake</span> <span class="o">=</span> <span class="n">WakeField</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">slice_set</span><span class="o">=</span><span class="s2">"wake"</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span>
     <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"short"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span> <span class="n">source_shape</span><span class="o">=</span><span class="s2">"uniform"</span><span class="p">,</span>
@@ -1016,7 +297,6 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 </pre></div>
 </div>
 <p>示例耦合仅为说明，不是腔体数据；之前须执行相应 Slicer。
-旧平铺 Components/Solver/Memory turns 接口必须迁移至 Groups，不解释过时字段。
 命令提供 <code class="docutils literal notranslate"><span class="pre">last_sources</span></code>、<code class="docutils literal notranslate"><span class="pre">last_coefficients</span></code>、<code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>、
 <code class="docutils literal notranslate"><span class="pre">group_states</span></code>，诊断包含算法、边界、保留次数、状态字节数及拟合误差。
 <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code>/<code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存恢复各组并校验配置指纹。
@@ -1026,71 +306,77 @@ WakeField 命令不能保留之前的历史；若在重新初始化的模拟中�
 命令，应先调用 <code class="docutils literal notranslate"><span class="pre">reset_state()</span></code>。</p>
 <p>同一束流的所有宏粒子使用由初始注入参数确定的同一固定权重。
 CPU/GPU 源投影均使用 <code class="docutils literal notranslate"><span class="pre">bunch.ratio</span> <span class="pre">*</span> <span class="pre">bunch.num_charge</span> <span class="pre">*</span> <span class="pre">e</span></code> 作为每个存活宏粒子的
-电荷，不使用逐粒子电荷数组。Executor 不在 Injection 前后复制 tag 或更新
-源电荷；新激活粒子保持原始权重，见 <a class="reference internal" href="injection.html"><span class="doc">注入粒子生成（Injection）</span></a>。</p>
+电荷，不使用逐粒子电荷数组。新激活粒子保持原始权重，见 <a class="reference internal" href="injection.html"><span class="doc">注入与粒子生成（Injection）</span></a>。</p>
 </section>
-<section id="cpu-gpu">
-<h2>CPU 与 GPU 执行<a class="headerlink" href="#cpu-gpu" title="Link to this heading"></a></h2>
-<p>CPU 与 GPU 实现放在同一文件中，CUDA 辅助函数和核函数源码位于对应 CPU 代码
-下方。<code class="docutils literal notranslate"><span class="pre">PASS/commands/wake/</span></code> 中，时域模型位于 <code class="docutils literal notranslate"><span class="pre">wake_models.py</span></code>，频谱及
-有理响应位于 <code class="docutils literal notranslate"><span class="pre">wake_spectrum.py</span></code>，显式求解器和模式扫描位于
-<code class="docutils literal notranslate"><span class="pre">wake_solvers.py</span></code>，两类历史卷积分别位于 <code class="docutils literal notranslate"><span class="pre">convolution.py</span></code> 和
-<code class="docutils literal notranslate"><span class="pre">time_convolution.py</span></code>。投影归入 <code class="docutils literal notranslate"><span class="pre">wake_moments.py</span></code>，时钟归入
-<code class="docutils literal notranslate"><span class="pre">wake_timing.py</span></code>，源数据存储归入 <code class="docutils literal notranslate"><span class="pre">wake_state.py</span></code>，耦合归入
-<code class="docutils literal notranslate"><span class="pre">wake_components.py</span></code> 和 <code class="docutils literal notranslate"><span class="pre">wake_velocity.py</span></code>。融合粒子踢动位于
-<code class="docutils literal notranslate"><span class="pre">PASS/commands/wake_field.py</span></code> 的 command 实现下方。CuPy 导入和 CUDA 编译
-仍按需执行，CPU 运行不依赖 CUDA 环境。</p>
-<p>CPU 与 CUDA 使用同一模型和算法组配置，通过模拟的后端设置选择；
-<code class="docutils literal notranslate"><span class="pre">execute_gpu</span></code> 要求粒子数组已在显存。原始频谱、表格响应、谐振子、极点模式、
-直接历史及空间周期求和均在 GPU 上计算。有理拟合和解析有限 β 阻抗构造属于
-CPU 初始化工作，得到的响应数组按设备上传一次。数值表格/HEADTAIL 转换及分块
-卷积核采样也在 CPU 初始化阶段完成。</p>
-<p>CUDA 计算使用融合的 <code class="docutils literal notranslate"><span class="pre">RawKernel</span></code>/<code class="docutils literal notranslate"><span class="pre">RawModule</span></code>：时间换算、源矩、响应函数及积分、
-直接求和、速度耦合、事件累积、频谱乘积、插值、校验和粒子踢动均在核内完成。
-CuPy 保留为显存管理及启动接口；FFT 和排序／去重继续使用专用 GPU 库。
-不要求用基础核替代这些专用库。</p>
-<p>所有有存活粒子的束团共用一次投影启动及一次踢动启动，支持不同参考时间、速度及
-保存的切片宽度。空粒子群通过批量校验排除，不逐束团同步。粒子范围或 SliceSet
-存储变化时重建布局和指针缓存，参考参数单独更新；各次源记录保留自己的数组。
-固定范围的等长 Slicer 也批量执行各束团的直方图和切片表计算，存活数与越界数
-统一传回主机。主机尾场源快照合并上传各数组，显存中的各行保留本次通过的数据，
-不会被后续上传覆盖。</p>
-<p>直接求解器由一个 warp 负责一个见证切片，在核内计算响应并归约源贡献，不分配
-源切片乘见证切片大小的矩阵。物理时间近场修正对所有响应模型采用同一方式。
-普通 FFT 按校验后的间距、宽度、模型配置及截断时间缓存响应频谱；参考 beta
-改变几何时缓存失效。复用频谱时仍在设备上校验均匀网格。</p>
-<p>粒子坐标支持 float32 与 float64；物理到达时间、切片电荷矩、响应、模式状态、
-能量与动量换算均使用 float64。GPU 原子归约的求和顺序不同，因此 CPU/GPU 应按
-误差容差比较，而不要求逐位相同。float32 存储仍可能改变边界附近的切片归属，
-并在长圈数输运中积累舍入差异。</p>
-<p>投影通过一次粒子遍历和块内直方图累积电荷及横向偶极矩。单个 CUDA 核函数
-合并各分量的测试单项式与机械踢动。模式历史采用有界仿射前缀扫描，指数因子
-保持衰减，支持临界及过阻尼谐振子；圈内事件使用相对通过原点的时间，减少
-长时间后窄切片边界的舍入损失。
-对于中心递增、各切片边界未到达相邻中心的布局，直接构造有序事件，支持相邻
-切片的部分重叠及重合边界；其他布局保留通用排序／去重。模式更新只分配一次
-下一状态向量，保留旧状态供回滚和检查点使用。物理时间卷积在事务前统一校验
-完整沉积帧，逐子块处理时不重复同步主机；单槽位空间变换使用一维 cuFFT。
-源几何、响应模型、历史截断和时间网格近似均保持原有定义。</p>
-<p>等长局部 z 区间按当前参考速度转换为均匀时间网格。响应缓存依赖实际网格几何，beta 改变时其时间宽度也改变。用户控制 Slicer 更新；检查点序列化将显存历史转换为可移植主机数组。</p>
-<p>小规模算例可能由 CPU 更快完成，原因是 CUDA 启动及同步开销。性能测量应先
-预热、同步 CUDA 事件，并计入 Slicer、时钟、投影和踢动。生成报告
-<code class="docutils literal notranslate"><span class="pre">tests/codex/wake_redesign/validation_report.md</span></code> 记录实际硬件、规模、误差、
-计时及复现命令。</p>
+<section id="id5">
+<h2>文件输入<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> 接受 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>、<code class="docutils literal notranslate"><span class="pre">Format</span></code> （默认 table 或 headtail）、
+<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code> （默认 0）、必填 <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>、可选 <code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Delimiter</span></code> （null 为空白分隔）、<code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code> （默认 0）、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）、
+<code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> （默认 two_sided）、可选 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 和必填 <code class="docutils literal notranslate"><span class="pre">Convention</span></code>。
+列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
+一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
+采样，反向时间/距离轴可以重排。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Convention</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">kind</span></code> （wake_function/impedance）、<code class="docutils literal notranslate"><span class="pre">Axis</span></code>
+（time/distance/frequency）、<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Positive</span> <span class="pre">trailing</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">positive</span> <span class="pre">loss</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrated</span></code>、<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">beta</span></code>。
+<code class="docutils literal notranslate"><span class="pre">Fourier</span> <span class="pre">exponent</span></code> 默认 -1，<code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">impedance</span> <span class="pre">factor</span></code> 默认 i（可为 -i/1），
+<code class="docutils literal notranslate"><span class="pre">Shunt</span> <span class="pre">impedance</span> <span class="pre">convention</span></code> 默认 not_applicable，仅记录来源：数值表已归一化，
+此字段不重新缩放分路阻抗。</p>
+<p>时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
+尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
+V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
+分母长度幂次，必须给定 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>；已经积分的数据不允许再次乘长度。
+距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
+显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
+约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
+有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。</p>
+<p>HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
+V/(pC*mm)，符号仍需声明。参见 <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL 表格规范</a>。
+文件输入示例：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="s2">"tail.dat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"headtail"</span><span class="p">,</span>
+    <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span>
+        <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/(pC*mm)"</span><span class="p">,</span> <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reference_beta</span><span class="o">=</span><span class="n">beta</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>JSON 输入将 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code> 相对其所在目录解析；直接 Python 构造则相对当前
+工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
+校验文件内容与配置。不读取 CST 工程或二进制文件、自动单位猜测或
+wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。</p>
+</section>
+<section id="id6">
+<h2>非聚束束流适配范围<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p>非聚束束流可使用单束团组 <code class="docutils literal notranslate"><span class="pre">harmonic_number=1</span></code>，配合覆盖整圈的等长度显式
+Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束。均匀电流 I 对
+有限因果响应的稳态电压为 <span class="math notranslate nohighlight">\(V=I\int_0^\infty W(\tau)d\tau\)</span>。
+零初始历史会产生启动瞬态，应等待响应记忆填满。<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code>
+表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。</p>
+<p>演化非聚束束流使用 <code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase``（或</span> <span class="pre">``Periodic=true</span></code>）、
+<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 及 <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>。显式更新时
+<span class="math notranslate nohighlight">\(z_{phase}=-C[(-u)\bmod1]\)</span>，其中 <span class="math notranslate nohighlight">\(u=v_{obs}(T_{obs}-t_i)/C\)</span>。
+规定时钟选择共同观测事件和速度，见 <a class="reference internal" href="slicer.html"><span class="doc">纵向切片（Slicer）</span></a>。各束团的参考时间、速度可以
+不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。</p>
+<p>切片覆盖 <span class="math notranslate nohighlight">\([T_{obs},T_{obs}+C/v_{obs})\)</span>。恰好为整数圈的相位映射到窗口
+起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
+更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
+<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code>。<code class="docutils literal notranslate"><span class="pre">time_fft</span></code> 支持变化且互不重叠的通过窗口，
+固定卷积网格仍要求其声明的时间结构。</p>
+<p>这里采用 <strong>每粒子每参考圈经过一次的近似</strong>。在该模型内支持动量展宽及长期
+累计滑移，但不调度同一参考圈内个别粒子的零次或多次通过。实际周期为 Ti
+的均匀刚性流，在模型中表示的电流为 Q/T，实际为 Q/Ti；令
+epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。该误差为一阶，随动量偏差减小而减小。</p>
+<p>要求单圈滑移、单圈集体作用变化足够小，并对需要解析的方位模 m 满足
+<span class="math notranslate nohighlight">\(2\pi |m\,\Delta u|\ll1\)</span>。切片数与时间网格应分别做收敛检查。
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">phase</span> <span class="pre">slip</span></code> 默认 0.05、最大 0.1，在 WakeField 使用切片时拒绝
+过大的已观测单步变化；Slicer 仍可生成诊断投影。
+不是通用精度保证。长期累计运动后，粒子存储精度仍须能够解析切片宽度，
+长期非聚束束流推荐 float64。未启用周期到达切片的普通 explicit 模式仍保持
+原有的边界截取行为。</p>
 </section>
 <section id="id7">
-<h2>自定义空间项<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
-<p>保留现有命名分量。<code class="docutils literal notranslate"><span class="pre">Component=&quot;custom&quot;</span></code> 必须提供 <code class="docutils literal notranslate"><span class="pre">Spatial</span></code>，其中
-<code class="docutils literal notranslate"><span class="pre">Plane</span></code> 为 x/y/z，<code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">powers</span></code> 为 [a,b]，<code class="docutils literal notranslate"><span class="pre">Test</span> <span class="pre">powers</span></code> 为 [c,d]，
-均为非负整数。投影源矩为 <span class="math notranslate nohighlight">\(\sum_j q_j x_j^a y_j^b\)</span>，响应乘以测试粒子的
-<span class="math notranslate nohighlight">\(x_i^c y_i^d\)</span>；尾函数单位的空间阶数为 a+b+c+d。这是输入多项式响应的
-表示方式，不推导未提供的多极分量，也不自动保证不同分量之间的 Maxwell 约束。
-解析圆壁模型仍只支持明确规定的纵向与对角偶极分量。</p>
-<p>CPU/CUDA 支持相同幂次。GPU 批量直方图在同一次粒子遍历中累积 Q/Qx/Qy
-及所需的通用单项式；测试幂次在融合机械踢动核中按整数幂求值。</p>
-</section>
-<section id="id8">
-<h2>固定网格多束团与长历史<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<h2>固定网格多束团与长历史<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
 <p>选择 <code class="docutils literal notranslate"><span class="pre">Solver=&quot;partitioned_fft&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code> 和有限
 <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">turns=H</span></code>，任意因果表格均不要求模式拟合。采样中心时间定义为</p>
 <div class="math notranslate nohighlight">
@@ -1118,9 +404,10 @@ L=1,2,4,…，最后截到 H。已完成的 L 圈源块只向未来通过时刻�
 O(F log-squared H)，另加空间 FFT 与分量因子；两者频谱存储均为 O(H F)。
 分层调度在块边界存在耗时峰值，性能测量应至少覆盖一个最大块周期，并报告
 平均值和最大值，不能只看中位数。</p>
-<p>每个束团按自己的参考事件转换保存的区间。GPU 投影累积当前源矩，不保存粒子时钟数组；融合粒子踢随后使用相应响应系数。</p>
-<p>对于 [-zmax,zmax] 等长 Slicer、共同 beta、谐波槽位 0..B-1、周长 C，且
-t0=n*C/(beta*c)，精确点源网格示例如下：</p>
+<p>每个束团按自己的参考事件转换保存的区间。</p>
+<p>对于 [-zmax,zmax] 等长 Slicer、共同 beta、谐波槽位 0..B-1、周长 C，
+设参考速度恒定，槽位 b 在该尾场点的参考通过时间为 t0_b=(n-b/B)*C/(beta*c)。
+精确点源网格示例如下：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeConvolutionGrid</span>
 <span class="n">speed</span> <span class="o">=</span> <span class="n">beta</span> <span class="o">*</span> <span class="mf">299792458.0</span>
 <span class="n">grid</span> <span class="o">=</span> <span class="n">WakeConvolutionGrid</span><span class="p">(</span>
@@ -1133,13 +420,11 @@ t0=n*C/(beta*c)，精确点源网格示例如下：</p>
     <span class="n">partition</span><span class="o">=</span><span class="s2">"dyadic"</span><span class="p">,</span> <span class="n">max_workspace_mb</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">components</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>选择正常 GPU 后端即在 CUDA 执行同一配置。粒子存储可为 float32，但声明的
-物理网格和尾场算术保持双精度；边界附近的切片归属仍可能受 float32 影响。
-生成测试、性能脚本与完整跟踪示例位于 <code class="docutils literal notranslate"><span class="pre">tests/codex/wake_fast_history/</span></code>，
-分别测量源沉积与历史调度、以及同步后的完整追踪。</p>
+<p>GPU 后端使用同一配置。粒子存储可为 float32，但声明的
+物理网格和尾场算术保持双精度；边界附近的切片归属仍可能受 float32 影响。</p>
 </section>
-<section id="id9">
-<h2>变周期下的一般历史计算<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<section id="id8">
+<h2>变周期下的一般历史计算<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">Solver=&quot;time_fft&quot;</span></code> 使用固定物理时间节点
 <span class="math notranslate nohighlight">\(t_k=t_{\rm origin}+k\Delta t\)</span>，不要求固定周回周期。
 选择 <code class="docutils literal notranslate"><span class="pre">History=&quot;partitioned&quot;</span></code>、有限 <code class="docutils literal notranslate"><span class="pre">Memory</span> <span class="pre">time</span> <span class="pre">(s)</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">grid</span></code>，
@@ -1154,14 +439,8 @@ t0=n*C/(beta*c)，精确点源网格示例如下：</p>
 <p>短尺度响应和高频分量需要细化 <code class="docutils literal notranslate"><span class="pre">Step</span> <span class="pre">(s)</span></code>；物理切片数、历史截断时间须分别
 检查收敛。表格折点和硬截断可限制实际收敛阶，选择 time_fft 本身不保证统一
 误差阈值。步长还必须能被绝对到达时间的浮点表示分辨。</p>
-<p>已完成的物理时间块送入 uniform 或 dyadic 在线卷积；尚未完成的块，包括源
-沉积超出中心的部分，跨通过保留。通过末端前一个节点也保持可写，避免相接
-通过边界的舍入误差使源沉积节点提前封存。该规则更新了物理时间检查点的
-计划版本；旧版本检查点需要从初始束流状态重新生成。preview 只计算当前已知源，不要求未来束流
-轨迹。预览中触及的持久环形缓冲行会保存并精确还原，所有组完成踢动校验后
-才提交更新。CPU/GPU 检查点包含未完成块、近场修正源、时钟原点及已完成块
-历史。空批次仍推进通过计数；间隙超过完整历史时长及投影支撑后，可精确跳过
-已无响应的空时间块。</p>
+<p>源数据仅包含已通过的粒子，不需要未来轨迹。CPU/GPU 检查点保存未完成的时间块、
+近场修正源、时钟原点和已完成的历史；空批次也推进通过计数。</p>
 <p>块长为 B、记忆时间为 H 秒时，历史块数 M=ceil(H/(B*delta-t))+1。
 源通道和分量数固定时，dyadic 每个完成块摊销计算量为
 O(B log B + B log-squared M)，另加源沉积、测试插值及局部源—目标修正；
@@ -1169,9 +448,6 @@ O(B log B + B log-squared M)，另加源沉积、测试插值及局部源—目�
 因此固定稀疏束列使用 partitioned_fft 可能明显更省。大量宽源重叠会增加
 局部修正工作量。<code class="docutils literal notranslate"><span class="pre">Block</span> <span class="pre">size</span></code> 控制调度及内存访问，不改变物理分辨率。
 性能测试应覆盖完整最大块周期并报告峰值耗时。</p>
-<p>CPU 和 CUDA 实现同一投影及历史方案。CUDA 使用设备端沉积、融合的投影对
-计算、共享源 FFT、持久 cuFFT 计划和显存历史；仍会同步少量校验元数据。
-Slicer 保持逐束团调用，变周期支持不要求整列 Slicer 接口。</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">WakeSolverGroup</span><span class="p">,</span> <span class="n">WakeTimeGrid</span>
 <span class="n">group</span> <span class="o">=</span> <span class="n">WakeSolverGroup</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">"accelerating_tail"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"time_fft"</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="s2">"partitioned"</span><span class="p">,</span>
@@ -1182,103 +458,77 @@ Slicer 保持逐束团调用，变周期支持不要求整列 Slicer 接口。</
 </div>
 <p>示例网格值仅作说明，须对实际尾场检查收敛。原点为 null 时，首个源区间会
 选取邻近原点；显式原点不得晚于首个源的支撑起点。不同调用的源批次仍须按
-因果时间排序且支撑不重叠；同一批次内的独立重叠粒子群允许累加。
-可执行验证和同步计时位于 <code class="docutils literal notranslate"><span class="pre">tests/codex/wake_variable_period/</span></code>。</p>
+因果时间排序且支撑不重叠；同一批次内的独立重叠粒子群允许累加。</p>
+</section>
+<section id="id9">
+<h2>数值精度与收敛<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>粒子坐标可使用 float32 或 float64；物理到达时间、源电荷矩、响应、模式状态及能量和动量换算使用 float64。GPU 求和顺序可能不同，CPU/GPU 结果需用数值容差比较。float32 存储仍可能改变切片边界附近的归属，并积累长期输运舍入误差。</p>
+<p>等长 z 区间按当前束团参考速度换算为时间网格，参考速度改变会改变其时间宽度。用户控制 Slicer 的更新频率；切片宽度、响应频带、记忆时长和时间网格步长应分别检查收敛。</p>
 </section>
 <section id="id10">
-<h2>漂移束适配范围<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
-<p>漂移束可使用单束团组 <code class="docutils literal notranslate"><span class="pre">harmonic_number=1</span></code>，配合覆盖整圈的等长度显式
-Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束。均匀电流 I 对
-有限因果响应的稳态电压为 <span class="math notranslate nohighlight">\(V=I\int_0^\infty W(\tau)d\tau\)</span>。
-验证套件在 CPU/CUDA 上检查这一 DC 结果及方位谐波与解析卷积的收敛。
-零初始历史会产生启动瞬态，应等待响应记忆填满。<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code>
-表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。</p>
-<p>演化漂移束使用 <code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase``（或</span> <span class="pre">``Periodic=true</span></code>）、
-<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 及 <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>。显式更新时
-<span class="math notranslate nohighlight">\(z_{phase}=-C[(-u)\bmod1]\)</span>，其中 <span class="math notranslate nohighlight">\(u=v_{obs}(T_{obs}-t_i)/C\)</span>。
-规定时钟选择共同观测事件和速度，见 <a class="reference internal" href="slicer.html"><span class="doc">切片器（Slicer）</span></a>。各束团的参考时间、速度可以
-不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。</p>
-<p>切片覆盖 <span class="math notranslate nohighlight">\([T_{obs},T_{obs}+C/v_{obs})\)</span>。恰好为整数圈的相位映射到窗口
-起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
-更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
-<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code>。<code class="docutils literal notranslate"><span class="pre">time_fft</span></code> 支持变化且互不重叠的通过窗口，
-固定卷积网格仍要求其声明的时间结构。</p>
-<p>这里采用 <strong>每粒子每参考圈经过一次的近似</strong>。在该模型内支持动量展宽及长期
-累计滑移，但不调度同一参考圈内个别粒子的零次或多次通过。实际周期为 Ti
-的均匀刚性流，在模型中表示的电流为 Q/T，实际为 Q/Ti；令
-epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。真实 Drift 验证检查这一
-一阶误差及其随动量偏差减小而收敛；全环因果电压验证在 CPU/CUDA 上检查
-电荷守恒和 <span class="math notranslate nohighlight">\(I\int W\)</span>。</p>
-<p>要求单圈滑移、单圈集体作用变化足够小，并对需要解析的方位模 m 满足
-<span class="math notranslate nohighlight">\(2\pi |m\,\Delta u|\ll1\)</span>。切片数与时间网格应分别做收敛检查。
-<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">phase</span> <span class="pre">slip</span></code> 默认 0.05、最大 0.1，在 WakeField 使用切片时拒绝
-过大的已观测单步变化；Slicer 仍可生成诊断投影。
-不是通用精度保证。长期累计运动后，粒子存储精度仍须能够解析切片宽度，
-长期漂移束推荐 float64。未启用周期到达切片的普通 explicit 模式仍保持
-原有的边界截取行为。</p>
+<h2>物理范围与约定<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
+<p>PASS 跟踪解析或用户提供的响应，不求解任意三维结构的 Maxwell 方程。
+响应速度耦合使用束团参考速度；横向电压到冲量的换算则使用粒子实际入射速度。
+粒子连续坐标为 <span class="math notranslate nohighlight">\(z_i=\beta_b c(T_b-t_i)\)</span>，当前位置的物理到达时间为</p>
+<div class="math notranslate nohighlight">
+\[t_i=T_b-z_i/(\beta_b c).\]</div>
+<p>不保存到达修正量。RF 改变参考能量时缩放 z 以保持此时间；重分组将 z 和动量
+变换到目标参考系。尾场适配器转换用户最近提供的 z 区间：中心时间为
+<span class="math notranslate nohighlight">\(T_b-z_{slice}/(\beta_b c)\)</span>，时间宽度为 <span class="math notranslate nohighlight">\(\Delta z/(\beta_b c)\)</span>。
+RF 不改变保存的区间或成员。新发出的源永久保留当次采样的物理时间和宽度，
+后续参考变换不重新解释因果历史。参见 <a class="reference internal" href="injection.html#zh-longitudinal-reference"><span class="std std-ref">纵向坐标与参考到达时间</span></a>。</p>
+<div class="math notranslate nohighlight">
+\[F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad Z_\parallel=F,\qquad Z_\perp=iF.\]</div>
+<p>源和测试横向单项式总阶数为 <span class="math notranslate nohighlight">\(n\)</span> 时，积分尾函数单位为 V/C/m<sup>n</sup>，
+阻抗单位为 ohm/m<sup>n</sup>。源矩使用带符号真实电荷，测试宏粒子权重约去。
+纵向为正表示损失能量，横向为正表示正方向 Lorentz 力。每核子能量变化
+<span class="math notranslate nohighlight">\(\Delta E=-Z_{\mathrm{ion}}V_\parallel/A\)</span>，随后精确换算动量；横向
+<span class="math notranslate nohighlight">\(\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)\)</span> 使用实际入射速度。
+因果核零点取有限跳跃的一半。<code class="docutils literal notranslate"><span class="pre">uniform</span></code> 对整个切片时间宽度均匀积分，
+<code class="docutils literal notranslate"><span class="pre">point</span></code> 位于切片中心。切片和参数收敛由用户扫描，没有自动切片误差控制。</p>
 </section>
 <section id="id11">
-<h2>回归与分块接口<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">PartitionedConvolution.preview_block</span></code> 接收有限的 float64 后端数组，
-形状为 (源通道, 槽位, 切片)。源速度因子已包含，见证速度因子只在物理
-时间采样后施加。返回的更新独立持有频谱，调用者后续修改输入数组不会
-影响它。预计算结束时持久历史不变，更新只可提交一次。多块预计算通过
-有界环形行事务在异常时精确回滚，同一状态禁止重叠事务，从而保证各组
-历史统一接受，且不必每次复制完整长历史。</p>
-<p>已纳入版本管理的入口为
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.wake_production.run_regression</span></code>。CPU CI 在 PR 和
-推送时执行；CUDA 主机使用同一入口加 <code class="docutils literal notranslate"><span class="pre">--require-gpu</span></code>，没有真实设备时
-直接失败。生成结果与环境仍被 Git 忽略。长期验证入口
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">tests.codex.wake_production.long_term</span> <span class="pre">--backend</span> <span class="pre">cpu</span></code>，也可选
-gpu，以变周期非模态表格验证 2048 圈自洽运动、增长率、tune 和强度阈值。
-独立参考为有限历史 Floquet 矩阵，不是另一个 PASS 求解器。测试使用归一化
-单位及外加的小线性阻尼映射，得到的是该基准的阈值，不是普遍机器极限。</p>
-<p>CUDA 将保存的切片区间直接换算为物理时间。所有支持的模型均采用每个见证
-切片一个 warp 计算近场精确修正，避免源—目标对列表及其计数的主机同步。性能测试包括逐束团 Slicer、参考参数变化、源投影、
-历史计算与 kick，并预热且覆盖最大历史块的完整调度周期。</p>
+<h2>速度、加速与算法组<a class="headerlink" href="#id11" title="Link to this heading"></a></h2>
+<p>每个分量的 <code class="docutils literal notranslate"><span class="pre">Velocity</span></code> 显式选择：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fixed</span></code> 加 <code class="docutils literal notranslate"><span class="pre">Beta</span></code>：同一参考速度的稳态响应，跟踪中参考速度变化会被拒绝。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">factorized</span></code> 加递增 <code class="docutils literal notranslate"><span class="pre">Betas</span></code>、实数 <code class="docutils literal notranslate"><span class="pre">Source</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Witness</span></code> 表：
+<span class="math notranslate nohighlight">\(W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)\)</span>，只在表内线性插值。
+历史激励保存源通过时的速度；当前观察应用测试束团因子。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ideal</span></code>：显式定义速度无关点响应，不是对实际腔体渡越时间因子的推导。</p></li>
+</ul>
+<p>有限 β 壁自动设置相同固定速度。单个稳态谱不能确定任意不同速度轨迹、复数
+渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
+保持不变，不施加通用 β 缩放。</p>
 </section>
 <section id="id12">
-<h2>文件输入<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> 接受 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>、<code class="docutils literal notranslate"><span class="pre">Format</span></code> （默认 table 或 headtail）、
-<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code> （默认 0）、必填 <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>、可选 <code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>、
-<code class="docutils literal notranslate"><span class="pre">Delimiter</span></code> （null 为空白分隔）、<code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code> （默认 0）、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）、
-<code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> （默认 two_sided）、可选 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 和必填 <code class="docutils literal notranslate"><span class="pre">Convention</span></code>。
-列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
-一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
-采样，反向时间/距离轴可以重排。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Convention</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">kind</span></code> （wake_function/impedance）、<code class="docutils literal notranslate"><span class="pre">Axis</span></code>
-（time/distance/frequency）、<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Positive</span> <span class="pre">trailing</span></code>、
-<code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">positive</span> <span class="pre">loss</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrated</span></code>、<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">beta</span></code>。
-<code class="docutils literal notranslate"><span class="pre">Fourier</span> <span class="pre">exponent</span></code> 默认 -1，<code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">impedance</span> <span class="pre">factor</span></code> 默认 i（可为 -i/1），
-<code class="docutils literal notranslate"><span class="pre">Shunt</span> <span class="pre">impedance</span> <span class="pre">convention</span></code> 默认 not_applicable，仅记录来源：数值表已归一化，
-此字段不重新缩放分路阻抗。</p>
-<p>时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
-尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
-V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
-分母长度幂次，必须给定 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>；已经积分的数据不允许再次乘长度。
-距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
-显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
-约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
-有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。</p>
-<p>HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
-V/(pC*mm)，符号仍需声明。参见 <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL 表格规范</a>。
-PASS 自行读取与换算数值，不依赖 Xwakes 或 PyHEADTAIL。例如：</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="s2">"tail.dat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"headtail"</span><span class="p">,</span>
-    <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span>
-        <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/(pC*mm)"</span><span class="p">,</span> <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reference_beta</span><span class="o">=</span><span class="n">beta</span><span class="p">))</span>
-</pre></div>
-</div>
-<p>JSON 输入将 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code> 相对其所在目录解析；直接 Python 构造则相对当前
-工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
-校验文件内容与配置。尚不包含 CST 工程/二进制解析、自动单位猜测或
-wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。</p>
+<h2>频谱与拟合<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
+<p>原始路径对分段线性频谱做振荡积分，保留非均匀频率采样，不引入 FFT 的人工
+周期时间窗口。频带外明确为零，频带与间距需要独立收敛检查。有限带宽逆变换
+一般为双侧函数。<code class="docutils literal notranslate"><span class="pre">two_sided</span></code> 保留该结果；<code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> 明确截去
+负时间部分，零点取跳跃一半，会改变有效频率响应，是带宽近似。</p>
+<p>拟合采用变量投影：非线性优化用户选定的极点，以实数最小二乘确定留数，
+不自动选模式数。保留原始频谱及诊断；最大相对误差须满足 <code class="docutils literal notranslate"><span class="pre">Fit</span> <span class="pre">tolerance</span></code>，
+分母下限为 <code class="docutils literal notranslate"><span class="pre">Relative</span> <span class="pre">floor</span></code>。极点半平面受到约束，但不自动强制或认证无源性。
+纵向标量无源条件不能套用于所有横向分量；缺失频带不推断为 delta 或其导数项。
+右半平面极点只表示向负时间衰减的空间分支，不作为增长时间状态向前递推。
+<code class="docutils literal notranslate"><span class="pre">causal_projection</span></code> 拟合要求左半平面初始极点；一般双侧拟合选择 <code class="docutils literal notranslate"><span class="pre">two_sided</span></code>
+及明确空间边界。数值导出可使用本页的显式文件约定；不直接读取电磁仿真工程文件。</p>
 </section>
 <section id="id13">
-<h2>切片坐标与响应边界<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<h2>自定义空间项<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<p>除预定义的命名分量外，<code class="docutils literal notranslate"><span class="pre">Component=&quot;custom&quot;</span></code> 必须提供 <code class="docutils literal notranslate"><span class="pre">Spatial</span></code>，其中
+<code class="docutils literal notranslate"><span class="pre">Plane</span></code> 为 x/y/z，<code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">powers</span></code> 为 [a,b]，<code class="docutils literal notranslate"><span class="pre">Test</span> <span class="pre">powers</span></code> 为 [c,d]，
+均为非负整数。投影源矩为 <span class="math notranslate nohighlight">\(\sum_j q_j x_j^a y_j^b\)</span>，响应乘以测试粒子的
+<span class="math notranslate nohighlight">\(x_i^c y_i^d\)</span>；尾函数单位的空间阶数为 a+b+c+d。这是输入多项式响应的
+表示方式，不推导未提供的多极分量，也不自动保证不同分量之间的 Maxwell 约束。
+解析圆壁模型仍只支持明确规定的纵向与对角偶极分量。</p>
+<p>CPU 和 GPU 支持相同的非负整数幂次。</p>
+</section>
+<section id="id14">
+<h2>切片坐标与响应边界<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
 <p>WakeField 接受局部 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> 区间及独立的
-<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 漂移束投影。WakeField 拒绝 SpaceCharge 必须使用的
+<code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> 非聚束束流投影。WakeField 拒绝 SpaceCharge 必须使用的
 <code class="docutils literal notranslate"><span class="pre">Coordinate=z_periodic</span></code> 环周折叠切片，因为其中心不保留连续到达时间；请分别
 定义命名切片集。
 最近一次显式 Slicer 结果决定成员与几何。坐标选择不改变算法组的 <code class="docutils literal notranslate"><span class="pre">Boundary</span></code>：
@@ -1290,20 +540,20 @@ wake-potential 反卷积；导出的数值文件可用 table 并明确实际约�
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="field_solver.html" class="btn btn-neutral float-left" title="横向场求解器" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../en/index.html" class="btn btn-neutral float-right" title="PASS Documentation (English)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="field_solver.html" class="btn btn-neutral float-left" title="横向场求解器" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="monitor/index.html" class="btn btn-neutral float-right" title="监视器与输出" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
   </div>
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
    
 
 </footer>

@@ -6,15 +6,15 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quadrupole &mdash; PASS  documentation</title>
+  <title>Quadrupole &mdash; PASS 0.4.0 User Manual</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=1ab5040a" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
@@ -30,6 +30,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+  
 
           
           
@@ -44,734 +45,80 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="../../zh/element/quadrupole.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Content</span></p>
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../zh/index.html">PASS 文档（中文）</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/input_generation.html">输入文件生成（命令行模式）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id2">简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id3">架构概览</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id4">快速开始</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id5">最简示例</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#json">JSON 文件结构</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id6">核心组件</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#mainconfig">MainConfig（全局参数）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#zh-reference-clock">规定的机器时钟与初始化</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#injectionitem">InjectionItem（注入与分组）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#bunchconfig">BunchConfig（束团参数）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#sequence">Sequence（序列容器）</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#lattice">Lattice来源</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id8">方式二：从 MADX twiss 文件读取为元件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#twiss">方式三：平滑近似 twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id9">混合模式</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id10">外部数据文件转换</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id11">四步流水线</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id12">一步到位</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id13">预置封装</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/input_generation.html#id14">分步调用</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#api">API 参考</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_generation.html#id15">完整示例</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/gui.html">图形界面配置流程</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id2">启动与文件拖放</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id3">帮助与本地文档</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id4">工具</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id5">主题与控件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id6">属性顺序与分区</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id7">模块职责</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id8">结构化数组参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id9">空间电荷</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#rf">注入、时钟、RF 与脉冲元件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#id10">尾场与结果文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui.html#twiss">Twiss 与光学</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#mad-x">MAD-X 采样方式</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id11">单圈传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id12">平滑近似</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/gui.html#id13">手动传输点与后续编辑</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/gui_tools.html">GUI 工具</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#gui-data-conversion-zh">数据格式转换</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id2">粒子输入与权威质量数据</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id3">运动学、单位与显示精度</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id4">与原始粒子表逐条比较</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id5">流强、功率与储能</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id6">共振线图</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id7">参考束流与导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#rf-bucket">RF bucket绘制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id8">相空间绘制及发射度计算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id9">磁铁参数换算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/gui_tools.html#id10">激励计算与绘制</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/project_files.html">单文件项目</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id2">保存与打开</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id3">容器格式</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id4">查看和复用参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id6">运行</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/project_files.html#id7">运行历史与复现</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id8">恢复已有草稿</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/input_validation.html">JSON 输入文件检测</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_validation.html#id1">一键全面检测</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_validation.html#id2">检测范围</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/input_validation.html#python">命令行与 Python</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/injection.html">注入粒子生成（Injection）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#zh-longitudinal-reference">纵向坐标与参考到达时间</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id2">参考变换</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id3">固定宏粒子权重</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id4">参考动量变换精度</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id5">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id6">束团参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id7">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id8">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id9">束流参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id10">分布参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id11">偏移参数</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#zh-multiturn-injection">多圈注入与横向涂抹</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id13">注入时序与粒子数量</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id14">入射分布与偏置</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#bump">Bump 磁铁与横向涂抹</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id15">注入过程的观测</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id16">粒子分布类型简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id17">横向粒子分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id18">纵向粒子分布</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id19">多束团纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id20">束团填充方案</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id21">色散耦合</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/injection.html#id22">动量偏差</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id23">输入文件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id24">分布类型选择</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#d">1D 投影理论曲线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id25">模拟结果</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/injection.html#id26">初始分布输出格式</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/element/index.html">元件（Element）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/element/index.html#zh-element-integration-precision">积分计算精度</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/error.html">元件误差</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/marker.html">标记（Marker）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/drift.html">漂移节（Drift）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/dipole.html">二极铁（Dipole / SBend）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/quadrupole.html">四极铁（Quadrupole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/sextupole.html">六极铁（Sextupole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/octupole.html">八极铁（Octupole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/multipole.html">多极铁（Multipole）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/solenoid.html">螺线管（Solenoid）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/kicker.html">冲击磁铁（Kicker）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/bump.html">Bump</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/elseparator.html">静电偏转板（ElSeparator）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/exciter.html">激励器（Exciter）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/element/rfcavity.html">RF 腔（RFCavity）</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/monitor/index.html">监视器（Monitor）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/table_output.html">表格输出格式</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id2">格式选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#hdf5">HDF5 结构与元数据</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id3">统计批量写入与运行中查看</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/table_output.html#id4">读取表格</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/statmonitor.html">统计监视器（StatMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id1">简介</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id2">工作原理</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id6">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id7">输出文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id8">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id10">应用场景</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id11">输出中的纵向坐标</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/statmonitor.html#id12">注入粒子数</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/distmonitor.html">分布监视器（DistMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id1">圈数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id2">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id3">输出内容</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#cpu-gpu">CPU 与 GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/distmonitor.html#id4">注入快照</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/phaseadvancemonitor.html">相位推进监视器（PhaseAdvanceMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/phaseadvancemonitor.html#id1">配置</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/phaseadvancemonitor.html#id2">输出</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/particlemonitor.html">粒子监视器（ParticleMonitor）</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id1">简介</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id2">粒子选择机制</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id3">记录圈数范围</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id4">预分配策略</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id5">接口参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id6">输出文件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id7">使用示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/monitor/particlemonitor.html#id11">应用场景</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/monitor/index.html#zh-reference-state">输出中的参考信息</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/reorganize.html">束团重分组（ReorganizeBunch）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id1">分组操作与边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id2">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id3">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/reorganize.html#id4">应用场景</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/aperture.html">孔径（Aperture）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id1">接口参数</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id2">丢失粒子处理</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id3">各孔径类型详解</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#off">off（关闭）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#default">default（默认矩形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#circle">circle（圆形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectangle">rectangle（矩形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#ellipse">ellipse（椭圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectcircle">rectcircle（矩形内切圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#rectellipse">rectellipse（矩形内切椭圆）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#racetrack">racetrack（跑道形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#octagon">octagon（八角形）</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/aperture.html#polygon">polygon（多边形）</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id4">参数总览表</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/aperture.html#id5">使用示例</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/twiss.html">Twiss 传输（Twiss）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id1">简介</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id2">物理推导</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id3">纵向传输</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id4">色散处理</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id5">横向传输矩阵</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id6">色品修正</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id7">纵向坐标连续性</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#t0">t0 更新</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id8">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id9">位置参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id10">横向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id11">纵向参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id12">色散与色品</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/twiss.html#id13">孔径参数</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id14">使用示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/twiss.html#id15">应用场景</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/slicer.html">切片器（Slicer）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#id1">职责边界</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#id2">切片坐标与复用</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#id3">配置格式</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/slicer.html#id4">空间电荷的环周折叠切片</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/slicer.html#id5">漂移束尾场的周期到达切片</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#id6">切片模型</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#sliceset">SliceSet 数据</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#id7">快照输出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/slicer.html#id8">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/slicer.html#id9">通用命令参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/slicer.html#id10">范围模式参数</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/slicer.html#id11">SliceSet 运行时接口</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/slicer.html#id12">配置校验</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/space_charge.html">空间电荷效应（SpaceCharge）</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id1">概念介绍</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id2">物理模型</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id3">宏粒子电荷与横向源项</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id4">积分电势与积分场</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id5">相对论横向踢</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id6">执行流程</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id7">跟踪方法与解析分布</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id8">配置示例</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id9">接口参数</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#space-charge">顶层 <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> 配置块</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id10">命名资源配置</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id11"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> 序列命令</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id12">网格范围与孔径校验</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id13">配置与校验规则</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#gpu">GPU 初始化与复用</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id14">诊断输出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id15">验证文件组织</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id16">运行验证套件</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#id17">解析诊断与验证</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#zh-internal-space-charge">元件切片与内部空间电荷</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id19">三个独立的分辨率</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id20">支持的元件</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id21">调度规则</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id22">配置与使用</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#zh-sc-coverage">跟踪前的作用长度与覆盖检查</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#fodo">FODO 工作点验证</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#pic">全粒子 PIC 跟踪</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id24">不同边界的多圈集成测试</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/space_charge.html#id25">强空间电荷验证与扁平算例输出</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/space_charge.html#z">周期 z 切片</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/field_solver.html">横向场求解器</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id2">概念介绍</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#pic">PIC 数据流</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id3">网格与源项</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id4">均匀节点网格</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id5">电荷沉积</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#poisson">Poisson 方程与单位</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id6">场求解器选择</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#fd">有限差分：<code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#dst-rectangle">正弦变换：<code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#green-fft-free-space">自由空间 Green 函数：<code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id7">场梯度</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id8">孔径接口</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#python">Python 接口</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id9">网格与 PIC 流水线</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id10">求解器构建器与一次性封装</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id11">结果对象</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id12">解析跟踪与参考场</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id13">源电荷、坐标与单位</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#gaussian-round-free-space">圆高斯：gaussian_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#gaussian-ellipse-free-space">椭圆高斯：gaussian_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#uniform-round-free-space">均匀圆盘：uniform_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#uniform-ellipse-free-space">均匀椭圆：uniform_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id14">抛物型密度：四维水袋的实空间投影</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#frozen-quasi-frozen">frozen 与 quasi-frozen 的参数选择</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id15">直接调用公式示例</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../zh/field_solver.html#id16">Python 接口与数值稳定性</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id17">高效网格数建议</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#id18">选择建议与限制</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/field_solver.html#gpu">GPU 资源与执行</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../zh/wake_field.html">WakeField</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id1">共享配置与尾场点</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id2">物理范围与约定</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id3">响应模型</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id4">频谱与拟合</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id5">速度、加速与算法组</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id6">示例与恢复</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#cpu-gpu">CPU 与 GPU 执行</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id7">自定义空间项</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id8">固定网格多束团与长历史</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id9">变周期下的一般历史计算</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id10">漂移束适配范围</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id11">回归与分块接口</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id12">文件输入</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/wake_field.html#id13">切片坐标与响应边界</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1 current"><a class="reference internal" href="../index.html">PASS Documentation (English)</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#architecture-overview">Architecture Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#quick-start">Quick Start</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#minimal-example">Minimal Example</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#json-file-structure">JSON File Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#core-components">Core Components</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#prescribed-machine-clock-and-initialization">Prescribed machine clock and initialization</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#injectionitem-injection-and-grouping">InjectionItem (Injection and Grouping)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#bunchconfig-bunch-parameters">BunchConfig (Bunch Parameters)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#sequence-sequence-container">Sequence (Sequence Container)</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#lattice-sources">Lattice Sources</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-1-read-from-madx-twiss-file">Method 1: Read from MADX twiss file</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-2-read-from-madx-twiss-file-as-elements">Method 2: Read from MADX twiss file as elements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#method-3-smooth-approximation-twiss">Method 3: Smooth approximation twiss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#mixed-mode">Mixed Mode</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#external-data-file-conversion">External Data File Conversion</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#four-step-pipeline">Four-Step Pipeline</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#one-step-conversion">One-Step Conversion</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../input_generation.html#step-by-step-invocation">Step-by-Step Invocation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#api-reference">API Reference</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_generation.html#complete-example">Complete Example</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../gui.html">Graphical configuration workflow</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#startup-and-file-drops">Startup and file drops</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#help-and-local-documentation">Help and local documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#tools">Tools</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#appearance-and-controls">Appearance and controls</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#property-ordering-and-sections">Property ordering and sections</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#module-responsibilities">Module responsibilities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#structured-array-parameters">Structured array parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#space-charge">Space charge</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#injection-clocks-rf-and-pulsed-elements">Injection, clocks, RF and pulsed elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#wakefield-and-result-files">WakeField and result files</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui.html#twiss-and-optics">Twiss and optics</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#mad-x-sampling">MAD-X sampling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#one-turn-transfer">One-turn transfer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#smooth-approximation">Smooth approximation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../gui.html#manual-transport-points-and-subsequent-editing">Manual transport points and subsequent editing</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../gui_tools.html">GUI tools</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#data-format-conversion">Data format conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#particles-and-authoritative-masses">Particles and authoritative masses</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#kinematics-units-and-precision">Kinematics, units and precision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#comparison-with-the-original-particle-table">Comparison with the original particle table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#current-power-and-stored-energy">Current, power and stored energy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#tune-diagram">Tune diagram</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#reference-inputs-and-exports">Reference inputs and exports</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#rf-bucket">RF bucket</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#magnet-conversion">Magnet conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../gui_tools.html#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../project_files.html">Single-file projects</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#saving-and-opening">Saving and opening</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#container-format">Container format</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#running">Running</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../input_validation.html">JSON input validation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../input_validation.html#one-click-preflight">One-click preflight</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_validation.html#what-is-checked">What is checked</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../input_validation.html#command-line-and-python">Command line and Python</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#longitudinal-coordinate-and-reference-time">Longitudinal coordinate and reference time</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#reference-transformations">Reference transformations</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#fixed-macro-particle-weights">Fixed macro-particle weights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#reference-momentum-precision">Reference-momentum precision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#interface-parameters">Interface parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#bunch-parameters">Bunch parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#transverse-parameters">Transverse parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#longitudinal-parameters">Longitudinal parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#beam-parameters">Beam parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#distribution-parameters">Distribution parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#offset-parameters">Offset parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#multi-turn-injection-and-transverse-painting">Multi-turn injection and transverse painting</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#injection-schedule-and-particle-population">Injection schedule and particle population</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#incoming-distribution-and-offsets">Incoming distribution and offsets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#transverse-painting-with-bump-magnets">Transverse painting with Bump magnets</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#observing-injection">Observing injection</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#introduction-to-particle-distribution-types">Introduction to particle distribution types</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#transverse-particle-distribution">Transverse particle distribution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#longitudinal-particle-distribution">Longitudinal particle distribution</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#multi-bunch-longitudinal-coordinates">Multi-bunch Longitudinal Coordinates</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#bunch-filling-scheme">Bunch filling scheme</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#dispersion-coupling">Dispersion coupling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../injection.html#momentum-deviation">Momentum deviation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#input-file">Input file</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#distribution-selection">Distribution selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#d-projection-theoretical-curves">1D projection theoretical curves</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#simulation-results">Simulation results</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../injection.html#initial-distribution-output-format">Initial distribution output format</a></li>
-</ul>
-</li>
-<li class="toctree-l2 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="index.html#integration-precision">Integration precision</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="error.html">Element errors</a></li>
-<li class="toctree-l4"><a class="reference internal" href="marker.html">Marker</a></li>
-<li class="toctree-l4"><a class="reference internal" href="drift.html">Drift</a></li>
-<li class="toctree-l4"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">Quadrupole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="sextupole.html">Sextupole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="octupole.html">Octupole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="multipole.html">Multipole</a></li>
-<li class="toctree-l4"><a class="reference internal" href="solenoid.html">Solenoid</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kicker.html">Kicker</a></li>
-<li class="toctree-l4"><a class="reference internal" href="bump.html">Bump</a></li>
-<li class="toctree-l4"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
-<li class="toctree-l4"><a class="reference internal" href="exciter.html">Exciter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../monitor/index.html">Monitor</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../monitor/table_output.html">Table output formats</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/table_output.html#format-selection">Format selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/table_output.html#hdf5-layout-and-metadata">HDF5 layout and metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/table_output.html#statistics-batching-and-live-inspection">Statistics batching and live inspection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/table_output.html#reading-tables">Reading tables</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../monitor/statmonitor.html">StatMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#introduction">Introduction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#working-principle">Working Principle</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#output-files">Output Files</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#usage-example">Usage Example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#application-scenarios">Application Scenarios</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#longitudinal-coordinate-in-output">Longitudinal coordinate in output</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/statmonitor.html#injection-populations">Injection populations</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../monitor/distmonitor.html">DistMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/distmonitor.html#turn-selection">Turn selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/distmonitor.html#interface">Interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/distmonitor.html#output">Output</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/distmonitor.html#cpu-and-gpu-behavior">CPU and GPU behavior</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/distmonitor.html#injection-snapshots">Injection snapshots</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../monitor/phaseadvancemonitor.html">PhaseAdvanceMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/phaseadvancemonitor.html#configuration">Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/phaseadvancemonitor.html#output">Output</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../monitor/particlemonitor.html">ParticleMonitor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#introduction">Introduction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#particle-selection-mechanism">Particle Selection Mechanism</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#recorded-turn-range">Recorded Turn Range</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#pre-allocation-strategy">Pre-allocation Strategy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#output-files">Output Files</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#usage-example">Usage Example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../monitor/particlemonitor.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../monitor/index.html#output-reference-information">Output reference information</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#operation-and-group-boundaries">Operation and group boundaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../reorganize.html#applications">Applications</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../aperture.html">Aperture</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../aperture.html#interface-parameters">Interface Parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../aperture.html#lost-particle-handling">Lost Particle Handling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../aperture.html#detailed-aperture-types">Detailed Aperture Types</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#off-disabled">off (Disabled)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#default-default-rectangle">default (Default Rectangle)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#circle-circular">circle (Circular)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectangle-rectangular">rectangle (Rectangular)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#ellipse-elliptical">ellipse (Elliptical)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectcircle-rectangle-inscribed-circle">rectcircle (Rectangle Inscribed Circle)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#rectellipse-rectangle-inscribed-ellipse">rectellipse (Rectangle Inscribed Ellipse)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#racetrack-racetrack">racetrack (Racetrack)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#octagon-octagonal">octagon (Octagonal)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../aperture.html#polygon-polygon">polygon (Polygon)</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../aperture.html#parameter-summary-table">Parameter Summary Table</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../aperture.html#usage-example">Usage Example</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#physics-derivation">Physics Derivation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-transport">Longitudinal Transport</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-handling">Dispersion Handling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-transport-matrix">Transverse Transport Matrix</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#chromaticity-correction">Chromaticity Correction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-coordinate-continuity">Longitudinal Coordinate Continuity</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#t0-update">t0 Update</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#position-parameters">Position Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#transverse-parameters">Transverse Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#longitudinal-parameters">Longitudinal Parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#dispersion-and-chromaticity">Dispersion and Chromaticity</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../twiss.html#aperture-parameters">Aperture Parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#usage-example">Usage Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../twiss.html#application-scenarios">Application Scenarios</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../slicer.html">Slicer</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#responsibilities">Responsibilities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#slice-coordinate-and-reuse">Slice coordinate and reuse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#configuration">Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#circumference-folded-slicing-for-spacecharge">Circumference-folded slicing for SpaceCharge</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#periodic-arrival-slicing-for-coasting-wakes">Periodic arrival slicing for coasting wakes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#slice-models">Slice models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#sliceset-data">SliceSet data</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#snapshots">Snapshots</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../slicer.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#common-command-parameters">Common command parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#range-mode-parameters">Range-mode parameters</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#sliceset-runtime-interface">SliceSet runtime interface</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../slicer.html#configuration-validation">Configuration validation</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#physical-model">Physical Model</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#macroparticle-charge-and-transverse-source">Macroparticle charge and transverse source</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#integrated-potential-and-field">Integrated potential and field</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#relativistic-transverse-kick">Relativistic transverse kick</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#execution-workflow">Execution Workflow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#tracking-methods-and-analytic-profiles">Tracking Methods and Analytic Profiles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#configuration-example">Configuration Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#interface-parameters">Interface Parameters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#top-level-space-charge-block">Top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#named-resource-configuration">Named resource configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#spacecharge-sequence-command"><code class="docutils literal notranslate"><span class="pre">SpaceCharge</span></code> sequence command</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#grid-extent-and-aperture-validation">Grid Extent and Aperture Validation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#configuration-rules">Configuration Rules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#gpu-initialization-and-reuse">GPU initialization and reuse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#diagnostic-output">Diagnostic Output</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#validation-layout">Validation Layout</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#running-the-validation-suite">Running the Validation Suite</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#analytic-diagnostics-and-validation">Analytic Diagnostics and Validation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#element-slicing-and-internal-space-charge">Element Slicing and Internal Space Charge</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#three-independent-resolutions">Three independent resolutions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#supported-elements">Supported elements</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#scheduling-rule">Scheduling rule</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#configuration-and-use">Configuration and use</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#pre-tracking-integration-length-and-coverage-checks">Pre-tracking integration-length and coverage checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#fodo-tune-verification">FODO tune verification</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#whole-population-pic-tracking">Whole-population PIC tracking</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#multi-turn-integration-tests-across-boundaries">Multi-turn integration tests across boundaries</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../space_charge.html#strong-space-charge-verification-and-flat-case-outputs">Strong space-charge verification and flat case outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../space_charge.html#periodic-z-slicing">Periodic z slicing</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#pic-data-flow">PIC Data Flow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#grid-and-source-definition">Grid and Source Definition</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#uniform-nodal-grid">Uniform nodal grid</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#charge-deposition">Charge deposition</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#poisson-equation-and-units">Poisson Equation and Units</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#field-solver-selection">Field-Solver Selection</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#finite-difference-fd">Finite difference: <code class="docutils literal notranslate"><span class="pre">fd</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#sine-transform-dst-rectangle">Sine transform: <code class="docutils literal notranslate"><span class="pre">dst_rectangle</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#free-space-green-function-fft-free-space">Free-space Green function: <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#field-gradients">Field gradients</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#aperture-interface">Aperture Interface</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#python-interfaces">Python Interfaces</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#geometry-and-pic-pipeline">Geometry and PIC pipeline</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#solver-builders-and-one-shot-wrappers">Solver builders and one-shot wrappers</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#result-objects">Result Objects</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#analytic-tracking-and-reference-fields">Analytic Tracking and Reference Fields</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#source-charge-coordinates-and-units">Source charge, coordinates, and units</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#round-gaussian-gaussian-round-free-space">Round Gaussian: gaussian_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#elliptic-gaussian-gaussian-ellipse-free-space">Elliptic Gaussian: gaussian_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#uniform-disk-uniform-round-free-space">Uniform disk: uniform_round_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#uniform-ellipse-uniform-ellipse-free-space">Uniform ellipse: uniform_ellipse_free_space</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#parabolic-density-the-projection-of-a-4d-waterbag">Parabolic density: the projection of a 4D waterbag</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#frozen-and-quasi-frozen-parameter-selection">Frozen and quasi-frozen parameter selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#direct-formula-example">Direct formula example</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../field_solver.html#python-interfaces-and-numerical-stability">Python interfaces and numerical stability</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#efficient-grid-sizes">Efficient Grid Sizes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#selection-guidance-and-limitations">Selection Guidance and Limitations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../field_solver.html#gpu-resources-and-execution">GPU resources and execution</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../wake_field.html">WakeField</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#shared-configuration-and-wake-points">Shared configuration and wake points</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#physical-scope-and-conventions">Physical scope and conventions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#response-models">Response models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#raw-spectra-and-fitting">Raw spectra and fitting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#velocity-and-acceleration">Velocity and acceleration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#explicit-algorithm-groups">Explicit algorithm groups</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#example">Example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#diagnostics-and-state">Diagnostics and state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#cpu-and-gpu-execution">CPU and GPU execution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#custom-spatial-terms">Custom spatial terms</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#stationary-multibunch-and-long-history">Stationary multibunch and long history</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#variable-period-general-history">Variable-period general history</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#coasting-beams">Coasting beams</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#regression-and-block-contracts">Regression and block contracts</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#file-input">File input</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../wake_field.html#slice-coordinates-and-response-boundaries">Slice coordinates and response boundaries</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="error.html">Element errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marker.html">Marker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drift.html">Drift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Quadrupole</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage-examples">Usage Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#coordinate-convention">Coordinate Convention</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quadrupole-field-and-normalized-strength">Quadrupole Field and Normalized Strength</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#overall-tracking-flow">Overall Tracking Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#physical-derivation">Physical Derivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chromaticity-effects">Chromaticity Effects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tracking-model-comparison">Tracking Model Comparison</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#application-scenarios">Application Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#references">References</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#internal-space-charge">Internal Space Charge</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sextupole.html">Sextupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="octupole.html">Octupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multipole.html">Multipole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solenoid.html">Solenoid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kicker.html">Kicker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">Monitors and output</a></li>
+</ul>
+
+  
 
         </div>
       </div>
@@ -779,19 +126,18 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">PASS</a>
+          <a href="../index.html">PASS</a>
       </nav>
 
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../index.html">PASS Documentation (English)</a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS User Manual</a></li>
           <li class="breadcrumb-item"><a href="index.html">Element</a></li>
       <li class="breadcrumb-item active">Quadrupole</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/en/element/quadrupole.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -803,10 +149,7 @@
 <h1>Quadrupole<a class="headerlink" href="#quadrupole" title="Link to this heading"></a></h1>
 <p>This module describes the PASS quadrupole element <strong>Quadrupole</strong>, used to simulate the motion of charged particles in a quadrupole magnet. The quadrupole is the most fundamental focusing element in accelerators, providing linear focusing force through a gradient magnetic field.</p>
 <p>The PASS quadrupole supports both <strong>thick element</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>) and <strong>thin lens</strong> (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>) modes. The thick element provides two tracking models: <strong>drift-kick-drift-exact</strong> (DKD-exact) uses the exact drift-kick-drift symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators; <strong>mat-kick-mat</strong> (MKM, default) uses the exact linear transport matrix scheme, which is exact for a purely linear field with a single slice.</p>
-<p><strong>Code Location</strong></p>
 <ul class="simple">
-<li><p>Source file: <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/quadrupole.py</span></code></p></li>
-<li><p>Class name: <code class="docutils literal notranslate"><span class="pre">Quadrupole</span></code> (inherits from <code class="docutils literal notranslate"><span class="pre">Command</span></code>)</p></li>
 <li><p>Registration name: <code class="docutils literal notranslate"><span class="pre">quadrupole</span></code></p></li>
 <li><p>Key features:</p>
 <ul>
@@ -822,8 +165,234 @@
 </ul>
 </li>
 </ul>
+<p>The fields below configure <code class="docutils literal notranslate"><span class="pre">PASS.para.schema.elements.QuadrupoleItem</span></code>.
+The key in <code class="docutils literal notranslate"><span class="pre">Sequence.add(name,</span> <span class="pre">item)</span></code> supplies the element name; it is not a configuration-model field.</p>
+<section id="interface-parameters">
+<h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17.0%" />
+<col style="width: 21.0%" />
+<col style="width: 12.0%" />
+<col style="width: 9.0%" />
+<col style="width: 12.0%" />
+<col style="width: 29.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python configuration field</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Required</span></code></p></td>
+<td><p>Longitudinal position of the element exit or zero-length action point.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Element length (must be <span class="math notranslate nohighlight">\(\ge 0\)</span>; <span class="math notranslate nohighlight">\(= 0\)</span> for thin lens)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k1l</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K1L</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\text{m}^{-1}\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Normal quadrupole integrated strength <span class="math notranslate nohighlight">\(K_{1L}\)</span>, default 0</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k1sl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K1SL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(\text{m}^{-1}\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Skew quadrupole integrated strength <span class="math notranslate nohighlight">\(K_{1sL}\)</span>, default 0</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'adaptive'</span></code></p></td>
+<td><p>Physical model, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code>), <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code>, <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
+<td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Number of slices, default 1 (effective only for thick lens)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Integrator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'adaptive'</span></code></p></td>
+<td><p>Integrator, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default <code class="docutils literal notranslate"><span class="pre">uniform</span></code>), <code class="docutils literal notranslate"><span class="pre">uniform</span></code>, <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'off'</span></code></p></td>
+<td><p>Aperture type, default <code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
+<td><p>m / rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>Aperture parameter values, default <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="usage-examples">
+<h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
+<section id="thick-lens-normal-quadrupole">
+<h3>Thick Lens Normal Quadrupole<a class="headerlink" href="#thick-lens-normal-quadrupole" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QF1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Focusing quadrupole (<span class="math notranslate nohighlight">\(K_{1L} &gt; 0\)</span>), length 0.5 m, 5 slices, 4th-order symplectic integration.</p>
+</section>
+<section id="mkm-model-quadrupole">
+<h3>MKM Model Quadrupole<a class="headerlink" href="#mkm-model-quadrupole" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QF1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"mat-kick-mat"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For the pure linear field in this example, one MKM matrix segment solves the paraxial equations. Field errors and internal space charge require separate convergence checks.</p>
+</section>
+<section id="thin-lens-quadrupole">
+<h3>Thin Lens Quadrupole<a class="headerlink" href="#thin-lens-quadrupole" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QF2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Zero-length quadrupole, applying only the <span class="math notranslate nohighlight">\(K_{1L}\)</span> thin lens kick, no finite-length body transport; see the lattice chromaticity discussion belows.</p>
+</section>
+<section id="defocusing-quadrupole">
+<h3>Defocusing Quadrupole<a class="headerlink" href="#defocusing-quadrupole" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QD1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.15</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Defocusing quadrupole (<span class="math notranslate nohighlight">\(K_{1L} &lt; 0\)</span>), horizontal defocusing, vertical focusing.</p>
+</section>
+<section id="skew-quadrupole">
+<h3>Skew Quadrupole<a class="headerlink" href="#skew-quadrupole" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Pure skew quadrupole (<span class="math notranslate nohighlight">\(K_{1L} = 0\)</span>, <span class="math notranslate nohighlight">\(K_{1sL} \neq 0\)</span>), producing <span class="math notranslate nohighlight">\(x\)</span>-<span class="math notranslate nohighlight">\(y\)</span> coupling.</p>
+</section>
+<section id="normal-skew-quadrupole-combination">
+<h3>Normal + Skew Quadrupole Combination<a class="headerlink" href="#normal-skew-quadrupole-combination" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QFS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">50.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Aperture value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.04</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Combined quadrupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.</p>
+</section>
+<section id="equivalent-representation-with-rotation-angle">
+<h3>Equivalent Representation with Rotation Angle<a class="headerlink" href="#equivalent-representation-with-rotation-angle" title="Link to this heading"></a></h3>
+<p>A normal quadrupole with <span class="math notranslate nohighlight">\(K_{1L} = 0.2\)</span> rotated by angle <span class="math notranslate nohighlight">\(\theta = 0.01\)</span> rad is equivalent to:</p>
+<div class="math notranslate nohighlight">
+\[K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996\]</div>
+<div class="math notranslate nohighlight">
+\[K_{1sL}' = K_{1L} \sin 2\theta \approx 0.2 \times 0.02 = 0.004\]</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"QF_rot"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">60.0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.19996</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.004</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
 <section id="coordinate-convention">
 <h2>Coordinate Convention<a class="headerlink" href="#coordinate-convention" title="Link to this heading"></a></h2>
+<p>Use the continuous longitudinal coordinate in <a class="reference internal" href="../injection.html#en-longitudinal-reference"><span class="std std-ref">Longitudinal coordinate and reference time</span></a>.
+<span class="math notranslate nohighlight">\(T_b\)</span> is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols <span class="math notranslate nohighlight">\(\beta_0\)</span> and <span class="math notranslate nohighlight">\(P_0\)</span> refer to the current bunch reference.
+<span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span> is normalized momentum, not a trajectory slope.</p>
 <p>For zero normal and skew strengths, both CPU and GPU use the exact drift,
 including when <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code> is selected. In the nonzero-field matrix model,
 the path-length excess <span class="math notranslate nohighlight">\(\Delta\ell=\ell-L\)</span> is accumulated separately.
@@ -864,7 +433,7 @@ the matrix model’s paraxial approximation or momentum normalization.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
 <td><p><span class="math notranslate nohighlight">\(\zeta\)</span></p></td>
-<td><p>Longitudinal coordinate, <span class="math notranslate nohighlight">\(\zeta = s - \beta_0 c t\)</span></p></td>
+<td><p>Longitudinal coordinate, <span class="math notranslate nohighlight">\(z=\zeta=\beta_b c(T_b-t_i)\)</span></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dp</span></code></p></td>
 <td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
@@ -930,7 +499,7 @@ Slice 1 → Slice 2 → ... → Slice N
 (Each slice: M(ds), exact linear transport matrix)
 
 For pure k1 + k1s (no higher-order multipoles): M(L) = M(ds)^N
-Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
+One matrix segment solves the pure linear-field model; added field errors or internal space charge still require split-step convergence checks.
 </pre></div>
 </div>
 <p>The complete map is:</p>
@@ -1077,7 +646,7 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 </tr>
 <tr class="row-even"><td><p>With space charge</p></td>
 <td><p>uniform + more slices</p></td>
-<td><p>PIC solve cost far exceeds drift; 4th-order Yoshida requires 3 PIC solves</p></td>
+<td><p>Space charge uses its independently configured Num kicks; external Yoshida substeps do not multiply PIC calls</p></td>
 </tr>
 </tbody>
 </table>
@@ -1094,49 +663,21 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 \[K_{1,\text{eff}} = \frac{K_1}{1+\delta}\]</div>
 <p>This is the physical origin of the natural chromaticity <span class="math notranslate nohighlight">\(Q'_x = -\frac{1}{4\pi}\oint \beta_x K_1 \, ds\)</span>. No explicit division is needed in the code—the exact drift’s <span class="math notranslate nohighlight">\(p_z\)</span> expression automatically accomplishes this.</p>
 </section>
-<section id="thin-lens-vs-thick-lens-chromaticity-comparison">
-<h3>Thin Lens vs. Thick Lens Chromaticity Comparison<a class="headerlink" href="#thin-lens-vs-thick-lens-chromaticity-comparison" title="Link to this heading"></a></h3>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25.0%" />
-<col style="width: 20.0%" />
-<col style="width: 55.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Effect</p></th>
-<th class="head"><p>Thin Lens</p></th>
-<th class="head"><p>Thick Lens DKD-exact</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Natural chromaticity (normal quadrupole)</p></td>
-<td><p>Not introduced</p></td>
-<td><p>Introduced (<span class="math notranslate nohighlight">\(K_{1,\text{eff}} = K_1/(1+\delta)\)</span>)</p></td>
-</tr>
-<tr class="row-odd"><td><p>Coupling chromaticity (skew quadrupole)</p></td>
-<td><p>Not introduced</p></td>
-<td><p>Introduced (coupling transport contains <span class="math notranslate nohighlight">\(\delta\)</span> dependence)</p></td>
-</tr>
-<tr class="row-even"><td><p>Higher-order nonlinear dispersion</p></td>
-<td><p>Not introduced</p></td>
-<td><p>Introduced (<span class="math notranslate nohighlight">\(p_z\)</span> preserves full square root)</p></td>
-</tr>
-<tr class="row-odd"><td><p>Path-length effects (<span class="math notranslate nohighlight">\(R_{56}\)</span>, etc.)</p></td>
-<td><p>Not introduced</p></td>
-<td><p>Introduced</p></td>
-</tr>
-</tbody>
-</table>
-<p>Physically, a thin lens has zero length with no drift space, and the kick <span class="math notranslate nohighlight">\(\Delta p_x = -K_{1L}\,x\)</span> does not contain <span class="math notranslate nohighlight">\(\delta\)</span>. In a thick lens, particles have a drift path inside the magnet, and particles with different momenta travel different paths and experience different effective focusing—this is the source of chromaticity. The same applies to skew quadrupoles: the <span class="math notranslate nohighlight">\(p_z\)</span> dependence in drift makes the coupling transport also contain <span class="math notranslate nohighlight">\(\delta\)</span> dependence, introducing coupling chromaticity.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul class="simple">
-<li><p>Thin lens mode (<code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">=</span> <span class="pre">0</span></code>) has no path-length effects, so the thin lens quadrupole itself <strong>does not introduce natural chromaticity</strong>—whether normal or skew quadrupole</p></li>
-<li><p>Thick lens DKD-exact mode fully includes natural chromaticity effects, including higher-order nonlinear dispersion terms</p></li>
-<li><p>Unlike the mat-kick-mat model (which explicitly divides by <span class="math notranslate nohighlight">\(1+\delta\)</span>), PASS’s DKD-exact introduces chromaticity implicitly through exact <span class="math notranslate nohighlight">\(p_z\)</span>, and also includes the higher-order nonlinear effects of <span class="math notranslate nohighlight">\(p_z\)</span></p></li>
-<li><p>In PASS’s Twiss linear transport framework, natural chromaticity is introduced through <code class="docutils literal notranslate"><span class="pre">DQx</span></code> / <code class="docutils literal notranslate"><span class="pre">DQy</span></code> parameters (<span class="math notranslate nohighlight">\(\delta\)</span> terms in the phase advance), not through the element itself. If a thin lens quadrupole is additionally inserted in Twiss transport, it will not double-count chromaticity with <code class="docutils literal notranslate"><span class="pre">DQx</span></code>—because the thin lens itself does not introduce chromaticity. However, if the inserted quadrupole strength is large enough to significantly change the lattice tune and <span class="math notranslate nohighlight">\(\beta\)</span> functions, the original Twiss parameters (including <code class="docutils literal notranslate"><span class="pre">DQx</span></code>) are no longer accurate and need to be recomputed</p></li>
-</ul>
-</div>
+<section id="thin-lenses-and-lattice-chromaticity">
+<h3>Thin lenses and lattice chromaticity<a class="headerlink" href="#thin-lenses-and-lattice-chromaticity" title="Link to this heading"></a></h3>
+<p>A zero-length quadrupole adds no flight length and applies
+<span class="math notranslate nohighlight">\(\Delta p_x=-K_{1L}x\)</span>. This normalized momentum map has no explicit
+<span class="math notranslate nohighlight">\(\delta\)</span> factor, but the paraxial slope is <span class="math notranslate nohighlight">\(x'=p_x/(1+\delta)\)</span>, so</p>
+<div class="math notranslate nohighlight">
+\[\Delta x'=-\frac{K_{1L}}{1+\delta}x.\]</div>
+<p>A lattice composed of thin quadrupoles and drifts can therefore have natural
+chromaticity. The absence of an explicit momentum factor in the isolated kick
+does not make the tune momentum-independent. Skew-quadrupole coupling must
+likewise be assessed in the complete lattice map.</p>
+<p>Twiss transport uses <code class="docutils literal notranslate"><span class="pre">DQx</span></code> and <code class="docutils literal notranslate"><span class="pre">DQy</span></code> for a prescribed momentum-dependent
+phase advance. Adding quadrupole fields changes the combined optics. Recheck the
+closed orbit, Twiss functions and momentum-dependent tune; zero length alone
+does not establish that chromaticity is unchanged or existing optics are not double counted.</p>
 </section>
 </section>
 <section id="tracking-model-comparison">
@@ -1145,7 +686,7 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 <section id="model-overview">
 <h3>Model Overview<a class="headerlink" href="#model-overview" title="Link to this heading"></a></h3>
 <p><strong>drift-kick-drift-exact (DKD-exact)</strong>: Splits the Hamiltonian into exact drift and thin lens kick, combined via symplectic splitting. Preserves the full <span class="math notranslate nohighlight">\(p_z\)</span> nonlinear kinematics, but linear focusing and chromaticity have symplectic splitting errors (controllable by increasing the number of slices or using higher-order integrators).</p>
-<p><strong>mat-kick-mat (MKM)</strong>: Solves the analytical exact solution of the linearized equation of motion <span class="math notranslate nohighlight">\(u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0\)</span>, constructing the transport matrix using trigonometric functions (focusing plane) and hyperbolic functions (defocusing plane). Linear focusing, linear chromaticity, and <span class="math notranslate nohighlight">\(R_{56}\)</span> are all exact solutions, but higher-order nonlinear terms of <span class="math notranslate nohighlight">\(p_z\)</span> are not included.</p>
+<p><strong>mat-kick-mat (MKM)</strong>: Solves the analytical exact solution of the linearized equation of motion <span class="math notranslate nohighlight">\(u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0\)</span>, constructing the transport matrix using trigonometric functions (focusing plane) and hyperbolic functions (defocusing plane). It solves the chosen paraxial equations analytically and accumulates their path-length increment; higher-order transverse terms of the full <span class="math notranslate nohighlight">\(p_z\)</span> square root are not included.</p>
 </section>
 <section id="comparison-table">
 <h3>Comparison Table<a class="headerlink" href="#comparison-table" title="Link to this heading"></a></h3>
@@ -1163,12 +704,12 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Linear focusing</p></td>
-<td><p>2nd-order symplectic splitting approximation</p></td>
+<td><p>Splitting approximation of the selected second- or fourth-order integrator</p></td>
 <td><p>Exact (analytical matrix)</p></td>
 </tr>
 <tr class="row-odd"><td><p>Linear chromaticity</p></td>
-<td><p>Approximate (<span class="math notranslate nohighlight">\(O(1/N^2)\)</span> splitting error)</p></td>
-<td><p>Exact (<span class="math notranslate nohighlight">\(K_1/(1+\delta)\)</span> explicit)</p></td>
+<td><p>Splitting approximation converging with the selected order</p></td>
+<td><p>Analytical in the paraxial model, with explicit momentum dependence</p></td>
 </tr>
 <tr class="row-even"><td><p>Nonlinear kinematics</p></td>
 <td><p>Preserved (full <span class="math notranslate nohighlight">\(p_z\)</span> square root)</p></td>
@@ -1178,28 +719,28 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 <td><p>Approximate</p></td>
 <td><p>Exact (analytical formula)</p></td>
 </tr>
-<tr class="row-even"><td><p>Nonlinear path length</p></td>
-<td><p>Preserved</p></td>
-<td><p>Not included</p></td>
+<tr class="row-even"><td><p>Path-length increment</p></td>
+<td><p>From exact-drift kinematics</p></td>
+<td><p>Includes the paraxial quadratic integral, not full higher-order kinematics</p></td>
 </tr>
 <tr class="row-odd"><td><p>Symplecticity</p></td>
 <td><p>Strictly symplectic</p></td>
 <td><p>Symplectic (matrix is symplectic)</p></td>
 </tr>
 <tr class="row-even"><td><p>Computation speed</p></td>
-<td><p>Slower (<span class="math notranslate nohighlight">\(N \times 3\)</span> DKD steps)</p></td>
-<td><p>Fast (matrix multiplication)</p></td>
+<td><p>Depends on substep count and hardware</p></td>
+<td><p>Depends on matrix operations, slicing and hardware</p></td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="mkm-implementation-details">
-<h3>MKM Implementation Details<a class="headerlink" href="#mkm-implementation-details" title="Link to this heading"></a></h3>
+<section id="mkm-transport-matrix">
+<h3>MKM Transport Matrix<a class="headerlink" href="#mkm-transport-matrix" title="Link to this heading"></a></h3>
 <p>MKM solves the exact solution of the linearized equation. For a pure <span class="math notranslate nohighlight">\(K_1\)</span> quadrupole, the u plane (focusing) uses sin/cos matrices, the v plane (defocusing) uses sinh/cosh matrices, with equivalent strength <span class="math notranslate nohighlight">\(K = K_1 \chi / (1+\delta)\)</span> computed per particle.</p>
 <p>For <span class="math notranslate nohighlight">\(K_1 + K_{1s}\)</span> combined quadrupoles, <strong>rotational diagonalization</strong> is used:</p>
 <div class="math notranslate nohighlight">
-\[\theta = \frac{1}{2}\arctan\frac{-K_{1s}}{K_1}, \quad K_{\text{eff}} = \sqrt{K_1^2 + K_{1s}^2}\]</div>
-<p>After rotating to the principal axis frame, the matrix is applied, then rotated back. Key property: <span class="math notranslate nohighlight">\(\theta\)</span> is independent of <span class="math notranslate nohighlight">\(\delta\)</span> (<span class="math notranslate nohighlight">\(K_1\)</span> and <span class="math notranslate nohighlight">\(K_{1s}\)</span> scale proportionally by <span class="math notranslate nohighlight">\(\chi/(1+\delta)\)</span>, so the ratio is unchanged), therefore <span class="math notranslate nohighlight">\(\theta\)</span>, <span class="math notranslate nohighlight">\(\cos\theta\)</span>, and <span class="math notranslate nohighlight">\(\sin\theta\)</span> can be precomputed once in <code class="docutils literal notranslate"><span class="pre">__init__</span></code>.</p>
+\[\theta = \frac{1}{2}\operatorname{atan2}(-K_{1s},K_1), \quad K_{\text{eff}} = \sqrt{K_1^2 + K_{1s}^2}\]</div>
+<p>After rotating to the principal axis frame, the matrix is applied, then rotated back. Key property: <span class="math notranslate nohighlight">\(\theta\)</span> is independent of <span class="math notranslate nohighlight">\(\delta\)</span> (<span class="math notranslate nohighlight">\(K_1\)</span> and <span class="math notranslate nohighlight">\(K_{1s}\)</span> scale proportionally by <span class="math notranslate nohighlight">\(\chi/(1+\delta)\)</span>, so the ratio is unchanged), so the rotation is independent of particle momentum deviation.</p>
 <p>Special cases:</p>
 <table class="docutils align-default">
 <colgroup>
@@ -1224,29 +765,28 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 <tr class="row-odd"><td><p>Pure skew quadrupole</p></td>
 <td><p>0</p></td>
 <td><p><span class="math notranslate nohighlight">\(K_{\text{eff}}\)</span></p></td>
-<td><p><span class="math notranslate nohighlight">\(\pi/4\)</span> (rotate 45°)</p></td>
+<td><p><span class="math notranslate nohighlight">\(-\pi/4\)</span> (positive skew coefficient, with the coordinate transform above)</p></td>
 </tr>
 <tr class="row-even"><td><p>Combined quadrupole</p></td>
 <td><p>Nonzero</p></td>
 <td><p>Nonzero</p></td>
-<td><p><span class="math notranslate nohighlight">\(\frac{1}{2}\arctan(-K_{1s}/K_1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\frac{1}{2}\operatorname{atan2}(-K_{1s},K_1)\)</span></p></td>
 </tr>
 </tbody>
 </table>
-<p>For pure <span class="math notranslate nohighlight">\(K_1 + K_{1s}\)</span> (no higher-order multipoles), the matrix is exact for any slice length <span class="math notranslate nohighlight">\(\Delta s\)</span>, so <code class="docutils literal notranslate"><span class="pre">num_slice</span> <span class="pre">=</span> <span class="pre">1</span></code> is sufficient. Multiple slices are only needed in the future when supporting <span class="math notranslate nohighlight">\(K_2\)</span> / <span class="math notranslate nohighlight">\(K_{2s}\)</span> multipole kicks.</p>
+<p>For pure <span class="math notranslate nohighlight">\(K_1+K_{1s}\)</span>, one matrix segment solves the chosen linear equations. Field errors or internal space charge add split interactions whose slicing and action nodes require convergence checks.</p>
 </section>
 <section id="mkm-limitations">
 <h3>MKM Limitations<a class="headerlink" href="#mkm-limitations" title="Link to this heading"></a></h3>
 <p>MKM linearizes the kinematics: <span class="math notranslate nohighlight">\(x' = p_x / (1+\delta)\)</span>, rather than the exact <span class="math notranslate nohighlight">\(x' = p_x / p_z\)</span>. Expanding:</p>
 <div class="math notranslate nohighlight">
 \[\frac{p_x}{p_z} = \frac{p_x}{1+\delta}\left(1 + \frac{p_x^2 + p_y^2}{2(1+\delta)^2} + \cdots\right)\]</div>
-<p>MKM retains only the first term; the lost higher-order terms lead to:</p>
-<ul class="simple">
-<li><p><strong>Amplitude-dependent tune shift</strong> (geometric nonlinearity): from <span class="math notranslate nohighlight">\(p_x^3\)</span> and similar terms; zero in MKM</p></li>
-<li><p><strong>Higher-order chromaticity</strong> (<span class="math notranslate nohighlight">\(Q''\)</span> and above): from <span class="math notranslate nohighlight">\(\delta \cdot p_x^2\)</span> cross terms; lost in MKM</p></li>
-<li><p><strong>Nonlinear path length</strong>: contributions of <span class="math notranslate nohighlight">\(p_x^2\)</span>, <span class="math notranslate nohighlight">\(p_x^4\)</span>, etc. to <span class="math notranslate nohighlight">\(\Delta z\)</span>; lost in MKM</p></li>
-</ul>
-<p>For typical storage ring parameters (<span class="math notranslate nohighlight">\(p_x \sim 10^{-4}\)</span>), the lost effects are on the order of <span class="math notranslate nohighlight">\(10^{-8}\)</span> per magnet, but may be amplified under full-ring accumulation and multi-turn effects. If studying nonlinear beam dynamics problems such as dynamic aperture and tune footprint, the DKD-exact model should be used.</p>
+<p>MKM retains the paraxial transverse equations and their quadratic path-length
+integral, not the higher-order transverse terms of the full square-root kinematics.
+Its effective focusing still contains <span class="math notranslate nohighlight">\(1/(1+\delta)\)</span>; higher-order
+chromaticity is not generally zero. Large-amplitude studies require checks of
+both model assumptions and numerical convergence. More integration slices cannot
+restore terms omitted by the physical approximation.</p>
 </section>
 <section id="slice-count-and-integrator-recommendations">
 <h3>Slice Count and Integrator Recommendations<a class="headerlink" href="#slice-count-and-integrator-recommendations" title="Link to this heading"></a></h3>
@@ -1268,7 +808,7 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 <tr class="row-even"><td><p>mat-kick-mat</p></td>
 <td><p>1</p></td>
 <td><p>— ¹</p></td>
-<td><p>Matrix is exact for any <span class="math notranslate nohighlight">\(\Delta s\)</span>; 1 slice is sufficient. Fast, suitable for linear optics calculations</p></td>
+<td><p>One segment for a pure linear field; check convergence after adding split interactions</p></td>
 </tr>
 <tr class="row-odd"><td><p>drift-kick-drift-exact</p></td>
 <td><p>Needs testing ²</p></td>
@@ -1277,246 +817,18 @@ Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
 </tr>
 </tbody>
 </table>
-<p>¹ The MKM model does not use the integrator parameter.</p>
+<p>¹ A pure MKM body uses its analytical matrix. Split interactions such as field errors require their own integration settings.</p>
 <p>² DKD-exact slice count selection recommendations:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>Slice count should be determined through <strong>convergence testing</strong>: compare tune and chromaticity under different slice counts to confirm convergence</p></li>
-<li><p>For HIAF-BRing (quadrupole length approximately 1 m, <span class="math notranslate nohighlight">\(K_1\)</span> approximately 0.2), a slice count of 5 with yoshida4 integrator is recommended</p></li>
-<li><p>Insufficient slice count will lead to <span class="math notranslate nohighlight">\(O(1/N^2)\)</span> error in linear chromaticity; amplitude-dependent tune shift will have larger deviations</p></li>
-<li><p>The yoshida4 integrator has per-slice error <span class="math notranslate nohighlight">\(O(\Delta s^5)\)</span> and global error <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span>, with precision far superior to uniform</p></li>
+<li><p>For smooth fields, global splitting error is second order with uniform and fourth order with yoshida4; convergence of the chosen observables must be checked</p></li>
+<li><p>The yoshida4 integrator has per-slice error <span class="math notranslate nohighlight">\(O(\Delta s^5)\)</span> and global error <span class="math notranslate nohighlight">\(O(\Delta s^4)\)</span>, under the smooth-field assumptions of the splitting method</p></li>
 </ul>
 </div></blockquote>
 <p>Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common <a class="reference internal" href="error.html#en-error"><span class="std std-ref">Element errors</span></a> interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.</p>
-</section>
-</section>
-<section id="interface-parameters">
-<h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 20.0%" />
-<col style="width: 25.0%" />
-<col style="width: 10.0%" />
-<col style="width: 10.0%" />
-<col style="width: 35.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Property</p></th>
-<th class="head"><p>JSON key</p></th>
-<th class="head"><p>Type</p></th>
-<th class="head"><p>Unit</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>Longitudinal position of the element in the beamline</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
-<td><p>float</p></td>
-<td><p>m</p></td>
-<td><p>Element length (must be <span class="math notranslate nohighlight">\(\ge 0\)</span>; <span class="math notranslate nohighlight">\(= 0\)</span> for thin lens)</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Element name</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k1l</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">k1l</span></code></p></td>
-<td><p>float</p></td>
-<td><p><span class="math notranslate nohighlight">\(\text{m}^{-1}\)</span></p></td>
-<td><p>Normal quadrupole integrated strength <span class="math notranslate nohighlight">\(K_{1L}\)</span>, default 0</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">k1sl</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">k1sl</span></code></p></td>
-<td><p>float</p></td>
-<td><p><span class="math notranslate nohighlight">\(\text{m}^{-1}\)</span></p></td>
-<td><p>Skew quadrupole integrated strength <span class="math notranslate nohighlight">\(K_{1sL}\)</span>, default 0</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Physical model, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code>), <code class="docutils literal notranslate"><span class="pre">drift-kick-drift-exact</span></code>, <code class="docutils literal notranslate"><span class="pre">mat-kick-mat</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slice</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">num</span> <span class="pre">slices</span></code></p></td>
-<td><p>int</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Number of slices, default 1 (effective only for thick lens)</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">integrator</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Integrator, options: <code class="docutils literal notranslate"><span class="pre">adaptive</span></code> (default <code class="docutils literal notranslate"><span class="pre">uniform</span></code>), <code class="docutils literal notranslate"><span class="pre">uniform</span></code>, <code class="docutils literal notranslate"><span class="pre">yoshida4</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_type</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">type</span></code></p></td>
-<td><p>str</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Aperture type, default <code class="docutils literal notranslate"><span class="pre">off</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">aperture</span> <span class="pre">value</span></code></p></td>
-<td><p>list</p></td>
-<td><ul class="simple">
-<li></li>
-</ul>
-</td>
-<td><p>Aperture parameter values, default <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="usage-examples">
-<h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
-<section id="thick-lens-normal-quadrupole">
-<h3>Thick Lens Normal Quadrupole<a class="headerlink" href="#thick-lens-normal-quadrupole" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QF1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Focusing quadrupole (<span class="math notranslate nohighlight">\(K_{1L} &gt; 0\)</span>), length 0.5 m, 5 slices, 4th-order symplectic integration.</p>
-</section>
-<section id="mkm-model-quadrupole">
-<h3>MKM Model Quadrupole<a class="headerlink" href="#mkm-model-quadrupole" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QF1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"mat-kick-mat"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>MKM model, exact linear transport, 1 slice is sufficient. Faster than DKD-exact, suitable for linear optics calculations.</p>
-</section>
-<section id="thin-lens-quadrupole">
-<h3>Thin Lens Quadrupole<a class="headerlink" href="#thin-lens-quadrupole" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QF2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Zero-length quadrupole, applying only the <span class="math notranslate nohighlight">\(K_{1L}\)</span> thin lens kick, no body tracking, no chromaticity effects.</p>
-</section>
-<section id="defocusing-quadrupole">
-<h3>Defocusing Quadrupole<a class="headerlink" href="#defocusing-quadrupole" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QD1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">-0.15</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Defocusing quadrupole (<span class="math notranslate nohighlight">\(K_{1L} &lt; 0\)</span>), horizontal defocusing, vertical focusing.</p>
-</section>
-<section id="skew-quadrupole">
-<h3>Skew Quadrupole<a class="headerlink" href="#skew-quadrupole" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">40.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"off"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Pure skew quadrupole (<span class="math notranslate nohighlight">\(K_{1L} = 0\)</span>, <span class="math notranslate nohighlight">\(K_{1sL} \neq 0\)</span>), producing <span class="math notranslate nohighlight">\(x\)</span>-<span class="math notranslate nohighlight">\(y\)</span> coupling.</p>
-</section>
-<section id="normal-skew-quadrupole-combination">
-<h3>Normal + Skew Quadrupole Combination<a class="headerlink" href="#normal-skew-quadrupole-combination" title="Link to this heading"></a></h3>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QFS1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">50.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.05</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"yoshida4"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"circle"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Aperture Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.04</span><span class="p">]</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
-<p>Combined quadrupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.</p>
-</section>
-<section id="equivalent-representation-with-rotation-angle">
-<h3>Equivalent Representation with Rotation Angle<a class="headerlink" href="#equivalent-representation-with-rotation-angle" title="Link to this heading"></a></h3>
-<p>A normal quadrupole with <span class="math notranslate nohighlight">\(K_{1L} = 0.2\)</span> rotated by angle <span class="math notranslate nohighlight">\(\theta = 0.01\)</span> rad is equivalent to:</p>
-<div class="math notranslate nohighlight">
-\[K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996\]</div>
-<div class="math notranslate nohighlight">
-\[K_{1sL}' = K_{1L} \sin 2\theta \approx 0.2 \times 0.02 = 0.004\]</div>
-<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">    </span><span class="nt">"QF_rot"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">60.0</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.19996</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.004</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Num Slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">        </span><span class="nt">"Integrator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform"</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="p">}</span>
-</pre></div>
-</div>
 </section>
 </section>
 <section id="application-scenarios">

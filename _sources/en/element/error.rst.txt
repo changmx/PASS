@@ -21,24 +21,33 @@ Parameters and normalization
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 25 15 35
+   :widths: 17 21 12 9 12 29
 
-   * - Python schema field
+   * - Python configuration field
      - JSON key
+     - Type
+     - Unit
      - Default
-     - Meaning
+     - Description
    * - ``is_field_error``
      - ``Is field error``
-     - ``false``
+     - ``bool``
+     - —
+     - ``False``
      - Enable the additional error kick.
    * - ``field_error_knl``
      - ``Field error KNL``
+     - ``list[float]``
+     - m^-n
      - ``[]``
      - Normal integrated errors, starting at dipole order zero.
    * - ``field_error_ksl``
      - ``Field error KSL``
+     - ``list[float]``
+     - m^-n
      - ``[]``
      - Skew integrated errors, starting at dipole order zero.
+
 
 Array entry :math:`n` has units :math:`\mathrm{m}^{-n}`: dipole, quadrupole,
 sextupole and octupole are entries 0, 1, 2 and 3. Values must be finite.
@@ -79,36 +88,13 @@ of DKD/RKR/SKS steps; the quadrupole matrix model uses half a nominal matrix,
 an error kick, and the other half. Internal space charge remains at its
 scheduled node and receives its own positive integration weight.
 
-Implementation layout
-^^^^^^^^^^^^^^^^^^^^^
-
-``PASS/commands/element/error.py`` contains ``FieldErrors``, GPU error dispatch
-(``_track_field_errors_gpu``) and matrix-error composition
-(``_transport_matrix_errors``). The shared ``execute_element_body_gpu`` in
-``PASS/utils/slicing.py`` advances the body slices and invokes SC only at
-configured nodes; it also serves matrix/bend error tracking without SC.
-These transport helpers do not check the exit aperture or advance the reference
-clock; each element's ``execute_cpu/gpu`` owns those operations.
-Matrix/bend transport and error kicks remain separate GPU calls.
-
-Fixed multipole coefficients, inverse factorials and stage parameters are
-prepared once and reused; GPU arrays are cached per precision and device.
-Particle coordinates and bunch reference quantities remain live inputs.
-The input flag ``Is field error`` is retained; the runtime state is held by
-``FieldErrors.enabled`` and ``FieldErrors.active`` without a duplicate
-element-level flag. ``AlignmentErrors`` and its coordinate transformations
-are kept in the same module.
-
 Model limits
 ^^^^^^^^^^^^
 
 SBend retains its nominal curvature and entrance/exit maps. Errors are local
 straight-multipole kicks between curved nominal transport steps. This is a
 specified thin-error approximation, not a complete curved multipole field or
-a model of error-dependent fringe fields. It need not reproduce a native PTC
-thick-bend field-error model exactly. The same caution applies to PTC commands
-that handle only selected error orders on a native element; compare an
-equivalent explicit thin-Multipole lattice when testing this model.
+a model of error-dependent fringe fields.
 
 At zero Solenoid length, the axial map has no effect, but its integrated
 transverse multipoles and enabled field errors still apply a thin kick.
@@ -174,28 +160,39 @@ the beam or its initial distribution.
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 25 15 35
+   :widths: 17 21 12 9 12 29
 
-   * - Python schema field
+   * - Python configuration field
      - JSON key
+     - Type
+     - Unit
      - Default
-     - Meaning
+     - Description
    * - ``is_alignment_error``
      - ``Is alignment error``
-     - ``false``
+     - ``bool``
+     - —
+     - ``False``
      - Enable the magnetic displacement and roll.
    * - ``alignment_dx``
      - ``Alignment DX (m)``
+     - ``float``
+     - m
      - ``0.0``
      - Horizontal displacement in the ideal entrance frame.
    * - ``alignment_dy``
      - ``Alignment DY (m)``
+     - ``float``
+     - m
      - ``0.0``
      - Vertical displacement in the ideal entrance frame.
    * - ``alignment_dpsi``
      - ``Alignment DPSI (rad)``
+     - ``float``
+     - rad
      - ``0.0``
      - Right-handed roll about the ideal entrance longitudinal axis.
+
 
 All values must be finite. The alignment and field-error switches are
 independent. Disabled or exactly zero alignment takes the original tracking
@@ -266,20 +263,6 @@ or revival. Loss-plane accuracy follows the existing stored loss-position
 precision. Element aperture checks remain exit checks, not continuous wall
 collision detection.
 
-Each element's ``execute_cpu/gpu`` shows this order directly, without an
-additional ``_execute`` callback. ``AlignmentErrors.enter_frame`` saves the
-entry-live masks and enters the magnetic frame; ``exit_frame`` restores the
-design frame in a ``finally`` block. The exit aperture and clock update follow
-successful transport. With alignment inactive, these methods return without
-allocating masks or launching coordinate kernels.
-
-CPU/GPU coordinate formulas, loss restoration and SC frame switching remain
-together in ``error.py``.
-GPU coordinate patches are separate kernels around the existing transport;
-each SC node needs two additional patches when alignment is active. Fixed
-frame coefficients are cached per plane, precision and device. Magnetic
-transport and field-error kernel composition otherwise remain unchanged.
-
 MAD-X alignment import
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -306,9 +289,3 @@ GUI element import offers an alignment checkbox. ``read_madx_twiss`` and
 map cannot reconstruct the displaced physical field. Use element tracking for
 alignment errors. With alignment import disabled, alignment columns in a shared
 error file are ignored.
-
-``Command.create`` does not inspect alignment parameters or maintain a separate
-alignment-support list. Unused alignment keys passed directly to an unrelated
-runtime command are ignored. The schema and MAD-X import still reject explicit
-unsupported alignment requests, and ``AlignmentErrors`` retains finite-value
-and unsupported-component validation for magnetic elements.

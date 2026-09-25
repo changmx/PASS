@@ -1,42 +1,27 @@
-Graphical configuration workflow
-================================
+Graphical interface
+===================
 
-Install the optional interface with ``python -m pip install --editable ".[gui]"``
-and launch it with ``python -m PASS.gui`` or ``pass-gui``. The configuration page
-edits the same input used by the tracking engine; the run and plotting pages
-remain separate.
+Install the interface with ``python -m pip install --editable ".[gui]"`` and
+launch it with ``python -m PASS.gui`` or ``pass-gui``.
 
-The top bar contains File, Configuration, Run, Plot, Tools, Help, and the dark/light/system
-theme selector. The initial window is 1200 by 760 logical pixels; window and pane
-sizes, theme, and column preferences are remembered locally. The sequence is the
-central overview, ordered by the engine's position bins and command priorities.
-Name, Command, and position are mandatory columns. Drag header
-dividers to resize columns; right-click to select additional columns. Validation
-is in the sequence toolbar and checks the complete active input and dependencies.
-See :doc:`input_validation` for the full report, rules and command-line checker.
-Applicable property fields remain expanded, with mode-dependent alternatives hidden or disabled and long
-forms scrolling within the pane. See :doc:`project_files` for JSON/project saving,
-source-file packaging, parameter reuse, and fixed input snapshots for running.
+1. Open a PASS input JSON or a ``.passproj`` project, or configure a new input.
+2. Edit the global parameters, injection, and execution sequence. Select **Apply**
+   to commit each property form; unapplied forms and JSON text are drafts.
+3. Select **Validate** in the sequence toolbar and resolve errors. See
+   :doc:`input_validation` for validation scope and reports.
+4. Save the input or project, select inputs on **Run**, and start the simulation.
+5. Open the result directory or load outputs on **Plot**.
 
-The left library sections use only the height needed by their entries, with
-unused space below the entire list. Only **Input configuration (required)** is
-expanded at startup; all other main sections and the Space charge submenu start
-collapsed. **Physics effects** lists **Space charge**,
-**Wakefields**, **Beam-beam effects**, and **Electron cloud**, in that order.
-Space charge and **Wakefields** (尾场) expand independently. The latter contains
-**Global configuration**, **Insert wake slicer**, and **Wake point**;
-Beam-beam effects and Electron cloud remain disabled placeholders.
+The configuration page edits the same input used by the tracking engine.
+For project packaging, run snapshots, stopping, and rerunning, see :doc:`project_files`.
+Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
 
 Startup and file drops
 ----------------------
 
-The main configuration workspace appears first. Numerical dependencies are then
-prepared in a worker thread, and tool pages are constructed one at a time on the
-GUI thread. All tools are prepared automatically; clicking an unfinished tool
-prioritizes it. The status bar reports progress. Page construction pauses while
-a simulation, conversion, or modal dialog is active. Once prepared, pages retain
-their values when switching. This reduces initial work; cold disk caches and
-individual page construction can still affect responsiveness.
+Tools are prepared automatically after the main window opens. The status bar
+shows progress; selecting an unfinished tool prioritizes it. Tool values persist
+when switching pages in the same window.
 
 Drop one local ``.passproj`` or PASS input JSON onto the window, including child
 editors. File contents are checked before replacing the current document. A
@@ -53,81 +38,15 @@ CSV/TFS drops offer conversion or plotting; dropping them directly into the
 converter selects conversion. Only one file is accepted per drop. For another
 project window, launch another ``pass-gui`` process from a terminal.
 
-Help and local documentation
-----------------------------
-
-The **Help** menu next to the theme selector provides **Online documentation**
-(Chinese / English), **Source code**, **Read local documentation** (Chinese /
-English), **Rebuild local documentation**, and **About PASS**. Web links and local
-HTML pages open in the system's default browser.
-
-To enable local builds, install the documentation dependencies in the same Python
-environment used to launch the GUI, from a complete PASS source checkout::
-
-   python -m pip install --editable ".[gui,docs]"
-
-Every click on **Rebuild local documentation** starts a full Sphinx HTML build of
-both languages, using the GUI's Python interpreter. The build runs in a separate
-process; the interface remains usable. The progress window shows live logs and a
-stop button. Closing that window leaves the build running; **View build log** in
-the Help menu reopens it. Repeated builds are disabled while one is running.
-Closing PASS during a build asks whether to stop it before exiting.
-
-Each build writes to a new ``docs/build/gui/<timestamp-id>/`` directory. Only a
-successful build with no Sphinx warnings and all language home pages present
-updates ``docs/build/gui/latest.json``, which identifies the result used for
-reading. Failed or stopped builds leave the previous successful result available.
-Build directories are retained; rebuilding does not delete older results.
-**Read local documentation** opens the saved result without rebuilding and falls
-back to the conventional ``docs/build/html/`` output if no saved GUI result is
-available. If no local page exists, it offers to compile or open online documentation.
-Missing sources or dependencies and filesystem errors are reported with guidance;
-the GUI does not install dependencies automatically. A regular package installation
-without the source checkout can use online documentation but cannot build locally.
-
-**About PASS** displays the installed version, project description, authors,
-institution, copyright and Apache License 2.0. Documentation, repository and issue
-tracker links are clickable. The license opens in a read-only window when available
-locally, with an online fallback. **Copy version and environment information**
-copies the PASS, Python and PySide6 versions, operating system and architecture.
-
-Tools
------
-
-**Tools** is a peer of Configuration, Run and Plot. Its left navigation contains
-the beam calculator, tune diagram, RF bucket, phase-space plotting and emittance calculation,
-magnet converter, exciter preview, and data format conversion. Calculations are independent of the active simulation
-input. Reference masses use fixed AME2020, NIST/CODATA and PDG data. Ek uses MeV/u for every species, normalized by actual rest mass in u.
-Formula references and clickable source websites open in separate windows. See :doc:`gui_tools` for units, conventions and workflows.
-
-Appearance and controls
------------------------
-
-The dark theme uses `One Dark Pro colors <https://github.com/Binaryify/OneDark-Pro>`_,
-with charcoal backgrounds, blue accents, and soft gray text. The light theme
-shares the same controls and hierarchy. Interface text uses 12 logical pixels,
-preferring Segoe UI Variable Text with Microsoft YaHei UI for Chinese fallback.
-JSON source and run logs use JetBrains Mono when available, otherwise Consolas
-or Cascadia Mono. Source keys, strings, numbers, and booleans have distinct
-syntax colors. No additional font installation is required.
-
-**Input configuration (required)** identifies the input configuration entry.
-Headings and entries align left, with successive child indentation, thin vertical
-guides, and subtle main-heading backgrounds. Hierarchy does not depend on color.
-Dropdowns always show a right-hand arrow and divider. Checkboxes show a checkmark
-when selected, including when disabled.
-Dropdowns throughout all pages and dialogs ignore mouse-wheel changes to the current
-selection, even when focused. To select with the mouse, click to open the list and
-then click an item. The open list can still be scrolled to browse options.
-
-Validation, table editing, message, and file selection windows follow the current
-theme. Windows 11 uses system APIs to color native title-bar backgrounds and text;
-Windows 10 uses the supported dark-frame flag. Native moving, resizing, and
-snapping remain available. File selection uses Qt dialogs so their content also
-follows the theme.
-
 Property ordering and sections
 ------------------------------
+
+Property forms and the JSON source have separate drafts. Use **Apply source** or
+**Discard source changes** for JSON edits. If both contain pending changes,
+discard one draft before applying the other. Saving requires resolving drafts.
+Injection, Space charge, and WakeField forms apply their changes together as one
+undo step. **Cancel** restores applied parameters. Drafts are not automatically
+backed up; see :doc:`project_files` for manual saving and recovery.
 
 The read-only ``Command`` type appears beside the property heading. Editable
 parameters start with name, position ``s``, and length, followed by the element's
@@ -154,25 +73,11 @@ and turn-selection outputs share a **Diagnostic output** section. Twiss retains
 its start/end optics and transfer settings sections; Injection retains its
 bunch editor.
 
-Module responsibilities
------------------------
-
-``PASS/validation`` is shared by the GUI, the ``python -m PASS.validation`` CLI,
-and simulation preflight, and has no Qt dependency. ``PASS/gui/validation.py``
-only provides the worker thread and report window. ``app.py`` assembles the UI;
-``appearance.py`` owns themes, fonts, icons, and window appearance;
-``structured.py`` provides typed parameter controls; ``project.py`` handles
-project packaging and resources; ``workspace.py`` handles document workflows;
-``optics.py`` supplies optics configuration helpers; and ``runner.py`` provides
-the independent execution entry point. These responsibilities stay separate
-instead of placing file operations, validation, and widget implementations in
-the main window module.
-
 Structured array parameters
 ---------------------------
 
 Array and nested parameters have dedicated controls in the property pane.
-They no longer require JSON brackets, commas, or knowledge of array shapes.
+Use these controls to edit rows and dimensions directly.
 The JSON source tab remains available for complete input editing.
 
 * **Save turns** uses rows with start, inclusive end, and positive integer step.
@@ -267,7 +172,7 @@ different formula in the saved configuration.
 (半宽); enter both axes in meters. The inactive pair is saved as null.
 Node spacings are calculated from extent and node counts.
 
-Configurations no longer contain ``Chamber``. Each SC point sets ``Aperture
+Each SC point sets ``Aperture
 type`` and ``Aperture value``; default resolves to the grid rectangle. The
 aperture handles losses and also defines the FD/DST conductor. Different FD
 walls use separate cached solvers with one shared grid; FFT shares kernels
@@ -282,7 +187,7 @@ engine. ``Num kicks`` sets the internal SC nodes, independently of the parent's
 transport ``Num slices``.
 
 Injection, clocks, RF and pulsed elements
-------------------------------------------
+-----------------------------------------
 
 Injection preserves valid harmonic-ID permutations when applying a form.
 Adding/copying bunches assigns a new slot; deleting a slot compresses higher IDs.
@@ -311,7 +216,7 @@ and turn-indexed RF files need a physical-time migration, not a renamed key.
 The library includes Bump and the current voltage/geometry ElSeparator interface.
 Required quantities remain blank until supplied; incomplete drafts cannot be applied.
 Bump previews TIME/HKICK/VKICK and can convert two CISP CSV files into one TFS
-using their common physical-time interval. Kicks are integrated delta-P/P0;
+using the union of their time nodes with each plane's endpoint values held outside its range. Kicks are integrated delta-P/P0;
 the preview includes time offset and endpoint holds outside each plane's supplied
 range. The CSV time grids and ranges may differ; conversion retains their union.
 **Preview ES** (预览ES) previews
@@ -335,6 +240,10 @@ in Chinese, including path, TFS format, numeric data and unit errors.
 Exciter exposes tune/frequency selection and FM/AM-dependent fields. Ordinary
 magnet ramping remains unavailable in tracking and cannot be newly enabled.
 
+Exciter previews evaluate particle time as ``t = T_start + elapsed - z/(beta*c)``
+using continuous bunch-relative z and the local reference arrival time. Nominal
+bunch slots do not shift the preview.
+
 WakeField and result files
 --------------------------
 
@@ -355,13 +264,48 @@ and fixed/factorized/ideal velocity laws. The shared schema validates combinatio
 File models require explicit units, axes, sign conventions, integration convention
 and reference beta; unknown external-file conventions are not guessed.
 
-The plot page loads CSV, TFS and one-dimensional DistMonitor HDF5 columns.
-Load multiple files to select beam/bunch/turn snapshots; filter live/lost particles
-and injection batches, and inspect reference and pending-particle metadata.
-``arrival_time_s`` is derived only for live particles with matching row or snapshot
-reference time and beta. Lost coordinates cannot use a later live reference.
-Missing numeric cells remain aligned across columns. Multidimensional SC field
-files require their dedicated analysis and are not treated as particle tables.
+The plot page loads CSV, TFS, and one-dimensional DistMonitor HDF5 columns.
+Load multiple files to select beam/bunch/turn snapshots, filter live/lost particles
+and injection batches, and inspect reference metadata. ``arrival_time_s`` is
+computed only for live particles with matching row or snapshot reference time
+and beta. Lost coordinates cannot use a later live reference. Missing values
+preserve row alignment. Multidimensional SC files use a separate field view.
+
+Choose automatic, line, or scatter display. Automatic mode uses scatter for
+particle tables with ``tag`` or ``particle_id``, and lines for other tables.
+Missing samples interrupt lines. Large previews reduce displayed points without
+changing the data. Each loaded file retains its axes and filter settings.
+The summary reports total, selected, and finite rows. **Close current data**
+unloads the current file; file loading can be cancelled.
+
+Phase-space presets select x–px, y–py, z–dp, x–y, or arrival-time–dp when their
+columns are present. Axes use supplied units and reference metadata; units are
+not inferred for plain CSV. **Density and projections** bins all finite X/Y pairs
+into 8–256 bins and displays counts and marginal projections. Counts represent
+macro-particle rows, without charge weighting.
+
+Select a baseline to overlay data or compute A−B or (A−B)/B. X values and row
+order must be identical and finite, with compatible units, coordinates, and
+reference conventions; particle IDs must also match when provided. There is
+no implicit sorting, interpolation, or unit conversion. Relative differences
+are NaN where the baseline is zero or nonfinite. Switch density plots to line
+or scatter mode before comparing data.
+
+**Export data** writes all selected rows and numeric columns, preserving NaN
+and numeric types, with a hash-checked ``.csv.metadata.json`` sidecar in the
+``pass-table-metadata-v1`` format. Keep both files together; stale or unsupported
+metadata is rejected when reloaded. **Export image** generates PNG/SVG/PDF from
+the complete selected data and range. Advanced plots have a Matplotlib toolbar.
+Exports fix the current selection and report progress; cancellation may leave
+already completed files. CSV and metadata must be retained as a pair.
+
+SC field arrays use ``(slice, y, x)`` with matching x/y coordinates, ``slice_id``,
+and ``delta_z``. Select a field and slice, and optionally overlay the saved
+aperture. Raw density, potential, and integrated Ex/Ey have units C/m², V·m, and V.
+**Divide by Δz: slice averages** gives C/m³, V, and V/m, requiring known units
+and positive finite widths. The view displays saved solver, potential-reference,
+and boundary metadata. Field export flattens the selected slice in y/x order,
+retains raw fields, and adds averages when selected; it does not recompute fields.
 
 Twiss and optics
 ----------------
@@ -486,7 +430,7 @@ The workflow generates only ``Twiss`` commands, not ``SpaceCharge`` points.
 Manual transport points and subsequent editing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The former **Twiss** entry is now **Insert a Twiss transport point**. A command
+Select **Insert a Twiss transport point** to add a manual map. A command
 describes transfer between two endpoints, so the form groups fields into
 **Start optics**, **End optics**, and **Transport settings**. ``Mu`` values are
 cumulative phases in cycles (:math:`2\pi`), not radians.
@@ -498,4 +442,68 @@ JSON, select a generated command to edit its two endpoints individually. Use
 Generation settings can be restored from **Project contents** for another preview
 and insertion; this does not automatically replace manually edited commands.
 
-The Exciter preview uses the actual local reference arrival time and continuous z: ``t = T_start + elapsed - z/(beta*c)``. Nominal bunch slots do not shift this preview. RF command properties now contain a Components list of prescribed physical-time waveforms.
+Tools
+-----
+
+The **Tools** workspace provides a beam calculator, tune diagram, RF bucket,
+phase-space plotting and emittance calculation, magnet conversion, exciter
+preview, and data format conversion. Calculations are independent of the active
+simulation input. Ions and atoms use kinetic energy per nucleon (AMeV); species
+with A=0 use MeV per particle. Particle masses come from the bundled evaluated
+mass catalog. See :doc:`gui_tools` for units, formulas, data sources, and workflows.
+
+Appearance and controls
+-----------------------
+
+Select a dark, light, or system theme in the top bar. Window and pane sizes,
+theme, and sequence-column preferences are remembered locally. Drag column
+boundaries to resize them; right-click the header to show additional columns.
+Name, Command, and position remain visible. The sequence follows the engine's
+position bins and command priorities; hover over a position to inspect its full value.
+
+The left library starts with **Input configuration (required)** expanded. Under
+**Physics effects**, Space charge and Wakefields have independent submenus.
+Beam-beam effects and Electron cloud are disabled placeholders.
+
+Property fields for the selected mode remain expanded. Long forms scroll, and
+**Expand** gives the editor the full workspace; **Restore** returns to the previous
+layout while retaining drafts. Dropdowns change selection by clicking an item;
+scrolling an open list only browses its options.
+
+Help and local documentation
+----------------------------
+
+The **Help** menu next to the theme selector provides **Online documentation**
+(Chinese / English), **Source code**, **Read local documentation** (Chinese /
+English), **Rebuild local documentation**, and **About PASS**. Web links and local
+HTML pages open in the system's default browser.
+
+To enable local builds, install the documentation dependencies in the same Python
+environment used to launch the GUI, from a complete PASS source checkout::
+
+   python -m pip install --editable ".[gui,docs]"
+
+Every click on **Rebuild local documentation** starts a full Sphinx HTML build of
+both languages, using the GUI's Python interpreter. The build runs in a separate
+process; the interface remains usable. The progress window shows live logs and a
+stop button. Closing that window leaves the build running; **View build log** in
+the Help menu reopens it. Repeated builds are disabled while one is running.
+Closing PASS during a build asks whether to stop it before exiting.
+
+Each build writes to a new ``docs/build/gui/<timestamp-id>/`` directory. Only a
+successful build with no Sphinx warnings and all language home pages present
+updates ``docs/build/gui/latest.json``, which identifies the result used for
+reading. Failed or stopped builds leave the previous successful result available.
+Build directories are retained; rebuilding does not delete older results.
+**Read local documentation** opens the saved result without rebuilding and falls
+back to the conventional ``docs/build/html/`` output if no saved GUI result is
+available. If no local page exists, it offers to compile or open online documentation.
+Missing sources or dependencies and filesystem errors are reported with guidance;
+the GUI does not install dependencies automatically. A regular package installation
+without the source checkout can use online documentation but cannot build locally.
+
+**About PASS** displays the installed version, project description, authors,
+institution, copyright and Apache License 2.0. Documentation, repository and issue
+tracker links are clickable. The license opens in a read-only window when available
+locally, with an online fallback. **Copy version and environment information**
+copies the PASS, Python and PySide6 versions, operating system and architecture.

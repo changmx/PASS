@@ -1,15 +1,10 @@
 螺线管（Solenoid）
-==================
+==========================
 
 本模块介绍 PASS 中的螺线管元件 **Solenoid** ，用于模拟带电粒子在纵向磁场中的运动。螺线管产生沿束流方向的均匀磁场 :math:`B_z`，通过 Larmor 旋转效应耦合水平与垂直平面，同时提供横向聚焦。
 
-PASS 中的螺线管采用 **精确非线性映射** （Larmor 框架下的哈密顿量解析解）。纯螺线管（无多极场叠加）时映射零误差；叠加多极场时采用 Sol-Kick-Sol（SKS）辛积分器。
+PASS 中的螺线管采用 **精确非线性映射** （Larmor 框架下的哈密顿量解析解）。纯螺线管（无多极场叠加）采用所声明均匀场模型的解析映射，仍受浮点舍入影响；叠加多极场时采用 Sol-Kick-Sol（SKS）辛积分器。
 
-**代码位置**
-
-- 源文件： ``PASS/commands/element/solenoid.py``
-- 类名： ``Solenoid`` （继承自 ``Command`` ）
-- 注册名： ``solenoid``
 - 核心特征：
 
   - 采用精确螺线管映射（Larmor 旋转 + 聚焦， :math:`p_z` 逐粒子计算）
@@ -20,9 +15,184 @@ PASS 中的螺线管采用 **精确非线性映射** （Larmor 框架下的哈�
   - 色品效应通过逐粒子 :math:`p_z` 自然引入
   - 支持孔径检查
 
+以下接口中的字段用于 ``PASS.para.schema.elements.SolenoidItem`` 配置类；
+元件名称由 ``Sequence.add(name, item)`` 的序列键给出，不是配置类字段。
+
+接口参数
+--------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 元件出口或零长度作用点的纵向位置。
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - 元件长度 （必须 :math:`\ge 0` ； :math:`= 0` 时仅保留横向多极动量更新）
+   * - ``ks``
+     - ``KS``
+     - ``float``
+     - :math:`\text{m}^{-1}`
+     - ``0.0``
+     - 螺线管归一化强度 :math:`k_s = q_0 B_z / P_0` ，默认 0
+   * - ``knl``
+     - ``KiL``
+     - ``list[float]``
+     - :math:`\text{m}^{-n}`
+     - ``[]``
+     - 多极铁法向积分强度数组 :math:`K_{nL}` ，默认 ``[]``
+   * - ``ksl``
+     - ``KiSL``
+     - ``list[float]``
+     - :math:`\text{m}^{-n}`
+     - ``[]``
+     - 多极铁斜向积分强度数组 :math:`K_{sL}` ，默认 ``[]``
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - 外场本体切片数，默认 1（纯螺线管也有效）
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - 积分器，可选： ``adaptive`` （默认 ``uniform`` ）、 ``uniform`` 、 ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - 孔径类型，默认 ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - 孔径参数值，默认 ``[]``
+
+
+.. note::
+
+  - ``knl`` / ``ksl`` 为可选参数。与启用的场误差相加后全零时，每个螺线管切片使用精确本体映射；``num_slices`` 生效，``integrator`` 不参与计算
+  - 名义多极分量与启用的场误差相加后非零时，启用 SKS 积分器， ``num_slices`` 和 ``integrator`` 生效
+  - ``ks = 0`` 且有长度时使用多极 DKD；名义与误差多极分量相加后全零时才退化为纯漂移
+  - ``length = 0`` 时，仅横向多极分量和启用的场误差起作用；纵向主场无薄透镜映射
+
+使用示例
+--------
+
+纯螺线管（精确映射）
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL1": {
+           "S (m)": 10.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.0,
+           "KS": 2.0,
+           "Aperture type": "off"
+       }
+   }
+
+长度 1.0 m，归一化强度 :math:`k_s = 2.0` 。使用单段精确螺线管映射，无分裂截断误差，但仍有浮点舍入误差。
+
+弱螺线管
+~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL2": {
+           "S (m)": 20.0,
+           "Command": "Solenoid",
+           "Length (m)": 2.0,
+           "KS": 0.5,
+           "Aperture type": "off"
+       }
+   }
+
+弱场螺线管， Larmor 旋转角较小。
+
+反向磁场螺线管
+~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL3": {
+           "S (m)": 30.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.5,
+           "KS": -3.0,
+           "Aperture type": "off"
+       }
+   }
+
+:math:`k_s < 0` 表示反向磁场， Larmor 旋转方向相反。
+
+螺线管叠加四极场（SKS 积分器）
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL4": {
+           "S (m)": 40.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.0,
+           "KS": 2.0,
+           "KiL": [0.0, 0.1],
+           "KiSL": [],
+           "Num slices": 4,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+螺线管（ :math:`k_s = 2.0` ）叠加四极分量（ :math:`K_{1L} = 0.1` ），4 个切片，4 阶辛积分器。 ``KiL`` 数组第 0 项为 :math:`K_{0L}` （偶极），第 1 项为 :math:`K_{1L}` （四极）。
+
+零场退化（纯漂移）
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL5": {
+           "S (m)": 50.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.0,
+           "KS": 0.0,
+           "Aperture type": "off"
+       }
+   }
+
+:math:`k_s = 0` 时退化为纯漂移。
 
 坐标约定
 --------
+
+采用 :ref:`zh-longitudinal-reference` 的连续纵向坐标。
+:math:`T_b` 是理想参考粒子在当前位置的实际通过时刻，不是束团质心时刻；
+局部映射中的 :math:`\beta_0` 和 :math:`P_0` 表示当前束团参考量。
+:math:`p_x=P_x/P_0` 是归一化动量，不是轨迹斜率。
 
 PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
 
@@ -47,13 +217,12 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
     - 归一化垂直动量， :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - 纵向坐标， :math:`\zeta = s - \beta_0 c t`
+    - 纵向坐标， :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - 相对动量偏差， :math:`\delta = P / P_0 - 1`
 
 其中 :math:`P_0` 为参考粒子动量， :math:`\beta_0 = v_0 / c` 为参考粒子归一化速度。
-
 
 螺线管磁场与归一化强度
 ----------------------
@@ -86,7 +255,6 @@ Larmor 旋转角为：
 
 其中 :math:`p_z` 为粒子的归一化纵向动量分量（逐粒子不同，见下文）， :math:`L` 为螺线管长度。
 
-
 物理推导
 --------
 
@@ -116,10 +284,10 @@ Larmor 旋转角为：
 
 .. note::
 
-  Larmor 旋转项 :math:`-\frac{k_s}{2}(x p_y - y p_x)` **同时依赖位置和动量** ，这是螺线管与四极铁的本质区别。四极铁的踢角项仅依赖位置，可以将哈密顿量干净地分裂为漂移和踢角两部分（DKD 积分器）。螺线管的 Larmor 旋转项不可分裂为纯位置或纯动量的部分，因此 **不能使用普通漂移做 DKD 积分** 。
+  Larmor 旋转项 :math:`-\frac{k_s}{2}(x p_y - y p_x)` **同时依赖位置和动量** ，这是螺线管与四极铁的本质区别。四极铁的动量更新项仅依赖位置，可以将哈密顿量干净地分裂为漂移和动量更新两部分（DKD 积分器）。螺线管的 Larmor 旋转项不可分裂为纯位置或纯动量的部分，因此 **不能使用普通漂移做 DKD 积分** 。
 
 Larmor 框架与精确解
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 做 Larmor 变换——将横截面坐标系绕 :math:`s` 轴旋转角度 :math:`\theta = \text{sk} \cdot s / p_z` ，定义 Larmor 框架下的正则动量：
 
@@ -203,11 +371,10 @@ Larmor 框架与精确解
   - :math:`p_z` 逐粒子不同（包含 :math:`\delta` 和 Larmor 动量的贡献），因此映射是 **精确非线性** 的
   - 当 :math:`k_s \to 0` 时， :math:`\sin\theta/\text{sk} \to L/p_z` ，映射退化为精确漂移
 
-
 为什么螺线管没有薄透镜模式
 --------------------------
 
-四极铁的薄透镜极限（ :math:`L \to 0` ， :math:`k_1 \to \infty` ， :math:`k_1 L = \text{const}` ）给出有限的动量踢角 :math:`\Delta p_x = -k_{1L} \cdot x` ，物理上自洽。
+四极铁的薄透镜极限（ :math:`L \to 0` ， :math:`k_1 \to \infty` ， :math:`k_1 L = \text{const}` ）给出有限的动量动量更新 :math:`\Delta p_x = -k_{1L} \cdot x` ，物理上自洽。
 
 螺线管的薄透镜极限（ :math:`L \to 0` ， :math:`k_s \to \infty` ， :math:`k_s L = \text{const}` ）存在根本困难：
 
@@ -216,11 +383,10 @@ Larmor 框架与精确解
 
 位置和动量的缩放行为不对称：旋转角有限但聚焦力发散，薄透镜极限不存在。
 
-因此 PASS 不提供纵向主场的薄透镜映射。:math:`L=0` 时 ``KS`` 无效应，但名义横向多极分量及启用的场误差仍执行积分薄踢角。
-
+因此 PASS 不提供纵向主场的薄透镜映射。:math:`L=0` 时 ``KS`` 无效应，但名义横向多极分量及启用的场误差仍执行积分薄动量更新。
 
 多极场叠加与 SKS 积分器
------------------------
+----------------------------
 
 当螺线管内部叠加横向多极场分量（ :math:`k_{nl}` / :math:`k_{sl}` ）时，总哈密顿量为：
 
@@ -228,7 +394,7 @@ Larmor 框架与精确解
 
   H = H_{\text{sol}} + H_{\text{mult}}
 
-其中 :math:`H_{\text{mult}}` 为多极铁踢角哈密顿量（仅依赖位置）。由于 :math:`H_{\text{sol}}` 和 :math:`H_{\text{mult}}` 不对易，需要分裂算符法。
+其中 :math:`H_{\text{mult}}` 为多极铁动量更新哈密顿量（仅依赖位置）。由于 :math:`H_{\text{sol}}` 和 :math:`H_{\text{mult}}` 不对易，需要分裂算符法。
 
 PASS 采用 **Sol-Kick-Sol** （SKS）积分器，与四极铁的 DKD 完全平行：
 
@@ -239,7 +405,7 @@ PASS 采用 **Sol-Kick-Sol** （SKS）积分器，与四极铁的 DKD 完全平�
 其中：
 
 - **Sol** = 精确螺线管映射（ ``_solenoid_exact_cpu`` ），处理 :math:`B_z` 场
-- **Kick** = 多极铁踢角（Horner 递归），处理横向多极场
+- **Kick** = 多极铁动量更新（Horner 递归），处理横向多极场
 
 .. list-table::
   :header-rows: 1
@@ -247,15 +413,15 @@ PASS 采用 **Sol-Kick-Sol** （SKS）积分器，与四极铁的 DKD 完全平�
 
   * - 
     - 漂移算子
-    - 踢角算子
+    - 动量更新算子
     - 场景
   * - 四极铁 DKD
     - 自由漂移 ``drift_exact``
-    - 四极踢角 ``quad_kick``
+    - 四极动量更新 ``quad_kick``
     - :math:`B_z = 0` ，仅横向梯度场
   * - 螺线管 SKS
     - 螺线管映射 ``solenoid_exact``
-    - 多极踢角 ``multipole_kick``
+    - 多极动量更新 ``multipole_kick``
     - :math:`B_z \neq 0` ，叠加横向多极场
 
 .. note::
@@ -263,7 +429,7 @@ PASS 采用 **Sol-Kick-Sol** （SKS）积分器，与四极铁的 DKD 完全平�
   SKS 中的 "Sol" 不是自由漂移，而是螺线管精确映射。螺线管内 :math:`B_z` 始终存在，粒子不是在无场空间漂移。如果错误地使用自由漂移替代螺线管映射，将丢失 Larmor 旋转效应。
 
 uniform 积分器（2阶辛）
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 每个切片采用 Sol-Kick-Sol 结构，即二阶蛙跳（leapfrog）：
 
@@ -274,7 +440,7 @@ uniform 积分器（2阶辛）
 每个切片误差为 :math:`O(\Delta s^3)` ，全局误差为 :math:`O(\Delta s^2)` 。
 
 yoshida4 积分器（4阶辛）
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 通过组合三个二阶 SKS 步构造四阶辛映射 [Yoshida 1990]：
 
@@ -294,11 +460,10 @@ yoshida4 积分器（4阶辛）
 
 每个切片误差为 :math:`O(\Delta s^5)` ，全局误差为 :math:`O(\Delta s^4)` 。
 
-
-整体追踪流程
+整体跟踪流程
 ------------
 
-根据是否有多极场叠加，螺线管有两种追踪路径：
+根据是否有多极场叠加，螺线管有两种跟踪路径：
 
 ::
 
@@ -306,7 +471,7 @@ yoshida4 积分器（4阶辛）
 
   无多极场 (knl/ksl 全零):
     单段精确螺线管映射 Sol(L, ks)
-    [零误差，无需切片]
+    [无分裂截断误差，但仍有浮点舍入误差，无需切片]
 
   有多极场 (knl/ksl 非零):
     切片1 → 切片2 → ... → 切片N
@@ -315,7 +480,7 @@ yoshida4 积分器（4阶辛）
 
   特殊情况:
     ks = 0 → 多极 DKD；无横向多极分量时为 Drift(L)
-    L = 0 → 仅执行横向积分多极踢角
+    L = 0 → 仅执行横向积分多极动量更新
 
 完整映射为：
 
@@ -330,7 +495,6 @@ yoshida4 积分器（4阶辛）
 .. math::
 
   \mathcal{M} = \left[\mathcal{M}_{\text{SKS}}(\Delta s)\right]^N
-
 
 色品效应
 --------
@@ -349,170 +513,6 @@ yoshida4 积分器（4阶辛）
 绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 :ref:`zh-error` 接口。
 准直只移动磁场，孔径和 SC 边界保持在设计坐标系。
 
-接口参数
---------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - 元件在束线中的纵向位置
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - 元件长度 （必须 :math:`\ge 0` ； :math:`= 0` 时仅保留横向多极踢角）
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - 元件名称
-  * - ``ks``
-    - ``ks``
-    - float
-    - :math:`\text{m}^{-1}`
-    - 螺线管归一化强度 :math:`k_s = q_0 B_z / P_0` ，默认 0
-  * - ``knl``
-    - ``kil``
-    - list
-    - :math:`\text{m}^{-n}`
-    - 多极铁法向积分强度数组 :math:`K_{nL}` ，默认 ``[]``
-  * - ``ksl``
-    - ``kisl``
-    - list
-    - :math:`\text{m}^{-n}`
-    - 多极铁斜向积分强度数组 :math:`K_{sL}` ，默认 ``[]``
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - 外场本体切片数，默认 1（纯螺线管也有效）
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - 积分器，可选： ``adaptive`` （默认 ``uniform`` ）、 ``uniform`` 、 ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - 孔径类型，默认 ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - 孔径参数值，默认 ``[]``
-
-.. note::
-
-  - ``knl`` / ``ksl`` 为可选参数。与启用的场误差相加后全零时，每个螺线管切片使用精确本体映射；``num_slices`` 生效，``integrator`` 不参与计算
-  - 名义多极分量与启用的场误差相加后非零时，启用 SKS 积分器， ``num_slices`` 和 ``integrator`` 生效
-  - ``ks = 0`` 且有长度时使用多极 DKD；名义与误差多极分量相加后全零时才退化为纯漂移
-  - ``length = 0`` 时，仅横向多极分量和启用的场误差起作用；纵向主场无薄透镜映射
-
-
-使用示例
---------
-
-纯螺线管（精确映射）
-~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL1": {
-          "S (m)": 10.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.0,
-          "ks": 2.0,
-          "Aperture Type": "off"
-      }
-  }
-
-长度 1.0 m，归一化强度 :math:`k_s = 2.0` 。使用单段精确螺线管映射，零误差。
-
-弱螺线管
-~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL2": {
-          "S (m)": 20.0,
-          "Command": "Solenoid",
-          "Length (m)": 2.0,
-          "ks": 0.5,
-          "Aperture Type": "off"
-      }
-  }
-
-弱场螺线管， Larmor 旋转角较小。
-
-反向磁场螺线管
-~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL3": {
-          "S (m)": 30.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.5,
-          "ks": -3.0,
-          "Aperture Type": "off"
-      }
-  }
-
-:math:`k_s < 0` 表示反向磁场， Larmor 旋转方向相反。
-
-螺线管叠加四极场（SKS 积分器）
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL4": {
-          "S (m)": 40.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.0,
-          "ks": 2.0,
-          "KiL": [0.0, 0.1],
-          "Kisl": [],
-          "Num Slices": 4,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-螺线管（ :math:`k_s = 2.0` ）叠加四极分量（ :math:`K_{1L} = 0.1` ），4 个切片，4 阶辛积分器。 ``KiL`` 数组第 0 项为 :math:`K_{0L}` （偶极），第 1 项为 :math:`K_{1L}` （四极）。
-
-零场退化（纯漂移）
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL5": {
-          "S (m)": 50.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.0,
-          "ks": 0.0,
-          "Aperture Type": "off"
-      }
-  }
-
-:math:`k_s = 0` 时退化为纯漂移。
-
-
 应用场景
 --------
 
@@ -525,7 +525,7 @@ yoshida4 积分器（4阶辛）
 元件内部空间电荷
 ----------------
 
-正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+正长度元件可设置 ``space_charge`` （JSON ``Space charge``）为
 ``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
 ``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
 支持的后端和示例见 :ref:`zh-internal-space-charge`。

@@ -1,19 +1,7 @@
-相位推进监视器（PhaseAdvanceMonitor）
+相移监视器（PhaseAdvanceMonitor）
 =======================================
 
-``PhaseAdvanceMonitor`` 在固定观测位置逐粒子测量非耦合横向运动的水平和垂直小数工作点。这是唯一正式的相位推进监视器 API，取代原 ``PhaseMonitor``。
-
-监视器先减去固定闭轨和水平色散，再以固定设计 Twiss 参数构造归一化坐标：
-
-.. math::
-
-   u_x = (x-x_{CO}-D_x\delta)/\sqrt{\beta_x},\qquad
-   v_x = \alpha_x u_x + \sqrt{\beta_x}(p_x-p_{x,CO}-D'_x\delta).
-
-y 平面使用同样形式但不减色散。相邻圈的有向相位推进被累加并以
-``sum(dmu)/(2 pi N)`` 输出为小数工作点；不输出 phase，因为两者仅相差 ``2 pi`` 的固定关系，信息重复。
-
-此监视器假设横向非耦合。存在 x-y 耦合时，x/y 输出为投影工作点，不是正常模工作点。
+``PhaseAdvanceMonitor`` 在固定观测位置逐粒子测量非耦合横向运动的水平和垂直小数工作点。
 
 配置
 ----
@@ -41,16 +29,92 @@ y 平面使用同样形式但不减色散。相邻圈的有向相位推进被累
        "Turn ranges": [[0, 1024]]
    }
 
-``Dx``、``Dpx`` 及全部闭轨字段默认是 0。``Min action`` 可选；归一化 action 过小时不对该采样点求角度。按粒子精度，默认阈值为 float64 的 ``5e-17`` 与 float32 的 ``5e-9``。
+``Dx``、``Dpx`` 及全部闭合轨道字段默认是 0。``Min action`` 可选；归一化作用量过小时不对该采样点求角度。按粒子精度，默认阈值为 float64 的 ``5e-17`` 与 float32 的 ``5e-9``。
+
+接口参数
+------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 25 15 40
+
+   * - Python 字段
+     - JSON 键
+     - 默认值
+     - 说明
+   * - ``s``
+     - ``S (m)``
+     - ``必填``
+     - 监视器位置（m）。
+   * - ``command``
+     - ``Command``
+     - ``'PhaseAdvanceMonitor'``
+     - 保持 PhaseAdvanceMonitor。
+   * - ``output_format``
+     - ``Output format``
+     - ``'hdf5-gzip1'``
+     - hdf5-gzip1、hdf5 或 tfs。
+   * - ``enable``
+     - ``Enable``
+     - ``True``
+     - 启用监视器。
+   * - ``beta_x``
+     - ``Beta x (m)``
+     - ``必填``
+     - 正的设计水平 beta（m）。
+   * - ``beta_y``
+     - ``Beta y (m)``
+     - ``必填``
+     - 正的设计垂直 beta（m）。
+   * - ``alpha_x``
+     - ``Alpha x``
+     - ``必填``
+     - 设计水平 alpha。
+   * - ``alpha_y``
+     - ``Alpha y``
+     - ``必填``
+     - 设计垂直 alpha。
+   * - ``dx``
+     - ``Dx (m)``
+     - ``0.0``
+     - 水平色散（m）。
+   * - ``dpx``
+     - ``Dpx``
+     - ``0.0``
+     - 归一化水平动量的色散系数。
+   * - ``x_co``
+     - ``X CO (m)``
+     - ``0.0``
+     - 水平闭合轨道位置（m）。
+   * - ``px_co``
+     - ``PX CO``
+     - ``0.0``
+     - 水平闭合轨道归一化动量。
+   * - ``y_co``
+     - ``Y CO (m)``
+     - ``0.0``
+     - 垂直闭合轨道位置（m）。
+   * - ``py_co``
+     - ``PY CO``
+     - ``0.0``
+     - 垂直闭合轨道归一化动量。
+   * - ``turn_ranges``
+     - ``Turn ranges``
+     - ``0``
+     - [start, end) 圈号对；0 表示不分析。
+   * - ``min_action``
+     - ``Min action``
+     - ``None``
+     - 接受的最小归一化作用量；None 时按粒子精度选择阈值。
 
 输出
 ----
 
-每个完成窗口、每个 beam、bunch 和 monitor 各写一个 HDF5 文件（可选 TFS），保存在配置的 ``output_dir_tuneSpread`` 目录（通常为 ``tuneSpread``）。每个 bunch 独立输出，包含已损失粒子。列包含 ``tag``、``tuneXFractional``、``tuneYFractional``、两平面各自的区间数、``validX/Y``、``completeX/Y`` 和损失信息。``valid`` 表示粒子仍存活且至少有一个有效区间；``complete`` 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。
+每个完成窗口、每个束流、束团和监视器 各写一个 HDF5 文件（可选 TFS），保存在配置的 ``output_dir_tuneSpread`` 目录（通常为 ``tuneSpread``）。每个束团独立输出，包含已损失粒子。列包含 ``tag``、``tuneXFractional``、``tuneYFractional``、两平面各自的区间数、``validX/Y``、``completeX/Y`` 和损失信息。``valid`` 表示粒子仍存活且至少有一个有效区间；``complete`` 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。
 
 文件头记录固定光学参考、窗口端点、期望区间数、后端、精度以及 ``PASSVersion``。
 
-协作提前停止时，已经完成的窗口文件保留。
+正常提前停止时，已经完成的窗口文件保留。
 已经开始但尚未结束的窗口在收尾时记录警告，不写部分工作点表，
 也不会缩短窗口终点以将其当作完整窗口。
 GUI 正常停止发生在圈边界，强制结束则不保证执行收尾。
@@ -59,3 +123,18 @@ GUI 停止控件及运行记录见 :doc:`../project_files`。
 ``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``；
 设置为 ``"hdf5"`` 使用不压缩的 HDF5，或设置为 ``"tfs"`` 使用文本输出。HDF5 结构、压缩与统一读取方式见
 :doc:`table_output`。
+
+计算方法与适用范围
+------------------
+
+监视器先减去固定闭合轨道和水平色散，再以固定设计 Twiss 参数构造归一化坐标：
+
+.. math::
+
+   u_x = (x-x_{CO}-D_x\delta)/\sqrt{\beta_x},\qquad
+   v_x = \alpha_x u_x + \sqrt{\beta_x}(p_x-p_{x,CO}-D'_x\delta).
+
+y 平面使用同样形式但不减色散。相邻圈的有向相移被累加并以
+``sum(dmu)/(2 pi N)`` 输出为小数工作点；输出值为有效区间内的平均小数工作点。
+
+此监视器假设横向非耦合。存在 x-y 耦合时，x/y 输出为投影工作点，不是本征模工作点。

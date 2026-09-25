@@ -7,12 +7,444 @@ Injection supports single-turn and multi-turn operation. The incoming distributi
 injection schedule and transverse offsets determine how each batch enters the ring;
 time-dependent Bump magnets can vary its subsequent transverse motion.
 
-**Code location**
+For an executable input-generation and tracking example, see :ref:`en-minimal-input-example`. Coordinate conventions are defined in :ref:`en-longitudinal-reference` below.
 
-- Source file: ``PASS/commands/injection.py``
-- Class name: ``Injection`` (inherited from ``Command`` )
-- Registration name: ``injection``
-- Auxiliary class: ``InjectionBunchInfo`` (same file, responsible for parameter parsing and distribution generation of a single bunch)
+Interface parameters
+----------------------------------------
+
+Tables list public Python schema fields, JSON aliases and defaults. Set the sequence key to ``injection``; the runtime command name is supplied from that key. The bunch dictionaries are generated from ``InjectionItem.bunches``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 25 13 14 30
+
+   * - Python field
+     - JSON key
+     - Type
+     - Default
+     - Description / units
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - ``0.0``
+     - Injection position in m; must be zero.
+   * - ``command``
+     - ``Command``
+     - ``str``
+     - ``'Injection'``
+     - Keep Injection.
+   * - ``harmonic_number``
+     - ``Harmonic Number``
+     - ``int``
+     - ``1``
+     - Positive bunch-group count; equal to the number of bunch configurations.
+   * - ``random_seed``
+     - ``Random Seed``
+     - ``int | None``
+     - ``None``
+     - Integer or None; None selects a nondeterministic seed. Reproducibility requires identical input and execution order.
+   * - ``bunches``
+     - ``bunch0, bunch1, ...``
+     - ``list[BunchConfig]``
+     - ``One default bunch``
+     - One BunchConfig per group; declare empty groups with zero real and macro particles.
+
+Bunch parameters
+----------------
+
+Each bunch uses ``bunch0`` , ``bunch1`` , ... as keys, and the value is a dictionary containing all parameters of that bunch. The parameters are described below in five groups: transverse, longitudinal, beam, distribution, and offset.
+
+Transverse parameters
+~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python field
+    - JSON key
+    - Type
+    - Unit
+    - Default
+    - Description
+  * - ``alpha_x``
+    - ``Alpha x``
+    - float
+    - -
+    - ``0.0``
+    - Horizontal Twiss parameter :math:`\alpha_x`
+  * - ``alpha_y``
+    - ``Alpha y``
+    - float
+    - -
+    - ``0.0``
+    - Vertical Twiss parameter :math:`\alpha_y`
+  * - ``beta_x``
+    - ``Beta x (m)``
+    - float
+    - m
+    - ``1.0``
+    - Horizontal Twiss parameter :math:`\beta_x`
+  * - ``beta_y``
+    - ``Beta y (m)``
+    - float
+    - m
+    - ``1.0``
+    - Vertical Twiss parameter :math:`\beta_y`
+  * - ``emit_x``
+    - ``Emittance x (m'rad)``
+    - float
+    - m·rad
+    - ``0.0``
+    - Horizontal emittance :math:`\varepsilon_x`
+  * - ``emit_y``
+    - ``Emittance y (m'rad)``
+    - float
+    - m·rad
+    - ``0.0``
+    - Vertical emittance :math:`\varepsilon_y`
+  * - ``dx``
+    - ``Dx (m)``
+    - float
+    - m
+    - ``0.0``
+    - Horizontal dispersion function :math:`D_x`
+  * - ``dpx``
+    - ``Dpx``
+    - float
+    - -
+    - ``0.0``
+    - Horizontal dispersion derivative :math:`D_{px}`
+  * - ``dist_trans``
+    - ``Transverse dist``
+    - str
+    - -
+    - ``'gaussian'``
+    - Transverse distribution type, options: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform``
+
+
+Longitudinal parameters
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python field
+    - JSON key
+    - Type
+    - Unit
+    - Default
+    - Description
+  * - ``sigma_z``
+    - ``Sigma z (m)``
+    - float
+    - m
+    - ``0.1``
+    - Longitudinal RMS scale; full uniform interval width in coasting mode: :math:`\sigma_z`
+  * - ``dp``
+    - ``Sigma dp/p``
+    - float
+    - -
+    - ``0.001``
+    - Momentum spread RMS value :math:`\sigma_{\delta}`
+  * - ``dist_longi``
+    - ``Longitudinal dist``
+    - str
+    - -
+    - ``'gaussian'``
+    - Longitudinal distribution type, options: ``gaussian`` , ``coasting`` , ``matchz`` , ``matchdp``
+  * - ``rf_voltage``
+    - ``RF Voltage (V)``
+    - float
+    - V
+    - ``0.0``
+    - RF voltage (required for ``matchz`` and ``matchdp`` distributions)
+  * - ``rf_phase``
+    - ``RF Phase (rad)``
+    - float
+    - rad
+    - ``0.0``
+    - RF phase :math:`\phi_s` (required for ``matchz`` and ``matchdp`` distributions)
+  * - ``harmonic_id``
+    - ``Harmonic ID of this bunch``
+    - int
+    - -
+    - ``0``
+    - Bunch-group index :math:`h_{\mathrm{id}}`, defining the nominal grouping slot :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
+  * - ``rf_s_position``
+    - ``RF S Position Refer to Inj. Point (m)``
+    - float
+    - m
+    - ``0.0``
+    - Longitudinal position of the RF cavity relative to the injection point, used to back-propagate the distribution generated at s\_rf to the injection point s=0
+  * - ``momentum_offset_dp``
+    - ``Momentum Offset dp``
+    - float
+    - -
+    - ``0.0``
+    - Bunch-level average momentum deviation :math:`\delta_0` , added to each particle's dp. Mutually exclusive with ``kinetic_energy_offset``
+  * - ``kinetic_energy_offset``
+    - ``Kinetic Energy Offset (eV)``
+    - float
+    - eV
+    - ``0.0``
+    - Bunch-level kinetic energy offset, internally converted to ``momentum_offset_dp`` . Mutually exclusive with ``momentum_offset_dp``
+
+
+Beam parameters
+~~~~~~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python field
+    - JSON key
+    - Type
+    - Unit
+    - Default
+    - Description
+  * - ``kinetic_energy``
+    - ``Kinetic Energy per Nucleon (eV/u)``
+    - float
+    - eV/u
+    - ``Required``
+    - Kinetic energy per nucleon
+  * - ``num_real_particles``
+    - ``Number of Real Particles``
+    - int
+    - -
+    - ``Required``
+    - Planned total number of real particles over all injection events for this bunch
+  * - ``num_macro_particles``
+    - ``Number of Macro Particles``
+    - int
+    - -
+    - ``Required``
+    - Planned total number of macro particles over all injection events for this bunch
+  * - ``injection_turns``
+    - ``Total Injection Turns``
+    - int
+    - -
+    - ``1``
+    - Exclusive stop turn, counted from turn 0; positive integer, default 1
+  * - ``injection_interval``
+    - ``Injection Interval``
+    - int
+    - -
+    - ``1``
+    - Injection interval in turns; positive integer, default 1
+
+
+Distribution parameters
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python field
+    - JSON key
+    - Type
+    - Unit
+    - Default
+    - Description
+  * - ``is_load_from_file``
+    - ``Is Load Distribution from File``
+    - bool
+    - —
+    - ``False``
+    - Whether to load particle distribution from file
+  * - ``file_path``
+    - ``Distribution File Path``
+    - str
+    - —
+    - ``''``
+    - Distribution file path (``.h5``, ``.hdf5`` or ``.tfs`` table)
+  * - ``file_mode``
+    - ``Distribution File Mode``
+    - str
+    - —
+    - ``'sequential'``
+    - ``sequential`` (default) reads successive rows for each bunch; ``repeat`` reads from the beginning at each injection event
+  * - ``save_init_dist``
+    - ``Is Save Initial Distribution``
+    - bool
+    - —
+    - ``False``
+    - Whether to save the initial distribution
+  * - ``insert_particle``
+    - ``Insert Particle Coordinate``
+    - list
+    - —
+    - ``[]``
+    - Replace the first rows of the first batch after offsets are applied, using ``[[x, px, y, py, z, dp], ...]``; these rows are included in the planned particle count
+
+
+Offset parameters
+~~~~~~~~~~~~~~~~~
+
+The horizontal offset ( ``Offset x`` ) and vertical offset ( ``Offset y`` ) have the same structure, each containing the following sub-parameters:
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python field
+    - JSON key
+    - Type
+    - Unit
+    - Default
+    - Description
+  * - ``is_offset``
+    - ``Is Offset``
+    - bool
+    - —
+    - ``False``
+    - Whether to enable offset
+  * - ``is_load_from_file``
+    - ``Is Load From File``
+    - bool
+    - —
+    - ``False``
+    - Whether to load offset data from file
+  * - ``file_path``
+    - ``File Path``
+    - str
+    - —
+    - ``''``
+    - Offset data file path ( ``.tfs`` format)
+  * - ``file_time_kind``
+    - ``File Time Kind``
+    - str
+    - —
+    - ``'turn'``
+    - Time column type, options: ``turn`` , ``time``
+  * - ``offset_position``
+    - ``Offset Position (m)``
+    - float
+    - —
+    - ``0.0``
+    - Position offset
+  * - ``offset_momentum``
+    - ``Offset Momentum (rad)``
+    - float
+    - —
+    - ``0.0``
+    - Momentum offset
+
+
+Additional bunch options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 25 13 14 30
+
+   * - Python field
+     - JSON key
+     - Type
+     - Default
+     - Description / units
+   * - ``reference_arrival_time``
+     - ``Reference arrival time (s)``
+     - ``float | None``
+     - ``None``
+     - Initial source reference passage time in seconds; None uses the prescribed reference clock.
+   * - ``output_format``
+     - ``Output format``
+     - ``str``
+     - ``'hdf5-gzip1'``
+     - Initial-distribution table format: hdf5-gzip1, hdf5 or tfs.
+   * - ``offset_x``
+     - ``Offset x``
+     - ``OffsetConfig``
+     - ``OffsetConfig()``
+     - Horizontal OffsetConfig; see the offset table above.
+   * - ``offset_y``
+     - ``Offset y``
+     - ``OffsetConfig``
+     - ``OffsetConfig()``
+     - Vertical OffsetConfig; see the offset table above.
+
+Defaults are configuration defaults, not guaranteed complete physical inputs. In particular, explicitly supply positive emittances for Gaussian generation. ``harmonic_number`` belongs to InjectionItem and is also used by matched-distribution initialization; it is not a BunchConfig field.
+
+Input file
+----------
+
+.. code-block:: json
+
+  {
+      "Beam Name": "proton",
+      "Number of Protons": 1,
+      "Number of Neutrons": 0,
+      "Number of Charges": 1,
+      "Transition Gamma": 4.8,
+      "Number of turns": 5,
+      "Circumference (m)": 251.327,
+      "Backend (gpu/cpu)":"cpu",
+      "Number of GPU devices": 1,
+      "Device Id": [
+          0
+      ],
+      "Output directory": "./output",
+      "Is plot figure": true,
+      "Sequence": {
+          "injection": {
+              "S (m)": 0.0,
+              "Command": "Injection",
+              "Harmonic Number": 1,
+              "bunch0": {
+                  "Kinetic Energy per Nucleon (eV/u)": 45e6,
+                  "Number of Real Particles": 100000000000,
+                  "Number of Macro Particles": 100000,
+                  "Is Load Distribution from File": false,
+                  "Distribution File Path": "",
+                  "Total Injection Turns": 1,
+                  "Injection Interval": 1,
+                  "Alpha x": -2.614303952,
+                  "Alpha y": 1.57442348,
+                  "Beta x (m)": 0.5,
+                  "Beta y (m)": 0.5,
+                  "Emittance x (m'rad)": 0.00019999999999999998,
+                  "Emittance y (m'rad)": 9.999999999999999e-05,
+                  "Dx (m)": 0.0,
+                  "Dpx": 0.0,
+                  "Sigma z (m)": 30,
+                  "Sigma dp/p": 0.005,
+                  "Transverse dist": "gaussian",
+                  "Longitudinal dist": "matchz",
+                  "RF Voltage (V)": 100e3,
+                  "RF Phase (rad)": 0.5235987755982988,
+                  "Harmonic ID of this bunch": 0,
+                  "RF S Position Refer to Inj. Point (m)": 0.0,
+                  "Offset x": {
+                      "Is Offset": false,
+                      "Is Load From File": false,
+                      "File Path": "",
+                      "File Time Kind": "turn",
+                      "Offset Position (m)": 0.0,
+                      "Offset Momentum (rad)": 0.0
+                  },
+                  "Offset y": {
+                      "Is Offset": false,
+                      "Is Load From File": false,
+                      "File Path": "",
+                      "File Time Kind": "turn",
+                      "Offset Position (m)": 0.0,
+                      "Offset Momentum (rad)": 0.0
+                  },
+                  "Is Save Initial Distribution": true,
+                  "Insert Particle Coordinate": [[0,0,0,0,0,0]]
+              }
+          },
+          "StatMonitor1":{
+              "S (m)": 0.0,
+              "Command": "StatMonitor"
+          }
+      }
+  }
 
 
 .. _en-longitudinal-reference:
@@ -55,8 +487,8 @@ the pure normalization transformation. See :doc:`element/rfcavity`.
 Transport advances the reference event by its reference flight time. In an
 exact straight drift of length L, :math:`\Delta T_b=L/(\beta_b c)` and
 :math:`\Delta t_i=LE_i/(cP_{s,i})`. Other transfer maps retain their documented
-approximations. The time-coordinate migration does not change normalized
-quadrupole strengths or magnetic maps.
+approximations. Quadrupole strengths remain normalized by the reference
+momentum; see the relevant element pages for their transport maps.
 
 Fixed macro-particle weights
 ----------------------------
@@ -91,292 +523,6 @@ injection path evaluates the conversion in FP64 before storing the result in the
 configured particle precision. Equal reference momenta preserve the incoming
 ``dp`` values exactly, including small FP32 deviations. All six particle arrays
 retain their common configured FP32 or FP64 dtype.
-
-
-Interface parameters
---------------------
-
-The parameters of the ``Injection`` command are shown in the table below. Here ``s`` must be 0 (the injection point is fixed at the starting position of the sequence), ``name`` is automatically filled by the sequence key name, and ``bunch0`` , ``bunch1`` , ... are the parameter dictionaries of each bunch.
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``S (m)``
-    - float
-    - m
-    - Injection position (must be 0)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name, automatically filled by the sequence key name
-  * - ``harmonic_number``
-    - ``Harmonic Number``
-    - int
-    - -
-    - Bunch-grouping count; declare the same number of ``bunch0``, ``bunch1``, ... dictionaries and use empty bunches for unfilled groups
-  * - ``random_seed``
-    - ``Random Seed``
-    - int or null
-    - -
-    - Optional seed for particle-distribution generation. Omit it, or set it to ``null``, for a non-deterministic seed; a supplied value, including 0, makes the generated distribution reproducible for the same input and execution order
-  * - ``bunch0``
-    - ``bunch0``
-    - dict
-    - -
-    - Parameter dictionary of the 0th bunch
-  * - ``bunch1``
-    - ``bunch1``
-    - dict
-    - -
-    - Parameter dictionary of the 1st bunch
-  * - ...
-    - ...
-    - dict
-    - -
-    - Parameter dictionaries of more bunches
-
-
-Bunch parameters
-----------------
-
-Each bunch uses ``bunch0`` , ``bunch1`` , ... as keys, and the value is a dictionary containing all parameters of that bunch. The parameters are described below in five groups: transverse, longitudinal, beam, distribution, and offset.
-
-Transverse parameters
-~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 35 10 10 25
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``alphax``
-    - ``Alpha x``
-    - float
-    - -
-    - Horizontal Twiss parameter :math:`\alpha_x`
-  * - ``alphay``
-    - ``Alpha y``
-    - float
-    - -
-    - Vertical Twiss parameter :math:`\alpha_y`
-  * - ``betax``
-    - ``Beta x (m)``
-    - float
-    - m
-    - Horizontal Twiss parameter :math:`\beta_x`
-  * - ``betay``
-    - ``Beta y (m)``
-    - float
-    - m
-    - Vertical Twiss parameter :math:`\beta_y`
-  * - ``emitx``
-    - ``Emittance x (m'rad)``
-    - float
-    - m·rad
-    - Horizontal emittance :math:`\varepsilon_x`
-  * - ``emity``
-    - ``Emittance y (m'rad)``
-    - float
-    - m·rad
-    - Vertical emittance :math:`\varepsilon_y`
-  * - ``dx``
-    - ``Dx (m)``
-    - float
-    - m
-    - Horizontal dispersion function :math:`D_x`
-  * - ``dpx``
-    - ``Dpx``
-    - float
-    - -
-    - Horizontal dispersion derivative :math:`D_{px}`
-  * - ``dist_trans``
-    - ``Transverse dist``
-    - str
-    - -
-    - Transverse distribution type, options: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform``
-
-Longitudinal parameters
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 45 10 10 15
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``sigmaz``
-    - ``Sigma z (m)``
-    - float
-    - m
-    - Longitudinal bunch length RMS value :math:`\sigma_z`
-  * - ``dp``
-    - ``Sigma dp/p``
-    - float
-    - -
-    - Momentum spread RMS value :math:`\sigma_{\delta}`
-  * - ``dist_longi``
-    - ``Longitudinal dist``
-    - str
-    - -
-    - Longitudinal distribution type, options: ``gaussian`` , ``coasting`` , ``matchz`` , ``matchdp``
-  * - ``rf_voltage``
-    - ``RF Voltage (V)``
-    - float
-    - V
-    - RF voltage (required for ``matchz`` and ``matchdp`` distributions)
-  * - ``rf_phi``
-    - ``RF Phase (rad)``
-    - float
-    - rad
-    - RF phase :math:`\phi_s` (required for ``matchz`` and ``matchdp`` distributions)
-  * - ``harmonic_num``
-    - Injection-level ``Harmonic Number``
-    - int
-    - -
-    - Bunch-grouping count :math:`h_{\mathrm{group}}` passed down from the Injection level. It is also used by ``matchz`` / ``matchdp`` to set the longitudinal scale, but does not constrain the RFCavity harmonic
-  * - ``harmonic_id``
-    - ``Harmonic ID of this bunch``
-    - int
-    - -
-    - Bunch-group index :math:`h_{\mathrm{id}}`, defining the fixed center :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
-  * - ``rf_position``
-    - ``RF S Position Refer to Inj. Point (m)``
-    - float
-    - m
-    - Longitudinal position of the RF cavity relative to the injection point, used to back-propagate the distribution generated at s\_rf to the injection point s=0
-  * - ``ddp``
-    - ``Momentum Offset dp``
-    - float
-    - -
-    - Bunch-level average momentum deviation :math:`\delta_0` , added to each particle's dp. Mutually exclusive with ``dde``
-  * - ``dde``
-    - ``Kinetic Energy Offset (eV)``
-    - float
-    - eV
-    - Bunch-level kinetic energy offset, internally converted to ``ddp`` . Mutually exclusive with ``ddp``
-
-Beam parameters
-~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 45 10 10 10
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``Ek``
-    - ``Kinetic Energy per Nucleon (eV/u)``
-    - float
-    - eV/u
-    - Kinetic energy per nucleon
-  * - -
-    - ``Number of Real Particles``
-    - int
-    - -
-    - Planned total number of real particles over all injection events for this bunch
-  * - -
-    - ``Number of Macro Particles``
-    - int
-    - -
-    - Planned total number of macro particles over all injection events for this bunch
-  * - ``stop_turn``
-    - ``Total Injection Turns``
-    - int
-    - -
-    - Exclusive stop turn, counted from turn 0; positive integer, default 1
-  * - ``interval``
-    - ``Injection Interval``
-    - int
-    - -
-    - Injection interval in turns; positive integer, default 1
-
-Distribution parameters
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 45 10 20
-
-  * - Property
-    - JSON key
-    - Type
-    - Description
-  * - ``is_load_dist``
-    - ``Is Load Distribution from File``
-    - bool
-    - Whether to load particle distribution from file
-  * - ``load_dist_filepath``
-    - ``Distribution File Path``
-    - str
-    - Distribution file path (``.h5``, ``.hdf5`` or ``.tfs`` table)
-  * - ``load_dist_mode``
-    - ``Distribution File Mode``
-    - str
-    - ``sequential`` (default) reads successive rows for each bunch; ``repeat`` reads from the beginning at each injection event
-  * - ``is_save_init_dist``
-    - ``Is Save Initial Distribution``
-    - bool
-    - Whether to save the initial distribution
-  * - ``insert_particles``
-    - ``Insert Particle Coordinate``
-    - list
-    - Replace the first rows of the first batch after offsets are applied, using ``[[x, px, y, py, z, dp], ...]``; these rows are included in the planned particle count
-
-Offset parameters
-~~~~~~~~~~~~~~~~~
-
-The horizontal offset ( ``Offset x`` ) and vertical offset ( ``Offset y`` ) have the same structure, each containing the following sub-parameters:
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 30 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Description
-  * - ``is_offset``
-    - ``Is Offset``
-    - bool
-    - Whether to enable offset
-  * - ``is_offset_fromfile``
-    - ``Is Load From File``
-    - bool
-    - Whether to load offset data from file
-  * - -
-    - ``File Path``
-    - str
-    - Offset data file path ( ``.tfs`` format)
-  * - -
-    - ``File Time Kind``
-    - str
-    - Time column type, options: ``turn`` , ``time``
-  * - ``offset_position``
-    - ``Offset Position (m)``
-    - float
-    - Position offset
-  * - ``offset_momentum``
-    - ``Offset Momentum (rad)``
-    - float
-    - Momentum offset
 
 
 .. _en-multiturn-injection:
@@ -592,7 +738,7 @@ The following describes each transverse particle distribution in detail:
     | 16                                       | :math:`4\sigma`        | 99.966453737%   |
     +------------------------------------------+------------------------+-----------------+
 
-    Therefore, under the :math:`4\sigma` truncation condition, the particle loss ratio is very low (approximately :math:`3.3\times10^{-4}` ), and the Gaussian tail can be considered fully covered.
+    This table describes an elliptical cut on the phase-space invariant. The implemented independent position cuts in x and y have a different retained fraction; do not use the table as their acceptance probability.
 
     The specific truncation ratio can be calculated using the following function:
 
@@ -609,7 +755,7 @@ The following describes each transverse particle distribution in detail:
 
   - **4D KV (Kapchinskij-Vladimirskij) distribution**
 
-    In the :math:`x-p_x-y-p_y` four-dimensional phase space, a particle distribution **uniformly distributed on the surface of a four-dimensional hyper-ellipsoid** is generated, which is an idealized distribution existing only on the 4D spherical shell. Under this distribution, the space charge field produced by the particles is strictly linear within the bunch, enabling a rigorous analytical solution of the space charge problem.
+    In the :math:`x-p_x-y-p_y` four-dimensional phase space, a particle distribution **uniformly distributed on the surface of a four-dimensional hyper-ellipsoid** is generated, which is an idealized distribution existing only on the 4D spherical shell. Under this distribution, the space charge field produced by the particles is strictly linear within the bunch, in the ideal continuous free-space transverse model. Finite sampling and conducting boundaries modify this result.
 
     After integrating out two dimensions, the projection of the KV distribution onto any 2D plane (such as the :math:`x-p_x` plane) is a uniformly filled ellipse. After further integrating out one dimension, the projection of the KV distribution onto the 1D plane is a semi-ellipse (or semi-circle) distribution. The detailed derivation is as follows: the KV distribution is uniformly distributed on the 4D hypersphere :math:`S^3` ( :math:`r^2 = 1` ). To obtain the 1D marginal distribution of :math:`u_x`, the remaining three coordinates on :math:`S^3` need to be integrated:
 
@@ -655,7 +801,7 @@ The following describes each transverse particle distribution in detail:
 
   - **4D Parabolic distribution**
 
-    In the :math:`x-p_x-y-p_y` four-dimensional phase space, a particle distribution with **density decreasing parabolically from the center outward as r increases** is generated. This distribution is more realistic than the waterbag distribution for beams in real accelerators that tend to be concentrated toward the center.
+    In the :math:`x-p_x-y-p_y` four-dimensional phase space, a particle distribution with **density decreasing parabolically from the center outward as r increases** is generated. It represents a centrally concentrated distribution within a finite phase-space boundary.
 
     After integrating out two dimensions, the projection of the parabolic distribution onto any 2D plane (such as the :math:`x-p_x` plane) follows a quadratic parabolic distribution. After further integrating out one dimension, the projection of the parabolic distribution onto the 1D plane is a :math:`\frac{5}{2}` -power parabolic distribution. The detailed derivation is as follows: the 4D density of the parabolic distribution is :math:`f(r^2) \propto (1-r^2)^1` ( :math:`\alpha = 1` ). To obtain the 1D marginal distribution of :math:`u_x`:
 
@@ -678,7 +824,7 @@ The following describes each transverse particle distribution in detail:
 
   - **Uniform distribution**
 
-    In the :math:`x-p_x` and :math:`y-p_y` phase spaces, 2D uniform square distributions are generated independently. For each transverse plane, uniform sampling is performed within the square region :math:`[-1, 1] \times [-1, 1]` in normalized coordinates :math:`(u, v)` , and then mapped to physical coordinates through Twiss parameters. The RMS emittance of this distribution is strictly equal to the input parameter :math:`\varepsilon` , the full emittance is 3 times the RMS emittance, and all particles are within the :math:`\sqrt{3}\sigma` truncation range. This distribution can simulate the initial beam produced by an electron gun, etc.
+    In the :math:`x-p_x` and :math:`y-p_y` phase spaces, 2D uniform square distributions are generated independently. For each transverse plane, uniform sampling is performed within the square region :math:`[-1, 1] \times [-1, 1]` in normalized coordinates :math:`(u, v)` , and then mapped to physical coordinates through Twiss parameters. The ideal continuous distribution has RMS emittance equal to the input parameter :math:`\varepsilon` , the squared coordinate half-width is 3 times its variance, and the position projection lies within the :math:`\sqrt{3}\sigma` truncation range. This distribution can simulate the initial beam produced by an electron gun, etc.
 
     After integrating out one dimension, the projection of the uniform distribution onto the 1D plane is a constant (uniform) distribution. Since :math:`u_x` and :math:`v_x` are independently and uniformly distributed on :math:`[-1, 1]` , after integrating over :math:`v_x`:
 
@@ -696,7 +842,7 @@ Currently, the PASS program supports generating the following longitudinal parti
 
   - **2D Gaussian distribution (Gaussian)**
 
-    In the :math:`z-p_z` phase space, longitudinal coordinates following a Gaussian distribution are generated. The particle distribution in longitudinal phase space uses a :math:`4\sigma` truncation, i.e., only particles satisfying:
+    In the :math:`z-\delta` phase space, longitudinal coordinates following a Gaussian distribution are generated. The particle distribution in longitudinal phase space uses a :math:`4\sigma` truncation, i.e., only particles satisfying:
 
     .. math::
 
@@ -706,11 +852,11 @@ Currently, the PASS program supports generating the following longitudinal parti
 
   - **Coasting beam distribution (Coasting)**
 
-    In the :math:`z-p_z` phase space, longitudinal coordinates are generated where :math:`z` follows a uniform distribution and :math:`p_z` follows a Gaussian distribution. The particles are not truncated in the longitudinal phase space; the longitudinal position coordinate has a maximum of half the circumference and a minimum of negative half the circumference.
+    In the :math:`z-\delta` phase space, longitudinal coordinates are generated where :math:`z` follows a uniform distribution and :math:`\delta` follows a Gaussian distribution. The uniform interval is [-sigma_z/2, sigma_z/2]; in this mode Sigma z (m) is its full width. Set sigma_z equal to the circumference for a full-ring distribution.
 
   - **Distribution matched to RF parameters - longitudinal bunch length RMS value (MatchZ)**
 
-    In the :math:`z-p_z` phase space, longitudinal coordinates satisfying both the RF parameters and the longitudinal bunch length constraint ( :math:`\sigma_z` ) are generated. The particle distribution in longitudinal phase space uses a :math:`2\sigma` truncation, i.e., only particles satisfying:
+    In the :math:`z-\delta` phase space, longitudinal coordinates satisfying both the RF parameters and the longitudinal bunch length constraint ( :math:`\sigma_z` ) are generated. The particle distribution in longitudinal phase space uses a :math:`2\sigma` truncation, i.e., only particles satisfying:
 
     .. math::
 
@@ -720,7 +866,7 @@ Currently, the PASS program supports generating the following longitudinal parti
 
   - **Distribution matched to RF parameters - momentum spread RMS value (MatchDp)**
 
-    In the :math:`z-p_z` phase space, longitudinal coordinates satisfying both the RF parameters and the momentum spread constraint ( :math:`\sigma_{\delta}` ) are generated. The particle distribution in longitudinal phase space uses a :math:`2\sigma` truncation, i.e., only particles satisfying:
+    In the :math:`z-\delta` phase space, longitudinal coordinates satisfying both the RF parameters and the momentum spread constraint ( :math:`\sigma_{\delta}` ) are generated. The particle distribution in longitudinal phase space uses a :math:`2\sigma` truncation, i.e., only particles satisfying:
 
     .. math::
 
@@ -728,6 +874,8 @@ Currently, the PASS program supports generating the following longitudinal parti
 
     are retained.
 
+
+RF-matched sampling also enforces a 0.9 bucket-Hamiltonian acceptance bound. Requested scales above the model maximum are reduced to 0.99 of that maximum. Together with the z cut, these restrictions mean the measured sample RMS need not equal the requested matching target.
 
 Multi-bunch Longitudinal Coordinates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -746,7 +894,7 @@ are preserved; z is never folded. RF samples :math:`T_d-z_d/(\beta_d c)` directl
 
 The nominal slot position is computed as ``harmonic_id*C/harmonic_number``
 when writing logs or output; no ``bunch.z_center`` attribute is stored.
-Existing ``ZCenter``/``zCenter`` output fields retain this derived metadata.
+``ZCenter``/``zCenter`` output fields record this derived metadata.
 The diagrams below use ``z_center`` for the same nominal position. This is
 distinct from ``slice_table['z_center']``, which stores each slice interval's
 center for slicing and wake calculations.
@@ -1022,83 +1170,6 @@ The momentum deviation :math:`\delta_0` is applied to each particle's :math:`\de
 Therefore, the subsequent rf\_position back-propagation ( :math:`z \leftarrow z + \eta \, s_{\text{rf}} \, \delta` ) and dispersion coupling ( :math:`x \leftarrow x + D_x \, \delta` ) both use the :math:`\delta` value that includes :math:`\delta_0` , ensuring physical self-consistency.
 
 
-Input file
-----------
-
-.. code-block:: json
-
-  {
-      "Beam Name": "proton",
-      "Number of Protons": 1,
-      "Number of Neutrons": 0,
-      "Number of Charges": 1,
-      "Transition Gamma": 4.8,
-      "Number of turns": 5,
-      "Circumference (m)": 251.327,
-      "Backend (gpu/cpu)":"cpu",
-      "Number of GPU devices": 1,
-      "Device Id": [
-          0
-      ],
-      "Output directory": "./output",
-      "Is plot figure": true,
-      "Sequence": {
-          "Injection": {
-              "S (m)": 0.0,
-              "Command": "Injection",
-              "Harmonic Number": 1,
-              "bunch0": {
-                  "Kinetic Energy per Nucleon (eV/u)": 45e6,
-                  "Number of Real Particles": 100000000000.0,
-                  "Number of Macro Particles": 100000.0,
-                  "Is Load Distribution from File": false,
-                  "Distribution File Path": "",
-                  "Total Injection Turns": 1,
-                  "Injection Interval": 1,
-                  "Alpha x": -2.614303952,
-                  "Alpha y": 1.57442348,
-                  "Beta x (m)": 0.5,
-                  "Beta y (m)": 0.5,
-                  "Emittance x (m'rad)": 0.00019999999999999998,
-                  "Emittance y (m'rad)": 9.999999999999999e-05,
-                  "Dx (m)": 0.0,
-                  "Dpx": 0.0,
-                  "Sigma z (m)": 30,
-                  "Sigma dp/p": 0.005,
-                  "Transverse dist": "gaussian",
-                  "Longitudinal dist": "matchz",
-                  "RF Voltage (V)": 100e3,
-                  "RF Phase (rad)": 0.5235987755982988,
-                  "Harmonic ID of this bunch": 0,
-                  "RF S Position Refer to Inj. Point (m)": 0.0,
-                  "Offset x": {
-                      "Is Offset": false,
-                      "Is Load From File": false,
-                      "File Path": "",
-                      "File Time Kind": "turn",
-                      "Offset Position (m)": 0.0,
-                      "Offset Momentum (rad)": 0.0
-                  },
-                  "Offset y": {
-                      "Is Offset": false,
-                      "Is Load From File": false,
-                      "File Path": "",
-                      "File Time Kind": "turn",
-                      "Offset Position (m)": 0.0,
-                      "Offset Momentum (rad)": 0.0
-                  },
-                  "Is Save Initial Distribution": true,
-                  "Insert Particle Coordinate": [[0,0,0,0,0,0]]
-              }
-          },
-          "StatMonitor1":{
-              "S (m)": 0.0,
-              "Command": "StatMonitor"
-          }
-      }
-  }
-
-
 Distribution selection
 ----------------------
 
@@ -1107,7 +1178,7 @@ Based on the input file above, a bunch with a Gaussian distribution in the trans
 .. code-block:: json
 
   "Transverse dist": "gaussian",
-  "Longitudinal dist": "matchz",
+  "Longitudinal dist": "matchz"
 
 The values for the transverse distribution are: ``gaussian`` , ``kv`` , ``waterbag`` , ``parabolic`` , ``uniform`` , and the values for the longitudinal distribution are: ``gaussian`` , ``coasting`` , ``matchz`` , ``matchdp`` .
 

@@ -1,32 +1,7 @@
 孔径（Aperture）
-====================
+========================
 
-本模块介绍 PASS 中的 **孔径检查系统** （ Aperture ），用于在粒子追踪过程中检查粒子是否超出束流管的横向孔径边界。孔径检查是束流损失模拟的核心环节，能够标识并记录因横向坐标超出物理管道限制而丢失的粒子。
-
-孔径模块位于 ``PASS/utils/aperture.py`` ，提供 CPU 和 GPU 两种实现 （分别通过 ``check_aperture_cpu`` 和 ``check_aperture_gpu`` 函数调用）。每次调用传入检查位置的纵向坐标 :math:`s` 和当前圈数。
-
-每个束团每次通过普通元件（包括 ``Bump``）时，若没有生效的内部空间电荷，
-开启的孔径仅在出口检查一次。若有 :math:`K` 个生效的内部 SC 节点，则在每次
-SC 源项计算前检查一次，出口再检查一次，共 :math:`K+1` 次。其余外场积分切片
-边界不增加检查。独立的 ``SpaceCharge`` 命令在自身位置检查。孔径设为 ``off``
-时关闭这些孔径损失判定；PIC 计算域校验和传输中的动量有效性检查仍独立执行。
-``ElSeparator`` 保留沿漂移子段的首次接触碰撞检查，见 :doc:`element/elseparator`。
-
-普通孔径检查是在离散位置取样。粒子在两个检查位置之间越界后又返回孔径内，
-可能不会被发现；仅增加外场切片数不会自动增加孔径检查。
-
-孔径检查仅在粒子的横向坐标 :math:`(x, y)` 上进行，不涉及纵向坐标。每个元件可独立设置孔径类型和参数，支持 10 种孔径几何形状。
-
-几何构造和损失处理统一放在本文件中。``build_aperture({"Type": ..., "Value": ...})``
-构造几何对象；``mask(x, y)`` 包含管壁，``strict_mask(x, y)`` 排除管壁。
-这些判断函数接受 NumPy 或 CuPy 坐标数组，在相同后端返回 mask，不修改粒子。
-``aperture_bounds(geometry)`` 返回几何范围，供初始化校验使用。
-
-``check_aperture_gpu`` 支持下列全部类型及 float32、float64 粒子坐标，直接在设备上
-记录损失。CUDA 核启动前校验几何参数，尺寸可输入整数或浮点数，空束团不启动核。
-已损失粒子保留原损失位置和圈数，不属于当前束团范围的粒子不受影响。
-CPU 执行不依赖 CuPy。孔径模块及 PIC、SpaceCharge 跟踪均支持 CPU/GPU。
-
+孔径检查根据粒子的横向位置识别并记录损失。孔径作为元件属性配置，尺寸单位为米；默认关闭普通元件的孔径检查。空间电荷的默认孔径由其场网格确定，见 :doc:`space_charge`。CPU 与 NVIDIA GPU 支持相同的孔径设置。
 
 接口参数
 --------
@@ -42,11 +17,11 @@ CPU 执行不依赖 CuPy。孔径模块及 PIC、SpaceCharge 跟踪均支持 CPU
     - 类型
     - 说明
   * - ``aperture_type``
-    - ``Aperture Type``
+    - ``Aperture type``
     - str
     - 孔径类型，不区分大小写，可选值见下文
   * - ``aperture_value``
-    - ``Aperture Value``
+    - ``Aperture value``
     - list
     - 孔径参数值，含义随类型而异
 
@@ -54,6 +29,135 @@ CPU 执行不依赖 CuPy。孔径模块及 PIC、SpaceCharge 跟踪均支持 CPU
 
   ``aperture_type`` 不区分大小写，内部统一转换为小写后匹配。 ``off`` 和 ``default`` 类型忽略 ``aperture_value`` 。
 
+参数总览表
+----------
+
+.. list-table::
+  :header-rows: 1
+  :widths: 15 25 60
+
+  * - 类型
+    - aperture_value
+    - 说明
+  * - ``off``
+    - 忽略
+    - 不做孔径检查
+  * - ``default``
+    - 忽略
+    - 普通元件为 ±1 m 矩形；SpaceCharge 使用配置网格矩形。
+  * - ``circle``
+    - ``[r]``
+    - 圆形， :math:`r` 为半径
+  * - ``rectangle``
+    - ``[w, h]``
+    - 矩形， :math:`w` 为半宽， :math:`h` 为半高
+  * - ``ellipse``
+    - ``[a, b]``
+    - 椭圆， :math:`a` 为水平半轴， :math:`b` 为垂直半轴
+  * - ``rectcircle``
+    - ``[w, h, r]``
+    - 矩形与圆的交集
+  * - ``rectellipse``
+    - ``[w, h, a, b]``
+    - 矩形与椭圆的交集
+  * - ``racetrack``
+    - ``[w, h, a, b]``
+    - 跑道形 （矩形 + 椭圆端）
+  * - ``octagon``
+    - ``[w, h, d]``
+    - 八角形 （矩形切 45° 角）
+  * - ``polygon``
+    - ``[[x1,y1], ...]``
+    - 多边形顶点列表，自动闭合
+
+使用示例
+--------
+
+以下 JSON 片段展示了各孔径类型的配置方式。孔径参数作为元件属性,
+与 ``S (m)`` 、 ``Command`` 、 ``Length (m)`` 等字段并列:
+
+**圆形孔径** :
+
+.. code-block:: json
+
+  "Drift1": {
+      "S (m)": 10.0,
+      "Command": "Drift",
+      "Length (m)": 0.5,
+      "Aperture type": "circle",
+      "Aperture value": [0.1]
+  }
+
+**矩形孔径** :
+
+.. code-block:: json
+
+  "Drift2": {
+      "S (m)": 10.5,
+      "Command": "Drift",
+      "Length (m)": 0.3,
+      "Aperture type": "rectangle",
+      "Aperture value": [0.06, 0.04]
+  }
+
+**椭圆孔径** :
+
+.. code-block:: json
+
+  "Drift3": {
+      "S (m)": 11.0,
+      "Command": "Drift",
+      "Length (m)": 0.2,
+      "Aperture type": "ellipse",
+      "Aperture value": [0.06, 0.04]
+  }
+
+**跑道形孔径** :
+
+.. code-block:: json
+
+  "Drift4": {
+      "S (m)": 11.5,
+      "Command": "Drift",
+      "Length (m)": 0.4,
+      "Aperture type": "racetrack",
+      "Aperture value": [0.03, 0.05, 0.02, 0.05]
+  }
+
+**八角形孔径** :
+
+.. code-block:: json
+
+  "Drift5": {
+      "S (m)": 12.0,
+      "Command": "Drift",
+      "Length (m)": 0.3,
+      "Aperture type": "octagon",
+      "Aperture value": [0.05, 0.03, 0.01]
+  }
+
+**多边形孔径** :
+
+.. code-block:: json
+
+  "Drift6": {
+      "S (m)": 12.5,
+      "Command": "Drift",
+      "Length (m)": 0.2,
+      "Aperture type": "polygon",
+      "Aperture value": [[0.05, 0.0], [0.025, 0.043], [-0.025, 0.043], [-0.05, 0.0], [-0.025, -0.043], [0.025, -0.043]]
+  }
+
+**关闭孔径检查** :
+
+.. code-block:: json
+
+  "Drift7": {
+      "S (m)": 13.0,
+      "Command": "Drift",
+      "Length (m)": 0.5,
+      "Aperture type": "off"
+  }
 
 丢失粒子处理
 ------------
@@ -69,6 +173,18 @@ CPU 和 GPU 均只保留严格位于孔径内部的粒子。接触任意物理�
 
 已丢失的粒子 （ :math:`\text{tag} < 0` ）在后续孔径检查中将被跳过，不再重复标记。仅对存活粒子 （ :math:`\text{tag} > 0` ）执行孔径检查。
 
+检查位置与适用限制
+------------------
+
+每个束团每次通过普通元件（包括 ``Bump``）时，若没有生效的内部空间电荷，
+开启的孔径仅在出口检查一次。若有 :math:`K` 个生效的内部 SC 节点，则在每次
+SC 源项计算前检查一次，出口再检查一次，共 :math:`K+1` 次。其余外场积分切片
+边界不增加检查。独立的 ``SpaceCharge`` 命令在自身位置检查。孔径设为 ``off``
+时关闭这些孔径损失判定；PIC 计算域校验和传输中的动量有效性检查仍独立执行。
+``ElSeparator`` 保留沿轨迹的首次接触碰撞检查，见 :doc:`element/elseparator`。
+
+普通孔径检查是在离散位置取样。粒子在两个检查位置之间越界后又返回孔径内，
+可能不会被发现；仅增加外场切片数不会自动增加孔径检查。
 
 各孔径类型详解
 --------------
@@ -191,7 +307,7 @@ rectangle（矩形）
 ellipse（椭圆）
 ~~~~~~~~~~~~~~~~~
 
-**参数** ： ``aperture_value = [a, b]`` ，其中 :math:`a` 为半长轴 （ x 方向）， :math:`b` 为半短轴 （ y 方向）。
+**参数** ： ``aperture_value = [a, b]`` ，其中 :math:`a` 为水平半轴 （ x 方向）， :math:`b` 为垂直半轴 （ y 方向）。
 
 **丢失条件** ：
 
@@ -262,7 +378,7 @@ rectcircle（矩形内切圆）
 rectellipse（矩形内切椭圆）
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**参数** ： ``aperture_value = [w, h, a, b]`` ，其中 :math:`w` 为矩形半宽， :math:`h` 为矩形半高， :math:`a` 为椭圆半长轴 （ x 方向）， :math:`b` 为椭圆半短轴 （ y 方向）。
+**参数** ： ``aperture_value = [w, h, a, b]`` ，其中 :math:`w` 为矩形半宽， :math:`h` 为矩形半高， :math:`a` 为椭圆水平半轴 （ x 方向）， :math:`b` 为椭圆垂直半轴 （ y 方向）。
 
 孔径区域为矩形与椭圆的 **交集** （粒子需同时在矩形和椭圆内才存活）。
 
@@ -429,135 +545,3 @@ polygon（多边形）
     <text x="215" y="270" fill="#f5a623" font-size="10" font-family="monospace">P6</text>
   </svg>
   </div>
-
-
-参数总览表
-----------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 15 25 60
-
-  * - 类型
-    - aperture_value
-    - 说明
-  * - ``off``
-    - 忽略
-    - 不做孔径检查
-  * - ``default``
-    - 忽略
-    - 默认 ±1m 矩形孔径
-  * - ``circle``
-    - ``[r]``
-    - 圆形， :math:`r` 为半径
-  * - ``rectangle``
-    - ``[w, h]``
-    - 矩形， :math:`w` 为半宽， :math:`h` 为半高
-  * - ``ellipse``
-    - ``[a, b]``
-    - 椭圆， :math:`a` 为半长轴， :math:`b` 为半短轴
-  * - ``rectcircle``
-    - ``[w, h, r]``
-    - 矩形与圆的交集
-  * - ``rectellipse``
-    - ``[w, h, a, b]``
-    - 矩形与椭圆的交集
-  * - ``racetrack``
-    - ``[w, h, a, b]``
-    - 跑道形 （矩形 + 椭圆端）
-  * - ``octagon``
-    - ``[w, h, d]``
-    - 八角形 （矩形切 45° 角）
-  * - ``polygon``
-    - ``[[x1,y1], ...]``
-    - 多边形顶点列表，自动闭合
-
-
-使用示例
---------
-
-以下 JSON 片段展示了各孔径类型的配置方式。孔径参数作为元件属性,
-与 ``S (m)`` 、 ``Command`` 、 ``Length (m)`` 等字段并列:
-
-**圆形孔径** :
-
-.. code-block:: json
-
-  "Drift1": {
-      "S (m)": 10.0,
-      "Command": "Drift",
-      "Length (m)": 0.5,
-      "Aperture Type": "circle",
-      "Aperture Value": [0.1]
-  }
-
-**矩形孔径** :
-
-.. code-block:: json
-
-  "Drift2": {
-      "S (m)": 10.5,
-      "Command": "Drift",
-      "Length (m)": 0.3,
-      "Aperture Type": "rectangle",
-      "Aperture Value": [0.06, 0.04]
-  }
-
-**椭圆孔径** :
-
-.. code-block:: json
-
-  "Drift3": {
-      "S (m)": 11.0,
-      "Command": "Drift",
-      "Length (m)": 0.2,
-      "Aperture Type": "ellipse",
-      "Aperture Value": [0.06, 0.04]
-  }
-
-**跑道形孔径** :
-
-.. code-block:: json
-
-  "Drift4": {
-      "S (m)": 11.5,
-      "Command": "Drift",
-      "Length (m)": 0.4,
-      "Aperture Type": "racetrack",
-      "Aperture Value": [0.03, 0.05, 0.02, 0.05]
-  }
-
-**八角形孔径** :
-
-.. code-block:: json
-
-  "Drift5": {
-      "S (m)": 12.0,
-      "Command": "Drift",
-      "Length (m)": 0.3,
-      "Aperture Type": "octagon",
-      "Aperture Value": [0.05, 0.03, 0.01]
-  }
-
-**多边形孔径** :
-
-.. code-block:: json
-
-  "Drift6": {
-      "S (m)": 12.5,
-      "Command": "Drift",
-      "Length (m)": 0.2,
-      "Aperture Type": "polygon",
-      "Aperture Value": [[0.05, 0.0], [0.025, 0.043], [-0.025, 0.043], [-0.05, 0.0], [-0.025, -0.043], [0.025, -0.043]]
-  }
-
-**关闭孔径检查** :
-
-.. code-block:: json
-
-  "Drift7": {
-      "S (m)": 13.0,
-      "Command": "Drift",
-      "Length (m)": 0.5,
-      "Aperture Type": "off"
-  }

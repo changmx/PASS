@@ -1,20 +1,15 @@
 多极铁（Multipole）
-====================
+============================
 
 本模块介绍 PASS 中的通用多极铁元件 **Multipole** ，用于模拟带电粒子在任意阶多极磁铁中的运动。与四极铁、六极铁、八极铁等单阶元件不同，多极铁通过 ``knl`` / ``ksl`` 数组同时支持任意阶（含混合阶）多极分量，适用于场误差注入、组合多极元件、高阶多极铁等场景。
 
-PASS 中的多极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式，厚元件采用精确漂移-踢角-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。踢角采用 Horner 嵌套求值。
+PASS 中的多极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式，厚元件采用精确漂移-动量更新-漂移（DKD-exact）辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器。动量更新采用 Horner 嵌套求值。
 
-**代码位置**
-
-- 源文件： ``PASS/commands/element/multipole.py``
-- 类名： ``Multipole`` （继承自 ``Command`` ）
-- 注册名： ``multipole``
 - 核心特征：
 
   - 支持任意阶多极分量（ ``knl`` / ``ksl`` 数组，最高阶由数组长度决定）
-  - 支持正常分量（ ``knl`` ）和斜分量（ ``ksl`` ）及其组合
-  - 支持薄透镜模式（ ``length = 0`` ，仅施加多极踢角）
+  - 支持正分量（ ``knl`` ）和斜分量（ ``ksl`` ）及其组合
+  - 支持薄透镜模式（ ``length = 0`` ，仅施加多极动量更新）
   - 支持厚透镜模式（ ``length > 0`` ，DKD-exact 辛积分）
   - 支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器
   - Horner 嵌套求值，向量化实现，无逐粒子分支
@@ -22,9 +17,160 @@ PASS 中的多极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
   - 支持孔径检查
   - 单阶退化与四极铁/六极铁/八极铁逐粒子一致
 
+以下接口中的字段用于 ``PASS.para.schema.elements.MultipoleItem`` 配置类；
+元件名称由 ``Sequence.add(name, item)`` 的序列键给出，不是配置类字段。
+
+接口参数
+--------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 元件出口或零长度作用点的纵向位置。
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - 磁铁长度， :math:`= 0` 为薄透镜
+   * - ``knl``
+     - ``KiL``
+     - ``list[float]``
+     - —
+     - ``[]``
+     - 正分量积分强度数组 :math:`[K_{0L}, K_{1L}, \ldots]`
+   * - ``ksl``
+     - ``KiSL``
+     - ``list[float]``
+     - —
+     - ``[]``
+     - 斜分量积分强度数组 :math:`[K_{0sL}, K_{1sL}, \ldots]`
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - 厚透镜切片数
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - —
+     - ``'adaptive'``
+     - 积分器，可选： ``adaptive`` （默认 ``uniform`` ）、 ``uniform`` 、 ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - 孔径类型
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - 孔径参数值
+
+
+.. note::
+
+  ``knl`` 和 ``ksl`` 数组长度不需要相同，短的数组自动补零。最高阶数 :math:`N` 由较长数组的长度决定（ :math:`N = \max(\text{len}) - 1` ）。
+
+使用示例
+--------
+
+薄透镜多极铁（场误差注入）
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MPE1": {
+           "S (m)": 10.0,
+           "Command": "multipole",
+           "Length (m)": 0.0,
+           "KiL": [0.0, 0.0, 0.001, 0.0005],
+           "KiSL": [0.0, 0.0, 0.0003, 0.0001],
+           "Aperture type": "off"
+       }
+   }
+
+零长度多极铁，含二阶和三阶场误差分量。用于模拟磁铁安装误差或加工误差对束流的影响。
+
+厚透镜多极铁（组合元件）
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MP1": {
+           "S (m)": 20.0,
+           "Command": "multipole",
+           "Length (m)": 0.5,
+           "KiL": [0.0, 0.3, 5.0, 200.0],
+           "KiSL": [0.0, 0.0, 0.0, 0.0],
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+厚透镜组合多极铁，同时含四极、六极、八极正分量，5 个切片，4 阶辛积分。
+
+单阶多极铁（等价于八极铁）
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MP2": {
+           "S (m)": 30.0,
+           "Command": "multipole",
+           "Length (m)": 0.0,
+           "KiL": [0.0, 0.0, 0.0, 500.0],
+           "KiSL": [0.0, 0.0, 0.0, 200.0],
+           "Aperture type": "off"
+       }
+   }
+
+仅含三阶分量（ ``knl=[0,0,0,500]`` ， ``ksl=[0,0,0,200]`` ），表示同时具有正、斜分量的薄透镜八极场，与 ``Octupole`` 使用相同的场展开约定。
+
+高阶多极铁（十极铁）
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MP3": {
+           "S (m)": 40.0,
+           "Command": "multipole",
+           "Length (m)": 0.0,
+           "KiL": [0.0, 0.0, 0.0, 0.0, 10000.0],
+           "KiSL": [0.0, 0.0, 0.0, 0.0, 0.0],
+           "Aperture type": "off"
+       }
+   }
+
+四阶多极铁（十极铁）， ``knl=[0,0,0,0,10000]`` 。专用元件只支持到八极（三阶），多极铁可支持任意阶。
 
 坐标约定
 --------
+
+采用 :ref:`zh-longitudinal-reference` 的连续纵向坐标。
+:math:`T_b` 是理想参考粒子在当前位置的实际通过时刻，不是束团质心时刻；
+局部映射中的 :math:`\beta_0` 和 :math:`P_0` 表示当前束团参考量。
+:math:`p_x=P_x/P_0` 是归一化动量，不是轨迹斜率。
 
 PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p_y, z, \delta)` ：
 
@@ -49,7 +195,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
     - 归一化垂直动量， :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - 纵向坐标， :math:`\zeta = s - \beta_0 c t`
+    - 纵向坐标， :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - 相对动量偏差， :math:`\delta = P / P_0 - 1`
@@ -69,7 +215,6 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
   \chi = \frac{q}{q_0} \cdot \frac{m_0}{m}
 
 对于同种粒子束 :math:`\chi = 1` 。
-
 
 多极磁场与归一化强度
 --------------------
@@ -94,7 +239,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
     - 磁场表达式
   * - 0
     - 1
-    - 二极铁
+    - 弯转磁铁
     - :math:`B_y + i B_x = \frac{P_0}{q_0} K_0`
   * - 1
     - 1
@@ -115,17 +260,16 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   K_{nL} = K_n \cdot L, \qquad K_{nsL} = K_{ns} \cdot L
 
-其中 :math:`L` 为磁铁长度， :math:`K_{nL}` 为正常分量， :math:`K_{nsL}` 为斜分量。PASS 中用户通过 ``knl`` 数组指定 :math:`[K_{0L}, K_{1L}, K_{2L}, \ldots]` ，通过 ``ksl`` 数组指定 :math:`[K_{0sL}, K_{1sL}, K_{2sL}, \ldots]` 。
+其中 :math:`L` 为磁铁长度， :math:`K_{nL}` 为正分量， :math:`K_{nsL}` 为斜分量。PASS 中用户通过 ``knl`` 数组指定 :math:`[K_{0L}, K_{1L}, K_{2L}, \ldots]` ，通过 ``ksl`` 数组指定 :math:`[K_{0sL}, K_{1sL}, K_{2sL}, \ldots]` 。
 
 .. note::
 
-  MAD-X 导出的 ``KNL`` / ``KSL`` 值与 PASS 的 ``knl`` / ``ksl`` 定义完全一致，均为积分强度 :math:`K_{nL}` ，可直接填入，无需手动计算阶乘。 :math:`1/n!` 由代码内部的 Horner 递推自动处理。
+  ``knl`` 和 ``ksl`` 输入积分多极强度，不预除以阶乘。场展开中的 :math:`1/n!` 由内部求值包含。
 
-
-整体追踪流程
+整体跟踪流程
 ------------
 
-根据磁铁长度，多极铁有两种追踪模式：
+根据磁铁长度，多极铁有两种跟踪模式：
 
 **薄透镜模式** （ :math:`L = 0` ）
 
@@ -133,7 +277,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   ====== 薄透镜 (length = 0) ======
 
-  单次多极踢角 Kick(knl, ksl)
+  单次多极动量更新 Kick(knl, ksl)
   [位置不变，仅动量跳变]
 
 **厚透镜模式** （ :math:`L > 0` ）
@@ -172,10 +316,9 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
 .. note::
 
-  - 薄透镜模式不改变粒子的位置坐标 :math:`(x, y, z)` ，仅施加动量踢角
+  - 薄透镜模式不改变粒子的位置坐标 :math:`(x, y, z)` ，仅施加动量动量更新
   - 厚透镜模式的色品等效应通过精确漂移中的 :math:`p_z` 表达式自然引入
-  - 当所有 ``knl`` / ``ksl`` 分量为零时，厚透镜退化为纯漂移，避免无意义的空踢角循环
-
+  - 当所有 ``knl`` / ``ksl`` 分量为零时，厚透镜退化为纯漂移，避免无意义的空动量更新循环
 
 物理推导
 --------
@@ -189,7 +332,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   H_{\text{mult}} = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \chi \sum_{n=0}^{N} \frac{K_n}{n!} \operatorname{Re}\left[(x - i y)^n\right]
 
-其中求和项为势能部分。将其拆分为传播部分（精确漂移 :math:`H_D` ）和踢角部分（ :math:`H_K` ）：
+其中求和项为势能部分。将其拆分为传播部分（精确漂移 :math:`H_D` ）和动量更新部分（ :math:`H_K` ）：
 
 .. math::
 
@@ -199,8 +342,8 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   H_K = \chi \sum_{n=0}^{N} \frac{K_n}{n!} \operatorname{Re}\left[(x - i y)^n\right]
 
-踢角映射
-~~~~~~~~
+动量更新映射
+~~~~~~~~~~~~
 
 由哈密顿方程 :math:`\Delta p_x = -\frac{\partial H_K}{\partial x} \Delta s` ， :math:`\Delta p_y = -\frac{\partial H_K}{\partial y} \Delta s` ，对积分强度 :math:`K_{nL} = K_n \cdot \Delta s` 求得：
 
@@ -212,17 +355,16 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   \Delta p_y = +\chi \sum_{n=0}^{N} \frac{K_{nsL}}{n!} \operatorname{Im}\left[(x + i y)^n\right]
 
-其中 :math:`(x+iy)^n` 的实部对应正常分量，虚部对应斜分量。
+其中 :math:`(x+iy)^n` 的实部对应正分量，虚部对应斜分量。
 
 .. note::
 
   复数场约定为 :math:`B_y + i B_x = \frac{P_0}{q_0} \sum_n \frac{K_n}{n!} (x+iy)^n` （ **不含共轭** ）。使用共轭 :math:`\overline{(x+iy)^n}` 会导致 :math:`\Delta p_y` 符号错误，此约定已通过六极铁交叉验证确认。
 
-
 Horner 嵌套求值
-----------------
+----------------------
 
-多极踢角的核心是计算多项式：
+多极动量更新的核心是计算多项式：
 
 .. math::
 
@@ -250,7 +392,7 @@ Horner 递推从最高阶系数开始，逐步向下：
 
 其中 ``zre`` 和 ``zim`` 是复数乘法 :math:`(\text{dpx\_mul} + i \cdot \text{dpy\_mul}) \cdot (x + i y)` 的实部和虚部。
 
-最终踢角为：
+最终动量更新为：
 
 .. math::
 
@@ -272,8 +414,8 @@ Horner 递推从最高阶系数开始，逐步向下：
   :widths: 10 50 40
 
   * - 阶数
-    - :math:`\Delta p_x` （正常分量）
-    - :math:`\Delta p_y` （正常分量）
+    - :math:`\Delta p_x` （正分量）
+    - :math:`\Delta p_y` （正分量）
   * - :math:`n=0`
     - :math:`-\chi K_{0L}`
     - :math:`0`
@@ -287,12 +429,11 @@ Horner 递推从最高阶系数开始，逐步向下：
     - :math:`-\chi K_{3L}/6 \cdot (x^3 - 3xy^2)`
     - :math:`+\chi K_{3L}/6 \cdot (3x^2 y - y^3)`
 
-斜分量的踢角通过复数乘法 :math:`i \cdot z^n` 自然交换实虚部：将上表中 :math:`\Delta p_x` 的正常分量公式移至 :math:`\Delta p_y` ，将 :math:`\Delta p_y` 的正常分量公式移至 :math:`\Delta p_x` 并取负。
+斜分量的动量更新通过复数乘法 :math:`i \cdot z^n` 自然交换实虚部：将上表中 :math:`\Delta p_x` 的正分量公式移至 :math:`\Delta p_y` ，将 :math:`\Delta p_y` 的正分量公式移至 :math:`\Delta p_x` 并取负。
 
 .. note::
 
-  Horner 递推对任意阶 :math:`N` 通用。当 ``knl`` / ``ksl`` 数组只有单阶非零分量时，多极铁退化为对应的单阶元件（四极铁/六极铁/八极铁等），踢角公式与硬编码版本逐粒子一致。
-
+  Horner 递推对任意阶 :math:`N` 通用。当 ``knl`` / ``ksl`` 数组只有单阶非零分量时，多极铁退化为对应的单阶元件（四极铁/六极铁/八极铁等），动量更新公式与硬编码版本逐粒子一致。
 
 精确漂移映射
 ------------
@@ -323,12 +464,11 @@ Horner 递推从最高阶系数开始，逐步向下：
 
 精确漂移保留了 :math:`p_z` 的完整非线性，自然引入色品、高阶色散和路径长度效应。
 
-
 辛积分器
 --------
 
 Uniform（2阶蛙跳）
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 每个切片执行 Drift-Kick-Drift：
 
@@ -339,7 +479,7 @@ Uniform（2阶蛙跳）
 这是2阶辛积分器，截断误差 :math:`O(\Delta s^2)` 。
 
 Yoshida4（4阶组合）
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 将3个 DKD 步组合为4阶辛积分器：
 
@@ -359,7 +499,6 @@ Yoshida4（4阶组合）
 
 截断误差 :math:`O(\Delta s^4)` 。
 
-
 自然包含的效应
 --------------
 
@@ -377,13 +516,12 @@ DKD-exact 对理想多极铁自然包含所有非线性效应，无需额外项�
     - :math:`p_z` 的完整平方根表达式
   * - 路径长度效应（ :math:`R_{56}` 等）
     - 精确漂移的 :math:`z` 更新
-  * - 各阶多极踢角的完整非线性
+  * - 各阶多极动量更新的完整非线性
     - Horner 递推保留 :math:`(x+iy)^n` 的所有项
 
 分裂映射的截断误差在 uniform 下为 :math:`O(\Delta s^2)`，在 yoshida4 下为
 :math:`O(\Delta s^4)`。有限精度运算也会带来误差；系数、子步及粒子存储的
 精度约定见 :ref:`zh-element-integration-precision`。
-
 
 参考轨道范围
 ------------
@@ -394,156 +532,13 @@ DKD-exact 对理想多极铁自然包含所有非线性效应，无需额外项�
 绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 :ref:`zh-error` 接口。
 准直只移动磁场，孔径和 SC 边界保持在设计坐标系。
 
-接口参数
---------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 20 10 10 40
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 默认值
-    - 说明
-  * - ``s``
-    - ``s (m)``
-    - float
-    - 必填
-    - 元件在束线中的纵向位置
-  * - ``cmd_name``
-    - ``name``
-    - str
-    - 必填
-    - 元件名称
-  * - ``length``
-    - ``length (m)``
-    - float
-    - 必填
-    - 磁铁长度， :math:`= 0` 为薄透镜
-  * - ``knl``
-    - ``KiL``
-    - list
-    - ``[]``
-    - 正常分量积分强度数组 :math:`[K_{0L}, K_{1L}, \ldots]`
-  * - ``ksl``
-    - ``KiSL``
-    - list
-    - ``[]``
-    - 斜分量积分强度数组 :math:`[K_{0sL}, K_{1sL}, \ldots]`
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - 1
-    - 厚透镜切片数
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - ``adaptive``
-    - 积分器，可选： ``adaptive`` （默认 ``uniform`` ）、 ``uniform`` 、 ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - ``off``
-    - 孔径类型
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - ``[]``
-    - 孔径参数值
-
-.. note::
-
-  ``knl`` 和 ``ksl`` 数组长度不需要相同，短的数组自动补零。最高阶数 :math:`N` 由较长数组的长度决定（ :math:`N = \max(\text{len}) - 1` ）。
-
-
-使用示例
---------
-
-薄透镜多极铁（场误差注入）
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MPE1": {
-          "S (m)": 10.0,
-          "Command": "multipole",
-          "Length (m)": 0.0,
-          "KiL": [0.0, 0.0, 0.001, 0.0005],
-          "KiSL": [0.0, 0.0, 0.0003, 0.0001],
-          "Aperture Type": "off"
-      }
-  }
-
-零长度多极铁，含二阶和三阶场误差分量。用于模拟磁铁安装误差或加工误差对束流的影响。
-
-厚透镜多极铁（组合元件）
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MP1": {
-          "S (m)": 20.0,
-          "Command": "multipole",
-          "Length (m)": 0.5,
-          "KiL": [0.0, 0.3, 5.0, 200.0],
-          "KiSL": [0.0, 0.0, 0.0, 0.0],
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-厚透镜组合多极铁，同时含四极、六极、八极正常分量，5 个切片，4 阶辛积分。
-
-单阶多极铁（等价于八极铁）
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MP2": {
-          "S (m)": 30.0,
-          "Command": "multipole",
-          "Length (m)": 0.0,
-          "KiL": [0.0, 0.0, 0.0, 500.0],
-          "KiSL": [0.0, 0.0, 0.0, 200.0],
-          "Aperture Type": "off"
-      }
-  }
-
-仅含三阶分量（ ``knl=[0,0,0,500]`` ， ``ksl=[0,0,0,200]`` ），等价于一个正常+斜八极铁薄透镜。与 ``Octupole`` 元件逐粒子一致。
-
-高阶多极铁（十极铁）
-~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MP3": {
-          "S (m)": 40.0,
-          "Command": "multipole",
-          "Length (m)": 0.0,
-          "KiL": [0.0, 0.0, 0.0, 0.0, 10000.0],
-          "KiSL": [0.0, 0.0, 0.0, 0.0, 0.0],
-          "Aperture Type": "off"
-      }
-  }
-
-四阶多极铁（十极铁）， ``knl=[0,0,0,0,10000]`` 。专用元件只支持到八极（三阶），多极铁可支持任意阶。
-
-
 应用场景
 --------
 
 - **场误差注入** ：将 MAD-X 导出的磁铁场误差以多极铁形式插入束线，模拟安装误差和加工偏差
-- **组合多极元件** ：同一位置同时施加多个阶数的多极踢角（如四极+六极+八极组合）
-- **高阶多极铁** ：十极铁（ :math:`n=4` ）、十二极铁（ :math:`n=5` ）等超出专用元件范围的高阶元件
+- **组合多极元件** ：同一位置同时施加多个阶数的多极动量更新（如四极+六极+八极组合）
+- **高阶多极铁** ：十极铁（ :math:`n=4` ）、十弯转磁铁（ :math:`n=5` ）等超出专用元件范围的高阶元件
 - **非线性效应研究** ：研究高阶多极场对束流动力学的影响，如动态孔径、共振驱动
-- **MAD-X 兼容** ： ``knl`` / ``ksl`` 定义与 MAD-X 完全一致，可直接导入 MAD-X 序列
-
 
 参考文献
 --------
@@ -557,7 +552,7 @@ DKD-exact 对理想多极铁自然包含所有非线性效应，无需额外项�
 元件内部空间电荷
 ----------------
 
-正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+正长度元件可设置 ``space_charge`` （JSON ``Space charge``）为
 ``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
 ``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
 支持的后端和示例见 :ref:`zh-internal-space-charge`。

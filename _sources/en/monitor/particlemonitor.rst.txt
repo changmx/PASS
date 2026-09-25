@@ -1,99 +1,23 @@
 ParticleMonitor
 ==============================
 
-Introduction
-------------
+``ParticleMonitor`` records the six phase-space coordinates and loss metadata of selected particles on every turn in a specified interval. Use it for individual trajectories and frequency analysis; enable reference columns when reconstructing physical passage times or momenta.
 
-``ParticleMonitor`` is a turn-by-turn particle coordinate monitor that records the 6D phase space coordinates of selected particles at a specified longitudinal position, once per turn. Unlike ``StatMonitor`` which records overall bunch statistics, ``ParticleMonitor`` focuses on the turn-by-turn trajectory of **individual particles**, and is the core tool for turn-by-turn (TBT) diagnostics such as tune measurement, chromaticity measurement, and amplitude-dependent effect analysis.
+Configuration example
+------------------------------------------
 
-- **Code location**: ``PASS/commands/monitor/particle_monitor.py``
-- **Class name**: ``ParticleMonitor``, registered name ``"particlemonitor"``
-- **Key features**:
+.. code-block:: python
 
-  - Selects recorded particles via the ``max_tag`` parameter, with the matching condition :math:`1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}`;
-  - Supports setting a recorded turn range ``[start_turn, end_turn)``, without needing to start tracking from turn 0;
-  - Pre-allocates buffer ``(max_tag, num_record_turn, num_columns)``, avoiding runtime dynamic allocation;
-  - Records 11 columns per turn by default: turn + 6D coordinates + tag + lost_turn + lost_position + zCenter; ``Include reference`` adds three optional reference columns;
-  - After simulation, each particle is written to a separate HDF5 file (or TFS file when selected);
-  - Filenames include the monitor name and longitudinal position (3 decimal places), supporting multi-position deployment;
-  - CPU uses numpy, GPU uses cupy, with the buffer residing on GPU throughout; only a single D2H copy is performed at the end;
+   from PASS.para.schema.monitors import ParticleMonitorItem
+   from PASS.para.schema.sequence import Sequence
 
+   sequence = Sequence()
+   sequence.add("particle1", ParticleMonitorItem(
+       s=0.0, max_tag=5, start_turn=0, end_turn=64,
+       include_reference=True,
+   ))
 
-Particle Selection Mechanism
-----------------------------
-
-Each particle in PASS has a globally unique ``tag`` (positive integer), and inserted test particles are incremented starting from ``tag = 1``. ``ParticleMonitor`` specifies the recording range via the ``max_tag`` parameter:
-
-.. math::
-
-   \text{recorded} = \{\, i \;\mid\; 1 \leq |\mathrm{tag}_i| \leq \mathrm{max\_tag} \,\}
-
-Note that the matching condition uses :math:`|\mathrm{tag}|` (absolute value), therefore:
-
-- ``tag = 1, 2, \ldots, \mathrm{max\_tag}``: normal surviving particles
-- Negative ``tag``: lost particles are **also recorded**, with their coordinates retaining the last values before loss
-
-.. note::
-
-  Test particles are inserted via the ``Insert Particle Coordinate`` parameter of ``Injection``. After insertion, particle ``tag`` values increment starting from 1. ``max_tag`` should equal the number of inserted test particles.
-
-  If ``max_tag < 1``, the monitor only outputs a warning log and records no particles, but does not affect the simulation run.
-
-
-Recorded Turn Range
--------------------
-
-The recorded turn range can be specified via ``start_turn`` and ``end_turn``:
-
-.. math::
-
-   \text{recorded turns} = \{\, n \;\mid\; \mathrm{start\_turn} \leq n < \mathrm{end\_turn} \,\}
-
-- ``start_turn``: starting turn for recording (inclusive), default 0
-- ``end_turn``: ending turn for recording (exclusive), default -1 meaning up to and including the last turn
-
-When the requested interval completes, the number of recorded turns is:
-
-.. math::
-
-   N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}
-
-Typical use: let the beam stabilize for the first 200 turns (not recorded), then record 1000 turns starting from turn 200 for FFT analysis.
-
-
-Pre-allocation Strategy
------------------------
-
-``ParticleMonitor`` pre-allocates the complete buffer at initialization:
-
-.. math::
-
-   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
-
-``Include reference`` defaults to false: :math:`N_{\mathrm{col}}=11`.
-When enabled, :math:`N_{\mathrm{col}}=14`. Disabled reference columns have no
-buffer allocation on either CPU or GPU.
-
-Memory overhead:
-
-.. math::
-
-   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
-
-Typical scenario (14 test particles, recording 1000 turns):
-
-.. math::
-
-   M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
-
-Enabling reference columns increases this example to 1.568 MB (27.3% more).
-
-The buffer uses the same array backend as the beam (``beam.particles.xp``), numpy on CPU, cupy on GPU. Advantages of pre-allocation:
-
-- Zero memory allocation at runtime, no impact on tracking performance;
-- In GPU scenarios, the buffer resides in GPU memory throughout; each turn writes directly from the GPU particle array to the GPU buffer, with only a single D2H copy performed at the end of simulation;
-- Fixed memory layout, facilitating post-processing analysis.
-
+The example records particles whose absolute tag is 1–5, including their per-row reference quantities. Add the monitor to a complete sequence containing those particles.
 
 Interface Parameters
 --------------------
@@ -102,7 +26,7 @@ Interface Parameters
   :header-rows: 1
   :widths: 20 20 10 10 40
 
-  * - Property
+  * - Python field
     - JSON key
     - Type
     - Default
@@ -112,11 +36,6 @@ Interface Parameters
     - float
     - Required
     - Longitudinal position of the monitor in the beamline
-  * - ``cmd_name``
-    - ``"name"``
-    - str
-    - Required
-    - Monitor name (automatically filled from the sequence key name)
   * - ``command``
     - ``"Command"``
     - str
@@ -143,9 +62,43 @@ Interface Parameters
     - false
     - Append per-row reference time, beta and momentum for physical-time/energy analysis
 
-.. note::
+``output_format`` (JSON ``Output format``) defaults to ``hdf5-gzip1``; ``hdf5`` and ``tfs`` are also supported. The sequence key supplies the monitor name.
 
-  ``max_tag`` should be consistent with the number of particles inserted via ``Insert Particle Coordinate`` in ``Injection``. For example, if 14 test particles are inserted, then ``max_tag = 14``.
+Particle Selection Mechanism
+----------------------------
+
+Each particle in PASS has a globally unique ``tag`` (positive integer), and inserted test particles are incremented starting from ``tag = 1``. ``ParticleMonitor`` specifies the recording range via the ``max_tag`` parameter:
+
+.. math::
+
+   \text{recorded} = \{\, i \;\mid\; 1 \leq |\mathrm{tag}_i| \leq \mathrm{max\_tag} \,\}
+
+Note that the matching condition uses :math:`|\mathrm{tag}|` (absolute value), therefore:
+
+- ``tag = 1, 2, \ldots, \mathrm{max\_tag}``: normal surviving particles
+- Negative ``tag``: lost particles are **also recorded**, with their coordinates retaining the last values before loss
+
+Tags identify particles across sorting and loss. ``max_tag`` is an upper tag bound, not the number of manually inserted particles or a per-bunch count. A nonpositive max_tag records no particles and logs a warning.
+
+Recorded Turn Range
+-------------------
+
+The recorded turn range can be specified via ``start_turn`` and ``end_turn``:
+
+.. math::
+
+   \text{recorded turns} = \{\, n \;\mid\; \mathrm{start\_turn} \leq n < \mathrm{end\_turn} \,\}
+
+- ``start_turn``: starting turn for recording (inclusive), default 0
+- ``end_turn``: ending turn for recording (exclusive), default -1 meaning up to and including the last turn
+
+When the requested interval completes, the number of recorded turns is:
+
+.. math::
+
+   N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}
+
+Typical use: let the beam stabilize for the first 200 turns (not recorded), then record 1000 turns starting from turn 200 for FFT analysis.
 
 
 Output Files
@@ -214,7 +167,7 @@ Default output columns (11 columns total):
     - Normalized vertical momentum
   * - ``z``
     - m
-    - Longitudinal coordinate relative to the owning bunch center, :math:`z_{\mathrm{rel}}`
+    - Longitudinal coordinate relative to the owning bunch reference passage time, :math:`z_{\mathrm{rel}}`
   * - ``dp``
     - -
     - Relative momentum deviation :math:`\delta`
@@ -253,7 +206,9 @@ Enable reference output for a diagnostic run with the schema API:
 
 .. code-block:: python
 
-   ParticleMonitor(s=0.0, max_tag=5, include_reference=True)
+   from PASS.para.schema.monitors import ParticleMonitorItem
+
+   monitor = ParticleMonitorItem(s=0.0, max_tag=5, include_reference=True)
 
 or in generated JSON:
 
@@ -266,93 +221,41 @@ or in generated JSON:
        "Include reference": true
    }
 
-Usage Example
--------------
+Pre-allocation Strategy
+-----------------------
 
-Basic Usage
-~~~~~~~~~~~
+``ParticleMonitor`` pre-allocates the complete buffer at initialization:
 
-The following JSON snippet places a particle monitor at :math:`s = 0.0` m, recording particles with ``tag = 1`` through ``tag = 3``:
+.. math::
 
-.. code-block:: json
+   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
 
-   "PM1": {
-       "S (m)": 0.0,
-       "Command": "ParticleMonitor",
-       "Max tag": 3
-   }
+``Include reference`` defaults to false: :math:`N_{\mathrm{col}}=11`.
+When enabled, :math:`N_{\mathrm{col}}=14`. Disabled reference columns have no
+buffer allocation on either CPU or GPU.
 
-Combined with inserting 3 test particles in ``Injection``:
+Memory overhead:
 
-.. code-block:: json
+.. math::
 
-   "injection": {
-       "S (m)": 0.0,
-       "Command": "Injection",
-       "bunch0": {
-           "Insert Particle Coordinate": [
-               [0.001, 0.0, 0.0, 0.0, 0.0, 0.0],
-               [0.0, 0.0, 0.001, 0.0, 0.0, 0.0],
-               [0.0, 0.0, 0.0, 0.0, 0.0, 0.001]
-           ]
-       }
-   }
+   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
 
-The above configuration inserts 3 test particles:
+Typical scenario (14 test particles, recording 1000 turns):
 
-- ``tag = 1``: :math:`x = 1` mm horizontal offset particle, for horizontal tune measurement
-- ``tag = 2``: :math:`y = 1` mm vertical offset particle, for vertical tune measurement
-- ``tag = 3``: :math:`\delta = 10^{-3}` momentum offset particle, for dispersion and chromaticity measurement
+.. math::
 
-After simulation, 3 HDF5 files by default are generated in the ``output_dir_particle`` directory, each containing the 6D coordinates of that particle for all recorded turns.
+   M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
 
-Delayed Recording
-~~~~~~~~~~~~~~~~~
+Enabling reference columns increases this example to 1.568 MB (27.3% more).
 
-The following configuration does not record for the first 200 turns (to let the beam stabilize), then records from turn 200 to turn 1000:
+The buffer uses the same array backend as the beam (``beam.particles.xp``), numpy on CPU, cupy on GPU. Advantages of pre-allocation:
 
-.. code-block:: json
-
-   "PM1": {
-       "S (m)": 0.0,
-       "Command": "ParticleMonitor",
-       "Max tag": 14,
-       "Start turn": 200,
-       "End turn": 1000
-   }
-
-The buffer size is allocated for :math:`1000 - 200 = 800` turns, and the ``turn`` column in the output table starts from 200.
-
-Multi-position Monitoring
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Multiple particle monitors can be placed at different positions on the ring to compare the phase space coordinates of particles at different locations:
-
-.. code-block:: json
-
-   "PM_start": {
-       "S (m)": 0.0,
-       "Command": "ParticleMonitor",
-       "Max tag": 14
-   },
-   "PM_mid": {
-       "S (m)": 284.5,
-       "Command": "ParticleMonitor",
-       "Max tag": 14
-   }
+- The history buffer is allocated before tracking; recording still consumes processing time;
+- In GPU scenarios, the buffer resides in GPU memory throughout; each turn writes directly from the GPU particle array to the GPU buffer, with only a single D2H copy performed at the end of simulation;
+- Fixed memory layout, facilitating post-processing analysis.
 
 
-Application Scenarios
----------------------
+Interpretation and limits
+--------------------------------------------------
 
-- **Tune measurement**: Perform FFT or NAFF on TBT coordinates to extract the betatron oscillation frequencies, which are the tunes :math:`Q_x`, :math:`Q_y`
-- **Chromaticity measurement**: Measure the tune at different momentum deviations :math:`\delta`; the slope of the linear fit of :math:`Q(\delta)` gives the chromaticity :math:`DQ_x`, :math:`DQ_y`
-- **Amplitude-dependent tune shift (ADTS)**: Measure the tune for particles with different initial amplitudes to analyze the nonlinear tune shift with amplitude
-- **Dispersion function measurement**: Take the time average of the TBT centroid orbit of the momentum-offset particle, divided by :math:`\delta`, to obtain the dispersion function :math:`D(s)`
-- **Slip-factor measurement**: Record the bunch-relative coordinate :math:`z_{\mathrm{rel}}` of a momentum-offset particle turn-by-turn. For comparisons across bunches or after regrouping, enable ``Include reference`` and use the saved referenceTime and referenceBeta to reconstruct physical arrival times
-- **Closed orbit verification**: The TBT coordinates of an initially un-offset particle should remain unchanged, verifying closed orbit stability
-- **Particle loss tracking**: Locate the time and position of particle loss through ``tag`` sign changes and ``lostTurn`` / ``lostPosition``
-
-``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
-Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for
-the HDF5 layout, compression and common reader.
+Absent particles leave zero-filled history rows. A particle may be absent before injection; use the tag and loss fields when selecting data. Lost coordinates remain frozen and must not be interpreted using a later live-bunch reference. The complete history buffer scales with max_tag times the number of recorded turns, so select those bounds before a large run. For common formats and readers, see :doc:`table_output`; for coordinate definitions, see :ref:`en-longitudinal-reference`.

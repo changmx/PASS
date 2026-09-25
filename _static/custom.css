@@ -1,17 +1,55 @@
-/* 修改左侧 logo 区域蓝色背景 */
+/* Keep the manual readable on both wide and narrow screens. */
 .wy-side-nav-search {
-    background-color: #2980B9 !important;   /* 浅灰色 */
+    background-color: #24618b;
     border-bottom: 1px solid #e0e0e0;
 }
 
-/* logo 本身透明 */
 .wy-side-nav-search img {
     background-color: transparent !important;
     box-shadow: none !important;
     padding: 0 !important;
 }
 
-/* 让所有图片的标题（figcaption）显示为正体 */
 .caption-text {
     font-style: normal !important;
+}
+
+.wy-nav-content {
+    max-width: 1080px;
+}
+
+.rst-content p, .rst-content li {
+    line-height: 1.7;
+}
+
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: normal;
+    vertical-align: top;
+}
+
+.rst-content .math {
+    overflow-x: auto;
+}
+
+.pass-language-switch {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: .8rem;
+    font-size: .85rem;
+    color: white;
+}
+
+.pass-language-switch a {
+    color: white;
+    padding: .2rem .4rem;
+    text-decoration: underline;
+}
+
+.pass-language-switch a[aria-current="page"] {
+    background-color: rgba(255, 255, 255, .18);
+    border-radius: 3px;
+    font-weight: bold;
+    text-decoration: none;
 }

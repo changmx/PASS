@@ -10,34 +10,61 @@ This ideal model is intended for fixed-energy injection painting. Kicks use
 the injection reference momentum; acceleration scaling, magnetic fringe fields,
 pole-face focusing and field errors are outside this model.
 
+The fields configure ``PASS.para.schema.elements.BumpItem``. Specify the exit position with ``s``;
+the sequence key supplies the name. Standard aperture fields are ``aperture_type`` and ``aperture_value``.
+
 .. list-table:: Interface
    :header-rows: 1
-   :widths: 30 20 50
+   :widths: 17 21 12 9 12 29
 
-   * - JSON field
-     - Default / unit
-     - Meaning
-   * - Waveform file
-     - Required TFS
-     - Real numeric TIME, HKICK, VKICK columns; at least two finite rows, strictly increasing time.
-   * - Time mode
-     - particle
-     - particle uses laboratory arrival time; reference uses a turn-based clock.
-   * - Time offset (s)
-     - 0 s
-     - Added to sampling time; all batches share one global origin.
-   * - Length (m)
-     - 0 m
-     - Thin kick at zero length; forward DKD otherwise.
-   * - Num slices
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``waveform_file``
+     - ``Waveform file``
+     - ``str``
+     - —
+     - ``Required``
+     - Real numeric TIME, HKICK, VKICK columns; at least two finite rows and strictly increasing time.
+   * - ``time_mode``
+     - ``Time mode``
+     - ``reference / particle``
+     - —
+     - ``'particle'``
+     - particle samples actual arrival times; reference samples the prescribed clock at the invocation turn.
+   * - ``time_offset``
+     - ``Time offset (s)``
+     - ``float``
+     - s
+     - ``0.0``
+     - Added to the query time; all batches share a global time origin.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Zero length gives a thin map; positive length uses forward DKD transport.
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
      - 1
-     - Strict positive integer; each slice receives its integral fraction.
-   * - Enable
-     - true
-     - Enables kicks; drift and aperture checks remain when false.
-   * - Space charge
-     - None
-     - Existing internal midpoint scheduling, for positive length.
+     - ``1``
+     - Strict positive integer; each slice receives its share of the integrated momentum increment.
+   * - ``enabled``
+     - ``Enable``
+     - ``bool``
+     - —
+     - ``True``
+     - Controls magnetic action; drift and aperture checks remain active when false.
+   * - ``space_charge``
+     - ``Space charge``
+     - ``ElementSpaceCharge | None``
+     - —
+     - ``None``
+     - Optional internal space charge at positive length.
 
 The strengths are dimensionless integrated kicks::
 
@@ -124,4 +151,3 @@ headers, both planes use the full table range.
 
 Optional TFS headers are TIME_UNIT="s" and
 KICK_CONVENTION="delta_p_over_p0"; conflicting values are rejected.
-

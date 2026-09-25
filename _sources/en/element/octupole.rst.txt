@@ -5,10 +5,6 @@ This module describes the PASS octupole element **Octupole**, used to simulate t
 
 The PASS octupole supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/octupole.py``
-- Class name: ``Octupole`` (inherits from ``Command``)
 - Registration name: ``octupole``
 - Key features:
 
@@ -20,9 +16,177 @@ The PASS octupole supports both **thick element** (``length > 0``) and **thin le
   - Higher-order nonlinear effects naturally introduced through exact drift
   - Supports aperture check
 
+The fields below configure ``PASS.para.schema.elements.OctupoleItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Interface Parameters
+--------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Element length (must be :math:`\ge 0`; :math:`= 0` for thin lens)
+   * - ``k3l``
+     - ``K3L``
+     - ``float``
+     - :math:`\text{m}^{-3}`
+     - ``0.0``
+     - Normal octupole integrated strength :math:`K_{3L}`, default 0
+   * - ``k3sl``
+     - ``K3SL``
+     - ``float``
+     - :math:`\text{m}^{-3}`
+     - ``0.0``
+     - Skew octupole integrated strength :math:`K_{3sL}`, default 0
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of slices, default 1 (effective only for thick lens)
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type, default ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values, default ``[]``
+
+Usage Examples
+--------------
+
+Thick Lens Normal Octupole
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "OCT1": {
+           "S (m)": 10.0,
+           "Command": "Octupole",
+           "Length (m)": 0.5,
+           "K3L": 500.0,
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Normal octupole (:math:`K_{3L} > 0`), length 0.5 m, 5 slices, 4th-order symplectic integration. Used for Landau damping.
+
+Thin Lens Octupole
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "OCT2": {
+           "S (m)": 20.0,
+           "Command": "Octupole",
+           "Length (m)": 0.0,
+           "K3L": 1000.0,
+           "Aperture type": "off"
+       }
+   }
+
+Zero-length octupole, applying only the :math:`K_{3L}` thin lens kick, no body tracking.
+
+Negative Octupole
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "OCT3": {
+           "S (m)": 30.0,
+           "Command": "Octupole",
+           "Length (m)": 0.4,
+           "K3L": -500.0,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+Negative octupole (:math:`K_{3L} < 0`), providing a tune shift in the opposite direction to a positive octupole.
+
+Skew Octupole
+~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "OCT4": {
+           "S (m)": 40.0,
+           "Command": "Octupole",
+           "Length (m)": 0.3,
+           "K3L": 0.0,
+           "K3SL": 300.0,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+Pure skew octupole (:math:`K_{3L} = 0`, :math:`K_{3sL} \neq 0`), producing a coupling effect equivalent to rotating the normal octupole by :math:`\pi / 8`.
+
+Normal + Skew Octupole Combination
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "OCT5": {
+           "S (m)": 50.0,
+           "Command": "Octupole",
+           "Length (m)": 0.5,
+           "K3L": 500.0,
+           "K3SL": 100.0,
+           "Num slices": 3,
+           "Integrator": "yoshida4",
+           "Aperture type": "circle",
+           "Aperture value": [0.04]
+       }
+   }
+
+Combined octupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.
 
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
@@ -47,7 +211,7 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
@@ -67,7 +231,6 @@ Charge-to-mass ratio factor:
   \chi = \frac{q}{q_0} \cdot \frac{m_0}{m}
 
 For a beam of identical particle species, :math:`\chi = 1`.
-
 
 Octupole Field and Normalized Strength
 --------------------------------------
@@ -105,7 +268,6 @@ The integrated strength is:
   K_{3L} = K_3 \cdot L, \qquad K_{3sL} = K_{3s} \cdot L
 
 where :math:`L` is the magnet length. In PASS, the user directly specifies :math:`K_{3L}` (``k3l``) and :math:`K_{3sL}` (``k3sl``); for thick lenses, :math:`K_3 = K_{3L} / L` and :math:`K_{3s} = K_{3sL} / L` are solved internally.
-
 
 Overall Tracking Flow
 ---------------------
@@ -159,7 +321,6 @@ where the DKD map for each slice is:
   - Thin lens mode does not change the particle position coordinates :math:`(x, y, z)`, only applies momentum kicks
   - Dispersion-related effects in thick lens mode are naturally introduced through the :math:`p_z` expression in exact drift
   - When :math:`K_{3L} = 0` and :math:`K_{3sL} = 0`, the thick lens degenerates to a pure drift, avoiding meaningless empty kick loops
-
 
 Physical Derivation
 --------------------
@@ -261,7 +422,7 @@ For thin lens mode, the integrated strengths :math:`K_{3L}` and :math:`K_{3sL}` 
 
   A normal octupole (:math:`K_3 > 0`) provides a restoring force proportional to :math:`x^3` for particles with positive offset in the horizontal direction. This is the key difference from the sextupole (proportional to :math:`x^2`) and the quadrupole (proportional to :math:`x`). The octupole focusing force is proportional to the cube of the position, making it a nonlinear element—particles far from the axis experience much stronger deflection than near-axis particles.
 
-  Comparison with quadrupole and sextupole: the quadrupole kick depends linearly on :math:`x`, the sextupole kick depends quadratically on :math:`x`, and the octupole kick depends cubically on :math:`x`. This means the octupole does not affect particles on the reference orbit (kick is zero when :math:`x = y = 0`), nor does it affect linear orbits (the kick is extremely small for small-amplitude particles), but it produces strong nonlinear deflection for large-amplitude particles. This property makes the octupole an ideal element for Landau damping.
+  Comparison with quadrupole and sextupole: the quadrupole kick depends linearly on :math:`x`, the sextupole kick depends quadratically on :math:`x`, and the octupole kick depends cubically on :math:`x`. This means the octupole does not affect particles on the reference orbit (kick is zero when :math:`x = y = 0`), and its linearization about that orbit vanishes. At finite amplitude it produces nonlinear deflection and amplitude-dependent tune shifts.
 
   A skew octupole (:math:`K_{3s} \neq 0`) rotates the octupole action by :math:`\pi / 8`, producing a different :math:`x`-:math:`y` coupling pattern. In practice, it is often used to simulate installation rotation errors or drive specific higher-order coupling resonances.
 
@@ -301,7 +462,6 @@ where the Yoshida coefficients are:
 
   :math:`z_0 < 0` means the middle step is a backward tracking (the drift and kick "lengths" are negative). This is a mathematical requirement of the Yoshida composition method and is fully self-consistent in the symplectic map group. The per-slice error is :math:`O(\Delta s^5)`, and the global error is :math:`O(\Delta s^4)`.
 
-
 Amplitude-Dependent Tune Shift
 ------------------------------
 
@@ -316,13 +476,13 @@ Considering single-plane motion (:math:`y = 0`), the normal octupole kick is:
 
   \Delta p_x = -\frac{\chi}{6} K_{3L} \, x^3
 
-Under the smooth approximation, the equivalent frequency shift over one revolution is:
+For uncoupled optics at the reference momentum, :math:`J_y=0` and a weak octupole perturbation, first-order phase averaging gives:
 
 .. math::
 
-  \Delta Q_x = -\frac{\chi K_{3L}}{16\pi} \oint \beta_x^2 \, ds \cdot J_x
+  \Delta Q_x = \frac{\chi J_x}{16\pi}\sum_j K_{3L,j}\beta_{x,j}^2 = \frac{\chi J_x}{16\pi}\oint K_3(s)\beta_x(s)^2\,ds
 
-where :math:`J_x = \frac{1}{2\beta_x}(x^2 + (\beta_x p_x + \alpha_x x)^2)` is the action. The tune shift is proportional to the square of the amplitude (i.e., the action :math:`J_x`), meaning that large-amplitude particles have tunes deviating from small-amplitude particles. This spreads the beam in tune space, enabling Landau damping.
+where :math:`J_x = \frac{1}{2\beta_x}(x^2 + (\beta_x p_x + \alpha_x x)^2)` is the action. The tune shift is proportional to the square of the amplitude (i.e., the action :math:`J_x`), meaning that large-amplitude particles have tunes deviating from small-amplitude particles. This produces an incoherent tune spread that can support Landau damping; actual damping also depends on the distribution and collective mode.
 
 .. note::
 
@@ -331,11 +491,10 @@ where :math:`J_x = \frac{1}{2\beta_x}(x^2 + (\beta_x p_x + \alpha_x x)^2)` is th
   - The tune shift of the quadrupole is independent of amplitude (linear element)
   - The octupole ADTS does not depend on dispersion (:math:`\eta_x`) and can be used at dispersion-free locations
 
-
 Naturally Included Higher-Order Effects
 ---------------------------------------
 
-In the DKD-exact scheme, all nonlinear effects of an ideal octupole magnet are naturally included without any additional treatment:
+The stated ideal octupole-field and drift model includes the following effects:
 
 .. list-table::
   :header-rows: 1
@@ -358,171 +517,12 @@ In the DKD-exact scheme, all nonlinear effects of an ideal octupole magnet are n
 
 .. note::
 
-  The only approximation is the discretization error of the split-operator integrator (:math:`O(\Delta s^2)` for uniform, :math:`O(\Delta s^4)` for yoshida4), which can be controlled by increasing the number of slices. This is a truncation error of the mathematical method, not an omission of physical effects.
+  Integration error is second order for uniform and fourth order for yoshida4 under the smooth-field assumptions of the splitting method. Check slice convergence and floating-point error. Refining the integrator does not recover fringe fields or other effects omitted by the stated field model.
 
 
 Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common :ref:`en-error` interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.
-
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - Element length (must be :math:`\ge 0`; :math:`= 0` for thin lens)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name
-  * - ``k3l``
-    - ``k3l``
-    - float
-    - :math:`\text{m}^{-3}`
-    - Normal octupole integrated strength :math:`K_{3L}`, default 0
-  * - ``k3sl``
-    - ``k3sl``
-    - float
-    - :math:`\text{m}^{-3}`
-    - Skew octupole integrated strength :math:`K_{3sL}`, default 0
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - Number of slices, default 1 (effective only for thick lens)
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - Aperture type, default ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``
-
-
-Usage Examples
---------------
-
-Thick Lens Normal Octupole
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "OCT1": {
-          "S (m)": 10.0,
-          "Command": "Octupole",
-          "Length (m)": 0.5,
-          "K3L": 500.0,
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Normal octupole (:math:`K_{3L} > 0`), length 0.5 m, 5 slices, 4th-order symplectic integration. Used for Landau damping.
-
-Thin Lens Octupole
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "OCT2": {
-          "S (m)": 20.0,
-          "Command": "Octupole",
-          "Length (m)": 0.0,
-          "K3L": 1000.0,
-          "Aperture Type": "off"
-      }
-  }
-
-Zero-length octupole, applying only the :math:`K_{3L}` thin lens kick, no body tracking.
-
-Negative Octupole
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "OCT3": {
-          "S (m)": 30.0,
-          "Command": "Octupole",
-          "Length (m)": 0.4,
-          "K3L": -500.0,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-Negative octupole (:math:`K_{3L} < 0`), providing a tune shift in the opposite direction to a positive octupole.
-
-Skew Octupole
-~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "OCT4": {
-          "S (m)": 40.0,
-          "Command": "Octupole",
-          "Length (m)": 0.3,
-          "K3L": 0.0,
-          "K3SL": 300.0,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-Pure skew octupole (:math:`K_{3L} = 0`, :math:`K_{3sL} \neq 0`), producing a coupling effect equivalent to rotating the normal octupole by :math:`\pi / 8`.
-
-Normal + Skew Octupole Combination
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "OCT5": {
-          "S (m)": 50.0,
-          "Command": "Octupole",
-          "Length (m)": 0.5,
-          "K3L": 500.0,
-          "K3SL": 100.0,
-          "Num Slices": 3,
-          "Integrator": "yoshida4",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.04]
-      }
-  }
-
-Combined octupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.
-
 
 Application Scenarios
 ---------------------
@@ -533,7 +533,6 @@ Application Scenarios
 - **Nonlinear coupling correction**: Using skew octupoles (``k3sl``) to control higher-order :math:`x`-:math:`y` coupling
 - **4th-order resonance driving**: Placing octupoles at specific phases to drive 4th-order resonances (:math:`4Q_x`, :math:`2Q_x \pm 2Q_y`, etc.) for resonance extraction or beam scraping
 - **LHC Landau damping scheme**: Distributing octupole families (MO) in the arc region to provide sufficient Landau damping over a wide energy range
-
 
 References
 ----------

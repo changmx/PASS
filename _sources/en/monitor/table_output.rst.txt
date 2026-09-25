@@ -42,7 +42,7 @@ enable a disabled output or change the configured recording turns.
      - Slice summaries remain TFS and CSV
 
 HDF5 tables use ``.h5``; TFS tables use ``.tfs`` with the same filename stem.
-SpaceCharge field output keeps its existing multidimensional HDF5 layout
+SpaceCharge field output uses a multidimensional HDF5 layout
 and does not offer TFS export.
 
 HDF5 layout and metadata
@@ -63,7 +63,7 @@ For example, a statistics file contains::
    /referenceMomentum     (N,)
    ...
 
-The original TFS headers are preserved as **root attributes**, including
+Table headers are stored as **root attributes**, including
 names, units embedded in existing metadata, reference conventions and
 monitor positions. Varying StatMonitor reference values remain per-row
 columns, preserving their full history. Snapshot reference attributes
@@ -82,7 +82,7 @@ Shuffle rearranges bytes before compression without changing stored values
 or particle order. ``"hdf5"`` disables both compression and shuffle.
 Both choices use the same ``.h5`` extension, logical layout and reader;
 no separate compression parameter is needed. The choice applies to the
-table producers above. CSV is unchanged, and SpaceCharge retains its
+table producers above. CSV is unchanged, and SpaceCharge uses its
 separate field writer. For example, to request uncompressed HDF5:
 
 .. code-block:: python
@@ -103,12 +103,6 @@ approximately 64 KiB per column, bounded by the number of rows. StatMonitor
 uses one configured write interval per column chunk. Thus a normal full
 batch fills a new chunk without rewriting earlier compressed chunks.
 Chunking controls storage and compression, not sampling or numerical precision.
-
-Distribution, initial-distribution, phase and Slicer particle snapshots pass
-column arrays directly to the HDF5 writer, avoiding an intermediate DataFrame.
-Distribution transfers are bounded to each bunch; Slicer reuses the host tag
-array for both its count and particle table. ParticleMonitor retains its full
-history buffer and one file per selected particle.
 
 Statistics batching and live inspection
 ---------------------------------------
@@ -141,7 +135,7 @@ turn interval and the initial bunch count. Intermediate turns fill this buffer
 without copying statistics to the CPU. At a batch boundary, one GPU-to-CPU copy
 collects all pending bunch records; finalization also transfers any partial batch.
 Reference quantities are recorded on the CPU every turn, preserving their full
-history. After transfer, the existing CPU formulas calculate the derived output
+history. After transfer, the CPU formulas calculate the derived output
 columns for each record. CPU mode buffers its completed rows in CPU memory.
 
 HDF5 and CSV receive the same batch and are closed after each write.

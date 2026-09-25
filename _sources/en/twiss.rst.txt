@@ -1,21 +1,183 @@
 Twiss Transport (Twiss)
-========================
+==============================================
 
-Introduction
-------------
+``Twiss`` computes uncoupled transverse transport from entrance and exit optical functions and phase advances, with optional longitudinal linear maps and chromatic phase corrections. Coordinate, reference-momentum, and arrival-time conventions are defined in :ref:`en-longitudinal-reference`.
 
-The ``Twiss`` element implements 6D linear optical transport based on Twiss parameters. It uses beam optical functions (beta, alpha, mu, dispersion) to construct the transport matrix and performs linear optical tracking of particles. It is one of the core elements connecting lattice design with particle tracking.
+The supplied optics already contains design focusing; additional magnets apply additional effects and must not double-count it. Transverse beta functions must be positive. ``Mu`` is in cycles (1 corresponds to 2π); retain the full required phase difference. The ``drift`` mode needs the bunch transition gamma, while ``matrix`` requires positive bunch length and relative momentum spread.
 
-- **Code location** : ``PASS/commands/twiss.py``
-- **Class name** : ``Twiss`` , registered name ``"twiss"``
-- **Key features** :
+Usage Example
+-------------
 
-  - Constructs the transverse transport matrix based on the Twiss parameters (beta, alpha, phase) at the previous and current points;
-  - Supports dispersion removal and restoration, ensuring correct transport of particles with momentum deviation in dispersive regions;
-  - Supports chromaticity correction; tune shifts caused by momentum deviation are automatically incorporated into the phase;
-  - Longitudinal transport supports three modes: drift, matrix, and identity matrix;
-  - Preserves the continuously evolving bunch-relative longitudinal coordinate without ring folding inside the element;
-  - Supports aperture checking, consistent with other elements.
+The following JSON snippet shows a ``Twiss`` entry inside ``Sequence``:
+
+.. code-block:: json
+
+   "Twiss1": {
+       "S (m)": 10.0,
+       "Command": "Twiss",
+       "S previous (m)": 5.0,
+       "Alpha x": 0.5,
+       "Alpha y": -0.3,
+       "Alpha x previous": 0.4,
+       "Alpha y previous": -0.2,
+       "Beta x (m)": 3.5,
+       "Beta y (m)": 2.8,
+       "Beta x previous (m)": 3.0,
+       "Beta y previous (m)": 2.5,
+       "Mu x": 0.123,
+       "Mu y": 0.456,
+       "Mu x previous": 0.1,
+       "Mu y previous": 0.4,
+       "Dx (m)": 0.5,
+       "Dx previous (m)": 0.3,
+       "Dpx": 0.01,
+       "Dpx previous": 0.005,
+       "DQx": 2.0,
+       "DQy": 2.0,
+       "Longitudinal transfer": "drift"
+   }
+
+Interface parameters
+----------------------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 25 10 13 30
+
+   * - Python attribute
+     - JSON key
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - m
+     - Required
+     - Exit position.
+   * - ``command``
+     - ``Command``
+     - —
+     - ``Twiss``
+     - Command identifier.
+   * - ``s_previous``
+     - ``S previous (m)``
+     - m
+     - Required
+     - Entrance position; the difference gives transport length.
+   * - ``alpha_x``
+     - ``Alpha x``
+     - —
+     - Required
+     - Exit horizontal Twiss α.
+   * - ``alpha_y``
+     - ``Alpha y``
+     - —
+     - Required
+     - Exit vertical Twiss α.
+   * - ``beta_x``
+     - ``Beta x (m)``
+     - m
+     - Required
+     - Positive exit horizontal Twiss β.
+   * - ``beta_y``
+     - ``Beta y (m)``
+     - m
+     - Required
+     - Positive exit vertical Twiss β.
+   * - ``mu_x``
+     - ``Mu x``
+     - cycles
+     - Required
+     - Exit horizontal phase.
+   * - ``mu_y``
+     - ``Mu y``
+     - cycles
+     - Required
+     - Exit vertical phase.
+   * - ``mu_z``
+     - ``Mu z``
+     - cycles
+     - ``0.0``
+     - Exit longitudinal phase.
+   * - ``dx``
+     - ``Dx (m)``
+     - m
+     - Required
+     - Exit horizontal position dispersion.
+   * - ``dpx``
+     - ``Dpx``
+     - —
+     - Required
+     - Exit normalized horizontal momentum dispersion.
+   * - ``alpha_x_previous``
+     - ``Alpha x previous``
+     - —
+     - Required
+     - Entrance horizontal Twiss α.
+   * - ``alpha_y_previous``
+     - ``Alpha y previous``
+     - —
+     - Required
+     - Entrance vertical Twiss α.
+   * - ``beta_x_previous``
+     - ``Beta x previous (m)``
+     - m
+     - Required
+     - Positive entrance horizontal Twiss β.
+   * - ``beta_y_previous``
+     - ``Beta y previous (m)``
+     - m
+     - Required
+     - Positive entrance vertical Twiss β.
+   * - ``mu_x_previous``
+     - ``Mu x previous``
+     - cycles
+     - Required
+     - Entrance horizontal phase.
+   * - ``mu_y_previous``
+     - ``Mu y previous``
+     - cycles
+     - Required
+     - Entrance vertical phase.
+   * - ``mu_z_previous``
+     - ``Mu z previous``
+     - cycles
+     - ``0.0``
+     - Entrance longitudinal phase.
+   * - ``dx_previous``
+     - ``Dx previous (m)``
+     - m
+     - ``0.0``
+     - Entrance horizontal position dispersion.
+   * - ``dpx_previous``
+     - ``Dpx previous``
+     - —
+     - ``0.0``
+     - Entrance normalized horizontal momentum dispersion.
+   * - ``dqx``
+     - ``DQx``
+     - —
+     - ``0.0``
+     - Horizontal chromatic phase coefficient for this segment.
+   * - ``dqy``
+     - ``DQy``
+     - —
+     - ``0.0``
+     - Vertical chromatic phase coefficient for this segment.
+   * - ``longitudinal_transfer``
+     - ``Longitudinal transfer``
+     - —
+     - ``off``
+     - ``off``, ``drift``, or ``matrix``.
+
+Output and scope
+--------------------------------
+
+The command updates particle coordinates and reference passage time but writes no diagnostic file. Place a monitor from :doc:`monitor/index` at its exit to record the result. The transverse model includes neither x–y coupling nor vertical dispersion. Nonzero ``DQx`` or ``DQy`` makes phase depend on relative momentum deviation, so the full map is not a fixed six-dimensional linear matrix.
+
+``DQx`` and ``DQy`` are applied directly to this segment; no additional segment-length/circumference factor is applied. They must be consistent with the supplied optics and any additional nonlinear elements.
+
+Hand-written runtime JSON may include ``Aperture type`` and ``Aperture value`` (defaults ``off`` and ``[]``), but ``TwissItem`` does not currently export these fields. When using the parameter builder, place an aperture-bearing ``Marker`` at the same location; see :doc:`aperture`.
 
 Physics Derivation
 -------------------
@@ -23,7 +185,7 @@ Physics Derivation
 Longitudinal Transport
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Longitudinal transport is controlled by the ``Longitudinal Transfer`` parameter and supports three modes:
+Longitudinal transport is controlled by the ``Longitudinal transfer`` parameter and supports three modes:
 
 **drift mode** : Uses the gamma transition parameter. The longitudinal transport matrix element is:
 
@@ -31,9 +193,9 @@ Longitudinal transport is controlled by the ``Longitudinal Transfer`` parameter 
 
    m_{12,z} = -\left(\frac{1}{\gamma_t^2} - \frac{1}{\gamma^2}\right)(s - s_\mathrm{previous})
 
-where :math:`\gamma_t` is the transition gamma, :math:`\gamma` is the relativistic gamma of the particle, :math:`s` is the current longitudinal position, and :math:`s_\mathrm{previous}` is the longitudinal position of the previous element.
+where :math:`\gamma_t` is the transition gamma, :math:`\gamma` is the bunch reference-particle Lorentz factor, :math:`s` is the current longitudinal position, and :math:`s_\mathrm{previous}` is the longitudinal position of the previous element.
 
-**matrix mode** : Uses the longitudinal oscillation frequency. The transport matrix is:
+**matrix mode** : Uses the prescribed longitudinal phase advance. The transport matrix is:
 
 .. math::
 
@@ -41,19 +203,19 @@ where :math:`\gamma_t` is the transition gamma, :math:`\gamma` is the relativist
 
 .. math::
 
-   m_{12,z} = \frac{\sigma_z}{\Delta p_\mathrm{bunch}} \sin(\phi_z)
+   m_{12,z} = \frac{\sigma_z}{\sigma_\delta} \sin(\phi_z)
 
 .. math::
 
-   m_{21,z} = -\frac{\Delta p_\mathrm{bunch}}{\sigma_z} \sin(\phi_z)
+   m_{21,z} = -\frac{\sigma_\delta}{\sigma_z} \sin(\phi_z)
 
 .. math::
 
    m_{22,z} = \cos(\phi_z)
 
-where :math:`\phi_z` is the longitudinal phase advance, :math:`\sigma_z` is the bunch longitudinal size, and :math:`\Delta p_\mathrm{bunch}` is the bunch momentum spread.
+where :math:`\phi_z` is the longitudinal phase advance, :math:`\sigma_z` is the bunch longitudinal size, and :math:`\sigma_\delta` is the configured RMS relative momentum spread.
 
-**Other modes** : The longitudinal transport matrix is the identity matrix.
+**off mode** : The longitudinal transport matrix is the identity matrix.
 
 Dispersion Handling
 ~~~~~~~~~~~~~~~~~~~
@@ -64,11 +226,11 @@ Since the transverse transport matrix describes only the non-dispersive part of 
 
 .. math::
 
-   x_1 = x - D_{x,\mathrm{previous}} \cdot \Delta p
+   x_1 = x - D_{x,\mathrm{previous}} \cdot \delta
 
 .. math::
 
-   px_1 = px - D_{px,\mathrm{previous}} \cdot \Delta p
+   px_1 = px - D_{px,\mathrm{previous}} \cdot \delta
 
 2. **Linear transport** :
 
@@ -80,9 +242,9 @@ Since the transverse transport matrix describes only the non-dispersive part of 
 
 .. math::
 
-   x_2 = x_\mathrm{temp} + D_x \cdot \Delta p_2
+   x_2 = x_\mathrm{temp} + D_x \cdot \delta_2
 
-where :math:`D_x` is the horizontal dispersion at the current point, :math:`D_{x,\mathrm{previous}}` is the horizontal dispersion at the previous point, and :math:`\Delta p` is the particle momentum deviation.
+where :math:`D_x` is the horizontal dispersion at the current point, :math:`D_{x,\mathrm{previous}}` is the horizontal dispersion at the previous point, and :math:`\delta` is the relative particle momentum deviation.
 
 Transverse Transport Matrix
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -121,13 +283,13 @@ Momentum deviation causes tune shifts, which are corrected through the chromatic
 
 .. math::
 
-   \phi_x = \phi_x + \Delta p \cdot \Delta Q_x \cdot 2\pi
+   \phi_x = \phi_x + \delta \cdot \Delta Q_x \cdot 2\pi
 
 .. math::
 
-   \phi_y = \phi_y + \Delta p \cdot \Delta Q_y \cdot 2\pi
+   \phi_y = \phi_y + \delta \cdot \Delta Q_y \cdot 2\pi
 
-where :math:`\Delta Q_x` and :math:`\Delta Q_y` are the horizontal and vertical chromaticities, respectively, and :math:`\Delta p` is the particle momentum deviation.
+where :math:`\Delta Q_x` and :math:`\Delta Q_y` are the horizontal and vertical chromaticities, respectively, and :math:`\delta` is the relative particle momentum deviation.
 
 Longitudinal Coordinate Continuity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -143,258 +305,9 @@ The reference time t0 is updated based on the longitudinal position change:
 
    \Delta t = \frac{s - s_\mathrm{previous}}{\beta \, c}
 
-where :math:`\beta` is the relativistic velocity of the particle and :math:`c` is the speed of light.
+where :math:`\beta` is the normalized reference-particle speed and :math:`c` is the speed of light.
 
-Interface Parameters
---------------------
+Phase and momentum notation
+------------------------------------------------------
 
-Position Parameters
-~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :widths: 20 25 15 15 25
-   :header-rows: 1
-
-   * - Parameter
-     - Key
-     - Type
-     - Unit
-     - Description
-   * - ``s``
-     - ``"S (m)"``
-     - float
-     - m
-     - Longitudinal position of the current element
-   * - ``s_previous``
-     - ``"S Previous (m)"``
-     - float
-     - m
-     - Longitudinal position of the previous element
-   * - ``name``
-     - ``"name"``
-     - str
-     - -
-     - Automatically filled from the sequence key name
-
-Transverse Parameters
-~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :widths: 20 25 15 15 25
-   :header-rows: 1
-
-   * - Parameter
-     - Key
-     - Type
-     - Unit
-     - Description
-   * - ``alphax``
-     - ``"Alpha X"``
-     - float
-     - -
-     - Horizontal alpha at the current point
-   * - ``alphay``
-     - ``"Alpha Y"``
-     - float
-     - -
-     - Vertical alpha at the current point
-   * - ``alphax_previous``
-     - ``"Alpha X Previous"``
-     - float
-     - -
-     - Horizontal alpha at the previous point
-   * - ``alphay_previous``
-     - ``"Alpha Y Previous"``
-     - float
-     - -
-     - Vertical alpha at the previous point
-   * - ``betax``
-     - ``"Beta X (m)"``
-     - float
-     - m
-     - Horizontal beta at the current point
-   * - ``betay``
-     - ``"Beta Y (m)"``
-     - float
-     - m
-     - Vertical beta at the current point
-   * - ``betax_previous``
-     - ``"Beta X Previous (m)"``
-     - float
-     - m
-     - Horizontal beta at the previous point
-   * - ``betay_previous``
-     - ``"Beta Y Previous (m)"``
-     - float
-     - m
-     - Vertical beta at the previous point
-   * - ``mux``
-     - ``"Mu X"``
-     - float
-     - -
-     - Horizontal phase at the current point
-   * - ``muy``
-     - ``"Mu Y"``
-     - float
-     - -
-     - Vertical phase at the current point
-   * - ``mux_previous``
-     - ``"Mu X Previous"``
-     - float
-     - -
-     - Horizontal phase at the previous point
-   * - ``muy_previous``
-     - ``"Mu Y Previous"``
-     - float
-     - -
-     - Vertical phase at the previous point
-
-Longitudinal Parameters
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :widths: 20 25 15 15 25
-   :header-rows: 1
-
-   * - Parameter
-     - Key
-     - Type
-     - Unit
-     - Description
-   * - ``longitudinal_transfer``
-     - ``"Longitudinal Transfer"``
-     - str
-     - -
-     - Longitudinal transport mode (drift/matrix/other)
-   * - ``muz``
-     - ``"Mu Z"``
-     - float
-     - -
-     - Longitudinal phase at the current point (optional, default 0)
-   * - ``muz_previous``
-     - ``"Mu Z Previous"``
-     - float
-     - -
-     - Longitudinal phase at the previous point (optional, default 0)
-
-Dispersion and Chromaticity
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :widths: 20 25 15 15 25
-   :header-rows: 1
-
-   * - Parameter
-     - Key
-     - Type
-     - Unit
-     - Description
-   * - ``Dx``
-     - ``"Dx (m)"``
-     - float
-     - m
-     - Horizontal dispersion at the current point
-   * - ``Dx_previous``
-     - ``"Dx Previous (m)"``
-     - float
-     - m
-     - Horizontal dispersion at the previous point
-   * - ``Dpx``
-     - ``"Dpx"``
-     - float
-     - -
-     - Horizontal dispersion derivative at the current point
-   * - ``Dpx_previous``
-     - ``"Dpx Previous"``
-     - float
-     - -
-     - Horizontal dispersion derivative at the previous point
-   * - ``DQx``
-     - ``"Dqx"``
-     - float
-     - -
-     - Horizontal chromaticity
-   * - ``DQy``
-     - ``"Dqy"``
-     - float
-     - -
-     - Vertical chromaticity
-
-Aperture Parameters
-~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :widths: 20 25 15 15 25
-   :header-rows: 1
-
-   * - Parameter
-     - Key
-     - Type
-     - Unit
-     - Description
-   * - ``aperture_type``
-     - ``"Aperture Type"``
-     - str
-     - -
-     - Aperture type (default off)
-   * - ``aperture_value``
-     - ``"Aperture Value"``
-     - list
-     - -
-     - Aperture parameters (default [])
-
-Usage Example
--------------
-
-The following JSON snippet shows a complete ``Twiss`` element definition:
-
-.. code-block:: json
-
-   "Twiss1": {
-       "S (m)": 10.0,
-       "Command": "Twiss",
-       "S Previous (m)": 5.0,
-       "Alpha X": 0.5,
-       "Alpha Y": -0.3,
-       "Alpha X Previous": 0.4,
-       "Alpha Y Previous": -0.2,
-       "Beta X (m)": 3.5,
-       "Beta Y (m)": 2.8,
-       "Beta X Previous (m)": 3.0,
-       "Beta Y Previous (m)": 2.5,
-       "Mu X": 0.123,
-       "Mu Y": 0.456,
-       "Mu X Previous": 0.1,
-       "Mu Y Previous": 0.4,
-       "Dx (m)": 0.5,
-       "Dx Previous (m)": 0.3,
-       "Dpx": 0.01,
-       "Dpx Previous": 0.005,
-       "Dqx": 2.0,
-       "Dqy": 2.0,
-       "Longitudinal Transfer": "drift",
-       "Aperture Type": "off"
-   }
-
-Where:
-
-- ``"S (m)": 10.0`` — the longitudinal position of the current element is 10.0 m;
-- ``"S Previous (m)": 5.0`` — the longitudinal position of the previous element is 5.0 m;
-- ``"Alpha X": 0.5`` — the horizontal alpha at the current point is 0.5;
-- ``"Beta X (m)": 3.5`` — the horizontal beta at the current point is 3.5 m;
-- ``"Mu X": 0.123`` — the horizontal phase at the current point is 0.123 (in units of :math:`2\pi` );
-- ``"Dx (m)": 0.5`` — the horizontal dispersion at the current point is 0.5 m;
-- ``"Dqx": 2.0`` — the horizontal chromaticity is 2.0;
-- ``"Longitudinal Transfer": "drift"`` — the longitudinal transport uses drift mode;
-- ``"Aperture Type": "off"`` — aperture checking is disabled.
-
-Application Scenarios
----------------------
-
-The ``Twiss`` element is suitable for the following scenarios:
-
-- **Linear tracking based on lattice design** : When a Twiss parameter table from optical calculation programs such as MadX or AT is already available, the ``Twiss`` element can be used directly for particle tracking without re-modeling magnet elements.
-- **Dispersion and chromaticity studies** : The ``Twiss`` element has built-in dispersion removal/restoration and chromaticity correction, making it suitable for studying the transverse dynamics of particles with momentum deviation.
-- **Longitudinal dynamics simulation** : By selecting drift or matrix longitudinal transport modes, different longitudinal transport scenarios can be simulated.
-- **Fast optical evaluation** : Compared to element-by-element modeling, linear transport based on Twiss parameters requires less computation, making it suitable for large-scale parameter scans and preliminary evaluations.
-- **Combined use with nonlinear elements** : The ``Twiss`` element can be used in series with nonlinear elements such as sextupoles and octupoles to superimpose nonlinear effects on top of linear transport.
+Momentum deviation in these equations is the dimensionless :math:`\delta=P/P_0-1`, not an absolute momentum increment. Before chromatic correction, :math:`\phi_u=2\pi(\mu_u-\mu_{u,\mathrm{previous}})`. The longitudinal ``matrix`` map uses the configured RMS bunch length and relative momentum spread; it does not recompute them from the current particle distribution.

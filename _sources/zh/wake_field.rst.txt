@@ -1,9 +1,9 @@
-WakeField
-=========
+尾场（WakeField）
+==================
 
-``WakeField`` 使用指定的 ``Slicer`` 结果施加积分薄元件尾场。一个命令代表
-一个物理位置，各算法组分别保存源历史或模式状态。本页说明 CPU 与 CUDA 实现，
-数值验证结果见仓库的尾场验证报告。
+``WakeField`` 根据命名的纵向切片集计算尾场引起的能量和横向动量变化。一个命令对应一个物理作用点，各算法组分别保存源历史或模式状态。支持解析响应、时域表格和阻抗频谱，CPU 与 NVIDIA GPU 使用相同的配置。
+
+在作用点之前执行匹配的 :doc:`slicer`。普通因果响应使用连续到达时间；非聚束束流周期切片的条件见下文。响应数据必须声明单位、符号、归一化及速度模型。重分组后重新计算切片，历史源保留发出时的物理时间和宽度。坐标约定见 :ref:`zh-longitudinal-reference`。
 
 共享配置与尾场点
 ----------------
@@ -11,8 +11,7 @@ WakeField
 可选根级 ``Wake field`` 包含 ``Enabled``（默认 true）及 ``Configurations``，
 后者将唯一配置名称映射到含 ``Groups`` 的对象。尾场点在内联 ``Groups`` 与
 ``Configuration`` 引用之间二选一；``S (m)``、``Slice set``、``Is enabled``
-仍在各点设置。总开关与单点开关均为 true 才执行。没有根级块时，旧内联命令
-保持原有行为。
+仍在各点设置。总开关与单点开关均为 true 才执行；未设置根级块时，可直接在命令内定义 Groups。
 
 配置仅共享输入参数。加载输入时将每个引用展开为独立定义，每个物理点分别创建
 模型、历史及求解状态。关闭总开关不能绕过非法配置或缺失引用。共享定义中的文件路径
@@ -40,38 +39,50 @@ WakeField
 这只是接口片段，实际输入需补齐 Injection、光学配置及尾场点之前的匹配 Slicer。
 常量模型仅作示例，不代表指定机器的阻抗。Python API 导出 ``WakeFieldConfig``
 和 ``WakeResourceConfig``；向 ``generate_input`` 传入
-``wake_field=WakeFieldConfig(...)``。``load_input`` 返回展开后的内联序列，使其
-二元返回接口不会丢失共享定义。直接构造底层命令仍需内联定义；从命名配置构造时
-先使用 ``resolve_wake_point``。
+``wake_field=WakeFieldConfig(...)``。
 
-物理范围与约定
---------------
+命令与算法参数
+------------------
 
-PASS 追踪解析或用户提供的响应，不求解任意三维结构的 Maxwell 方程。
-响应速度耦合使用束团参考速度；横向电压到冲量的换算则使用粒子实际入射速度。
-粒子连续坐标为 :math:`z_i=\beta_b c(T_b-t_i)`，当前位置的物理到达时间为
+命令字段为 ``S (m)``、``Command="WakeField"``、``Slice set``、``Groups`` 或 ``Configuration``、
+``Is enabled``。组名 ``Name`` 必须唯一，``Components`` 不为空。分量包含
+``Component``、``Model``、``Velocity``，可选 ``Scale`` 与 ``Field content``。
 
-.. math::
+.. list-table:: 算法组控制
+   :header-rows: 1
+   :widths: 25 75
 
-   t_i=T_b-z_i/(\beta_b c).
+   * - 字段
+     - 含义
+   * - ``Solver``
+     - 必填 ``direct``、``fft``、``recursive`` （谐振子）、``modal`` （极点/留数）、``partitioned_fft`` （固定带间隙束列）或 ``time_fft`` （变周期物理时间历史）。
+   * - ``History``
+     - 必填 ``none``、``direct``（源切片历史）、``state`` 或 ``partitioned``；recursive/modal 必须使用 state，partitioned_fft/time_fft 必须使用 partitioned。
+   * - ``Source shape``
+     - 各组单独选择 uniform（默认）或 point。
+   * - ``Memory turns``
+     - direct 历史为正整数或 null；partitioned_fft 必须为有限正整数。计数前序通过次数，当前通过另计。time_fft 必须为 null。
+   * - ``Memory time (s)``
+     - 正值或 null，用于 direct/partitioned 历史；time_fft 必须为有限正值。截断延迟核，包含均匀源部分积分；物理时间投影在不连续截断处存在网格误差。
+   * - ``Convolution grid``
+     - partitioned_fft 必填，定义固定的物理时间网格，见下文。
+   * - ``Time grid``
+     - 仅 time_fft 必填：正有限 ``Step (s)``，整数 ``Block size`` >= 2（默认 64），可选有限 ``Origin (s)`` （默认 null）。
+   * - ``Partition``
+     - 两种分块 FFT 均选择 dyadic（默认）或 uniform，不自动切换算法。
+   * - ``Max workspace (MiB)``
+     - 分块 FFT 保守峰值内存预算，默认 1024 MiB；分配前检查，CUDA 另检查可用显存。
+   * - ``Boundary``
+     - causal_passages（默认）、isolated 或 periodic。
+   * - ``Period (s)``、``Periodic images``
+     - periodic 必填，使用 direct 求和 -N 至 +N 镜像，不保存瞬态历史。
 
-不保存到达修正量。RF 改变参考能量时缩放 z 以保持此时间；重分组将 z 和动量
-变换到目标参考系。尾场适配器转换用户最近提供的 z 区间：中心时间为
-:math:`T_b-z_{slice}/(\beta_b c)`，时间宽度为 :math:`\Delta z/(\beta_b c)`。
-RF 不改变保存的区间或成员。新发出的源永久保留当次采样的物理时间和宽度，
-后续参考变换不重新解释因果历史。参见 :ref:`zh-longitudinal-reference`。
-
-.. math::
-
-   F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad Z_\parallel=F,\qquad Z_\perp=iF.
-
-源和测试横向单项式总阶数为 :math:`n` 时，积分尾函数单位为 V/C/m\ :sup:`n`，
-阻抗单位为 ohm/m\ :sup:`n`。源矩使用带符号真实电荷，测试宏粒子权重约去。
-纵向为正表示损失能量，横向为正表示正方向 Lorentz 力。每核子能量变化
-:math:`\Delta E=-Z_{\mathrm{ion}}V_\parallel/A`，随后精确换算动量；横向
-:math:`\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)` 使用实际入射速度。
-因果核零点取有限跳跃的一半。``uniform`` 对整个切片时间宽度均匀积分，
-``point`` 位于切片中心。切片和参数收敛由用户扫描，没有自动切片误差控制。
+FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History=direct 时历史
+明确直接求和。没有 auto 或静默回退。模式按实际时间推进，保留无限衰减历史，
+状态内存随模式数增长。因果批次须按物理时间排序且不重叠（包括均匀源支撑）；
+跨圈重叠会报错，按圈跟踪不能推断未来轨迹。isolated 声明完整源列已在当前
+批次，periodic 声明其周期稳态；都要求固定 β 且无瞬态历史，不能表示任意
+加速或瞬态环形分布。用户选择周期镜像数并检查收敛。
 
 响应模型
 --------
@@ -114,77 +125,6 @@ RF 不改变保存的区间或成员。新发出的源永久保留当次采样�
 为横向计算，不能据此认为纵向或所有像场项已包含；组合前须检查几何、归一化及
 物理内容，防止重复或遗漏。
 
-频谱与拟合
-----------
-
-原始路径对分段线性频谱做振荡积分，保留非均匀频率采样，不引入 FFT 的人工
-周期时间窗口。频带外明确为零，频带与间距需要独立收敛检查。有限带宽逆变换
-一般为双侧函数。``two_sided`` 保留该结果；``causal_projection`` 明确截去
-负时间部分，零点取跳跃一半，会改变有效频率响应，是带宽近似。
-
-拟合采用变量投影：非线性优化用户选定的极点，以实数最小二乘确定留数，
-不自动选模式数。保留原始频谱及诊断；最大相对误差须满足 ``Fit tolerance``，
-分母下限为 ``Relative floor``。极点半平面受到约束，但不自动强制或认证无源性。
-纵向标量无源条件不能套用于所有横向分量；缺失频带不推断为 delta 或其导数项。
-右半平面极点只表示向负时间衰减的空间分支，不作为增长时间状态向前递推。
-``causal_projection`` 拟合要求左半平面初始极点；一般双侧拟合选择 ``two_sided``
-及明确空间边界。CST 工程/二进制解析暂缓；数值导出可使用下述显式文件约定。
-
-速度、加速与算法组
-------------------
-
-每个分量的 ``Velocity`` 显式选择：
-
-* ``fixed`` 加 ``Beta``：同一参考速度的稳态响应，追踪中参考速度变化会被拒绝。
-* ``factorized`` 加递增 ``Betas``、实数 ``Source`` 和 ``Witness`` 表：
-  :math:`W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)`，只在表内线性插值。
-  历史激励保存源通过时的速度；当前观察应用测试束团因子。
-* ``ideal``：显式定义速度无关点响应，不是对实际腔体渡越时间因子的推导。
-
-有限 β 壁自动设置相同固定速度。单个稳态谱不能确定任意不同速度轨迹、复数
-渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
-保持不变，不施加通用 β 缩放。
-
-命令字段为 ``S (m)``、``Command="WakeField"``、``Slice set``、``Groups`` 或 ``Configuration``、
-``Is enabled``。组名 ``Name`` 必须唯一，``Components`` 不为空。分量包含
-``Component``、``Model``、``Velocity``，可选 ``Scale`` 与 ``Field content``。
-
-.. list-table:: 算法组控制
-   :header-rows: 1
-   :widths: 25 75
-
-   * - 字段
-     - 含义
-   * - ``Solver``
-     - 必填 ``direct``、``fft``、``recursive`` （谐振子）、``modal`` （极点/留数）、``partitioned_fft`` （固定带间隙束列）或 ``time_fft`` （变周期物理时间历史）。
-   * - ``History``
-     - 必填 ``none``、``direct``（源切片历史）、``state`` 或 ``partitioned``；recursive/modal 必须使用 state，partitioned_fft/time_fft 必须使用 partitioned。
-   * - ``Source shape``
-     - 各组单独选择 uniform（默认）或 point。
-   * - ``Memory turns``
-     - direct 历史为正整数或 null；partitioned_fft 必须为有限正整数。计数前序通过次数，当前通过另计。time_fft 必须为 null。
-   * - ``Memory time (s)``
-     - 正值或 null，用于 direct/partitioned 历史；time_fft 必须为有限正值。截断延迟核，包含均匀源部分积分；物理时间投影在不连续截断处存在网格误差。
-   * - ``Convolution grid``
-     - partitioned_fft 必填，定义固定的物理时间网格，见下文。
-   * - ``Time grid``
-     - 仅 time_fft 必填：正有限 ``Step (s)``，整数 ``Block size`` >= 2（默认 64），可选有限 ``Origin (s)`` （默认 null）。
-   * - ``Partition``
-     - 两种分块 FFT 均选择 dyadic（默认）或 uniform，不自动切换算法。
-   * - ``Max workspace (MiB)``
-     - 分块 FFT 保守峰值内存预算，默认 1024 MiB；分配前检查，CUDA 另检查可用显存。
-   * - ``Boundary``
-     - causal_passages（默认）、isolated 或 periodic。
-   * - ``Period (s)``、``Periodic images``
-     - periodic 必填，使用 direct 求和 -N 至 +N 镜像，不保存瞬态历史。
-
-FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History=direct 时历史
-明确直接求和。没有 auto 或静默回退。模式按实际时间推进，保留无限衰减历史，
-状态内存随模式数增长。因果批次须按物理时间排序且不重叠（包括均匀源支撑）；
-跨圈重叠会报错，按圈追踪不能推断未来轨迹。isolated 声明完整源列已在当前
-批次，periodic 声明其周期稳态；都要求固定 β 且无瞬态历史，不能表示任意
-加速或瞬态环形分布。用户选择周期镜像数并检查收敛。
-
 示例与恢复
 ----------
 
@@ -203,7 +143,6 @@ FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History
    ])
 
 示例耦合仅为说明，不是腔体数据；之前须执行相应 Slicer。
-旧平铺 Components/Solver/Memory turns 接口必须迁移至 Groups，不解释过时字段。
 命令提供 ``last_sources``、``last_coefficients``、``last_diagnostics``、
 ``group_states``，诊断包含算法、边界、保留次数、状态字节数及拟合误差。
 ``state_dict()``/``load_state_dict()`` 保存恢复各组并校验配置指纹。
@@ -215,79 +154,86 @@ WakeField 命令不能保留之前的历史；若在重新初始化的模拟中�
 
 同一束流的所有宏粒子使用由初始注入参数确定的同一固定权重。
 CPU/GPU 源投影均使用 ``bunch.ratio * bunch.num_charge * e`` 作为每个存活宏粒子的
-电荷，不使用逐粒子电荷数组。Executor 不在 Injection 前后复制 tag 或更新
-源电荷；新激活粒子保持原始权重，见 :doc:`injection`。
+电荷，不使用逐粒子电荷数组。新激活粒子保持原始权重，见 :doc:`injection`。
 
-CPU 与 GPU 执行
----------------
+文件输入
+--------
 
-CPU 与 GPU 实现放在同一文件中，CUDA 辅助函数和核函数源码位于对应 CPU 代码
-下方。``PASS/commands/wake/`` 中，时域模型位于 ``wake_models.py``，频谱及
-有理响应位于 ``wake_spectrum.py``，显式求解器和模式扫描位于
-``wake_solvers.py``，两类历史卷积分别位于 ``convolution.py`` 和
-``time_convolution.py``。投影归入 ``wake_moments.py``，时钟归入
-``wake_timing.py``，源数据存储归入 ``wake_state.py``，耦合归入
-``wake_components.py`` 和 ``wake_velocity.py``。融合粒子踢动位于
-``PASS/commands/wake_field.py`` 的 command 实现下方。CuPy 导入和 CUDA 编译
-仍按需执行，CPU 运行不依赖 CUDA 环境。
+``Model.Kind="file"`` 接受 ``File path``、``Format`` （默认 table 或 headtail）、
+``Axis column`` （默认 0）、必填 ``Value column``、可选 ``Imag column``、
+``Delimiter`` （null 为空白分隔）、``Skip rows`` （默认 0）、``Causal`` （默认 true）、
+``Reconstruction`` （默认 two_sided）、可选 ``Length (m)`` 和必填 ``Convention``。
+列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
+一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
+采样，反向时间/距离轴可以重排。
 
-CPU 与 CUDA 使用同一模型和算法组配置，通过模拟的后端设置选择；
-``execute_gpu`` 要求粒子数组已在显存。原始频谱、表格响应、谐振子、极点模式、
-直接历史及空间周期求和均在 GPU 上计算。有理拟合和解析有限 β 阻抗构造属于
-CPU 初始化工作，得到的响应数组按设备上传一次。数值表格/HEADTAIL 转换及分块
-卷积核采样也在 CPU 初始化阶段完成。
+``Convention`` 声明 ``Data kind`` （wake_function/impedance）、``Axis``
+（time/distance/frequency）、``Axis unit``、``Value unit``、``Positive trailing``、
+``Longitudinal positive loss``、``Integrated``、``Reference beta``。
+``Fourier exponent`` 默认 -1，``Transverse impedance factor`` 默认 i（可为 -i/1），
+``Shunt impedance convention`` 默认 not_applicable，仅记录来源：数值表已归一化，
+此字段不重新缩放分路阻抗。
 
-CUDA 计算使用融合的 ``RawKernel``/``RawModule``：时间换算、源矩、响应函数及积分、
-直接求和、速度耦合、事件累积、频谱乘积、插值、校验和粒子踢动均在核内完成。
-CuPy 保留为显存管理及启动接口；FFT 和排序／去重继续使用专用 GPU 库。
-不要求用基础核替代这些专用库。
+时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
+尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
+V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
+分母长度幂次，必须给定 ``Length (m)``；已经积分的数据不允许再次乘长度。
+距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
+显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
+约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
+有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。
 
-所有有存活粒子的束团共用一次投影启动及一次踢动启动，支持不同参考时间、速度及
-保存的切片宽度。空粒子群通过批量校验排除，不逐束团同步。粒子范围或 SliceSet
-存储变化时重建布局和指针缓存，参考参数单独更新；各次源记录保留自己的数组。
-固定范围的等长 Slicer 也批量执行各束团的直方图和切片表计算，存活数与越界数
-统一传回主机。主机尾场源快照合并上传各数组，显存中的各行保留本次通过的数据，
-不会被后续上传覆盖。
+HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
+V/(pC*mm)，符号仍需声明。参见 `CERN HEADTAIL 表格规范
+<https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf>`_。
+文件输入示例：
 
-直接求解器由一个 warp 负责一个见证切片，在核内计算响应并归约源贡献，不分配
-源切片乘见证切片大小的矩阵。物理时间近场修正对所有响应模型采用同一方式。
-普通 FFT 按校验后的间距、宽度、模型配置及截断时间缓存响应频谱；参考 beta
-改变几何时缓存失效。复用频谱时仍在设备上校验均匀网格。
+.. code-block:: python
 
-粒子坐标支持 float32 与 float64；物理到达时间、切片电荷矩、响应、模式状态、
-能量与动量换算均使用 float64。GPU 原子归约的求和顺序不同，因此 CPU/GPU 应按
-误差容差比较，而不要求逐位相同。float32 存储仍可能改变边界附近的切片归属，
-并在长圈数输运中积累舍入差异。
+   model = dict(kind="file", file_path="tail.dat", format="headtail",
+       axis_column=0, value_column=2,
+       convention=dict(data_kind="wake_function", axis="time", axis_unit="ns",
+           value_unit="V/(pC*mm)", positive_trailing=True,
+           longitudinal_positive_loss=True, integrated=True, reference_beta=beta))
 
-投影通过一次粒子遍历和块内直方图累积电荷及横向偶极矩。单个 CUDA 核函数
-合并各分量的测试单项式与机械踢动。模式历史采用有界仿射前缀扫描，指数因子
-保持衰减，支持临界及过阻尼谐振子；圈内事件使用相对通过原点的时间，减少
-长时间后窄切片边界的舍入损失。
-对于中心递增、各切片边界未到达相邻中心的布局，直接构造有序事件，支持相邻
-切片的部分重叠及重合边界；其他布局保留通用排序／去重。模式更新只分配一次
-下一状态向量，保留旧状态供回滚和检查点使用。物理时间卷积在事务前统一校验
-完整沉积帧，逐子块处理时不重复同步主机；单槽位空间变换使用一维 cuFFT。
-源几何、响应模型、历史截断和时间网格近似均保持原有定义。
+JSON 输入将 ``File path`` 相对其所在目录解析；直接 Python 构造则相对当前
+工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
+校验文件内容与配置。不读取 CST 工程或二进制文件、自动单位猜测或
+wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。
 
-等长局部 z 区间按当前参考速度转换为均匀时间网格。响应缓存依赖实际网格几何，beta 改变时其时间宽度也改变。用户控制 Slicer 更新；检查点序列化将显存历史转换为可移植主机数组。
+非聚束束流适配范围
+------------------
 
-小规模算例可能由 CPU 更快完成，原因是 CUDA 启动及同步开销。性能测量应先
-预热、同步 CUDA 事件，并计入 Slicer、时钟、投影和踢动。生成报告
-``tests/codex/wake_redesign/validation_report.md`` 记录实际硬件、规模、误差、
-计时及复现命令。
+非聚束束流可使用单束团组 ``harmonic_number=1``，配合覆盖整圈的等长度显式
+Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束。均匀电流 I 对
+有限因果响应的稳态电压为 :math:`V=I\int_0^\infty W(\tau)d\tau`。
+零初始历史会产生启动瞬态，应等待响应记忆填满。``Boundary="periodic"``
+表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。
 
-自定义空间项
-------------
+演化非聚束束流使用 ``Coordinate=arrival_phase``（或 ``Periodic=true``）、
+``equal_length`` 及 ``Explicit={"z min": -C, "z max": 0}``。显式更新时
+:math:`z_{phase}=-C[(-u)\bmod1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
+规定时钟选择共同观测事件和速度，见 :doc:`slicer`。各束团的参考时间、速度可以
+不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。
 
-保留现有命名分量。``Component="custom"`` 必须提供 ``Spatial``，其中
-``Plane`` 为 x/y/z，``Source powers`` 为 [a,b]，``Test powers`` 为 [c,d]，
-均为非负整数。投影源矩为 :math:`\sum_j q_j x_j^a y_j^b`，响应乘以测试粒子的
-:math:`x_i^c y_i^d`；尾函数单位的空间阶数为 a+b+c+d。这是输入多项式响应的
-表示方式，不推导未提供的多极分量，也不自动保证不同分量之间的 Maxwell 约束。
-解析圆壁模型仍只支持明确规定的纵向与对角偶极分量。
+切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。恰好为整数圈的相位映射到窗口
+起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
+更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
+``Boundary="causal_passages"``。``time_fft`` 支持变化且互不重叠的通过窗口，
+固定卷积网格仍要求其声明的时间结构。
 
-CPU/CUDA 支持相同幂次。GPU 批量直方图在同一次粒子遍历中累积 Q/Qx/Qy
-及所需的通用单项式；测试幂次在融合机械踢动核中按整数幂求值。
+这里采用 **每粒子每参考圈经过一次的近似**。在该模型内支持动量展宽及长期
+累计滑移，但不调度同一参考圈内个别粒子的零次或多次通过。实际周期为 Ti
+的均匀刚性流，在模型中表示的电流为 Q/T，实际为 Q/Ti；令
+epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。该误差为一阶，随动量偏差减小而减小。
+
+要求单圈滑移、单圈集体作用变化足够小，并对需要解析的方位模 m 满足
+:math:`2\pi |m\,\Delta u|\ll1`。切片数与时间网格应分别做收敛检查。
+``Max phase slip`` 默认 0.05、最大 0.1，在 WakeField 使用切片时拒绝
+过大的已观测单步变化；Slicer 仍可生成诊断投影。
+不是通用精度保证。长期累计运动后，粒子存储精度仍须能够解析切片宽度，
+长期非聚束束流推荐 float64。未启用周期到达切片的普通 explicit 模式仍保持
+原有的边界截取行为。
 
 固定网格多束团与长历史
 ----------------------
@@ -326,10 +272,11 @@ O(F log-squared H)，另加空间 FFT 与分量因子；两者频谱存储均为
 分层调度在块边界存在耗时峰值，性能测量应至少覆盖一个最大块周期，并报告
 平均值和最大值，不能只看中位数。
 
-每个束团按自己的参考事件转换保存的区间。GPU 投影累积当前源矩，不保存粒子时钟数组；融合粒子踢随后使用相应响应系数。
+每个束团按自己的参考事件转换保存的区间。
 
-对于 [-zmax,zmax] 等长 Slicer、共同 beta、谐波槽位 0..B-1、周长 C，且
-t0=n*C/(beta*c)，精确点源网格示例如下：
+对于 [-zmax,zmax] 等长 Slicer、共同 beta、谐波槽位 0..B-1、周长 C，
+设参考速度恒定，槽位 b 在该尾场点的参考通过时间为 t0_b=(n-b/B)*C/(beta*c)。
+精确点源网格示例如下：
 
 .. code-block:: python
 
@@ -344,10 +291,8 @@ t0=n*C/(beta*c)，精确点源网格示例如下：
        source_shape="point", memory_turns=512, convolution_grid=grid,
        partition="dyadic", max_workspace_mb=2048, components=components)
 
-选择正常 GPU 后端即在 CUDA 执行同一配置。粒子存储可为 float32，但声明的
+GPU 后端使用同一配置。粒子存储可为 float32，但声明的
 物理网格和尾场算术保持双精度；边界附近的切片归属仍可能受 float32 影响。
-生成测试、性能脚本与完整跟踪示例位于 ``tests/codex/wake_fast_history/``，
-分别测量源沉积与历史调度、以及同步后的完整追踪。
 
 变周期下的一般历史计算
 ----------------------
@@ -369,14 +314,8 @@ t0=n*C/(beta*c)，精确点源网格示例如下：
 检查收敛。表格折点和硬截断可限制实际收敛阶，选择 time_fft 本身不保证统一
 误差阈值。步长还必须能被绝对到达时间的浮点表示分辨。
 
-已完成的物理时间块送入 uniform 或 dyadic 在线卷积；尚未完成的块，包括源
-沉积超出中心的部分，跨通过保留。通过末端前一个节点也保持可写，避免相接
-通过边界的舍入误差使源沉积节点提前封存。该规则更新了物理时间检查点的
-计划版本；旧版本检查点需要从初始束流状态重新生成。preview 只计算当前已知源，不要求未来束流
-轨迹。预览中触及的持久环形缓冲行会保存并精确还原，所有组完成踢动校验后
-才提交更新。CPU/GPU 检查点包含未完成块、近场修正源、时钟原点及已完成块
-历史。空批次仍推进通过计数；间隙超过完整历史时长及投影支撑后，可精确跳过
-已无响应的空时间块。
+源数据仅包含已通过的粒子，不需要未来轨迹。CPU/GPU 检查点保存未完成的时间块、
+近场修正源、时钟原点和已完成的历史；空批次也推进通过计数。
 
 块长为 B、记忆时间为 H 秒时，历史块数 M=ceil(H/(B*delta-t))+1。
 源通道和分量数固定时，dyadic 每个完成块摊销计算量为
@@ -385,10 +324,6 @@ O(B log B + B log-squared M)，另加源沉积、测试插值及局部源—目�
 因此固定稀疏束列使用 partitioned_fft 可能明显更省。大量宽源重叠会增加
 局部修正工作量。``Block size`` 控制调度及内存访问，不改变物理分辨率。
 性能测试应覆盖完整最大块周期并报告峰值耗时。
-
-CPU 和 CUDA 实现同一投影及历史方案。CUDA 使用设备端沉积、融合的投影对
-计算、共享源 FFT、持久 cuFFT 计划和显存历史；仍会同步少量校验元数据。
-Slicer 保持逐束团调用，变周期支持不要求整列 Slicer 接口。
 
 .. code-block:: python
 
@@ -402,119 +337,91 @@ Slicer 保持逐束团调用，变周期支持不要求整列 Slicer 接口。
 示例网格值仅作说明，须对实际尾场检查收敛。原点为 null 时，首个源区间会
 选取邻近原点；显式原点不得晚于首个源的支撑起点。不同调用的源批次仍须按
 因果时间排序且支撑不重叠；同一批次内的独立重叠粒子群允许累加。
-可执行验证和同步计时位于 ``tests/codex/wake_variable_period/``。
 
-漂移束适配范围
+数值精度与收敛
+------------------
+
+粒子坐标可使用 float32 或 float64；物理到达时间、源电荷矩、响应、模式状态及能量和动量换算使用 float64。GPU 求和顺序可能不同，CPU/GPU 结果需用数值容差比较。float32 存储仍可能改变切片边界附近的归属，并积累长期输运舍入误差。
+
+等长 z 区间按当前束团参考速度换算为时间网格，参考速度改变会改变其时间宽度。用户控制 Slicer 的更新频率；切片宽度、响应频带、记忆时长和时间网格步长应分别检查收敛。
+
+物理范围与约定
 --------------
 
-漂移束可使用单束团组 ``harmonic_number=1``，配合覆盖整圈的等长度显式
-Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束。均匀电流 I 对
-有限因果响应的稳态电压为 :math:`V=I\int_0^\infty W(\tau)d\tau`。
-验证套件在 CPU/CUDA 上检查这一 DC 结果及方位谐波与解析卷积的收敛。
-零初始历史会产生启动瞬态，应等待响应记忆填满。``Boundary="periodic"``
-表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。
+PASS 跟踪解析或用户提供的响应，不求解任意三维结构的 Maxwell 方程。
+响应速度耦合使用束团参考速度；横向电压到冲量的换算则使用粒子实际入射速度。
+粒子连续坐标为 :math:`z_i=\beta_b c(T_b-t_i)`，当前位置的物理到达时间为
 
-演化漂移束使用 ``Coordinate=arrival_phase``（或 ``Periodic=true``）、
-``equal_length`` 及 ``Explicit={"z min": -C, "z max": 0}``。显式更新时
-:math:`z_{phase}=-C[(-u)\bmod1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
-规定时钟选择共同观测事件和速度，见 :doc:`slicer`。各束团的参考时间、速度可以
-不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。
+.. math::
 
-切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。恰好为整数圈的相位映射到窗口
-起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
-更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
-``Boundary="causal_passages"``。``time_fft`` 支持变化且互不重叠的通过窗口，
-固定卷积网格仍要求其声明的时间结构。
+   t_i=T_b-z_i/(\beta_b c).
 
-这里采用 **每粒子每参考圈经过一次的近似**。在该模型内支持动量展宽及长期
-累计滑移，但不调度同一参考圈内个别粒子的零次或多次通过。实际周期为 Ti
-的均匀刚性流，在模型中表示的电流为 Q/T，实际为 Q/Ti；令
-epsilon=1-Ti/T，其相对电流误差为 abs(epsilon)。真实 Drift 验证检查这一
-一阶误差及其随动量偏差减小而收敛；全环因果电压验证在 CPU/CUDA 上检查
-电荷守恒和 :math:`I\int W`。
+不保存到达修正量。RF 改变参考能量时缩放 z 以保持此时间；重分组将 z 和动量
+变换到目标参考系。尾场适配器转换用户最近提供的 z 区间：中心时间为
+:math:`T_b-z_{slice}/(\beta_b c)`，时间宽度为 :math:`\Delta z/(\beta_b c)`。
+RF 不改变保存的区间或成员。新发出的源永久保留当次采样的物理时间和宽度，
+后续参考变换不重新解释因果历史。参见 :ref:`zh-longitudinal-reference`。
 
-要求单圈滑移、单圈集体作用变化足够小，并对需要解析的方位模 m 满足
-:math:`2\pi |m\,\Delta u|\ll1`。切片数与时间网格应分别做收敛检查。
-``Max phase slip`` 默认 0.05、最大 0.1，在 WakeField 使用切片时拒绝
-过大的已观测单步变化；Slicer 仍可生成诊断投影。
-不是通用精度保证。长期累计运动后，粒子存储精度仍须能够解析切片宽度，
-长期漂移束推荐 float64。未启用周期到达切片的普通 explicit 模式仍保持
-原有的边界截取行为。
+.. math::
 
-回归与分块接口
---------------
+   F(f)=\int W(t)e^{-2\pi i f t}\,dt,\qquad Z_\parallel=F,\qquad Z_\perp=iF.
 
-``PartitionedConvolution.preview_block`` 接收有限的 float64 后端数组，
-形状为 (源通道, 槽位, 切片)。源速度因子已包含，见证速度因子只在物理
-时间采样后施加。返回的更新独立持有频谱，调用者后续修改输入数组不会
-影响它。预计算结束时持久历史不变，更新只可提交一次。多块预计算通过
-有界环形行事务在异常时精确回滚，同一状态禁止重叠事务，从而保证各组
-历史统一接受，且不必每次复制完整长历史。
+源和测试横向单项式总阶数为 :math:`n` 时，积分尾函数单位为 V/C/m\ :sup:`n`，
+阻抗单位为 ohm/m\ :sup:`n`。源矩使用带符号真实电荷，测试宏粒子权重约去。
+纵向为正表示损失能量，横向为正表示正方向 Lorentz 力。每核子能量变化
+:math:`\Delta E=-Z_{\mathrm{ion}}V_\parallel/A`，随后精确换算动量；横向
+:math:`\Delta p_x=(Z_{\mathrm{ion}}/A)V_x/(\beta_i p_0)` 使用实际入射速度。
+因果核零点取有限跳跃的一半。``uniform`` 对整个切片时间宽度均匀积分，
+``point`` 位于切片中心。切片和参数收敛由用户扫描，没有自动切片误差控制。
 
-已纳入版本管理的入口为
-``python -m tests.codex.wake_production.run_regression``。CPU CI 在 PR 和
-推送时执行；CUDA 主机使用同一入口加 ``--require-gpu``，没有真实设备时
-直接失败。生成结果与环境仍被 Git 忽略。长期验证入口
-``python -m tests.codex.wake_production.long_term --backend cpu``，也可选
-gpu，以变周期非模态表格验证 2048 圈自洽运动、增长率、tune 和强度阈值。
-独立参考为有限历史 Floquet 矩阵，不是另一个 PASS 求解器。测试使用归一化
-单位及外加的小线性阻尼映射，得到的是该基准的阈值，不是普遍机器极限。
+速度、加速与算法组
+------------------
 
-CUDA 将保存的切片区间直接换算为物理时间。所有支持的模型均采用每个见证
-切片一个 warp 计算近场精确修正，避免源—目标对列表及其计数的主机同步。性能测试包括逐束团 Slicer、参考参数变化、源投影、
-历史计算与 kick，并预热且覆盖最大历史块的完整调度周期。
+每个分量的 ``Velocity`` 显式选择：
 
-文件输入
---------
+* ``fixed`` 加 ``Beta``：同一参考速度的稳态响应，跟踪中参考速度变化会被拒绝。
+* ``factorized`` 加递增 ``Betas``、实数 ``Source`` 和 ``Witness`` 表：
+  :math:`W(t;\beta_s,\beta_w)=g_s(\beta_s)W_0(t)g_w(\beta_w)`，只在表内线性插值。
+  历史激励保存源通过时的速度；当前观察应用测试束团因子。
+* ``ideal``：显式定义速度无关点响应，不是对实际腔体渡越时间因子的推导。
 
-``Model.Kind="file"`` 接受 ``File path``、``Format`` （默认 table 或 headtail）、
-``Axis column`` （默认 0）、必填 ``Value column``、可选 ``Imag column``、
-``Delimiter`` （null 为空白分隔）、``Skip rows`` （默认 0）、``Causal`` （默认 true）、
-``Reconstruction`` （默认 two_sided）、可选 ``Length (m)`` 和必填 ``Convention``。
-列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
-一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
-采样，反向时间/距离轴可以重排。
+有限 β 壁自动设置相同固定速度。单个稳态谱不能确定任意不同速度轨迹、复数
+渡越相位或任意加速。只有已提供且适用的实因子分解可用于加速；极点频率和阻尼
+保持不变，不施加通用 β 缩放。
 
-``Convention`` 声明 ``Data kind`` （wake_function/impedance）、``Axis``
-（time/distance/frequency）、``Axis unit``、``Value unit``、``Positive trailing``、
-``Longitudinal positive loss``、``Integrated``、``Reference beta``。
-``Fourier exponent`` 默认 -1，``Transverse impedance factor`` 默认 i（可为 -i/1），
-``Shunt impedance convention`` 默认 not_applicable，仅记录来源：数值表已归一化，
-此字段不重新缩放分路阻抗。
+频谱与拟合
+----------
 
-时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
-尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
-V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
-分母长度幂次，必须给定 ``Length (m)``；已经积分的数据不允许再次乘长度。
-距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
-显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
-约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
-有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。
+原始路径对分段线性频谱做振荡积分，保留非均匀频率采样，不引入 FFT 的人工
+周期时间窗口。频带外明确为零，频带与间距需要独立收敛检查。有限带宽逆变换
+一般为双侧函数。``two_sided`` 保留该结果；``causal_projection`` 明确截去
+负时间部分，零点取跳跃一半，会改变有效频率响应，是带宽近似。
 
-HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
-V/(pC*mm)，符号仍需声明。参见 `CERN HEADTAIL 表格规范
-<https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf>`_。
-PASS 自行读取与换算数值，不依赖 Xwakes 或 PyHEADTAIL。例如：
+拟合采用变量投影：非线性优化用户选定的极点，以实数最小二乘确定留数，
+不自动选模式数。保留原始频谱及诊断；最大相对误差须满足 ``Fit tolerance``，
+分母下限为 ``Relative floor``。极点半平面受到约束，但不自动强制或认证无源性。
+纵向标量无源条件不能套用于所有横向分量；缺失频带不推断为 delta 或其导数项。
+右半平面极点只表示向负时间衰减的空间分支，不作为增长时间状态向前递推。
+``causal_projection`` 拟合要求左半平面初始极点；一般双侧拟合选择 ``two_sided``
+及明确空间边界。数值导出可使用本页的显式文件约定；不直接读取电磁仿真工程文件。
 
-.. code-block:: python
+自定义空间项
+------------
 
-   model = dict(kind="file", file_path="tail.dat", format="headtail",
-       axis_column=0, value_column=2,
-       convention=dict(data_kind="wake_function", axis="time", axis_unit="ns",
-           value_unit="V/(pC*mm)", positive_trailing=True,
-           longitudinal_positive_loss=True, integrated=True, reference_beta=beta))
+除预定义的命名分量外，``Component="custom"`` 必须提供 ``Spatial``，其中
+``Plane`` 为 x/y/z，``Source powers`` 为 [a,b]，``Test powers`` 为 [c,d]，
+均为非负整数。投影源矩为 :math:`\sum_j q_j x_j^a y_j^b`，响应乘以测试粒子的
+:math:`x_i^c y_i^d`；尾函数单位的空间阶数为 a+b+c+d。这是输入多项式响应的
+表示方式，不推导未提供的多极分量，也不自动保证不同分量之间的 Maxwell 约束。
+解析圆壁模型仍只支持明确规定的纵向与对角偶极分量。
 
-JSON 输入将 ``File path`` 相对其所在目录解析；直接 Python 构造则相对当前
-工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
-校验文件内容与配置。尚不包含 CST 工程/二进制解析、自动单位猜测或
-wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。
-
+CPU 和 GPU 支持相同的非负整数幂次。
 
 切片坐标与响应边界
 ------------------
 
 WakeField 接受局部 ``Coordinate=z_rel`` 区间及独立的
-``Coordinate=arrival_phase`` 漂移束投影。WakeField 拒绝 SpaceCharge 必须使用的
+``Coordinate=arrival_phase`` 非聚束束流投影。WakeField 拒绝 SpaceCharge 必须使用的
 ``Coordinate=z_periodic`` 环周折叠切片，因为其中心不保留连续到达时间；请分别
 定义命名切片集。
 最近一次显式 Slicer 结果决定成员与几何。坐标选择不改变算法组的 ``Boundary``：

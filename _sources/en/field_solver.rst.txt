@@ -1,25 +1,13 @@
 Transverse Field Solvers
 ========================
 
-Introduction
-------------
+This page describes the Python field-solver interfaces, numerical models and boundary conditions.
+For tracking configuration, start with :doc:`space_charge`. Standalone field calculations
+take transverse particle coordinates, slice IDs, macroparticle charge and a grid.
+Batched grid arrays use ``(slice, y, x)`` order.
 
-``PASS.commands.solver`` provides the numerical layer used by ``SpaceCharge``.
-It is independent of ``Simulation`` and PASS particle classes: PIC callers supply
-transverse particle arrays, slice IDs, a uniform grid, and charge per
-macroparticle; analytic fields use coordinates, charge, and profile parameters.  The same API can therefore be used by commands, tests, and
-standalone field studies.
-
-- **Code location**: ``PASS/commands/solver/``
-- **PIC entry point**: ``PASS/commands/solver/pic.py``
-- **Low-level PIC solver identifiers**: ``fd``, ``dst_rectangle``, ``fft_free_space``
-- **Analytic tracking entry point**: ``PASS/commands/solver/analytic.py``
-- **Array order**: ``(slice, y, x)`` for batched grid data
-- **Execution backend**: NumPy/SciPy on CPU; CuPy and CUDA libraries on GPU
-
-The numerical package solves only the transverse field problem.  It does not
-know the interaction length, bunch rigidity, relativistic kick factor, or
-simulation turn.  Those responsibilities belong to :doc:`space_charge`.
+Solvers return longitudinally integrated fields. Interaction length, bunch rigidity
+and relativistic factors enter the transverse momentum update in ``SpaceCharge``.
 
 Public configuration uses ``Method`` and ``Solver``. For ``Method="pic"``,
 ``fd_dirichlet``, ``dst_dirichlet`` and ``fft_free_space`` dispatch to the
@@ -28,121 +16,6 @@ The identifiers in the numerical API sections below are arguments to
 ``build_pic_resources``. ``fft_free_space`` is shared with the public JSON
 ``Solver`` value; the FD and DST identifiers differ between these interfaces.
 ``frozen`` and ``quasi-frozen`` select the analytic profiles described below.
-
-PIC Data Flow
--------------
-
-One call follows this sequence:
-
-.. code-block:: text
-
-   particle x, y, tag and slice_id
-                |
-                v
-     CIC or TSC charge deposition
-                |
-                v
-      Sigma[slice, y, x] in C/m^2
-                |
-                v
-       batched Poisson field solve
-                |
-                v
-      Psi in V m, integrated Ex/Ey in V
-                |
-                v
-     matching CIC or TSC field gather
-
-All longitudinal slices are stored as leading right-hand sides and are solved
-together.  Geometry-dependent masks, sparse factorizations, spectral
-eigenvalues, or FFT kernels are built once in ``PICResources`` and reused.
-
-Grid and Source Definition
---------------------------
-
-Uniform nodal grid
-~~~~~~~~~~~~~~~~~~
-
-``GridGeometry`` describes a uniform node-centered rectangle.  For the
-top-level space-charge input, full widths :math:`W_x` and :math:`W_y` define
-
-.. math::
-
-   x_{\min}=-\frac{W_x}{2},\quad x_{\max}=\frac{W_x}{2},
-   \qquad
-   \Delta x=\frac{W_x}{N_x-1},
-
-.. math::
-
-   y_{\min}=-\frac{W_y}{2},\quad y_{\max}=\frac{W_y}{2},
-   \qquad
-   \Delta y=\frac{W_y}{N_y-1}.
-
-``Nx`` and ``Ny`` are node counts, not cell counts, and must each be at least
-3. Both configuration inputs and ``build_grid_geometry`` accept a complete
-full-width pair or a complete ``Grid Half Width X/Y (m)`` pair. Half widths
-:math:`H_x,H_y` give :math:`W_x=2H_x,W_y=2H_y`. Mixing pairs, spacing inputs
-``Dx``/``Dy``, and explicit-bound mapping inputs are rejected. Direct
-``GridGeometry(...)`` construction remains available for numerical code.
-
-Charge deposition
-~~~~~~~~~~~~~~~~~
-
-For each live particle with a valid slice ID, the deposition method distributes
-the signed charge onto active field nodes:
-
-.. list-table::
-   :widths: 18 20 25 37
-   :header-rows: 1
-
-   * - Method
-     - Nodes per particle
-     - Matching gather
-     - Characteristics
-   * - ``CIC``
-     - 2 x 2
-     - bilinear
-     - Piecewise-linear weights from the particle's containing grid cell.
-   * - ``TSC``
-     - 3 x 3
-     - quadratic
-     - Wider quadratic stencil with smoother particle-grid coupling.
-
-Conductor and boundary nodes are removed from a deposition stencil.  Remaining
-weights are normalized per particle so the retained stencil conserves that
-particle's charge.  The same active-node normalization is used during gather.
-A warning is emitted when a boundary changes the stencil.  If an in-domain
-particle has no active node, it is ignored by that PIC call and gathers zero
-field; its PASS particle tag is not changed.
-
-Particles with ``tag <= 0``, invalid slice IDs, or coordinates outside the grid
-or physical aperture are also ignored.  Grid and aperture dimensions should
-therefore cover the intended tracked distribution.
-These standalone PIC functions do not modify particle tags. ``SpaceCharge``
-first applies its command aperture using the shared particle-loss function;
-wall and outside particles are lost before deposition. Surviving participating
-particles outside the grid, or without active stencil nodes, raise an error.
-See :doc:`space_charge` for initialization checks and the input contract.
-
-Poisson Equation and Units
---------------------------
-
-Each solver consumes the deposited surface density :math:`\Sigma_k` in
-C/m\ :sup:`2` and solves
-
-.. math::
-
-   -\nabla_\perp^2\Psi_k=\frac{\Sigma_k}{\epsilon_0},
-   \qquad
-   \mathcal E_{x,k}=-\frac{\partial\Psi_k}{\partial x},
-   \qquad
-   \mathcal E_{y,k}=-\frac{\partial\Psi_k}{\partial y}.
-
-Because the slice charge has already been integrated longitudinally,
-:math:`\Psi` has units V m and :math:`\mathcal E_x,\mathcal E_y` have
-units V.  These are integrated fields, not V/m average fields.
-``SpaceCharge`` divides a gathered field by that slice's ``delta_z`` before
-calculating the kick.
 
 Field-Solver Selection
 ----------------------
@@ -171,163 +44,6 @@ Field-Solver Selection
      - Zero-padded Hockney-style convolution with cached Green-function
        kernels.  Use when image charges from a conducting chamber are not
        wanted.
-
-Finite difference: ``fd``
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-For a full rectangular domain, the regular five-point discretization is
-
-.. math::
-
-   \left(\frac{2}{\Delta x^2}+\frac{2}{\Delta y^2}\right)\Psi_{i,j}
-   -\frac{\Psi_{i-1,j}+\Psi_{i+1,j}}{\Delta x^2}
-   -\frac{\Psi_{i,j-1}+\Psi_{i,j+1}}{\Delta y^2}
-   =\frac{\Sigma_{i,j}}{\epsilon_0}.
-
-The outer grid nodes are held at :math:`\Psi=0`. An explicit aperture equal
-to the full grid uses the same rectangular solver. Other continuous apertures
-use the Shortley--Weller solver.  Where a neighboring
-node lies outside the aperture, the regular spacing is replaced by the actual
-distance from the active node to the grid-line/wall intersection.  The
-physical wall is therefore not approximated merely by the visible stair-step
-node mask.
-
-The sparse matrix and LU factorization are constructed once.  Every slice is
-passed to the same factorization as one dense multi-column right-hand side.
-
-Sine transform: ``dst_rectangle``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``dst_rectangle`` imposes zero potential on all four outer grid edges.  A
-type-I discrete sine transform diagonalizes the same rectangular
-finite-difference operator.  For horizontal mode :math:`m` and vertical mode
-:math:`n`, its eigenvalue is
-
-.. math::
-
-   \lambda_{m,n}
-   =\frac{4}{\Delta x^2}\sin^2\!\left(
-      \frac{\pi m}{2(N_x-1)}\right)
-    +\frac{4}{\Delta y^2}\sin^2\!\left(
-      \frac{\pi n}{2(N_y-1)}\right).
-
-The solver transforms only the two transverse axes, preserving the leading
-slice axis.  It cannot represent a curved or smaller internal conductor.
-
-Free-space Green function: ``fft_free_space``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``fft_free_space`` performs a zero-padded linear convolution, avoiding the periodic
-wrap-around of an unpadded FFT.  Away from the self cell, the kernels are
-
-.. math::
-
-   G_\Psi(\mathbf r)
-   =-\frac{1}{2\pi\epsilon_0}\ln\!\left(\frac{r}{r_0}\right),
-   \qquad r_0=\sqrt{\Delta x\Delta y},
-
-.. math::
-
-   G_x(\mathbf r)=\frac{x}{2\pi\epsilon_0 r^2},
-   \qquad
-   G_y(\mathbf r)=\frac{y}{2\pi\epsilon_0 r^2}.
-
-The self-cell entries are set to zero.  The potential therefore uses a kernel
-reference and is meaningful only up to an additive constant; the transverse
-fields are the physical outputs.  This solver models open free space, not a
-grounded beam pipe.
-
-The source uses one forward real FFT. Each requested output uses one inverse
-FFT: two for the electric fields and a third for the potential. By default,
-``FFTFreeSpaceSolver.solve`` returns all three outputs. With
-``compute_potential=False``, it returns ``potential=None`` and skips the
-potential transform. The potential kernel is built lazily on its first use.
-The inverse transforms share a scratch spectrum; returned arrays own only
-the physical grid, releasing the larger padded arrays.
-
-The same optional keyword is available in ``solve_pic``, ``pic_cpu``, and
-``solve_poisson_fft_free_space``. FD and DST still calculate potential because
-their fields require its gradient. The ``SpaceCharge`` command requests FFT
-potential only on selected turns when ``Save potential`` is enabled.
-
-Field gradients
-~~~~~~~~~~~~~~~
-
-``fd`` on a full rectangle and ``dst_rectangle`` obtain fields with
-``E = -grad(Psi)`` using grid finite differences.  Shortley--Weller ``fd``
-uses unequal-distance derivative coefficients at active nodes near the wall.
-``fft_free_space`` convolves directly with the analytic field kernels.
-
-Aperture Interface
-------------------
-
-The SC command owns both loss geometry and, for FD/DST, the conducting wall.
-The configuration has no ``Chamber`` field. For example, a command contains:
-
-.. code-block:: json
-
-   "Aperture type": "ellipse",
-   "Aperture value": [0.04, 0.02]
-
-Internally, FD receives ``{"Type": "ellipse", "Value": [0.04, 0.02]}`` as its
-``aperture`` argument. FFT receives no conducting aperture; its command aperture
-is applied only to particle losses. The following table describes the shared
-low-level geometry builder, with all dimensions in metres. Its generic
-``default`` differs from SC: SC resolves default to the actual grid rectangle
-before calling the builder and rejects ``off`` for Dirichlet solvers.
-
-.. list-table::
-   :widths: 18 27 55
-   :header-rows: 1
-
-   * - Type
-     - ``Aperture Value``
-     - Geometry
-   * - ``off``
-     - omitted
-     - No separate physical aperture.  For ``fd``, the outer grid still acts
-       as the zero-potential boundary.
-   * - ``default``
-     - omitted
-     - Default tracking rectangle :math:`|x|\leq1`, :math:`|y|\leq1`.
-   * - ``circle``
-     - ``[R]``
-     - Circle of radius :math:`R`.
-   * - ``rectangle``
-     - ``[A, B]``
-     - Rectangle :math:`|x|\leq A`, :math:`|y|\leq B`.
-   * - ``ellipse``
-     - ``[A, B]``
-     - Ellipse :math:`x^2/A^2+y^2/B^2\leq1`.
-   * - ``rectcircle``
-     - ``[W, H, R]``
-     - Intersection of the rectangle :math:`(W,H)` and circle :math:`R`.
-   * - ``rectellipse``
-     - ``[W, H, A, B]``
-     - Intersection of the rectangle :math:`(W,H)` and ellipse
-       :math:`(A,B)`.
-   * - ``racetrack``
-     - ``[W, H, A, B]``
-     - Central half-width/half-height :math:`(W,H)` with horizontal elliptic
-       end caps of semi-axes :math:`(A,B)`.
-   * - ``octagon``
-     - ``[W, H, D]``
-     - Symmetric octagon satisfying :math:`|x|\leq W`,
-       :math:`|y|\leq H`, and :math:`|x|+|y|\leq W+H-D`.
-   * - ``polygon``
-     - ``[[x1,y1], ...]``
-     - Polygon with at least three finite vertices and nonzero area.
-
-``circular``, ``elliptic`` and ``rectangular`` are accepted lower-level
-aliases.  Named parameters are also supported by the Python aperture builder,
-but generated input files should use the table above.
-
-For ``dst_rectangle`` and ``fft_free_space``, the aperture must resolve exactly to
-the full grid-aligned rectangle; ``null`` is the normal input.  For ``fd``, a
-physical aperture should be resolved within the selected grid. The high-level
-SC initializer rejects any finite PIC aperture extending beyond the grid,
-and rejects a DST aperture different from the full rectangle. Thus an oversized
-command aperture never silently becomes a truncated conductor.
 
 Python Interfaces
 -----------------
@@ -447,6 +163,413 @@ Result Objects
 A field solver accepts either ``(ny, nx)`` for one slice or
 ``(n_slice, ny, nx)`` for a batch.  All values must be finite and the trailing
 dimensions must match the solver geometry.
+
+GPU Interfaces and Precision
+--------------------------------------------------------
+
+GPU interfaces require a compatible CUDA environment and GPU dependencies; install the project with the ``cuda`` optional dependency. CPU interfaces do not require CuPy.
+
+``build_pic_resources_gpu`` accepts the same geometry and low-level solver
+names as ``build_pic_resources``, plus ``dtype``, ``num_slices``,
+``dst_implementation``, ``fft_batch_size`` and ``deposition_strategy``.
+The defaults are ``float64``, automatic DST selection, 16-slice FFT chunks and
+direct atomic deposition. ``num_slices`` should be supplied at initialization.
+For example, given device arrays ``x``, ``y`` and integer ``slice_id``:
+
+.. code-block:: python
+
+   from PASS.commands.solver import (
+       GridGeometry, build_pic_resources_gpu, pic_gpu, gather_fields_gpu,
+   )
+
+   grid = GridGeometry(513, 513, -0.02, 0.02, -0.02, 0.02)
+   resources = build_pic_resources_gpu(
+       grid, field_solver="dst_rectangle", dtype=x.dtype, num_slices=100,
+   )
+   result = pic_gpu(x, y, slice_id, 1.0e-15, geometry=grid,
+                    resources=resources, num_slices=100, method="CIC")
+   ex, ey = gather_fields_gpu(result.integrated_ex, result.integrated_ey, {"x": x, "y": y},
+                             grid, resources, slice_id, method="CIC")
+   resources.close()
+
+Arrays and reduction diagnostics remain on the GPU. Results own their grid
+arrays by default. ``copy=False`` borrows grid buffers until the next call on
+the same resources. ``validate=False`` skips finite-value checks for validated
+inputs; metadata checks still apply. Supplying ``num_slices`` avoids a device
+maximum read. Reuse requires the creation device and stream, serialized calls,
+unchanged geometry, boundary operator and precision. ``close()`` releases
+workspaces and cuDSS handles; further use raises an error. A different slice
+count rebuilds the batch workspace, retaining the FD factorization.
+
+``dst_implementation`` accepts ``auto``, ``cufft``, ``cufftdx`` or ``fused``.
+The default ``auto`` validates optional implementations before selecting one;
+unavailable optional dependencies fall back to cuFFT, while a numerical discrepancy raises an error.
+Explicit optional implementations report their dependency or compilation failures.
+Fused implementations support power-of-two extension lengths from 8 through 2048;
+other legal sizes use cuFFT without changing the configured grid. Measure performance
+on the target GPU at the intended precision.
+
+``deposition_strategy`` accepts ``atomic``, ``warp`` or ``sorted_warp``.
+The latter two aggregate contributions to the same node; ``sorted_warp`` also
+sorts temporary indices. All preserve particle-pool ordering, normalize retained
+boundary weights and use matching gather weights.
+
+Geometry and aperture tests use double-precision intermediates even with ``float32``
+particles. Density, potential, fields and final momentum updates retain the selected
+precision. ``solve_analytic_gpu`` supports all six analytic profiles; centered
+moments and special-function intermediates use ``float64``, while particle fields use
+the configured precision. Higher-precision intermediates cannot recover digits
+already lost in stored particle coordinates. Analytic diagnostic-grid sampling may use the CPU.
+
+Aperture Interface
+------------------
+
+The SC command owns both loss geometry and, for FD/DST, the conducting wall.
+For example, a command contains:
+
+.. code-block:: json
+
+   "Aperture type": "ellipse",
+   "Aperture value": [0.04, 0.02]
+
+Internally, FD receives ``{"Type": "ellipse", "Value": [0.04, 0.02]}`` as its
+``aperture`` argument. FFT receives no conducting aperture; its command aperture
+is applied only to particle losses. The following table describes the shared
+low-level geometry builder, with all dimensions in metres. Its generic
+``default`` differs from SC: SC resolves default to the actual grid rectangle
+before calling the builder and rejects ``off`` for Dirichlet solvers.
+
+.. list-table::
+   :widths: 18 27 55
+   :header-rows: 1
+
+   * - Type
+     - ``Aperture Value``
+     - Geometry
+   * - ``off``
+     - omitted
+     - No separate physical aperture.  For ``fd``, the outer grid still acts
+       as the zero-potential boundary.
+   * - ``default``
+     - omitted
+     - Default tracking rectangle :math:`|x|\leq1`, :math:`|y|\leq1`.
+   * - ``circle``
+     - ``[R]``
+     - Circle of radius :math:`R`.
+   * - ``rectangle``
+     - ``[A, B]``
+     - Rectangle :math:`|x|\leq A`, :math:`|y|\leq B`.
+   * - ``ellipse``
+     - ``[A, B]``
+     - Ellipse :math:`x^2/A^2+y^2/B^2\leq1`.
+   * - ``rectcircle``
+     - ``[W, H, R]``
+     - Intersection of the rectangle :math:`(W,H)` and circle :math:`R`.
+   * - ``rectellipse``
+     - ``[W, H, A, B]``
+     - Intersection of the rectangle :math:`(W,H)` and ellipse
+       :math:`(A,B)`.
+   * - ``racetrack``
+     - ``[W, H, A, B]``
+     - Central half-width/half-height :math:`(W,H)` with horizontal elliptic
+       end caps of semi-axes :math:`(A,B)`.
+   * - ``octagon``
+     - ``[W, H, D]``
+     - Symmetric octagon satisfying :math:`|x|\leq W`,
+       :math:`|y|\leq H`, and :math:`|x|+|y|\leq W+H-D`.
+   * - ``polygon``
+     - ``[[x1,y1], ...]``
+     - Polygon with at least three finite vertices and nonzero area.
+
+``circular``, ``elliptic`` and ``rectangular`` are accepted lower-level
+aliases.  Named parameters are also supported by the Python aperture builder,
+but generated input files should use the table above.
+
+For ``dst_rectangle`` and ``fft_free_space``, the aperture must resolve exactly to
+the full grid-aligned rectangle; ``null`` is the normal input.  For ``fd``, a
+physical aperture should be resolved within the selected grid. The high-level
+SC initializer rejects any finite PIC aperture extending beyond the grid,
+and rejects a DST aperture different from the full rectangle. Thus an oversized
+command aperture never silently becomes a truncated conductor.
+
+Efficient Grid Sizes
+--------------------
+
+Here ``N`` counts nodes, including both endpoints: a width ``W`` has spacing
+``h = W/(N-1)``. Choose the physical extent and required resolution first.
+The following are convenient starting sizes near each nominal scale, not
+hardware-independent timing optima; apply the rule separately to each axis.
+
+.. list-table:: Node-count recommendations
+   :header-rows: 1
+   :widths: 16 24 20 20 20
+
+   * - Nominal scale
+     - FD baseline
+     - DST nodes
+     - FFT nodes
+     - FFT padded size
+   * - 128
+     - About 128
+     - 129
+     - 128
+     - 256
+   * - 256
+     - About 256
+     - 257
+     - 256
+     - 512
+   * - 512
+     - About 512
+     - 513
+     - 512
+     - 1024
+   * - 1024
+     - About 1024
+     - 1025
+     - 1024
+     - 2048
+   * - 2048
+     - About 2048
+     - 2049
+     - 2048
+     - 4096
+
+For DST-I the interior length is ``N-2`` and the logical transform length is
+``2*(N-1)``. Therefore ``N = 2**k + 1`` is a convenient family. More generally,
+small prime factors in ``N-1`` are favorable; powers of two are not the only
+fast lengths.
+
+For FFT Green convolution each axis is padded to
+``P = scipy.fft.next_fast_len(2*N-1)``. Choosing ``N = 2**k`` gives
+``P = 2**(k+1)`` at the listed sizes. Nearby node counts can also be fast;
+benchmark candidates at comparable resolution. Padding prevents circular
+wrap-around and does not increase the physical grid extent.
+
+FD uses sparse factorization and has no special power-of-two advantage.
+Choose the smallest size satisfying geometry and convergence requirements,
+for example ``N >= ceil(W/h_max) + 1``. An odd size can be useful to place a
+node on the centerline. The FD column is only a resolution baseline: a
+2048-by-2048 sparse factorization can require substantial memory. For a full
+grounded rectangle, DST solves the same discrete Poisson system without
+sparse LU factors. PASS keeps the explicitly configured node counts.
+
+Selection Guidance and Limitations
+----------------------------------
+
+- Use ``fd`` for a grounded chamber, especially a curved, polygonal, or
+  compound aperture.
+- Use ``dst_rectangle`` for a grounded chamber exactly aligned with the full
+  rectangular grid.
+- Use ``fft_free_space`` for an open-boundary approximation without image charges.
+- Increase the grid extent until an open-boundary field is insensitive to
+  truncation, and increase resolution until field and kick observables
+  converge.
+- CIC is cheaper and more local; TSC gives smoother coupling but uses a wider
+  stencil.  The deposition and gather methods must remain paired.
+- CPU and GPU implement the same boundary models and units. Floating-point
+  reductions and sparse factorizations need not be bitwise identical.
+
+PIC Data Flow
+-------------
+
+One call follows this sequence:
+
+.. code-block:: text
+
+   particle x, y, tag and slice_id
+                |
+                v
+     CIC or TSC charge deposition
+                |
+                v
+      Sigma[slice, y, x] in C/m^2
+                |
+                v
+       batched Poisson field solve
+                |
+                v
+      Psi in V m, integrated Ex/Ey in V
+                |
+                v
+     matching CIC or TSC field gather
+
+All longitudinal slices are stored as leading right-hand sides and are solved
+together.  Geometry-dependent masks, sparse factorizations, spectral
+eigenvalues, or FFT kernels are built once in ``PICResources`` and reused.
+
+Grid and Source Definition
+--------------------------
+
+Uniform nodal grid
+~~~~~~~~~~~~~~~~~~
+
+``GridGeometry`` describes a uniform node-centered rectangle.  For the
+top-level space-charge input, full widths :math:`W_x` and :math:`W_y` define
+
+.. math::
+
+   x_{\min}=-\frac{W_x}{2},\quad x_{\max}=\frac{W_x}{2},
+   \qquad
+   \Delta x=\frac{W_x}{N_x-1},
+
+.. math::
+
+   y_{\min}=-\frac{W_y}{2},\quad y_{\max}=\frac{W_y}{2},
+   \qquad
+   \Delta y=\frac{W_y}{N_y-1}.
+
+``Nx`` and ``Ny`` are node counts, not cell counts, and must each be at least
+3. Both configuration inputs and ``build_grid_geometry`` accept a complete
+full-width pair or a complete ``Grid Half Width X/Y (m)`` pair. Half widths
+:math:`H_x,H_y` give :math:`W_x=2H_x,W_y=2H_y`. Mixing pairs, spacing inputs
+``Dx``/``Dy``, and explicit-bound mapping inputs are rejected. Direct
+``GridGeometry(...)`` construction remains available for numerical code.
+
+Charge deposition
+~~~~~~~~~~~~~~~~~
+
+For each live particle with a valid slice ID, the deposition method distributes
+the signed charge onto active field nodes:
+
+.. list-table::
+   :widths: 18 20 25 37
+   :header-rows: 1
+
+   * - Method
+     - Nodes per particle
+     - Matching gather
+     - Characteristics
+   * - ``CIC``
+     - 2 x 2
+     - bilinear
+     - Piecewise-linear weights from the particle's containing grid cell.
+   * - ``TSC``
+     - 3 x 3
+     - quadratic
+     - Wider quadratic stencil with smoother particle-grid coupling.
+
+Conductor and boundary nodes are removed from a deposition stencil.  Remaining
+weights are normalized per particle so the retained stencil conserves that
+particle's charge.  The same active-node normalization is used during gather.
+A warning is emitted when a boundary changes the stencil.  If an in-domain
+particle has no active node, it is ignored by that PIC call and gathers zero
+field; its PASS particle tag is not changed.
+
+Particles with ``tag <= 0``, invalid slice IDs, or coordinates outside the grid
+or physical aperture are also ignored.  Grid and aperture dimensions should
+therefore cover the intended tracked distribution.
+These standalone PIC functions do not modify particle tags. ``SpaceCharge``
+first applies its command aperture using the shared particle-loss function;
+wall and outside particles are lost before deposition. Surviving participating
+particles outside the grid, or without active stencil nodes, raise an error.
+See :doc:`space_charge` for initialization checks and the input contract.
+
+Poisson Equation and Units
+--------------------------
+
+Each solver consumes the deposited surface density :math:`\Sigma_k` in
+C/m\ :sup:`2` and solves
+
+.. math::
+
+   -\nabla_\perp^2\Psi_k=\frac{\Sigma_k}{\epsilon_0},
+   \qquad
+   \mathcal E_{x,k}=-\frac{\partial\Psi_k}{\partial x},
+   \qquad
+   \mathcal E_{y,k}=-\frac{\partial\Psi_k}{\partial y}.
+
+Because the slice charge has already been integrated longitudinally,
+:math:`\Psi` has units V m and :math:`\mathcal E_x,\mathcal E_y` have
+units V.  These are integrated fields, not V/m average fields.
+``SpaceCharge`` divides a gathered field by that slice's ``delta_z`` before
+calculating the kick.
+
+Numerical Methods
+----------------------------------
+
+Finite difference: ``fd``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For a full rectangular domain, the regular five-point discretization is
+
+.. math::
+
+   \left(\frac{2}{\Delta x^2}+\frac{2}{\Delta y^2}\right)\Psi_{i,j}
+   -\frac{\Psi_{i-1,j}+\Psi_{i+1,j}}{\Delta x^2}
+   -\frac{\Psi_{i,j-1}+\Psi_{i,j+1}}{\Delta y^2}
+   =\frac{\Sigma_{i,j}}{\epsilon_0}.
+
+The outer grid nodes are held at :math:`\Psi=0`. An explicit aperture equal
+to the full grid uses the same rectangular solver. Other continuous apertures
+use the Shortley--Weller solver.  Where a neighboring
+node lies outside the aperture, the regular spacing is replaced by the actual
+distance from the active node to the grid-line/wall intersection.  The
+physical wall is therefore not approximated merely by the visible stair-step
+node mask.
+
+The sparse matrix and LU factorization are constructed once.  Every slice is
+passed to the same factorization as one dense multi-column right-hand side.
+
+Sine transform: ``dst_rectangle``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``dst_rectangle`` imposes zero potential on all four outer grid edges.  A
+type-I discrete sine transform diagonalizes the same rectangular
+finite-difference operator.  For horizontal mode :math:`m` and vertical mode
+:math:`n`, its eigenvalue is
+
+.. math::
+
+   \lambda_{m,n}
+   =\frac{4}{\Delta x^2}\sin^2\!\left(
+      \frac{\pi m}{2(N_x-1)}\right)
+    +\frac{4}{\Delta y^2}\sin^2\!\left(
+      \frac{\pi n}{2(N_y-1)}\right).
+
+The solver transforms only the two transverse axes, preserving the leading
+slice axis.  It cannot represent a curved or smaller internal conductor.
+
+Free-space Green function: ``fft_free_space``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``fft_free_space`` performs a zero-padded linear convolution, avoiding the periodic
+wrap-around of an unpadded FFT.  Away from the self cell, the kernels are
+
+.. math::
+
+   G_\Psi(\mathbf r)
+   =-\frac{1}{2\pi\epsilon_0}\ln\!\left(\frac{r}{r_0}\right),
+   \qquad r_0=\sqrt{\Delta x\Delta y},
+
+.. math::
+
+   G_x(\mathbf r)=\frac{x}{2\pi\epsilon_0 r^2},
+   \qquad
+   G_y(\mathbf r)=\frac{y}{2\pi\epsilon_0 r^2}.
+
+The self-cell entries are set to zero.  The potential therefore uses a kernel
+reference and is meaningful only up to an additive constant; the transverse
+fields are the physical outputs.  This solver models open free space, not a
+grounded beam pipe.
+
+The source uses one forward real FFT. Each requested output uses one inverse
+FFT: two for the electric fields and a third for the potential. By default,
+``FFTFreeSpaceSolver.solve`` returns all three outputs. With
+``compute_potential=False``, it returns ``potential=None`` and skips the
+potential transform. The potential kernel is built lazily on its first use.
+The same optional keyword is available in ``solve_pic``, ``pic_cpu``, and
+``solve_poisson_fft_free_space``. FD and DST still calculate potential because
+their fields require its gradient. The ``SpaceCharge`` command requests FFT
+potential only on selected turns when ``Save potential`` is enabled.
+
+Field gradients
+~~~~~~~~~~~~~~~
+
+``fd`` on a full rectangle and ``dst_rectangle`` obtain fields with
+``E = -grad(Psi)`` using grid finite differences.  Shortley--Weller ``fd``
+uses unequal-distance derivative coefficients at active nodes near the wall.
+``fft_free_space`` convolves directly with the analytic field kernels.
 
 Analytic Tracking and Reference Fields
 ------------------------------------------
@@ -718,17 +841,10 @@ to the slice-average field. Coordinates are already in the source frame:
 
 For tracking, select the corresponding public ``Solver`` together with
 ``Method="frozen"`` or ``"quasi-frozen"``; see :doc:`space_charge` for JSON
-examples and command aperture defaults. Validation cases in
-``tests/integration/space_charge/test_analytic_free_space_tracking.py`` compare
-actual particle kicks against independent field integrals. Run
-``python -m tests.integration.space_charge analytic`` for these comparisons
-and repeated-kick parameter-evolution checks, including generated plots.
-
-These validation commands require local test files: ``tests/`` is excluded
-from Git and is not included in fresh clones.
+examples and command aperture defaults.
 
 Python interfaces and numerical stability
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``solve_analytic(x, y, slice_id, valid, num_slices, charge_per_macro,
 configuration)`` groups assigned live particles by slice. Frozen parameters
@@ -797,203 +913,3 @@ Near the beam center, where the stable-half-plane terms also nearly cancel,
 a cubic field expansion is used when
 ``(x/sigma_x)**2 + (y/sigma_y)**2 <= 1e-6``. Its relative truncation error is
 of order the square of this normalized squared radius.
-
-Efficient Grid Sizes
---------------------
-
-Here ``N`` counts nodes, including both endpoints: a width ``W`` has spacing
-``h = W/(N-1)``. Choose the physical extent and required resolution first.
-The following are convenient starting sizes near each nominal scale, not
-hardware-independent timing optima; apply the rule separately to each axis.
-
-.. list-table:: Node-count recommendations
-   :header-rows: 1
-   :widths: 16 24 20 20 20
-
-   * - Nominal scale
-     - FD baseline
-     - DST nodes
-     - FFT nodes
-     - FFT padded size
-   * - 128
-     - About 128
-     - 129
-     - 128
-     - 256
-   * - 256
-     - About 256
-     - 257
-     - 256
-     - 512
-   * - 512
-     - About 512
-     - 513
-     - 512
-     - 1024
-   * - 1024
-     - About 1024
-     - 1025
-     - 1024
-     - 2048
-   * - 2048
-     - About 2048
-     - 2049
-     - 2048
-     - 4096
-
-For DST-I the interior length is ``N-2`` and the logical transform length is
-``2*(N-1)``. Therefore ``N = 2**k + 1`` is a convenient family. More generally,
-small prime factors in ``N-1`` are favorable; powers of two are not the only
-fast lengths.
-
-For FFT Green convolution each axis is padded to
-``P = scipy.fft.next_fast_len(2*N-1)``. Choosing ``N = 2**k`` gives
-``P = 2**(k+1)`` at the listed sizes. Nearby node counts can also be fast;
-benchmark candidates at comparable resolution. Padding prevents circular
-wrap-around and does not increase the physical grid extent.
-
-FD uses sparse factorization and has no special power-of-two advantage.
-Choose the smallest size satisfying geometry and convergence requirements,
-for example ``N >= ceil(W/h_max) + 1``. An odd size can be useful to place a
-node on the centerline. The FD column is only a resolution baseline: a
-2048-by-2048 sparse factorization can require substantial memory. For a full
-grounded rectangle, DST solves the same discrete Poisson system without
-sparse LU factors. PASS keeps the explicitly configured node counts.
-
-Selection Guidance and Limitations
-----------------------------------
-
-- Use ``fd`` for a grounded chamber, especially a curved, polygonal, or
-  compound aperture.
-- Use ``dst_rectangle`` for a grounded chamber exactly aligned with the full
-  rectangular grid.
-- Use ``fft_free_space`` for an open-boundary approximation without image charges.
-- Increase the grid extent until an open-boundary field is insensitive to
-  truncation, and increase resolution until field and kick observables
-  converge.
-- CIC is cheaper and more local; TSC gives smoother coupling but uses a wider
-  stencil.  The deposition and gather methods must remain paired.
-- CPU and GPU implement the same boundary models and units. Floating-point
-  reductions and sparse factorizations need not be bitwise identical.
-
-GPU resources and execution
----------------------------
-
-Install ``python -m pip install --editable ".[cuda]"`` with a compatible CUDA
-toolkit and driver. GPU imports are lazy; CPU use does not require CuPy.
-The implementation uses CuPy device arrays and ``RawKernel`` for deposition,
-gather and field processing. Host-side Python calls the cuDSS bindings and
-cuFFT plans; these host library APIs are not called inside a CUDA kernel.
-
-CPU and GPU implementations live in the same module for each function. CUDA
-source is embedded in that module and compiled lazily; there are no separate
-``gpu_*.py`` implementations or external ``.cu`` source files for these solvers.
-The previous GPU module import paths have been removed.
-
-.. list-table:: Source modules under ``PASS.commands.solver``
-   :header-rows: 1
-   :widths: 25 75
-
-   * - Module
-     - CPU and GPU entry points
-   * - ``pic.py``
-     - ``pic_cpu`` / ``pic_gpu``, resource builders, deposition and gather.
-   * - ``fd_rectangle.py``
-     - ``FDRectangleSolver`` / ``GPUFDRectangleSolver(geometry, dtype="float64")``.
-   * - ``fd_arbitrary.py``
-     - ``FDArbitrarySolver`` / ``GPUFDArbitrarySolver(geometry, aperture, dtype="float64")``.
-   * - ``dst_rectangle.py``
-     - ``DSTRectangleSolver`` / ``GPUDSTRectangleSolver``, including cuFFTDx compilation.
-   * - ``fft_free_space.py``
-     - ``FFTFreeSpaceSolver`` / ``GPUFFTFreeSpaceSolver``.
-   * - ``analytic.py``
-     - ``solve_analytic`` / ``solve_analytic_gpu``.
-
-``field_result.py`` provides the shared result type and GPU buffer/compilation
-utilities. Both SpaceCharge execution paths live in ``PASS.commands.space_charge``;
-internal-element scheduling lives in ``PASS.utils.slicing``. GPU libraries are
-imported only inside GPU entry points, so co-location does not add a CUDA
-requirement to CPU execution.
-
-.. list-table:: GPU solver implementations
-   :header-rows: 1
-   :widths: 22 78
-
-   * - Solver
-     - Resident computation
-   * - ``fd``
-     - cuDSS factorization at initialization and batched dense right-hand-side
-       solves during tracking. Full rectangles use SPD mode; Shortley--Weller
-       matrices use general mode because unequal boundary distances can break symmetry.
-   * - ``dst_rectangle``
-     - General DST-I uses odd extension, real cuFFT transforms and fused
-       packing, transpose and normalization kernels. Suitable power-of-two
-       extensions also support a cuFFTDx implementation that fuses both
-       transverse-y transforms with the eigenvalue division.
-   * - ``fft_free_space``
-     - Batched real cuFFT linear convolution with cached Green-function spectra,
-       small-prime padding and bounded slice chunks. One source transform is
-       reused for both field components and optional potential.
-
-``build_pic_resources_gpu`` accepts the same geometry and low-level solver
-names as ``build_pic_resources``, plus ``dtype``, ``num_slices``,
-``dst_implementation``, ``fft_batch_size`` and ``deposition_strategy``.
-The defaults are ``float64``, automatic DST selection, 16-slice FFT chunks and
-direct atomic deposition. ``num_slices`` should be supplied at initialization.
-For example, given device arrays ``x``, ``y`` and integer ``slice_id``:
-
-.. code-block:: python
-
-   from PASS.commands.solver import (
-       GridGeometry, build_pic_resources_gpu, pic_gpu, gather_fields_gpu,
-   )
-
-   grid = GridGeometry(513, 513, -0.02, 0.02, -0.02, 0.02)
-   resources = build_pic_resources_gpu(
-       grid, field_solver="dst_rectangle", dtype=x.dtype, num_slices=100,
-   )
-   result = pic_gpu(x, y, slice_id, 1.0e-15, geometry=grid,
-                    resources=resources, num_slices=100, method="CIC")
-   ex, ey = gather_fields_gpu(result.integrated_ex, result.integrated_ey, {"x": x, "y": y},
-                             grid, resources, slice_id, method="CIC")
-   resources.close()
-
-Arrays and reduction diagnostics remain on the GPU. Results own their grid
-arrays by default. ``copy=False`` borrows grid buffers until the next call on
-the same resources. ``validate=False`` skips finite-value checks for validated
-inputs; metadata checks still apply. Supplying ``num_slices`` avoids a device
-maximum read. Reuse requires the creation device and stream, serialized calls,
-unchanged geometry, boundary operator and precision. ``close()`` releases
-workspaces and cuDSS handles; further use raises an error. A different slice
-count rebuilds the batch workspace, retaining the FD factorization.
-
-Automatic DST selection first checks numerical agreement and then interleaves
-CUDA-event timings of cuFFT and cuFFTDx. It selects cuFFTDx only when its median
-is at least 5 percent lower. The decision is cached in the process by device,
-precision, grid dimensions and slice count. Tuning and first-time NVRTC
-compilation belong to initialization. Explicit choices are ``cufft``,
-``cufftdx`` and ``fused`` (the ordinary CUDA radix-two implementation).
-cuFFTDx headers come from ``nvidia-mathdx``. Automatic mode warns and retains
-cuFFT if this optional implementation cannot compile; a numerical discrepancy
-raises an error. Explicit cuFFTDx requests report dependency/compiler failures.
-
-Node counts include boundary nodes: 513 nodes give 511 interior nodes and a
-1024-point DST-I extension; 512 nodes give a 1022-point extension. Counts
-``2**k + 1`` are useful candidates. The fused implementations currently accept
-extension lengths 8 through 2048; all other legal sizes use cuFFT without
-changing the configured grid. Benchmark on the actual target GPU and precision.
-
-``deposition_strategy="warp"`` combines same-node contributions within a warp;
-``sorted_warp`` first sorts temporary particle indices by slice and cell, then
-uses the same aggregation. Neither changes the particle pool ordering. Sorting
-cost must be included in comparisons: clustered input alone does not guarantee
-a gain. Both CIC and TSC normalize retained wall stencils and use matching
-gather weights. Geometry and aperture comparisons use double intermediates,
-including with FP32 particles, to avoid rounding a near-wall point onto a
-different node. Density, potential, fields and kicks retain the selected precision.
-
-GPU analytic tracking is provided by ``analytic.solve_analytic_gpu`` for
-all six round/elliptical Gaussian/uniform/parabolic profiles in frozen and quasi-frozen
-mode. Centered slice statistics and special-function intermediates use FP64;
-particle fields follow the configured dtype. Diagnostic analytic-grid sampling
-may use the CPU on selected output turns.

@@ -1,139 +1,20 @@
 统计监视器（StatMonitor）
-==========================
+====================================
 
-简介
-----
+``StatMonitor`` 在指定晶格位置逐圈记录各束团的质心、标准差、RMS 发射度、统计 Twiss 参数及粒子损失。统计矩仅使用存活粒子（``tag > 0``）；每个监视器为各束团输出 CSV 及所选格式的统计历史。
 
-``StatMonitor`` 是束流统计监视器，在指定纵向位置逐圈记录束团的统计量，包括质心位置、束流尺寸、发射度、 Twiss 参数、高阶矩及束流损失等。它是评估束流品质演变和诊断束流动力学行为的核心工具。
+配置示例
+------------
 
-- **代码位置** ： ``PASS/commands/monitor/statistic.py``
-- **类名** ： ``StatMonitor`` ，注册名 ``"statmonitor"``
-- **核心特征** ：
+.. code-block:: python
 
-  - 逐圈计算束团在 6D 相空间的统计量（一阶至四阶矩）；
-  - 由二阶矩导出发射度和 Twiss 参数（beta、alpha、gamma）；
-  - 记录束流损失数与损失百分比；
-  - CPU 使用 numpy 向量化计算， GPU 使用 CUDA 核函数 + warp 归约；
-  - 逐圈计算统计量，默认每 100 圈批量追加到 HDF5 和 CSV；
-  - 仅统计存活粒子（ ``tag > 0`` ），已丢失粒子不计入。
+   from PASS.para.schema.monitors import StatMonitorItem
+   from PASS.para.schema.sequence import Sequence
 
+   sequence = Sequence()
+   sequence.add("stat1", StatMonitorItem(s=0.0, write_interval_turns=100))
 
-工作原理
---------
-
-统计量计算
-~~~~~~~~~~
-
-对于束团中的 :math:`N` 个存活粒子（ :math:`\text{tag} > 0` ），各阶矩定义为：
-
-一阶矩（质心）：
-
-.. math::
-
-   \langle x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i
-
-二阶矩：
-
-.. math::
-
-   \langle x^2 \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i^2
-
-协方差：
-
-.. math::
-
-   \langle x \, p_x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i \, p_{x,i}
-
-束流尺寸（标准差）：
-
-.. math::
-
-   \sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}
-
-同理计算 :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` 。
-
-实现中计算等价的中心矩，避免两个较大的原点矩相减。对于 FP32 和 FP64
-粒子，CPU 与 GPU 均使用 FP64 累加：先以一个存活粒子为基准求质心，
-再围绕质心累计各阶矩。这也改善了窄束团或偏心束团的协方差、发射度、
-偏度与峰度的数值稳定性。粒子存储精度不变，z 统计的临时环周投影使用 FP64。
-
-``sigmaZ`` 和 z 矩仍按临时环周代表值计算，不回写连续存储 z。新增 ``sigmaTime`` 使用未折叠 z 的标准差除以 :math:`\beta_b c`，表示实际通过时间展宽。输出逐行包含 ``referenceTime``、``referenceBeta``、``referenceMomentum``；名义 zCenter 不能用来重建实验室质心。
-
-发射度与 Twiss 参数
-~~~~~~~~~~~~~~~~~~~
-
-由二阶矩导出 2D 发射度：
-
-.. math::
-
-   \varepsilon_x = \sqrt{\sigma_x^2 \, \sigma_{p_x}^2 - \sigma_{x,p_x}^2}
-
-其中 :math:`\sigma_{x,p_x} = \langle x \, p_x \rangle - \langle x \rangle \langle p_x \rangle` 为协方差。
-
-Twiss 参数：
-
-.. math::
-
-   \beta_x = \frac{\sigma_x^2}{\varepsilon_x}
-
-.. math::
-
-   \alpha_x = -\frac{\sigma_{x,p_x}}{\varepsilon_x}
-
-.. math::
-
-   \gamma_x = \frac{\sigma_{p_x}^2}{\varepsilon_x}
-
-不变量校验：
-
-.. math::
-
-   \gamma_x \, \beta_x - \alpha_x^2 = 1
-
-垂直方向（ y ）的公式形式完全相同，将下标 x 替换为 y 即可。
-
-高阶矩
-~~~~~~
-
-偏度（三阶标准化矩）：
-
-.. math::
-
-   S_x = \frac{\langle x^3 \rangle - 3 \langle x \rangle \sigma_x^2 - \langle x \rangle^3}{\sigma_x^3}
-
-峰度（四阶标准化矩）：
-
-.. math::
-
-   K_x = \frac{\langle x^4 \rangle - 4 \langle x \rangle \langle x^3 \rangle + 2 \langle x \rangle^2 \langle x^2 \rangle + 4 \langle x \rangle^2 \sigma_x^2 + \langle x \rangle^4}{\sigma_x^4}
-
-束流损失
-~~~~~~~~
-
-.. math::
-
-   N_{\text{loss}} = N_{\text{total}} - N_{\text{alive}}
-
-.. math::
-
-   \text{loss\%} = \frac{N_{\text{loss}}}{N_{\text{total}}} \times 100\%
-
-其中 :math:`N_{\text{total}}` 为束团初始宏粒子数， :math:`N_{\text{alive}}` 为当前存活粒子数。
-
-GPU 实现
-~~~~~~~~
-
-GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
-每个线程使用 FP64 寄存器累加 23 个矩之和及存活、已注入粒子计数，
-经 warp 归约（``__shfl_down_sync``）和 block 归约后，
-通过 ``atomicAdd`` 写入全局结果。块数上限为 512，以限制原子操作竞争。
-两遍计算之间的中心值和计数始终保留在 GPU 上。
-
-每圈的结果填入预分配的 GPU 缓存。到达指定写入间隔后，
-该监视器所有束团的待写记录通过一次复制传回 CPU，
-再逐条沿用现有标量公式计算发射度、Twiss 参数及其他输出列。
-参考时间、beta 和动量原本位于 CPU，因此逐圈单独保存在 CPU 上。
-
+将该命令加入完整跟踪序列。``write_interval_turns`` 控制文件写入间隔，统计量仍逐圈记录。命令名称由序列键给定。
 
 接口参数
 --------
@@ -142,7 +23,7 @@ GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
   :header-rows: 1
   :widths: 20 20 10 10 40
 
-  * - 属性名
+  * - Python 字段
     - JSON key
     - 类型
     - 默认值
@@ -152,11 +33,6 @@ GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
     - float
     - 必填
     - 监视器在束线中的纵向位置
-  * - ``cmd_name``
-    - ``"name"``
-    - str
-    - 必填
-    - 监视器名称（由序列键名自动填入）
   * - ``command``
     - ``"Command"``
     - str
@@ -277,7 +153,7 @@ GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
     - 垂直不变量（应等于 1）
   * - ``zCenter``
     - 纵向参考
-    - 束团实验室纵向中心 :math:`z_{\mathrm{center}}`
+    - 束团名义分组位置（并非物理质心） :math:`z_{\mathrm{center}}`
   * - ``referenceTime``
     - 参考量
     - 此次观测的参考通过时间（s）
@@ -286,7 +162,7 @@ GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
     - 此次观测的参考速度与 c 的比值
   * - ``referenceMomentum``
     - 参考量
-    - 此次观测的参考机械动量（eV/c）
+    - 此次观测的参考机械动量（离子按 eV/c/u 计）
   * - ``sigmaTime``
     - 束流尺寸
     - 由连续 z 计算的通过时间标准差（s）
@@ -301,7 +177,7 @@ GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
     - :math:`\langle y \, z \rangle`
   * - ``xzDevideSigmaxSigmaz``
     - 关联
-    - :math:`\langle x \, z \rangle / (\sigma_x \, \sigma_z)` 归一化关联
+    - :math:`\langle x \, z \rangle / (\sigma_x \, \sigma_z)` 归一化未中心化交叉矩，并非 Pearson 相关系数
   * - ``beamLossTotal``
     - 损失
     - 丢失粒子数
@@ -325,51 +201,6 @@ GPU 版本使用 ``calc_all_stats`` 对粒子执行两遍中心化计算。
     - 束团动能
 
 
-使用示例
---------
-
-以下 JSON 片段在 :math:`s = 0.0` m 处放置一个统计监视器：
-
-.. code-block:: json
-
-   "SM1": {
-       "S (m)": 0.0,
-       "Command": "StatMonitor"
-   }
-
-输出格式和写入间隔均为可选参数；省略时使用 HDF5 和 100 圈。模拟运行过程中会逐圈记录该位置处束团的统计量。
-
-多位置监视
-~~~~~~~~~~
-
-可在不同位置放置多个统计监视器，比较束流沿束线的统计量变化：
-
-.. code-block:: json
-
-   "SM_start": {
-       "S (m)": 0.0,
-       "Command": "StatMonitor"
-   },
-   "SM_mid": {
-       "S (m)": 100.0,
-       "Command": "StatMonitor"
-   },
-   "SM_end": {
-       "S (m)": 250.0,
-       "Command": "StatMonitor"
-   }
-
-
-应用场景
---------
-
-- **束流品质评估** ：逐圈监测发射度、束流尺寸、质心位置的变化，评估束流品质是否稳定或退化
-- **发射度测量** ：由二阶矩计算发射度和 Twiss 参数，与设计值对比验证
-- **束流损失诊断** ：通过 ``beamLossTotal`` 和 ``lossPercent`` 监测束流损失率，定位损失发生的圈数和位置
-- **非线性效应识别** ：通过偏度和峰度的高阶矩信息，判断束流分布偏离高斯分布的程度，识别非线性共振或色散耦合
-- **动量展宽监测** ： ``sigmadp`` 和 ``sigmaZ`` 反映束团内部的纵向束流品质；跨束团比较绝对方位时还应使用 ``zCenter``
-- **关联诊断** ： ``xzAverage`` 等关联量可用于诊断色散耦合或横向-纵向耦合
-
 输出中的纵向坐标
 ----------------
 
@@ -389,3 +220,113 @@ beamLossTotal 不包含预留位置，lossPercent 以已注入粒子数为分母
 
 批量写入、最后不足一批的处理、运行中查看 CSV 和 HDF5 结构见
 :doc:`table_output`。
+工作原理
+--------
+
+统计量计算
+~~~~~~~~~~
+
+对于束团中的 :math:`N` 个存活粒子（ :math:`\text{tag} > 0` ），各阶矩定义为：
+
+一阶矩（质心）：
+
+.. math::
+
+   \langle x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i
+
+二阶矩：
+
+.. math::
+
+   \langle x^2 \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i^2
+
+未中心化混合二阶矩：
+
+.. math::
+
+   \langle x \, p_x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i \, p_{x,i}
+
+束流尺寸（标准差）：
+
+.. math::
+
+   \sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}
+
+同理计算 :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` 。
+
+实现中计算等价的中心矩，避免两个较大的原点矩相减。对于 FP32 和 FP64
+粒子，CPU 与 GPU 均使用 FP64 累加：先以一个存活粒子为基准求质心，
+再围绕质心累计各阶矩。这也改善了窄束团或偏心束团的协方差、发射度、
+偏度与峰度的数值稳定性。粒子存储精度不变，z 统计的临时环周投影使用 FP64。
+
+``sigmaZ`` 和 z 矩仍按临时环周代表值计算，不回写连续存储 z。``sigmaTime`` 使用未折叠 z 的标准差除以 :math:`\beta_b c`，表示实际通过时间展宽。输出逐行包含 ``referenceTime``、``referenceBeta``、``referenceMomentum``；名义 zCenter 不能用来重建实验室质心。
+
+发射度与 Twiss 参数
+~~~~~~~~~~~~~~~~~~~
+
+由二阶矩导出 2D 发射度：
+
+.. math::
+
+   \varepsilon_x = \sqrt{\sigma_x^2 \, \sigma_{p_x}^2 - \sigma_{x,p_x}^2}
+
+其中 :math:`\sigma_{x,p_x} = \langle x \, p_x \rangle - \langle x \rangle \langle p_x \rangle` 为协方差。
+
+Twiss 参数：
+
+.. math::
+
+   \beta_x = \frac{\sigma_x^2}{\varepsilon_x}
+
+.. math::
+
+   \alpha_x = -\frac{\sigma_{x,p_x}}{\varepsilon_x}
+
+.. math::
+
+   \gamma_x = \frac{\sigma_{p_x}^2}{\varepsilon_x}
+
+不变量校验：
+
+.. math::
+
+   \gamma_x \, \beta_x - \alpha_x^2 = 1
+
+垂直方向（ y ）的公式形式完全相同，将下标 x 替换为 y 即可。
+
+高阶矩
+~~~~~~
+
+偏度（三阶标准化矩）：
+
+.. math::
+
+   S_x = \frac{\langle x^3 \rangle - 3 \langle x \rangle \sigma_x^2 - \langle x \rangle^3}{\sigma_x^3}
+
+峰度（四阶标准化矩）：
+
+.. math::
+
+   K_x = \frac{\langle x^4 \rangle - 4 \langle x \rangle \langle x^3 \rangle + 2 \langle x \rangle^2 \langle x^2 \rangle + 4 \langle x \rangle^2 \sigma_x^2 + \langle x \rangle^4}{\sigma_x^4}
+
+束流损失
+~~~~~~~~
+
+.. math::
+
+   N_{\text{loss}} = N_{\text{injected}} - N_{\text{alive}}
+
+.. math::
+
+   \text{loss\%} = \frac{N_{\text{loss}}}{N_{\text{injected}}} \times 100\%
+
+其中 :math:`N_{\text{injected}}` 为已注入宏粒子数（存活与已损失粒子之和）， :math:`N_{\text{alive}}` 为当前存活粒子数。
+
+数值精度与结果解释
+------------------
+
+CPU 与 GPU 均以 float64 累加中心矩，包括粒子坐标以 float32 存储的情况；粒子存储精度不变。这可减轻窄束团或偏心束团统计中的消减误差，但不能消除有限采样误差及跟踪误差。GPU 统计记录按给定写入间隔批量传回主机。
+
+发射度为零时，对应的统计 Twiss 参数与不变量输出为零。发射度非零时，gamma*beta-alpha²=1 是定义导致的恒等式，不能独立证明跟踪正确。偏度与峰度使用中心化标准矩；这里的峰度不是减去 3 的超额峰度。非零质心会对 xzAverage 及其归一化输出产生贡献，因此它们本身不是中心化协方差。
+
+参考时间与 z 定义见 :ref:`zh-longitudinal-reference`。批量写入、运行结束处理及实时查看方法见 :doc:`table_output`。
