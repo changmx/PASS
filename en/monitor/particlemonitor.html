@@ -121,7 +121,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id3">容器格式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id4">查看和复用参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id6">运行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id6">运行</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/project_files.html#id7">运行历史与复现</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id8">恢复已有草稿</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/input_validation.html">JSON 输入文件检测</a><ul>
@@ -479,7 +483,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#container-format">Container format</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#running">Running</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#running">Running</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../input_validation.html">JSON input validation</a><ul>
@@ -837,7 +845,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code>: starting turn for recording (inclusive), default 0</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code>: ending turn for recording (exclusive), default -1 meaning up to and including the last turn</p></li>
 </ul>
-<p>The actual number of recorded turns is:</p>
+<p>When the requested interval completes, the number of recorded turns is:</p>
 <div class="math notranslate nohighlight">
 \[N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}\]</div>
 <p>Typical use: let the beam stabilize for the first 200 turns (not recorded), then record 1000 turns starting from turn 200 for FFT analysis.</p>
@@ -951,6 +959,22 @@ buffer allocation on either CPU or GPU.</p>
 <span class="o">@</span> <span class="n">EndTurn</span>          <span class="mi">1000</span>
 </pre></div>
 </div>
+<p>On a cooperative early stop, finalization writes only the turns already sampled;
+unused future rows from the preallocated buffer are omitted. <code class="docutils literal notranslate"><span class="pre">NumTurn</span></code> and
+<code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> describe the saved rows, with <code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> still exclusive. A partial
+file additionally records <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code> for the planned endpoint after
+normalizing <code class="docutils literal notranslate"><span class="pre">-1</span></code> or clipping to the simulation length. For example, recording
+from turn 200 and stopping after turn 499 gives <code class="docutils literal notranslate"><span class="pre">NumTurn=300</span></code>, <code class="docutils literal notranslate"><span class="pre">EndTurn=500</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn=1000</span></code> if the planned endpoint was 1000. A completed
+interval keeps its existing metadata without <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code>. If recording
+has not started, no particle table is written.</p>
+<p>This behavior is shared by CPU and GPU output. Repeated finalization does not
+rewrite an already completed table. On GPU, the buffer is sliced before the
+device-to-host copy: transfer size and the resulting host array scale with the
+recorded turns, while the initial device allocation still covers the planned interval.
+GUI normal stopping waits for a complete
+turn before finalizing; force stopping cannot guarantee that buffered data are
+written. See <a class="reference internal" href="../project_files.html"><span class="doc">Single-file projects</span></a> for the GUI stop controls and run records.</p>
 <p>Default output columns (11 columns total):</p>
 <table class="docutils align-default">
 <colgroup>

@@ -121,7 +121,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#id3">容器格式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#id4">查看和复用参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#id6">运行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#id6">运行</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../project_files.html#id7">运行历史与复现</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#id8">恢复已有草稿</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a><ul>
@@ -479,7 +483,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#container-format">Container format</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#running">Running</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#running">Running</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/input_validation.html">JSON input validation</a><ul>
@@ -837,7 +845,7 @@
 <li><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code> ：记录起始圈（含），默认 0</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code> ：记录结束圈（不含），默认 -1 表示最后一圈（含）</p></li>
 </ul>
-<p>实际记录的圈数为：</p>
+<p>计划记录区间完整执行后，记录圈数为：</p>
 <div class="math notranslate nohighlight">
 \[N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}\]</div>
 <p>典型用途：前 200 圈让束流稳定（不记录），从第 200 圈开始记录 1000 圈用于 FFT 分析。</p>
@@ -950,6 +958,18 @@
 <span class="o">@</span> <span class="n">EndTurn</span>          <span class="mi">1000</span>
 </pre></div>
 </div>
+<p>协作提前停止时，收尾只写出监视器已经采样的圈，
+不输出预分配缓冲区中尚未采样的未来行。
+<code class="docutils literal notranslate"><span class="pre">NumTurn</span></code> 和 <code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 描述实际保存的行，其中 <code class="docutils literal notranslate"><span class="pre">EndTurn</span></code> 仍为不含端点。
+部分输出额外记录 <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code>，表示将 <code class="docutils literal notranslate"><span class="pre">-1</span></code> 解析并按仿真圈数裁剪后的计划终点。
+例如从第 200 圈开始记录、完成第 499 圈后停止，若原计划终点为 1000，
+则输出 <code class="docutils literal notranslate"><span class="pre">NumTurn=300</span></code>、<code class="docutils literal notranslate"><span class="pre">EndTurn=500</span></code> 和 <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn=1000</span></code>。
+完整区间保持原有元数据，不增加 <code class="docutils literal notranslate"><span class="pre">RequestedEndTurn</span></code>；尚未开始记录时不写粒子表。</p>
+<p>CPU 与 GPU 使用相同的收尾规则，重复收尾不会重写已经完成的表。
+GPU 在设备到主机拷贝之前先裁切缓冲区，因此传输量与得到的主机数组大小随实际记录圈数增长，
+初始化时的显存预分配仍覆盖计划区间。
+GUI 正常停止会等待完整一圈结束后收尾；强制结束不保证缓冲数据已经写出。
+GUI 停止控件及运行记录见 <a class="reference internal" href="../project_files.html"><span class="doc">单文件项目</span></a>。</p>
 <p>默认输出列（共 11 列）：</p>
 <table class="docutils align-default">
 <colgroup>

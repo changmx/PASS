@@ -58,7 +58,8 @@ Output
 ------
 
 One HDF5 file (or TFS file when selected) is written for each beam, bunch, monitor, and completed window in
-the ``tuneSpread`` output directory. Rows remain separate by bunch and include
+the configured ``output_dir_tuneSpread`` directory (normally ``tuneSpread``).
+Rows remain separate by bunch and include
 lost particles. Columns are ``tag``, ``tuneXFractional``,
 ``tuneYFractional``, per-plane interval counts, ``validX/Y``, ``completeX/Y``,
 and loss metadata. ``valid`` means at least one accepted interval while the
@@ -67,6 +68,13 @@ accepted. Lost particles are never included in phase accumulation.
 
 Headers record the complete fixed optical reference, window endpoints,
 expected interval count, backend, precision, and ``PASSVersion``.
+
+Cooperative early stopping preserves completed window files. A window that has
+started but not finished emits a warning during finalization and produces no
+partial tune table; its endpoint is not shortened to make it appear complete.
+GUI normal stopping occurs at a turn boundary, while force stopping cannot
+guarantee finalization. See :doc:`../project_files` for the GUI stop controls and
+run records.
 
 ``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
 Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for

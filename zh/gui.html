@@ -121,7 +121,11 @@
 <li class="toctree-l3"><a class="reference internal" href="project_files.html#id3">容器格式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="project_files.html#id4">查看和复用参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="project_files.html#id6">运行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id6">运行</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="project_files.html#id7">运行历史与复现</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="project_files.html#id8">恢复已有草稿</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a><ul>
@@ -479,7 +483,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#container-format">Container format</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#running">Running</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#running">Running</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/input_validation.html">JSON input validation</a><ul>
@@ -802,6 +810,21 @@
 完整报告、规则与命令行检测参见 <a class="reference internal" href="input_validation.html"><span class="doc">JSON 输入文件检测</span></a>。
 当前模式适用的属性字段展开，互斥选项隐藏或禁用，长表单在属性栏内滚动。
 JSON/项目保存、源文件打包、参数复用和固定运行快照参见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
+<p>窄属性栏中的长行自动换行，bunch 选择器与操作按钮分为两行；特别宽的内容可通过
+水平滚动条访问。<strong>展开</strong> 临时让属性编辑器占用整个工作区，<strong>还原</strong> 恢复原有三栏及尺寸，
+不会丢弃草稿；退出时保存的仍是正常三栏布局。</p>
+<p>执行序列支持鼠标与键盘选择，以及 Ctrl/Shift 多选。取消导航时保留原选择与草稿。
+命令重命名保留同位置命令的相对执行顺序；悬停位置列可查看完整浮点值。
+刷新时复用未变化的单元格，应用没有变化的参数不会增加撤销步骤。</p>
+<p>JSON 源码页提供 <strong>应用源码</strong> 和 <strong>放弃源码修改</strong>。未应用的源码修改会阻止可能覆盖
+它的操作；表单和源码同时有草稿时，先取消其中一处，再应用另一处。
+取消表单修改会恢复已应用的字段值，同时保留源码草稿。
+通过表单修改参数后，在打开源码标签页时更新完整 JSON 文本。</p>
+<p>Injection、空间电荷与尾场使用独立属性草稿。切换束团、增删复制资源、重命名引用及
+收集内联尾场定义，均在成功 <strong>应用修改</strong> 后才进入正式输入；<strong>取消修改</strong> 丢弃整份
+属性草稿，一次成功应用对应一个撤销步骤。属性搜索可定位嵌套字段，差异预览保留
+未完成的原始输入，恢复单字段默认值也仅修改草稿。GUI 不会自动备份草稿，
+已有副本的手动恢复见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
 <p>左侧组件库的展开栏按选项数量占用高度，多余空间留在整个列表底部。
 启动时仅 <strong>输入配置（必需）</strong> 展开，其余一级栏目以及空间电荷子菜单默认折叠。
 <strong>物理效应</strong> 依次包含 <strong>空间电荷</strong>、<strong>尾场</strong>、<strong>束束效应</strong>、<strong>电子云</strong>，
@@ -812,7 +835,9 @@ JSON/项目保存、源文件打包、参数复用和固定运行快照参见 <a
 <p>先显示主要配置界面，然后在线程中准备数值依赖，并在界面线程中逐个创建工具页面。
 所有工具会自动准备完成；提前点击尚未就绪的栏目会优先准备该栏目，状态栏显示进度。
 仿真、数据转换或模态对话框活动期间暂停创建后续页面。就绪后的页面切换保留已有值。
-这减少了首次显示前的工作量；磁盘冷缓存和单个页面的构建仍会影响响应时间。</p>
+这减少了首次显示前的工作量；磁盘冷缓存和单个页面的构建仍会影响响应时间。
+后台页面创建还会等待键盘、鼠标、滚轮或输入法操作空闲 600 ms；主动选择尚未就绪的
+可见工具时优先准备该页，其余工具在空闲后继续自动准备。</p>
 <p>可向窗口及其子编辑器拖入一个本地 <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> 或 PASS 输入 JSON。
 替换前先检查文件内容，再确认是否替换；有未保存修改时提供保存、放弃和取消选项。
 无效文件或取消操作会保留当前文档。在项目模式下，输入 JSON 可替换当前输入、
@@ -844,10 +869,13 @@ Sphinx 警告且各语言首页均存在时，才更新 <code class="docutils li
 尝试读取常规命令行输出 <code class="docutils literal notranslate"><span class="pre">docs/build/html/</span></code>。尚无本地页面时，提供立即编译和在线文档入口。
 缺少源码、依赖或文件系统错误会显示原因和处理提示；GUI 不会自动安装依赖。
 不包含源码目录的普通安装可阅读在线文档，但无法本地编译。</p>
-<p><strong>关于 PASS</strong> 显示当前安装版本、项目简介、作者、机构、版权和 Apache License 2.0。
-说明文档、源代码和问题反馈均为可点击链接。许可证优先在只读窗口显示本地全文，
-本地文件缺失时打开在线许可证。<strong>复制版本与环境信息</strong> 复制 PASS、Python、PySide6
-版本、操作系统和架构，便于反馈问题。</p>
+<p><strong>关于 PASS</strong> 的项目简介、作者、机构、版权、许可证和操作均同时显示中英文。
+每位作者独占一行，包含中文姓名、英文姓名和可点击的邮箱。说明文档、源代码和
+问题反馈均为可点击链接。许可证优先在只读窗口显示原文，本地文件缺失时打开在线许可证。</p>
+<p>从源码目录运行时，版本取自该源码目录的 <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>；普通安装包使用安装元数据。
+修改源码版本后需重启 GUI，无需仅为刷新此版本显示重新安装；依赖或入口点变化时仍需
+执行安装。<strong>复制版本与环境信息</strong> 同时包含正在运行的 PASS 版本、安装包元数据版本，
+以及 Python、PySide6、操作系统和架构，便于反馈问题。</p>
 </section>
 <section id="id4">
 <h2>工具<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
@@ -894,9 +922,13 @@ Twiss 保留起点光学、终点光学与传输设置分区，Injection 保留 
 <h2>模块职责<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">PASS/validation</span></code> 是 GUI、<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">PASS.validation</span></code> 命令行检测及仿真启动前检查
 共用的校验模块，不依赖 Qt。<code class="docutils literal notranslate"><span class="pre">PASS/gui/validation.py</span></code> 仅负责后台检测线程与报告窗口。
-<code class="docutils literal notranslate"><span class="pre">app.py</span></code> 负责界面组装，<code class="docutils literal notranslate"><span class="pre">appearance.py</span></code> 负责主题、字体、图标与窗口外观，
+<code class="docutils literal notranslate"><span class="pre">app.py</span></code> 负责界面组装，<code class="docutils literal notranslate"><span class="pre">widgets.py</span></code> 提供共用选择框、按钮和忙碌指示器，
+不依赖页面或参数 schema；<code class="docutils literal notranslate"><span class="pre">appearance.py</span></code> 负责主题、字体、图标与窗口外观，
 <code class="docutils literal notranslate"><span class="pre">structured.py</span></code> 提供结构化参数控件，<code class="docutils literal notranslate"><span class="pre">project.py</span></code> 处理项目打包与资源，
 <code class="docutils literal notranslate"><span class="pre">workspace.py</span></code> 处理文档工作流，<code class="docutils literal notranslate"><span class="pre">optics.py</span></code> 提供光学配置辅助，
+<code class="docutils literal notranslate"><span class="pre">plotting.py</span></code> 负责结果选择与绘制，<code class="docutils literal notranslate"><span class="pre">results.py</span></code> 提供数值数据，
+<code class="docutils literal notranslate"><span class="pre">plot_analysis.py</span></code> 提供完整数据比较、导出及 SC 场视图，<code class="docutils literal notranslate"><span class="pre">run_page.py</span></code> 管理运行准备、
+日志和运行记录，<code class="docutils literal notranslate"><span class="pre">jobs.py</span></code> 与 <code class="docutils literal notranslate"><span class="pre">recovery.py</span></code> 分别处理协作取消的文件任务和已有恢复副本的读取，
 <code class="docutils literal notranslate"><span class="pre">runner.py</span></code> 提供独立运行入口。这些职责分开维护，避免将文件读写、校验和控件实现全部堆入主窗口文件。</p>
 </section>
 <section id="id8">
@@ -1015,7 +1047,7 @@ S 是出口，入口为 S-Length；零强度仍有材料损失，零长度支持
 <section id="id10">
 <h2>尾场与结果文件<a class="headerlink" href="#id10" title="Link to this heading"></a></h2>
 <p><strong>尾场 → 全局配置</strong> 管理总开关及命名模型/求解器配置。打开时将已有尾场点的内联
-参数分别收集为独立命名配置，不合并原来的定义。应用配置重命名时同步更新点引用；
+参数分别收集为独立命名配置草稿，不合并原来的定义。应用配置重命名时同步更新点引用；
 仍被引用的配置不能删除。<strong>尾场点</strong> 设置配置引用、位置、切片集和单点开关。
 总开关与单点开关均开启才执行；即使引用同一配置，各点也保留独立历史状态。
 旧的内联 <code class="docutils literal notranslate"><span class="pre">Groups</span></code> 输入仍受支持。JSON/API 表达见 <a class="reference internal" href="wake_field.html"><span class="doc">WakeField</span></a>。
@@ -1030,7 +1062,38 @@ history、网格、记忆长度和周期边界控件随模式变化。
 查看配套参考量与未注入粒子计数。
 仅对拥有配套逐行或快照参考时间与 beta 的存活粒子生成 <code class="docutils literal notranslate"><span class="pre">arrival_time_s</span></code>；
 损失粒子的冻结坐标不使用后续活粒子参考量换算。
-缺失数值不会打乱列之间的行对应。多维 SC 场文件需使用其专门分析程序，不能当作粒子表。</p>
+缺失数值不会打乱列之间的行对应。多维 SC 文件进入独立场视图，不当作粒子表。</p>
+<p>显示方式可选择自动、折线或散点。自动模式对包含 <code class="docutils literal notranslate"><span class="pre">tag</span></code> 或 <code class="docutils literal notranslate"><span class="pre">particle_id</span></code> 的粒子表
+使用散点，其余表格使用折线；缺失样本会断开折线，单个有限样本显示为点。
+大折线图按显示分箱保留极值并缓存绘图几何，散点按屏幕像素占用绘制，均不修改原始数据。
+坐标轴显示所选列名，每份已加载文件分别记忆坐标列、显示方式和粒子筛选条件。</p>
+<p>页面保留数值数组，筛选时仅处理所选 X/Y 列。摘要显示总行数、筛选行数、有限点数及
+数值数组占用，不包含应用程序的其他开销。<strong>关闭当前数据</strong> 将当前文件从页面卸载。
+界面通过后台线程加载文件，显示阶段及文件进度，并提供取消操作。不可分割的解析调用
+需要返回后才能完成取消；已取消或被新请求替代的结果不会覆盖当前数据，关闭窗口也会等待
+读取线程结束。内部同步 <code class="docutils literal notranslate"><span class="pre">load_paths</span></code> 接口仍保留。</p>
+<p>相空间预设在对应列存在时选择 x–px、y–py、z–dp、x–y 或到达时间–dp。
+轴标签使用已有列单位和参考量元数据，不猜测普通 CSV 的物理单位。
+<strong>密度与投影</strong> 将全部有限 X/Y 配对分入 8–256 个箱，显示二维计数及两个方向的边缘计数；
+这里统计宏粒子行数，不按电荷加权。</p>
+<p>选定基线后可叠加、计算 A−B 或 (A−B)/B。要求 X 数值及行序完全一致且有限，单位、
+坐标与参考态约定兼容，提供 particle_id 时其顺序也须一致；不隐式排序、插值或换算单位。
+相对差的基线为零或非有限值时输出 NaN。密度模式须先切换到折线或散点再比较。</p>
+<p><strong>导出数据</strong> 使用完整筛选行和所有数值列，保留 NaN 与数值类型，同时生成带哈希验证的
+<code class="docutils literal notranslate"><span class="pre">pass-table-metadata-v1</span></code> 格式 <code class="docutils literal notranslate"><span class="pre">.csv.metadata.json</span></code>；应将它与 CSV 一起保留，
+重新读取会拒绝过期或不支持的 sidecar。<strong>导出图像</strong> 用完整筛选数据及完整范围生成
+独立 PNG/SVG/PDF，不使用缩减后的预览数据。高级图形提供 Matplotlib 导航工具栏；
+导出操作先固定当前选择，再在后台执行，显示阶段/行数进度并支持取消。
+图像生成使用独立进程，避免与界面中的 Matplotlib 绘制共享状态。
+当前任务结束前不能重复导出；关闭窗口会请求取消并等待清理结束。
+发布文件前取消会保留已有输出。CSV 与元数据先暂存，普通发布失败会恢复原文件；
+最终两份文件的替换不属于可抵御进程崩溃的整体原子事务。
+首次构建高级交互图形仍为同步操作。</p>
+<p>SC 场数组须按 <code class="docutils literal notranslate"><span class="pre">(slice,</span> <span class="pre">y,</span> <span class="pre">x)</span></code> 保存，并包含匹配的 x/y 网格、<code class="docutils literal notranslate"><span class="pre">slice_id</span></code> 和 <code class="docutils literal notranslate"><span class="pre">delta_z</span></code>。
+可选择场量与切片，并叠加保存的实际孔径轮廓。原始电荷密度、电势和积分 Ex/Ey 的单位
+分别为 C/m²、V·m 和 V；勾选 <strong>除以 Δz：显示切片平均量</strong> 后得到 C/m³、V 和 V/m，
+要求切片宽度为正有限值且单位已知。页面显示保存的求解器、势零点及边界元数据。
+场数据导出按 y/x 行序展开所选切片，保留原始场量，平均量选项额外添加对应列；不重新求场。</p>
 </section>
 <section id="twiss">
 <h2>Twiss 与光学<a class="headerlink" href="#twiss" title="Link to this heading"></a></h2>

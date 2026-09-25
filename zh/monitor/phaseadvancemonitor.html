@@ -121,7 +121,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#id3">容器格式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#id4">查看和复用参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#id6">运行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#id6">运行</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../project_files.html#id7">运行历史与复现</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#id8">恢复已有草稿</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a><ul>
@@ -479,7 +483,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#container-format">Container format</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#running">Running</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#running">Running</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../en/project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../en/project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../en/input_validation.html">JSON input validation</a><ul>
@@ -828,8 +836,13 @@ v_x = \alpha_x u_x + \sqrt{\beta_x}(p_x-p_{x,CO}-D'_x\delta).\]</div>
 </section>
 <section id="id2">
 <h2>输出<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
-<p>每个完成窗口、每个 beam、bunch 和 monitor 各写一个 HDF5 文件（可选 TFS），保存在 <code class="docutils literal notranslate"><span class="pre">tuneSpread</span></code>。每个 bunch 独立输出，包含已损失粒子。列包含 <code class="docutils literal notranslate"><span class="pre">tag</span></code>、<code class="docutils literal notranslate"><span class="pre">tuneXFractional</span></code>、<code class="docutils literal notranslate"><span class="pre">tuneYFractional</span></code>、两平面各自的区间数、<code class="docutils literal notranslate"><span class="pre">validX/Y</span></code>、<code class="docutils literal notranslate"><span class="pre">completeX/Y</span></code> 和损失信息。<code class="docutils literal notranslate"><span class="pre">valid</span></code> 表示粒子仍存活且至少有一个有效区间；<code class="docutils literal notranslate"><span class="pre">complete</span></code> 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。</p>
+<p>每个完成窗口、每个 beam、bunch 和 monitor 各写一个 HDF5 文件（可选 TFS），保存在配置的 <code class="docutils literal notranslate"><span class="pre">output_dir_tuneSpread</span></code> 目录（通常为 <code class="docutils literal notranslate"><span class="pre">tuneSpread</span></code>）。每个 bunch 独立输出，包含已损失粒子。列包含 <code class="docutils literal notranslate"><span class="pre">tag</span></code>、<code class="docutils literal notranslate"><span class="pre">tuneXFractional</span></code>、<code class="docutils literal notranslate"><span class="pre">tuneYFractional</span></code>、两平面各自的区间数、<code class="docutils literal notranslate"><span class="pre">validX/Y</span></code>、<code class="docutils literal notranslate"><span class="pre">completeX/Y</span></code> 和损失信息。<code class="docutils literal notranslate"><span class="pre">valid</span></code> 表示粒子仍存活且至少有一个有效区间；<code class="docutils literal notranslate"><span class="pre">complete</span></code> 表示窗口内所有区间均有效。损失粒子绝不参与相位累加。</p>
 <p>文件头记录固定光学参考、窗口端点、期望区间数、后端、精度以及 <code class="docutils literal notranslate"><span class="pre">PASSVersion</span></code>。</p>
+<p>协作提前停止时，已经完成的窗口文件保留。
+已经开始但尚未结束的窗口在收尾时记录警告，不写部分工作点表，
+也不会缩短窗口终点以将其当作完整窗口。
+GUI 正常停止发生在圈边界，强制结束则不保证执行收尾。
+GUI 停止控件及运行记录见 <a class="reference internal" href="../project_files.html"><span class="doc">单文件项目</span></a>。</p>
 <p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）默认为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>；
 设置为 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> 使用不压缩的 HDF5，或设置为 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> 使用文本输出。HDF5 结构、压缩与统一读取方式见
 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a>。</p>

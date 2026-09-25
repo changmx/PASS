@@ -120,7 +120,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#id3">容器格式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id4">查看和复用参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">运行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">运行</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id7">运行历史与复现</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">恢复已有草稿</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a><ul>
@@ -478,7 +482,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#container-format">Container format</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#running">Running</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#running">Running</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../en/project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../en/project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../en/input_validation.html">JSON input validation</a><ul>
@@ -800,6 +808,15 @@
 <code class="docutils literal notranslate"><span class="pre">Ctrl+S</span></code> 根据当前模式选择保存目标。<strong>打开 JSON</strong> 打开独立文档，
 不会隐式导入当前项目；后者使用 <strong>导入 JSON 到项目</strong>。
 替换文档或关闭窗口时，可以先保存未保存的修改。</p>
+<p>打开、保存、导入和导出的文件处理在后台线程中执行，并显示模态进度对话框。
+处理期间阻止文档编辑，但界面事件循环保持响应；只有操作成功后，保存候选才会替换当前文档。
+取消采用协作方式：复制和归档写入在数据块之间检查取消请求，
+项目归档读取则要等本次读取完成后才能丢弃结果。因此取消不一定立即生效；
+已经提交的保存仍按成功处理。</p>
+<p>独立 JSON 另存到其他目录时，当前文档及撤销/重做历史中的相对输入路径会一起重定位，
+因此撤销参数修改后仍引用同一源文件。仅由旧历史记录引用的缓存依赖也会持久保存到
+JSON 旁边。保存不增加撤销步骤，也不清除重做分支；重定位或 JSON 写入失败时，
+不会替换已应用的文档及其历史。</p>
 <p><strong>从当前输入创建项目</strong> 将当前配置打包。可以继续导入其他 JSON，
 通过输入选择框切换。项目复制所引用的粒子分布、偏移表、RF 分量程序、Bump 波形、
 WakeField 模型文件和磁铁 ramping 文件，
@@ -838,6 +855,10 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 复制源时钟会改变目标全局时钟，可能影响目标已有命令；这不是跟踪束流或尾场历史状态的迁移。
 目标中已有名称保持不变；导入名称冲突时添加数字后缀。
 也可以只读打开另一份项目作为参数来源。</p>
+<p>复制命令到当前输入只增加一个撤销步骤，不会清空此前历史。
+撤销/重做包含一同导入的命名配置、切片器及选择复制的时钟设置。
+准备过程使用独立候选项目，取消或失败不会改变当前项目；依赖文件会保留供重做使用，
+另存到新位置后仍可正确引用。</p>
 <p>TFS 和 CSV 提供最多 500 行的数据预览。文本预览限制为 2 MiB，参数表限制为 5,000 项；
 可以随时导出完整原文件。二进制文件显示元信息并提供导出。
 向独立 JSON 复制的依赖在保存时放入旁边的 <code class="docutils literal notranslate"><span class="pre">&lt;json-name&gt;_files</span></code> 目录。</p>
@@ -859,14 +880,72 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 项目可保存多份候选配置，不代表引擎一次执行全部配置。
 相对输出目录以 JSON 或已保存项目所在目录为基准；
 未保存项目以当前工作目录为基准。</p>
-<p>启动子进程前，GUI 校验所选全部输入，
-将固定快照写入 <code class="docutils literal notranslate"><span class="pre">&lt;output&gt;/input_snapshots/&lt;run-id&gt;</span></code>。
-快照 JSON 使用指向已复制资产的绝对路径；输出保存在项目临时缓存以外。
-之后继续编辑不会改变已经启动的任务。“停止”终止子进程。
-初始化或跟踪异常会显示为运行失败，包括引擎只记录日志、没有重新抛出的错误。</p>
+<p>GUI 先固定所选配置，再在后台线程中依次校验输入、复制依赖和校验快照，
+完成后才启动子进程。准备过程显示当前阶段并支持取消；准备和运行期间不能重复启动。
+准备失败或取消时，保留此前显示的运行记录。单次校验调用完成后才会响应取消请求。</p>
+<p>每次运行分别使用独立的快照目录和结果目录：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/input_snapshots/&lt;run-id&gt;/
+    beam0.json                  # 固定运行输入；可选 beam1.json
+    configuration0.json         # 用于比较的原始配置
+    assets/...                  # 已复制的依赖字节
+    run.json                    # 运行记录
+    gui.log                     # 完整进程日志
+&lt;output&gt;/runs/&lt;run-id&gt;/          # 本次仿真结果
+</pre></div>
+</div>
+<p>运行 JSON 使用指向已复制资产的绝对路径，并指定本次独立结果目录。
+之后编辑项目不会改变正在运行的任务，新运行也不共用前次结果目录。
+这两类目录均位于项目临时缓存之外。</p>
+<p><strong>停止</strong> 在圈边界协作结束运行：先完成当前圈，再执行命令收尾以保存已有输出，
+并跳过运行后的自动绘图。运行记录标为 <code class="docutils literal notranslate"><span class="pre">stopped</span></code>，退出码为 3。
+耗时初始化或单圈计算结束后，停止请求才会生效。
+<strong>强制结束</strong> 直接终止子进程，记录为独立状态；未写出的缓冲区及未完成输出可能丢失。
+关闭 GUI 时会请求取消准备或正常停止，并在保持事件循环响应的情况下等待，
+等待期间仍可强制结束。<code class="docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code> 等中断记录为 <code class="docutils literal notranslate"><span class="pre">interrupted</span></code>，
+退出码为 130，不保证当前圈已完成。
+初始化、跟踪或输出异常记录为 <code class="docutils literal notranslate"><span class="pre">failed</span></code>，退出码为 1；
+中断期间若输出失败，同样记录为失败。正常完成的退出码为 0。
+受控运行入口要求异常向外传播，通过执行结果判定状态。
+已有历史保留原先存储的状态和退出码。</p>
+<p>日志支持跟随、搜索和级别过滤。滚动离开末尾或搜索时会关闭跟随。
+界面最多显示 20,000 行，<code class="docutils literal notranslate"><span class="pre">gui.log</span></code> 及日志导出则保留未过滤的完整进程日志。
+运行页还可直接打开结果目录。</p>
+<section id="id7">
+<h3>运行历史与复现<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p><strong>运行历史</strong> 列出最近登记的 100 条运行记录，可打开快照或结果目录、
+比较两次运行的原始配置，以及按选中快照重跑。
+重跑会核对运行 JSON、比较配置和依赖的 SHA-256 校验和，再创建新的快照及结果目录；
+使用记录中的输入字节，不使用当前编辑器内容。移动或修改快照文件可能使该记录无法重跑。</p>
+<p><code class="docutils literal notranslate"><span class="pre">run.json</span></code> 记录开始/结束时间、状态、退出码、结果路径、输入和依赖校验和，
+以及各 Injection 的输入名称、命令名称和种子。
+其中还包括 Python、依赖包和 PASS 版本、计算后端及粒子精度。
+<code class="docutils literal notranslate"><span class="pre">source</span></code> 记录实际源码根目录和 Python 源码哈希；Git 可用时，还记录 HEAD
+及 <code class="docutils literal notranslate"><span class="pre">PASS</span></code> 源码目录的修改状态。源码信息补充 PASS 版本字符串，
+后者可能来自已安装包的元数据。
+<code class="docutils literal notranslate"><span class="pre">configured_device_ids</span></code> 表示请求的设备，<code class="docutils literal notranslate"><span class="pre">observed_gpu</span></code> 则仅在实际选择 GPU 后填写，
+包含设备名称、运行时及驱动版本；CPU 运行或 GPU 初始化前保持 null。</p>
+<p>重跑通过 <code class="docutils literal notranslate"><span class="pre">source_run</span></code> 记录来源运行。快照保留输入，
+但不会自动恢复当时的 Python 环境或源码版本。
+<code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed:</span> <span class="pre">null</span></code> 仍采用非确定性采样；即使种子为整数，
+代码、依赖库、精度或硬件变化后也不保证结果完全一致。</p>
 <p>已应用的参数修改支持撤销/重做；当前文本框和 JSON 编辑器保留各自的文本撤销/重做。
 保存前需要处理尚未应用的属性或 JSON 修改。
 GUI 新建高斯束团使用 1e-6 m rad 的正横向发射度，运行前拒绝零范围的高斯采样。</p>
+</section>
+</section>
+<section id="id8">
+<h2>恢复已有草稿<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>GUI 不会自动备份草稿，请通过 JSON 或项目保存操作主动保存修改。
+应用的 <code class="docutils literal notranslate"><span class="pre">AppLocalDataLocation/recovery</span></code> 目录中的已有副本仍然可用，
+GUI 启动或关闭时不会删除这些文件。</p>
+<p>需要时从 <strong>文件 → 恢复未保存草稿</strong> 查找并选择已有副本。
+点击此操作后才在可取消的后台任务中读取列表；启动时不扫描草稿，也不保留后台备份写入线程。
+恢复后是未保存的文档或项目，不会覆盖原文件。
+依据副本中的内容，可恢复未应用的属性字段、原始 JSON（包括无效 JSON）、
+已应用配置、项目生成与运行设置以及临时依赖资产。
+切换项目中的活动输入不会将来源恢复记录标为已处理；
+来源记录保持待处理，直到恢复后的文档被保存或用户明确放弃修改。
+正常关闭会将已处理记录标为 resolved，但不删除恢复文件。</p>
 </section>
 </section>
 

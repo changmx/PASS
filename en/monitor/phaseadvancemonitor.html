@@ -121,7 +121,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id3">容器格式</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id4">查看和复用参数</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id5">导出</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id6">运行</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id6">运行</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../zh/project_files.html#id7">运行历史与复现</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../zh/project_files.html#id8">恢复已有草稿</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../zh/input_validation.html">JSON 输入文件检测</a><ul>
@@ -479,7 +483,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#container-format">Container format</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#inspecting-and-reusing-parameters">Inspecting and reusing parameters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../project_files.html#exporting">Exporting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../project_files.html#running">Running</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#running">Running</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../project_files.html#run-history-and-reproduction">Run history and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../project_files.html#restoring-existing-drafts">Restoring existing drafts</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../input_validation.html">JSON input validation</a><ul>
@@ -840,7 +848,8 @@ a stable angle. The precision-specific default is <code class="docutils literal 
 <section id="output">
 <h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
 <p>One HDF5 file (or TFS file when selected) is written for each beam, bunch, monitor, and completed window in
-the <code class="docutils literal notranslate"><span class="pre">tuneSpread</span></code> output directory. Rows remain separate by bunch and include
+the configured <code class="docutils literal notranslate"><span class="pre">output_dir_tuneSpread</span></code> directory (normally <code class="docutils literal notranslate"><span class="pre">tuneSpread</span></code>).
+Rows remain separate by bunch and include
 lost particles. Columns are <code class="docutils literal notranslate"><span class="pre">tag</span></code>, <code class="docutils literal notranslate"><span class="pre">tuneXFractional</span></code>,
 <code class="docutils literal notranslate"><span class="pre">tuneYFractional</span></code>, per-plane interval counts, <code class="docutils literal notranslate"><span class="pre">validX/Y</span></code>, <code class="docutils literal notranslate"><span class="pre">completeX/Y</span></code>,
 and loss metadata. <code class="docutils literal notranslate"><span class="pre">valid</span></code> means at least one accepted interval while the
@@ -848,6 +857,12 @@ particle remains alive; <code class="docutils literal notranslate"><span class="
 accepted. Lost particles are never included in phase accumulation.</p>
 <p>Headers record the complete fixed optical reference, window endpoints,
 expected interval count, backend, precision, and <code class="docutils literal notranslate"><span class="pre">PASSVersion</span></code>.</p>
+<p>Cooperative early stopping preserves completed window files. A window that has
+started but not finished emits a warning during finalization and produces no
+partial tune table; its endpoint is not shortened to make it appear complete.
+GUI normal stopping occurs at a turn boundary, while force stopping cannot
+guarantee finalization. See <a class="reference internal" href="../project_files.html"><span class="doc">Single-file projects</span></a> for the GUI stop controls and
+run records.</p>
 <p><code class="docutils literal notranslate"><span class="pre">output_format</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>) defaults to <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>;
 Use <code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> for uncompressed HDF5 or <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code> for text output. See <a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a> for
 the HDF5 layout, compression and common reader.</p>
