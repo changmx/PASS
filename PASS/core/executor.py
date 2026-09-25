@@ -35,7 +35,8 @@ class Executor:
         raise TypeError("Command execute_cpu/execute_gpu must return bool or None, "
                         f"got {type(result).__name__}")
 
-    def run(self, sim: Simulation, seqs: list[CommandSequence]):
+    def run(self, sim: Simulation, seqs: list[CommandSequence], *, stop_requested=None):
+        """Run complete turns, honoring an optional stop request between turns."""
 
         cfg = sim.cfg
         state = sim.state
@@ -53,8 +54,13 @@ class Executor:
         set_normal_logging()
 
         current_turn = None
+        stopped = False
         try:
             for turn in range(total_turns):
+                if stop_requested is not None and stop_requested():
+                    stopped = True
+                    logger.info("Stop requested at turn boundary before turn %d", turn)
+                    break
                 current_turn = turn
                 state.turn = turn
                 profiler.start_turn(turn)
@@ -85,32 +91,48 @@ class Executor:
                     else:
                         logger.info(profiler.format_progress(turn))
         finally:
-            interrupted = sys.exc_info()[0] is not None
+            pending_error = sys.exception()
             output_error = None
-            for seq in seqs:
-                for cmd in seq.cmds:
-                    finalize = getattr(cmd, "finalize", None)
-                    if finalize is not None:
-                        try:
-                            finalize(sim)
-                        except Exception as exc:
-                            logger.exception("Failed to finalize command output")
-                            if output_error is None:
-                                output_error = exc
-            # Preserve timing for a turn interrupted by an exception when
-            # possible, then always print the partial or complete summary.
-            if (current_turn is not None and profiler.mode != "off" and current_turn not in profiler.turn_seconds):
-                profiler.finish_turn(current_turn)
-            profiler.print_summary()
-            if output_error is not None and not interrupted:
-                raise output_error
+            try:
+                if stopped and cfg.use_gpu:
+                    try:
+                        profiler._synchronize_gpu(force=True)
+                    except Exception as exc:
+                        output_error = exc
+                        logger.exception("Failed to synchronize GPU before finalizing stopped run")
+                for seq in seqs:
+                    for cmd in seq.cmds:
+                        finalize = getattr(cmd, "finalize", None)
+                        if finalize is not None:
+                            try:
+                                finalize(sim)
+                            except Exception as exc:
+                                if output_error is None:
+                                    output_error = exc
+                                logger.exception("Failed to finalize command output")
+                # Preserve timing for a turn interrupted by an exception when
+                # possible, then print the partial or complete summary.
+                if (current_turn is not None and profiler.mode != "off" and current_turn not in profiler.turn_seconds):
+                    profiler.finish_turn(current_turn)
+                profiler.print_summary()
+            except KeyboardInterrupt as interruption:
+                # A cleanup interruption must not erase an earlier failure.
+                if isinstance(pending_error, Exception):
+                    raise pending_error
+                if output_error is not None:
+                    raise output_error from interruption
+                raise
+            # An output failure must not be reported as a clean interruption.
+            # Preserve the original tracking error when one already exists.
+            if output_error is not None and (pending_error is None or isinstance(pending_error, KeyboardInterrupt)):
+                raise output_error from pending_error
 
         set_simple_logging()
         logger.info("")
-        logger.info(center_string(" Simulation Completed "))
+        logger.info(center_string(" Simulation Stopped " if stopped else " Simulation Completed "))
         set_normal_logging()
 
-        if cfg.is_plot:
+        if cfg.is_plot and not stopped:
             set_simple_logging()
             logger.info("")
             logger.info(center_string(" Start Plotting "))
@@ -122,3 +144,4 @@ class Executor:
             logger.info("")
             logger.info(center_string(" Plotting Completed "))
             set_normal_logging()
+        return False if stopped else None

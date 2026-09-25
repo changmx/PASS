@@ -222,6 +222,13 @@ class PhaseAdvanceMonitor(Command):
     def execute_gpu(self, sim: Simulation):
         return self._execute(sim, backend="gpu")
 
+    def finalize(self, sim):
+        """Retain completed windows without presenting partial windows as complete."""
+        for index in self._active_windows:
+            spec = self.windows[index]
+            logger.warning("PhaseAdvanceMonitor '%s': unfinished window [%s, %s) has no complete analysis result", self.cmd_name, spec.start,
+                           spec.end)
+
     def _execute(self, sim: Simulation, backend: str) -> bool:
         if not self.enable:
             return False

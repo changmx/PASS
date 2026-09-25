@@ -21,7 +21,7 @@ from PASS.utils import helper
 logger = logging.getLogger(__name__)
 
 
-def main(beam0_path: str, beam1_path: str | None = None):
+def main(beam0_path: str, beam1_path: str | None = None, *, stop_requested=None, on_initialized=None, flat_output=False, raise_errors: bool = False):
     from PASS.validation import validate_files
     report = validate_files([beam0_path] + ([beam1_path] if beam1_path is not None else []))
     if not report.ok:
@@ -29,13 +29,15 @@ def main(beam0_path: str, beam1_path: str | None = None):
     for issue in report.warnings:
         logger.warning("JSON preflight: %s", issue)
     cfg = Config()
-    cfg.load_input(beam0_path, beam1_path)
+    cfg.load_input(beam0_path, beam1_path, flat_output=flat_output)
 
     setup_logging(log_file=cfg.get_log_path())
 
     try:
         if cfg.use_gpu:
             cfg.select_gpu_device()
+        if on_initialized is not None:
+            on_initialized(cfg)
 
         beams = []
         for i in range(cfg.num_beam):
@@ -58,12 +60,17 @@ def main(beam0_path: str, beam1_path: str | None = None):
             seq.print()
 
         executor = Executor()
-        executor.run(sim, seqs)
+        return executor.run(sim, seqs, stop_requested=stop_requested)
 
     except KeyboardInterrupt:
+        if raise_errors:
+            raise
         logger.info("Interrupted by the user")
+        return False
 
-    except Exception as e:
+    except Exception:
+        if raise_errors:
+            raise
         logger.exception("Error occurred")
 
     finally:

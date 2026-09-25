@@ -91,6 +91,8 @@ class ParticleMonitor(Command):
 
         # Number of turns actually recorded
         self.num_record_turn: int = max(0, self.end_turn - self.start_turn)
+        self._recorded_end = self.start_turn
+        self._tables_written = False
 
         self.output_dir_particle: str = cfg.output_dir_particle
         self.output_hms: str = cfg.output_hms
@@ -200,6 +202,7 @@ class ParticleMonitor(Command):
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
                     self._record_one_turn(beam.particles, bunch, turn)
+                self._recorded_end = turn + 1
                 did_execute = True
 
         # Write tables on the last recorded turn.
@@ -223,6 +226,7 @@ class ParticleMonitor(Command):
             if self.start_turn <= turn < self.end_turn:
                 for bunch in beam.bunches:
                     self._record_one_turn(beam.particles, bunch, turn)
+                self._recorded_end = turn + 1
                 did_execute = True
 
         # Write tables on the last recorded turn (single D2H transfer).
@@ -232,21 +236,28 @@ class ParticleMonitor(Command):
 
         return did_execute
 
-    def _write_tables(self, sim: Simulation):
+    def finalize(self, sim):
+        """Save only completed samples when tracking stops before the requested end."""
+        if not self._tables_written and self._recorded_end > self.start_turn:
+            self._write_tables(sim, end_turn=self._recorded_end)
+
+    def _write_tables(self, sim: Simulation, *, end_turn=None):
         """Write each particle's TBT data to a separate diagnostic table."""
         if self.max_tag < 1:
             return
 
         cfg: Config = sim.cfg
+        recorded_end = self.end_turn if end_turn is None else min(end_turn, self.end_turn)
+        n_turns = max(0, recorded_end - self.start_turn)
 
         output_dir = self.output_dir_particle
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-        # Single D2H transfer for GPU buffer
-        buf_cpu = xp_get(self.buffer)
+        # Trim on the source backend so an early stop does not copy unused turns.
+        buf_cpu = xp_get(self.buffer[:, :n_turns])
 
         for tag_val in range(1, self.max_tag + 1):
-            tag_data = buf_cpu[tag_val - 1]  # shape (num_record_turn, NCOLS)
+            tag_data = buf_cpu[tag_val - 1]
 
             # Build DataFrame
             df_data = {}
@@ -264,11 +275,13 @@ class ParticleMonitor(Command):
                 "S": self.s,
                 "BeamId": self.beam_id,
                 "Tag": tag_val,
-                "NumTurn": self.num_record_turn,
+                "NumTurn": n_turns,
                 "StartTurn": self.start_turn,
-                "EndTurn": self.end_turn,
+                "EndTurn": recorded_end,
                 "CoordinateDefinition": "z=beta*c*(T-t)",
             }
+            if recorded_end < self.end_turn:
+                headers["RequestedEndTurn"] = self.end_turn
             if self.include_reference:
                 headers["ReferenceEvent"] = "element-exit"
                 headers["ReferenceAppliesTo"] = "live particles only; NaN for loss records"
@@ -277,6 +290,7 @@ class ParticleMonitor(Command):
                         f"_{self.cmd_name}_s{self.s:.3f}_tag{tag_val}.tfs")
             filepath = table_path(Path(output_dir) / filename, self.output_format)
             write_table(filepath, df, headers, colwidth=25, headerswidth=25, output_format=self.output_format)
+        self._tables_written = True
 
         set_simple_logging()
         logger.info(f"ParticleMonitor '{self.cmd_name}': "
