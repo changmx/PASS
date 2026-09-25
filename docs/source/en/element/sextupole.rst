@@ -5,10 +5,6 @@ This module describes the PASS sextupole element **Sextupole**, used to simulate
 
 The PASS sextupole supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/sextupole.py``
-- Class name: ``Sextupole`` (inherits from ``Command``)
 - Registration name: ``sextupole``
 - Key features:
 
@@ -20,9 +16,177 @@ The PASS sextupole supports both **thick element** (``length > 0``) and **thin l
   - Chromaticity correction, nonlinear dispersion, and other higher-order effects naturally introduced through exact drift
   - Supports aperture check
 
+The fields below configure ``PASS.para.schema.elements.SextupoleItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Interface Parameters
+--------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Element length (must be :math:`\ge 0`; :math:`= 0` for thin lens)
+   * - ``k2l``
+     - ``K2L``
+     - ``float``
+     - :math:`\text{m}^{-2}`
+     - ``0.0``
+     - Normal sextupole integrated strength :math:`K_{2L}`, default 0
+   * - ``k2sl``
+     - ``K2SL``
+     - ``float``
+     - :math:`\text{m}^{-2}`
+     - ``0.0``
+     - Skew sextupole integrated strength :math:`K_{2sL}`, default 0
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of slices, default 1 (effective only for thick lens)
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type, default ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values, default ``[]``
+
+Usage Examples
+--------------
+
+Thick Lens Normal Sextupole
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SF1": {
+           "S (m)": 10.0,
+           "Command": "Sextupole",
+           "Length (m)": 0.5,
+           "K2L": 5.0,
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Normal sextupole (:math:`K_{2L} > 0`), length 0.5 m, 5 slices, 4th-order symplectic integration. Used for chromaticity correction.
+
+Thin Lens Sextupole
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SF2": {
+           "S (m)": 20.0,
+           "Command": "Sextupole",
+           "Length (m)": 0.0,
+           "K2L": 10.0,
+           "Aperture type": "off"
+       }
+   }
+
+Zero-length sextupole, applying only the :math:`K_{2L}` thin lens kick, no body tracking.
+
+Negative Sextupole
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SD1": {
+           "S (m)": 30.0,
+           "Command": "Sextupole",
+           "Length (m)": 0.4,
+           "K2L": -5.0,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+Negative sextupole (:math:`K_{2L} < 0`), providing chromaticity correction in the opposite direction to a positive sextupole.
+
+Skew Sextupole
+~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SS1": {
+           "S (m)": 40.0,
+           "Command": "Sextupole",
+           "Length (m)": 0.3,
+           "K2L": 0.0,
+           "K2SL": 3.0,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+Pure skew sextupole (:math:`K_{2L} = 0`, :math:`K_{2sL} \neq 0`), producing a coupling effect equivalent to rotating the normal sextupole by :math:`\pi / 6`.
+
+Normal + Skew Sextupole Combination
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SFS1": {
+           "S (m)": 50.0,
+           "Command": "Sextupole",
+           "Length (m)": 0.5,
+           "K2L": 5.0,
+           "K2SL": 1.0,
+           "Num slices": 3,
+           "Integrator": "yoshida4",
+           "Aperture type": "circle",
+           "Aperture value": [0.04]
+       }
+   }
+
+Combined sextupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.
 
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
@@ -47,7 +211,7 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
@@ -67,7 +231,6 @@ Charge-to-mass ratio factor:
   \chi = \frac{q}{q_0} \cdot \frac{m_0}{m}
 
 For a beam of identical particle species, :math:`\chi = 1`.
-
 
 Sextupole Field and Normalized Strength
 ---------------------------------------
@@ -105,7 +268,6 @@ The integrated strength is:
   K_{2L} = K_2 \cdot L, \qquad K_{2sL} = K_{2s} \cdot L
 
 where :math:`L` is the magnet length. In PASS, the user directly specifies :math:`K_{2L}` (``k2l``) and :math:`K_{2sL}` (``k2sl``); for thick lenses, :math:`K_2 = K_{2L} / L` and :math:`K_{2s} = K_{2sL} / L` are solved internally.
-
 
 Overall Tracking Flow
 ---------------------
@@ -159,7 +321,6 @@ where the DKD map for each slice is:
   - Thin lens mode does not change the particle position coordinates :math:`(x, y, z)`, only applies momentum kicks
   - Chromaticity effects in thick lens mode are naturally introduced through the :math:`p_z` expression in exact drift (see chromaticity correction section)
   - When :math:`K_{2L} = 0` and :math:`K_{2sL} = 0`, the thick lens degenerates to a pure drift, avoiding meaningless empty kick loops
-
 
 Physical Derivation
 --------------------
@@ -299,7 +460,6 @@ where the Yoshida coefficients are:
 
   :math:`z_0 < 0` means the middle step is a backward tracking (the drift and kick "lengths" are negative). This is a mathematical requirement of the Yoshida composition method and is fully self-consistent in the symplectic map group. The per-slice error is :math:`O(\Delta s^5)`, and the global error is :math:`O(\Delta s^4)`.
 
-
 Chromaticity Correction
 -----------------------
 
@@ -314,7 +474,7 @@ The transverse position of a particle at the sextupole includes a dispersive com
 
   x = x_\beta + \eta_x \, \delta
 
-where :math:`x_\beta` is the betatron oscillation part and :math:`\eta_x` is the dispersion function. Substituting into the sextupole kick:
+Here :math:`x_\beta` is the betatron component and :math:`\eta_x` is horizontal dispersion. Set :math:`y=0` to display horizontal feed-down and substitute into the momentum update:
 
 .. math::
 
@@ -330,13 +490,13 @@ The second term :math:`-\chi K_{2L} \eta_x \delta \, x_\beta` is an equivalent q
 
 .. math::
 
-  K_{1,\text{eff}} = -K_2 \, \eta_x
+  \Delta K_1=K_2\eta_x\delta,\qquad\frac{\partial\Delta K_1}{\partial\delta}=K_2\eta_x
 
-The corresponding chromaticity contribution is:
+For identical particle species (:math:`\chi=1`), uncoupled optics and first-order perturbation theory, the chromaticity contribution is:
 
 .. math::
 
-  \Delta Q'_x = \frac{1}{4\pi} \oint \beta_x K_{1,\text{eff}} \, ds = -\frac{1}{4\pi} \oint \beta_x K_2 \, \eta_x \, ds
+  \Delta Q'_x=\frac{1}{4\pi}\oint\beta_x K_2\eta_x\,ds,\qquad\Delta Q'_y=-\frac{1}{4\pi}\oint\beta_y K_2\eta_x\,ds
 
 .. note::
 
@@ -354,7 +514,7 @@ PASS's Twiss transport (``twiss.py``) operates in :math:`(x, p_x)` normalized mo
 
 **Coordinate Consistency**
 
-When Twiss transport reaches the sextupole position, the particle's :math:`x` already includes dispersion (:math:`x = x_\beta + \eta_x \delta`). The sextupole kick acts directly on this true coordinate, and the chromaticity correction term :math:`-K_{2L}\eta_x\delta\cdot x_\beta` appears automatically. **The kick should not be divided by** :math:`1+\delta`—that is the notation for the :math:`(x, x')` angular coordinate system, which is incompatible with PASS's :math:`(x, p_x)` system. Mixing them would lead to double-counting of chromaticity.
+When Twiss transport reaches the sextupole position, the particle's :math:`x` already includes dispersion (:math:`x = x_\beta + \eta_x \delta`). The sextupole kick acts directly on this true coordinate, and the chromaticity correction term :math:`-K_{2L}\eta_x\delta\cdot x_\beta` appears automatically. **The kick should not be divided by** :math:`1+\delta`—that is the notation for the :math:`(x, x')` angular coordinate system, which is incompatible with PASS's :math:`(x, p_x)` system. Mixing them introduces an additional, unphysical momentum dependence.
 
 **Avoiding Chromaticity Double-Counting**
 
@@ -369,7 +529,7 @@ When Twiss transport reaches the sextupole position, the particle's :math:`x` al
   * - ``DQx`` contains only natural chromaticity (excluding sextupole)
     - Apply the sextupole kick to supplement chromaticity correction and nonlinear effects, no conflict
   * - ``DQx`` contains total chromaticity, but nonlinear effects still need to be simulated
-    - Subtract the sextupole chromaticity contribution from ``DQx`` (:math:`\Delta Q'_x = -\frac{1}{4\pi}\oint \beta_x K_2 \eta_x \, ds`), then apply the full sextupole kick
+    - Subtract the sextupole chromaticity contribution from ``DQx`` (:math:`\Delta Q'_x = \frac{1}{4\pi}\oint \beta_x K_2 \eta_x \, ds`), then apply the full sextupole kick
 
 **Differences Between Thin Lens and Thick Lens**
 
@@ -401,11 +561,10 @@ The effects missing from the thin lens arise from "internal drift within the mag
   - Twiss linear transport is a first-order model; dividing by :math:`1+\delta` in the sextupole kick would introduce second-order nonlinear dispersion effects inconsistent with the model's precision, and should be avoided
   - If the sextupole strength is large or precise nonlinear effect simulation is needed, it is recommended to switch to full element-by-element DKD-exact tracking rather than locally introducing nonlinear kicks in the Twiss linear framework
 
-
 Naturally Included Higher-Order Effects
 ---------------------------------------
 
-In the DKD-exact scheme, all nonlinear effects of an ideal sextupole magnet are naturally included without any additional treatment:
+The stated ideal sextupole-field and exact-drift model includes the contributions below. They do not represent all fringe fields, field errors or radiation effects of a real magnet:
 
 .. list-table::
   :header-rows: 1
@@ -428,171 +587,12 @@ In the DKD-exact scheme, all nonlinear effects of an ideal sextupole magnet are 
 
 .. note::
 
-  The only approximation is the discretization error of the split-operator integrator (:math:`O(\Delta s^2)` for uniform, :math:`O(\Delta s^4)` for yoshida4), which can be controlled by increasing the number of slices. This is a truncation error of the mathematical method, not an omission of physical effects.
+  Within the stated field model, the split integrator has second- or fourth-order global truncation error. More slices allow a convergence check, but cannot restore omitted physical effects or eliminate floating-point roundoff.
 
 
 Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common :ref:`en-error` interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.
-
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - Element length (must be :math:`\ge 0`; :math:`= 0` for thin lens)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name
-  * - ``k2l``
-    - ``k2l``
-    - float
-    - :math:`\text{m}^{-2}`
-    - Normal sextupole integrated strength :math:`K_{2L}`, default 0
-  * - ``k2sl``
-    - ``k2sl``
-    - float
-    - :math:`\text{m}^{-2}`
-    - Skew sextupole integrated strength :math:`K_{2sL}`, default 0
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - Number of slices, default 1 (effective only for thick lens)
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - Aperture type, default ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``
-
-
-Usage Examples
---------------
-
-Thick Lens Normal Sextupole
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SF1": {
-          "S (m)": 10.0,
-          "Command": "Sextupole",
-          "Length (m)": 0.5,
-          "K2L": 5.0,
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Normal sextupole (:math:`K_{2L} > 0`), length 0.5 m, 5 slices, 4th-order symplectic integration. Used for chromaticity correction.
-
-Thin Lens Sextupole
-~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SF2": {
-          "S (m)": 20.0,
-          "Command": "Sextupole",
-          "Length (m)": 0.0,
-          "K2L": 10.0,
-          "Aperture Type": "off"
-      }
-  }
-
-Zero-length sextupole, applying only the :math:`K_{2L}` thin lens kick, no body tracking.
-
-Negative Sextupole
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SD1": {
-          "S (m)": 30.0,
-          "Command": "Sextupole",
-          "Length (m)": 0.4,
-          "K2L": -5.0,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-Negative sextupole (:math:`K_{2L} < 0`), providing chromaticity correction in the opposite direction to a positive sextupole.
-
-Skew Sextupole
-~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SS1": {
-          "S (m)": 40.0,
-          "Command": "Sextupole",
-          "Length (m)": 0.3,
-          "K2L": 0.0,
-          "K2SL": 3.0,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-Pure skew sextupole (:math:`K_{2L} = 0`, :math:`K_{2sL} \neq 0`), producing a coupling effect equivalent to rotating the normal sextupole by :math:`\pi / 6`.
-
-Normal + Skew Sextupole Combination
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SFS1": {
-          "S (m)": 50.0,
-          "Command": "Sextupole",
-          "Length (m)": 0.5,
-          "K2L": 5.0,
-          "K2SL": 1.0,
-          "Num Slices": 3,
-          "Integrator": "yoshida4",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.04]
-      }
-  }
-
-Combined sextupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.
-
 
 Application Scenarios
 ---------------------
@@ -603,7 +603,6 @@ Application Scenarios
 - **Nonlinear coupling correction**: Using skew sextupoles (``k2sl``) to control higher-order :math:`x`-:math:`y` coupling
 - **Harmonic sextupole**: Place sextupoles at specific phases to drive or suppress specific resonance terms
 - **LHC chromaticity scheme**: Distribute sextupole families (SF/SD) in the arc region to achieve chromaticity control over a wide energy range
-
 
 References
 ----------

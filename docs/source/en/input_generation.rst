@@ -1,76 +1,20 @@
 Input File Generation (Command-Line Mode)
 ==========================================
 
-Introduction
-------------
+PASS reads simulation inputs from JSON files. Use the Python schema classes to configure global parameters, bunches and a lattice sequence, then call ``generate_input()``. For graphical configuration, see :doc:`gui`.
 
-PASS uses **JSON files** as simulation input. The engine ( ``Config`` , ``Beam`` , ``CommandSequence`` ) reads all parameters from the JSON file, including particle species, bunch distribution, lattice sequence, monitors, etc.
+Schema construction checks declared field types and constraints; :doc:`input_validation` additionally checks the complete input, command ordering and external files. ``generate_input()`` writes the configuration and does not itself replace that full check.
 
-The parameter system ``PASS/para/`` provides a set of schema definitions based on **pydantic v2** . Users assemble parameter objects through Python scripts and call ``generate_input()`` to output an engine-compatible JSON file. Compared to hand-writing JSON, this approach offers the following advantages:
+.. _en-minimal-input-example:
 
-- **Type safety** : Parameter types and ranges are declared in the schema; invalid values are intercepted at generation time;
-- **Alias mapping** : Python code uses concise property names (e.g., ``circumference`` ), while the JSON output automatically uses the keys expected by the engine (e.g., ``"Circumference (m)"`` );
-- **Reusability** : Schema objects can be quickly derived via ``model_copy(update={...})`` , suitable for parameter scans;
-- **GUI support** : Typed schemas also support the graphical configuration workflow.
+Quick start
+----------------------
 
-.. note::
-
-    This document introduces input file generation in command-line mode. For the graphical workflow, see :doc:`gui`.
-
-Architecture Overview
----------------------
-
-The parameter system is divided into five layers, each with clear responsibilities and no inter-dependencies:
-
-.. code-block:: text
-
-   PASS/para/
-   ├── schema/       Parameter definitions (single source of truth)
-   │   ├── main.py         MainConfig: global simulation parameters
-   │   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
-   │   ├── twiss.py        TwissItem: twiss transfer point
-   │   ├── elements.py     12 element types (Drift→RFCavity)
-   │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
-   │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
-   │   └── sequence.py     Sequence: ordered container + auto-sorting
-   ├── madx.py        MADX TFS → schema objects (element / twiss / error)
-   ├── smooth.py      Analytical smooth approximation twiss
-   ├── tools/        External data → PASS TFS
-   │   ├── data_converter.py General data conversion pipeline
-   │   ├── ramping.py         Element ramping file generation
-   │   ├── rf_data.py         RF data file generation
-   │   └── exciter_data.py    Exciter data file generation
-   ├── toolkit.py    sort_sequence + class_map + apply_element_settings + build_sequence
-   └── api.py        High-level API (generate_input / load_input / generate_from_tfs)
-
-The data flow is as follows:
-
-.. code-block:: text
-
-   MADX TFS / user parameters / external data files
-              │
-              ▼
-        madx.py / smooth.py + tools/  → schema objects / TFS files
-              │
-              ▼
-         schema/ (pydantic)     ← single source of truth: validation + aliases
-              │
-              ▼
-        api.py (generate_input) → beam0.json
-              │
-              ▼
-         PASS engine (Config → Beam → CommandSequence → Executor)
-
-
-Quick Start
------------
-
-Minimal Example
-~~~~~~~~~~~~~~~
-
-The following script generates a complete input file containing injection + smooth approximation twiss + statistical monitor:
+After installing PASS, save the following script as ``input/generate_beam0.py`` under the repository root. Create the ``input`` directory if needed. This example uses 2,048 macro particles, 64 CPU turns, a smooth linear lattice and Gaussian distributions; no external lattice file is required.
 
 .. code-block:: python
+
+   from pathlib import Path
 
    from PASS.para.api import generate_input
    from PASS.para.schema.main import MainConfig
@@ -78,57 +22,69 @@ The following script generates a complete input file containing injection + smoo
    from PASS.para.schema.sequence import Sequence
    from PASS.para.schema.monitors import StatMonitorItem
    from PASS.para.smooth import generate_smooth_twiss
+   from PASS.validation import validate_file
 
-   # 1. Global parameters
    main = MainConfig(
        beam_name="proton",
        num_proton=1, num_neutron=0, num_electron=1,
        gamma_t=4.8, circumference=251.327,
-       num_turns=1000, backend="cpu",
+       num_turns=64, backend="cpu", output_dir="output", is_plot=False,
    )
-
-   # 2. Bunch
+   items, names, circumference = generate_smooth_twiss(
+       circumference=main.circumference,
+       qx=4.8, qy=4.4, num_points=17,
+       longitudinal_transfer="off",
+   )
    bunch = BunchConfig(
        kinetic_energy=45e6,
-       num_real_particles=int(1e11),
-       num_macro_particles=int(1e5),
-       beta_x=0.5, beta_y=0.5,
-       alpha_x=-2.61, alpha_y=1.57,
-       emit_x=200e-6, emit_y=100e-6,
-       sigma_z=30, dp=0.005,
-       dist_trans="gaussian", dist_longi="matchz",
-       rf_voltage=100e3, rf_phase=0.5236,
+       num_real_particles=100_000_000_000,
+       num_macro_particles=2048,
+       beta_x=items[0].beta_x, beta_y=items[0].beta_y,
+       alpha_x=0.0, alpha_y=0.0,
+       emit_x=2e-6, emit_y=2e-6,
+       sigma_z=0.1, dp=0.001,
+       dist_trans="gaussian", dist_longi="gaussian",
    )
-
-   # 3. Lattice sequence
-   items, circum = generate_smooth_twiss(
-       circumference=main.circumference,
-       qx=4.8, qy=4.4, num_points=100,
-   )
-   main.circumference = circum
-
    seq = Sequence()
    seq.add("injection", InjectionItem(s=0.0, random_seed=2026, bunches=[bunch]))
-   for i, item in enumerate(items):
-       seq.add(f"twiss_{i:04d}", item)
-   seq.add("stat1", StatMonitorItem(s=0.0))
+   for name, item in zip(names, items):
+       seq.add(name, item)
+   seq.add("stat1", StatMonitorItem(s=0.0, write_interval_turns=16))
 
-   # 4. Generate JSON
-   generate_input(main, seq, "beam0.json")
+   output_path = Path(__file__).resolve().parent / "beam0.json"
+   generate_input(main, seq, str(output_path))
+   report = validate_file(str(output_path))
+   if not report.ok:
+       raise ValueError(report.text())
+   print(f"Validated input: {output_path}")
 
-How to run:
+Run these commands from the repository root:
 
 .. code-block:: console
 
-   cd C:\Users\changmx\Documents\PASS
    python input/generate_beam0.py
+   python -c "from PASS.main import main; main('input/beam0.json', raise_errors=True)"
 
-Output file: ``input/beam0.json``
+The script writes ``input/beam0.json``. Its relative output directory resolves to ``input/output``; each run creates a run directory beneath it. The run directory contains a CSV file and an HDF5 file with 64 statistics rows (turns 0–63). Log output gives the exact run path. Read the newest statistics file after the run:
+
+.. code-block:: python
+
+   from pathlib import Path
+
+   from PASS.utils.table_io import read_table
+
+   files = list(Path("input/output").rglob("*stat*.h5"))
+   latest = max(files, key=lambda path: path.stat().st_mtime)
+   data = read_table(latest)
+   print(latest)
+   print(data[["turn", "sigmaX", "sigmaY", "xEmittance", "yEmittance"]].tail())
+
+For this uncoupled linear model, transverse RMS emittances should remain constant up to numerical rounding. The finite sampled initial values need not equal the requested emittances exactly. Longitudinal transfer is disabled here; this example does not model synchrotron oscillation or collective effects.
 
 JSON File Structure
 -------------------
 
-The generated JSON file has the following structure:
+The abbreviated structure below shows the nesting; empty bunch objects and omitted parameters are placeholders, not a runnable input.
 
 .. code-block:: json
 
@@ -139,12 +95,12 @@ The generated JSON file has the following structure:
        "Number of Charges": 1,
        "Transition Gamma": 4.8,
        "Circumference (m)": 251.327,
-       "Number of turns": 1000,
+       "Number of turns": 64,
        "Backend (gpu/cpu)": "cpu",
        "Number of GPU devices": 1,
        "Device Id": [0],
        "Output directory": "./output",
-       "Is plot figure": true,
+       "Is plot figure": false,
        "Is beam-beam": false,
        "Sequence": {
            "injection": {
@@ -169,7 +125,7 @@ The generated JSON file has the following structure:
 
 .. note::
 
-    The JSON key names are a hard contract of the engine. The schema layer automatically handles the mapping from Python property names to JSON keys through pydantic's ``alias`` mechanism; users do not need to write them manually.
+    JSON uses the documented field names. The schema classes map Python field names to JSON keys through pydantic aliases.
 
     When reading, the engine first calls ``convert_keys_to_lower()`` to convert all keys to lowercase, so the case of JSON keys does not affect reading.
 
@@ -182,76 +138,101 @@ MainConfig (Global Parameters)
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 25 10 40
+   :widths: 18 24 12 13 33
 
-   * - Property
+   * - Python field
      - JSON key
      - Type
+     - Default
      - Description
    * - ``beam_name``
      - ``Beam Name``
-     - str
-     - Beam label
+     - ``str``
+     - ``'proton'``
+     - Beam species label.
    * - ``num_proton``
      - ``Number of Protons``
-     - int
-     - Number of protons per particle (0 for electron/positron)
+     - ``int``
+     - ``1``
+     - Number of protons per particle; zero for electrons and positrons.
    * - ``num_neutron``
      - ``Number of Neutrons``
-     - int
-     - Number of neutrons per particle (>0 for ions)
+     - ``int``
+     - ``0``
+     - Number of neutrons per particle.
    * - ``num_electron``
      - ``Number of Charges``
-     - int
-     - Number of charges per particle (can be negative, cannot be 0)
-   * - ``gamma_t``
-     - ``Transition Gamma``
-     - float
-     - Transition gamma
-   * - ``circumference``
-     - ``Circumference (m)``
-     - float
-     - Ring circumference (m)
-   * - ``num_turns``
-     - ``Number of turns``
-     - int
-     - Number of simulation turns
-   * - ``backend``
-     - ``Backend (gpu/cpu)``
-     - str
-     - Compute backend: ``cpu`` or ``gpu``
-   * - ``num_gpu``
-     - ``Number of GPU devices``
-     - int
-     - Number of GPUs
-   * - ``gpu_id``
-     - ``Device Id``
-     - list[int]
-     - GPU device ID list
-   * - ``output_dir``
-     - ``Output directory``
-     - str
-     - Output directory
+     - ``int``
+     - ``1``
+     - Signed charge number Z (q=Z e), not electron count; nonzero integer.
    * - ``reference_clock``
      - ``Reference clock``
-     - ReferenceClock or null
-     - Prescribed revolution-frequency program; see the reference-clock section below
+     - ``ReferenceClock | None``
+     - ``None``
+     - Prescribed revolution-frequency program; see the reference-clock section.
+   * - ``gamma_t``
+     - ``Transition Gamma``
+     - ``float``
+     - ``7.635``
+     - Transition gamma of the lattice.
+   * - ``circumference``
+     - ``Circumference (m)``
+     - ``float``
+     - ``569.1``
+     - Positive ring circumference (m).
+   * - ``num_turns``
+     - ``Number of turns``
+     - ``int``
+     - ``100``
+     - Number of simulated turns; positive integer.
+   * - ``backend``
+     - ``Backend (gpu/cpu)``
+     - ``str``
+     - ``'cpu'``
+     - Compute backend: cpu or gpu.
+   * - ``particle_precision``
+     - ``Particle Precision``
+     - ``str``
+     - ``'float64'``
+     - Coordinate storage: float32 or float64.
+   * - ``num_gpu``
+     - ``Number of GPU devices``
+     - ``int``
+     - ``1``
+     - Number of GPU devices.
+   * - ``gpu_id``
+     - ``Device Id``
+     - ``list[int]``
+     - ``[0]``
+     - List of GPU device identifiers.
+   * - ``output_dir``
+     - ``Output directory``
+     - ``str``
+     - ``'./output'``
+     - Output directory; relative paths resolve against the input JSON directory.
    * - ``is_plot``
      - ``Is plot figure``
-     - bool
-     - Whether to generate plots
+     - ``bool``
+     - ``False``
+     - Whether to generate plots after tracking.
+   * - ``timing``
+     - ``Timing``
+     - ``TimingConfig``
+     - ``TimingConfig()``
+     - TimingConfig: mode=command, log_interval=10, warmup_turns=1, include_io=True.
    * - ``is_beambeam``
      - ``Is beam-beam``
-     - bool
-     - Whether to enable beam-beam interaction
+     - ``bool``
+     - ``False``
+     - Reserved switch; keep False because beam-beam tracking is not implemented.
+
 
 Space charge is configured by the separate top-level ``Space charge`` block,
 not by ``MainConfig``. See :doc:`space_charge` for its named resource schema
 and sequence-command references. Each resource selects ``Method`` (``pic``,
 ``frozen``, ``quasi-frozen``) and ``Solver``; the latter includes the boundary
 condition in its name. The command's ``Aperture type/value`` defines particle
-losses and, for Dirichlet solvers, the conducting wall. Configurations no longer
-contain ``Chamber``. Supply a complete grid full-width or half-width pair;
+losses and, for Dirichlet solvers, the conducting wall.  Supply a complete grid full-width or half-width pair;
 omitting the command aperture selects a rectangle equal to that grid.
 
 .. _en-reference-clock:
@@ -364,7 +345,7 @@ BunchConfig (Bunch Parameters)
    * - ``harmonic_id``
      - ``Harmonic ID of this bunch``
      - int
-     - Bunch-group index; its center is :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
+     - Bunch-group index; its nominal slot is :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
    * - ``rf_s_position``
      - ``RF S Position Refer to Inj. Point (m)``
      - float
@@ -383,10 +364,17 @@ All generated or manually inserted ``z`` values in ``BunchConfig`` are bunch-rel
 Sequence (Sequence Container)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``Sequence`` is an ordered container that stores all sequence items arranged by position ``s`` . The order of insertion does not affect the final result — items are automatically sorted by ``(s, command priority)`` upon export.
+``Sequence`` is an ordered container that stores all sequence items arranged by position ``s`` . Export sorts items by ``(s, command priority)``; ties preserve insertion order. Execution additionally groups nearby positions using its position tolerance.
 
 .. code-block:: python
 
+   from PASS.para.schema.sequence import Sequence
+   from PASS.para.schema.bunch import BunchConfig, InjectionItem
+   from PASS.para.schema.elements import QuadrupoleItem
+   from PASS.para.schema.monitors import StatMonitorItem
+
+   bunch = BunchConfig(kinetic_energy=45e6, num_real_particles=100000000000,
+                       num_macro_particles=2048, emit_x=2e-6, emit_y=2e-6)
    seq = Sequence()
    seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
    seq.add("qd1", QuadrupoleItem(s=1.0, k1l=0.2, length=0.5))
@@ -397,7 +385,7 @@ Supported sequence item types:
 - ``InjectionItem`` — injection point (must have ``s=0`` )
 - ``TwissItem`` — twiss transfer point
 - ``DriftItem`` , ``QuadrupoleItem`` , ``SBendItem`` , etc. — physical elements
-- ``StatMonitor`` , ``DistMonitor`` , ``PhaseAdvanceMonitor`` — monitors
+- ``StatMonitorItem`` , ``DistMonitorItem`` , ``PhaseAdvanceMonitorItem`` — monitors
 
 
 Lattice Sources
@@ -440,9 +428,8 @@ For a uniform base grid, use the resampling reader instead:
    )
 
 This reader uses ``interp_kind="phase_hermite"`` (the sole supported method),
-replacing the former independent cubic-column interpolation and extrapolation.
 ``num_interp_slice`` counts **base points**, not segments; it must be an integer
-at least two. DQx/DQy now default to ``"from_file"`` and Mu z defaults to zero.
+at least two. DQx/DQy default to ``"from_file"`` and Mu z defaults to zero.
 The longitudinal phase is used only for ``longitudinal_transfer="matrix"``.
 
 In each source interval of length :math:`h`, define :math:`t=(s-s_i)/h` and
@@ -466,8 +453,7 @@ each interval, while matching source beta, alpha and cumulative phase at its
 endpoints. The full phase derivative is checked at its endpoints and all
 interior extrema to exclude nonpositive beta. DX/DPX use paired cubic Hermite
 interpolation in the existing uncoupled, on-reference paraxial convention;
-their TFS normalization is retained. No new coupling or closed-orbit coordinate
-conversion is introduced. Source precision and spacing limit accuracy.
+their TFS normalization is retained. This interpolation assumes uncoupled optics and does not transform closed-orbit coordinates. Source precision and spacing limit accuracy.
 
 The table must include S=0 and S=LENGTH, with finite optics, positive beta and
 unwrapped phases. Its full phase spans must agree with Q1/Q2 within TFS output
@@ -520,11 +506,11 @@ No MADX file required; uses analytical formulas to generate twiss points with co
 
    from PASS.para.smooth import generate_smooth_twiss
 
-   items, circum = generate_smooth_twiss(
+   items, names, circum = generate_smooth_twiss(
        circumference=569.1,
        qx=9.47, qy=9.43,
        num_points=100,
-       muz=0.001,
+       longitudinal_transfer="off",
    )
 
 Mixed Mode
@@ -536,10 +522,20 @@ Twiss transfer points and physical elements can be mixed within the same sequenc
 
    from PASS.para.schema.elements import RFCavityItem
 
+   from PASS.para.schema.sequence import Sequence
+   from PASS.para.schema.bunch import BunchConfig, InjectionItem
+   from PASS.para.schema.elements import QuadrupoleItem
+   from PASS.para.schema.monitors import StatMonitorItem
+
+   bunch = BunchConfig(kinetic_energy=45e6, num_real_particles=100000000000,
+                       num_macro_particles=2048, emit_x=2e-6, emit_y=2e-6)
    seq = Sequence()
    seq.add("injection", InjectionItem(s=0.0, bunches=[bunch]))
 
-   # twiss transfer points
+   from PASS.para.smooth import generate_smooth_twiss
+   twiss_items, twiss_names, circumference = generate_smooth_twiss(251.327, 4.8, 4.4, 17)
+
+   # Twiss transfer points
    for i, item in enumerate(twiss_items):
        seq.add(f"twiss_{i:04d}", item)
 
@@ -553,6 +549,8 @@ External Data File Conversion
 PASS uses the **TFS format** as the unified format for all ramping/RF/exciter data files. ``tools/data_converter.py`` provides a general conversion pipeline that transforms various external files (CSV/TXT/TFS) into PASS TFS.
 
 RF files retain physical seconds and do not use the magnet-ramping turn conversion below. RF columns are ``TIME, VOLTAGE, FREQUENCY, PHASE``; see :doc:`element/rfcavity`.
+
+The magnet-ramping conversion helpers below prepare tables only. The current tracking engine rejects enabled magnetic-element ramping; creating a table does not enable that feature. RF physical-time tables are supported by RFCavity.
 
 Four-Step Pipeline
 ~~~~~~~~~~~~~~~~~~
@@ -621,54 +619,67 @@ When the external file format is non-standard, each function can be called step 
    write_tfs_ramping("k2l_ramping.tfs", turn_cont, None, data_cont)
 
 
-API Reference
--------------
+Parameter scans and validation
+------------------------------------------------------------
+
+``model_copy(update=...)`` does not validate updated values. Rebuild a schema object from a field dictionary, then validate the complete generated input before tracking:
 
 .. code-block:: python
 
-   from PASS.para.api import (
-       build_sequence, generate_from_tfs, generate_input, load_input,
-   )
+   from PASS.para.schema.main import MainConfig
 
-   # Assemble a sequence with a reproducible Injection distribution
-   sequence = build_sequence(
-       items=items,
-       names=names,
-       bunches=bunches,
-       monitors=monitors,
-       random_seed=2026,
-   )
+   baseline = MainConfig(circumference=251.327)
+   candidate = {**baseline.model_dump(), "num_turns": 128}
+   scan_config = MainConfig.model_validate(candidate)
 
-   # The high-level MADX helper accepts the same Injection seed
-   generate_from_tfs(
-       twiss_file="lattice.tfs",
-       output_path="beam0.json",
-       main=main_dict,
-       bunches=bunch_dicts,
-       random_seed=2026,
-   )
+The Python field ``num_electron`` is a historical name for the signed charge number, not a bound-electron count. ``num_proton=1, num_neutron=0, num_electron=1`` therefore specifies a proton. Python field names belong in schema constructors; JSON inputs must use the aliases shown in the tables.
 
-   # Generate JSON
-   generate_input(
-       main: MainConfig,
-       sequence: Sequence,
-       output_path: str,
-       space_charge: SpaceChargeConfig | None = None,
-       extra_modules: dict | None = None,
-       wake_field: WakeFieldConfig | None = None,
-   ) -> str
+Architecture Overview
+---------------------
 
-   # Load existing JSON (for modification and regeneration)
-   main, seq_dict = load_input("beam0.json")
+The parameter modules construct, validate and serialize the input objects:
 
-Complete Example
-----------------
+.. code-block:: text
 
-The built-in example script is located at ``input/generate_beam0.py`` and can be run directly:
+   PASS/para/
+   ├── schema/       Parameter definitions (field definitions and aliases)
+   │   ├── main.py         MainConfig: global simulation parameters
+   │   ├── bunch.py        BunchConfig + OffsetConfig + InjectionItem
+   │   ├── twiss.py        TwissItem: twiss transfer point
+   │   ├── elements.py     Element configuration classes
+   │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
+   │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
+   │   └── sequence.py     Sequence: ordered container + auto-sorting
+   ├── madx.py        MADX TFS → schema objects (element / twiss / error)
+   ├── smooth.py      Analytical smooth approximation twiss
+   ├── tools/        External data → PASS TFS
+   │   ├── data_converter.py General data conversion pipeline
+   │   ├── ramping.py         Element ramping file generation
+   │   ├── rf_data.py         RF data file generation
+   │   └── exciter_data.py    Exciter data file generation
+   ├── toolkit.py    sort_sequence + class_map + apply_element_settings + build_sequence
+   └── api.py        High-level API (generate_input / load_input / generate_from_tfs)
 
-.. code-block:: console
+The data flow is as follows:
 
-   cd C:\Users\changmx\Documents\PASS
-   python input/generate_beam0.py
+.. code-block:: text
 
-This script demonstrates the complete end-to-end workflow: global parameters → multi-bunch configuration → smooth approximation twiss → lattice sequence assembly → JSON output. The generated ``beam0.json`` can be directly read and executed by the PASS engine.
+   MADX TFS / user parameters / external data files
+              │
+              ▼
+        madx.py / smooth.py + tools/  → schema objects / TFS files
+              │
+              ▼
+         schema/ (pydantic)     ← field definitions and aliases: validation + aliases
+              │
+              ▼
+        api.py (generate_input) → beam0.json
+              │
+              ▼
+         PASS engine (Config → Beam → CommandSequence → Executor)
+
+
+API entry points
+--------------------------------
+
+``PASS.para.api`` exports ``generate_input``, ``build_sequence``, ``generate_from_tfs`` and ``load_input``. ``load_input(path)`` returns ``(MainConfig, raw_sequence_dict)``; it does not reconstruct typed commands or return the top-level Space charge/Wake field blocks. Preserve those blocks explicitly when editing a complete existing file.

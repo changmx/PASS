@@ -11,6 +11,133 @@ longitudinal velocity.
 Entering the field region does not itself lose a particle. Survivors continue into
 the downstream lattice, where the actual later apertures determine later losses.
 
+The fields below configure ``PASS.para.schema.elements.ElSeparatorItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Input parameters
+----------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Nonnegative supplied length, independent of roll.
+   * - ``voltage``
+     - ``V (V)``
+     - ``float | None``
+     - V
+     - ``None``
+     - Signed interplate voltage difference; choose V or VL. Nonzero V requires positive length.
+   * - ``voltage_length``
+     - ``VL (V m)``
+     - ``float | None``
+     - V m
+     - ``None``
+     - Signed longitudinal voltage integral; supports positive or zero tracking length.
+   * - ``gap``
+     - ``Gap (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Positive clear electrode gap.
+   * - ``septum_position``
+     - ``Septum position (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Surface d facing the circulating-beam field-free region, along u.
+   * - ``septum_thickness``
+     - ``Septum thickness (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Nonnegative effective material thickness.
+   * - ``tilt``
+     - ``Tilt (rad)``
+     - ``float``
+     - rad
+     - ``0.0``
+     - Roll used in the projection and kick equations above.
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Existing vacuum aperture geometry.
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Existing vacuum aperture geometry.
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Strict positive integer; sets internal SC scheduling. The isolated analytic body does not require subdivision.
+   * - ``space_charge``
+     - ``Space charge``
+     - ``ElementSpaceCharge | None``
+     - —
+     - ``None``
+     - Optional internal SC configuration; requires positive length.
+
+Input configuration
+-------------------
+
+Specify V or VL, gap and septum geometry for the modeled device. This synthetic
+example uses a manual polygon with ``-0.05 < x < 0.0201`` and ``|y| < 0.02``.
+The internal septum remains absorbing. Replace the values with device parameters;
+the selected strength input is constant on every pass.
+
+.. code-block:: json
+
+   {
+     "Command": "ElSeparator",
+     "S (m)": 1.0,
+     "Length (m)": 1.0,
+     "V (V)": 1000.0,
+     "Gap (m)": 0.01,
+     "Septum position (m)": 0.01,
+     "Septum thickness (m)": 0.0001,
+     "Tilt (rad)": 0.0,
+     "Num slices": 16,
+     "Aperture type": "polygon",
+     "Aperture value": [[-0.05, -0.02], [0.0201, -0.02], [0.0201, 0.02], [-0.05, 0.02]]
+   }
+
+To use the same integrated strength in this 1 m element, replace ``V (V)`` with
+``"VL (V m)": 1000.0``. To use a thin model at S=1 m, also set ``Length (m)``
+to 0. The same input field integral is used at that plane, with the incident particle
+speed. Its effective impulse need not equal the full thick map exactly; it omits
+the thick model's transverse displacement and flight time. For example,
+(x,y)=(0.005,0) survives without a kick, (0.01005,0) is lost in septum material,
+and (0.015,0) survives the entry check and receives the field kick.
+
+Injection timing is described in :ref:`en-multiturn-injection`. New particles
+specified at the ES exit start tracking at that plane. Injection generates or
+loads their coordinates without an additional geometric acceptance cut.
+ElSeparator evaluates deflection and losses when particles subsequently pass
+through the element, according to its thick or thin model.
+
 Length, orientation and time
 ----------------------------
 
@@ -232,97 +359,3 @@ double precision for analytic field trajectories and curved collision bounds;
 particle arrays retain their configured float32 or float64 storage. Internal SC
 nodes materialize the particle state; compiled kernels are cached per element,
 device and storage dtype. No particle coordinate array is rotated in place.
-
-Input parameters
-----------------
-
-.. list-table:: ElSeparator parameters
-   :header-rows: 1
-   :widths: 23 27 15 35
-
-   * - Python field
-     - JSON key
-     - Default
-     - Meaning
-   * - ``s``
-     - ``S (m)``
-     - Required
-     - Exit position.
-   * - ``length``
-     - ``Length (m)``
-     - 0
-     - Nonnegative supplied length, independent of roll.
-   * - ``voltage``
-     - ``V (V)``
-     - null
-     - Signed interplate voltage difference; choose V or VL. Nonzero V requires positive length.
-   * - ``voltage_length``
-     - ``VL (V m)``
-     - null
-     - Signed longitudinal voltage integral; supports positive or zero tracking length.
-   * - ``gap``
-     - ``Gap (m)``
-     - Required
-     - Positive clear electrode gap.
-   * - ``septum_position``
-     - ``Septum position (m)``
-     - Required
-     - Surface d facing the circulating-beam field-free region, along u.
-   * - ``septum_thickness``
-     - ``Septum thickness (m)``
-     - 0
-     - Nonnegative effective material thickness.
-   * - ``tilt``
-     - ``Tilt (rad)``
-     - 0
-     - Roll used in the projection and kick equations above.
-   * - ``aperture_type`` / ``aperture_value``
-     - ``Aperture type`` / ``Aperture value``
-     - off / []
-     - Existing vacuum aperture geometry.
-   * - ``num_slices``
-     - ``Num slices``
-     - 1
-     - Strict positive integer; sets internal SC scheduling. The isolated analytic body does not require subdivision.
-   * - ``space_charge``
-     - ``Space charge``
-     - null
-     - Optional internal SC configuration; requires positive length.
-
-Input configuration
--------------------
-
-Specify V or VL, gap and septum geometry for the modeled device. This synthetic
-example uses a manual polygon with ``-0.05 < x < 0.0201`` and ``|y| < 0.02``.
-The internal septum remains absorbing. Replace the values with device parameters;
-the selected strength input is constant on every pass.
-
-.. code-block:: json
-
-   {
-     "Command": "ElSeparator",
-     "S (m)": 1.0,
-     "Length (m)": 1.0,
-     "V (V)": 1000.0,
-     "Gap (m)": 0.01,
-     "Septum position (m)": 0.01,
-     "Septum thickness (m)": 0.0001,
-     "Tilt (rad)": 0.0,
-     "Num slices": 16,
-     "Aperture type": "polygon",
-     "Aperture value": [[-0.05, -0.02], [0.0201, -0.02], [0.0201, 0.02], [-0.05, 0.02]]
-   }
-
-To use the same integrated strength in this 1 m element, replace ``V (V)`` with
-``"VL (V m)": 1000.0``. To use a thin model at S=1 m, also set ``Length (m)``
-to 0. The same input field integral is used at that plane, with the incident particle
-speed. Its effective impulse need not equal the full thick map exactly; it omits
-the thick model's transverse displacement and flight time. For example,
-(x,y)=(0.005,0) survives without a kick, (0.01005,0) is lost in septum material,
-and (0.015,0) survives the entry check and receives the field kick.
-
-Injection timing is described in :ref:`en-multiturn-injection`. New particles
-specified at the ES exit start tracking at that plane. Injection generates or
-loads their coordinates without an additional geometric acceptance cut.
-ElSeparator evaluates deflection and losses when particles subsequently pass
-through the element, according to its thick or thin model.

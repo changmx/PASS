@@ -1,143 +1,20 @@
 StatMonitor
-==========================
+======================
 
-Introduction
-------------
+``StatMonitor`` records each bunch's centroid, standard deviations, RMS emittances, derived Twiss parameters and particle losses once per turn at a specified lattice position. Moments use live particles (``tag > 0``). Each monitor writes a per-bunch history in CSV and the selected table format.
 
-``StatMonitor`` is a beam statistics monitor that records bunch statistics turn-by-turn at a specified longitudinal position, including centroid position, beam size, emittance, Twiss parameters, higher-order moments, and beam loss. It is the core tool for evaluating beam quality evolution and diagnosing beam dynamics behavior.
+Configuration example
+------------------------------------------
 
-- **Code location**: ``PASS/commands/monitor/statistic.py``
-- **Class name**: ``StatMonitor``, registered name ``"statmonitor"``
-- **Key features**:
+.. code-block:: python
 
-  - Computes bunch statistics in 6D phase space turn-by-turn (first through fourth order moments);
-  - Derives emittance and Twiss parameters (beta, alpha, gamma) from second-order moments;
-  - Records beam loss count and loss percentage;
-  - CPU uses numpy vectorized computation, GPU uses CUDA kernel functions + warp reduction;
-  - Appends every turn's data to HDF5 and CSV in batches (100 turns by default);
-  - Only surviving particles (``tag > 0``) are counted; lost particles are excluded.
+   from PASS.para.schema.monitors import StatMonitorItem
+   from PASS.para.schema.sequence import Sequence
 
+   sequence = Sequence()
+   sequence.add("stat1", StatMonitorItem(s=0.0, write_interval_turns=100))
 
-Working Principle
------------------
-
-Statistics Computation
-~~~~~~~~~~~~~~~~~~~~~~
-
-For :math:`N` surviving particles in the bunch (:math:`\text{tag} > 0`), the moments of each order are defined as:
-
-First-order moment (centroid):
-
-.. math::
-
-   \langle x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i
-
-Second-order moment:
-
-.. math::
-
-   \langle x^2 \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i^2
-
-Covariance:
-
-.. math::
-
-   \langle x \, p_x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i \, p_{x,i}
-
-Beam size (standard deviation):
-
-.. math::
-
-   \sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}
-
-Similarly, :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` are computed.
-
-The implementation evaluates the equivalent centered moments instead of subtracting
-large raw moments. CPU and GPU use FP64 accumulators for both FP32 and FP64
-particles: first find the centroid relative to a surviving particle, then accumulate
-moments about that centroid. This also stabilizes covariance, emittance, skewness
-and kurtosis for narrow or displaced bunches. Particle storage precision is unchanged.
-The temporary ring projection for z statistics is evaluated in FP64.
-
-``sigmaZ`` and z moments retain a temporary ring-period projection, without changing stored continuous z. The new ``sigmaTime`` uses the standard deviation of unwrapped z divided by :math:`\beta_b c`, giving the physical passage-time spread. Rows include ``referenceTime``, ``referenceBeta`` and ``referenceMomentum``. Nominal zCenter cannot reconstruct a laboratory centroid.
-
-Emittance and Twiss Parameters
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The 2D emittance is derived from second-order moments:
-
-.. math::
-
-   \varepsilon_x = \sqrt{\sigma_x^2 \, \sigma_{p_x}^2 - \sigma_{x,p_x}^2}
-
-where :math:`\sigma_{x,p_x} = \langle x \, p_x \rangle - \langle x \rangle \langle p_x \rangle` is the covariance.
-
-Twiss parameters:
-
-.. math::
-
-   \beta_x = \frac{\sigma_x^2}{\varepsilon_x}
-
-.. math::
-
-   \alpha_x = -\frac{\sigma_{x,p_x}}{\varepsilon_x}
-
-.. math::
-
-   \gamma_x = \frac{\sigma_{p_x}^2}{\varepsilon_x}
-
-Invariant verification:
-
-.. math::
-
-   \gamma_x \, \beta_x - \alpha_x^2 = 1
-
-The formulas for the vertical direction (y) are identical in form; simply replace the subscript x with y.
-
-Higher-Order Moments
-~~~~~~~~~~~~~~~~~~~~
-
-Skewness (third standardized moment):
-
-.. math::
-
-   S_x = \frac{\langle x^3 \rangle - 3 \langle x \rangle \sigma_x^2 - \langle x \rangle^3}{\sigma_x^3}
-
-Kurtosis (fourth standardized moment):
-
-.. math::
-
-   K_x = \frac{\langle x^4 \rangle - 4 \langle x \rangle \langle x^3 \rangle + 2 \langle x \rangle^2 \langle x^2 \rangle + 4 \langle x \rangle^2 \sigma_x^2 + \langle x \rangle^4}{\sigma_x^4}
-
-Beam Loss
-~~~~~~~~~
-
-.. math::
-
-   N_{\text{loss}} = N_{\text{total}} - N_{\text{alive}}
-
-.. math::
-
-   \text{loss\%} = \frac{N_{\text{loss}}}{N_{\text{total}}} \times 100\%
-
-where :math:`N_{\text{total}}` is the initial number of macro particles in the bunch, and :math:`N_{\text{alive}}` is the current number of surviving particles.
-
-GPU Implementation
-~~~~~~~~~~~~~~~~~~
-
-The GPU version uses ``calc_all_stats`` for two centered passes over the particles.
-Each thread accumulates 23 moment sums and the live/injected particle counts in
-FP64 registers. Warp reduction (``__shfl_down_sync``) and block reduction combine
-these values before ``atomicAdd`` writes the global result. The maximum number
-of blocks is 512 to limit atomic contention. The centering values and counts
-remain on the GPU between passes.
-
-Each turn's results are stored in a preallocated GPU buffer. At the configured
-write interval, all pending records from every bunch are transferred to the CPU
-in one copy. The existing scalar formulas then produce emittance, Twiss parameters
-and the other output columns for each record. Reference time, beta and momentum
-are already CPU values and are saved separately for every turn on the CPU.
-
+Add this item to the complete sequence. ``write_interval_turns`` controls disk writes; statistics are still recorded on every turn. The command name comes from the sequence key.
 
 Interface Parameters
 --------------------
@@ -146,7 +23,7 @@ Interface Parameters
   :header-rows: 1
   :widths: 20 20 10 10 40
 
-  * - Property
+  * - Python field
     - JSON key
     - Type
     - Default
@@ -156,11 +33,6 @@ Interface Parameters
     - float
     - Required
     - Longitudinal position of the monitor in the beamline
-  * - ``cmd_name``
-    - ``"name"``
-    - str
-    - Required
-    - Monitor name (automatically filled from the sequence key name)
   * - ``command``
     - ``"Command"``
     - str
@@ -281,7 +153,7 @@ Output columns:
     - Vertical invariant (should equal 1)
   * - ``zCenter``
     - Longitudinal reference
-    - Laboratory longitudinal center of the bunch, :math:`z_{\mathrm{center}}`
+    - Nominal bunch-grouping slot (not the physical centroid), :math:`z_{\mathrm{center}}`
   * - ``referenceTime``
     - Reference
     - Reference passage time at this observation (s)
@@ -290,7 +162,7 @@ Output columns:
     - Reference velocity divided by c at this observation
   * - ``referenceMomentum``
     - Reference
-    - Reference mechanical momentum at this observation (eV/c)
+    - Reference mechanical momentum at this observation (eV/c per nucleon for ions)
   * - ``sigmaTime``
     - Beam size
     - Passage-time standard deviation from continuous z (s)
@@ -305,7 +177,7 @@ Output columns:
     - :math:`\langle y \, z \rangle`
   * - ``xzDevideSigmaxSigmaz``
     - Correlation
-    - :math:`\langle x \, z \rangle / (\sigma_x \, \sigma_z)` normalized correlation
+    - :math:`\langle x \, z \rangle / (\sigma_x \, \sigma_z)` normalized raw cross moment, not a centered Pearson coefficient
   * - ``beamLossTotal``
     - Loss
     - Number of lost particles
@@ -329,51 +201,6 @@ Output columns:
     - Bunch kinetic energy
 
 
-Usage Example
--------------
-
-The following JSON snippet places a statistics monitor at :math:`s = 0.0` m:
-
-.. code-block:: json
-
-   "SM1": {
-       "S (m)": 0.0,
-       "Command": "StatMonitor"
-   }
-
-Format and write interval are optional; omitting them selects HDF5 and 100 turns. During simulation, the bunch statistics at that position are recorded turn-by-turn.
-
-Multi-position Monitoring
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Multiple statistics monitors can be placed at different positions to compare the variation of bunch statistics along the beamline:
-
-.. code-block:: json
-
-   "SM_start": {
-       "S (m)": 0.0,
-       "Command": "StatMonitor"
-   },
-   "SM_mid": {
-       "S (m)": 100.0,
-       "Command": "StatMonitor"
-   },
-   "SM_end": {
-       "S (m)": 250.0,
-       "Command": "StatMonitor"
-   }
-
-
-Application Scenarios
----------------------
-
-- **Beam quality assessment**: Monitor the evolution of emittance, beam size, and centroid position turn-by-turn to evaluate whether beam quality is stable or degrading
-- **Emittance measurement**: Compute emittance and Twiss parameters from second-order moments, and compare with design values for verification
-- **Beam loss diagnostics**: Monitor beam loss rate through ``beamLossTotal`` and ``lossPercent``, identifying the turn and position where losses occur
-- **Nonlinear effect identification**: Use higher-order moment information (skewness and kurtosis) to determine the degree to which the beam distribution deviates from Gaussian, identifying nonlinear resonances or dispersion coupling
-- **Momentum-spread monitoring**: ``sigmadp`` and ``sigmaZ`` describe longitudinal beam quality within a bunch; use ``zCenter`` as well when comparing absolute azimuths across bunches
-- **Correlation diagnostics**: Correlation quantities such as ``xzAverage`` can be used to diagnose dispersion coupling or transverse-longitudinal coupling
-
 Longitudinal coordinate in output
 -------------------------------------------
 
@@ -396,3 +223,115 @@ counts on both CPU and GPU; an empty declared bunch retains the previous no-row 
 
 Batching, final partial batches, live CSV inspection and HDF5 layout are
 described in :doc:`table_output`.
+Working Principle
+-----------------
+
+Statistics Computation
+~~~~~~~~~~~~~~~~~~~~~~
+
+For :math:`N` surviving particles in the bunch (:math:`\text{tag} > 0`), the moments of each order are defined as:
+
+First-order moment (centroid):
+
+.. math::
+
+   \langle x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i
+
+Second-order moment:
+
+.. math::
+
+   \langle x^2 \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i^2
+
+Uncentered cross moment:
+
+.. math::
+
+   \langle x \, p_x \rangle = \frac{1}{N} \sum_{i=1}^{N} x_i \, p_{x,i}
+
+Beam size (standard deviation):
+
+.. math::
+
+   \sigma_x = \sqrt{\langle x^2 \rangle - \langle x \rangle^2}
+
+Similarly, :math:`\sigma_{p_x}`, :math:`\sigma_y`, :math:`\sigma_{p_y}`, :math:`\sigma_z`, :math:`\sigma_{\delta}` are computed.
+
+The implementation evaluates the equivalent centered moments instead of subtracting
+large raw moments. CPU and GPU use FP64 accumulators for both FP32 and FP64
+particles: first find the centroid relative to a surviving particle, then accumulate
+moments about that centroid. This also stabilizes covariance, emittance, skewness
+and kurtosis for narrow or displaced bunches. Particle storage precision is unchanged.
+The temporary ring projection for z statistics is evaluated in FP64.
+
+``sigmaZ`` and z moments retain a temporary ring-period projection, without changing stored continuous z. ``sigmaTime`` uses the standard deviation of unwrapped z divided by :math:`\beta_b c`, giving the physical passage-time spread. Rows include ``referenceTime``, ``referenceBeta`` and ``referenceMomentum``. Nominal zCenter cannot reconstruct a laboratory centroid.
+
+Emittance and Twiss Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The 2D emittance is derived from second-order moments:
+
+.. math::
+
+   \varepsilon_x = \sqrt{\sigma_x^2 \, \sigma_{p_x}^2 - \sigma_{x,p_x}^2}
+
+where :math:`\sigma_{x,p_x} = \langle x \, p_x \rangle - \langle x \rangle \langle p_x \rangle` is the covariance.
+
+Twiss parameters:
+
+.. math::
+
+   \beta_x = \frac{\sigma_x^2}{\varepsilon_x}
+
+.. math::
+
+   \alpha_x = -\frac{\sigma_{x,p_x}}{\varepsilon_x}
+
+.. math::
+
+   \gamma_x = \frac{\sigma_{p_x}^2}{\varepsilon_x}
+
+Invariant verification:
+
+.. math::
+
+   \gamma_x \, \beta_x - \alpha_x^2 = 1
+
+The formulas for the vertical direction (y) are identical in form; simply replace the subscript x with y.
+
+Higher-Order Moments
+~~~~~~~~~~~~~~~~~~~~
+
+Skewness (third standardized moment):
+
+.. math::
+
+   S_x = \frac{\langle x^3 \rangle - 3 \langle x \rangle \sigma_x^2 - \langle x \rangle^3}{\sigma_x^3}
+
+Kurtosis (fourth standardized moment):
+
+.. math::
+
+   K_x = \frac{\langle x^4 \rangle - 4 \langle x \rangle \langle x^3 \rangle + 2 \langle x \rangle^2 \langle x^2 \rangle + 4 \langle x \rangle^2 \sigma_x^2 + \langle x \rangle^4}{\sigma_x^4}
+
+Beam Loss
+~~~~~~~~~
+
+.. math::
+
+   N_{\text{loss}} = N_{\text{injected}} - N_{\text{alive}}
+
+.. math::
+
+   \text{loss\%} = \frac{N_{\text{loss}}}{N_{\text{injected}}} \times 100\%
+
+where :math:`N_{\text{injected}}` is the number of already injected macro particles (live plus lost), and :math:`N_{\text{alive}}` is the current number of surviving particles.
+
+Numerical precision and interpretation
+----------------------------------------------------------------------------
+
+CPU and GPU accumulate centered moments in float64, including for float32 particle storage. The stored particle coordinates retain their configured precision. This reduces cancellation in narrow or displaced bunches, but does not eliminate finite-sampling or tracking errors. GPU records are transferred in batches at the configured write interval.
+
+When an emittance is zero, the corresponding derived Twiss parameters and invariant are reported as zero. For nonzero emittance the identity gamma*beta-alpha²=1 follows from the definitions; it is not an independent validation of tracking. Skewness and kurtosis are centered standardized moments; kurtosis is not excess kurtosis. A nonzero centroid contributes to xzAverage and its normalized output, so neither is a centered covariance by itself.
+
+Reference time and z definitions follow :ref:`en-longitudinal-reference`. Batch finalization and live inspection are described in :doc:`table_output`.

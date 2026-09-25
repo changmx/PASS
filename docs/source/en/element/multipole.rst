@@ -5,10 +5,6 @@ This module describes the PASS general multipole element **Multipole**, used to 
 
 The PASS multipole supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators. The kick uses Horner nested evaluation.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/multipole.py``
-- Class name: ``Multipole`` (inherits from ``Command``)
 - Registration name: ``multipole``
 - Key features:
 
@@ -22,9 +18,160 @@ The PASS multipole supports both **thick element** (``length > 0``) and **thin l
   - Supports aperture check
   - Single-order degeneration is particle-by-particle consistent with quadrupole/sextupole/octupole
 
+The fields below configure ``PASS.para.schema.elements.MultipoleItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Interface Parameters
+--------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Magnet length, :math:`= 0` for thin lens
+   * - ``knl``
+     - ``KiL``
+     - ``list[float]``
+     - —
+     - ``[]``
+     - Normal component integrated strength array :math:`[K_{0L}, K_{1L}, \ldots]`
+   * - ``ksl``
+     - ``KiSL``
+     - ``list[float]``
+     - —
+     - ``[]``
+     - Skew component integrated strength array :math:`[K_{0sL}, K_{1sL}, \ldots]`
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of slices for thick lens
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - —
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values
+
+
+.. note::
+
+  The ``knl`` and ``ksl`` arrays do not need to have the same length; the shorter array is automatically zero-padded. The maximum order :math:`N` is determined by the longer array length (:math:`N = \max(\text{len}) - 1`).
+
+Usage Examples
+--------------
+
+Thin Lens Multipole (Field Error Injection)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MPE1": {
+           "S (m)": 10.0,
+           "Command": "multipole",
+           "Length (m)": 0.0,
+           "KiL": [0.0, 0.0, 0.001, 0.0005],
+           "KiSL": [0.0, 0.0, 0.0003, 0.0001],
+           "Aperture type": "off"
+       }
+   }
+
+Zero-length multipole with 2nd and 3rd order field error components. Used to simulate the effect of magnet installation errors or manufacturing errors on the beam.
+
+Thick Lens Multipole (Combined Element)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MP1": {
+           "S (m)": 20.0,
+           "Command": "multipole",
+           "Length (m)": 0.5,
+           "KiL": [0.0, 0.3, 5.0, 200.0],
+           "KiSL": [0.0, 0.0, 0.0, 0.0],
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Thick lens combined multipole with simultaneous quadrupole, sextupole, and octupole normal components, 5 slices, 4th-order symplectic integration.
+
+Single-Order Multipole (Equivalent to Octupole)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MP2": {
+           "S (m)": 30.0,
+           "Command": "multipole",
+           "Length (m)": 0.0,
+           "KiL": [0.0, 0.0, 0.0, 500.0],
+           "KiSL": [0.0, 0.0, 0.0, 200.0],
+           "Aperture type": "off"
+       }
+   }
+
+Contains only the 3rd-order component (``knl=[0,0,0,500]``, ``ksl=[0,0,0,200]``), equivalent to a normal+skew octupole thin lens. Particle-by-particle consistent with the ``Octupole`` element.
+
+Higher-Order Multipole (Decapole)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "MP3": {
+           "S (m)": 40.0,
+           "Command": "multipole",
+           "Length (m)": 0.0,
+           "KiL": [0.0, 0.0, 0.0, 0.0, 10000.0],
+           "KiSL": [0.0, 0.0, 0.0, 0.0, 0.0],
+           "Aperture type": "off"
+       }
+   }
+
+4th-order multipole (decapole), ``knl=[0,0,0,0,10000]``. Dedicated elements only support up to octupole (3rd order); the multipole supports arbitrary order.
 
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
@@ -49,7 +196,7 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
@@ -69,7 +216,6 @@ Charge-to-mass ratio factor:
   \chi = \frac{q}{q_0} \cdot \frac{m_0}{m}
 
 For a beam of identical particle species, :math:`\chi = 1`.
-
 
 Multipole Field and Normalized Strength
 ---------------------------------------
@@ -119,8 +265,7 @@ where :math:`L` is the magnet length, :math:`K_{nL}` is the normal component, an
 
 .. note::
 
-  The ``KNL`` / ``KSL`` values exported by MAD-X are fully consistent with PASS's ``knl`` / ``ksl`` definitions, both being integrated strengths :math:`K_{nL}`, and can be used directly without manually computing factorials. The :math:`1/n!` is handled automatically by the Horner recursion inside the code.
-
+  ``knl`` and ``ksl`` contain integrated multipole strengths without factorial division. The field evaluation includes :math:`1/n!` internally.
 
 Overall Tracking Flow
 ---------------------
@@ -176,7 +321,6 @@ where the DKD map for each slice is:
   - Chromaticity and other effects in thick lens mode are naturally introduced through the :math:`p_z` expression in exact drift
   - When all ``knl`` / ``ksl`` components are zero, the thick lens degenerates to a pure drift, avoiding meaningless empty kick loops
 
-
 Physical Derivation
 --------------------
 
@@ -217,7 +361,6 @@ where the real part of :math:`(x+iy)^n` corresponds to the normal component and 
 .. note::
 
   The complex field convention is :math:`B_y + i B_x = \frac{P_0}{q_0} \sum_n \frac{K_n}{n!} (x+iy)^n` (**without conjugation**). Using the conjugate :math:`\overline{(x+iy)^n}` would lead to a sign error in :math:`\Delta p_y`. This convention has been verified through sextupole cross-validation.
-
 
 Horner Nested Evaluation
 ------------------------
@@ -293,7 +436,6 @@ The skew component kick naturally swaps real and imaginary parts through complex
 
   The Horner recursion is general for any order :math:`N`. When the ``knl`` / ``ksl`` arrays have only a single nonzero order component, the multipole degenerates to the corresponding single-order element (quadrupole/sextupole/octupole, etc.), and the kick formula is particle-by-particle consistent with the hardcoded version.
 
-
 Exact Drift Map
 ---------------
 
@@ -322,7 +464,6 @@ where:
   \beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}
 
 The exact drift preserves the full nonlinearity of :math:`p_z`, naturally introducing chromaticity, higher-order dispersion, and path-length effects.
-
 
 Symplectic Integrators
 ----------------------
@@ -359,7 +500,6 @@ where the Yoshida coefficients are:
 
 Truncation error :math:`O(\Delta s^4)`.
 
-
 Naturally Included Effects
 --------------------------
 
@@ -385,7 +525,6 @@ The split-map truncation error is :math:`O(\Delta s^2)` for uniform and
 error; see :ref:`en-element-integration-precision` for the coefficient, substep and
 particle-storage precision conventions.
 
-
 Reference-orbit scope
 ---------------------
 
@@ -397,147 +536,6 @@ Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common :ref:`en-error` interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.
 
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 20 10 10 40
-
-  * - Property
-    - JSON key
-    - Type
-    - Default
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - Required
-    - Longitudinal position of the element in the beamline
-  * - ``cmd_name``
-    - ``name``
-    - str
-    - Required
-    - Element name
-  * - ``length``
-    - ``length (m)``
-    - float
-    - Required
-    - Magnet length, :math:`= 0` for thin lens
-  * - ``knl``
-    - ``KiL``
-    - list
-    - ``[]``
-    - Normal component integrated strength array :math:`[K_{0L}, K_{1L}, \ldots]`
-  * - ``ksl``
-    - ``KiSL``
-    - list
-    - ``[]``
-    - Skew component integrated strength array :math:`[K_{0sL}, K_{1sL}, \ldots]`
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - 1
-    - Number of slices for thick lens
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - ``adaptive``
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - ``off``
-    - Aperture type
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - ``[]``
-    - Aperture parameter values
-
-.. note::
-
-  The ``knl`` and ``ksl`` arrays do not need to have the same length; the shorter array is automatically zero-padded. The maximum order :math:`N` is determined by the longer array length (:math:`N = \max(\text{len}) - 1`).
-
-
-Usage Examples
---------------
-
-Thin Lens Multipole (Field Error Injection)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MPE1": {
-          "S (m)": 10.0,
-          "Command": "multipole",
-          "Length (m)": 0.0,
-          "KiL": [0.0, 0.0, 0.001, 0.0005],
-          "KiSL": [0.0, 0.0, 0.0003, 0.0001],
-          "Aperture Type": "off"
-      }
-  }
-
-Zero-length multipole with 2nd and 3rd order field error components. Used to simulate the effect of magnet installation errors or manufacturing errors on the beam.
-
-Thick Lens Multipole (Combined Element)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MP1": {
-          "S (m)": 20.0,
-          "Command": "multipole",
-          "Length (m)": 0.5,
-          "KiL": [0.0, 0.3, 5.0, 200.0],
-          "KiSL": [0.0, 0.0, 0.0, 0.0],
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Thick lens combined multipole with simultaneous quadrupole, sextupole, and octupole normal components, 5 slices, 4th-order symplectic integration.
-
-Single-Order Multipole (Equivalent to Octupole)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MP2": {
-          "S (m)": 30.0,
-          "Command": "multipole",
-          "Length (m)": 0.0,
-          "KiL": [0.0, 0.0, 0.0, 500.0],
-          "KiSL": [0.0, 0.0, 0.0, 200.0],
-          "Aperture Type": "off"
-      }
-  }
-
-Contains only the 3rd-order component (``knl=[0,0,0,500]``, ``ksl=[0,0,0,200]``), equivalent to a normal+skew octupole thin lens. Particle-by-particle consistent with the ``Octupole`` element.
-
-Higher-Order Multipole (Decapole)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "MP3": {
-          "S (m)": 40.0,
-          "Command": "multipole",
-          "Length (m)": 0.0,
-          "KiL": [0.0, 0.0, 0.0, 0.0, 10000.0],
-          "KiSL": [0.0, 0.0, 0.0, 0.0, 0.0],
-          "Aperture Type": "off"
-      }
-  }
-
-4th-order multipole (decapole), ``knl=[0,0,0,0,10000]``. Dedicated elements only support up to octupole (3rd order); the multipole supports arbitrary order.
-
-
 Application Scenarios
 ---------------------
 
@@ -545,8 +543,6 @@ Application Scenarios
 - **Combined multipole elements**: Simultaneously apply multipole kicks of multiple orders at the same location (e.g., quadrupole + sextupole + octupole combination)
 - **Higher-order multipoles**: Decapoles (:math:`n=4`), dodecapoles (:math:`n=5`), and other higher-order elements beyond the range of dedicated elements
 - **Nonlinear effect studies**: Study the impact of higher-order multipole fields on beam dynamics, such as dynamic aperture and resonance driving
-- **MAD-X compatibility**: The ``knl`` / ``ksl`` definitions are fully consistent with MAD-X, allowing direct import of MAD-X sequences
-
 
 References
 ----------

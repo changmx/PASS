@@ -1,90 +1,13 @@
 GUI tools
 =========
 
-The **Tools** workspace contains the beam calculator, tune diagram,
-**RF bucket绘制**, phase-space plotting and emittance calculation, magnet conversion, and
-Exciter preview, and data format conversion. Its left section buttons share the configuration library's
-style and have individual icons. Values persist while switching pages in the
-current window. Tools do not modify the active tracking input or saved project.
-Physics calculation pages provide separate **Detailed formulas** windows and result copying.
-Formulas are typeset offline with fractions, radicals, sums and real subscripts;
-no web engine or online math assets are required. **Copy formulas (LaTeX)** retains
-access to their editable mathematical source.
-
-.. _gui-data-conversion-en:
-
-Data format conversion
-----------------------
-
-Open or drop OMC3 SDDS, HDF5, CSV or TFS, select data, preview, then **Save as**.
-Sources remain read-only. Supported directions are OMC3 SDDS ↔ CSV/TFS,
-HDF5 ↔ CSV/TFS, and CSV ↔ TFS. Editing and direct SDDS ↔ HDF5 conversion are
-outside the scope. Install the GUI extra or, for scripts only,
-``python -m pip install --editable ".[conversion]"`` for PyLHC ``sdds`` and
-``turn-by-turn`` support.
-
-SDDS support is specifically the OMC3 **LHC/TbT SDDS1 array layout**, read through
-PyLHC ``sdds``. ``turn_by_turn`` is the Python reader used by OMC3, not another
-file format. Other SDDS layouts, SPS-specific readers and legacy ASCII TbT files
-are outside this converter's scope. Each exported row contains ``BPM``,
-``BUNCH``, ``TURN`` and the selected ``X`` and/or ``Y`` values. Select BPMs on
-the left, bunches and a turn interval on the right. Identifier columns are
-always retained. Turn and row indices start at 0; stops are exclusive.
-Row ranges and value filters apply after the BPM/bunch/turn selection.
-
-The usual controls show bunches, turn range, X/Y and output format. Row filters,
-column types and parameter selection are under the initially collapsed
-**Advanced options**. Active advanced selections remain effective when collapsed
-and are marked. BPM search only changes visibility; **Select visible** and
-**Deselect visible** affect the current search results and retain hidden choices.
-The preview summary displays selected counts, declared units, acquisition-time
-retention and turn renumbering; absent units are explicitly shown as undeclared.
-
-To convert CSV/TFS back, map its columns to ``BPM``, ``BUNCH``, ``TURN``, ``X``
-and ``Y``. Both planes and a complete BPM × bunch × consecutive-turn grid
-are required. Duplicate samples, missing combinations and gaps in turns are
-rejected. Output uses binary SDDS1, preserves float32/float64 position precision
-and is checked with ``turn_by_turn.read_tbt(..., datatype="lhc")``.
-Turns are renumbered from 0; a missing acquisition timestamp becomes
-``acqStamp=0`` with a notice. BPM names and string parameters must be ASCII.
-Extra SDDS arrays are listed as excluded; no unit or coordinate conversion is
-performed and missing units are not inferred.
-
-GUI preview checks the entire selection for return to OMC3 SDDS, including rows
-beyond the 500-row display. An incomplete table can still be saved as CSV/TFS;
-invalid CSV/TFS input disables SDDS saving and displays the reason. SDDS checking
-scans selected samples in bounded blocks; CSV/TFS checking uses the whole table
-in memory. These are format/structure checks, not an OMC3 physics analysis.
-
-Preview displays at most 500 rows without limiting export. SDDS arrays and
-CSV/TFS inputs are loaded into memory; SDDS table export uses bounded blocks.
-HDF5 reads are bounded and require explicit dataset selection: equal-length
-1-D columns, a 2-D matrix or plane, or a long table of grid points. For a PASS
-``(slice, y, x)`` field, choose **Long table**, slice ``0,:,:`` and coordinate
-paths ``/slice_id,/y,/x`` to export the first slice. Jobs can be cancelled.
-
-CSV can include a content-checked ``.metadata.json`` sidecar for units, types
-and parameters (including the exact acquisition timestamp). Keep it alongside
-the CSV for a round trip. TFS stores compatible headers plus PASS metadata.
-HDF5 output uses ``/table/<column>``; arbitrary source hierarchy is not recreated.
-Changing selections requires another preview. Source-change checks also include
-the CSV metadata sidecar. Overwriting outputs needs
-confirmation, and the source cannot be overwritten. Multi-file publication is
-not atomic; cancellation can leave already completed output files.
-
-Qt-independent functions live in ``PASS.tool.data_conversion``:
-``inspect_file``, ``preview_file``, ``convert_sdds`` and ``convert_hdf5``.
-For example, ``convert_sdds("a.sdds", "a.csv", DataSelection(bpms=["BPM.1"], turns=(0, 100)))``
-exports the first 100 turns of BPM.1 for all bunches; ``convert_sdds("a.csv", "b.sdds")``
-reconstructs OMC3 SDDS from the five standard columns, and
-``convert_hdf5("a.csv", "a.h5")`` creates an HDF5 table.
-Custom reverse mappings use ``DataSelection(tbt_columns={"BPM": "name", "BUNCH": "bunch", "TURN": "turn", "X": "x", "Y": "y"})``.
-Calls return output paths, row counts and notices; overwrite defaults to false.
-Scripts can use ``preview_file(path, selection, check_sdds=True)`` to receive
-the complete-selection result in ``sdds_check`` while limiting displayed rows.
+The **Tools** workspace provides independent calculations and data conversion.
+Inputs persist while switching pages in the same window; calculations do not
+modify the active simulation input or saved project. Use **Detailed formulas**
+for equations and data sources, and **Copy formulas (LaTeX)** for editable formulas.
 
 Particles and authoritative masses
------------------------------------
+----------------------------------
 
 Enter ion **A**, signed charge state **q**, and proton number **Z**, or choose a
 named particle. Non-ion choices include electrons/positrons, muons/antimuons,
@@ -100,24 +23,9 @@ replaces species, A, q and Z together. Omitted ion A uses a stated isotope prese
 omitted q uses the fully stripped charge q=Z. Explicit invalid notation is
 rejected. Ek and other independent inputs retain their values. ``P`` and ``N``
 are phosphorus and nitrogen; lowercase ``p`` and ``n`` are proton and neutron.
-The names/presets in ``PASS/tool/particles.py`` remain separate from mass data.
-This module owns ``ParticleSpec``, A/Z/q validation, aliases and fuzzy lookup.
-``PASS/tool/particle_masses.py`` loads the offline catalog and computes the
-charge-dependent mass, including electron and ionization-energy corrections.
-Both are independent of Qt and remain in ``PASS/tool`` as shared particle and
-mass utilities. The Tools-specific calculation backends live alongside their
-pages in ``PASS/gui``: ``beam_calculator.py`` (kinematics and power),
-``optics_calculator.py`` (emittance and magnets), ``exciter_calculator.py``
-(excitation preview), and ``rf_bucket.py`` (RF bucket). These backends remain
-independent of Qt; Python callers use imports such as
-``from PASS.gui.beam_calculator import solve_kinematics``. Their previous
-``PASS.tool`` module paths have been removed. The move changes code organization
-only; formulas, energy definitions and GUI behavior are unchanged.
-
-Masses now use one fixed offline catalog, without a source selector or A*u
-fallback. The runtime file is ``PASS/tool/mass_catalog.json``; its ``metadata``
-records exact download URLs, hashes, and citations.
-The former user ``PARTICLE_DATA.tsv`` is neither read nor packaged.
+Masses use the offline catalog ``PASS/tool/mass_catalog.json``. Its ``metadata``
+records data-source URLs, versions, checksums, and citations. Missing required
+data produce an error; there is no A*u fallback.
 
 * `AME2020 unrounded table <https://www-nds.iaea.org/amdc/ame2020/mass_1.mas20.txt>`_
   supplies 3,558 ground-state nuclide records, primarily **neutral atomic mass**
@@ -134,13 +42,9 @@ The former user ``PARTICLE_DATA.tsv`` is neither read nor packaged.
   of which 172 have unknown energy. A missing required stage prevents that ion
   calculation. Original flags, reference codes and uncertainties are preserved.
 
-The catalog is a formatted conversion of full official AME/CODATA/PDG downloads
-and one ASD CSV export, not an official JSON release or individual-particle scrape.
-H-minus affinity is separately cited from WebBook. Stable lookup IDs are retained,
-but each record has readable identity fields and an original source line number.
-For example, PDG ``20213`` now shows **a₁(1260)⁺**, charge +1, mass 1230 MeV/c²,
-positive/negative errors 40 MeV/c² and width 420 MeV. The mass uncertainty of this
-broad resonance is present in the official PDG table, not a conversion defect.
+The catalog combines official AME/CODATA/PDG tables and an ASD CSV export.
+The supplied JSON is a PASS conversion of these sources. Original uncertainties,
+estimate flags, and source references are retained.
 
 The file does **not** contain all possible isotopes or all charge-state masses.
 AME covers its listed ground states; PDG stores 319 IDs with numeric masses, of
@@ -166,15 +70,11 @@ isotope shifts. H-minus additionally uses the hydrogen electron affinity
 Other negative ions currently lack the required affinity correction. Unspecified
 Z, absent isotopes and missing ionization energies produce explicit errors.
 
-For this purpose the original evaluations are preferable to a general library:
-`AtomDB <https://www.atomdb.org/>`_ targets X-ray plasma spectra;
-`BODR <https://github.com/BlueObelisk/bodr>`_ collects chemical element/isotope data;
-`iniabu <https://iniabu.readthedocs.io/en/latest/>`_ primarily exposes published
-solar abundances. Standard atomic weights averaged over isotope abundances are
-not the mass of a selected accelerator ion.
+Standard atomic weights averaged over isotope abundances are not the mass of
+a selected accelerator ion.
 
 Kinematics, units and precision
----------------------------------
+-------------------------------
 
 Ions and atoms use **AMeV**, meaning kinetic energy per integer nucleon count:
 ``Ek=K/A``. Electrons, muons, tau leptons and mesons (A=0) use **MeV per particle**.
@@ -225,32 +125,8 @@ but complete-particle total energy (eV) and momentum (eV/c) for inverse inputs.
 Tracking APIs and their existing mass approximations are unchanged; match their
 documented units and mass convention when transferring values.
 
-Comparison with the original particle table
---------------------------------------------
-
-Run ``python -m tests.codex.gui_tools.compare_mass_tables`` to reproduce the
-read-only comparison with ``PASS/tool/PARTICLE_DATA.tsv``. It compares all
-159,032 rows (3,047 nuclides, Z=1–92) by A/Z/q, using the same evaluated masses
-as the GUI. All original rows are calculable. Results, a searchable offline HTML
-viewer and full CSV files are written to
-``tests/codex/gui_tools/artifacts/mass-comparison/``. Coverage files also list all
-3,558 AME nuclides (511 absent from the TSV), 319 PDG entries and the additional
-15 named GUI species. Original input hashes are recorded and neither mass file
-is modified. ``test_mass_comparison.py`` independently checks every row using
-decimal arithmetic and the tabulated atomic masses, electron mass and ionization energies.
-
-Differences mean **current minus TSV**, in whole-particle rest mass, not mass
-divided by A or mu. The median absolute difference is 32.424446 keV/c²; the
-maximum is 1.886586 MeV/c² for Al-42 13+, whose AME mass is itself estimated
-(atomic uncertainty about 0.500212 MeV/c²). The TSV's nearly constant charge-step
-mass decrement omits the varying ionization correction. A different u conversion
-scale and nuclide mass baseline are also visible. Its source version and
-uncertainties are unknown, so these discrepancies are not certified measurement
-errors or statistical significance estimates. The reports distinguish AME
-estimates and original atomic uncertainties from combined ion-mass uncertainty.
-
 Current, power and stored energy
----------------------------------
+--------------------------------
 
 The former separate average/instantaneous forward/reverse entries are consolidated
 into three physically distinct modes:
@@ -275,6 +151,21 @@ into three physically distinct modes:
 Zero current or count is valid. Power excludes rest energy and electrical
 wall-plug consumption. Instantaneous current, Ek and power must refer to the
 same cross section and instant; for a spread, use flux-weighted kinetic energy.
+
+Reference inputs and exports
+----------------------------
+
+RF bucket, emittance, magnets and Exciter have independent reference particle
+and Ek inputs. **Read beam calculator** copies a valid particle/species and Ek
+as an explicit snapshot. Invalid source inputs do not replace the destination.
+RF needs mass, charge and energy for its slip factor, bucket height and frequencies.
+Emittance needs relativistic beta*gamma for normalization; magnets and Exciter
+need rigidity and/or speed. Formula references describe each approximation.
+
+Plots export SVG/PNG/PDF and CSV with explicit column units. Emittance and Exciter
+place parameters and results together in the right vertical scrolling column.
+The plot remains visible on the left. Formula windows list the local catalog path,
+clickable official source URLs, and the shared per-nucleon/per-particle normalization equations.
 
 Tune diagram
 ------------
@@ -314,25 +205,10 @@ no rows. **Export CSV** includes all points, including hidden ones, with names,
 coordinates, colors and markers, preserving blank names. Visibility is a local presentation choice.
 The geometry does not calculate resonance strength or establish beam stability.
 
-Reference inputs and exports
-------------------------------
-
-RF bucket, emittance, magnets and Exciter have independent reference particle
-and Ek inputs. **Read beam calculator** copies a valid particle/species and Ek
-as an explicit snapshot. Invalid source inputs do not replace the destination.
-RF needs mass, charge and energy for its slip factor, bucket height and frequencies.
-Emittance needs relativistic beta*gamma for normalization; magnets and Exciter
-need rigidity and/or speed. Formula references describe each approximation.
-
-Plots export SVG/PNG/PDF and CSV with explicit column units. Emittance and Exciter
-place parameters and results together in the right vertical scrolling column.
-The plot remains visible on the left. Formula windows list the local catalog path,
-clickable official source URLs, and the shared per-nucleon/per-particle normalization equations.
-
 RF bucket
-----------
+---------
 
-The navigation label is **RF bucket绘制**. Enter V, harmonic h, circumference C,
+The navigation label is **RF bucket 绘制**. Enter V, harmonic h, circumference C,
 effective synchronous phase phi_s, and either gamma_t or eta. The reference
 particle is retained. In this section E_r=E/D=m0*c²/D+Ek is in eV and q_r=abs(q)/D, with D=max(A,1). Defaults: 100 kV, h=4, C=100 m, phi_s=0 and gamma_t=6.
 
@@ -375,7 +251,7 @@ are rejected. It does not replace tracking. Background:
 `CERN longitudinal beam dynamics <https://e-publishing.cern.ch/index.php/CYRSP/article/view/1586>`_.
 
 Phase-space plotting and emittance calculation
-------------------------------------------------
+----------------------------------------------
 
 The tool **相空间绘制及发射度计算** starts with one independent parameter page.
 Use **＋** to add a page or **复制当前页** to copy parameters, centroids, and visibility settings.
@@ -461,7 +337,7 @@ Results distinguish betatron and projected RMS values and emittances; projected 
 even when their curve is hidden. The reported Twiss parameters describe the betatron covariance.
 
 Magnet conversion
--------------------
+-----------------
 
 Choose particle-derived or directly entered **signed** B*rho=p/(q*e), positive
 length L, and one known magnet quantity. Direct mode ignores disabled reference
@@ -490,7 +366,7 @@ an iron pole-face field; magnetic-circuit geometry and a field model are needed.
 No fringe fields, saturation, hysteresis or coil-current calibration is included.
 
 Exciter calculation and plotting
------------------------------------
+--------------------------------
 
 The page implements the four modes in ``PASS/commands/element/exciter.py``:
 single_fm, single_fm_am, dual_fm, dual_fm_am. Inputs include signed peak interplate voltage difference, gap,
@@ -535,3 +411,75 @@ content. FFT bin spacing is 1/window duration; a sampled peak is not a global
 analytic bound. Waveform CSV columns use seconds, radians and Hz; spectrum CSV
 uses frequency_Hz and kick_amplitude_rad. Parameters/results share a vertical
 scrolling column and plots support the normal image/vector exports.
+
+.. _gui-data-conversion-en:
+
+Data format conversion
+----------------------
+
+Open or drop OMC3 SDDS, HDF5, CSV or TFS, select data, preview, then **Save as**.
+Sources remain read-only. Supported directions are OMC3 SDDS ↔ CSV/TFS,
+HDF5 ↔ CSV/TFS, and CSV ↔ TFS. Editing and direct SDDS ↔ HDF5 conversion are
+outside the scope. Install the GUI extra or, for scripts only,
+``python -m pip install --editable ".[conversion]"`` for PyLHC ``sdds`` and
+``turn-by-turn`` support.
+
+SDDS support is specifically the OMC3 **LHC/TbT SDDS1 array layout**, read through
+PyLHC ``sdds``. ``turn_by_turn`` is the Python reader used by OMC3, not another
+file format. Other SDDS layouts, SPS-specific readers and legacy ASCII TbT files
+are outside this converter's scope. Each exported row contains ``BPM``,
+``BUNCH``, ``TURN`` and the selected ``X`` and/or ``Y`` values. Select BPMs on
+the left, bunches and a turn interval on the right. Identifier columns are
+always retained. Turn and row indices start at 0; stops are exclusive.
+Row ranges and value filters apply after the BPM/bunch/turn selection.
+
+The usual controls show bunches, turn range, X/Y and output format. Row filters,
+column types and parameter selection are under the initially collapsed
+**Advanced options**. Active advanced selections remain effective when collapsed
+and are marked. BPM search only changes visibility; **Select visible** and
+**Deselect visible** affect the current search results and retain hidden choices.
+The preview summary displays selected counts, declared units, acquisition-time
+retention and turn renumbering; absent units are explicitly shown as undeclared.
+
+To convert CSV/TFS back, map its columns to ``BPM``, ``BUNCH``, ``TURN``, ``X``
+and ``Y``. Both planes and a complete BPM × bunch × consecutive-turn grid
+are required. Duplicate samples, missing combinations and gaps in turns are
+rejected. Output uses binary SDDS1, preserves float32/float64 position precision
+and is checked with ``turn_by_turn.read_tbt(..., datatype="lhc")``.
+Turns are renumbered from 0; a missing acquisition timestamp becomes
+``acqStamp=0`` with a notice. BPM names and string parameters must be ASCII.
+Extra SDDS arrays are listed as excluded; no unit or coordinate conversion is
+performed and missing units are not inferred.
+
+GUI preview checks the entire selection for return to OMC3 SDDS, including rows
+beyond the 500-row display. An incomplete table can still be saved as CSV/TFS;
+invalid CSV/TFS input disables SDDS saving and displays the reason. SDDS checking
+scans selected samples in bounded blocks; CSV/TFS checking uses the whole table
+in memory. These are format/structure checks, not an OMC3 physics analysis.
+
+Preview displays at most 500 rows without limiting export. SDDS arrays and
+CSV/TFS inputs are loaded into memory; SDDS table export uses bounded blocks.
+HDF5 reads are bounded and require explicit dataset selection: equal-length
+1-D columns, a 2-D matrix or plane, or a long table of grid points. For a PASS
+``(slice, y, x)`` field, choose **Long table**, slice ``0,:,:`` and coordinate
+paths ``/slice_id,/y,/x`` to export the first slice. Jobs can be cancelled.
+
+CSV can include a content-checked ``.metadata.json`` sidecar for units, types
+and parameters (including the exact acquisition timestamp). Keep it alongside
+the CSV for a round trip. TFS stores compatible headers plus PASS metadata.
+HDF5 output uses ``/table/<column>``; arbitrary source hierarchy is not recreated.
+Changing selections requires another preview. Source-change checks also include
+the CSV metadata sidecar. Overwriting outputs needs
+confirmation, and the source cannot be overwritten. Multi-file publication is
+not atomic; cancellation can leave already completed output files.
+
+Qt-independent functions live in ``PASS.tool.data_conversion``:
+``inspect_file``, ``preview_file``, ``convert_sdds`` and ``convert_hdf5``.
+For example, ``convert_sdds("a.sdds", "a.csv", DataSelection(bpms=["BPM.1"], turns=(0, 100)))``
+exports the first 100 turns of BPM.1 for all bunches; ``convert_sdds("a.csv", "b.sdds")``
+reconstructs OMC3 SDDS from the five standard columns, and
+``convert_hdf5("a.csv", "a.h5")`` creates an HDF5 table.
+Custom reverse mappings use ``DataSelection(tbt_columns={"BPM": "name", "BUNCH": "bunch", "TURN": "turn", "X": "x", "Y": "y"})``.
+Calls return output paths, row counts and notices; overwrite defaults to false.
+Scripts can use ``preview_file(path, selection, check_sdds=True)`` to receive
+the complete-selection result in ``sdds_check`` while limiting displayed rows.

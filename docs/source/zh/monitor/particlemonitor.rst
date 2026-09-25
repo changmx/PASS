@@ -1,98 +1,23 @@
 粒子监视器（ParticleMonitor）
-==============================
+============================================
 
-简介
-----
+``ParticleMonitor`` 在给定圈数区间内逐圈记录所选粒子的六维相空间坐标与损失信息，适用于单粒子轨迹及频谱分析。重建物理到达时间或动量时，应启用参考量输出。
 
-``ParticleMonitor`` 是逐圈粒子坐标监视器，在指定纵向位置记录选定粒子的 6D 相空间坐标，每圈记录一次。与 ``StatMonitor`` 记录束团整体统计量不同， ``ParticleMonitor`` 关注 **单个粒子** 的逐圈运动轨迹，是工作点（ tune ）测量、色品测量、振幅依赖效应分析等逐束团逐圈（ turn-by-turn, TBT ）诊断的核心工具。
-
-- **代码位置** ： ``PASS/commands/monitor/particle_monitor.py``
-- **类名** ： ``ParticleMonitor`` ，注册名 ``"particlemonitor"``
-- **核心特征** ：
-
-  - 通过 ``max_tag`` 参数选择记录粒子，匹配条件为 :math:`1 \leq |\mathrm{tag}| \leq \mathrm{max\_tag}` ；
-  - 支持设置记录圈数范围 ``[start_turn, end_turn)`` ，不必从第 0 圈开始追踪；
-  - 预分配 buffer ``（max_tag, num_record_turn, num_columns）`` ，避免运行时动态分配；
-  - 默认每圈记录 11 列数据： turn + 6D 坐标 + tag + lost_turn + lost_position + zCenter ；开启 ``Include reference`` 后增加三列参考量；
-  - 模拟结束后每个粒子单独写入一个 HDF5 文件（可选 TFS）；
-  - 文件名含监视器名称和纵向位置（ 3 位小数），支持多位置部署；
-  - CPU 使用 numpy ， GPU 使用 cupy ， buffer 全程驻留 GPU ，仅结束时做一次 D2H 拷贝；
-
-
-粒子选择机制
+配置示例
 ------------
 
-PASS 中每个粒子拥有全局唯一的 ``tag`` （正整数），插入的测试粒子从 ``tag = 1`` 开始递增。 ``ParticleMonitor`` 通过 ``max_tag`` 参数指定记录范围：
+.. code-block:: python
 
-.. math::
+   from PASS.para.schema.monitors import ParticleMonitorItem
+   from PASS.para.schema.sequence import Sequence
 
-   \text{recorded} = \{\, i \;\mid\; 1 \leq |\mathrm{tag}_i| \leq \mathrm{max\_tag} \,\}
+   sequence = Sequence()
+   sequence.add("particle1", ParticleMonitorItem(
+       s=0.0, max_tag=5, start_turn=0, end_turn=64,
+       include_reference=True,
+   ))
 
-注意匹配条件使用的是 :math:`|\mathrm{tag}|` （绝对值），因此：
-
-- ``tag = 1, 2, \ldots, \mathrm{max\_tag}`` ：正常存活粒子
-- ``tag`` 取负 ：已丢失粒子 **同样被记录** ，其坐标保持丢失前的最后值
-
-.. note::
-
-  测试粒子通过 ``Injection`` 的 ``Insert Particle Coordinate`` 参数插入，插入后的粒子 ``tag`` 从 1 开始递增。 ``max_tag`` 应等于插入的测试粒子数。
-
-  若 ``max_tag < 1`` ，监视器仅输出警告日志，不记录任何粒子，但不影响模拟运行。
-
-
-记录圈数范围
-------------
-
-通过 ``start_turn`` 和 ``end_turn`` 可指定记录的圈数范围：
-
-.. math::
-
-   \text{recorded turns} = \{\, n \;\mid\; \mathrm{start\_turn} \leq n < \mathrm{end\_turn} \,\}
-
-- ``start_turn`` ：记录起始圈（含），默认 0
-- ``end_turn`` ：记录结束圈（不含），默认 -1 表示最后一圈（含）
-
-计划记录区间完整执行后，记录圈数为：
-
-.. math::
-
-   N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}
-
-典型用途：前 200 圈让束流稳定（不记录），从第 200 圈开始记录 1000 圈用于 FFT 分析。
-
-
-预分配策略
-----------
-
-``ParticleMonitor`` 在初始化时预分配完整 buffer ：
-
-.. math::
-
-   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
-
-``Include reference`` 默认为 false，此时 :math:`N_{\mathrm{col}}=11`；
-开启后 :math:`N_{\mathrm{col}}=14`。关闭时 CPU 和 GPU 均不为参考列分配缓冲区。
-
-内存开销：
-
-.. math::
-
-   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
-
-典型场景（ 14 个测试粒子，记录 1000 圈） ：
-
-.. math::
-
-   M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
-
-开启参考列后，该示例占用 1.568 MB，比默认模式增加 27.3%。
-
-buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 用 numpy ， GPU 用 cupy 。预分配的优势：
-
-- 运行时零内存分配，不影响追踪性能；
-- GPU 场景下 buffer 全程驻留 GPU 显存，每圈直接从 GPU 粒子数组写入 GPU buffer ，仅在模拟结束时做一次 D2H 拷贝；
-- 固定内存布局，便于后处理分析。
-
+本例记录绝对 tag 值为 1–5 的粒子及每行对应的参考量。使用时应将监视器加入包含这些粒子的完整序列。
 
 接口参数
 --------
@@ -101,7 +26,7 @@ buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 
   :header-rows: 1
   :widths: 20 20 10 10 40
 
-  * - 属性名
+  * - Python 字段
     - JSON key
     - 类型
     - 默认值
@@ -111,11 +36,6 @@ buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 
     - float
     - 必填
     - 监视器在束线中的纵向位置
-  * - ``cmd_name``
-    - ``"name"``
-    - str
-    - 必填
-    - 监视器名称（由序列键名自动填入）
   * - ``command``
     - ``"Command"``
     - str
@@ -142,9 +62,43 @@ buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 
     - false
     - 逐行追加参考时间、beta 和动量，用于物理时间/能量分析
 
-.. note::
+``output_format``（JSON 键 ``Output format``）默认为 ``hdf5-gzip1``，也可选择 ``hdf5`` 或 ``tfs``。命令名称由序列键给定。
 
-  ``max_tag`` 应与 ``Injection`` 中 ``Insert Particle Coordinate`` 插入的粒子数量一致。例如插入 14 个测试粒子，则 ``max_tag = 14`` 。
+粒子选择机制
+------------
+
+PASS 中每个粒子拥有全局唯一的 ``tag`` （正整数），插入的测试粒子从 ``tag = 1`` 开始递增。 ``ParticleMonitor`` 通过 ``max_tag`` 参数指定记录范围：
+
+.. math::
+
+   \text{recorded} = \{\, i \;\mid\; 1 \leq |\mathrm{tag}_i| \leq \mathrm{max\_tag} \,\}
+
+注意匹配条件使用的是 :math:`|\mathrm{tag}|` （绝对值），因此：
+
+- ``tag = 1, 2, \ldots, \mathrm{max\_tag}`` ：正常存活粒子
+- ``tag`` 取负 ：已丢失粒子 **同样被记录** ，其坐标保持丢失前的最后值
+
+tag 标识在排序及损失前后保持不变。``max_tag`` 是 tag 上界，并非手动插入粒子数或单个束团的粒子数。非正的 max_tag 不记录粒子，并输出警告。
+
+记录圈数范围
+------------
+
+通过 ``start_turn`` 和 ``end_turn`` 可指定记录的圈数范围：
+
+.. math::
+
+   \text{recorded turns} = \{\, n \;\mid\; \mathrm{start\_turn} \leq n < \mathrm{end\_turn} \,\}
+
+- ``start_turn`` ：记录起始圈（含），默认 0
+- ``end_turn`` ：记录结束圈（不含），默认 -1 表示最后一圈（含）
+
+计划记录区间完整执行后，记录圈数为：
+
+.. math::
+
+   N_{\mathrm{record}} = \mathrm{end\_turn} - \mathrm{start\_turn}
+
+典型用途：前 200 圈让束流稳定（不记录），从第 200 圈开始记录 1000 圈用于 FFT 分析。
 
 
 输出文件
@@ -209,7 +163,7 @@ GUI 停止控件及运行记录见 :doc:`../project_files`。
     - 归一化垂直动量
   * - ``z``
     - m
-    - 相对所属束团中心的纵向坐标 :math:`z_{\mathrm{rel}}`
+    - 相对所属束团参考到达时间的纵向坐标 :math:`z_{\mathrm{rel}}`
   * - ``dp``
     - -
     - 相对动量偏差 :math:`\delta`
@@ -237,13 +191,15 @@ GUI 停止控件及运行记录见 :doc:`../project_files`。
 
 ``zCenter`` 仅表示名义槽位。连续 z 可以超过环周范围，不单独决定分组。
 开启参考列时，损失记录的参考量为 NaN，避免将冻结损失坐标误解为当前束团坐标。
-需要参考历史的分析必须在追踪前开启此选项；加速或重分组后，最终参考快照不能用于重建此前各圈。
+需要参考历史的分析必须在跟踪前开启此选项；加速或重分组后，最终参考快照不能用于重建此前各圈。
 
 诊断运行可通过 schema API 开启：
 
 .. code-block:: python
 
-   ParticleMonitor(s=0.0, max_tag=5, include_reference=True)
+   from PASS.para.schema.monitors import ParticleMonitorItem
+
+   monitor = ParticleMonitorItem(s=0.0, max_tag=5, include_reference=True)
 
 或在生成的 JSON 中设置：
 
@@ -256,93 +212,40 @@ GUI 停止控件及运行记录见 :doc:`../project_files`。
        "Include reference": true
    }
 
-使用示例
---------
+预分配策略
+----------
 
-基本用法
-~~~~~~~~
+``ParticleMonitor`` 在初始化时预分配完整 buffer ：
 
-以下 JSON 片段在 :math:`s = 0.0` m 处放置一个粒子监视器，记录 ``tag = 1`` 至 ``tag = 3`` 的粒子：
+.. math::
 
-.. code-block:: json
+   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
 
-   "PM1": {
-       "S (m)": 0.0,
-       "Command": "ParticleMonitor",
-       "Max tag": 3
-   }
+``Include reference`` 默认为 false，此时 :math:`N_{\mathrm{col}}=11`；
+开启后 :math:`N_{\mathrm{col}}=14`。关闭时 CPU 和 GPU 均不为参考列分配缓冲区。
 
-配合 ``Injection`` 中插入 3 个测试粒子：
+内存开销：
 
-.. code-block:: json
+.. math::
 
-   "injection": {
-       "S (m)": 0.0,
-       "Command": "Injection",
-       "bunch0": {
-           "Insert Particle Coordinate": [
-               [0.001, 0.0, 0.0, 0.0, 0.0, 0.0],
-               [0.0, 0.0, 0.001, 0.0, 0.0, 0.0],
-               [0.0, 0.0, 0.0, 0.0, 0.0, 0.001]
-           ]
-       }
-   }
+   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
 
-上述配置插入了 3 个测试粒子：
+典型场景（ 14 个测试粒子，记录 1000 圈） ：
 
-- ``tag = 1`` ： :math:`x = 1` mm 水平偏移粒子，用于水平工作点测量
-- ``tag = 2`` ： :math:`y = 1` mm 垂直偏移粒子，用于垂直工作点测量
-- ``tag = 3`` ： :math:`\delta = 10^{-3}` 动量偏移粒子，用于色散和色品测量
+.. math::
 
-模拟结束后在 ``output_dir_particle`` 目录下默认生成 3 个 HDF5 文件，每个文件包含该粒子所有记录圈的 6D 坐标。
+   M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
 
-延迟记录
-~~~~~~~~
+开启参考列后，该示例占用 1.568 MB，比默认模式增加 27.3%。
 
-以下配置在前 200 圈不记录（让束流稳定），从第 200 圈开始记录至第 1000 圈：
+buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 用 numpy ， GPU 用 cupy 。预分配的优势：
 
-.. code-block:: json
-
-   "PM1": {
-       "S (m)": 0.0,
-       "Command": "ParticleMonitor",
-       "Max tag": 14,
-       "Start turn": 200,
-       "End turn": 1000
-   }
-
-buffer 大小按 :math:`1000 - 200 = 800` 圈分配，输出表格中 ``turn`` 列从 200 开始。
-
-多位置监视
-~~~~~~~~~~
-
-可在环上不同位置放置多个粒子监视器，比较粒子在不同位置的相空间坐标：
-
-.. code-block:: json
-
-   "PM_start": {
-       "S (m)": 0.0,
-       "Command": "ParticleMonitor",
-       "Max tag": 14
-   },
-   "PM_mid": {
-       "S (m)": 284.5,
-       "Command": "ParticleMonitor",
-       "Max tag": 14
-   }
+- 历史缓冲区在跟踪前分配，记录过程仍有计算开销；
+- GPU 场景下 buffer 全程驻留 GPU 显存，每圈直接从 GPU 粒子数组写入 GPU buffer ，仅在模拟结束时做一次 D2H 拷贝；
+- 固定内存布局，便于后处理分析。
 
 
-应用场景
---------
+结果解释与限制
+--------------
 
-- **工作点测量** ：对 TBT 坐标做 FFT 或 NAFF ，提取 betatron 振荡频率即为工作点 :math:`Q_x` 、 :math:`Q_y`
-- **色品测量** ：在不同动量偏差 :math:`\delta` 下分别测量工作点，线性拟合 :math:`Q(\delta)` 的斜率即为色品 :math:`DQ_x` 、 :math:`DQ_y`
-- **振幅依赖 tune 偏移（ ADTS ）** ：以不同初始振幅的粒子测量 tune ，分析非线性 tune 随振幅的偏移
-- **色散函数测量** ：对动量偏移粒子的 TBT 质心轨道取时间平均，除以 :math:`\delta` 即得色散函数 :math:`D(s)`
-- **滑移因子测量** ：对同一束团内动量偏移粒子的相对纵向坐标 :math:`z_{\mathrm{rel}}` 逐圈记录；其每圈变化率可用于求滑移因子。跨束团比较或重分组后分析时，应开启 ``Include reference``，使用同行 referenceTime 和 referenceBeta 重建物理到达时间
-- **闭合轨道验证** ：初始无偏移粒子的 TBT 坐标应保持不变，验证闭合轨道稳定性
-- **粒子损失追踪** ：通过 ``tag`` 符号变化和 ``lostTurn`` / ``lostPosition`` 定位粒子丢失的时刻和位置
-
-``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``；
-设置为 ``"hdf5"`` 使用不压缩的 HDF5，或设置为 ``"tfs"`` 使用文本输出。HDF5 结构、压缩与统一读取方式见
-:doc:`table_output`。
+尚未出现的粒子对应历史行保持零值，例如尚未注入的粒子；分析时应结合 tag 与损失信息筛选。损失坐标保持冻结，不能使用后续存活束团的参考量解释。完整历史缓冲区大小与 max_tag 和记录圈数的乘积成正比，较大规模运行前应合理设置这两个范围。通用格式及读取方法见 :doc:`table_output`，坐标定义见 :ref:`zh-longitudinal-reference`。

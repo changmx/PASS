@@ -22,8 +22,8 @@ counter-electrode potential. Do not use guessed values for physical conclusions.
 ```powershell
 $esVoltage = [double](Read-Host "ES septum-minus-counter voltage (V)")
 $esGap = [double](Read-Host "ES clear gap (m)")
-python example/06_injection_painting/generate_input.py --source C:/data/thread3/cisp_cmd.txt --output tests/codex/painting_reference --turns 100 --stage aperture --clock reference --es-voltage $esVoltage --es-gap $esGap
-python example/06_injection_painting/run_simulation.py tests/codex/painting_reference/beam0.json
+python example/06_injection_painting/generate_input.py --source C:/data/thread3/cisp_cmd.txt --output runs/injection_painting --turns 100 --stage aperture --clock reference --es-voltage $esVoltage --es-gap $esGap
+python example/06_injection_painting/run_simulation.py runs/injection_painting/beam0.json
 ```
 
 Alternatively, replace `--es-voltage` with `--es-vl` to supply the longitudinal
@@ -47,7 +47,7 @@ after the requested number of turns finishes. PASS creates a dated run directory
 under the case's `tracking` directory. The final console line reports its path,
 duration, surviving/lost counts, and remaining reserved particles.
 
-## Comparison stages and clocks
+## Physics options and clocks
 
 | Option | Behavior |
 | --- | --- |
@@ -66,18 +66,11 @@ duration, surviving/lost counts, and remaining reserved particles.
 | `--no-snapshots` | Keeps statistics but omits large particle snapshots for timing or convergence runs. |
 | `--grid-width W --grid-cells N` | Sets full PIC domain width in meters and cells per axis for convergence checks; defaults are 0.5 m and the source's 128 cells. |
 
-RF files are not included in the supplied latest CISP folder. Omitting
-`--rf-directory` disables RF explicitly and records that fact in the conversion
-manifest. Do not compare such a run against an RF-enabled result as an identical
-physical case. Confirm the provenance of any replacement RF files first. Once
-the first 100 turns are checked, use `--turns 5000` with verified RF files for the
-acceleration stage.
-
-RF input requires an explicit voltage unit as well as verified file provenance. Current CISP `rf.cpp` reads
-volts and divides by 1e6 internally for its energy units. Some historical files
-have values such as 0.0002 that may represent 200 V in MV units; a filename is
-insufficient evidence. Select `--rf-voltage-unit MV` only after confirming that
-convention. The importer records the selected unit and never guesses from scale.
+RF is enabled only when `--rf-directory` is supplied. The conversion manifest
+records whether RF is active. Supply the source-named voltage and phase files,
+then specify `--rf-voltage-unit V` or `MV` according to their documented units;
+the importer does not infer units from numerical scale. The converted table
+stores voltage in volts. Source RF files are not distributed with this example.
 
 The importer is intentionally specific to this CISP command dialect and rejects
 unsupported active element types. It converts the source CSV's linear energy
@@ -96,36 +89,17 @@ Dipole body maps use at least eight Yoshida slices to resolve the source optical
 matrix. Internal slicing applies one real entrance, all body slices, and one
 real exit; it introduces no additional fringe maps at slice boundaries.
 
-The external-element maps are different implementations, so exact multi-turn
-particle equality is not assumed. CISP adapts its free-space PIC domain to
-1.1 times the maximum absolute transverse extent at each kick; this generated
-PASS input uses a fixed 0.5 m square domain and 128 by 128 cells. Compare domain,
-grid, slicing and macro-particle convergence before interpreting PIC differences.
-The manifest lists these differences, the clock and all source dependencies.
+The generated PIC configuration uses a fixed 0.5 m square domain and 128 cells
+per axis by default. Check domain, grid, longitudinal slicing, and macro-particle
+convergence before interpreting collective effects. PASS applies internal space
+charge at midpoint nodes. Standard elements check apertures at exits and internal
+SC locations. The finite ES retains the source aperture along each segment and
+removes particles at the first segment-wall contact. Check trajectory and
+loss-position convergence when studying survival.
 
-Check RF separately before combining it with PIC. The inspected CISP RF kernel
-additionally rescales energy deviation by the ratio of new to old reference
-velocity during acceleration; PASS applies its physical RF energy kick and
-rescales the local time coordinate to preserve particle passage times.
-Matching the reference-energy program does not validate the
-six-dimensional particle motion or establish identical RF maps. Keep the CISP
-executable/source version with any reference data.
-
-CISP's automatic slice count is even for elements longer than its maximum
-slice length; the importer preserves that count for PIC integration weights.
-CISP applies SC before each source slice, whereas PASS uses midpoint kicks.
-Aperture sampling also differs: CISP checks element/slice entrances and standard
-PASS elements check exits and internal SC locations. The finite ES retains each
-source vacuum aperture along its corresponding segment, including the polygon
-over the final 0.75 m, and stops particles at the first segment-wall contact.
-This finite chamber differs physically from a single entrance cut. Check
-trajectory and loss-position convergence before comparing survival; other
-elements retain their existing aperture sampling.
-
-Clock origins matter: upstream CISP tables differ from downstream tables by
-about one revolution. Their original timestamps are preserved. For particle-time
-comparisons, the default constant offsets implement CISP's local first-passage
-clock convention; the manifest records each offset. Hardware waveforms calibrated
+Source waveform timestamps are preserved. The default constant offsets translate
+element-local first-passage clocks to the injection clock; the manifest records
+each offset. Hardware waveforms calibrated
 against injection time should use the `injection` option. The downstream source
 tables start at zero, whereas some particles in the first long bunch arrive
 earlier. Those samples receive the value at time zero and one warning per Bump.
@@ -155,11 +129,8 @@ plotting subsampling. Pending reservations are excluded and counted in
 - `injection_turn`: the turn when the particle was born;
 - `injection_batch`: zero-based injection batch within the source bunch.
 
-These are generated during export from `abs(tag)` and Injection's compact batch
-history, not stored as arrays in `ParticlePool`. Injection owns a temporary
-reservation-ID map while future batches remain; sorting updates that map and
-the final injection releases it. The `Include injection metadata` output option
-is enabled for this example's batch plots and remains off by default elsewhere.
+The ``Include injection metadata`` output option is enabled for batch plots.
+Stable particle IDs allow particles to be identified after sorting.
 
 The existing six coordinates, signed `tag`, loss turn and loss position are
 also stored. Positive tags survive, negative tags have been lost, and zero tags
@@ -170,14 +141,14 @@ To plot one completed run, use its dated directory, not a parent containing
 several runs:
 
 ```powershell
-python example/06_injection_painting/analyze_results.py tests/codex/painting_reference/tracking/YYYY_MMDD/HHMM_SS
+python example/06_injection_painting/analyze_results.py runs/injection_painting/tracking/YYYY_MMDD/HHMM_SS
 ```
 
 The analysis writes x-px, y-py and x-y panels for the injection history, a density
 plot using all survivors, and seven pages covering ten batches each (five on the
 last page). Other batches appear in gray. Scatter plots display at most 2,500
 particles per highlighted batch in deterministic ID order; saved distributions
-remain complete. All frames share axes for easier comparison. An incomplete
+remain complete. All frames use the same axis ranges. An incomplete
 injection run produces evolution plots but is not labeled injection complete.
 The batch population table and stacked bar chart report all injected, surviving
 and lost particles per batch at injection completion.
@@ -188,31 +159,11 @@ PNG files and works offline. Keep it together with those images when sharing it.
 defaults to beam 0 / bunch 0; use `--beam-id` and `--bunch-id` to select another
 group. It rejects mixed runs with duplicate turns and requires injection metadata.
 
-When comparing statistics, select the same physical location: CISP `pm2` is at
-the injection point, while `pm1` lies after the downstream bumps (PASS s = 1.9 m).
-Align turn numbers and the survival definition as well as input switches and
-particle counts. A small-sample result must not be compared directly with the
-full 60,000-particle source as a numerical agreement test.
-
-To generate overlaid statistics and difference tables, add `--cisp-pm2 PATH`
-and/or `--cisp-pm1 PATH` to the analysis command. Each path should select the
-CISP monitor's `bunch1.csv`. Add `--comparison-note "..."` to state the RF, PIC,
-aperture and sampling conditions; this note appears on the plot and in a JSON
-record with the reference-file hash. Different conditions can be plotted for
-diagnosis, but an overlay alone does not certify numerical agreement. Missing
-reference turns and duplicate statistics rows are rejected.
-
-When available, comparison plots also include RMS bunch length, RMS momentum
-spread and reference kinetic energy. CISP energy columns in MeV/u are converted
-to PASS eV/u before subtraction; the JSON record lists every column conversion.
-CISP's energy-derived momentum spread uses its linear conversion convention,
-whereas PASS tracks mechanical momentum deviation.
-
 ### Physical-time RF and slices
 
-RF conversion now writes `rf_physical_time.tfs` with TIME, VOLTAGE, FREQUENCY and PHASE columns. The RF phase integrates the prescribed carrier frequency and adds the unwrapped phase modulation. The initial cavity passage and the common waveform epoch are distinct. PASS stores `z = beta*c*(T-t)` and samples `t = T-z/(beta*c)`; nominal bunch slots do not supply arrival corrections. SC requires the latest explicit `z_periodic` slices, formed by temporarily folding z into `[-C/2,C/2)` without changing particle coordinates. RF does not rescale saved slice intervals or automatically run Slicer.
+RF conversion writes `rf_physical_time.tfs` with TIME, VOLTAGE, FREQUENCY and PHASE columns. The RF phase integrates the prescribed carrier frequency and adds the unwrapped phase modulation. The initial cavity passage and the common waveform epoch are distinct. PASS stores `z = beta*c*(T-t)` and samples `t = T-z/(beta*c)`; nominal bunch slots do not supply arrival corrections. SC requires the latest explicit `z_periodic` slices, formed by temporarily folding z into `[-C/2,C/2)` without changing particle coordinates. RF does not rescale saved slice intervals or automatically run Slicer.
 
-Diagnostic tables now default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
+Diagnostic tables default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
 accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
 monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
 Set `output_format="hdf5"` to write uncompressed HDF5; the default

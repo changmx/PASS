@@ -1,11 +1,14 @@
-PASS - Particle Accelerator Simulation Studio
-=============================================
+PASS 使用手册 / User Manual
+============================
 
-Welcome / 欢迎使用 PASS
+PASS (Particle Accelerator Simulation Studio) provides six-dimensional particle
+tracking and beam-dynamics analysis. Select a language to read the manual.
+
+PASS 提供六维粒子跟踪与束流动力学分析功能。请选择手册语言。
 
 .. toctree::
    :maxdepth: 1
-   :caption: Content
+   :caption: Language / 语言
 
    zh/index
    en/index

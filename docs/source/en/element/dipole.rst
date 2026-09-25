@@ -9,10 +9,6 @@ The PASS dipole is a **thick element** (``length > 0``), supporting full nonline
 the exit integral; ``Fintx <= 0`` inherits ``Fint``. In particular, setting
 ``Fintx = 0`` does not disable the exit finite-gap terms when ``Fint > 0``.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/dipole.py``
-- Class name: ``SBend`` (inherits from ``Command``)
 - Registration name: ``sbend``
 - Key features:
 
@@ -22,6 +18,196 @@ the exit integral; ``Fintx <= 0`` inherits ``Fint``. In particular, setting
   - Supports nonlinear fringe field effects
   - Supports aperture check
 
+The fields below configure ``PASS.para.schema.elements.SBendItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Parameter List
+--------------
+
+General Parameters
+~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Element length (:math:`L`)
+   * - ``k0l``
+     - ``K0L``
+     - ``float``
+     - -
+     - ``0.0``
+     - Normalized dipole field integral (:math:`K_{0L}`)
+   * - ``e1``
+     - ``E1 (rad)``
+     - ``float``
+     - rad
+     - ``0.0``
+     - Entrance edge angle (:math:`e_1`), default 0
+   * - ``e2``
+     - ``E2 (rad)``
+     - ``float``
+     - rad
+     - ``0.0``
+     - Exit edge angle (:math:`e_2`), default 0
+   * - ``hgap``
+     - ``Hgap (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Magnet half gap (:math:`g_{\text{half}}`), default 0
+   * - ``fint``
+     - ``Fint``
+     - ``float``
+     - -
+     - ``0.0``
+     - Entrance fringe field integral (:math:`F`), default 0
+   * - ``fintx``
+     - ``Fintx``
+     - ``float``
+     - -
+     - ``0.0``
+     - Exit fringe field integral, default 0 (auto-set to ``fint`` when :math:`\leq 0`)
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of slices, default 1
+   * - ``model``
+     - ``Model``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Physical model, options: ``adaptive`` (default, auto-selects ``rot-kick-rot``), ``rot-kick-rot``, ``drift-kick-drift-exact``
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type, default ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values, default ``[]``
+
+
+Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
+common :ref:`en-error` interface. Alignment moves only the magnetic field;
+apertures and SC boundaries remain in the design frame.
+
+Extended Parameters (Reserved)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``is_ramping``
+     - ``Is ramping``
+     - ``bool``
+     - -
+     - ``False``
+     - Reserved configuration field; tracking does not evaluate a magnetic-field time table.
+   * - ``k0l_ramping_file``
+     - ``K0L ramping file``
+     - ``str``
+     - -
+     - ``''``
+     - Reserved configuration field; tracking does not evaluate a magnetic-field time table.
+
+Usage Examples
+--------------
+
+Sector Bend
+~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "BEND1": {
+           "S (m)": 10.0,
+           "Command": "SBend",
+           "Length (m)": 1.5,
+           "K0L": 0.05,
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Sector bend with end faces perpendicular to the reference trajectory, no edge effects.
+
+Rectangular Bend
+~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "BEND2": {
+           "S (m)": 20.0,
+           "Command": "SBend",
+           "Length (m)": 2.0,
+           "K0L": 0.1,
+           "E1 (rad)": 0.05,
+           "E2 (rad)": 0.05,
+           "Hgap (m)": 0.02,
+           "Fint": 0.5,
+           "Num slices": 10,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Rectangular bend with edge angle and fringe field effects. Bending angle :math:`\alpha = K_{0L} = 0.1` rad, edge angles :math:`e_1 = e_2 = \alpha/2 = 0.05` rad.
+
+Thin Lens Bend
+~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "BEND3": {
+           "S (m)": 30.0,
+           "Command": "SBend",
+           "Length (m)": 0.0,
+           "K0L": 0.02,
+           "Aperture type": "off"
+       }
+   }
+
+Zero-length dipole, applying only the :math:`K_{0L}` thin lens kick, no body tracking, no edge effects.
 
 Small-angle numerical stability
 -------------------------------
@@ -63,9 +249,13 @@ path length, the longitudinal increment is
 :math:`\Delta z=(L-\ell)-\ell r/(\sqrt{1+r}+1)` on both CPU and GPU.
 This avoids first rounding the near-unity velocity ratio to one in FP32.
 
-
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
@@ -90,7 +280,7 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
@@ -118,7 +308,6 @@ Other commonly used physical quantities:
   \chi = \frac{q}{q_0} \cdot \frac{m_0}{m}
 
 where :math:`h` is the reference orbit curvature, :math:`\rho` is the bending radius, :math:`K_0` is the normalized dipole field strength, and :math:`\chi` is the charge-to-mass ratio factor (for a beam of identical particle species, :math:`\chi = 1`). For a sector bend, :math:`h = K_0`.
-
 
 Overall Tracking Flow
 ----------------------
@@ -209,7 +398,6 @@ The geometric rotations of YRotation and Wedge are in opposite directions, with 
   \text{Rotation of YRotation}(-e_1) + \text{Geometric rotation of Wedge}(-e_1) = (-e_1) + (+e_1) = 0
 
 Therefore the body operates in the reference trajectory coordinate system, requiring no additional rotation.
-
 
 Body: DKD-exact Model
 ---------------------
@@ -364,70 +552,24 @@ Integrator Selection Recommendations:
     - 4th-order accuracy, but 6 drifts + 3 kicks per slice
   * - With space charge
     - uniform + more slices
-    - PIC solve cost far exceeds drift; 4th-order Yoshida requires 3 PIC solves
+    - Space charge uses its independently configured Num kicks; external Yoshida substeps do not multiply PIC calls
 
+Body model selection
+--------------------
 
-Body Model Comparison
----------------------
+``model`` accepts ``rot-kick-rot``, ``drift-kick-drift-exact`` or ``adaptive``;
+``adaptive`` currently selects ``rot-kick-rot``.
 
-The PASS dipole body supports two physical models, selected by the ``model`` parameter.
+- **RKR** combines polar transport, including reference curvature, with dipole momentum updates.
+- **DKD-exact** splits straight exact drifts from curvature and magnetic momentum updates.
 
-Model Description
-~~~~~~~~~~~~~~~~~
-
-- **rot-kick-rot (RKR)**: The dipole field is a constant field (independent of :math:`x`), and the thin lens kick itself is exact. The drift step uses polar drift, handling curvature effects. A single slice achieves high precision. Default model.
-- **drift-kick-drift-exact (DKD-exact)**: The drift step uses straight-line exact drift, and curvature is treated as a thin lens kick. For bends with large deflection angles, insufficient slice count leads to chromaticity errors.
-
-Feature Comparison
-~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 35 40
-
-  * - Feature
-    - rot-kick-rot
-    - drift-kick-drift-exact
-  * - Drift type
-    - Polar drift (including curvature)
-    - Straight-line exact drift
-  * - k0 handling
-    - Within the drift step (interleaved k0_kick)
-    - In the kick step (thin lens)
-  * - Curvature Jacobian
-    - Included ((1+h·x) correction)
-    - Not included (requires more slices to compensate)
-  * - 1-slice precision
-    - High (constant field kick is exact)
-    - Limited (curvature approximation)
-  * - Chromaticity precision
-    - Exact with 1 slice
-    - Requires sufficient slice count
-
-Slice Count Recommendations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 15 20 40
-
-  * - Model
-    - Recommended Slices
-    - Recommended Integrator
-    - Description
-  * - rot-kick-rot
-    - 1
-    - yoshida4
-    - The constant dipole field makes the 1-slice kick exact; polar drift handles curvature; 1 slice achieves high precision
-  * - drift-kick-drift-exact
-    - 5~10
-    - yoshida4
-    - Large deflection angles require more slices to compensate for chromaticity errors due to missing curvature Jacobian
-
-.. note::
-
-  In the DKD-exact model, curvature h is treated as a thin lens kick, and the drift step does not include the (1+h·x) Jacobian correction. When the bend deflection angle is large, the path differences of particles with different momenta in the drift are not correctly accounted for, leading to chromaticity deviations. Increasing the slice count can mitigate this issue (error converges as :math:`O(1/N^2)`), but the RKR model fundamentally avoids this problem—polar drift handles curvature within the drift step, requiring no additional slices.
-
+The submaps and splitting differ. Increase the slice count and check convergence
+of trajectories, tunes and longitudinal transport for the bend angle, amplitudes
+and momentum range of interest. An analytic submap does not guarantee that one
+slice is sufficient for every configuration. ``integrator="adaptive"`` currently
+selects ``uniform``; it is not automatic error control. Fourth-order integration
+in smooth fields does not remove roundoff or discrete aperture-sampling errors.
+Internal space charge uses the independently configured ``Space charge.Num kicks``.
 
 Entrance Edge: YRotation
 ------------------------
@@ -525,7 +667,7 @@ The :math:`y` direction does not directly participate in the rotation, but due t
 
 **Step 4:** :math:`\zeta` **direction**
 
-The longitudinal coordinate :math:`\zeta = s - \beta_0 c t`. After rotating the reference frame, :math:`\sin\theta \cdot x` is the projection of the transverse position onto the new longitudinal direction (additional path length due to reference frame rotation), which needs to be converted to a time increment:
+The longitudinal coordinate :math:`z=\zeta=\beta_b c(T_b-t_i)`. After rotating the reference frame, :math:`\sin\theta \cdot x` is the projection of the transverse position onto the new longitudinal direction (additional path length due to reference frame rotation), which needs to be converted to a time increment:
 
 .. math::
 
@@ -604,7 +746,6 @@ Expanding and using :math:`1 - 1/\gamma_0^2 = \beta_0^2`:
   (1+\delta)^2 = 1 + \frac{2 p_\tau}{\beta_0^2} + \frac{p_\tau^2}{\beta_0^2}
 
 Writing :math:`p_z` in terms of the energy deviation gives ``sqrt(1 + 2*pt/beta0 + pt*pt - px*px - py*py)``, which after substituting the above relation equals exactly :math:`\sqrt{(1+\delta)^2 - p_x^2 - p_y^2}`.
-
 
 Entrance Edge: Fringe Field
 ---------------------------
@@ -731,7 +872,7 @@ Force components (chain rule :math:`k_i = \phi_1 \partial x'/\partial p_i + \phi
 
   k_z = \phi_1 \frac{\text{tfac} \cdot x'}{p_z^2} + \phi_2 \frac{\text{tfac} \cdot y'}{p_z^2} - \phi_3 \frac{\text{tfac}}{p_z}
 
-where :math:`\text{tfac} = -(1/\beta_0 + p_\tau)` comes from the dependence of :math:`t` on :math:`p_z` in :math:`\zeta = s - \beta_0 c t`.
+where :math:`\text{tfac} = -(1/\beta_0 + p_\tau)` comes from the dependence of :math:`t` on :math:`p_z` in :math:`z=\zeta=\beta_b c(T_b-t_i)`.
 
 **Implicit equation**
 
@@ -883,7 +1024,6 @@ Six-dimensional map:
   - :math:`y_f` is solved through the implicit equation, ensuring precise treatment and symplecticity of nonlinear effects
   - The :math:`x` change is an :math:`O(y^2)` order horizontal-vertical coupling
 
-
 Entrance Edge: Wedge (Edge Angle)
 ---------------------------------
 
@@ -1007,14 +1147,14 @@ Equation Eq. 1.201 gives the **path length** :math:`\Delta\ell`, while the code 
 **Physical reason**:
 
 1. :math:`\Delta\ell` is the path length the particle travels in the wedge
-2. :math:`\zeta = s - \beta_0 c t`, updating :math:`\zeta` requires time: :math:`\Delta t = \Delta\ell / v = \Delta\ell / (\text{rvv} \cdot \beta_0 c)`
+2. :math:`z=\zeta=\beta_b c(T_b-t_i)`, updating :math:`\zeta` requires time: :math:`\Delta t = \Delta\ell / v = \Delta\ell / (\text{rvv} \cdot \beta_0 c)`
 3. :math:`\Delta s` is already handled in the geometric transformations of :math:`x'` and :math:`\Delta y`, so :math:`\zeta` only needs the **time correction** part:
 
 .. math::
 
   \Delta\zeta = -\beta_0 c \cdot \Delta t = -\beta_0 c \cdot \frac{\Delta\ell}{\text{rvv} \cdot \beta_0 c} = -\frac{\Delta\ell}{\text{rvv}}
 
-- **Negative sign**: :math:`\zeta = s - \beta_0 c t`, time increase causes :math:`\zeta` to decrease
+- **Negative sign**: :math:`z=\zeta=\beta_b c(T_b-t_i)`, time increase causes :math:`\zeta` to decrease
 - **Division by rvv**: :math:`\text{rvv} = v/v_0 = \beta/\beta_0`, converting path length to time requires dividing by the particle's actual velocity
 
 .. math::
@@ -1104,7 +1244,6 @@ This means the formulas for :math:`y` and :math:`\zeta` diverge as :math:`b_1 \t
 
   Wedge degenerates to YRotation at :math:`b_1 = 0` through a **code branch structure**. The momentum and position formulas are consistent in the :math:`b_1 \to 0` limit, but :math:`y` and :math:`\zeta` contain a :math:`1/b_1` factor, making the limit discontinuous, so a branch is necessary.
 
-
 Edge Angle Sign Convention
 --------------------------
 
@@ -1163,184 +1302,6 @@ Common magnet types:
     - Arbitrary
     - Arbitrary
     - User-specified
-
-
-Parameter List
---------------
-
-General Parameters
-~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - Element length (:math:`L`)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name
-  * - ``k0l``
-    - ``k0l``
-    - float
-    - -
-    - Normalized dipole field integral (:math:`K_{0L}`)
-  * - ``e1``
-    - ``e1 (rad)``
-    - float
-    - rad
-    - Entrance edge angle (:math:`e_1`), default 0
-  * - ``e2``
-    - ``e2 (rad)``
-    - float
-    - rad
-    - Exit edge angle (:math:`e_2`), default 0
-  * - ``hgap``
-    - ``hgap (m)``
-    - float
-    - m
-    - Magnet half gap (:math:`g_{\text{half}}`), default 0
-  * - ``fint``
-    - ``fint``
-    - float
-    - -
-    - Entrance fringe field integral (:math:`F`), default 0
-  * - ``fintx``
-    - ``fintx``
-    - float
-    - -
-    - Exit fringe field integral, default 0 (auto-set to ``fint`` when :math:`\leq 0`)
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - Number of slices, default 1
-  * - ``model``
-    - ``model``
-    - str
-    - -
-    - Physical model, options: ``adaptive`` (default, auto-selects ``rot-kick-rot``), ``rot-kick-rot``, ``drift-kick-drift-exact``
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - Aperture type, default ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``
-
-Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
-common :ref:`en-error` interface. Alignment moves only the magnetic field;
-apertures and SC boundaries remain in the design frame.
-
-Extended Parameters (Reserved)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``is_ramping``
-    - ``is ramping``
-    - bool
-    - -
-    - Whether magnetic field ramping is enabled, default ``false``
-  * - ``k0l_ramping_filepath``
-    - ``k0l ramping filepath``
-    - str
-    - -
-    - Magnetic field ramping data file path
-
-
-Usage Examples
---------------
-
-Sector Bend
-~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "BEND1": {
-          "S (m)": 10.0,
-          "Command": "SBend",
-          "Length (m)": 1.5,
-          "K0L": 0.05,
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Sector bend with end faces perpendicular to the reference trajectory, no edge effects.
-
-Rectangular Bend
-~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "BEND2": {
-          "S (m)": 20.0,
-          "Command": "SBend",
-          "Length (m)": 2.0,
-          "K0L": 0.1,
-          "E1 (rad)": 0.05,
-          "E2 (rad)": 0.05,
-          "HGap (m)": 0.02,
-          "FInt": 0.5,
-          "Num Slices": 10,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Rectangular bend with edge angle and fringe field effects. Bending angle :math:`\alpha = K_{0L} = 0.1` rad, edge angles :math:`e_1 = e_2 = \alpha/2 = 0.05` rad.
-
-Thin Lens Bend
-~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "BEND3": {
-          "S (m)": 30.0,
-          "Command": "SBend",
-          "Length (m)": 0.0,
-          "K0L": 0.02,
-          "Aperture Type": "off"
-      }
-  }
-
-Zero-length dipole, applying only the :math:`K_{0L}` thin lens kick, no body tracking, no edge effects.
-
 
 References
 ----------

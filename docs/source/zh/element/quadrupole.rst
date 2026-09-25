@@ -1,32 +1,247 @@
 四极铁（Quadrupole）
-====================
+==============================
 
 本模块介绍 PASS 中的四极铁元件 **Quadrupole** ，用于模拟带电粒子在四极磁铁中的运动。四极铁是加速器中最基本的聚焦元件，通过梯度磁场提供线性聚焦力。
 
-PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式。厚元件提供两种追踪模型： **drift-kick-drift-exact** （DKD-exact）采用精确漂移-踢角-漂移辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器； **mat-kick-mat** （MKM，默认）采用精确线性传输矩阵方案，对纯线性场一次切片即精确。
+PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜** （ ``length = 0`` ）两种模式。厚元件提供两种跟踪模型： **drift-kick-drift-exact** （DKD-exact）采用精确漂移-动量更新-漂移辛积分方案，支持 uniform（2阶）和 yoshida4（4阶）两种辛积分器； **mat-kick-mat** （MKM，默认）采用精确线性传输矩阵方案，对纯线性场一次切片即精确。
 
-**代码位置**
-
-- 源文件： ``PASS/commands/element/quadrupole.py``
-- 类名： ``Quadrupole`` （继承自 ``Command`` ）
-- 注册名： ``quadrupole``
 - 核心特征：
 
-  - 支持薄透镜模式（ ``length = 0`` ，仅施加四极踢角）
+  - 支持薄透镜模式（ ``length = 0`` ，仅施加四极动量更新）
   - 支持厚透镜模式（ ``length > 0`` ，DKD-exact 辛积分或 MKM 精确线性矩阵）
   - 支持 uniform（2阶蛙跳）和 yoshida4（4阶 Yoshida 组合）积分器
   - 支持 mat-kick-mat (MKM) 模型（精确线性传输矩阵，含色品）
   - MKM 模型通过旋转对角化处理 k1+k1s 组合
-  - 支持正常四极（ ``k1l`` ）和斜四极（ ``k1sl`` ）及其组合
+  - 支持正四极（ ``k1l`` ）和斜四极（ ``k1sl`` ）及其组合
   - 零场（ ``k1l = k1sl = 0`` ）时自动退化为纯漂移
   - 色品效应通过精确漂移自然引入
   - 支持孔径检查
 
+以下接口中的字段用于 ``PASS.para.schema.elements.QuadrupoleItem`` 配置类；
+元件名称由 ``Sequence.add(name, item)`` 的序列键给出，不是配置类字段。
+
+接口参数
+--------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 元件出口或零长度作用点的纵向位置。
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - 元件长度 （必须 :math:`\ge 0` ； :math:`= 0` 时为薄透镜）
+   * - ``k1l``
+     - ``K1L``
+     - ``float``
+     - :math:`\text{m}^{-1}`
+     - ``0.0``
+     - 正四极积分强度 :math:`K_{1L}` ，默认 0
+   * - ``k1sl``
+     - ``K1SL``
+     - ``float``
+     - :math:`\text{m}^{-1}`
+     - ``0.0``
+     - 斜四极积分强度 :math:`K_{1sL}` ，默认 0
+   * - ``model``
+     - ``Model``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - 物理模型，可选： ``adaptive`` （默认 ``mat-kick-mat`` ）、 ``drift-kick-drift-exact`` 、 ``mat-kick-mat``
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - 切片数，默认 1（仅厚透镜有效）
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - 积分器，可选： ``adaptive`` （默认 ``uniform`` ）、 ``uniform`` 、 ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - 孔径类型，默认 ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - 孔径参数值，默认 ``[]``
+
+使用示例
+--------
+
+厚透镜正四极铁
+~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QF1": {
+           "S (m)": 10.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.2,
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+聚焦四极铁（ :math:`K_{1L} > 0` ），长度 0.5 m，5 个切片，4 阶辛积分。
+
+MKM 模型四极铁
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QF1": {
+           "S (m)": 10.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.2,
+           "Model": "mat-kick-mat",
+           "Num slices": 1,
+           "Aperture type": "off"
+       }
+   }
+
+本例只有纯线性场，一个 MKM 矩阵段即可求解所用近轴方程。加入场误差或内部空间电荷后，应另行检查分裂作用的数值收敛。
+
+薄透镜四极铁
+~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QF2": {
+           "S (m)": 20.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.0,
+           "K1L": 0.3,
+           "Aperture type": "off"
+       }
+   }
+
+零长度四极铁，仅施加 :math:`K_{1L}` 薄透镜动量更新，无有限长度本体输运；它在完整格架中的色品作用见下文。
+
+散焦四极铁
+~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QD1": {
+           "S (m)": 30.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.4,
+           "K1L": -0.15,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+散焦四极铁（ :math:`K_{1L} < 0` ），水平散焦、垂直聚焦。
+
+斜四极铁
+~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QS1": {
+           "S (m)": 40.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.3,
+           "K1L": 0.0,
+           "K1SL": 0.1,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+纯斜四极铁（ :math:`K_{1L} = 0` , :math:`K_{1sL} \neq 0` ），产生 :math:`x` - :math:`y` 耦合。
+
+正、斜分量四极组合
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QFS1": {
+           "S (m)": 50.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.2,
+           "K1SL": 0.05,
+           "Num slices": 3,
+           "Integrator": "yoshida4",
+           "Aperture type": "circle",
+           "Aperture value": [0.04]
+       }
+   }
+
+同时含正、斜四极分量的组合四极铁（模拟安装旋转误差），带圆形孔径检查。
+
+带旋转角的等效表示
+~~~~~~~~~~~~~~~~~~
+
+一个 :math:`K_{1L} = 0.2` 的正四极铁旋转角度 :math:`\theta = 0.01` rad 后，等效为：
+
+.. math::
+
+  K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996
+
+.. math::
+
+  K_{1sL}' = K_{1L} \sin 2\theta \approx 0.2 \times 0.02 = 0.004
+
+.. code-block:: json
+
+   {
+       "QF_rot": {
+           "S (m)": 60.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.19996,
+           "K1SL": 0.004,
+           "Num slices": 1,
+           "Integrator": "uniform"
+       }
+   }
 
 坐标约定
 --------
 
-正常和斜四极强度都为零时，CPU 和 GPU 均使用精确漂移，包括选择
+采用 :ref:`zh-longitudinal-reference` 的连续纵向坐标。
+:math:`T_b` 是理想参考粒子在当前位置的实际通过时刻，不是束团质心时刻；
+局部映射中的 :math:`\beta_0` 和 :math:`P_0` 表示当前束团参考量。
+:math:`p_x=P_x/P_0` 是归一化动量，不是轨迹斜率。
+
+正、斜四极强度都为零时，CPU 和 GPU 均使用精确漂移，包括选择
 ``mat-kick-mat`` 的情况。非零场矩阵模型将额外路程
 :math:`\Delta\ell=\ell-L` 单独累加。令
 :math:`r=-\gamma_0^{-2}\delta(2+\delta)/(1+\delta)^2`，等价的纵向更新为
@@ -56,7 +271,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
     - 归一化垂直动量， :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - 纵向坐标， :math:`\zeta = s - \beta_0 c t`
+    - 纵向坐标， :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - 相对动量偏差， :math:`\delta = P / P_0 - 1`
@@ -77,7 +292,6 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
 对于同种粒子束 :math:`\chi = 1` 。
 
-
 四极磁场与归一化强度
 --------------------
 
@@ -87,7 +301,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   B_y + i B_x = (G + i G_s)(x + i y)
 
-其中 :math:`G` 为正常四极梯度， :math:`G_s` 为斜四极梯度。展开后：
+其中 :math:`G` 为正四极梯度， :math:`G_s` 为斜四极梯度。展开后：
 
 .. math::
 
@@ -115,11 +329,10 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
 其中 :math:`L` 为磁铁长度。PASS 中用户直接指定 :math:`K_{1L}` （ ``k1l`` ）和 :math:`K_{1sL}` （ ``k1sl`` ），厚透镜时内部自动解出 :math:`K_1 = K_{1L} / L` 和 :math:`K_{1s} = K_{1sL} / L` 。
 
-
-整体追踪流程
+整体跟踪流程
 ------------
 
-根据磁铁长度，四极铁有两种追踪模式：
+根据磁铁长度，四极铁有两种跟踪模式：
 
 **薄透镜模式** （ :math:`L = 0` ）
 
@@ -127,7 +340,7 @@ PASS 采用归一化曲线坐标，六维相空间变量为 :math:`(x, p_x, y, p
 
   ====== 薄透镜 (length = 0) ======
 
-  单次四极踢角 Kick(K1L, K1sL)
+  单次四极动量更新 Kick(K1L, K1sL)
   [位置不变，仅动量跳变]
 
 **厚透镜模式** （ :math:`L > 0` ）
@@ -155,7 +368,7 @@ MKM 模型：
   (每个切片: M(ds)，精确线性传输矩阵)
 
   对纯 k1 + k1s（无高阶多极场）：M(L) = M(ds)^N
-  因此 num_slice = 1 即可，多切片不改变结果。
+  纯线性场的单个矩阵段即可求解该模型；叠加场误差或内部空间电荷时仍需检查分裂步长。
 
 完整映射为：
 
@@ -179,10 +392,9 @@ MKM 模型：
 
 .. note::
 
-  - 薄透镜模式不改变粒子的位置坐标 :math:`(x, y, z)` ，仅施加动量踢角
+  - 薄透镜模式不改变粒子的位置坐标 :math:`(x, y, z)` ，仅施加动量动量更新
   - 厚透镜模式的色品效应通过精确漂移中的 :math:`p_z` 表达式自然引入（见色品章节）
-  - 当 :math:`K_{1L} = 0` 且 :math:`K_{1sL} = 0` 时，厚透镜退化为纯漂移，避免无意义的空踢角循环
-
+  - 当 :math:`K_{1L} = 0` 且 :math:`K_{1sL} = 0` 时，厚透镜退化为纯漂移，避免无意义的空动量更新循环
 
 物理推导
 --------
@@ -196,7 +408,7 @@ MKM 模型：
 
   H_{\text{quad}} = \frac{p_\tau}{\beta_0} - \sqrt{(1+\delta)^2 - p_x^2 - p_y^2} + \frac{\chi}{2}\left(K_1 x^2 - K_1 y^2 + 2 K_{1s} x y\right)
 
-将其拆分为传播部分（精确漂移 :math:`H_D` ）和踢角部分（ :math:`H_K` ）：
+将其拆分为传播部分（精确漂移 :math:`H_D` ）和动量更新部分（ :math:`H_K` ）：
 
 .. math::
 
@@ -206,7 +418,7 @@ MKM 模型：
 
   H_K = \frac{\chi}{2}\left(K_1 x^2 - K_1 y^2 + 2 K_{1s} x y\right)
 
-其中 :math:`H_D` 是精确漂移哈密顿量（保留 :math:`p_z` 的根号，不做小动量展开）， :math:`H_K` 是四极踢角。这是 **分裂算符法** （split-operator）的标准做法：将哈密顿量拆分为可解析求解的部分，分别施加映射，再组合为辛积分器。
+其中 :math:`H_D` 是精确漂移哈密顿量（保留 :math:`p_z` 的根号，不做小动量展开）， :math:`H_K` 是四极动量更新。这是 **分裂算符法** （split-operator）的标准做法：将哈密顿量拆分为可解析求解的部分，分别施加映射，再组合为辛积分器。
 
 精确漂移映射 D
 ~~~~~~~~~~~~~~~~~~
@@ -237,12 +449,12 @@ MKM 模型：
 
 .. note::
 
-  "exact" 的含义：漂移部分保留精确根号 :math:`p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}` ，不做 :math:`p_x \ll 1` 的小动量展开。近似仅在于将传播部分与踢角部分分离（分裂算符法）。该公式与漂移节（Drift）和二极铁（SBend）中的精确漂移完全一致。
+  "exact" 的含义：漂移部分保留精确根号 :math:`p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}` ，不做 :math:`p_x \ll 1` 的小动量展开。近似仅在于将传播部分与动量更新部分分离（分裂算符法）。该公式与漂移节（Drift）和弯转磁铁（SBend）中的精确漂移完全一致。
 
-四极踢角映射 K
+四极动量更新映射 K
 ~~~~~~~~~~~~~~~~~~
 
-踢角部分为薄透镜映射（位置不变，仅动量跳变）。由哈密顿方程 :math:`\dot{p}_x = -\partial H / \partial x` ， :math:`\dot{p}_y = -\partial H / \partial y` 得：
+动量更新部分为薄透镜映射（位置不变，仅动量跳变）。由哈密顿方程 :math:`\dot{p}_x = -\partial H / \partial x` ， :math:`\dot{p}_y = -\partial H / \partial y` 得：
 
 .. math::
 
@@ -252,7 +464,7 @@ MKM 模型：
 
   \Delta p_y = +\chi K_1 L_K \cdot y + \chi K_{1s} L_K \cdot x
 
-其中 :math:`L_K` 为踢角有效长度。
+其中 :math:`L_K` 为动量更新有效长度。
 
 各项物理含义：
 
@@ -265,30 +477,30 @@ MKM 模型：
     - 物理含义
   * - :math:`-\chi K_1 L_K \cdot x`
     - :math:`\frac{\chi K_1 x^2}{2}`
-    - 水平正常四极聚焦（ :math:`K_1 > 0` 时聚焦， :math:`K_1 < 0` 时散焦）
+    - 水平正四极聚焦（ :math:`K_1 > 0` 时聚焦， :math:`K_1 < 0` 时散焦）
   * - :math:`+\chi K_1 L_K \cdot y`
     - :math:`-\frac{\chi K_1 y^2}{2}`
-    - 垂直正常四极散焦（与水平反向）
+    - 垂直正四极散焦（与水平反向）
   * - :math:`+\chi K_{1s} L_K \cdot y`
     - :math:`\chi K_{1s} x y`
-    - 斜四极水平耦合踢角
+    - 斜四极水平耦合动量更新
   * - :math:`+\chi K_{1s} L_K \cdot x`
     - :math:`\chi K_{1s} x y`
-    - 斜四极垂直耦合踢角
+    - 斜四极垂直耦合动量更新
 
 对于薄透镜模式， :math:`L_K = 1` ，直接使用积分强度 :math:`K_{1L}` 和 :math:`K_{1sL}` 。对于 DKD 模式， :math:`L_K = \Delta s` ，使用 :math:`K_1 \Delta s` 和 :math:`K_{1s} \Delta s` 。
 
 .. note::
 
-  正常四极铁（ :math:`K_1 > 0` ）在水平方向聚焦、垂直方向散焦，这是四极磁场 :math:`B_y = G \cdot x` 的直接结果：偏离轴线的粒子受到与偏移成正比的力，水平方向恢复力（聚焦），垂直方向排斥力（散焦）。要实现两个方向同时聚焦，需要交替排列聚焦四极铁（F）和散焦四极铁（D），即 FODO 结构。
+  正四极铁（ :math:`K_1 > 0` ）在水平方向聚焦、垂直方向散焦，这是四极磁场 :math:`B_y = G \cdot x` 的直接结果：偏离轴线的粒子受到与偏移成正比的力，水平方向恢复力（聚焦），垂直方向排斥力（散焦）。要实现两个方向同时聚焦，需要交替排列聚焦四极铁（F）和散焦四极铁（D），即 FODO 结构。
 
   斜四极铁（ :math:`K_{1s} \neq 0` ）将聚焦作用旋转 :math:`\pi / 4` ，产生 :math:`x` - :math:`y` 耦合。实际中常用于耦合校正或模拟安装旋转误差。
 
 
 uniform 积分器（2阶辛）
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-每个切片采用漂移-踢角-漂移（DKD）结构，即二阶蛙跳（leapfrog）：
+每个切片采用漂移-动量更新-漂移（DKD）结构，即二阶蛙跳（leapfrog）：
 
 .. math::
 
@@ -298,7 +510,7 @@ uniform 积分器（2阶辛）
 
 
 yoshida4 积分器（4阶辛）
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 通过组合三个二阶 DKD 步构造四阶辛映射 [Yoshida 1990]：
 
@@ -318,7 +530,7 @@ yoshida4 积分器（4阶辛）
 
 .. note::
 
-  :math:`z_0 < 0` 意味着中间一步是反向追踪（漂移和踢角的 "长度" 为负）。这是 Yoshida 组合方法的数学要求，在辛映射群中完全自洽。每个切片误差为 :math:`O(\Delta s^5)` ，全局误差为 :math:`O(\Delta s^4)` 。
+  :math:`z_0 < 0` 意味着中间一步是反向跟踪（漂移和动量更新的 "长度" 为负）。这是 Yoshida 组合方法的数学要求，在辛映射群中完全自洽。每个切片误差为 :math:`O(\Delta s^5)` ，全局误差为 :math:`O(\Delta s^4)` 。
 
 积分器选择建议：
 
@@ -331,24 +543,23 @@ yoshida4 积分器（4阶辛）
     - 原因
   * - 快速模拟
     - uniform
-    - 每切片 2 次漂移 + 1 次踢角，计算量小
+    - 每切片 2 次漂移 + 1 次动量更新，计算量小
   * - 高精度模拟
     - yoshida4
-    - 4 阶精度，但每切片 6 次漂移 + 3 次踢角
+    - 4 阶精度，但每切片 6 次漂移 + 3 次动量更新
   * - 含空间电荷
     - uniform + 更多切片
-    - PIC 求解开销远大于漂移，4阶 Yoshida 需要 3 次 PIC 求解
-
+    - 空间电荷作用次数由 ``Space charge.Num kicks`` 独立决定；外场 Yoshida 子步不增加 PIC 次数
 
 色品效应
 --------
 
-色品（chromaticity）描述了粒子 tune 对动量偏差 :math:`\delta` 的依赖。PASS 的 DKD-exact 模型通过精确漂移的 :math:`p_z` 表达式自然引入色品，无需任何额外处理。
+色品（chromaticity）描述了粒子 工作点 对动量偏差 :math:`\delta` 的依赖。PASS 的 DKD-exact 模型通过精确漂移的 :math:`p_z` 表达式自然引入色品，无需任何额外处理。
 
 物理机制
 ~~~~~~~~
 
-在 DKD 积分中，漂移使用精确表达式 :math:`p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}` ，而踢角在 :math:`(x, p_x)` 空间中为 :math:`\Delta p_x = -\chi K_1 \Delta s \cdot x` （不除以 :math:`1+\delta` ）。
+在 DKD 积分中，漂移使用精确表达式 :math:`p_z = \sqrt{(1+\delta)^2 - p_x^2 - p_y^2}` ，而动量更新在 :math:`(x, p_x)` 空间中为 :math:`\Delta p_x = -\chi K_1 \Delta s \cdot x` （不除以 :math:`1+\delta` ）。
 
 转换到 :math:`(x, x')` 空间（其中 :math:`x' = p_x / (1+\delta)` ），等效聚焦强度自动变为：
 
@@ -358,40 +569,25 @@ yoshida4 积分器（4阶辛）
 
 这就是自然色品 :math:`Q'_x = -\frac{1}{4\pi}\oint \beta_x K_1 \, ds` 的物理来源。代码中不需要显式做任何除法——精确漂移的 :math:`p_z` 表达式自动完成了这件事。
 
-薄透镜与厚透镜的色品对比
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+薄透镜与格架色品
+~~~~~~~~~~~~~~~~
 
-.. list-table::
-  :header-rows: 1
-  :widths: 25 20 55
+零长度四极铁不增加飞行路程，归一化动量更新为
+:math:`\Delta p_x=-K_{1L}x`。该式不显含 :math:`\delta`，但在近轴近似下
+:math:`x'=p_x/(1+\delta)`，因而
 
-  * - 效应
-    - 薄透镜
-    - 厚透镜 DKD-exact
-  * - 自然色品（正常四极）
-    - 不引入
-    - 引入（ :math:`K_{1,\text{eff}} = K_1/(1+\delta)` ）
-  * - 耦合色品（斜四极）
-    - 不引入
-    - 引入（耦合传输含 :math:`\delta` 依赖）
-  * - 高阶非线性色散
-    - 不引入
-    - 引入（ :math:`p_z` 保留完整根号）
-  * - 路径长度效应（ :math:`R_{56}` 等）
-    - 不引入
-    - 引入
+.. math::
 
-物理上，薄透镜零长度无 drift 空间，踢角 :math:`\Delta p_x = -K_{1L}\,x` 不含 :math:`\delta` 。厚透镜中粒子在磁铁内部有漂移路径，不同动量粒子走不同路径、感受不同有效聚焦——这就是色品的来源。斜四极同理，drift 中的 :math:`p_z` 依赖使耦合传输也含 :math:`\delta` 依赖，引入耦合色品。
+   \Delta x'=-\frac{K_{1L}}{1+\delta}x.
 
-.. note::
+因此，由薄透镜四极铁和漂移段组成的格架仍可具有自然色品；不能把孤立动量更新中
+没有显式 :math:`\delta` 因子理解为工作点与动量无关。斜四极的耦合作用也须按整环映射分析。
 
-  - 薄透镜模式（ ``length = 0`` ）不存在路径长度效应，因此薄透镜四极铁本身 **不引入自然色品** ——无论正常四极还是斜四极
-  - 厚透镜 DKD-exact 模式完整包含自然色品效应，包括高阶非线性色散项
-  - DKD-exact 通过精确 :math:`p_z` 引入动量依赖，同时包含 :math:`p_z` 的高阶非线性效应
-  - 在 PASS 的 Twiss 线性传输框架中，自然色品通过 ``DQx`` / ``DQy`` 参数（相移中的 :math:`\delta` 项）引入，而非通过元件本身。若在 Twiss 传输中额外插入薄透镜四极铁，不会与 ``DQx`` 重复计数色品——因为薄透镜本身不引入色品。但若插入的四极铁强度较大，显著改变了 lattice 的 tune 和 :math:`\beta` 函数，则原有 Twiss 参数（包括 ``DQx`` ）不再准确，需重新计算
+使用 Twiss 传输时，``DQx``、``DQy`` 给出预先指定的动量相关相移。
+额外插入四极场会改变组合光学，应重新核对闭轨、Twiss 参数和工作点随动量的变化，
+而不能仅由元件长度为零断言不会改变色品或重复计入已有光学作用。
 
-
-追踪模型对比
+跟踪模型对比
 ------------
 
 PASS 四极铁支持两种厚透镜体模型，适用于不同精度和速度需求。
@@ -399,9 +595,9 @@ PASS 四极铁支持两种厚透镜体模型，适用于不同精度和速度需
 模型概述
 ~~~~~~~~
 
-**drift-kick-drift-exact (DKD-exact)** ：将哈密顿量拆分为精确漂移和薄透镜踢角，通过辛分裂法组合。保留完整 :math:`p_z` 非线性运动学，但线性聚焦和色品有辛分裂误差（可通过增加切片数或使用高阶积分器控制）。
+**drift-kick-drift-exact (DKD-exact)** ：将哈密顿量拆分为精确漂移和薄透镜动量更新，通过辛分裂法组合。保留完整 :math:`p_z` 非线性运动学，但线性聚焦和色品有辛分裂误差（可通过增加切片数或使用高阶积分器控制）。
 
-**mat-kick-mat (MKM)** ：求解线性化运动方程 :math:`u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0` 的解析精确解，用三角函数（聚焦平面）和双曲函数（散焦平面）构造传输矩阵。线性聚焦、线性色品和 :math:`R_{56}` 均为精确解，但不包含 :math:`p_z` 的高阶非线性项。
+**mat-kick-mat (MKM)** ：求解线性化运动方程 :math:`u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0` 的解析精确解，用三角函数（聚焦平面）和双曲函数（散焦平面）构造传输矩阵。它对所用近轴运动方程采用解析解，并累积该模型中的路程增量；不包含完整 :math:`p_z` 根号中的高阶横向运动学。
 
 对比表
 ~~~~~~
@@ -414,29 +610,29 @@ PASS 四极铁支持两种厚透镜体模型，适用于不同精度和速度需
     - drift-kick-drift-exact
     - mat-kick-mat
   * - 线性聚焦
-    - 2阶辛分裂近似
+    - 由所选二阶或四阶积分器决定的分裂近似
     - 精确（解析矩阵）
   * - 线性色品
-    - 近似（ :math:`O(1/N^2)` 分裂误差）
-    - 精确（ :math:`K_1/(1+\delta)` 显式）
+    - 随所选积分阶数收敛的分裂近似
+    - 近轴模型的解析解（显式保留动量依赖）
   * - 非线性运动学
     - 保留（完整 :math:`p_z` 根号）
     - 不包含（线性化 :math:`x' = p_x/(1+\delta)` ）
   * - 纵向 :math:`R_{56}`
     - 近似
     - 精确（解析公式）
-  * - 非线性路径长度
-    - 保留
-    - 不包含
+  * - 路程增量
+    - 来自精确漂移运动学
+    - 保留近轴二次路程增量，未保留完整高阶运动学
   * - 辛性
     - 严格辛
     - 辛（矩阵是辛的）
   * - 计算速度
-    - 较慢（ :math:`N \times 3` 步 DKD）
-    - 快（矩阵乘法）
+    - 与子步数和硬件有关
+    - 与矩阵运算、切片数和硬件有关
 
-MKM 实现细节
-~~~~~~~~~~~~
+MKM 传输矩阵
+~~~~~~~~~~~~~~~~
 
 MKM 求解线性化方程的精确解。对纯 :math:`K_1` 四极铁， u 平面（聚焦）使用 sin/cos 矩阵， v 平面（散焦）使用 sinh/cosh 矩阵，等效强度 :math:`K = K_1 \chi / (1+\delta)` 逐粒子计算。
 
@@ -444,9 +640,9 @@ MKM 求解线性化方程的精确解。对纯 :math:`K_1` 四极铁， u 平面
 
 .. math::
 
-  \theta = \frac{1}{2}\arctan\frac{-K_{1s}}{K_1}, \quad K_{\text{eff}} = \sqrt{K_1^2 + K_{1s}^2}
+  \theta = \frac{1}{2}\operatorname{atan2}(-K_{1s},K_1), \quad K_{\text{eff}} = \sqrt{K_1^2 + K_{1s}^2}
 
-旋转到主轴框架后施加矩阵，再旋转回来。关键性质： :math:`\theta` 与 :math:`\delta` 无关（ :math:`K_1` 和 :math:`K_{1s}` 按 :math:`\chi/(1+\delta)` 等比例缩放，比值不变），因此 :math:`\theta` 、 :math:`\cos\theta` 、 :math:`\sin\theta` 在 ``__init__`` 中预计算一次即可。
+旋转到主轴框架后施加矩阵，再旋转回来。关键性质： :math:`\theta` 与 :math:`\delta` 无关（ :math:`K_1` 和 :math:`K_{1s}` 按 :math:`\chi/(1+\delta)` 等比例缩放，比值不变），因此该旋转与粒子动量偏差无关。
 
 特殊情况：
 
@@ -458,23 +654,23 @@ MKM 求解线性化方程的精确解。对纯 :math:`K_1` 四极铁， u 平面
     - :math:`K_1`
     - :math:`K_{1s}`
     - :math:`\theta`
-  * - 正常四极
+  * - 正四极
     - :math:`K_{\text{eff}}`
     - 0
     - 0（不旋转）
   * - 纯斜四极
     - 0
     - :math:`K_{\text{eff}}`
-    - :math:`\pi/4` （旋转45°）
+    - :math:`-\pi/4` （正斜四极分量，采用上述坐标变换）
   * - 组合四极
     - 非零
     - 非零
-    - :math:`\frac{1}{2}\arctan(-K_{1s}/K_1)`
+    - :math:`\frac{1}{2}\operatorname{atan2}(-K_{1s},K_1)`
 
-对纯 :math:`K_1 + K_{1s}` （无高阶多极场），矩阵对任意切片长度 :math:`\Delta s` 精确，因此 ``num_slice = 1`` 即可。多切片仅在未来支持 :math:`K_2` / :math:`K_{2s}` 多极场踢角时才需要。
+对纯 :math:`K_1 + K_{1s}` （无高阶多极场），矩阵对任意切片长度 :math:`\Delta s` 精确，单个矩阵段即可求解所用线性方程。场误差或内部空间电荷加入分裂作用后，仍应检查切片及作用节点的收敛。
 
 MKM 的局限性
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 MKM 将运动学线性化： :math:`x' = p_x / (1+\delta)` ，而非精确的 :math:`x' = p_x / p_z` 。展开后：
 
@@ -482,13 +678,9 @@ MKM 将运动学线性化： :math:`x' = p_x / (1+\delta)` ，而非精确的 :m
 
   \frac{p_x}{p_z} = \frac{p_x}{1+\delta}\left(1 + \frac{p_x^2 + p_y^2}{2(1+\delta)^2} + \cdots\right)
 
-MKM 只保留第一项，丢失的高阶项导致：
-
-- **振幅依赖 tune shift** （几何非线性）：来自 :math:`p_x^3` 等项， MKM 中为零
-- **高阶色品** （ :math:`Q''` 及以上）：来自 :math:`\delta \cdot p_x^2` 交叉项， MKM 中丢失
-- **非线性路径长度** ： :math:`p_x^2` 、 :math:`p_x^4` 等对 :math:`\Delta z` 的贡献， MKM 中丢失
-
-对于典型存储环参数（ :math:`p_x \sim 10^{-4}` ），丢失效应量级约 :math:`10^{-8}` 每块磁铁，但整环累积和多圈效应下可能放大。若需研究 dynamic aperture 、 tune footprint 等非线性束流动力学问题，应使用 DKD-exact 模型。
+MKM 保留近轴横向方程及其二次路程积分，不包含完整根号运动学的高阶横向项。
+其有效聚焦强度仍含 :math:`1/(1+\delta)`，因此不能据此断言所有高阶色品为零。
+研究大振幅非线性运动时，应同时检查模型近似和数值收敛；改变积分切片数不能补回模型中省略的项。
 
 切片数与积分器建议
 ~~~~~~~~~~~~~~~~~~~~
@@ -504,234 +696,23 @@ MKM 只保留第一项，丢失的高阶项导致：
   * - mat-kick-mat
     - 1
     - — ¹
-    - 矩阵对任意 :math:`\Delta s` 精确，1片即可。速度快，适合线性光学计算
+    - 纯线性场使用一个矩阵段；加入分裂作用后须检查收敛
   * - drift-kick-drift-exact
     - 需测试 ²
     - yoshida4
     - 切片数需通过收敛测试确定
 
-¹ MKM 模型不使用积分器参数。
+¹ 纯 MKM 主体采用解析矩阵；场误差等分裂作用仍需设置和检查相应的积分方案。
 
 ² DKD-exact 切片数选择建议：
 
-  - 切片数需通过 **收敛测试** 确定：对比不同切片数下的 tune 和色品，确认收敛
-  - 对于 HIAF-BRing （四极铁长度约 1 m， :math:`K_1` 约 0.2），建议切片数 5，使用 yoshida4 积分器
-  - 切片数不足时，线性色品会有 :math:`O(1/N^2)` 误差；振幅依赖 tune shift 会有更大偏差
-  - yoshida4 积分器每切片误差为 :math:`O(\Delta s^5)` ，全局误差 :math:`O(\Delta s^4)` ，精度远优于 uniform
+  - 切片数需通过 **收敛测试** 确定：对比不同切片数下的 工作点 和色品，确认收敛
+  - 在光滑场假设下，uniform 的全局分裂误差为二阶，yoshida4 为四阶；仍需对所研究的观测量检查收敛
+  - yoshida4 积分器每切片误差为 :math:`O(\Delta s^5)` ，全局误差 :math:`O(\Delta s^4)` ，上述阶数成立于相应的光滑场与分裂近似条件下
 
 
 绝对正、斜多极场误差与静态 DX/DY/DPSI 准直误差使用公共 :ref:`zh-error` 接口。
 准直只移动磁场，孔径和 SC 边界保持在设计坐标系。
-
-接口参数
---------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - 元件在束线中的纵向位置
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - 元件长度 （必须 :math:`\ge 0` ； :math:`= 0` 时为薄透镜）
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - 元件名称
-  * - ``k1l``
-    - ``k1l``
-    - float
-    - :math:`\text{m}^{-1}`
-    - 正常四极积分强度 :math:`K_{1L}` ，默认 0
-  * - ``k1sl``
-    - ``k1sl``
-    - float
-    - :math:`\text{m}^{-1}`
-    - 斜四极积分强度 :math:`K_{1sL}` ，默认 0
-  * - ``model``
-    - ``model``
-    - str
-    - -
-    - 物理模型，可选： ``adaptive`` （默认 ``mat-kick-mat`` ）、 ``drift-kick-drift-exact`` 、 ``mat-kick-mat``
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - 切片数，默认 1（仅厚透镜有效）
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - 积分器，可选： ``adaptive`` （默认 ``uniform`` ）、 ``uniform`` 、 ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - 孔径类型，默认 ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - 孔径参数值，默认 ``[]``
-
-
-使用示例
---------
-
-厚透镜正常四极铁
-~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QF1": {
-          "S (m)": 10.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.2,
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-聚焦四极铁（ :math:`K_{1L} > 0` ），长度 0.5 m，5 个切片，4 阶辛积分。
-
-MKM 模型四极铁
-~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QF1": {
-          "S (m)": 10.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.2,
-          "Model": "mat-kick-mat",
-          "Num Slices": 1,
-          "Aperture Type": "off"
-      }
-  }
-
-MKM 模型，精确线性传输，切片数 1 即可。速度优于 DKD-exact ，适合线性光学计算。
-
-薄透镜四极铁
-~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QF2": {
-          "S (m)": 20.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.0,
-          "K1L": 0.3,
-          "Aperture Type": "off"
-      }
-  }
-
-零长度四极铁，仅施加 :math:`K_{1L}` 薄透镜踢角，无 body 追踪，无色品效应。
-
-散焦四极铁
-~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QD1": {
-          "S (m)": 30.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.4,
-          "K1L": -0.15,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-散焦四极铁（ :math:`K_{1L} < 0` ），水平散焦、垂直聚焦。
-
-斜四极铁
-~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QS1": {
-          "S (m)": 40.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.3,
-          "K1L": 0.0,
-          "K1SL": 0.1,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-纯斜四极铁（ :math:`K_{1L} = 0` , :math:`K_{1sL} \neq 0` ），产生 :math:`x` - :math:`y` 耦合。
-
-正常 + 斜四极组合
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QFS1": {
-          "S (m)": 50.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.2,
-          "K1SL": 0.05,
-          "Num Slices": 3,
-          "Integrator": "yoshida4",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.04]
-      }
-  }
-
-同时含正常和斜四极分量的组合四极铁（模拟安装旋转误差），带圆形孔径检查。
-
-带旋转角的等效表示
-~~~~~~~~~~~~~~~~~~
-
-一个 :math:`K_{1L} = 0.2` 的正常四极铁旋转角度 :math:`\theta = 0.01` rad 后，等效为：
-
-.. math::
-
-  K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996
-
-.. math::
-
-  K_{1sL}' = K_{1L} \sin 2\theta \approx 0.2 \times 0.02 = 0.004
-
-.. code-block:: json
-
-  {
-      "QF_rot": {
-          "S (m)": 60.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.19996,
-          "K1SL": 0.004,
-          "Num Slices": 1,
-          "Integrator": "uniform"
-      }
-  }
-
 
 应用场景
 --------
@@ -739,10 +720,9 @@ MKM 模型，精确线性传输，切片数 1 即可。速度优于 DKD-exact �
 - **线性聚焦** ：在 FODO 结构中交替排列聚焦（F）和散焦（D）四极铁，实现束流的横向约束
 - **色品校正** ：利用四极铁的自然色品效应，通过调整六极铁补偿色品
 - **耦合校正** ：使用斜四极铁（ ``k1sl`` ）控制 :math:`x` - :math:`y` 耦合，校正安装误差
-- **Tune 调整** ：通过调整四极铁强度改变工作点（tune），将束流调至最佳工作区域
+- **Tune 调整** ：通过调整四极铁强度改变工作点（工作点），将束流调至最佳工作区域
 - **色散匹配** ：在弯铁后设置四极铁，调节色散函数 :math:`\eta(s)` 的演化
 - **束流传输线** ：在注入线和引出线中使用四极铁聚焦束流，控制束流包络
-
 
 参考文献
 --------
@@ -755,7 +735,7 @@ MKM 模型，精确线性传输，切片数 1 即可。速度优于 DKD-exact �
 元件内部空间电荷
 ----------------
 
-正长度元件可设置 ``space_charge``（JSON ``Space charge``）为
+正长度元件可设置 ``space_charge`` （JSON ``Space charge``）为
 ``ElementSpaceCharge`` 对象。``Num slices`` 控制外场传输，
 ``Space charge.Num kicks`` 控制 SC 积分。调度规则、共享资源、
 支持的后端和示例见 :ref:`zh-internal-space-charge`。

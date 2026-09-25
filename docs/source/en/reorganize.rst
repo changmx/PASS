@@ -1,16 +1,61 @@
 Bunch Regrouping (ReorganizeBunch)
-==================================
+====================================================================
 
 This page describes the PASS **ReorganizeBunch** command. At a selected turn, the command changes the beam bunch-grouping count and rebuilds the bunch structure from the physical arrival phases of the particles.
 
-**Code location**
+Scope and prerequisites
+----------------------------------------------
 
-- Source: ``PASS/commands/reorganize.py``
-- Regrouping algorithm: ``PASS/commands/sort_bunch.py``
-- Class: ``ReorganizeBunch`` (inherits from ``Command``)
-- Registered name: ``reorganizebunch``
-- Schema: ``ReorganizeBunchItem`` in ``PASS/para/schema/elements.py``
+This command changes grouping and reference coordinates while preserving live-particle physical time, energy, and mechanical momentum. It does not replace RF capture, debunching, merging, or compression. Regrouping invalidates all old slice sets; re-run each Slicer needed by subsequent commands. The command writes no diagnostic file; place a monitor afterwards to record the result. See :ref:`en-longitudinal-reference` for coordinates.
 
+Usage Example
+-------------
+
+The following example switches the beam to one longitudinal group at turn 500:
+
+.. code-block:: json
+
+  {
+      "ReorganizeBunch1": {
+          "S (m)": 0.0,
+          "Command": "ReorganizeBunch",
+          "Start turn": 500,
+          "New harmonic number": 1
+      }
+  }
+
+Interface Parameters
+--------------------
+
+.. list-table::
+  :header-rows: 1
+  :widths: 22 30 12 12 24
+
+  * - Property
+    - JSON key
+    - Type
+    - Default
+    - Description
+  * - ``s``
+    - ``S (m)``
+    - float
+    - Required
+    - Longitudinal position of the command in the ring
+  * - ``name``
+    - ``name``
+    - str
+    - Auto-filled
+    - Command name
+  * - ``start_turn``
+    - ``Start turn``
+    - int
+    - 0
+    - Execution turn (inclusive, 0-based); the command runs only once
+  * - ``new_harmonic``
+    - ``New harmonic number``
+    - int
+    - Required
+    - New bunch-grouping count, must be :math:`\ge 1`
 
 Operation and group boundaries
 ------------------------------
@@ -93,57 +138,6 @@ rebuilds references even if the requested grouping count equals the old count.
    aligned by current array index, not looked up by tag. CPU and CUDA consumers
    do not automatically regenerate the cleared results; see :doc:`slicer`.
 
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 22 30 12 12 24
-
-  * - Property
-    - JSON key
-    - Type
-    - Default
-    - Description
-  * - ``s``
-    - ``S (m)``
-    - float
-    - Required
-    - Longitudinal position of the command in the ring
-  * - ``name``
-    - ``name``
-    - str
-    - Auto-filled
-    - Command name
-  * - ``start_turn``
-    - ``Start turn``
-    - int
-    - 0
-    - Execution turn (inclusive, 0-based); the command runs only once
-  * - ``new_harmonic``
-    - ``New harmonic number``
-    - int
-    - Required
-    - New bunch-grouping count, must be :math:`\ge 1`
-
-
-Usage Example
--------------
-
-The following example switches the beam to one longitudinal group at turn 500:
-
-.. code-block:: json
-
-  {
-      "ReorganizeBunch1": {
-          "S (m)": 0.0,
-          "Command": "ReorganizeBunch",
-          "Start turn": 500,
-          "New harmonic number": 1
-      }
-  }
-
-
 Applications
 ------------
 
@@ -156,4 +150,4 @@ Applications
    ReorganizeBunch changes the PASS bunch-reference grouping only. It does not replace the physical debunching, capture, merging, or bunch-compression process produced by RF elements. First create the intended longitudinal distribution with the appropriate physical elements, then regroup at the selected turn.
 
 
-See :ref:`en-longitudinal-reference` and :doc:`slicer`。
+See :ref:`en-longitudinal-reference` and :doc:`slicer`.

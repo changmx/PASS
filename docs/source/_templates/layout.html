@@ -1,9 +1,25 @@
 {% extends "!layout.html" %}
 
-{% block navglobal %}
-<div style="float:right; font-size:14px;">
-    <a href="/PASS/en/">EN</a> |
-    <a href="/PASS/zh/">中文</a>
-</div>
-{{ super() }}
+{% block sidebartitle %}
+  {{ super() }}
+  <div class="pass-language-switch">
+    <span>PASS {{ release }}</span>
+    {% if language_target is defined %}
+      {% set zh_target = pagename if language == 'zh_CN' else language_target %}
+      {% set en_target = pagename if language == 'en' else language_target %}
+    {% else %}
+      {% set zh_target = 'zh/index' %}
+      {% set en_target = 'en/index' %}
+    {% endif %}
+    <a href="{{ pathto(zh_target) }}" lang="zh-CN"{% if pagename.startswith('zh/') %} aria-current="page"{% endif %}>中文</a>
+    <a href="{{ pathto(en_target) }}" lang="en"{% if pagename.startswith('en/') %} aria-current="page"{% endif %}>English</a>
+  </div>
+{% endblock %}
+
+{% block menu %}
+  {% if language_navigation is defined %}
+    {{ language_navigation }}
+  {% else %}
+    {{ super() }}
+  {% endif %}
 {% endblock %}

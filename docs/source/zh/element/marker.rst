@@ -1,55 +1,22 @@
 标记（Marker）
 ====================
 
-本模块介绍 PASS 中的标记器元件 **Marker** ，用于在束线中标记一个特定的纵向位置，不改变任何粒子坐标。
+本模块介绍 PASS 中的标记器元件 **Marker** ，用于在束线中标记一个特定的纵向位置，不改变存活粒子的坐标。
 
-标记器代码位于 ``PASS/commands/element/marker.py`` ，类名为 ``Marker`` ，注册名为 ``marker`` 。标记器的核心特征如下：
+标记器的主要行为如下：
 
-- **零长度元件** （ ``length = 0.0`` ，不可配置），不占据束线物理空间
+- **零长度元件** （跟踪长度固定为 0，配置时保留默认值），不占据束线物理空间
 - **不做任何粒子坐标变换** ，粒子穿过标记器时所有相空间坐标保持不变
-- **支持孔径检查** ，通过 ``aperture_type`` 和 ``aperture_value`` 参数控制， ``execute_cpu`` 中仅调用 ``check_aperture_cpu`` 函数
-- **GPU 追踪为空操作** （ ``execute_gpu`` 为 ``pass`` ），不执行任何计算
+- **支持孔径检查**：通过 ``aperture_type`` 和 ``aperture_value`` 配置，CPU 与 GPU 均执行相应检查。
 
 标记器的主要作用包括：
 
 - 在束线序列中标记关键位置 （如测量点、对撞点、注入点等），便于后续分析
 - 作为排序基准点，其他元件可参考标记器位置进行布局
-- 在输出和日志中标识物理位置，不参与粒子追踪
+- 在输出和日志中标识物理位置，不参与粒子跟踪
 
-
-物理说明
---------
-
-标记器不产生任何电磁场，不施加任何力，也不改变粒子状态。粒子穿过标记器时，所有六个相空间坐标 （ :math:`x, p_x, y, p_y, z, \delta` ）保持不变：
-
-.. math::
-
-  x \leftarrow x
-
-.. math::
-
-  p_x \leftarrow p_x
-
-.. math::
-
-  y \leftarrow y
-
-.. math::
-
-  p_y \leftarrow p_y
-
-.. math::
-
-  z \leftarrow z
-
-.. math::
-
-  \delta \leftarrow \delta
-
-标记器仅记录其在束线中的纵向位置 :math:`s` ，用于序列排序和位置标注。
-
-当配置了孔径检查 （ ``aperture_type`` 不为 ``off`` ）时，标记器在 ``execute_cpu`` 中调用 ``check_aperture_cpu`` 函数，对存活粒子 （ :math:`\text{tag} > 0` ）进行横向坐标 （ :math:`(x, y)` ）的孔径边界检查。超出孔径边界的粒子将被标记为丢失 （ ``tag`` 取负） ，并记录丢失位置和圈数。孔径检查的详细原理与各类型定义详见 ``孔径`` 章节。
-
+以下接口中的字段用于 ``PASS.para.schema.elements.MarkerItem`` 配置类；
+元件名称由 ``Sequence.add(name, item)`` 的序列键给出，不是配置类字段。
 
 接口参数
 --------
@@ -57,39 +24,39 @@
 标记器的所有接口参数如下表所示：
 
 .. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
 
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``s``
-    - ``S (m)``
-    - float
-    - m
-    - 元件在束线中的纵向位置
-  * - ``length``
-    - - （固定 0.0，不可配置）
-    - float
-    - m
-    - 元件长度 （恒为 0，不可配置）
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - 元件名称 （由序列 JSON 的键名自动填入）
-  * - ``aperture_type``
-    - ``Aperture Type``
-    - str
-    - -
-    - 孔径类型，默认 ``off`` ，不区分大小写
-  * - ``aperture_value``
-    - ``Aperture Value``
-    - list
-    - -
-    - 孔径参数值，默认 ``[]`` ，含义随类型而异
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 元件出口或零长度作用点的纵向位置。
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - 跟踪长度固定为零；配置时保留默认值。
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - 孔径类型，默认 ``off`` ，不区分大小写
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - 孔径参数值，默认 ``[]`` ，含义随类型而异
 
 
 孔径类型可选值
@@ -143,7 +110,6 @@
 
   ``off`` 和 ``default`` 类型忽略 ``aperture_value`` 。各孔径类型的详细物理说明与判定条件见 ``孔径`` 章节。
 
-
 使用示例
 --------
 
@@ -154,12 +120,12 @@
 
 .. code-block:: json
 
-  {
-      "IP": {
-          "S (m)": 12.5,
-          "Command": "Marker"
-      }
-  }
+   {
+       "IP": {
+           "S (m)": 12.5,
+           "Command": "Marker"
+       }
+   }
 
 ``"IP"`` 为元件名称，由 ``CommandSequence`` 自动读取并赋给 ``name`` 属性。
 
@@ -170,14 +136,14 @@
 
 .. code-block:: json
 
-  {
-      "IP": {
-          "S (m)": 12.5,
-          "Command": "Marker",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.05]
-      }
-  }
+   {
+       "IP": {
+           "S (m)": 12.5,
+           "Command": "Marker",
+           "Aperture type": "circle",
+           "Aperture value": [0.05]
+       }
+   }
 
 多个标记器组合
 ~~~~~~~~~~~~~~~~~~
@@ -186,23 +152,55 @@
 
 .. code-block:: json
 
-  {
-      "IP": {
-          "S (m)": 12.5,
-          "Command": "Marker"
-      },
-      "Injection_Point": {
-          "S (m)": 0.0,
-          "Command": "Marker"
-      },
-      "Measurement_Point": {
-          "S (m)": 105.3,
-          "Command": "Marker",
-          "Aperture Type": "rectangle",
-          "Aperture Value": [0.05, 0.03]
-      }
-  }
+   {
+       "IP": {
+           "S (m)": 12.5,
+           "Command": "Marker"
+       },
+       "Injection_Point": {
+           "S (m)": 0.0,
+           "Command": "Marker"
+       },
+       "Measurement_Point": {
+           "S (m)": 105.3,
+           "Command": "Marker",
+           "Aperture type": "rectangle",
+           "Aperture value": [0.05, 0.03]
+       }
+   }
 
+物理说明
+--------
+
+标记器不产生任何电磁场，不施加任何力，存活粒子的坐标保持不变。启用孔径时，超出孔径的粒子被标记损失。粒子穿过标记器时，所有六个相空间坐标 （ :math:`x, p_x, y, p_y, z, \delta` ）保持不变：
+
+.. math::
+
+  x \leftarrow x
+
+.. math::
+
+  p_x \leftarrow p_x
+
+.. math::
+
+  y \leftarrow y
+
+.. math::
+
+  p_y \leftarrow p_y
+
+.. math::
+
+  z \leftarrow z
+
+.. math::
+
+  \delta \leftarrow \delta
+
+标记器仅记录其在束线中的纵向位置 :math:`s` ，用于序列排序和位置标注。
+
+启用孔径时，CPU 和 GPU 均在该位置检查存活粒子的横向坐标。接触或超出物理孔径边界的粒子被标记损失，并记录首次损失位置和圈数。几何定义见 :doc:`../aperture`。
 
 应用场景
 --------

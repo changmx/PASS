@@ -1,7 +1,7 @@
 JSON input validation
 =====================
 
-One-click preflight
+Validate an input
 -------------------
 
 In **Configuration → Execution sequence**, click **Validate** to inspect the
@@ -20,8 +20,7 @@ escaping, so punctuation in command names does not break navigation.
 
 **Errors block execution.** Warnings describe valid but potentially unintended
 behavior, such as clipped output windows, unused files/resources, RF tables that
-hold their final row, or large monitor buffers. A warning does not request another
-approval or prevent running. Full validation also inspects disabled configuration
+hold their final row, or large monitor buffers. A warning does not prevent running. Full validation also inspects disabled configuration
 contents; malformed declared parameters are errors, while unavailable or malformed
 files belonging to inactive features are warnings.
 
@@ -67,7 +66,7 @@ What is checked
 * Explicit and internal SC: method/solver/profile compatibility, paired grid
   extents, positive grid dimensions, aperture containment, full-rectangle DST
   boundaries, active grid nodes for Dirichlet solvers, unsupported analytic
-  potential output, CPU-only execution and internal thick-element requirements.
+  potential output, backend compatibility and internal thick-element requirements.
   Coverage uses the same periodic interval analysis as tracking and respects
   ``Coverage check`` and ``Coverage mode``.
 * Active distribution tables (HDF5 or TFS), RF and offset TFS files: existence, parsing, required
@@ -82,8 +81,7 @@ command. Enabling these features is an error instead of silently ignoring the
 request. RFCavity's implemented RF table remains supported. ElSeparator requires
 exactly one finite ``V (V)`` or ``VL (V m)``, a positive gap and a finite septum
 position. Zero strength is valid; nonzero V requires positive length, while VL
-also supports a zero-length kick. The old ``Voltage (V)``, electrode-height/center,
-mode and separate EX/EY/EXL/EYL parameters are rejected. Missing geometry is not inferred.
+also supports a zero-length kick. Specify the geometry explicitly using the current :doc:`element/elseparator` interface.
 
 Static validation cannot establish long-term beam stability or certify future
 particle-dependent quantities. For example, particles may subsequently leave a
@@ -110,6 +108,9 @@ report file and does not create simulation outputs.
 
 .. code-block:: python
 
+   import json
+   from pathlib import Path
+
    from PASS.validation import validate_file, validate_input
 
    report = validate_file("beam.json")
@@ -119,6 +120,8 @@ report file and does not create simulation outputs.
        raise ValueError(report.text())
 
    # Parameter-only precheck for an in-memory editor document:
-   report = validate_input(data, base_dir="inputs", check_files=False)
+   input_path = Path("beam.json").resolve()
+   data = json.loads(input_path.read_text(encoding="utf-8-sig"))
+   report = validate_input(data, base_dir=input_path.parent, check_files=False)
 
 Validation does not mutate the supplied dictionary or rewrite the input file.

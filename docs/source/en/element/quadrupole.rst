@@ -5,10 +5,6 @@ This module describes the PASS quadrupole element **Quadrupole**, used to simula
 
 The PASS quadrupole supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element provides two tracking models: **drift-kick-drift-exact** (DKD-exact) uses the exact drift-kick-drift symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators; **mat-kick-mat** (MKM, default) uses the exact linear transport matrix scheme, which is exact for a purely linear field with a single slice.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/quadrupole.py``
-- Class name: ``Quadrupole`` (inherits from ``Command``)
 - Registration name: ``quadrupole``
 - Key features:
 
@@ -22,9 +18,229 @@ The PASS quadrupole supports both **thick element** (``length > 0``) and **thin 
   - Chromaticity effects naturally introduced through exact drift
   - Supports aperture check
 
+The fields below configure ``PASS.para.schema.elements.QuadrupoleItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Interface Parameters
+--------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Element length (must be :math:`\ge 0`; :math:`= 0` for thin lens)
+   * - ``k1l``
+     - ``K1L``
+     - ``float``
+     - :math:`\text{m}^{-1}`
+     - ``0.0``
+     - Normal quadrupole integrated strength :math:`K_{1L}`, default 0
+   * - ``k1sl``
+     - ``K1SL``
+     - ``float``
+     - :math:`\text{m}^{-1}`
+     - ``0.0``
+     - Skew quadrupole integrated strength :math:`K_{1sL}`, default 0
+   * - ``model``
+     - ``Model``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Physical model, options: ``adaptive`` (default ``mat-kick-mat``), ``drift-kick-drift-exact``, ``mat-kick-mat``
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of slices, default 1 (effective only for thick lens)
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type, default ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values, default ``[]``
+
+Usage Examples
+--------------
+
+Thick Lens Normal Quadrupole
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QF1": {
+           "S (m)": 10.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.2,
+           "Num slices": 5,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Focusing quadrupole (:math:`K_{1L} > 0`), length 0.5 m, 5 slices, 4th-order symplectic integration.
+
+MKM Model Quadrupole
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QF1": {
+           "S (m)": 10.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.2,
+           "Model": "mat-kick-mat",
+           "Num slices": 1,
+           "Aperture type": "off"
+       }
+   }
+
+For the pure linear field in this example, one MKM matrix segment solves the paraxial equations. Field errors and internal space charge require separate convergence checks.
+
+Thin Lens Quadrupole
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QF2": {
+           "S (m)": 20.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.0,
+           "K1L": 0.3,
+           "Aperture type": "off"
+       }
+   }
+
+Zero-length quadrupole, applying only the :math:`K_{1L}` thin lens kick, no finite-length body transport; see the lattice chromaticity discussion belows.
+
+Defocusing Quadrupole
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QD1": {
+           "S (m)": 30.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.4,
+           "K1L": -0.15,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+Defocusing quadrupole (:math:`K_{1L} < 0`), horizontal defocusing, vertical focusing.
+
+Skew Quadrupole
+~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QS1": {
+           "S (m)": 40.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.3,
+           "K1L": 0.0,
+           "K1SL": 0.1,
+           "Num slices": 1,
+           "Integrator": "uniform",
+           "Aperture type": "off"
+       }
+   }
+
+Pure skew quadrupole (:math:`K_{1L} = 0`, :math:`K_{1sL} \neq 0`), producing :math:`x`-:math:`y` coupling.
+
+Normal + Skew Quadrupole Combination
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "QFS1": {
+           "S (m)": 50.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.2,
+           "K1SL": 0.05,
+           "Num slices": 3,
+           "Integrator": "yoshida4",
+           "Aperture type": "circle",
+           "Aperture value": [0.04]
+       }
+   }
+
+Combined quadrupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.
+
+Equivalent Representation with Rotation Angle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A normal quadrupole with :math:`K_{1L} = 0.2` rotated by angle :math:`\theta = 0.01` rad is equivalent to:
+
+.. math::
+
+  K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996
+
+.. math::
+
+  K_{1sL}' = K_{1L} \sin 2\theta \approx 0.2 \times 0.02 = 0.004
+
+.. code-block:: json
+
+   {
+       "QF_rot": {
+           "S (m)": 60.0,
+           "Command": "Quadrupole",
+           "Length (m)": 0.5,
+           "K1L": 0.19996,
+           "K1SL": 0.004,
+           "Num slices": 1,
+           "Integrator": "uniform"
+       }
+   }
 
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 For zero normal and skew strengths, both CPU and GPU use the exact drift,
 including when ``mat-kick-mat`` is selected. In the nonzero-field matrix model,
@@ -58,7 +274,7 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
@@ -78,7 +294,6 @@ Charge-to-mass ratio factor:
   \chi = \frac{q}{q_0} \cdot \frac{m_0}{m}
 
 For a beam of identical particle species, :math:`\chi = 1`.
-
 
 Quadrupole Field and Normalized Strength
 ----------------------------------------
@@ -116,7 +331,6 @@ The integrated strength is:
   K_{1L} = K_1 \cdot L, \qquad K_{1sL} = K_{1s} \cdot L
 
 where :math:`L` is the magnet length. In PASS, the user directly specifies :math:`K_{1L}` (``k1l``) and :math:`K_{1sL}` (``k1sl``); for thick lenses, :math:`K_1 = K_{1L} / L` and :math:`K_{1s} = K_{1sL} / L` are solved internally.
-
 
 Overall Tracking Flow
 ---------------------
@@ -157,7 +371,7 @@ MKM model:
   (Each slice: M(ds), exact linear transport matrix)
 
   For pure k1 + k1s (no higher-order multipoles): M(L) = M(ds)^N
-  Therefore num_slice = 1 is sufficient; multiple slices do not change the result.
+  One matrix segment solves the pure linear-field model; added field errors or internal space charge still require split-step convergence checks.
 
 The complete map is:
 
@@ -184,7 +398,6 @@ where the DKD map for each slice is:
   - Thin lens mode does not change the particle position coordinates :math:`(x, y, z)`, only applies momentum kicks
   - Chromaticity effects in thick lens mode are naturally introduced through the :math:`p_z` expression in exact drift (see chromaticity section)
   - When :math:`K_{1L} = 0` and :math:`K_{1sL} = 0`, the thick lens degenerates to a pure drift, avoiding meaningless empty kick loops
-
 
 Physical Derivation
 --------------------
@@ -339,8 +552,7 @@ Integrator Selection Recommendations:
     - 4th-order accuracy, but 6 drifts + 3 kicks per slice
   * - With space charge
     - uniform + more slices
-    - PIC solve cost far exceeds drift; 4th-order Yoshida requires 3 PIC solves
-
+    - Space charge uses its independently configured Num kicks; external Yoshida substeps do not multiply PIC calls
 
 Chromaticity Effects
 --------------------
@@ -360,38 +572,26 @@ Transforming to :math:`(x, x')` space (where :math:`x' = p_x / (1+\delta)`), the
 
 This is the physical origin of the natural chromaticity :math:`Q'_x = -\frac{1}{4\pi}\oint \beta_x K_1 \, ds`. No explicit division is needed in the code—the exact drift's :math:`p_z` expression automatically accomplishes this.
 
-Thin Lens vs. Thick Lens Chromaticity Comparison
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Thin lenses and lattice chromaticity
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. list-table::
-  :header-rows: 1
-  :widths: 25 20 55
+A zero-length quadrupole adds no flight length and applies
+:math:`\Delta p_x=-K_{1L}x`. This normalized momentum map has no explicit
+:math:`\delta` factor, but the paraxial slope is :math:`x'=p_x/(1+\delta)`, so
 
-  * - Effect
-    - Thin Lens
-    - Thick Lens DKD-exact
-  * - Natural chromaticity (normal quadrupole)
-    - Not introduced
-    - Introduced (:math:`K_{1,\text{eff}} = K_1/(1+\delta)`)
-  * - Coupling chromaticity (skew quadrupole)
-    - Not introduced
-    - Introduced (coupling transport contains :math:`\delta` dependence)
-  * - Higher-order nonlinear dispersion
-    - Not introduced
-    - Introduced (:math:`p_z` preserves full square root)
-  * - Path-length effects (:math:`R_{56}`, etc.)
-    - Not introduced
-    - Introduced
+.. math::
 
-Physically, a thin lens has zero length with no drift space, and the kick :math:`\Delta p_x = -K_{1L}\,x` does not contain :math:`\delta`. In a thick lens, particles have a drift path inside the magnet, and particles with different momenta travel different paths and experience different effective focusing—this is the source of chromaticity. The same applies to skew quadrupoles: the :math:`p_z` dependence in drift makes the coupling transport also contain :math:`\delta` dependence, introducing coupling chromaticity.
+   \Delta x'=-\frac{K_{1L}}{1+\delta}x.
 
-.. note::
+A lattice composed of thin quadrupoles and drifts can therefore have natural
+chromaticity. The absence of an explicit momentum factor in the isolated kick
+does not make the tune momentum-independent. Skew-quadrupole coupling must
+likewise be assessed in the complete lattice map.
 
-  - Thin lens mode (``length = 0``) has no path-length effects, so the thin lens quadrupole itself **does not introduce natural chromaticity**—whether normal or skew quadrupole
-  - Thick lens DKD-exact mode fully includes natural chromaticity effects, including higher-order nonlinear dispersion terms
-  - Unlike the mat-kick-mat model (which explicitly divides by :math:`1+\delta`), PASS's DKD-exact introduces chromaticity implicitly through exact :math:`p_z`, and also includes the higher-order nonlinear effects of :math:`p_z`
-  - In PASS's Twiss linear transport framework, natural chromaticity is introduced through ``DQx`` / ``DQy`` parameters (:math:`\delta` terms in the phase advance), not through the element itself. If a thin lens quadrupole is additionally inserted in Twiss transport, it will not double-count chromaticity with ``DQx``—because the thin lens itself does not introduce chromaticity. However, if the inserted quadrupole strength is large enough to significantly change the lattice tune and :math:`\beta` functions, the original Twiss parameters (including ``DQx``) are no longer accurate and need to be recomputed
-
+Twiss transport uses ``DQx`` and ``DQy`` for a prescribed momentum-dependent
+phase advance. Adding quadrupole fields changes the combined optics. Recheck the
+closed orbit, Twiss functions and momentum-dependent tune; zero length alone
+does not establish that chromaticity is unchanged or existing optics are not double counted.
 
 Tracking Model Comparison
 -------------------------
@@ -403,7 +603,7 @@ Model Overview
 
 **drift-kick-drift-exact (DKD-exact)**: Splits the Hamiltonian into exact drift and thin lens kick, combined via symplectic splitting. Preserves the full :math:`p_z` nonlinear kinematics, but linear focusing and chromaticity have symplectic splitting errors (controllable by increasing the number of slices or using higher-order integrators).
 
-**mat-kick-mat (MKM)**: Solves the analytical exact solution of the linearized equation of motion :math:`u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0`, constructing the transport matrix using trigonometric functions (focusing plane) and hyperbolic functions (defocusing plane). Linear focusing, linear chromaticity, and :math:`R_{56}` are all exact solutions, but higher-order nonlinear terms of :math:`p_z` are not included.
+**mat-kick-mat (MKM)**: Solves the analytical exact solution of the linearized equation of motion :math:`u'' + K_{\text{eff}} \chi/(1+\delta) \cdot u = 0`, constructing the transport matrix using trigonometric functions (focusing plane) and hyperbolic functions (defocusing plane). It solves the chosen paraxial equations analytically and accumulates their path-length increment; higher-order transverse terms of the full :math:`p_z` square root are not included.
 
 Comparison Table
 ~~~~~~~~~~~~~~~~
@@ -416,28 +616,28 @@ Comparison Table
     - drift-kick-drift-exact
     - mat-kick-mat
   * - Linear focusing
-    - 2nd-order symplectic splitting approximation
+    - Splitting approximation of the selected second- or fourth-order integrator
     - Exact (analytical matrix)
   * - Linear chromaticity
-    - Approximate (:math:`O(1/N^2)` splitting error)
-    - Exact (:math:`K_1/(1+\delta)` explicit)
+    - Splitting approximation converging with the selected order
+    - Analytical in the paraxial model, with explicit momentum dependence
   * - Nonlinear kinematics
     - Preserved (full :math:`p_z` square root)
     - Not included (linearized :math:`x' = p_x/(1+\delta)`)
   * - Longitudinal :math:`R_{56}`
     - Approximate
     - Exact (analytical formula)
-  * - Nonlinear path length
-    - Preserved
-    - Not included
+  * - Path-length increment
+    - From exact-drift kinematics
+    - Includes the paraxial quadratic integral, not full higher-order kinematics
   * - Symplecticity
     - Strictly symplectic
     - Symplectic (matrix is symplectic)
   * - Computation speed
-    - Slower (:math:`N \times 3` DKD steps)
-    - Fast (matrix multiplication)
+    - Depends on substep count and hardware
+    - Depends on matrix operations, slicing and hardware
 
-MKM Implementation Details
+MKM Transport Matrix
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 MKM solves the exact solution of the linearized equation. For a pure :math:`K_1` quadrupole, the u plane (focusing) uses sin/cos matrices, the v plane (defocusing) uses sinh/cosh matrices, with equivalent strength :math:`K = K_1 \chi / (1+\delta)` computed per particle.
@@ -446,9 +646,9 @@ For :math:`K_1 + K_{1s}` combined quadrupoles, **rotational diagonalization** is
 
 .. math::
 
-  \theta = \frac{1}{2}\arctan\frac{-K_{1s}}{K_1}, \quad K_{\text{eff}} = \sqrt{K_1^2 + K_{1s}^2}
+  \theta = \frac{1}{2}\operatorname{atan2}(-K_{1s},K_1), \quad K_{\text{eff}} = \sqrt{K_1^2 + K_{1s}^2}
 
-After rotating to the principal axis frame, the matrix is applied, then rotated back. Key property: :math:`\theta` is independent of :math:`\delta` (:math:`K_1` and :math:`K_{1s}` scale proportionally by :math:`\chi/(1+\delta)`, so the ratio is unchanged), therefore :math:`\theta`, :math:`\cos\theta`, and :math:`\sin\theta` can be precomputed once in ``__init__``.
+After rotating to the principal axis frame, the matrix is applied, then rotated back. Key property: :math:`\theta` is independent of :math:`\delta` (:math:`K_1` and :math:`K_{1s}` scale proportionally by :math:`\chi/(1+\delta)`, so the ratio is unchanged), so the rotation is independent of particle momentum deviation.
 
 Special cases:
 
@@ -467,13 +667,13 @@ Special cases:
   * - Pure skew quadrupole
     - 0
     - :math:`K_{\text{eff}}`
-    - :math:`\pi/4` (rotate 45°)
+    - :math:`-\pi/4` (positive skew coefficient, with the coordinate transform above)
   * - Combined quadrupole
     - Nonzero
     - Nonzero
-    - :math:`\frac{1}{2}\arctan(-K_{1s}/K_1)`
+    - :math:`\frac{1}{2}\operatorname{atan2}(-K_{1s},K_1)`
 
-For pure :math:`K_1 + K_{1s}` (no higher-order multipoles), the matrix is exact for any slice length :math:`\Delta s`, so ``num_slice = 1`` is sufficient. Multiple slices are only needed in the future when supporting :math:`K_2` / :math:`K_{2s}` multipole kicks.
+For pure :math:`K_1+K_{1s}`, one matrix segment solves the chosen linear equations. Field errors or internal space charge add split interactions whose slicing and action nodes require convergence checks.
 
 MKM Limitations
 ~~~~~~~~~~~~~~~
@@ -484,13 +684,12 @@ MKM linearizes the kinematics: :math:`x' = p_x / (1+\delta)`, rather than the ex
 
   \frac{p_x}{p_z} = \frac{p_x}{1+\delta}\left(1 + \frac{p_x^2 + p_y^2}{2(1+\delta)^2} + \cdots\right)
 
-MKM retains only the first term; the lost higher-order terms lead to:
-
-- **Amplitude-dependent tune shift** (geometric nonlinearity): from :math:`p_x^3` and similar terms; zero in MKM
-- **Higher-order chromaticity** (:math:`Q''` and above): from :math:`\delta \cdot p_x^2` cross terms; lost in MKM
-- **Nonlinear path length**: contributions of :math:`p_x^2`, :math:`p_x^4`, etc. to :math:`\Delta z`; lost in MKM
-
-For typical storage ring parameters (:math:`p_x \sim 10^{-4}`), the lost effects are on the order of :math:`10^{-8}` per magnet, but may be amplified under full-ring accumulation and multi-turn effects. If studying nonlinear beam dynamics problems such as dynamic aperture and tune footprint, the DKD-exact model should be used.
+MKM retains the paraxial transverse equations and their quadratic path-length
+integral, not the higher-order transverse terms of the full square-root kinematics.
+Its effective focusing still contains :math:`1/(1+\delta)`; higher-order
+chromaticity is not generally zero. Large-amplitude studies require checks of
+both model assumptions and numerical convergence. More integration slices cannot
+restore terms omitted by the physical approximation.
 
 Slice Count and Integrator Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -506,235 +705,24 @@ Slice Count and Integrator Recommendations
   * - mat-kick-mat
     - 1
     - — ¹
-    - Matrix is exact for any :math:`\Delta s`; 1 slice is sufficient. Fast, suitable for linear optics calculations
+    - One segment for a pure linear field; check convergence after adding split interactions
   * - drift-kick-drift-exact
     - Needs testing ²
     - yoshida4
     - Slice count needs to be determined through convergence testing
 
-¹ The MKM model does not use the integrator parameter.
+¹ A pure MKM body uses its analytical matrix. Split interactions such as field errors require their own integration settings.
 
 ² DKD-exact slice count selection recommendations:
 
   - Slice count should be determined through **convergence testing**: compare tune and chromaticity under different slice counts to confirm convergence
-  - For HIAF-BRing (quadrupole length approximately 1 m, :math:`K_1` approximately 0.2), a slice count of 5 with yoshida4 integrator is recommended
-  - Insufficient slice count will lead to :math:`O(1/N^2)` error in linear chromaticity; amplitude-dependent tune shift will have larger deviations
-  - The yoshida4 integrator has per-slice error :math:`O(\Delta s^5)` and global error :math:`O(\Delta s^4)`, with precision far superior to uniform
+  - For smooth fields, global splitting error is second order with uniform and fourth order with yoshida4; convergence of the chosen observables must be checked
+  - The yoshida4 integrator has per-slice error :math:`O(\Delta s^5)` and global error :math:`O(\Delta s^4)`, under the smooth-field assumptions of the splitting method
 
 
 Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common :ref:`en-error` interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.
-
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - Element length (must be :math:`\ge 0`; :math:`= 0` for thin lens)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name
-  * - ``k1l``
-    - ``k1l``
-    - float
-    - :math:`\text{m}^{-1}`
-    - Normal quadrupole integrated strength :math:`K_{1L}`, default 0
-  * - ``k1sl``
-    - ``k1sl``
-    - float
-    - :math:`\text{m}^{-1}`
-    - Skew quadrupole integrated strength :math:`K_{1sL}`, default 0
-  * - ``model``
-    - ``model``
-    - str
-    - -
-    - Physical model, options: ``adaptive`` (default ``mat-kick-mat``), ``drift-kick-drift-exact``, ``mat-kick-mat``
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - Number of slices, default 1 (effective only for thick lens)
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - Aperture type, default ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``
-
-
-Usage Examples
---------------
-
-Thick Lens Normal Quadrupole
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QF1": {
-          "S (m)": 10.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.2,
-          "Num Slices": 5,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Focusing quadrupole (:math:`K_{1L} > 0`), length 0.5 m, 5 slices, 4th-order symplectic integration.
-
-MKM Model Quadrupole
-~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QF1": {
-          "S (m)": 10.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.2,
-          "Model": "mat-kick-mat",
-          "Num Slices": 1,
-          "Aperture Type": "off"
-      }
-  }
-
-MKM model, exact linear transport, 1 slice is sufficient. Faster than DKD-exact, suitable for linear optics calculations.
-
-Thin Lens Quadrupole
-~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QF2": {
-          "S (m)": 20.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.0,
-          "K1L": 0.3,
-          "Aperture Type": "off"
-      }
-  }
-
-Zero-length quadrupole, applying only the :math:`K_{1L}` thin lens kick, no body tracking, no chromaticity effects.
-
-Defocusing Quadrupole
-~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QD1": {
-          "S (m)": 30.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.4,
-          "K1L": -0.15,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-Defocusing quadrupole (:math:`K_{1L} < 0`), horizontal defocusing, vertical focusing.
-
-Skew Quadrupole
-~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QS1": {
-          "S (m)": 40.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.3,
-          "K1L": 0.0,
-          "K1SL": 0.1,
-          "Num Slices": 1,
-          "Integrator": "uniform",
-          "Aperture Type": "off"
-      }
-  }
-
-Pure skew quadrupole (:math:`K_{1L} = 0`, :math:`K_{1sL} \neq 0`), producing :math:`x`-:math:`y` coupling.
-
-Normal + Skew Quadrupole Combination
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "QFS1": {
-          "S (m)": 50.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.2,
-          "K1SL": 0.05,
-          "Num Slices": 3,
-          "Integrator": "yoshida4",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.04]
-      }
-  }
-
-Combined quadrupole with both normal and skew components (simulating installation rotation error), with a circular aperture check.
-
-Equivalent Representation with Rotation Angle
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A normal quadrupole with :math:`K_{1L} = 0.2` rotated by angle :math:`\theta = 0.01` rad is equivalent to:
-
-.. math::
-
-  K_{1L}' = K_{1L} \cos 2\theta \approx 0.2 \times 0.9998 = 0.19996
-
-.. math::
-
-  K_{1sL}' = K_{1L} \sin 2\theta \approx 0.2 \times 0.02 = 0.004
-
-.. code-block:: json
-
-  {
-      "QF_rot": {
-          "S (m)": 60.0,
-          "Command": "Quadrupole",
-          "Length (m)": 0.5,
-          "K1L": 0.19996,
-          "K1SL": 0.004,
-          "Num Slices": 1,
-          "Integrator": "uniform"
-      }
-  }
-
 
 Application Scenarios
 ---------------------
@@ -745,7 +733,6 @@ Application Scenarios
 - **Tune adjustment**: Change the working point (tune) by adjusting quadrupole strength, tuning the beam to the optimal working region
 - **Dispersion matching**: Place quadrupoles after bending magnets to control the evolution of the dispersion function :math:`\eta(s)`
 - **Beam transport lines**: Use quadrupoles in injection and extraction lines to focus the beam and control the beam envelope
-
 
 References
 ----------

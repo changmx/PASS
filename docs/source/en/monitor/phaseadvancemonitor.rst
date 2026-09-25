@@ -2,24 +2,7 @@ PhaseAdvanceMonitor
 ===================
 
 ``PhaseAdvanceMonitor`` measures the uncoupled horizontal and vertical
-fractional tune of each macro particle at one fixed lattice location.  It is
-the only phase-advance monitor API and replaces the former ``PhaseMonitor``.
-
-The monitor subtracts the configured closed orbit and horizontal dispersion,
-then uses fixed design optics to form
-
-.. math::
-
-   u_x = (x-x_{CO}-D_x\delta)/\sqrt{\beta_x},\qquad
-   v_x = \alpha_x u_x + \sqrt{\beta_x}(p_x-p_{x,CO}-D'_x\delta).
-
-The same construction is used in y without dispersion. From consecutive turns
-it accumulates the directed phase advance and writes only its equivalent
-fractional tune, ``sum(dmu)/(2 pi N)``. Phase itself is deliberately not an
-output field because it carries no additional information.
-
-This monitor assumes uncoupled transverse optics. With x-y coupling its x/y
-values are projected tunes, not normal-mode tunes.
+fractional tune of each macro particle at one fixed lattice location.
 
 Configuration
 -------------
@@ -54,6 +37,82 @@ is optional; it excludes a sample when its normalized action is too small for
 a stable angle. The precision-specific default is ``5e-17`` for float64 and
 ``5e-9`` for float32.
 
+Interface parameters
+----------------------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 25 15 40
+
+   * - Python field
+     - JSON key
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``Required``
+     - Monitor position (m).
+   * - ``command``
+     - ``Command``
+     - ``'PhaseAdvanceMonitor'``
+     - Keep PhaseAdvanceMonitor.
+   * - ``output_format``
+     - ``Output format``
+     - ``'hdf5-gzip1'``
+     - hdf5-gzip1, hdf5 or tfs.
+   * - ``enable``
+     - ``Enable``
+     - ``True``
+     - Enable the monitor.
+   * - ``beta_x``
+     - ``Beta x (m)``
+     - ``Required``
+     - Positive design beta x (m).
+   * - ``beta_y``
+     - ``Beta y (m)``
+     - ``Required``
+     - Positive design beta y (m).
+   * - ``alpha_x``
+     - ``Alpha x``
+     - ``Required``
+     - Design horizontal alpha.
+   * - ``alpha_y``
+     - ``Alpha y``
+     - ``Required``
+     - Design vertical alpha.
+   * - ``dx``
+     - ``Dx (m)``
+     - ``0.0``
+     - Horizontal dispersion (m).
+   * - ``dpx``
+     - ``Dpx``
+     - ``0.0``
+     - Normalized horizontal momentum dispersion.
+   * - ``x_co``
+     - ``X CO (m)``
+     - ``0.0``
+     - Horizontal closed-orbit position (m).
+   * - ``px_co``
+     - ``PX CO``
+     - ``0.0``
+     - Horizontal closed-orbit normalized momentum.
+   * - ``y_co``
+     - ``Y CO (m)``
+     - ``0.0``
+     - Vertical closed-orbit position (m).
+   * - ``py_co``
+     - ``PY CO``
+     - ``0.0``
+     - Vertical closed-orbit normalized momentum.
+   * - ``turn_ranges``
+     - ``Turn ranges``
+     - ``0``
+     - [start, end) turn pairs; 0 disables analysis.
+   * - ``min_action``
+     - ``Min action``
+     - ``None``
+     - Minimum accepted normalized action; None selects a precision-dependent threshold.
+
 Output
 ------
 
@@ -69,7 +128,7 @@ accepted. Lost particles are never included in phase accumulation.
 Headers record the complete fixed optical reference, window endpoints,
 expected interval count, backend, precision, and ``PASSVersion``.
 
-Cooperative early stopping preserves completed window files. A window that has
+Normal early stopping preserves completed window files. A window that has
 started but not finished emits a warning during finalization and produces no
 partial tune table; its endpoint is not shortened to make it appear complete.
 GUI normal stopping occurs at a turn boundary, while force stopping cannot
@@ -79,3 +138,21 @@ run records.
 ``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
 Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for
 the HDF5 layout, compression and common reader.
+
+Method and limits
+----------------------------------
+
+The monitor subtracts the configured closed orbit and horizontal dispersion,
+then uses fixed design optics to form
+
+.. math::
+
+   u_x = (x-x_{CO}-D_x\delta)/\sqrt{\beta_x},\qquad
+   v_x = \alpha_x u_x + \sqrt{\beta_x}(p_x-p_{x,CO}-D'_x\delta).
+
+The same construction is used in y without dispersion. From consecutive turns
+it accumulates the directed phase advance and writes only its equivalent
+fractional tune, ``sum(dmu)/(2 pi N)``. The reported value is the average fractional tune over the accepted intervals.
+
+This monitor assumes uncoupled transverse optics. With x-y coupling its x/y
+values are projected tunes, not normal-mode tunes.

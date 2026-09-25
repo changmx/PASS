@@ -5,71 +5,37 @@ workflow entry points for input generation, tracking, and result analysis.
 
 ## Overview
 
-This example demonstrates full-ring element-by-element particle tracking in PASS, validated against MADX PTC tracking. A FODO lattice with sextupoles is used to test linear optics and chromaticity.
+This example tracks particles through a FODO ring element by element, then extracts tunes, chromaticity, dispersion, and amplitude-dependent tune shifts. The lattice is imported from a Twiss TFS file.
 
 The workflow consists of four steps:
 
 1. **Run MADX** (`fodo.madx`) — generate a MADX Twiss TFS and SEQUENCE files
 2. **Generate input** (`generate_input.py`) — read a MADX Twiss TFS, produce `beam0.json` with 17 test particles
 3. **Run simulation** (`run_simulation.py`) — execute PASS tracking for 1024 turns
-4. **Analyze results** (`analyze_results.py`) — extract tunes via FFT (Hanning window + zero padding + parabolic interpolation), fit chromaticity, compare with MADX PTC reference
-5. **Compare with PTC** (`compare_ptc_tracking.py`) — run MADX PTC tracking with identical initial coordinates and produce comparison plots
+4. **Analyze results** (`analyze_results.py`) — extract tunes using a Hann window, FFT and peak interpolation; fit chromaticity and dispersion
 
 `generate_input.py` fixes the Injection random seed to `2026`, making the generated
 distribution particles reproducible between runs.
 
-## Lattice
+## Run the example
 
-The FODO ring (`fodo.seq`) contains:
+After installing PASS from the repository root, enter this example directory:
 
-- 20 FODO cells with focusing/defocusing quadrupoles (QF1, QD1)
-- Sextupoles (SF1, SD1) for chromaticity correction
-- Two octupoles (OF1, OF2) for amplitude-dependent tune shift (k3=0)
-- 40 dipoles (MB) providing horizontal bending
-
-The ring circumference is 234.4 m, with design tunes Qx = 3.47, Qy = 3.43.
-
-## Test Particles
-
-17 single-particle test particles are defined in `generate_input.py`:
-
-| Group | Tags | Purpose | Initial coordinates |
-|-------|------|---------|-------------------|
-| A | 1–2 | Linear tune | x=2mm or y=2mm, dp=0 |
-| B | 3–10 | Linear chromaticity | x=y=1mm, dp = ±5e-5, ±1e-4, ±5e-4, ±1e-3 |
-| C | 11–12 | Nonlinear chromaticity | x=y=1mm, dp = ±3e-3 |
-| D | 13–16 | Amplitude-dependent tune shift | x=5/10mm (y=0) or y=5/10mm (x=0), dp=0 |
-| E | 17 | Coupling | x=y=3mm, dp=0 |
-
-Group D uses single-plane excitation (y=0 for x-scan, x=0 for y-scan) so that the ADTS follows a strict $A^2$ scaling — the 10 mm particle should show exactly 4× the tune shift of the 5 mm particle.
-
-## Files
-
-| File | Description |
-|------|-------------|
-| `fodo.seq` | MADX sequence file (lattice definition) |
-| `fodo.tfs` | MADX Twiss table (linear optics) |
-| `fodo_ptc.tfs` | PTC Twiss table (reference for tune/chromaticity) |
-| `generate_input.py` | Generate `beam0.json` from Twiss TFS |
-| `run_simulation.py` | Run PASS simulation |
-| `analyze_results.py` | Analyze PASS output (FFT, chromaticity, ADTS) |
-| `compare_ptc_tracking.py` | Compare PASS vs PTC tracking |
-| `beam0.json` | Generated PASS input (overwritten each run) |
-
-## How to Run
+```bash
+cd example/03_tracking_element_by_element
+```
 
 ### Prerequisites
 
 - PASS installed: `pip install -e .` (from project root)
-- MADX with cpymad: `pip install cpymad`
-- tfs-pandas: `pip install tfs`
+- MAD-X executable on PATH, to generate the required TFS input files
 
 ### 1. Generate MADX Twiss files
 
-Run MADX to generate Twiss and Sequence files.
+Run the supplied `fodo.madx` to generate the TFS and sequence files. These generated files are not included in a fresh clone.
 
 ```bash
-MADX fodo.madx
+madx fodo.madx
 ```
 
 ### 2. Generate PASS input
@@ -96,9 +62,9 @@ python analyze_results.py
 
 Auto-detects the latest output directory. Prints:
 
-- Linear tune (Group A) vs MADX PTC reference
+- Linear tunes (Group A)
 - Linear chromaticity (Group B) from ±dp scan
-- Dispersion $D_x$, $D_{px}$ at s=0 (Group B) vs MADX Twiss
+- Dispersion $D_x$, $D_{px}$ at s=0 (Group B)
 - Nonlinear chromaticity (Group C) at large dp
 - Amplitude-dependent tune shift (Group D)
 - Coupling (Group E)
@@ -107,41 +73,18 @@ Auto-detects the latest output directory. Prints:
 
 $$D_x = \frac{\bar{x}(+\delta) - \bar{x}(-\delta)}{2\delta}, \quad D_{px} = \frac{\bar{p}_x(+\delta) - \bar{p}_x(-\delta)}{2\delta}$$
 
-where $\bar{x}$ is the turn-averaged TBT coordinate. The betatron oscillation (independent of $\delta$) cancels in the difference, leaving the dispersion offset. Four ±dp pairs (δ = 5e-5, 1e-4, 5e-4, 1e-3) provide redundant measurements that should agree if the dispersion is linear. The MADX reference is read from `fodo.tfs` (not `fodo_ptc.tfs`, which reports DX=0 at s=0 due to PTC output convention).
+where $\bar{x}$ is the turn-averaged TBT coordinate. The betatron oscillation (independent of $\delta$) cancels in the difference, leaving the dispersion offset. Four ±dp pairs (δ = 5e-5, 1e-4, 5e-4, 1e-3) provide redundant measurements that should agree if the dispersion is linear. The initial dispersion values are read from `fodo.tfs`. Finite turn averaging and nonlinear motion can leave residual betatron contributions.
 
 Options:
 
 ```bash
-python analyze_results.py --output-dir output/2026_0731/1642_34
+python analyze_results.py --output-dir output/YYYY_MMDD/HHMM_SS
 python analyze_results.py --twiss fodo_ptc.tfs
 python analyze_results.py --dp-list 5e-5,1e-4,5e-4,1e-3
 python analyze_results.py --adts-x 5e-3,10e-3 --adts-y 5e-3,10e-3
 ```
 
-### 5. Compare with PTC tracking
-
-```bash
-python compare_ptc_tracking.py
-```
-
-Runs MADX PTC tracking with the same 17 particles and 1024 turns, then produces three comparison figures in `output/comparison/`:
-
-- `phase_space_comparison.png` — transverse phase space scatter
-- `relative_difference_comparison.png` — (PASS − PTC) / amplitude vs turn
-- `tbt_trajectory_comparison.png` — TBT waveform overlay
-
-Options:
-
-```bash
-python compare_ptc_tracking.py --output-dir output/2026_0731/1642_34
-```
-
-## Note on MADX PTC
-
-- The chromaticities calculated by the three MADX commands - `TWISS; TWISS, CHROM; PTC_TWISS;` are all different. Here, we will use the results from PTC_TWISS as the standard.
-
-
-Diagnostic tables now default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
+Diagnostic tables default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
 accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
 monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
 Set `output_format="hdf5"` to write uncompressed HDF5; the default
@@ -149,3 +92,40 @@ Set `output_format="hdf5"` to write uncompressed HDF5; the default
 StatMonitor also writes every recorded row to CSV in batches of 100 turns
 by default, configurable with `write_interval_turns`. Slicer slice summaries
 remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).
+
+## Lattice
+
+The FODO ring (`fodo.seq`) contains:
+
+- 20 FODO cells with focusing/defocusing quadrupoles (QF1, QD1)
+- Sextupoles (SF1, SD1) for chromaticity correction
+- Optional octupoles OF1 and OD1 are defined in a second cell type, which the default ring does not include
+- 40 dipoles (MB) providing horizontal bending
+
+The ring circumference is 234.4 m, with design tunes Qx = 3.47, Qy = 3.43.
+
+## Prescribed particles
+
+17 single-particle test particles are defined in `generate_input.py`:
+
+| Group | Tags | Purpose | Initial coordinates |
+|-------|------|---------|-------------------|
+| A | 1–2 | Linear tune | x=2mm or y=2mm, dp=0 |
+| B | 3–10 | Linear chromaticity | x=y=1mm, dp = ±5e-5, ±1e-4, ±5e-4, ±1e-3 |
+| C | 11–12 | Nonlinear chromaticity | x=y=1mm, dp = ±3e-3 |
+| D | 13–16 | Amplitude-dependent tune shift | x=5/10mm (y=0) or y=5/10mm (x=0), dp=0 |
+| E | 17 | Coupling | x=y=3mm, dp=0 |
+
+Group D uses single-plane excitation (y=0 for x-scan, x=0 for y-scan) to measure each plane separately. The leading perturbative tune shift from an octupole scales with squared amplitude; higher-order dynamics and spectral resolution can change this scaling.
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `fodo.seq` | MADX sequence file (lattice definition) |
+| `fodo.tfs` | MADX Twiss table (linear optics) |
+| `fodo_ptc.tfs` | Additional optics table produced by `fodo.madx` and read by the analyzer |
+| `generate_input.py` | Generate `beam0.json` from Twiss TFS |
+| `run_simulation.py` | Run PASS simulation |
+| `analyze_results.py` | Analyze PASS output (FFT, chromaticity, ADTS) |
+| `beam0.json` | Generated PASS input (overwritten each run) |

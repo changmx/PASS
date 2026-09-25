@@ -5,8 +5,6 @@ DistMonitor
 one lattice position. It is intended for post-processing the full bunch
 distribution, including particles that have already been lost.
 
-- **Code location**: ``PASS/commands/monitor/distribution.py``
-- **Registered command**: ``"distmonitor"``
 - **Output directory**: ``output_dir_dist`` (the ``distribution`` subdirectory
   of the run output)
 
@@ -88,6 +86,8 @@ To save injection information in HDF5 snapshots:
 
 .. code-block:: python
 
+   from PASS.para.schema.monitors import DistMonitorItem
+
    injection_monitor = DistMonitorItem(
        s=0.0,
        save_turns=[[0], [10, 100, 10]],
@@ -141,15 +141,6 @@ folded or shifted while saving. For live particles reconstruct passage time as
 ``t = ReferenceArrivalTime - z / (ReferenceBeta*c)``; ``ZCenter`` is grouping
 metadata and does not reconstruct physical arrival time.
 
-CPU and GPU behavior
---------------------
-
-On CPU, the monitor writes directly from the NumPy particle arrays. On GPU,
-the nine tracking fields are copied to host memory
-and passed to the selected writer. No history buffer is retained
-between turns, so memory use is proportional to one particle snapshot rather
-than to ``num_turns`` snapshots.
-
 Injection snapshots
 -------------------
 
@@ -187,3 +178,15 @@ copies.
 ``output_format`` (JSON ``"Output format"``) defaults to ``"hdf5-gzip1"``;
 Use ``"hdf5"`` for uncompressed HDF5 or ``"tfs"`` for text output. See :doc:`table_output` for
 the HDF5 layout, compression and common reader.
+
+CPU and GPU behavior
+--------------------
+
+On CPU, the monitor writes directly from the NumPy particle arrays. On GPU,
+the nine tracking fields are copied to host memory
+and passed to the selected writer. No history buffer is retained
+between turns, so memory use is proportional to one particle snapshot rather
+than to ``num_turns`` snapshots.
+
+
+Coordinates and reference quantities follow :ref:`en-longitudinal-reference`; loss records retain their loss-event coordinates.

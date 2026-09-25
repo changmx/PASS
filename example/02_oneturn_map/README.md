@@ -9,132 +9,24 @@ This example validates the single-turn Twiss transfer matrix in PASS. The lattic
 
 The workflow consists of three steps:
 
-1. **Generate input** (`generate_input.py`) — write `beam0.json` with 12 test particles + 10000 distribution particles
+1. **Generate input** (`generate_input.py`) — write `beam0.json` with 12 prescribed particles and 10000 sampled particles
 2. **Run simulation** (`run_simulation.py`) — execute PASS tracking for 1024 turns
 3. **Analyze results** (`analyze_results.py`) — five verification modules: tune FFT, CS invariant, analytic matrix comparison, chromaticity, beam statistics
 
 `generate_input.py` fixes the Injection random seed to `2026`, making the generated
 distribution particles reproducible between runs.
 
-## Lattice
+## Run the example
 
-A single Twiss point acting as a one-turn map (no element-by-element tracking):
+After installing PASS from the repository root, enter this example directory:
 
-| Parameter | Value |
-|-----------|-------|
-| Circumference | 251.327 m |
-| βx = βy | 0.5 m |
-| αx | −2.6143 |
-| αy | 1.5744 |
-| Qx | 0.47 |
-| Qy | 0.43 |
-| Qs | 0.01 |
-| DQx = DQy | −2.0 |
-| Dx = Dpx | 0 |
-| γt | 4.8 |
-
-## Test Particles
-
-12 tagged particles cover all verification targets:
-
-| Group | Tags | Purpose | Initial coordinates |
-|-------|------|---------|-------------------|
-| A | 1–2 | Linear tune | x=2mm or y=2mm, dp=0 |
-| B | 3–8 | Chromaticity | x=y=1mm, dp = ±1e-4, ±5e-4, ±1e-3 |
-| C | 9 | Longitudinal | z=0.1m, dp=0 |
-| D | 10 | Reference | origin (0,0,0,0,0,0) |
-| E | 11–12 | Large amplitude | x=5mm or y=5mm, dp=0 |
-
-Plus 10000 KV-distributed particles (tag=0) for beam statistics.
-
-## Longitudinal Transfer Mode
-
-The `LONGI_TRANSFER` parameter in `generate_input.py` controls the longitudinal transport and determines which FFT measurements are possible:
-
-| Mode | dp behavior | Qs (FFT) | Chromaticity (FFT) | Matrix comparison |
-|------|------------|----------|-------------------|-------------------|
-| `"off"` | dp fixed (identity matrix) | ✗ (z constant) | ✓ (tune shift is constant) | ✓ machine precision |
-| `"matrix"` | dp oscillates with Qs | ✓ (z oscillates) | ✗ (tune is phase-modulated, chromaticity hidden in sidebands) | ✓ machine precision |
-
-**Why can't both be measured simultaneously?** With `"matrix"`, dp oscillates as $dp(n) = dp_0 \cos(2\pi Q_s n)$. The chromatic tune shift $Q_x(n) = Q_x + DQ_x \cdot dp(n)$ becomes a phase-modulated signal. FFT decomposes it into a carrier at $Q_x$ plus sidebands at $Q_x \pm k Q_s$ with amplitudes given by Bessel functions $J_k(\beta)$ where $\beta = |DQ_x| \cdot dp_0 / Q_s$. The carrier stays at the original tune — chromaticity is invisible to simple peak-finding.
-
-The **analytic matrix comparison** in `analyze_results.py` verifies the full 6D transport (including chromaticity and longitudinal) to machine precision (~1e-15) regardless of the transfer mode. It is the definitive verification.
-
-Default: `"off"` (chromaticity measurable).
-
-## Verification Modules
-
-### 1. Tune Measurement (FFT)
-
-Single-particle TBT signal → Hann window → FFT → parabolic interpolation.
-
-| Tune | Expected | Measured | Error |
-|------|----------|----------|-------|
-| Qx | 0.4700 | 0.469949 | −5.1e-5 (FFT resolution) |
-| Qy | 0.4300 | 0.429949 | −5.1e-5 (FFT resolution) |
-
-FFT resolution = 1/N = 1/1024 ≈ 9.77e-4. The measured shift is exactly one bin — expected for 1024 turns.
-
-### 2. Courant-Snyder Invariant
-
-For each particle, $J = \gamma x^2 + 2\alpha x p_x + \beta p_x^2$ should be constant turn-by-turn.
-
-Result: std(J)/mean(J) ≈ 1e-16 (machine precision) for all 12 particles. The map is symplectic.
-
-### 3. Analytic Matrix Comparison
-
-Compares PASS TBT output with a hand-computed 6D one-turn matrix applied iteratively. The analytic matrix includes:
-
-- Twiss rotation (with chromatic phase advance $\mu_x + dp \cdot DQ_x$)
-- Dispersion removal/addition
-- Longitudinal transport (identity for `"off"`, rotation for `"matrix"`)
-
-Result: max|Δ| ≈ 5e-15 for all particles, all 6 coordinates, all 1024 turns. This is the **definitive verification** — it confirms the Twiss transfer implementation is correct to machine precision.
-
-### 4. Chromaticity
-
-Symmetric ±dp particle pairs: $DQ_x = (Q_x^{+dp} - Q_x^{-dp}) / (2 \cdot dp)$.
-
-Requires `LONGI_TRANSFER = "off"` (dp fixed).
-
-| dp | Qx(+dp) | Qx(−dp) | DQx | Qy(+dp) | Qy(−dp) | DQy |
-|----|---------|---------|-----|---------|---------|-----|
-| 1e-4 | 0.4698 | 0.4702 | −2.04 | 0.4298 | 0.4302 | −2.21 |
-| 5e-4 | 0.4690 | 0.4710 | −2.00 | 0.4289 | 0.4310 | −2.00 |
-| 1e-3 | 0.4680 | 0.4720 | −2.00 | 0.4280 | 0.4320 | −2.00 |
-
-Linear fit: DQx = −1.998, DQy = −2.003 (expected −2.0). ✅
-
-### 5. Beam Statistics
-
-From 10000 KV-distributed particles via StatMonitor:
-
-| Parameter | Measured | Expected | Relative error |
-|-----------|----------|----------|---------------|
-| βx | 0.50006 | 0.5 | 0.01% |
-| βy | 0.50003 | 0.5 | 0.006% |
-| αx | −2.6154 | −2.6143 | 0.04% |
-| αy | 1.5743 | 1.5744 | 0.006% |
-| εx | 2.004e-4 | 2.0e-4 | 0.2% |
-| Jx/εx | 1.0000 | 1.0 | ~1e-15 |
-
-Statistical fluctuations ~0.1–1% are consistent with $\sigma \propto 1/\sqrt{N}$ for N=10000.
-
-## Files
-
-| File | Description |
-|------|-------------|
-| `generate_input.py` | Generate `beam0.json` with PASS Python API |
-| `run_simulation.py` | Run PASS simulation |
-| `analyze_results.py` | Five verification modules + plots |
-| `beam0.json` | Generated PASS input (overwritten each run) |
-
-## How to Run
+```bash
+cd example/02_oneturn_map
+```
 
 ### Prerequisites
 
 - PASS installed: `pip install -e .` (from project root)
-- tfs-pandas: `pip install tfs`
 
 ### 1. Generate input
 
@@ -158,7 +50,7 @@ python analyze_results.py
 
 Auto-detects the latest output directory. Prints all five verification results and displays plots via `plt.show()`.
 
-Diagnostic tables now default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
+Diagnostic tables default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
 accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
 monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
 Set `output_format="hdf5"` to write uncompressed HDF5; the default
@@ -166,3 +58,80 @@ Set `output_format="hdf5"` to write uncompressed HDF5; the default
 StatMonitor also writes every recorded row to CSV in batches of 100 turns
 by default, configurable with `write_interval_turns`. Slicer slice summaries
 remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).
+
+## Lattice
+
+A single Twiss point acting as a one-turn map (no element-by-element tracking):
+
+| Parameter | Value |
+|-----------|-------|
+| Circumference | 251.327 m |
+| βx = βy | 0.5 m |
+| αx | −2.6143 |
+| αy | 1.5744 |
+| Qx | 0.47 |
+| Qy | 0.43 |
+| Qs | 0.01 |
+| DQx = DQy | −2.0 |
+| Dx = Dpx | 0 |
+| γt | 4.8 |
+
+## Prescribed particles
+
+12 tagged particles cover all verification targets:
+
+| Group | Tags | Purpose | Initial coordinates |
+|-------|------|---------|-------------------|
+| A | 1–2 | Linear tune | x=2mm or y=2mm, dp=0 |
+| B | 3–8 | Chromaticity | x=y=1mm, dp = ±1e-4, ±5e-4, ±1e-3 |
+| C | 9 | Longitudinal | z=0.1m, dp=0 |
+| D | 10 | Reference | origin (0,0,0,0,0,0) |
+| E | 11–12 | Large amplitude | x=5mm or y=5mm, dp=0 |
+
+The remaining 10000 particles follow a KV distribution and contribute to beam statistics. All live particles have positive tags; tag 0 denotes a particle reserved for future injection.
+
+## Longitudinal transport
+
+The `LONGI_TRANSFER` parameter in `generate_input.py` controls the longitudinal transport and determines which FFT measurements are possible:
+
+| Mode | dp behavior | Qs (FFT) | Chromaticity (FFT) | Matrix comparison |
+|------|------------|----------|-------------------|-------------------|
+| `"off"` | dp fixed (identity matrix) | ✗ (z constant) | ✓ (tune shift is constant) | ✓ coordinate residuals |
+| `"matrix"` | dp oscillates with Qs | ✓ (z oscillates) | ✗ (tune is phase-modulated, chromaticity hidden in sidebands) | ✓ coordinate residuals |
+
+With `"matrix"`, dp oscillates as $dp(n) = dp_0 \cos(2\pi Q_s n)$. The chromatic tune shift $Q_x(n) = Q_x + DQ_x \cdot dp(n)$ becomes a phase-modulated signal. FFT decomposes it into a carrier at $Q_x$ plus sidebands at $Q_x \pm k Q_s$ with amplitudes given by Bessel functions $J_k(\beta)$ where $\beta = |DQ_x| \cdot dp_0 / Q_s$. The carrier stays at the original tune — chromaticity is invisible to simple peak-finding.
+
+The analytic matrix calculation checks all six coordinates against the configured
+map. Its errors are reported for the current run; agreement with this map does
+not establish validity outside its assumptions.
+
+Default: `"off"` (chromaticity measurable).
+
+## Interpreting the diagnostics
+
+- **Tune:** the analyzer applies a Hann window and FFT to turn-by-turn coordinates,
+  then interpolates the spectral peak. The unpadded frequency spacing is `1/N`
+  cycles per turn. Interpolation estimates a sub-bin peak but does not provide a
+  universal accuracy guarantee.
+- **Courant–Snyder invariant:** for the uncoupled linear map, evaluate
+  $J=\gamma x^2+2\alpha x p_x+\beta p_x^2$ at fixed optical parameters.
+  Inspect its relative variation over the run.
+- **Analytic map:** iterate the configured transverse rotations, dispersion
+  transformations, and longitudinal map, and inspect coordinate residuals.
+- **Chromaticity:** with fixed momentum deviation, use symmetric pairs,
+  $Q'_x=[Q_x(+\delta)-Q_x(-\delta)]/(2\delta)$, and fit several values of delta.
+  Small shifts can be obscured by tune-estimation error.
+- **Beam statistics:** inspect RMS emittances and reconstructed optical functions.
+  Finite particle sampling introduces statistical variation.
+
+When changing `LONGI_TRANSFER` or optical parameters, keep the corresponding
+constants in `analyze_results.py` synchronized with `generate_input.py`.
+
+## Files
+
+| File | Description |
+|------|-------------|
+| `generate_input.py` | Generate `beam0.json` with PASS Python API |
+| `run_simulation.py` | Run PASS simulation |
+| `analyze_results.py` | Five verification modules + plots |
+| `beam0.json` | Generated PASS input (overwritten by the generator) |

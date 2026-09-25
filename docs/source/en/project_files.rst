@@ -14,20 +14,10 @@ mode. **Open JSON** opens an independent document; it does not silently import
 into a project. Use **Import JSON into project** for that operation. Replacing a
 document or closing the window offers to save unsaved changes.
 
-Opening, saving, importing, and exporting documents run file work in a background
-worker with a modal progress dialog. The event loop remains active while document
-editing is blocked. A saved candidate replaces the current document only after
-the operation succeeds. Cancellation is cooperative: copying and archive writing
-check for cancellation between chunks, while a project archive read must finish
-before its result can be discarded. Cancellation is therefore not always immediate;
-an already committed save is reported as successful.
-
-Saving standalone JSON to another directory relocates relative input references
-in both the current document and its undo/redo history. Undoing a parameter edit
-therefore keeps referring to the same source file. Cached dependencies used only
-by an older history entry are also preserved beside the saved JSON. Saving does
-not add an undo step or remove the redo branch; failed relocation or JSON writing
-does not replace the applied document or its history.
+File operations show progress and temporarily disable editing. Cancellation may
+wait for an in-progress read or write to finish; a completed save is reported as
+successful. Saving JSON in another directory updates relative input references,
+including those used by undo/redo, so they still identify the same source files.
 
 **Create project from current input** packages the current configuration. Import
 additional JSON files and use the input selector to switch between them. Projects
@@ -37,35 +27,8 @@ are retained as sources. Missing inputs identify their JSON location and prevent
 an incomplete project from being saved. Additional source files can be added from
 **Project contents**.
 
-Container format
-----------------
-
-Version 1 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:
-
-.. code-block:: text
-
-   manifest.json                  # format/PASS versions, input and asset index
-   configs/<input-id>.json         # ordinary PASS input JSON
-   assets/<asset-id>/<filename>    # original input/source bytes
-   recipes/<index>.json            # generation settings and source references
-
-Input display names are separate from their stable IDs. Configurations refer to
-assets by relative paths. The manifest records SHA-256 checksums and the dependency
-index. Copying the project requires only one file; the temporary editing cache
-does not need to be transferred. The runtime input does not depend on paths on
-the original computer. Source files are snapshots and are not silently refreshed
-when an external file changes.
-
-Saving writes and verifies a new archive before replacing the old one. Version 1
-rejects unsupported format versions, unsafe paths, duplicate entries, and checksum
-or dependency mismatches. Limits are 100,000 members, 256 GiB of uncompressed data,
-and 64 MiB per JSON member. A large project requires time and additional disk
-space to write a complete new archive. Large simulation outputs are not archived
-automatically; files explicitly added as inputs or sources are embedded regardless
-of their type, including results reused as input.
-
 Inspecting and reusing parameters
-----------------------------------------
+---------------------------------
 
 **Project contents** lists input JSON, source files, and generation settings.
 Select a JSON or command to view its parameters and raw text. Copy a value or the
@@ -80,11 +43,8 @@ commands. This is not a transfer of tracked beam or wake history.
 Existing names are preserved; conflicting imported names receive numeric suffixes.
 Another project can be opened read-only as a parameter source.
 
-Copying a command into the active input adds one undo step without resetting its
-earlier history. Undo/redo includes the imported named configurations, slicers and
-any copied clock settings. Preparation uses a private candidate; cancellation or
-failure leaves the current project unchanged. Dependency files remain available
-for redo, including after saving the document to a new location.
+Copying a command adds one undo step, including imported dependencies and clock
+settings. Cancelled or failed copies leave the active input unchanged.
 
 TFS and CSV files have a table preview of up to 500 rows. Text previews are bounded
 to 2 MiB and parameter tables to 5,000 entries; exact files can always be exported.
@@ -95,17 +55,6 @@ Generation settings describe the source of generated commands. **Load generation
 settings** restores a form for preview and insertion; it does not automatically
 replace manually edited commands. Plain JSON files contain the generated commands
 but do not retain this additional generation metadata.
-
-Exporting
----------
-
-**Export current JSON** writes a copy of the configuration only. It does not
-include referenced files and does not change which document is being edited.
-**Export runnable input bundle** writes the run page's selected inputs and their
-dependencies as ZIP, together with ``run.py`` and an English usage note. Extract
-the entire bundle, install PASS, and execute ``python run.py``. The launcher
-resolves inputs from the extracted directory. The bundle is ordinary input data
-and does not require Qt to run.
 
 Running
 -------
@@ -191,6 +140,17 @@ editor keep their own text undo/redo. Pending property and JSON edits must be
 resolved before saving. Default GUI Gaussian bunches use positive transverse
 emittances of 1e-6 m rad; zero-extent Gaussian generation is rejected before launch.
 
+Exporting
+---------
+
+**Export current JSON** writes a copy of the configuration only. It does not
+include referenced files and does not change which document is being edited.
+**Export runnable input bundle** writes the run page's selected inputs and their
+dependencies as ZIP, together with ``run.py`` and an English usage note. Extract
+the entire bundle, install PASS, and execute ``python run.py``. The launcher
+resolves inputs from the extracted directory. The bundle is ordinary input data
+and does not require Qt to run.
+
 Restoring existing drafts
 -------------------------
 
@@ -209,3 +169,30 @@ run settings, and temporary dependency assets. Switching the active project inpu
 does not resolve the source recovery record. That record remains pending until
 the recovered document is saved or explicitly discarded. Normal closing marks
 handled records as resolved without deleting the recovery files.
+
+Container format
+----------------
+
+Version 1 is a standard ZIP/ZIP64 container with UTF-8 JSON metadata:
+
+.. code-block:: text
+
+   manifest.json                  # format/PASS versions, input and asset index
+   configs/<input-id>.json         # ordinary PASS input JSON
+   assets/<asset-id>/<filename>    # original input/source bytes
+   recipes/<index>.json            # generation settings and source references
+
+Input display names are separate from their stable IDs. Configurations refer to
+assets by relative paths. The manifest records SHA-256 checksums and the dependency
+index. Copying the project requires only one file; the temporary editing cache
+does not need to be transferred. The runtime input does not depend on paths on
+the original computer. Source files are snapshots and are not silently refreshed
+when an external file changes.
+
+Saving writes and verifies a new archive before replacing the old one. Version 1
+rejects unsupported format versions, unsafe paths, duplicate entries, and checksum
+or dependency mismatches. Limits are 100,000 members, 256 GiB of uncompressed data,
+and 64 MiB per JSON member. A large project requires time and additional disk
+space to write a complete new archive. Large simulation outputs are not archived
+automatically; files explicitly added as inputs or sources are embedded regardless
+of their type, including results reused as input.

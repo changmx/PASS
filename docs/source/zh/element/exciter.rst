@@ -1,15 +1,10 @@
 激励器（Exciter）
-====================
+========================
 
-本模块介绍 PASS 中的横向激励器元件 **Exciter** ，用于通过时变电场对束流施加横向动量扰动。激励器在 tune 测量、束流不稳定性研究、发射度增长等场景中广泛应用。
+本模块介绍 PASS 中的横向激励器元件 **Exciter** ，用于通过时变电场对束流施加横向动量扰动。激励器在 工作点 测量、束流不稳定性研究、发射度增长等场景中广泛应用。
 
 PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变粒子横向动量（ :math:`p_x` 或 :math:`p_y` ），不改变位置坐标。
 
-**代码位置**
-
-- 源文件： ``PASS/commands/element/exciter.py``
-- 类名： ``Exciter`` （继承自 ``Command`` ）
-- 注册名： ``exciter``
 - 核心特征：
 
   - 薄透镜元件（ ``length = 0`` ），仅改变粒子横向动量，不改变位置坐标；
@@ -17,6 +12,302 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
   - 频率参数支持工作点模式和频率模式两种输入方式；
   - 支持孔径检查，与其它元件一致。
 
+以下接口中的字段用于 ``PASS.para.schema.elements.ExciterItem`` 配置类；
+元件名称由 ``Sequence.add(name, item)`` 的序列键给出，不是配置类字段。
+
+参数列表
+--------
+
+通用参数
+~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 元件出口或零长度作用点的纵向位置。
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - 元件长度 （必须为 0）
+   * - ``is_enabled``
+     - ``Enable``
+     - ``bool``
+     - —
+     - ``True``
+     - 激励器开关，可选： ``true`` 、 ``false``
+   * - ``mode``
+     - ``Mode``
+     - ``str``
+     - -
+     - ``必填``
+     - 激励模式，可选： ``single_fm`` 、 ``single_fm_am`` 、 ``dual_fm`` 、 ``dual_fm_am``
+   * - ``direction``
+     - ``Direction``
+     - ``str``
+     - -
+     - ``必填``
+     - 激励方向，可选： ``x`` 、 ``y``
+   * - ``start_turn``
+     - ``Start turn``
+     - ``int``
+     - -
+     - ``必填``
+     - 激励起始圈数 （含）
+   * - ``end_turn``
+     - ``End turn``
+     - ``int``
+     - -
+     - ``必填``
+     - 激励结束圈数 （不含）
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - 孔径类型 （默认 ``off`` ，可选值见孔径章节）
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - 孔径参数值 （默认 ``[]`` ，含义随类型而异，详见孔径章节）
+
+
+硬件参数
+~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``voltage``
+     - ``Voltage (V)``
+     - ``float``
+     - V
+     - ``必填``
+     - 有限的带符号极板间峰值电压差；正电压使正电荷沿选定横向的正方向偏转
+   * - ``gap``
+     - ``Gap (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 有限正极板间距
+   * - ``plate_length``
+     - ``Plate length (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 有限非负极板有效长度；为零时冲量为零
+
+
+频率参数
+~~~~~~~~~~
+
+频率参数支持两种输入模式，二选一。
+
+**工作点模式** （推荐）：
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``excite_tune``
+     - ``Excite tune``
+     - ``float | None``
+     - -
+     - ``None``
+     - 激励工作点 :math:`Q_{\text{excite}}` ，运行时自动计算 :math:`f_c = Q_{\text{excite}} \cdot f_0`
+   * - ``sweep_tune``
+     - ``Sweep tune``
+     - ``float | None``
+     - -
+     - ``None``
+     - 归一化扫频宽度 :math:`\Delta Q` ，运行时自动计算 :math:`\Delta f = \Delta Q \cdot f_0`
+
+
+**频率模式** ：
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``central_frequency``
+     - ``Central frequency (Hz)``
+     - ``float | None``
+     - Hz
+     - ``None``
+     - 中心频率 :math:`f_c`
+   * - ``sweep_width``
+     - ``Sweep width (Hz)``
+     - ``float | None``
+     - Hz
+     - ``None``
+     - 扫频宽度 :math:`\Delta f`
+
+
+**通用频率参数** （两种模式均需提供）：
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``period``
+     - ``Period (s)``
+     - ``float``
+     - s
+     - ``必填``
+     - 扫频周期 :math:`T` 适用模式：所有模式.
+   * - ``fm_dual_frequency``
+     - ``FM dual frequency (Hz)``
+     - ``float``
+     - Hz
+     - ``必填``
+     - 双频频率参数 :math:`f_d` 适用模式：dual_fm / dual_fm_am.
+
+
+幅度调制（AM）参数
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python 配置字段
+     - JSON 键
+     - 类型
+     - 单位
+     - 默认值
+     - 说明
+   * - ``am_t_ext``
+     - ``AM t ext (s)``
+     - ``float``
+     - s
+     - ``必填``
+     - 束流扩散特征时间 适用模式：single_fm_am / dual_fm_am.
+   * - ``am_r0``
+     - ``AM r0 (m)``
+     - ``float``
+     - m
+     - ``必填``
+     - 初始束流尺寸 适用模式：single_fm_am / dual_fm_am.
+   * - ``am_delta0``
+     - ``AM delta0``
+     - ``float``
+     - -
+     - ``必填``
+     - 初始束流扩散范围 适用模式：single_fm_am / dual_fm_am.
+   * - ``am_k_const``
+     - ``AM k const``
+     - ``float``
+     - -
+     - ``必填``
+     - 发射度增长系数 适用模式：single_fm_am / dual_fm_am.
+
+
+.. note::
+
+  ``am_r0`` 与 ``am_delta0`` 应为同量级，否则 :math:`\exp(-r_0^2/\delta_0^2)` 可能数值下溢。
+
+  常值幅度模式 （ ``single_fm`` 、 ``dual_fm`` ）下 AM 参数不参与计算，可填 0。
+
+使用示例
+--------
+
+输入文件示例
+~~~~~~~~~~~~~~~~
+
+以下示例取自 ``input/beam0.json`` ，使用工作点模式：
+
+.. code-block:: json
+
+   {
+       "Exciter_x": {
+           "S (m)": 0.0,
+           "Command": "Exciter",
+           "Length (m)": 0.0,
+           "Enable": false,
+           "Mode": "single_fm",
+           "Direction": "x",
+           "Start turn": 100,
+           "End turn": 1000,
+           "Voltage (V)": 1000.0,
+           "Gap (m)": 0.1,
+           "Plate length (m)": 0.3,
+           "Excite tune": 0.44,
+           "Sweep tune": 0.02,
+           "Period (s)": 1e-3,
+           "FM dual frequency (Hz)": 0.0,
+           "AM t ext (s)": 0.0,
+           "AM r0 (m)": 0.0,
+           "AM delta0": 0.0,
+           "AM k const": 0.0,
+           "Aperture type": "off"
+       }
+   }
+
+若使用频率模式，将 ``Excite tune`` 和 ``Sweep tune`` 替换为：
+
+.. code-block:: json
+
+   {
+   "Central frequency (Hz)": 1743.0,
+   "Sweep width (Hz)": 79.2
+   }
+
+模式选择指南
+~~~~~~~~~~~~~~~~
+
+- **tune 测量** ：推荐 ``single_fm`` ，简单有效，扫频覆盖工作点
+- **发射度增长研究** ：推荐 ``single_fm_am`` ，时变幅度模拟绝热增长
+- **多 tune 峰覆盖** ：推荐 ``dual_fm`` ，双段扫频产生复杂频谱
+- **复杂不稳定性研究** ：推荐 ``dual_fm_am`` ，最完整的激励模式
+
+参数选择建议
+~~~~~~~~~~~~~~~~
+
+- **激励工作点** ：设为束流工作点 :math:`Q_x` （水平）或 :math:`Q_y` （垂直）
+- **归一化扫频宽度** ：取决于色散和 工作点 展宽，通常为 0.01~0.05
+- **扫频周期** ：应远大于回旋周期 :math:`1/f_0` ，保证足够的频率分辨率
+- **电压** ：根据所需 动量更新 幅度反推，典型值为百伏至千伏量级
+- **AM 参数** ： :math:`r_0` 与 :math:`\delta_0` 取同量级， :math:`t_{\text{ext}}` 根据束流扩散时间尺度设定
 
 物理推导
 --------
@@ -47,7 +338,7 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
 
   \Delta P_x = F \cdot \Delta t = \frac{Z \cdot e \cdot V \cdot L}{d \cdot \beta c}
 
-归一化 kick （除以参考粒子总动量 :math:`P_0` ）为：
+归一化动量增量 （除以参考粒子总动量 :math:`P_0` ）为：
 
 .. math::
 
@@ -60,7 +351,6 @@ PASS 中的激励器为 **薄透镜元件** （ ``length = 0`` ），仅改变�
   \Delta p_x = \operatorname{sgn}(Q)\frac{V \cdot L}{d \cdot \beta c \cdot B\rho}
 
 该形式对质子束 （ :math:`Z=1, A=1` ）和离子束 （ :math:`Z \neq A` ）统一适用，因为 :math:`B\rho` 已包含荷质比信息。
-
 
 逐粒子纵向速度
 --------------
@@ -87,7 +377,7 @@ GUI 信号预览采用的就是这一固定参考状态。
 V 是带符号的极板间峰值电压差，B*rho 是正的参考磁刚度幅值。
 正电压使正电荷沿选定横向的正方向偏转，电荷符号显式计入。
 由于动量按 P0 归一化，不应再额外除以 (1+delta)。
-漂移束和束团束使用相同单粒子规律；到达时间差原本就决定各粒子取样的相位，
+非聚束束流和聚束束流使用相同单粒子规律；到达时间差原本就决定各粒子取样的相位，
 速度系数进一步改变其幅值。工作点模式使用参考回旋频率，不能给每个粒子
 分别定义一个激励源频率。
 
@@ -115,7 +405,7 @@ CPU 和 GPU 使用相同方程。
 
 **工作点模式** （推荐）
 
-直接输入激励工作点 :math:`Q_{\text{excite}}` 和扫频工作点 :math:`\Delta Q` ，程序在运行时根据束流参数自动计算频率：
+直接输入激励工作点 :math:`Q_{\text{excite}}` 和归一化扫频宽度 :math:`\Delta Q` ，程序在运行时根据束流参数自动计算频率：
 
 .. math::
 
@@ -134,7 +424,6 @@ CPU 和 GPU 使用相同方程。
 .. note::
 
   两种模式二选一。若提供了 ``excite tune`` 则使用工作点模式，否则使用频率模式。工作点模式中 ``excite tune`` 和 ``sweep tune`` 必须成对提供。
-
 
 激励模式
 --------
@@ -208,7 +497,7 @@ CPU 和 GPU 使用相同方程。
 
   \theta_2(\tau) = 2\pi f_c \cdot \tau + \pi \Delta f \cdot (\tau - T/2) \cdot (f_d \cdot \tau - 1.0)
 
-其中 :math:`f_d` 为双频频率参数。余弦包络在 :math:`\tau = 0` 时最大 （ :math:`2A` ），随时间衰减，减少周期边界处的不连续性。双段相位公式产生更复杂的频谱结构，可同时覆盖多个 tune 峰。
+其中 :math:`f_d` 为双频频率参数。余弦包络在 :math:`\tau = 0` 时最大 （ :math:`2A` ），随时间衰减，减少周期边界处的不连续性。双段相位公式产生更复杂的频谱结构，可同时覆盖多个 工作点 峰。
 
 
 幅度调制（AM）维度
@@ -272,7 +561,6 @@ CPU 和 GPU 使用相同方程。
 这一规定的 AM 包络用于横向激励和扩散研究，本身不计算发射度增长或机械能增益。
 薄冲量保持 ``dp`` 不变，实际束流响应取决于晶格和采样的激励相位。
 
-
 各模式完整公式
 --------------
 
@@ -321,11 +609,10 @@ AM 自变量为按圈计算的时间 :math:`t=n_{\rm eff}/f_0` ，
 与粒子到达时间 :math:`t_i` 不同。
 上述公式给出最终归一化冲量，已包含电荷符号和入口速度因子，不再重复乘这两个因子。
 
+横向动量更新
+------------
 
-Kick 的施加
------------
-
-激励器是薄透镜元件，kick 直接加到对应方向的归一化动量上：
+激励器是薄透镜元件，动量更新 直接加到对应方向的归一化动量上：
 
 .. math::
 
@@ -335,279 +622,6 @@ Kick 的施加
 
   p_y \leftarrow p_y + \text{kick} \quad (\text{direction} = y)
 
-仅对存活粒子 （ ``tag > 0`` ）施加 kick，已丢失粒子不受影响。
+仅对存活粒子 （ ``tag > 0`` ）施加动量增量，已丢失粒子不受影响。
 
-kick 施加后，激励器会根据孔径参数 （ ``aperture_type`` ）对粒子进行孔径检查：若孔径类型不为 ``off`` ，则超出孔径范围的粒子将被标记为丢失 （ ``tag`` 置为负值）；若孔径类型为 ``off`` ，则不进行孔径检查。
-
-
-参数列表
---------
-
-通用参数
-~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - 元件在束线中的纵向位置
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - 元件长度 （必须为 0）
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - 元件名称
-  * - ``is_enabled``
-    - ``enable``
-    - bool
-    - -
-    - 激励器开关，可选： ``true`` 、 ``false``
-  * - ``mode``
-    - ``mode``
-    - str
-    - -
-    - 激励模式，可选： ``single_fm`` 、 ``single_fm_am`` 、 ``dual_fm`` 、 ``dual_fm_am``
-  * - ``direction``
-    - ``direction``
-    - str
-    - -
-    - 激励方向，可选： ``x`` 、 ``y``
-  * - ``start_turn``
-    - ``start turn``
-    - int
-    - -
-    - 激励起始圈数 （含）
-  * - ``end_turn``
-    - ``end turn``
-    - int
-    - -
-    - 激励结束圈数 （不含）
-  * - ``aperture_type``
-    - ``Aperture Type``
-    - str
-    - -
-    - 孔径类型 （默认 ``off`` ，可选值见孔径章节）
-  * - ``aperture_value``
-    - ``Aperture Value``
-    - list
-    - -
-    - 孔径参数值 （默认 ``[]`` ，含义随类型而异，详见孔径章节）
-
-硬件参数
-~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``voltage``
-    - ``voltage (v)``
-    - float
-    - V
-    - 有限的带符号极板间峰值电压差；正电压使正电荷沿选定横向的正方向偏转
-  * - ``gap``
-    - ``gap (m)``
-    - float
-    - m
-    - 有限正极板间距
-  * - ``plate_length``
-    - ``plate length (m)``
-    - float
-    - m
-    - 有限非负极板有效长度；为零时冲量为零
-
-频率参数
-~~~~~~~~~~
-
-频率参数支持两种输入模式，二选一。
-
-**工作点模式** （推荐）：
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``excite_tune``
-    - ``excite tune``
-    - float
-    - -
-    - 激励工作点 :math:`Q_{\text{excite}}` ，运行时自动计算 :math:`f_c = Q_{\text{excite}} \cdot f_0`
-  * - ``sweep_tune``
-    - ``sweep tune``
-    - float
-    - -
-    - 扫频工作点 :math:`\Delta Q` ，运行时自动计算 :math:`\Delta f = \Delta Q \cdot f_0`
-
-**频率模式** ：
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``cf``
-    - ``central frequency (hz)``
-    - float
-    - Hz
-    - 中心频率 :math:`f_c`
-  * - ``cfw``
-    - ``sweep width (hz)``
-    - float
-    - Hz
-    - 扫频宽度 :math:`\Delta f`
-
-**通用频率参数** （两种模式均需提供）：
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 20 15
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 适用模式
-    - 说明
-  * - ``period``
-    - ``period (s)``
-    - float
-    - s
-    - 所有模式
-    - 扫频周期 :math:`T`
-  * - ``fm_dual_frequency``
-    - ``fm dual frequency (hz)``
-    - float
-    - Hz
-    - dual_fm / dual_fm_am
-    - 双频频率参数 :math:`f_d`
-
-幅度调制（AM）参数
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 20 10 10 25 15
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 适用模式
-    - 说明
-  * - ``am_t_ext``
-    - ``am t ext (s)``
-    - float
-    - s
-    - single_fm_am / dual_fm_am
-    - 束流扩散特征时间
-  * - ``am_r0``
-    - ``am r0 (m)``
-    - float
-    - m
-    - single_fm_am / dual_fm_am
-    - 初始束流尺寸
-  * - ``am_delta0``
-    - ``am delta0``
-    - float
-    - -
-    - single_fm_am / dual_fm_am
-    - 初始束流扩散范围
-  * - ``am_k_const``
-    - ``am k const``
-    - float
-    - -
-    - single_fm_am / dual_fm_am
-    - 发射度增长系数
-
-.. note::
-
-  ``am_r0`` 与 ``am_delta0`` 应为同量级，否则 :math:`\exp(-r_0^2/\delta_0^2)` 可能数值下溢。
-
-  常值幅度模式 （ ``single_fm`` 、 ``dual_fm`` ）下 AM 参数不参与计算，可填 0。
-
-
-使用示例
---------
-
-输入文件示例
-~~~~~~~~~~~~~~~~
-
-以下示例取自 ``input/beam0.json`` ，使用工作点模式：
-
-.. code-block:: json
-
-  {
-      "Exciter_x": {
-          "S (m)": 0.0,
-          "Command": "Exciter",
-          "Length (m)": 0.0,
-          "Enable": false,
-          "Mode": "single_fm",
-          "Direction": "x",
-          "Start Turn": 100,
-          "End Turn": 1000,
-          "Voltage (V)": 1000.0,
-          "Gap (m)": 0.1,
-          "Plate length (m)": 0.3,
-          "Excite tune": 0.44,
-          "Sweep tune": 0.02,
-          "Period (s)": 1e-3,
-          "Fm Dual Frequency (Hz)": 0.0,
-          "Am t ext (s)": 0.0,
-          "Am r0 (m)": 0.0,
-          "Am delta0": 0.0,
-          "Am k const": 0.0,
-          "Aperture Type": "off"
-      }
-  }
-
-若使用频率模式，将 ``Excite tune`` 和 ``Sweep tune`` 替换为：
-
-.. code-block:: json
-
-  "Central Frequency (Hz)": 1743.0,
-  "Sweep Width (Hz)": 79.2,
-
-模式选择指南
-~~~~~~~~~~~~~~~~
-
-- **tune 测量** ：推荐 ``single_fm`` ，简单有效，扫频覆盖工作点
-- **发射度增长研究** ：推荐 ``single_fm_am`` ，时变幅度模拟绝热增长
-- **多 tune 峰覆盖** ：推荐 ``dual_fm`` ，双段扫频产生复杂频谱
-- **复杂不稳定性研究** ：推荐 ``dual_fm_am`` ，最完整的激励模式
-
-参数选择建议
-~~~~~~~~~~~~~~~~
-
-- **激励工作点** ：设为束流工作点 :math:`Q_x` （水平）或 :math:`Q_y` （垂直）
-- **扫频工作点** ：取决于色散和 tune 展宽，通常为 0.01~0.05
-- **扫频周期** ：应远大于回旋周期 :math:`1/f_0` ，保证足够的频率分辨率
-- **电压** ：根据所需 kick 幅度反推，典型值为百伏至千伏量级
-- **AM 参数** ： :math:`r_0` 与 :math:`\delta_0` 取同量级， :math:`t_{\text{ext}}` 根据束流扩散时间尺度设定
+动量更新后，激励器会根据孔径参数 （ ``aperture_type`` ）对粒子进行孔径检查：若孔径类型不为 ``off`` ，则超出孔径范围的粒子将被标记为丢失 （ ``tag`` 置为负值）；若孔径类型为 ``off`` ，则不进行孔径检查。

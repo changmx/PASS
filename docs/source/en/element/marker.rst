@@ -3,12 +3,11 @@ Marker
 
 This module introduces the marker element **Marker** in PASS, used to mark a specific longitudinal position in the beamline without altering any particle coordinates.
 
-The marker code is located in ``PASS/commands/element/marker.py``, with class name ``Marker`` and registration name ``marker``. The core features of the marker are as follows:
+The marker has the following behavior:
 
-- **Zero-length element** (``length = 0.0``, not configurable), occupies no physical beamline space
+- **Zero-length element** (tracking length fixed at zero; retain the default configuration), occupies no physical beamline space
 - **Performs no particle coordinate transformation**; all phase space coordinates remain unchanged when particles pass through the marker
-- **Supports aperture checking** via ``aperture_type`` and ``aperture_value`` parameters; ``execute_cpu`` only calls the ``check_aperture_cpu`` function
-- **GPU tracking is a no-op** (``execute_gpu`` is ``pass``), performing no computation
+- **Aperture checking** is configured by ``aperture_type`` and ``aperture_value`` and is performed on both CPU and GPU.
 
 The main purposes of the marker include:
 
@@ -16,40 +15,8 @@ The main purposes of the marker include:
 - Serving as sorting reference points; other elements can be laid out relative to marker positions
 - Identifying physical positions in output and logs without participating in particle tracking
 
-
-Physical Description
---------------------
-
-The marker produces no electromagnetic field, exerts no force, and does not change particle state. When a particle passes through the marker, all six phase space coordinates (:math:`x, p_x, y, p_y, z, \delta`) remain unchanged:
-
-.. math::
-
-  x \leftarrow x
-
-.. math::
-
-  p_x \leftarrow p_x
-
-.. math::
-
-  y \leftarrow y
-
-.. math::
-
-  p_y \leftarrow p_y
-
-.. math::
-
-  z \leftarrow z
-
-.. math::
-
-  \delta \leftarrow \delta
-
-The marker only records its longitudinal position :math:`s` in the beamline for sequence sorting and position annotation.
-
-When aperture checking is configured (``aperture_type`` is not ``off``), the marker calls the ``check_aperture_cpu`` function in ``execute_cpu`` to perform aperture boundary checking on the transverse coordinates (:math:`(x, y)`) of alive particles (:math:`\text{tag} > 0`). Particles exceeding the aperture boundary are marked as lost (``tag`` set to negative), and the loss position and turn number are recorded. The detailed principles and type definitions of aperture checking are described in the ``Aperture`` chapter.
-
+The fields below configure ``PASS.para.schema.elements.MarkerItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
 
 Interface Parameters
 --------------------
@@ -57,39 +24,39 @@ Interface Parameters
 All interface parameters of the marker are shown in the table below:
 
 .. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
 
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``S (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``length``
-    - - (fixed 0.0, not configurable)
-    - float
-    - m
-    - Element length (always 0, not configurable)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name (automatically filled from the key name of the sequence JSON)
-  * - ``aperture_type``
-    - ``Aperture Type``
-    - str
-    - -
-    - Aperture type, default ``off``, case-insensitive
-  * - ``aperture_value``
-    - ``Aperture Value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``, meaning varies by type
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Tracking length is fixed at zero; retain the default.
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type, default ``off``, case-insensitive
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values, default ``[]``, meaning varies by type
 
 
 Aperture Type Options
@@ -143,7 +110,6 @@ Aperture Type Options
 
   The ``off`` and ``default`` types ignore ``aperture_value``. The detailed physical descriptions and conditions for each aperture type are in the ``Aperture`` chapter.
 
-
 Usage Examples
 --------------
 
@@ -154,12 +120,12 @@ The following example places a marker at :math:`s = 12.5` m to mark the interact
 
 .. code-block:: json
 
-  {
-      "IP": {
-          "S (m)": 12.5,
-          "Command": "Marker"
-      }
-  }
+   {
+       "IP": {
+           "S (m)": 12.5,
+           "Command": "Marker"
+       }
+   }
 
 ``"IP"`` is the element name, automatically read by ``CommandSequence`` and assigned to the ``name`` property.
 
@@ -170,14 +136,14 @@ The marker can also be configured with aperture checking to detect particles exc
 
 .. code-block:: json
 
-  {
-      "IP": {
-          "S (m)": 12.5,
-          "Command": "Marker",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.05]
-      }
-  }
+   {
+       "IP": {
+           "S (m)": 12.5,
+           "Command": "Marker",
+           "Aperture type": "circle",
+           "Aperture value": [0.05]
+       }
+   }
 
 Multiple Marker Combination
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -186,23 +152,55 @@ Multiple markers can be used repeatedly in the same beamline, for example to mar
 
 .. code-block:: json
 
-  {
-      "IP": {
-          "S (m)": 12.5,
-          "Command": "Marker"
-      },
-      "Injection_Point": {
-          "S (m)": 0.0,
-          "Command": "Marker"
-      },
-      "Measurement_Point": {
-          "S (m)": 105.3,
-          "Command": "Marker",
-          "Aperture Type": "rectangle",
-          "Aperture Value": [0.05, 0.03]
-      }
-  }
+   {
+       "IP": {
+           "S (m)": 12.5,
+           "Command": "Marker"
+       },
+       "Injection_Point": {
+           "S (m)": 0.0,
+           "Command": "Marker"
+       },
+       "Measurement_Point": {
+           "S (m)": 105.3,
+           "Command": "Marker",
+           "Aperture type": "rectangle",
+           "Aperture value": [0.05, 0.03]
+       }
+   }
 
+Physical Description
+--------------------
+
+The marker produces no electromagnetic field and leaves surviving particle coordinates unchanged. Aperture checking can mark particles lost. Its six-coordinate map (:math:`x, p_x, y, p_y, z, \delta`) is the identity:
+
+.. math::
+
+  x \leftarrow x
+
+.. math::
+
+  p_x \leftarrow p_x
+
+.. math::
+
+  y \leftarrow y
+
+.. math::
+
+  p_y \leftarrow p_y
+
+.. math::
+
+  z \leftarrow z
+
+.. math::
+
+  \delta \leftarrow \delta
+
+The marker only records its longitudinal position :math:`s` in the beamline for sequence sorting and position annotation.
+
+With aperture checking enabled, CPU and GPU check live particles at this location. Particles touching or outside the physical boundary are marked lost; their first-loss position and turn are recorded. See :doc:`../aperture` for geometry definitions.
 
 Application Scenarios
 ---------------------

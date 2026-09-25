@@ -1,16 +1,61 @@
 束团重分组（ReorganizeBunch）
-==============================
+============================================
 
 本模块介绍 PASS 中的 **ReorganizeBunch** 命令。该命令在指定圈数切换束流的束团分组数，并按照粒子的物理到达相位重新建立束团结构。
 
-**代码位置**
+用途与前提
+------------------
 
-- 源文件： ``PASS/commands/reorganize.py``
-- 分组算法： ``PASS/commands/sort_bunch.py``
-- 类名： ``ReorganizeBunch`` （继承自 ``Command`` ）
-- 注册名： ``reorganizebunch``
-- Schema 类： ``ReorganizeBunchItem`` （ ``PASS/para/schema/elements.py`` ）
+命令只改变束团分组和参考坐标；存活粒子的物理时间、能量及机械动量保持不变。它不替代 RF 俘获、散束、合束或压缩。重分组会使所有旧切片失效，之后必须重新执行后续命令所引用的每个 Slicer。命令本身不写诊断文件，可在其后放置监视器。坐标定义见 :ref:`zh-longitudinal-reference`。
 
+使用示例
+--------
+
+以下示例在第 500 圈把束流切换到 1 个纵向分组：
+
+.. code-block:: json
+
+  {
+      "ReorganizeBunch1": {
+          "S (m)": 0.0,
+          "Command": "ReorganizeBunch",
+          "Start turn": 500,
+          "New harmonic number": 1
+      }
+  }
+
+接口参数
+--------
+
+.. list-table::
+  :header-rows: 1
+  :widths: 22 30 12 12 24
+
+  * - 属性名
+    - JSON key
+    - 类型
+    - 默认值
+    - 说明
+  * - ``s``
+    - ``S (m)``
+    - float
+    - 必填
+    - 命令在环中的纵向位置
+  * - ``name``
+    - ``name``
+    - str
+    - 自动填入
+    - 命令名称
+  * - ``start_turn``
+    - ``Start turn``
+    - int
+    - 0
+    - 执行圈数（含，0-based）；命令只执行一次
+  * - ``new_harmonic``
+    - ``New harmonic number``
+    - int
+    - 必填
+    - 新的束团分组数，必须 :math:`\ge 1`
 
 分组操作与边界
 --------------
@@ -32,7 +77,7 @@
 
 新参考事件由规定时钟、当前通过次数及新槽位 ID 确定。参考速度为
 :math:`C f_{rev}(T_b)`，必须小于光速；参考能量由此速度与静质量确定。
-参考能量改变属于坐标选择，不是 RF 踢。
+参考能量改变属于坐标选择，不产生 RF 能量增量。
 
 选择谐波 ID 最小的旧束团作为锚点，并取距离其参考事件最近的机器通过次数：
 
@@ -79,57 +124,6 @@ ReorganizeBunch 即使请求的分组数与原值相同，也会重建参考。
    内此前生成的结果。粒子的 tag 仍随粒子移动，但切片归属按当前数组索引对齐，
    不通过 tag 查找。CPU 和 CUDA 上使用切片的命令都不会自动重新生成已清空的
    结果，详见 :doc:`slicer`。
-
-接口参数
---------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 22 30 12 12 24
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 默认值
-    - 说明
-  * - ``s``
-    - ``S (m)``
-    - float
-    - 必填
-    - 命令在环中的纵向位置
-  * - ``name``
-    - ``name``
-    - str
-    - 自动填入
-    - 命令名称
-  * - ``start_turn``
-    - ``Start turn``
-    - int
-    - 0
-    - 执行圈数（含，0-based）；命令只执行一次
-  * - ``new_harmonic``
-    - ``New harmonic number``
-    - int
-    - 必填
-    - 新的束团分组数，必须 :math:`\ge 1`
-
-
-使用示例
---------
-
-以下示例在第 500 圈把束流切换到 1 个纵向分组：
-
-.. code-block:: json
-
-  {
-      "ReorganizeBunch1": {
-          "S (m)": 0.0,
-          "Command": "ReorganizeBunch",
-          "Start turn": 500,
-          "New harmonic number": 1
-      }
-  }
-
 
 应用场景
 --------

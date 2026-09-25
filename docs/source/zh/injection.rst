@@ -1,4 +1,4 @@
-注入\粒子生成（Injection）
+注入与粒子生成（Injection）
 ==============================
 
 本模块介绍 PASS 中的注入命令 **Injection** ，用于在模拟起始位置生成特定粒子分布并注入束流。注入命令支持为每个束团独立设置横向分布、纵向分布、束流参数、偏移等，是粒子模拟的入口环节。
@@ -6,12 +6,444 @@
 Injection 支持单圈和多圈注入。入射分布、注入时序及横向偏置决定各批粒子进入
 环内的状态；随时间变化的 Bump 磁铁可进一步改变粒子在环内的横向运动。
 
-**代码位置**
+可直接执行的输入生成及跟踪流程见 :ref:`zh-minimal-input-example`，坐标约定见下文 :ref:`zh-longitudinal-reference`。
 
-- 源文件： ``PASS/commands/injection.py``
-- 类名： ``Injection`` （继承自 ``Command`` ）
-- 注册名： ``injection``
-- 辅助类： ``InjectionBunchInfo`` （同文件，负责单个束团的参数解析与分布生成）
+接口参数
+------------
+
+下表列出公开的 Python 配置字段、JSON 键及默认值。注入命令在序列中的键必须为 ``injection``，运行时命令名称由该键给定。束团字典由 ``InjectionItem.bunches`` 生成。
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 25 13 14 30
+
+   * - Python 字段
+     - JSON 键
+     - 类型
+     - 默认值
+     - 说明／单位
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - ``0.0``
+     - 注入位置，单位 m；必须为 0。
+   * - ``command``
+     - ``Command``
+     - ``str``
+     - ``'Injection'``
+     - 保持 Injection。
+   * - ``harmonic_number``
+     - ``Harmonic Number``
+     - ``int``
+     - ``1``
+     - 正整数束团分组数，必须等于束团配置数。
+   * - ``random_seed``
+     - ``Random Seed``
+     - ``int | None``
+     - ``None``
+     - 整数或 None；None 使用非确定性种子。复现还要求输入及执行顺序相同。
+   * - ``bunches``
+     - ``bunch0, bunch1, ...``
+     - ``list[BunchConfig]``
+     - ``一个默认束团``
+     - 每组一个 BunchConfig；空分组的真实粒子数与宏粒子数均设为零。
+
+束团参数
+--------
+
+每个束团以 ``bunch0`` 、 ``bunch1`` 、 ... 为键，值为包含该束团全部参数的字典。参数按横向、纵向、束流、分布、偏移五组分类说明如下。
+
+横向参数
+~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python 字段
+    - JSON 键
+    - 类型
+    - 单位
+    - 默认值
+    - 说明
+  * - ``alpha_x``
+    - ``Alpha x``
+    - float
+    - -
+    - ``0.0``
+    - 水平 Twiss 参数 :math:`\alpha_x`
+  * - ``alpha_y``
+    - ``Alpha y``
+    - float
+    - -
+    - ``0.0``
+    - 垂直 Twiss 参数 :math:`\alpha_y`
+  * - ``beta_x``
+    - ``Beta x (m)``
+    - float
+    - m
+    - ``1.0``
+    - 水平 Twiss 参数 :math:`\beta_x`
+  * - ``beta_y``
+    - ``Beta y (m)``
+    - float
+    - m
+    - ``1.0``
+    - 垂直 Twiss 参数 :math:`\beta_y`
+  * - ``emit_x``
+    - ``Emittance x (m'rad)``
+    - float
+    - m·rad
+    - ``0.0``
+    - 水平发射度 :math:`\varepsilon_x`
+  * - ``emit_y``
+    - ``Emittance y (m'rad)``
+    - float
+    - m·rad
+    - ``0.0``
+    - 垂直发射度 :math:`\varepsilon_y`
+  * - ``dx``
+    - ``Dx (m)``
+    - float
+    - m
+    - ``0.0``
+    - 水平色散函数 :math:`D_x`
+  * - ``dpx``
+    - ``Dpx``
+    - float
+    - -
+    - ``0.0``
+    - 水平色散导数 :math:`D_{px}`
+  * - ``dist_trans``
+    - ``Transverse dist``
+    - str
+    - -
+    - ``'gaussian'``
+    - 横向分布类型，可选： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform``
+
+
+纵向参数
+~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python 字段
+    - JSON 键
+    - 类型
+    - 单位
+    - 默认值
+    - 说明
+  * - ``sigma_z``
+    - ``Sigma z (m)``
+    - float
+    - m
+    - ``0.1``
+    - 纵向 RMS 尺度；coasting 模式中表示均匀区间全宽 :math:`\sigma_z`
+  * - ``dp``
+    - ``Sigma dp/p``
+    - float
+    - -
+    - ``0.001``
+    - 动量展宽 RMS 值 :math:`\sigma_{\delta}`
+  * - ``dist_longi``
+    - ``Longitudinal dist``
+    - str
+    - -
+    - ``'gaussian'``
+    - 纵向分布类型，可选： ``gaussian`` 、 ``coasting`` 、 ``matchz`` 、 ``matchdp``
+  * - ``rf_voltage``
+    - ``RF Voltage (V)``
+    - float
+    - V
+    - ``0.0``
+    - 射频电压 （ ``matchz`` 和 ``matchdp`` 分布需提供）
+  * - ``rf_phase``
+    - ``RF Phase (rad)``
+    - float
+    - rad
+    - ``0.0``
+    - 射频相位 :math:`\phi_s` （ ``matchz`` 和 ``matchdp`` 分布需提供）
+  * - ``harmonic_id``
+    - ``Harmonic ID of this bunch``
+    - int
+    - -
+    - ``0``
+    - 束团分组编号 :math:`h_{\mathrm{id}}` ，决定名义分组位置 :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
+  * - ``rf_s_position``
+    - ``RF S Position Refer to Inj. Point (m)``
+    - float
+    - m
+    - ``0.0``
+    - 射频腔相对于注入点的纵向位置，用于将 s\_rf 处生成的分布逆向传播到 s=0 注入点
+  * - ``momentum_offset_dp``
+    - ``Momentum Offset dp``
+    - float
+    - -
+    - ``0.0``
+    - 束团级平均动量偏差 :math:`\delta_0` ，叠加到每个粒子的 dp 上。与 ``kinetic_energy_offset`` 互斥
+  * - ``kinetic_energy_offset``
+    - ``Kinetic Energy Offset (eV)``
+    - float
+    - eV
+    - ``0.0``
+    - 束团级动能偏差，内部转化为 ``momentum_offset_dp`` 。与 ``momentum_offset_dp`` 互斥
+
+
+束流参数
+~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python 字段
+    - JSON 键
+    - 类型
+    - 单位
+    - 默认值
+    - 说明
+  * - ``kinetic_energy``
+    - ``Kinetic Energy per Nucleon (eV/u)``
+    - float
+    - eV/u
+    - ``必填``
+    - 每核子动能
+  * - ``num_real_particles``
+    - ``Number of Real Particles``
+    - int
+    - -
+    - ``必填``
+    - 该束团全部注入事件计划注入的真实粒子总数
+  * - ``num_macro_particles``
+    - ``Number of Macro Particles``
+    - int
+    - -
+    - ``必填``
+    - 该束团全部注入事件计划注入的宏粒子总数
+  * - ``injection_turns``
+    - ``Total Injection Turns``
+    - int
+    - -
+    - ``1``
+    - 从第 0 圈计数、不含端点的停止圈数；正整数，默认 1
+  * - ``injection_interval``
+    - ``Injection Interval``
+    - int
+    - -
+    - ``1``
+    - 注入间隔，每 ``interval`` 圈注入一次；正整数，默认 1
+
+
+分布参数
+~~~~~~~~~~
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python 字段
+    - JSON 键
+    - 类型
+    - 单位
+    - 默认值
+    - 说明
+  * - ``is_load_from_file``
+    - ``Is Load Distribution from File``
+    - bool
+    - —
+    - ``False``
+    - 是否从文件加载粒子分布
+  * - ``file_path``
+    - ``Distribution File Path``
+    - str
+    - —
+    - ``''``
+    - 分布文件路径（``.h5``、``.hdf5`` 或 ``.tfs`` 表格）
+  * - ``file_mode``
+    - ``Distribution File Mode``
+    - str
+    - —
+    - ``'sequential'``
+    - ``sequential``（默认）按束团连续读取文件行；``repeat`` 在每次注入时从文件开头读取
+  * - ``save_init_dist``
+    - ``Is Save Initial Distribution``
+    - bool
+    - —
+    - ``False``
+    - 是否保存初始分布
+  * - ``insert_particle``
+    - ``Insert Particle Coordinate``
+    - list
+    - —
+    - ``[]``
+    - 在偏置施加后替换首批的前若干行，格式为 ``[[x, px, y, py, z, dp], ...]``；这些粒子计入计划总数
+
+
+偏移参数
+~~~~~~~~~~
+
+水平偏移 （ ``Offset x`` ）和垂直偏移 （ ``Offset y`` ）结构相同，各包含以下子参数：
+
+.. list-table::
+  :header-rows: 1
+  :widths: 17 24 10 8 12 29
+
+  * - Python 字段
+    - JSON 键
+    - 类型
+    - 单位
+    - 默认值
+    - 说明
+  * - ``is_offset``
+    - ``Is Offset``
+    - bool
+    - —
+    - ``False``
+    - 是否启用偏移
+  * - ``is_load_from_file``
+    - ``Is Load From File``
+    - bool
+    - —
+    - ``False``
+    - 是否从文件加载偏移数据
+  * - ``file_path``
+    - ``File Path``
+    - str
+    - —
+    - ``''``
+    - 偏移数据文件路径 （ ``.tfs`` 格式）
+  * - ``file_time_kind``
+    - ``File Time Kind``
+    - str
+    - —
+    - ``'turn'``
+    - 时间列类型，可选： ``turn`` 、 ``time``
+  * - ``offset_position``
+    - ``Offset Position (m)``
+    - float
+    - —
+    - ``0.0``
+    - 位置偏移量
+  * - ``offset_momentum``
+    - ``Offset Momentum (rad)``
+    - float
+    - —
+    - ``0.0``
+    - 动量偏移量
+
+
+其他束团参数
+~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 25 13 14 30
+
+   * - Python 字段
+     - JSON 键
+     - 类型
+     - 默认值
+     - 说明／单位
+   * - ``reference_arrival_time``
+     - ``Reference arrival time (s)``
+     - ``float | None``
+     - ``None``
+     - 初始注入参考到达时间，单位 s；None 时由给定参考时钟确定。
+   * - ``output_format``
+     - ``Output format``
+     - ``str``
+     - ``'hdf5-gzip1'``
+     - 初始分布表格式：hdf5-gzip1、hdf5 或 tfs。
+   * - ``offset_x``
+     - ``Offset x``
+     - ``OffsetConfig``
+     - ``OffsetConfig()``
+     - 水平 OffsetConfig，字段见上表。
+   * - ``offset_y``
+     - ``Offset y``
+     - ``OffsetConfig``
+     - ``OffsetConfig()``
+     - 垂直 OffsetConfig，字段见上表。
+
+表中默认值是配置默认值，不代表完整物理输入。高斯分布生成需要显式给出正的发射度。``harmonic_number`` 属于 InjectionItem，也用于匹配分布初始化，不能作为 BunchConfig 字段填写。
+
+输入文件
+--------
+
+.. code-block:: json
+
+  {
+      "Beam Name": "proton",
+      "Number of Protons": 1,
+      "Number of Neutrons": 0,
+      "Number of Charges": 1,
+      "Transition Gamma": 4.8,
+      "Number of turns": 5,
+      "Circumference (m)": 251.327,
+      "Backend (gpu/cpu)":"cpu",
+      "Number of GPU devices": 1,
+      "Device Id": [
+          0
+      ],
+      "Output directory": "./output",
+      "Is plot figure": true,
+      "Sequence": {
+          "injection": {
+              "S (m)": 0.0,
+              "Command": "Injection",
+              "Harmonic Number": 1,
+              "bunch0": {
+                  "Kinetic Energy per Nucleon (eV/u)": 45e6,
+                  "Number of Real Particles": 100000000000,
+                  "Number of Macro Particles": 100000,
+                  "Is Load Distribution from File": false,
+                  "Distribution File Path": "",
+                  "Total Injection Turns": 1,
+                  "Injection Interval": 1,
+                  "Alpha x": -2.614303952,
+                  "Alpha y": 1.57442348,
+                  "Beta x (m)": 0.5,
+                  "Beta y (m)": 0.5,
+                  "Emittance x (m'rad)": 0.00019999999999999998,
+                  "Emittance y (m'rad)": 9.999999999999999e-05,
+                  "Dx (m)": 0.0,
+                  "Dpx": 0.0,
+                  "Sigma z (m)": 30,
+                  "Sigma dp/p": 0.005,
+                  "Transverse dist": "gaussian",
+                  "Longitudinal dist": "matchz",
+                  "RF Voltage (V)": 100e3,
+                  "RF Phase (rad)": 0.5235987755982988,
+                  "Harmonic ID of this bunch": 0,
+                  "RF S Position Refer to Inj. Point (m)": 0.0,
+                  "Offset x": {
+                      "Is Offset": false,
+                      "Is Load From File": false,
+                      "File Path": "",
+                      "File Time Kind": "turn",
+                      "Offset Position (m)": 0.0,
+                      "Offset Momentum (rad)": 0.0
+                  },
+                  "Offset y": {
+                      "Is Offset": false,
+                      "Is Load From File": false,
+                      "File Path": "",
+                      "File Time Kind": "turn",
+                      "Offset Position (m)": 0.0,
+                      "Offset Momentum (rad)": 0.0
+                  },
+                  "Is Save Initial Distribution": true,
+                  "Insert Particle Coordinate": [[0,0,0,0,0,0]]
+              }
+          },
+          "StatMonitor1":{
+              "S (m)": 0.0,
+              "Command": "StatMonitor"
+          }
+      }
+  }
 
 
 .. _zh-longitudinal-reference:
@@ -42,13 +474,13 @@ RF 同步粒子。不保存粒子级或束团级到达修正状态。六维粒�
    \delta_i'=\frac{P_{0,b}(1+\delta_i)}{P_{0,b}'}-1.
 
 注入和重分组在各自实现中完成所需的坐标换算；``PASS/core/bunch.py`` 更新参考能量参数。
-零长度 RF 踢满足 :math:`T_b'=T_b`，
+零长度 RF 作用满足 :math:`T_b'=T_b`，
 因此 z 乘以新旧参考速度比。粒子还接受真实 RF 能量增量，这与纯归一化变换不同，
 见 :doc:`element/rfcavity`。
 
 输运按参考飞行时间推进参考事件。长度 L 的精确直线漂移满足
 :math:`\Delta T_b=L/(\beta_b c)`、:math:`\Delta t_i=LE_i/(cP_{s,i})`。
-其他传输映射保留各自声明的近似。本次时间坐标迁移不改变四极铁归一化强度或磁铁映射。
+其他传输映射保留各自声明的近似。四极磁铁的强度仍按参考动量归一化，具体映射见相应元件页。
 
 固定宏粒子权重
 --------------
@@ -78,292 +510,6 @@ Slicer、SpaceCharge 和 WakeField 使用相同且固定的 ``bunch.ratio``，
 计算变换，再按配置的粒子精度保存结果。参考动量相同时，输入 ``dp``
 原样保留，包括很小的 FP32 动量偏差。六维粒子数组仍统一采用配置指定的
 FP32 或 FP64 类型。
-
-
-接口参数
---------
-
-``Injection`` 命令的参数如下表所示。其中 ``s`` 必须为 0 （注入点固定在序列起始位置）， ``name`` 由序列键名自动填入， ``bunch0`` 、 ``bunch1`` 、 ... 为各束团的参数字典。
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``s``
-    - ``S (m)``
-    - float
-    - m
-    - 注入位置 （必须为 0）
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - 元件名称，由序列键名自动填入
-  * - ``harmonic_number``
-    - ``Harmonic Number``
-    - int
-    - -
-    - 束团分组数；必须声明同样数量的 ``bunch0`` 、 ``bunch1`` 、 ... ，未填充分组用空束团占位
-  * - ``random_seed``
-    - ``Random Seed``
-    - int 或 null
-    - -
-    - 用于粒子分布生成的可选随机数种子。省略或设为 ``null`` 时采用非确定性种子；提供数值（包括 0）时，在相同输入和执行顺序下可复现生成的分布
-  * - ``bunch0``
-    - ``bunch0``
-    - dict
-    - -
-    - 第 0 个束团的参数字典
-  * - ``bunch1``
-    - ``bunch1``
-    - dict
-    - -
-    - 第 1 个束团的参数字典
-  * - ...
-    - ...
-    - dict
-    - -
-    - 更多数量的束团参数字典
-
-
-束团参数
---------
-
-每个束团以 ``bunch0`` 、 ``bunch1`` 、 ... 为键，值为包含该束团全部参数的字典。参数按横向、纵向、束流、分布、偏移五组分类说明如下。
-
-横向参数
-~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 35 10 10 25
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``alphax``
-    - ``Alpha x``
-    - float
-    - -
-    - 水平 Twiss 参数 :math:`\alpha_x`
-  * - ``alphay``
-    - ``Alpha y``
-    - float
-    - -
-    - 垂直 Twiss 参数 :math:`\alpha_y`
-  * - ``betax``
-    - ``Beta x (m)``
-    - float
-    - m
-    - 水平 Twiss 参数 :math:`\beta_x`
-  * - ``betay``
-    - ``Beta y (m)``
-    - float
-    - m
-    - 垂直 Twiss 参数 :math:`\beta_y`
-  * - ``emitx``
-    - ``Emittance x (m'rad)``
-    - float
-    - m·rad
-    - 水平发射度 :math:`\varepsilon_x`
-  * - ``emity``
-    - ``Emittance y (m'rad)``
-    - float
-    - m·rad
-    - 垂直发射度 :math:`\varepsilon_y`
-  * - ``dx``
-    - ``Dx (m)``
-    - float
-    - m
-    - 水平色散函数 :math:`D_x`
-  * - ``dpx``
-    - ``Dpx``
-    - float
-    - -
-    - 水平色散导数 :math:`D_{px}`
-  * - ``dist_trans``
-    - ``Transverse dist``
-    - str
-    - -
-    - 横向分布类型，可选： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform``
-
-纵向参数
-~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 45 10 10 15
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``sigmaz``
-    - ``Sigma z (m)``
-    - float
-    - m
-    - 纵向束长 RMS 值 :math:`\sigma_z`
-  * - ``dp``
-    - ``Sigma dp/p``
-    - float
-    - -
-    - 动量分散 RMS 值 :math:`\sigma_{\delta}`
-  * - ``dist_longi``
-    - ``Longitudinal dist``
-    - str
-    - -
-    - 纵向分布类型，可选： ``gaussian`` 、 ``coasting`` 、 ``matchz`` 、 ``matchdp``
-  * - ``rf_voltage``
-    - ``RF Voltage (V)``
-    - float
-    - V
-    - 高频电压 （ ``matchz`` 和 ``matchdp`` 分布需提供）
-  * - ``rf_phi``
-    - ``RF Phase (rad)``
-    - float
-    - rad
-    - 高频相位 :math:`\phi_s` （ ``matchz`` 和 ``matchdp`` 分布需提供）
-  * - ``harmonic_num``
-    - 注入顶层 ``Harmonic Number``
-    - int
-    - -
-    - 从 Injection 顶层传入的束团分组数 :math:`h_{\mathrm{group}}` 。它同时用于 ``matchz`` / ``matchdp`` 的纵向尺度计算，但不限制 RFCavity 的 RF 谐波数
-  * - ``harmonic_id``
-    - ``Harmonic ID of this bunch``
-    - int
-    - -
-    - 束团分组编号 :math:`h_{\mathrm{id}}` ，决定固定中心 :math:`z_{\mathrm{center}}=h_{\mathrm{id}}C/h_{\mathrm{group}}`
-  * - ``rf_position``
-    - ``RF S Position Refer to Inj. Point (m)``
-    - float
-    - m
-    - 高频腔相对于注入点的纵向位置，用于将 s\_rf 处生成的分布逆向传播到 s=0 注入点
-  * - ``ddp``
-    - ``Momentum Offset dp``
-    - float
-    - -
-    - 束团级平均动量偏差 :math:`\delta_0` ，叠加到每个粒子的 dp 上。与 ``dde`` 互斥
-  * - ``dde``
-    - ``Kinetic Energy Offset (eV)``
-    - float
-    - eV
-    - 束团级动能偏差，内部转化为 ``ddp`` 。与 ``ddp`` 互斥
-
-束流参数
-~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 45 10 10 10
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 单位
-    - 说明
-  * - ``Ek``
-    - ``Kinetic Energy per Nucleon (eV/u)``
-    - float
-    - eV/u
-    - 每核子动能
-  * - -
-    - ``Number of Real Particles``
-    - int
-    - -
-    - 该束团全部注入事件计划注入的真实粒子总数
-  * - -
-    - ``Number of Macro Particles``
-    - int
-    - -
-    - 该束团全部注入事件计划注入的宏粒子总数
-  * - ``stop_turn``
-    - ``Total Injection Turns``
-    - int
-    - -
-    - 从第 0 圈计数、不含端点的停止圈数；正整数，默认 1
-  * - ``interval``
-    - ``Injection Interval``
-    - int
-    - -
-    - 注入间隔，每 ``interval`` 圈注入一次；正整数，默认 1
-
-分布参数
-~~~~~~~~~~
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 45 10 20
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 说明
-  * - ``is_load_dist``
-    - ``Is Load Distribution from File``
-    - bool
-    - 是否从文件加载粒子分布
-  * - ``load_dist_filepath``
-    - ``Distribution File Path``
-    - str
-    - 分布文件路径（``.h5``、``.hdf5`` 或 ``.tfs`` 表格）
-  * - ``load_dist_mode``
-    - ``Distribution File Mode``
-    - str
-    - ``sequential``（默认）按束团连续读取文件行；``repeat`` 在每次注入时从文件开头读取
-  * - ``is_save_init_dist``
-    - ``Is Save Initial Distribution``
-    - bool
-    - 是否保存初始分布
-  * - ``insert_particles``
-    - ``Insert Particle Coordinate``
-    - list
-    - 在偏置施加后替换首批的前若干行，格式为 ``[[x, px, y, py, z, dp], ...]``；这些粒子计入计划总数
-
-偏移参数
-~~~~~~~~~~
-
-水平偏移 （ ``Offset x`` ）和垂直偏移 （ ``Offset y`` ）结构相同，各包含以下子参数：
-
-.. list-table::
-  :header-rows: 1
-  :widths: 25 30 10 35
-
-  * - 属性名
-    - JSON key
-    - 类型
-    - 说明
-  * - ``is_offset``
-    - ``Is Offset``
-    - bool
-    - 是否启用偏移
-  * - ``is_offset_fromfile``
-    - ``Is Load From File``
-    - bool
-    - 是否从文件加载偏移数据
-  * - -
-    - ``File Path``
-    - str
-    - 偏移数据文件路径 （ ``.tfs`` 格式）
-  * - -
-    - ``File Time Kind``
-    - str
-    - 时间列类型，可选： ``turn`` 、 ``time``
-  * - ``offset_position``
-    - ``Offset Position (m)``
-    - float
-    - 位置偏移量
-  * - ``offset_momentum``
-    - ``Offset Momentum (rad)``
-    - float
-    - 动量偏移量
 
 
 .. _zh-multiturn-injection:
@@ -431,11 +577,11 @@ Bump 磁铁与横向涂抹
 
 涂抹注入通过逐批改变入射束的位置和动量、环流轨道，或同时改变两者，
 使注入粒子逐步填充横向相空间。``Offset x`` 和 ``Offset y`` 指定注入点处
-的入射束坐标；:doc:`element/bump` 在环上施加水平和垂直脉冲磁铁踢。
+的入射束坐标；:doc:`element/bump` 在环上施加水平和垂直脉冲磁铁冲量。
 所有经过 Bump 的存活粒子都会受力，包括先前批次已经注入的粒子。
 
-入射坐标与 Bump 追踪使用同一套固定机器坐标。应分别指定注入面处的入射中心
-和实际磁铁波形；轨道位移本身不等于磁铁踢角。
+入射坐标与 Bump 跟踪使用同一套固定机器坐标。应分别指定注入面处的入射中心
+和实际磁铁波形；轨道位移本身不等于磁铁引起的动量增量。
 逐粒子时间模式在 :math:`t_i=t_0-z_i/(\beta_0c)` 加上 ``Time offset (s)``
 后查询波形，表格应覆盖需要偏转的粒子的到达时间。
 参考时间模式、插值和脉冲边界行为见 Bump 文档。
@@ -443,7 +589,7 @@ Bump 磁铁与横向涂抹
 Injection 在注入面生成或加载粒子，并施加指定偏置。后续输运和损失检查
 由晶格元件执行。其中 :doc:`element/elseparator` 在粒子实际通过该元件时
 计算静电偏转以及与电极或真空壁的接触。在 ES 出口给定的粒子从该平面
-开始追踪，Injection 不额外施加几何接受截断。
+开始跟踪，Injection 不额外施加几何接受截断。
 
 注入过程的观测
 ~~~~~~~~~~~~~~
@@ -556,7 +702,7 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
     | 16                                       | :math:`4\sigma`        | 99.966453737% |
     +------------------------------------------+------------------------+---------------+
 
-    因此在 :math:`4\sigma` 截断条件下，粒子损失比例极低 （约 :math:`3.3\times10^{-4}` ），可近似认为完整覆盖高斯尾部。
+    表中比例对应相空间不变量的椭圆截断；代码采用 x、y 位置坐标的独立截断，不能将该表的比例直接解释为实际接受率。
 
     具体截断比例可通过下面的函数进行计算：
 
@@ -573,7 +719,7 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 
   - **4D KV（Kapchinskij-Vladimirskij）分布**
 
-    在 :math:`x-p_x-y-p_y` 四维相空间中生成 **均匀分布在四维超椭球表面上** 的粒子分布，是一种只存在于四维球壳上的理想化分布。这种分布下粒子产生的空间电荷场在束团内部是严格线性的，可以实现空间电荷问题的严格解析求解。
+    在 :math:`x-p_x-y-p_y` 四维相空间中生成 **均匀分布在四维超椭球表面上** 的粒子分布，是一种只存在于四维球壳上的理想化分布。这种分布下粒子产生的空间电荷场在束团内部是严格线性的，该结论适用于理想连续的自由空间横向模型；有限粒子采样及导体边界会改变其结果。
 
     积分掉两个维度后，KV 分布在任意 2D 平面 （如 :math:`x-p_x` 平面） 上的投影是一个均匀填充的椭圆。进一步积分掉一个维度后，KV 分布在 1D 平面的投影是一个半椭圆 （或半圆） 分布。具体推导如下：KV 分布均匀分布在 4D 超球面 :math:`S^3` 上（ :math:`r^2 = 1` ），对 :math:`u_x` 求 1D 边缘分布需在 :math:`S^3` 上对其余三个坐标积分：
 
@@ -584,9 +730,9 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
     即 1D 投影幂次为 :math:`\frac{1}{2}` 。
 
     .. note::
-      
+
       根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上KV分布的全发射度为RMS发射度的4倍。
-      
+
     即 KV 分布下所有粒子均处在 :math:`2\sigma` 截断范围内。但是在程序中依然设置为保留满足：
 
     .. math::
@@ -607,11 +753,11 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
        \rho(u_x) \propto V_3\!\left(\sqrt{1-u_x^2}\right) \propto (1-u_x^2)^{\frac{3}{2}}
 
     其中 :math:`V_3(R) \propto R^3` 为 3D 球体积。即 1D 投影幂次为 :math:`\frac{3}{2}` 。
-    
+
     .. note::
-      
+
       根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上水袋分布的全发射度为RMS发射度的6倍。
-      
+
     即水袋分布下所有粒子均处在 :math:`\sqrt{6}\sigma` 截断范围内。但是在程序中依然设置为保留满足：
 
     .. math::
@@ -632,11 +778,11 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
        \rho(u_x) \propto (1-u_x^2)^{\frac{n-1}{2}+\alpha} = (1-u_x^2)^{\frac{3}{2}+1} = (1-u_x^2)^{\frac{5}{2}}
 
     即 1D 投影幂次为 :math:`\frac{5}{2}` 。
-    
+
     .. note::
-      
+
       根据积分可得：在 :math:`x-p_x` 与 :math:`y-p_y` 相平面上抛物线分布的全发射度为RMS发射度的8倍。
-      
+
     即抛物线分布下所有粒子均处在 :math:`\sqrt{8}\sigma` 截断范围内。但是在程序中依然设置为保留满足：
 
     .. math::
@@ -648,7 +794,7 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 
   - **Uniform（均匀分布）**
 
-    在 :math:`x-p_x` 与 :math:`y-p_y` 相空间中分别独立生成 2D 均匀方块分布。对于每个横向平面，在归一化坐标 :math:`(u, v)` 中于 :math:`[-1, 1] \times [-1, 1]` 方块区域内均匀采样，再通过 Twiss 参数映射到物理坐标。该分布的 RMS 发射度严格等于输入参数 :math:`\varepsilon` ，全发射度为 RMS 发射度的 3 倍，所有粒子均处在 :math:`\sqrt{3}\sigma` 截断范围内。这种分布可以模拟电子枪等产生的初始束流。
+    在 :math:`x-p_x` 与 :math:`y-p_y` 相空间中分别独立生成 2D 均匀方块分布。对于每个横向平面，在归一化坐标 :math:`(u, v)` 中于 :math:`[-1, 1] \times [-1, 1]` 方块区域内均匀采样，再通过 Twiss 参数映射到物理坐标。该分布的 理想连续分布的 RMS 发射度等于输入参数 :math:`\varepsilon` ，坐标半宽的平方为其方差的 3 倍，所有粒子均处在 :math:`\sqrt{3}\sigma` 截断范围内。这种分布可以模拟电子枪等产生的初始束流。
 
     积分掉一个维度后，均匀分布在 1D 平面的投影是一个常数（均匀）分布。由于 :math:`u_x` 和 :math:`v_x` 独立均匀分布在 :math:`[-1, 1]` 上，对 :math:`v_x` 积分后：
 
@@ -662,11 +808,11 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 纵向粒子分布
 ------------
 
-目前 PASS 程序支持生成的纵向粒子分布有 **2D高斯分布** 、 **漂移束分布** 、 **匹配高频参数-纵向束长RMS值的分布** 、 **匹配高频参数-动量分散RMS值的分布** ：
+目前 PASS 程序支持生成的纵向粒子分布有 **2D高斯分布** 、 **非聚束束流分布** 、 **指定 RMS 束长的射频匹配分布** 、 **指定 RMS 动量展宽的射频匹配分布** ：
 
   - **2D高斯分布（Gaussian）**
 
-    在 :math:`z-p_z` 相空间中分别生成服从高斯分布的纵向坐标。粒子在纵向相空间中的分布采用 :math:`4\sigma` 截断，即仅保留满足：
+    在 :math:`z-\delta` 相空间中分别生成服从高斯分布的纵向坐标。粒子在纵向相空间中的分布采用 :math:`4\sigma` 截断，即仅保留满足：
 
     .. math::
 
@@ -674,23 +820,13 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 
     的粒子。
 
-  - **漂移束分布（Coasting）**
+  - **非聚束束流分布（Coasting）**
 
-    在 :math:`z-p_z` 相空间中生成 :math:`z` 服从均匀分布， :math:`p_z` 服从高斯分布的纵向坐标。粒子在纵向相空间不做截断，纵向位置坐标最大为周长的一半，最小为负周长的一半。
+    在 :math:`z-\delta` 相空间中生成 :math:`z` 服从均匀分布， :math:`\delta` 服从高斯分布的纵向坐标。均匀区间为 [-sigma_z/2, sigma_z/2]，此时 Sigma z (m) 表示区间全宽；生成整环分布时应将 sigma_z 设为环周长。
 
-  - **匹配高频参数-纵向束长RMS值的分布（MatchZ）**
+  - **指定 RMS 束长的射频匹配分布（MatchZ）**
 
-    在 :math:`z-p_z` 相空间中生成同时满足高频参数及纵向束长限制 （ :math:`\sigma_z` ） 的纵向坐标。粒子在纵向相空间中的分布采用 :math:`2\sigma` 截断，即仅保留满足：
-
-    .. math::
-
-       |z| \le 2\sigma_z
-
-    的粒子。
-
-  - **匹配高频参数-动量分散RMS值的分布（MatchDp）**
-
-    在 :math:`z-p_z` 相空间中生成同时满足高频参数及动量分散限制 （ :math:`\sigma_{\delta}` ） 的纵向坐标。粒子在纵向相空间中的分布采用 :math:`2\sigma` 截断，即仅保留满足：
+    在 :math:`z-\delta` 相空间中生成同时满足射频参数及纵向束长限制 （ :math:`\sigma_z` ） 的纵向坐标。粒子在纵向相空间中的分布采用 :math:`2\sigma` 截断，即仅保留满足：
 
     .. math::
 
@@ -698,6 +834,18 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 
     的粒子。
 
+  - **指定 RMS 动量展宽的射频匹配分布（MatchDp）**
+
+    在 :math:`z-\delta` 相空间中生成同时满足射频参数及动量展宽限制 （ :math:`\sigma_{\delta}` ） 的纵向坐标。粒子在纵向相空间中的分布采用 :math:`2\sigma` 截断，即仅保留满足：
+
+    .. math::
+
+       |z| \le 2\sigma_z
+
+    的粒子。
+
+
+RF 匹配采样还施加 bucket 哈密顿量接受范围的 0.9 比例限制。超过模型最大尺度的请求会调整为该最大值的 0.99 倍。这些条件与 z 截断共同作用，所得样本 RMS 不一定等于输入匹配目标。
 
 多束团纵向坐标
 ~~~~~~~~~~~~~~
@@ -714,7 +862,7 @@ Injection 在注入面生成或加载粒子，并施加指定偏置。后续输�
 RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 
 名义槽位位置在写日志或输出时由 ``harmonic_id*C/harmonic_number`` 计算，
-不保存 ``bunch.z_center`` 属性。现有 ``ZCenter``/``zCenter`` 输出字段继续
+不保存 ``bunch.z_center`` 属性。``ZCenter``/``zCenter`` 输出字段
 记录此派生元数据，下图中的 ``z_center`` 也表示该名义位置。
 它与 ``slice_table['z_center']`` 不同：后者保存各切片区间的中心，供切片和尾场计算使用。
 
@@ -880,7 +1028,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 
   x \leftarrow x + D_x \cdot \delta, \quad p_x \leftarrow p_x + D_{px} \cdot \delta
 
-其中 :math:`\delta` 为粒子的动量偏差。这确保了粒子分布与纵向动量分散在物理上自洽。
+其中 :math:`\delta` 为粒子的动量偏差。这确保了粒子分布与纵向动量展宽在物理上自洽。
 
 
 动量偏差
@@ -987,83 +1135,6 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 因此后续的 rf\_position 逆向传播（ :math:`z \leftarrow z + \eta \, s_{\text{rf}} \, \delta` ）和色散耦合（ :math:`x \leftarrow x + D_x \, \delta` ）均使用包含 :math:`\delta_0` 的 :math:`\delta` 值，确保物理自洽。
 
 
-输入文件
---------
-
-.. code-block:: json
-
-  {
-      "Beam Name": "proton",
-      "Number of Protons": 1,
-      "Number of Neutrons": 0,
-      "Number of Charges": 1,
-      "Transition Gamma": 4.8,
-      "Number of turns": 5,
-      "Circumference (m)": 251.327,
-      "Backend (gpu/cpu)":"cpu",
-      "Number of GPU devices": 1,
-      "Device Id": [
-          0
-      ],
-      "Output directory": "./output",
-      "Is plot figure": true,
-      "Sequence": {
-          "Injection": {
-              "S (m)": 0.0,
-              "Command": "Injection",
-              "Harmonic Number": 1,
-              "bunch0": {
-                  "Kinetic Energy per Nucleon (eV/u)": 45e6,
-                  "Number of Real Particles": 100000000000.0,
-                  "Number of Macro Particles": 100000.0,
-                  "Is Load Distribution from File": false,
-                  "Distribution File Path": "",
-                  "Total Injection Turns": 1,
-                  "Injection Interval": 1,
-                  "Alpha x": -2.614303952,
-                  "Alpha y": 1.57442348,
-                  "Beta x (m)": 0.5,
-                  "Beta y (m)": 0.5,
-                  "Emittance x (m'rad)": 0.00019999999999999998,
-                  "Emittance y (m'rad)": 9.999999999999999e-05,
-                  "Dx (m)": 0.0,
-                  "Dpx": 0.0,
-                  "Sigma z (m)": 30,
-                  "Sigma dp/p": 0.005,
-                  "Transverse dist": "gaussian",
-                  "Longitudinal dist": "matchz",
-                  "RF Voltage (V)": 100e3,
-                  "RF Phase (rad)": 0.5235987755982988,
-                  "Harmonic ID of this bunch": 0,
-                  "RF S Position Refer to Inj. Point (m)": 0.0,
-                  "Offset x": {
-                      "Is Offset": false,
-                      "Is Load From File": false,
-                      "File Path": "",
-                      "File Time Kind": "turn",
-                      "Offset Position (m)": 0.0,
-                      "Offset Momentum (rad)": 0.0
-                  },
-                  "Offset y": {
-                      "Is Offset": false,
-                      "Is Load From File": false,
-                      "File Path": "",
-                      "File Time Kind": "turn",
-                      "Offset Position (m)": 0.0,
-                      "Offset Momentum (rad)": 0.0
-                  },
-                  "Is Save Initial Distribution": true,
-                  "Insert Particle Coordinate": [[0,0,0,0,0,0]]
-              }
-          },
-          "StatMonitor1":{
-              "S (m)": 0.0,
-              "Command": "StatMonitor"
-          }
-      }
-  }
-
-
 分布类型选择
 ------------
 
@@ -1072,11 +1143,11 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 .. code-block:: json
 
   "Transverse dist": "gaussian",
-  "Longitudinal dist": "matchz",
+  "Longitudinal dist": "matchz"
 
-其中横向分布的 value 有： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform`` ，纵向分布的 value 有： ``gaussian`` 、 ``coasting`` 、 ``matchz`` 、 ``matchdp`` 。
+其中横向分布的取值为： ``gaussian`` 、 ``kv`` 、 ``waterbag`` 、 ``parabolic`` 、 ``uniform`` ，纵向分布的取值为： ``gaussian`` 、 ``coasting`` 、 ``matchz`` 、 ``matchdp`` 。
 
-在生成纵向 gaussian 与 coasting 分布时，不需要高频相关参数，在生成 matchz 与 matchdp 分布时，需要提供高频参数。
+在生成纵向 gaussian 与 coasting 分布时，不需要射频相关参数，在生成 matchz 与 matchdp 分布时，需要提供射频参数。
 
 
 1D 投影理论曲线
@@ -1094,7 +1165,7 @@ RF 直接采样 :math:`T_d-z_d/(\beta_d c)`。
 模拟结果
 --------
 
-下面将展示保持上述输入文件中 Twiss、发射度、高频等参数不变，只改变分布类型时，模拟所得粒子分布图片。
+下面将展示保持上述输入文件中 Twiss、发射度、射频等参数不变，只改变分布类型时，模拟所得粒子分布图片。
 
 - 横向 Gaussian 分布：
 

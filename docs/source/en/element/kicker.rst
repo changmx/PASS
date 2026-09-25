@@ -5,10 +5,6 @@ This module describes the PASS kicker element **Kicker**, used to simulate the m
 
 The PASS kicker supports both **thick element** (``length > 0``) and **thin lens** (``length = 0``) modes. The thick element uses the exact drift-kick-drift (DKD-exact) symplectic integration scheme, supporting both uniform (2nd-order) and yoshida4 (4th-order) symplectic integrators. Physically, a kicker is equivalent to an order-0 multipole (dipole), with kick formulas :math:`\Delta p_x = \text{hkick}` and :math:`\Delta p_y = \text{vkick}`.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/kicker.py``
-- Class name: ``Kicker`` (inherits from ``Command``)
 - Registration name: ``kicker``
 - Key features:
 
@@ -21,9 +17,191 @@ The PASS kicker supports both **thick element** (``length > 0``) and **thin lens
   - Zero kick: thin lens degenerates to a marker, thick lens degenerates to a pure drift
   - Supports aperture check
 
+The fields below configure ``PASS.para.schema.elements.KickerItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Interface Parameters
+--------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Magnet length, :math:`= 0` for thin lens, :math:`> 0` for thick lens
+   * - ``hkick``
+     - ``HKICK``
+     - ``float``
+     - 1
+     - ``0.0``
+     - Horizontal normalized momentum increment; an angle in radians only in the small-angle limit.
+   * - ``vkick``
+     - ``VKICK``
+     - ``float``
+     - 1
+     - ``0.0``
+     - Vertical normalized momentum increment; an angle in radians only in the small-angle limit.
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of slices for thick lens
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - —
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values
+
+
+.. note::
+
+  Both ``hkick`` and ``vkick`` are optional parameters with default value 0. They are set independently:
+
+  - Only ``hkick`` nonzero: unidirectional horizontal kicker
+  - Only ``vkick`` nonzero: unidirectional vertical kicker
+  - Both nonzero: bidirectional kicker
+  - Both zero: thin lens degenerates to a marker, thick lens degenerates to a pure drift
+
+  The ``Command`` field should be set to ``kicker``.
+
+Usage Examples
+--------------
+
+Thin Lens Horizontal Kicker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following example places a thin lens horizontal kicker at :math:`s = 10.0` m with normalized momentum increment :math:`1.5 \times 10^{-3}`:
+
+.. code-block:: json
+
+   {
+       "HK1": {
+           "S (m)": 10.0,
+           "Command": "kicker",
+           "HKICK": 0.0015,
+           "VKICK": 0.0
+       }
+   }
+
+Only a horizontal kick is applied; the vertical direction is unaffected. Suitable for horizontal orbit correction or horizontal injection.
+
+Thin Lens Vertical Kicker
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following example places a thin lens vertical kicker at :math:`s = 20.0` m with normalized momentum increment :math:`-2.3 \times 10^{-3}`:
+
+.. code-block:: json
+
+   {
+       "VK1": {
+           "S (m)": 20.0,
+           "Command": "kicker",
+           "HKICK": 0.0,
+           "VKICK": -0.0023
+       }
+   }
+
+Only a vertical kick is applied; the horizontal direction is unaffected. The negative sign indicates a downward kick direction.
+
+Thick Lens Bidirectional Kicker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following example places a thick lens bidirectional kicker at :math:`s = 15.0` m with 4 slices and a uniform integrator:
+
+.. code-block:: json
+
+   {
+       "BK1": {
+           "S (m)": 15.0,
+           "Command": "kicker",
+           "Length (m)": 0.3,
+           "HKICK": 0.003,
+           "VKICK": -0.0015,
+           "Num slices": 4,
+           "Integrator": "uniform",
+           "Aperture type": "circle",
+           "Aperture value": [0.05]
+       }
+   }
+
+Both horizontal and vertical kicks are applied simultaneously, with length 0.3 m, 4-slice DKD-exact symplectic integration, and a circular aperture check (radius 0.05 m).
+
+Thick Lens with yoshida4 Integrator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following example uses a 4th-order Yoshida integrator, suitable for scenarios requiring high precision:
+
+.. code-block:: json
+
+   {
+       "BK2": {
+           "S (m)": 25.0,
+           "Command": "kicker",
+           "Length (m)": 0.5,
+           "HKICK": 0.002,
+           "VKICK": 0.0,
+           "Num slices": 2,
+           "Integrator": "yoshida4"
+       }
+   }
+
+2 slices, each performing 3 DKD steps (Yoshida composition), with truncation error :math:`O(\Delta s^4)`.
+
+Zero-Kick Kicker
+~~~~~~~~~~~~~~~~
+
+The following example places a zero-kick kicker at :math:`s = 30.0` m:
+
+.. code-block:: json
+
+   {
+       "K0": {
+           "S (m)": 30.0,
+           "Command": "kicker",
+           "HKICK": 0.0,
+           "VKICK": 0.0
+       }
+   }
+
+When both kicks are zero and the length is zero, the kicker degenerates to a marker, leaving all particle coordinates unchanged. This can reserve a location for a later configuration change. Magnetic ramping fields are reserved; this element does not evaluate a time-dependent waveform.
 
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
@@ -48,13 +226,12 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
 
 where :math:`P_0` is the reference particle momentum, :math:`\beta_0 = v_0 / c` is the reference particle normalized velocity, :math:`s` is the arc length along the reference orbit, and :math:`t` is time.
-
 
 Physical Derivation
 --------------------
@@ -62,13 +239,13 @@ Physical Derivation
 Physical Nature of the Kicker
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A kicker is physically a pulsed dipole magnet that produces a uniform magnetic field :math:`B_0` within a brief time window, applying a transverse deflection to particles passing through it. The deflection angle of a dipole magnet of length :math:`L` for the reference particle is:
+A kicker is physically a pulsed dipole magnet that produces a uniform magnetic field :math:`B_0` within a brief time window, applying a transverse deflection to particles passing through it. For a reference particle in the small-angle limit, the magnitude of the deflection from a uniform field of length :math:`L` is:
 
 .. math::
 
-  \theta = \frac{q B_0 L}{p_0} = \frac{B_0 L}{B\rho}
+  |\theta| \simeq \frac{|q B_0|L}{P_0} = \frac{|B_0|L}{|B\rho|}
 
-where :math:`B\rho = p_0 / q` is the magnetic rigidity. Therefore, a kicker is physically equivalent to an order-0 multipole with integrated strength :math:`K_{0L} = \theta`. In PASS, ``hkick`` and ``vkick`` are this integrated strength (in radians).
+where :math:`B\rho=P_0/q` is the magnetic rigidity. The signed fields ``hkick`` and ``vkick`` specify normalized transverse momentum increments, as defined below. Their signs follow the desired horizontal and vertical momentum changes; they are not interchangeable with a normal multipole coefficient without checking its sign convention.
 
 Dipole Kick
 ~~~~~~~~~~~
@@ -87,8 +264,8 @@ For thin lens mode, ``hkick`` and ``vkick`` are applied directly as integrated s
 
 .. note::
 
-  ``hkick`` and ``vkick`` are integrated dipole strengths (in radians), equivalent to the ``hkick`` / ``vkick`` parameters in MAD-X, and also equivalent to Multipole's ``knl=[hkick]`` and ``ksl=[vkick]``.
-
+  ``hkick`` and ``vkick`` directly specify dimensionless normalized momentum increments.
+  They represent deflection angles in radians only in the small-angle approximation.
 
 Overall Tracking Flow
 ---------------------
@@ -144,7 +321,6 @@ where the DKD map for each slice is:
   - Chromaticity and other effects in thick lens mode are naturally introduced through the :math:`p_z` expression in exact drift
   - When both ``hkick`` and ``vkick`` are zero, the thick lens degenerates to a pure drift, avoiding meaningless empty kick loops
 
-
 Exact Drift Map
 ---------------
 
@@ -173,7 +349,6 @@ where:
   \beta = \frac{(1+\delta) \beta_0 \gamma_0}{\sqrt{1 + \left[(1+\delta) \beta_0 \gamma_0\right]^2}}
 
 The exact drift preserves the full nonlinearity of :math:`p_z`, naturally introducing chromaticity, higher-order dispersion, and path-length effects.
-
 
 Symplectic Integrators
 ----------------------
@@ -215,187 +390,14 @@ Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common :ref:`en-error` interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.
 
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 20 10 10 40
-
-  * - Property
-    - JSON key
-    - Type
-    - Default
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - Required
-    - Longitudinal position of the element in the beamline
-  * - ``cmd_name``
-    - ``name``
-    - str
-    - Required
-    - Element name
-  * - ``length``
-    - ``length (m)``
-    - float
-    - 0.0
-    - Magnet length, :math:`= 0` for thin lens, :math:`> 0` for thick lens
-  * - ``hkick``
-    - ``hkick``
-    - float
-    - 0.0
-    - Horizontal kick (radians), :math:`\Delta p_x = \text{hkick}`
-  * - ``vkick``
-    - ``vkick``
-    - float
-    - 0.0
-    - Vertical kick (radians), :math:`\Delta p_y = \text{vkick}`
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - 1
-    - Number of slices for thick lens
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - ``adaptive``
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - ``off``
-    - Aperture type
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - ``[]``
-    - Aperture parameter values
-
-.. note::
-
-  Both ``hkick`` and ``vkick`` are optional parameters with default value 0. They are set independently:
-
-  - Only ``hkick`` nonzero: unidirectional horizontal kicker
-  - Only ``vkick`` nonzero: unidirectional vertical kicker
-  - Both nonzero: bidirectional kicker
-  - Both zero: thin lens degenerates to a marker, thick lens degenerates to a pure drift
-
-  The ``Command`` field should be set to ``kicker``.
-
-
-Usage Examples
---------------
-
-Thin Lens Horizontal Kicker
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a thin lens horizontal kicker at :math:`s = 10.0` m with a kick of :math:`1.5 \times 10^{-3}` rad:
-
-.. code-block:: json
-
-  {
-      "HK1": {
-          "S (m)": 10.0,
-          "Command": "kicker",
-          "hkick": 0.0015,
-          "vkick": 0.0
-      }
-  }
-
-Only a horizontal kick is applied; the vertical direction is unaffected. Suitable for horizontal orbit correction or horizontal injection.
-
-Thin Lens Vertical Kicker
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a thin lens vertical kicker at :math:`s = 20.0` m with a kick of :math:`-2.3 \times 10^{-3}` rad:
-
-.. code-block:: json
-
-  {
-      "VK1": {
-          "S (m)": 20.0,
-          "Command": "kicker",
-          "hkick": 0.0,
-          "vkick": -0.0023
-      }
-  }
-
-Only a vertical kick is applied; the horizontal direction is unaffected. The negative sign indicates a downward kick direction.
-
-Thick Lens Bidirectional Kicker
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example places a thick lens bidirectional kicker at :math:`s = 15.0` m with 4 slices and a uniform integrator:
-
-.. code-block:: json
-
-  {
-      "BK1": {
-          "S (m)": 15.0,
-          "Command": "kicker",
-          "Length (m)": 0.3,
-          "hkick": 0.003,
-          "vkick": -0.0015,
-          "Num Slices": 4,
-          "Integrator": "uniform",
-          "Aperture Type": "circle",
-          "Aperture Value": [0.05]
-      }
-  }
-
-Both horizontal and vertical kicks are applied simultaneously, with length 0.3 m, 4-slice DKD-exact symplectic integration, and a circular aperture check (radius 0.05 m).
-
-Thick Lens with yoshida4 Integrator
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following example uses a 4th-order Yoshida integrator, suitable for scenarios requiring high precision:
-
-.. code-block:: json
-
-  {
-      "BK2": {
-          "S (m)": 25.0,
-          "Command": "kicker",
-          "Length (m)": 0.5,
-          "hkick": 0.002,
-          "vkick": 0.0,
-          "Num Slices": 2,
-          "Integrator": "yoshida4"
-      }
-  }
-
-2 slices, each performing 3 DKD steps (Yoshida composition), with truncation error :math:`O(\Delta s^4)`.
-
-Zero-Kick Kicker
-~~~~~~~~~~~~~~~~
-
-The following example places a zero-kick kicker at :math:`s = 30.0` m:
-
-.. code-block:: json
-
-  {
-      "K0": {
-          "S (m)": 30.0,
-          "Command": "kicker",
-          "hkick": 0.0,
-          "vkick": 0.0
-      }
-  }
-
-When both kicks are zero and the length is zero, the kicker degenerates to a marker, leaving all particle coordinates unchanged. This can be used to reserve a kicker position for later activation via a ramping table.
-
-
 Application Scenarios
 ---------------------
 
 - **Beam injection**: Place kickers in the injection section to deflect the injected beam to match the main ring closed orbit, achieving beam injection
-- **Beam extraction**: Place kickers at the extraction point to rapidly deflect the beam into the extraction channel, achieving fast or slow extraction
+- **Beam extraction**: Place kickers at the extraction point to rapidly deflect the beam into the extraction channel, for fast extraction
 - **Orbit correction**: Place kickers at key beamline positions to correct orbit deviations or create local orbit bumps
-- **Fast beam manipulation**: Control the kicker kick through timing to achieve rapid beam direction switching or scanning
-- **Feedback systems**: Combined with pickups, form a bunch-by-bunch transverse feedback system to suppress beam instabilities
 
+The Kicker model applies constant configured strengths. For a prescribed injection waveform, see :doc:`bump`; for transverse excitation, see :doc:`exciter`. A pickup-feedback controller is not included in this element.
 
 References
 ----------

@@ -20,12 +20,12 @@ transport through magnets, RF cavities, or space charge.
 `generate_input.py` fixes the Injection random seed to `2026`, so regenerating and
 running the same case produces the same initial particle distribution.
 
-## Run A Minimal Workflow
+## Run the example
 
 From the repository root, run:
 
 ```powershell
-cd C:\Users\changmx\Documents\PASS\example\01_generate_distribution
+cd example/01_generate_distribution
 python generate_input.py --case transverse
 python run_simulation.py --case transverse
 python analyze_results.py --case transverse
@@ -56,7 +56,7 @@ An existing input can also be run directly, without the case mapping:
 python run_simulation.py --beam0 C:\path\to\beam0.json
 ```
 
-## Case Design
+## Cases
 
 | Case | Input file | Bunches | Purpose |
 |------|------------|---------|---------|
@@ -77,7 +77,7 @@ therefore use separate one-bunch inputs, which gives `h=1`. `coasting` is also
 separate because its longitudinal coordinate covers the whole ring instead of
 a local bunch.
 
-## How The Input Is Generated
+## Input generation
 
 The important sections in `generate_input.py` are:
 
@@ -122,7 +122,7 @@ control variables. `matchz` is constrained by bunch length, while `matchdp`
 is constrained by momentum spread. The other value remains present for a
 consistent input structure, but it is not a simultaneous matching target.
 
-## Analysis Output
+## Analysis output
 
 `analyze_results.py` finds the latest completed run for each selected case and writes:
 
@@ -154,15 +154,15 @@ limits, `dp_max`, synchrotron tune `Qs`, and the slip factor from the output
 headers: energy, `Gamma T`, RF voltage, RF phase, and harmonic number. These
 values are printed to the terminal and written to the summary CSV.
 
-The original `matchz` setting, `Sigma z = 30 m`, is larger than the maximum
+The configured `matchz` setting, `Sigma z = 30 m`, is larger than the maximum
 matched bunch length supported by the current RF bucket. PASS automatically
 reduces the target to approximately `0.99` of its limit during generation.
 For this case, `analyze_results.py` reports the measured `sigma_z`, the requested
 value, and the RF bucket boundaries rather than treating 30 m as the final
 theoretical RMS. This is expected behavior, not a failed run. Reduce
-`MATCH_SIGMA_Z` or increase RF voltage to avoid clipping.
+`MATCH_SIGMA_Z` to avoid clipping.
 
-## Add Or Modify Tests
+## Modify a case
 
 For example, add another transverse Gaussian / longitudinal Gaussian bunch by
 adding this item to `CASES["transverse"]["bunches"]`:
@@ -192,7 +192,7 @@ Changing `EMIT_*`, `BETA_*`, or `ALPHA_*` changes the transverse theoretical
 RMS values. Changing the RF parameters changes both the matched distributions
 and the RF bucket theory.
 
-## Common Issues
+## Troubleshooting
 
 - `Input file does not exist`: run `python generate_input.py --case <case>` first.
 - `No completed run found`: run `python run_simulation.py --case <case>` before analysis.

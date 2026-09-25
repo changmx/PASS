@@ -3,8 +3,6 @@
 
 ``DistMonitor`` 在指定位置、指定圈数保存完整的束团粒子分布，包含尚未丢失和已经丢失的所有粒子。
 
-- **代码位置**：``PASS/commands/monitor/distribution.py``
-- **注册命令**：``"distmonitor"``
 
 圈数选择
 --------
@@ -80,6 +78,8 @@
 
 .. code-block:: python
 
+   from PASS.para.schema.monitors import DistMonitorItem
+
    injection_monitor = DistMonitorItem(
        s=0.0,
        save_turns=[[0], [10, 100, 10]],
@@ -131,13 +131,6 @@ HDF5 属性或 TFS 文件头包含 ``S``、command 和监视器名称、束流/�
 ``t = ReferenceArrivalTime - z / (ReferenceBeta*c)`` 恢复。
 ``ZCenter`` 仅为分组元数据，不用于恢复物理通过时刻。
 
-CPU 与 GPU
-----------
-
-CPU 直接从 NumPy 粒子数组写出。GPU 在选中圈数将九个跟踪字段
-复制到主机内存，再由指定格式的写入器输出。监视器不会跨圈保留历史 buffer，因此
-内存开销与单个粒子快照成正比，而不是与总圈数快照成正比。
-
 注入快照
 --------
 
@@ -172,3 +165,13 @@ CPU 直接从 NumPy 粒子数组写出。GPU 在选中圈数将九个跟踪字�
 ``output_format``（JSON ``"Output format"``）默认为 ``"hdf5-gzip1"``；
 设置为 ``"hdf5"`` 使用不压缩的 HDF5，或设置为 ``"tfs"`` 使用文本输出。HDF5 结构、压缩与统一读取方式见
 :doc:`table_output`。
+
+CPU 与 GPU
+----------
+
+CPU 直接从 NumPy 粒子数组写出。GPU 在选中圈数将九个跟踪字段
+复制到主机内存，再由指定格式的写入器输出。监视器不会跨圈保留历史 buffer，因此
+内存开销与单个粒子快照成正比，而不是与总圈数快照成正比。
+
+
+坐标及参考量定义见 :ref:`zh-longitudinal-reference`；损失记录保留粒子损失事件的坐标。

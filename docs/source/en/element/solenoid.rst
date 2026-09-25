@@ -3,12 +3,8 @@ Solenoid
 
 This module describes the PASS solenoid element **Solenoid**, used to simulate the motion of charged particles in a longitudinal magnetic field. The solenoid produces a uniform magnetic field :math:`B_z` along the beam direction, coupling the horizontal and vertical planes through the Larmor rotation effect while providing transverse focusing.
 
-The PASS solenoid uses an **exact nonlinear map** (analytical solution of the Hamiltonian in the Larmor framework). For a pure solenoid (without multipole field overlay), the map has zero error; when multipole fields are superimposed, a Sol-Kick-Sol (SKS) symplectic integrator is used.
+The PASS solenoid uses an **exact nonlinear map** (analytical solution of the Hamiltonian in the Larmor framework). For a pure solenoid (without multipole field overlay), the map is analytic for the stated uniform-field model, subject to floating-point roundoff; when multipole fields are superimposed, a Sol-Kick-Sol (SKS) symplectic integrator is used.
 
-**Code Location**
-
-- Source file: ``PASS/commands/element/solenoid.py``
-- Class name: ``Solenoid`` (inherits from ``Command``)
 - Registration name: ``solenoid``
 - Key features:
 
@@ -20,9 +16,184 @@ The PASS solenoid uses an **exact nonlinear map** (analytical solution of the Ha
   - Chromaticity effects naturally introduced through per-particle :math:`p_z`
   - Supports aperture check
 
+The fields below configure ``PASS.para.schema.elements.SolenoidItem``.
+The key in ``Sequence.add(name, item)`` supplies the element name; it is not a configuration-model field.
+
+Interface Parameters
+--------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 17 21 12 9 12 29
+
+   * - Python configuration field
+     - JSON key
+     - Type
+     - Unit
+     - Default
+     - Description
+   * - ``s``
+     - ``S (m)``
+     - ``float``
+     - m
+     - ``Required``
+     - Longitudinal position of the element exit or zero-length action point.
+   * - ``length``
+     - ``Length (m)``
+     - ``float``
+     - m
+     - ``0.0``
+     - Element length (must be :math:`\ge 0`; :math:`=0` retains only transverse multipole kicks)
+   * - ``ks``
+     - ``KS``
+     - ``float``
+     - :math:`\text{m}^{-1}`
+     - ``0.0``
+     - Solenoid normalized strength :math:`k_s = q_0 B_z / P_0`, default 0
+   * - ``knl``
+     - ``KiL``
+     - ``list[float]``
+     - :math:`\text{m}^{-n}`
+     - ``[]``
+     - Multipole normal integrated strength array :math:`K_{nL}`, default ``[]``
+   * - ``ksl``
+     - ``KiSL``
+     - ``list[float]``
+     - :math:`\text{m}^{-n}`
+     - ``[]``
+     - Multipole skew integrated strength array :math:`K_{sL}`, default ``[]``
+   * - ``num_slices``
+     - ``Num slices``
+     - ``int``
+     - 1
+     - ``1``
+     - Number of external body slices, default 1 (also used for a pure solenoid)
+   * - ``integrator``
+     - ``Integrator``
+     - ``str``
+     - -
+     - ``'adaptive'``
+     - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
+   * - ``aperture_type``
+     - ``Aperture type``
+     - ``str``
+     - —
+     - ``'off'``
+     - Aperture type, default ``off``
+   * - ``aperture_value``
+     - ``Aperture value``
+     - ``list``
+     - m / rad
+     - ``[]``
+     - Aperture parameter values, default ``[]``
+
+
+.. note::
+
+  - ``knl`` / ``ksl`` are optional parameters. When their sums with enabled field errors are all zero, each solenoid slice uses the exact body map; ``num_slices`` applies and ``integrator`` is unused
+  - When nominal multipoles plus enabled field errors are nonzero, the SKS integrator is enabled, and ``num_slices`` and ``integrator`` take effect
+  - When ``ks = 0`` and the element has length, it uses multipole DKD; it is a pure drift only if nominal plus error multipoles are zero
+  - When ``length = 0``, only transverse multipoles and enabled field errors act; the axial field has no thin lens map
+
+Usage Examples
+--------------
+
+Pure Solenoid (Exact Map)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL1": {
+           "S (m)": 10.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.0,
+           "KS": 2.0,
+           "Aperture type": "off"
+       }
+   }
+
+Length 1.0 m, normalized strength :math:`k_s = 2.0`. Uses a single-segment exact solenoid map without splitting truncation error, but subject to roundoff.
+
+Weak Solenoid
+~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL2": {
+           "S (m)": 20.0,
+           "Command": "Solenoid",
+           "Length (m)": 2.0,
+           "KS": 0.5,
+           "Aperture type": "off"
+       }
+   }
+
+Weak-field solenoid with a small Larmor rotation angle.
+
+Reverse-Field Solenoid
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL3": {
+           "S (m)": 30.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.5,
+           "KS": -3.0,
+           "Aperture type": "off"
+       }
+   }
+
+:math:`k_s < 0` indicates a reverse magnetic field, with the Larmor rotation in the opposite direction.
+
+Solenoid with Quadrupole Overlay (SKS Integrator)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL4": {
+           "S (m)": 40.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.0,
+           "KS": 2.0,
+           "KiL": [0.0, 0.1],
+           "KiSL": [],
+           "Num slices": 4,
+           "Integrator": "yoshida4",
+           "Aperture type": "off"
+       }
+   }
+
+Solenoid (:math:`k_s = 2.0`) with superimposed quadrupole component (:math:`K_{1L} = 0.1`), 4 slices, 4th-order symplectic integrator. The ``KiL`` array index 0 is :math:`K_{0L}` (dipole), and index 1 is :math:`K_{1L}` (quadrupole).
+
+Zero-Field Degeneration (Pure Drift)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: json
+
+   {
+       "SOL5": {
+           "S (m)": 50.0,
+           "Command": "Solenoid",
+           "Length (m)": 1.0,
+           "KS": 0.0,
+           "Aperture type": "off"
+       }
+   }
+
+When :math:`k_s = 0`, degenerates to a pure drift.
 
 Coordinate Convention
 ---------------------
+
+Use the continuous longitudinal coordinate in :ref:`en-longitudinal-reference`.
+:math:`T_b` is the ideal reference particle passage time at this position, not a measured bunch-centroid time.
+The local-map symbols :math:`\beta_0` and :math:`P_0` refer to the current bunch reference.
+:math:`p_x=P_x/P_0` is normalized momentum, not a trajectory slope.
 
 PASS uses normalized curvilinear coordinates. The six-dimensional phase-space variables are :math:`(x, p_x, y, p_y, z, \delta)`:
 
@@ -47,13 +218,12 @@ PASS uses normalized curvilinear coordinates. The six-dimensional phase-space va
     - Normalized vertical momentum, :math:`p_y = P_y / P_0`
   * - ``z``
     - :math:`\zeta`
-    - Longitudinal coordinate, :math:`\zeta = s - \beta_0 c t`
+    - Longitudinal coordinate, :math:`z=\zeta=\beta_b c(T_b-t_i)`
   * - ``dp``
     - :math:`\delta`
     - Relative momentum deviation, :math:`\delta = P / P_0 - 1`
 
 where :math:`P_0` is the reference particle momentum, :math:`\beta_0 = v_0 / c` is the reference particle normalized velocity.
-
 
 Solenoid Field and Normalized Strength
 --------------------------------------
@@ -85,7 +255,6 @@ The Larmor rotation angle is:
   \theta = \frac{\text{sk} \cdot L}{p_z} = \frac{k_s L}{2 p_z}
 
 where :math:`p_z` is the particle's normalized longitudinal momentum component (different for each particle, see below), and :math:`L` is the solenoid length.
-
 
 Physical Derivation
 --------------------
@@ -203,7 +372,6 @@ where :math:`\text{rvv} = \beta / \beta_0` is the ratio of the particle velocity
   - :math:`p_z` is different for each particle (including contributions from :math:`\delta` and Larmor momenta), so the map is **exactly nonlinear**
   - When :math:`k_s \to 0`, :math:`\sin\theta/\text{sk} \to L/p_z`, and the map degenerates to exact drift
 
-
 Why the Solenoid Has No Thin Lens Mode
 --------------------------------------
 
@@ -217,7 +385,6 @@ The thin lens limit of a solenoid (:math:`L \to 0`, :math:`k_s \to \infty`, :mat
 The scaling behavior of position and momentum is asymmetric: the rotation angle is finite but the focusing force diverges, so the thin lens limit does not exist.
 
 Therefore PASS provides no axial thin lens map. At :math:`L=0`, ``KS`` has no effect, but nominal transverse multipoles and enabled field errors still apply their integrated thin kick.
-
 
 Multipole Field Overlay and SKS Integrator
 ------------------------------------------
@@ -294,7 +461,6 @@ where the Yoshida coefficients are:
 
 The per-slice error is :math:`O(\Delta s^5)`, and the global error is :math:`O(\Delta s^4)`.
 
-
 Overall Tracking Flow
 ---------------------
 
@@ -331,7 +497,6 @@ With multipole field (:math:`N` slices):
 
   \mathcal{M} = \left[\mathcal{M}_{\text{SKS}}(\Delta s)\right]^N
 
-
 Chromaticity Effects
 --------------------
 
@@ -349,170 +514,6 @@ Particles with different momentum deviations :math:`\delta` have different :math
 Absolute normal/skew field errors and static DX/DY/DPSI alignment use the
 common :ref:`en-error` interface. Alignment moves only the magnetic field;
 apertures and SC boundaries remain in the design frame.
-
-Interface Parameters
---------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 20 25 10 10 35
-
-  * - Property
-    - JSON key
-    - Type
-    - Unit
-    - Description
-  * - ``s``
-    - ``s (m)``
-    - float
-    - m
-    - Longitudinal position of the element in the beamline
-  * - ``length``
-    - ``length (m)``
-    - float
-    - m
-    - Element length (must be :math:`\ge 0`; :math:`=0` retains only transverse multipole kicks)
-  * - ``name``
-    - ``name``
-    - str
-    - -
-    - Element name
-  * - ``ks``
-    - ``ks``
-    - float
-    - :math:`\text{m}^{-1}`
-    - Solenoid normalized strength :math:`k_s = q_0 B_z / P_0`, default 0
-  * - ``knl``
-    - ``kil``
-    - list
-    - :math:`\text{m}^{-n}`
-    - Multipole normal integrated strength array :math:`K_{nL}`, default ``[]``
-  * - ``ksl``
-    - ``kisl``
-    - list
-    - :math:`\text{m}^{-n}`
-    - Multipole skew integrated strength array :math:`K_{sL}`, default ``[]``
-  * - ``num_slice``
-    - ``num slices``
-    - int
-    - -
-    - Number of external body slices, default 1 (also used for a pure solenoid)
-  * - ``integrator``
-    - ``integrator``
-    - str
-    - -
-    - Integrator, options: ``adaptive`` (default ``uniform``), ``uniform``, ``yoshida4``
-  * - ``aperture_type``
-    - ``aperture type``
-    - str
-    - -
-    - Aperture type, default ``off``
-  * - ``aperture_value``
-    - ``aperture value``
-    - list
-    - -
-    - Aperture parameter values, default ``[]``
-
-.. note::
-
-  - ``knl`` / ``ksl`` are optional parameters. When their sums with enabled field errors are all zero, each solenoid slice uses the exact body map; ``num_slices`` applies and ``integrator`` is unused
-  - When nominal multipoles plus enabled field errors are nonzero, the SKS integrator is enabled, and ``num_slices`` and ``integrator`` take effect
-  - When ``ks = 0`` and the element has length, it uses multipole DKD; it is a pure drift only if nominal plus error multipoles are zero
-  - When ``length = 0``, only transverse multipoles and enabled field errors act; the axial field has no thin lens map
-
-
-Usage Examples
---------------
-
-Pure Solenoid (Exact Map)
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL1": {
-          "S (m)": 10.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.0,
-          "ks": 2.0,
-          "Aperture Type": "off"
-      }
-  }
-
-Length 1.0 m, normalized strength :math:`k_s = 2.0`. Uses a single-segment exact solenoid map with zero error.
-
-Weak Solenoid
-~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL2": {
-          "S (m)": 20.0,
-          "Command": "Solenoid",
-          "Length (m)": 2.0,
-          "ks": 0.5,
-          "Aperture Type": "off"
-      }
-  }
-
-Weak-field solenoid with a small Larmor rotation angle.
-
-Reverse-Field Solenoid
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL3": {
-          "S (m)": 30.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.5,
-          "ks": -3.0,
-          "Aperture Type": "off"
-      }
-  }
-
-:math:`k_s < 0` indicates a reverse magnetic field, with the Larmor rotation in the opposite direction.
-
-Solenoid with Quadrupole Overlay (SKS Integrator)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL4": {
-          "S (m)": 40.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.0,
-          "ks": 2.0,
-          "KiL": [0.0, 0.1],
-          "Kisl": [],
-          "Num Slices": 4,
-          "Integrator": "yoshida4",
-          "Aperture Type": "off"
-      }
-  }
-
-Solenoid (:math:`k_s = 2.0`) with superimposed quadrupole component (:math:`K_{1L} = 0.1`), 4 slices, 4th-order symplectic integrator. The ``KiL`` array index 0 is :math:`K_{0L}` (dipole), and index 1 is :math:`K_{1L}` (quadrupole).
-
-Zero-Field Degeneration (Pure Drift)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: json
-
-  {
-      "SOL5": {
-          "S (m)": 50.0,
-          "Command": "Solenoid",
-          "Length (m)": 1.0,
-          "ks": 0.0,
-          "Aperture Type": "off"
-      }
-  }
-
-When :math:`k_s = 0`, degenerates to a pure drift.
-
 
 Application Scenarios
 ---------------------

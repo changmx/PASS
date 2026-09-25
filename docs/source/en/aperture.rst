@@ -1,41 +1,7 @@
 Aperture
-========
+====================
 
-This module describes the **aperture checking system** (Aperture) in PASS, used to check whether particles exceed the transverse aperture boundaries of the beam pipe during particle tracking. Aperture checking is a core component of beam loss simulation, capable of identifying and recording particles lost due to transverse coordinates exceeding physical pipe limits.
-
-The aperture module is located at ``PASS/utils/aperture.py`` and provides both CPU and GPU implementations (called via the ``check_aperture_cpu`` and ``check_aperture_gpu`` functions, respectively). Each call receives the longitudinal position :math:`s` of the check and the current turn number.
-
-For each bunch passage through an ordinary element, including ``Bump``, an enabled
-aperture is checked once at the exit if no internal space charge is active. With
-:math:`K` active internal SC nodes, it is checked once before each SC source
-evaluation and once at the exit, for :math:`K+1` checks. Other external integration
-slice boundaries do not add checks. An independent ``SpaceCharge`` command checks
-at its own position. Setting the aperture to ``off`` disables these aperture
-losses; PIC field-domain validation and transport momentum-validity checks remain
-independent. ``ElSeparator`` retains its separate first-contact collision checks
-along drift subsegments; see :doc:`element/elseparator`.
-
-Ordinary aperture checks sample discrete positions. A particle that leaves and
-re-enters the aperture between these positions can escape detection; increasing
-only the external slice count does not automatically add aperture checks.
-
-Aperture checking is performed only on the transverse coordinates :math:`(x, y)` of particles and does not involve longitudinal coordinates. Each element can independently set its aperture type and parameters, supporting 10 aperture geometries.
-
-Geometry construction and loss handling are both defined in this one file.
-``build_aperture({"Type": ..., "Value": ...})`` constructs a geometry object;
-``mask(x, y)`` includes the wall, while ``strict_mask(x, y)`` excludes it.
-These predicates accept NumPy or CuPy coordinate arrays and return a mask on
-the same backend without modifying particles. ``aperture_bounds(geometry)``
-returns the geometric extents for initialization checks.
-
-``check_aperture_gpu`` supports all types below with float32 or float64 particle
-coordinates and records losses on the device. It validates shape parameters
-before launching a CUDA kernel, accepts integer or floating-point dimensions,
-and does nothing for an empty bunch. Previously lost particles retain their
-original loss position and turn; particles outside the requested bunch range
-are untouched. CPU execution does not require CuPy. This GPU support concerns
-the aperture module and the CPU/GPU PIC and SpaceCharge tracking paths.
-
+Aperture checks identify and record losses from transverse particle positions. Apertures are configured as element attributes, with dimensions in metres. Ordinary elements default to disabled aperture checks; the default SpaceCharge aperture follows its field grid, as described in :doc:`space_charge`. CPU and NVIDIA GPU support the same aperture settings.
 
 Interface Parameters
 --------------------
@@ -51,11 +17,11 @@ The aperture system is controlled by two parameters:
     - Type
     - Description
   * - ``aperture_type``
-    - ``Aperture Type``
+    - ``Aperture type``
     - str
     - Aperture type, case-insensitive; available values are listed below
   * - ``aperture_value``
-    - ``Aperture Value``
+    - ``Aperture value``
     - list
     - Aperture parameter values; meaning varies by type
 
@@ -63,6 +29,135 @@ The aperture system is controlled by two parameters:
 
   ``aperture_type`` is case-insensitive and is internally converted to lowercase before matching. The ``off`` and ``default`` types ignore ``aperture_value`` .
 
+Parameter Summary Table
+------------------------
+
+.. list-table::
+  :header-rows: 1
+  :widths: 15 25 60
+
+  * - Type
+    - aperture_value
+    - Description
+  * - ``off``
+    - ignored
+    - No aperture checking
+  * - ``default``
+    - ignored
+    - Ordinary elements: ±1 m rectangle; SpaceCharge: configuration grid rectangle
+  * - ``circle``
+    - ``[r]``
+    - Circular, :math:`r` is the radius
+  * - ``rectangle``
+    - ``[w, h]``
+    - Rectangular, :math:`w` is the half-width, :math:`h` is the half-height
+  * - ``ellipse``
+    - ``[a, b]``
+    - Elliptical, :math:`a` is the horizontal semi-axis, :math:`b` is the vertical semi-axis
+  * - ``rectcircle``
+    - ``[w, h, r]``
+    - Intersection of rectangle and circle
+  * - ``rectellipse``
+    - ``[w, h, a, b]``
+    - Intersection of rectangle and ellipse
+  * - ``racetrack``
+    - ``[w, h, a, b]``
+    - Racetrack (rectangle + elliptical ends)
+  * - ``octagon``
+    - ``[w, h, d]``
+    - Octagonal (rectangle with 45° chamfers)
+  * - ``polygon``
+    - ``[[x1,y1], ...]``
+    - Polygon vertex list, automatically closed
+
+Usage Example
+-------------
+
+The following JSON snippets show the configuration of each aperture type. Aperture parameters are element properties,
+placed alongside fields such as ``S (m)`` , ``Command`` , ``Length (m)`` , etc.:
+
+**Circular aperture** :
+
+.. code-block:: json
+
+  "Drift1": {
+      "S (m)": 10.0,
+      "Command": "Drift",
+      "Length (m)": 0.5,
+      "Aperture type": "circle",
+      "Aperture value": [0.1]
+  }
+
+**Rectangular aperture** :
+
+.. code-block:: json
+
+  "Drift2": {
+      "S (m)": 10.5,
+      "Command": "Drift",
+      "Length (m)": 0.3,
+      "Aperture type": "rectangle",
+      "Aperture value": [0.06, 0.04]
+  }
+
+**Elliptical aperture** :
+
+.. code-block:: json
+
+  "Drift3": {
+      "S (m)": 11.0,
+      "Command": "Drift",
+      "Length (m)": 0.2,
+      "Aperture type": "ellipse",
+      "Aperture value": [0.06, 0.04]
+  }
+
+**Racetrack aperture** :
+
+.. code-block:: json
+
+  "Drift4": {
+      "S (m)": 11.5,
+      "Command": "Drift",
+      "Length (m)": 0.4,
+      "Aperture type": "racetrack",
+      "Aperture value": [0.03, 0.05, 0.02, 0.05]
+  }
+
+**Octagonal aperture** :
+
+.. code-block:: json
+
+  "Drift5": {
+      "S (m)": 12.0,
+      "Command": "Drift",
+      "Length (m)": 0.3,
+      "Aperture type": "octagon",
+      "Aperture value": [0.05, 0.03, 0.01]
+  }
+
+**Polygon aperture** :
+
+.. code-block:: json
+
+  "Drift6": {
+      "S (m)": 12.5,
+      "Command": "Drift",
+      "Length (m)": 0.2,
+      "Aperture type": "polygon",
+      "Aperture value": [[0.05, 0.0], [0.025, 0.043], [-0.025, 0.043], [-0.05, 0.0], [-0.025, -0.043], [0.025, -0.043]]
+  }
+
+**Disable aperture checking** :
+
+.. code-block:: json
+
+  "Drift7": {
+      "S (m)": 13.0,
+      "Command": "Drift",
+      "Length (m)": 0.5,
+      "Aperture type": "off"
+  }
 
 Lost Particle Handling
 ----------------------
@@ -79,8 +174,24 @@ When a particle is determined to be lost, the system performs the following oper
 
 Particles already lost ( :math:`\text{tag} < 0` ) are skipped in subsequent aperture checks and are not marked again. Aperture checking is performed only on surviving particles ( :math:`\text{tag} > 0` ).
 
+Check locations and limitations
+--------------------------------------------------------------
 
-Detailed Aperture Types
+For each bunch passage through an ordinary element, including ``Bump``, an enabled
+aperture is checked once at the exit if no internal space charge is active. With
+:math:`K` active internal SC nodes, it is checked once before each SC source
+evaluation and once at the exit, for :math:`K+1` checks. Other external integration
+slice boundaries do not add checks. An independent ``SpaceCharge`` command checks
+at its own position. Setting the aperture to ``off`` disables these aperture
+losses; PIC field-domain validation and transport momentum-validity checks remain
+independent. ``ElSeparator`` retains its separate first-contact collision checks
+along particle trajectories; see :doc:`element/elseparator`.
+
+Ordinary aperture checks sample discrete positions. A particle that leaves and
+re-enters the aperture between these positions can escape detection; increasing
+only the external slice count does not automatically add aperture checks.
+
+Detailed Aperture types
 -----------------------
 
 The following describes the parameter definitions and loss conditions for each of the 10 aperture types.
@@ -202,7 +313,7 @@ rectangle (Rectangular)
 ellipse (Elliptical)
 ~~~~~~~~~~~~~~~~~~~~
 
-**Parameters** : ``aperture_value = [a, b]`` , where :math:`a` is the semi-major axis (x direction) and :math:`b` is the semi-minor axis (y direction).
+**Parameters** : ``aperture_value = [a, b]`` , where :math:`a` is the horizontal semi-axis (x direction) and :math:`b` is the vertical semi-axis (y direction).
 
 **Loss condition** :
 
@@ -273,7 +384,7 @@ The aperture region is the **intersection** of the rectangle and the circle (par
 rectellipse (Rectangle Inscribed Ellipse)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Parameters** : ``aperture_value = [w, h, a, b]`` , where :math:`w` is the rectangle half-width, :math:`h` is the rectangle half-height, :math:`a` is the ellipse semi-major axis (x direction), and :math:`b` is the ellipse semi-minor axis (y direction).
+**Parameters** : ``aperture_value = [w, h, a, b]`` , where :math:`w` is the rectangle half-width, :math:`h` is the rectangle half-height, :math:`a` is the ellipse horizontal semi-axis (x direction), and :math:`b` is the ellipse vertical semi-axis (y direction).
 
 The aperture region is the **intersection** of the rectangle and the ellipse (particles must be inside both the rectangle and the ellipse to survive).
 
@@ -442,135 +553,3 @@ The **ray casting** method is used to determine whether a point is inside the po
     <text x="215" y="270" fill="#f5a623" font-size="10" font-family="monospace">P6</text>
   </svg>
   </div>
-
-
-Parameter Summary Table
-------------------------
-
-.. list-table::
-  :header-rows: 1
-  :widths: 15 25 60
-
-  * - Type
-    - aperture_value
-    - Description
-  * - ``off``
-    - ignored
-    - No aperture checking
-  * - ``default``
-    - ignored
-    - Default ±1m rectangular aperture
-  * - ``circle``
-    - ``[r]``
-    - Circular, :math:`r` is the radius
-  * - ``rectangle``
-    - ``[w, h]``
-    - Rectangular, :math:`w` is the half-width, :math:`h` is the half-height
-  * - ``ellipse``
-    - ``[a, b]``
-    - Elliptical, :math:`a` is the semi-major axis, :math:`b` is the semi-minor axis
-  * - ``rectcircle``
-    - ``[w, h, r]``
-    - Intersection of rectangle and circle
-  * - ``rectellipse``
-    - ``[w, h, a, b]``
-    - Intersection of rectangle and ellipse
-  * - ``racetrack``
-    - ``[w, h, a, b]``
-    - Racetrack (rectangle + elliptical ends)
-  * - ``octagon``
-    - ``[w, h, d]``
-    - Octagonal (rectangle with 45° chamfers)
-  * - ``polygon``
-    - ``[[x1,y1], ...]``
-    - Polygon vertex list, automatically closed
-
-
-Usage Example
--------------
-
-The following JSON snippets show the configuration of each aperture type. Aperture parameters are element properties,
-placed alongside fields such as ``S (m)`` , ``Command`` , ``Length (m)`` , etc.:
-
-**Circular aperture** :
-
-.. code-block:: json
-
-  "Drift1": {
-      "S (m)": 10.0,
-      "Command": "Drift",
-      "Length (m)": 0.5,
-      "Aperture Type": "circle",
-      "Aperture Value": [0.1]
-  }
-
-**Rectangular aperture** :
-
-.. code-block:: json
-
-  "Drift2": {
-      "S (m)": 10.5,
-      "Command": "Drift",
-      "Length (m)": 0.3,
-      "Aperture Type": "rectangle",
-      "Aperture Value": [0.06, 0.04]
-  }
-
-**Elliptical aperture** :
-
-.. code-block:: json
-
-  "Drift3": {
-      "S (m)": 11.0,
-      "Command": "Drift",
-      "Length (m)": 0.2,
-      "Aperture Type": "ellipse",
-      "Aperture Value": [0.06, 0.04]
-  }
-
-**Racetrack aperture** :
-
-.. code-block:: json
-
-  "Drift4": {
-      "S (m)": 11.5,
-      "Command": "Drift",
-      "Length (m)": 0.4,
-      "Aperture Type": "racetrack",
-      "Aperture Value": [0.03, 0.05, 0.02, 0.05]
-  }
-
-**Octagonal aperture** :
-
-.. code-block:: json
-
-  "Drift5": {
-      "S (m)": 12.0,
-      "Command": "Drift",
-      "Length (m)": 0.3,
-      "Aperture Type": "octagon",
-      "Aperture Value": [0.05, 0.03, 0.01]
-  }
-
-**Polygon aperture** :
-
-.. code-block:: json
-
-  "Drift6": {
-      "S (m)": 12.5,
-      "Command": "Drift",
-      "Length (m)": 0.2,
-      "Aperture Type": "polygon",
-      "Aperture Value": [[0.05, 0.0], [0.025, 0.043], [-0.025, 0.043], [-0.05, 0.0], [-0.025, -0.043], [0.025, -0.043]]
-  }
-
-**Disable aperture checking** :
-
-.. code-block:: json
-
-  "Drift7": {
-      "S (m)": 13.0,
-      "Command": "Drift",
-      "Length (m)": 0.5,
-      "Aperture Type": "off"
-  }
