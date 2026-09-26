@@ -324,6 +324,7 @@ class WakeFieldConfig(WakeParameters):
 
 
 class WakeFieldItem(WakeParameters):
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(ge=0, alias="S (m)")
     command: Literal["WakeField"] = Field(default="WakeField", alias="Command")
     slice_set: str = Field(min_length=1, alias="Slice set")

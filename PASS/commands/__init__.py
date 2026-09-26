@@ -19,6 +19,10 @@ from .element.bump import Bump
 from .element.elseparator import ElSeparator
 from .element.exciter import Exciter
 from .element.rfcavity import RFCavity
+from .element.crossing_angle import CrossingAngle
+from .element.crab_cavity import CrabCavity
+from .element.float_waister import FloatWaister
+from .beam_beam import BeamBeam
 from .space_charge import SpaceCharge
 from .wake_field import WakeField
 from .monitor.statistic import StatMonitor
@@ -49,6 +53,10 @@ __all__ = [
     "ElSeparator",
     "Exciter",
     "RFCavity",
+    "CrossingAngle",
+    "CrabCavity",
+    "FloatWaister",
+    "BeamBeam",
     "SpaceCharge",
     "WakeField",
     "StatMonitor",

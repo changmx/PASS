@@ -172,6 +172,7 @@ class SpaceChargeItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(default=0.0, alias="S (m)")
     command: Literal["SpaceCharge"] = Field(default="SpaceCharge", alias="Command")
     configuration: str = Field(

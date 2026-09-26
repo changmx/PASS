@@ -29,7 +29,12 @@ class Command(ABC):
             from PASS.para.schema.space_charge import SLICED_ELEMENT_COMMANDS
             if cmd_type not in SLICED_ELEMENT_COMMANDS:
                 raise ValueError(f"{cmd_type} does not support internal Space charge")
-        return cls._registry[cmd_type](beam_id, sim, **data)
+        order = data.pop("order", None)
+        if order is not None and type(order) is not int:
+            raise ValueError("Order must be an integer")
+        command = cls._registry[cmd_type](beam_id, sim, **data)
+        command.order = order
+        return command
 
     @abstractmethod
     def execute_cpu(self, sim):

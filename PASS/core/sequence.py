@@ -1,10 +1,10 @@
 from typing import List
 import logging
 
-from PASS.commands import Command, command_priority
+from PASS.commands import Command
 from PASS.core.simulation import Simulation
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
-from PASS.utils.constants import const
+from PASS.utils.command_order import sort_commands
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +30,8 @@ class CommandSequence:
         self.num_cmd = len(self.cmds)
 
     def sort(self, eps: float = None) -> None:
-        """Sort commands in-place, first by s-position ascending, then by command type priority.
-
-        For commands whose s-values differ by less than *eps*, they are considered
-        to share the same s and are ordered by their priority (see COMMAND_PRIORITY).
-
-        Args:
-            eps: Tolerance for comparing s-positions. Defaults to const.eps.
-        """
-        if eps is None:
-            eps = const.eps
-
-        def sort_key(cmd):
-            # Primary: s-value (rounded to bins of size eps)
-            s_bin = round(cmd.s / eps) if eps > 0 else cmd.s
-            # Secondary: priority
-            return (s_bin, command_priority(cmd.cmd_type))
-
-        self.cmds.sort(key=sort_key)
+        """Apply the shared position/Order/legacy-priority ordering contract."""
+        self.cmds[:] = sort_commands(self.cmds, eps=eps)
 
     def print(self):
         set_simple_logging()

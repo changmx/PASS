@@ -68,17 +68,17 @@ class GridGeometry:
     def y(self) -> np.ndarray:
         return np.linspace(self.y_min, self.y_max, self.ny)
 
-    def locate(self, x: Any, y: Any) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def locate(self, x: Any, y: Any, dtype=float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Return lower node indices, fractional offsets and in-grid mask."""
-        x = np.asarray(x, dtype=float)
-        y = np.asarray(y, dtype=float)
+        x = np.asarray(x, dtype=dtype)
+        y = np.asarray(y, dtype=dtype)
         ux = (x - self.x_min) / self.dx
         uy = (y - self.y_min) / self.dy
         inside = (ux >= 0) & (ux <= self.nx - 1) & (uy >= 0) & (uy <= self.ny - 1)
         ix = np.floor(np.clip(ux, 0, self.nx - 1)).astype(np.int64)
         iy = np.floor(np.clip(uy, 0, self.ny - 1)).astype(np.int64)
-        tx = ux - ix
-        ty = uy - iy
+        tx = ux - ix.astype(dtype)
+        ty = uy - iy.astype(dtype)
         edge_x = ix == self.nx - 1
         edge_y = iy == self.ny - 1
         ix = np.where(edge_x, self.nx - 2, ix)
@@ -196,6 +196,8 @@ def build_pic_resources(
     *,
     aperture: Mapping[str, Any] | None = None,
     field_solver: str = "fd",
+    dtype="float64",
+    potential_reference_length=None,
 ) -> PICResources:
     """Build reusable geometry, aperture, and one batched field solver.
 
@@ -249,11 +251,11 @@ def build_pic_resources(
     elif name == "dst_rectangle":
         solver = build_dst_rectangle_resources(geometry)
     else:  # fft_free_space
-        solver = build_fft_free_space_resources(geometry)
+        solver = build_fft_free_space_resources(geometry, dtype=dtype, potential_reference_length=potential_reference_length)
     return PICResources(geometry, spec, solver.aperture_mask.copy(), solver, name)
 
 
-def _arrays(p, tag=None):
+def _arrays(p, tag=None, dtype=float):
 
     def value(name, fallback=None):
         if isinstance(p, Mapping):
@@ -263,7 +265,7 @@ def _arrays(p, tag=None):
     x, y = value("x"), value("y")
     if x is None or y is None:
         raise TypeError("particles must provide x and y arrays")
-    x, y = np.asarray(x, dtype=float), np.asarray(y, dtype=float)
+    x, y = np.asarray(x, dtype=dtype), np.asarray(y, dtype=dtype)
     if x.shape != y.shape:
         raise ValueError("x and y must have the same shape")
     if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
@@ -344,14 +346,14 @@ def _deposit_stencil(
             scale = charge[selected] / (normalizer * geometry.dx * geometry.dy)
             for gx, gy, weight in entries:
                 indices = sid[selected] * stride + gy[selected] * geometry.nx + gx[selected]
-                if flat.size <= 8 * selected_count:
+                if flat.size <= 8 * selected_count and density.dtype.itemsize == 8:
                     flat += np.bincount(indices, weights=scale * weight[selected], minlength=flat.size)
                 else:
                     # Sparse stacks should not allocate a full-grid temporary
                     # for every stencil node just to scatter a few particles.
                     np.add.at(flat, indices, scale * weight[selected])
             return valid.copy(), 0, float(normalizer.min()) if selected_count else 1.0
-    normalizer = np.zeros(sid.size, dtype=float)
+    normalizer = np.zeros(sid.size, dtype=density.dtype)
     for gx, gy, weight in entries:
         in_grid = (gx >= 0) & (gx < geometry.nx) & (gy >= 0) & (gy < geometry.ny)
         local = valid & in_grid
@@ -398,7 +400,7 @@ def _deposit_stencil(
 
 
 def _tsc_weight(position: np.ndarray, node: np.ndarray) -> np.ndarray:
-    distance = np.abs(position - node)
+    distance = np.abs(position - node.astype(position.dtype))
     outer = np.maximum(0.0, 1.5 - distance)
     return np.where(distance < 0.5, 0.75 - distance**2, 0.5 * outer**2)
 
@@ -410,13 +412,14 @@ def deposit_cic(particles,
                 *,
                 charge_per_macro=1.0,
                 num_slices=None,
-                tag=None) -> DepositResult:
+                tag=None,
+                dtype=float) -> DepositResult:
     """CIC-deposit macro charges (C) into a density stack in C/m^2.
 
     Without ``resources`` this intentionally uses the full rectangular grid
     aperture. Supply :func:`build_pic_resources` for any physical aperture.
     """
-    x, y, alive = _arrays(particles, tag)
+    x, y, alive = _arrays(particles, tag, dtype=dtype)
     raw_slice_indices = np.asarray(slice_id)
     if raw_slice_indices.dtype.kind not in "iu":
         raise TypeError("slice_id must be an integer array")
@@ -425,16 +428,16 @@ def deposit_cic(particles,
         raise ValueError("slice_id must have one entry per particle")
     n_slices = _slice_count(slice_indices, num_slices)
     try:
-        charge = np.broadcast_to(np.asarray(charge_per_macro, dtype=float), x.shape)
+        charge = np.broadcast_to(np.asarray(charge_per_macro, dtype=dtype), x.shape)
     except ValueError as exc:
         raise ValueError("charge_per_macro must be scalar or match particle shape") from exc
     if not np.all(np.isfinite(charge)):
         raise ValueError("charge_per_macro must be finite")
     resources = _default_rectangular_resources(geometry, resources)
-    ix, iy, tx, ty, in_grid = geometry.locate(x, y)
+    ix, iy, tx, ty, in_grid = geometry.locate(x, y, dtype=dtype)
     in_aperture = resources.aperture.mask(x, y)
     valid = alive & in_grid & in_aperture & (slice_indices >= 0) & (slice_indices < n_slices)
-    density = np.zeros((n_slices, geometry.ny, geometry.nx), dtype=float)
+    density = np.zeros((n_slices, geometry.ny, geometry.nx), dtype=dtype)
     entries = []
     for ox, wx in ((0, 1 - tx), (1, tx)):
         for oy, wy in ((0, 1 - ty), (1, ty)):
@@ -460,13 +463,14 @@ def deposit_tsc(particles,
                 *,
                 charge_per_macro=1.0,
                 num_slices=None,
-                tag=None) -> DepositResult:
+                tag=None,
+                dtype=float) -> DepositResult:
     """TSC-deposit macro charges (C) into a density stack in C/m^2.
 
     Without ``resources`` this intentionally uses the full rectangular grid
     aperture. Supply :func:`build_pic_resources` for any physical aperture.
     """
-    x, y, alive = _arrays(particles, tag)
+    x, y, alive = _arrays(particles, tag, dtype=dtype)
     raw_slice_indices = np.asarray(slice_id)
     if raw_slice_indices.dtype.kind not in "iu":
         raise TypeError("slice_id must be an integer array")
@@ -475,7 +479,7 @@ def deposit_tsc(particles,
         raise ValueError("slice_id must have one entry per particle")
     n_slices = _slice_count(slice_indices, num_slices)
     try:
-        charge = np.broadcast_to(np.asarray(charge_per_macro, dtype=float), x.shape)
+        charge = np.broadcast_to(np.asarray(charge_per_macro, dtype=dtype), x.shape)
     except ValueError as exc:
         raise ValueError("charge_per_macro must be scalar or match particle shape") from exc
     if not np.all(np.isfinite(charge)):
@@ -485,15 +489,18 @@ def deposit_tsc(particles,
     uy = (y - geometry.y_min) / geometry.dy
     valid = (alive & (ux >= 0) & (ux <= geometry.nx - 1) & (uy >= 0) & (uy <= geometry.ny - 1)
              & resources.aperture.mask(x, y) & (slice_indices >= 0) & (slice_indices < n_slices))
-    density = np.zeros((n_slices, geometry.ny, geometry.nx), dtype=float)
+    density = np.zeros((n_slices, geometry.ny, geometry.nx), dtype=dtype)
     cx, cy = np.floor(ux + 0.5).astype(np.int64), np.floor(uy + 0.5).astype(np.int64)
+    # Axis weights are independent of the other stencil coordinate.
+    x_nodes, y_nodes = [], []
+    for offset in (-1, 0, 1):
+        gx, gy = cx + offset, cy + offset
+        x_nodes.append((gx, _tsc_weight(ux, gx)))
+        y_nodes.append((gy, _tsc_weight(uy, gy)))
     entries = []
-    for ox in (-1, 0, 1):
-        gx = cx + ox
-        wx = _tsc_weight(ux, gx)
-        for oy in (-1, 0, 1):
-            gy = cy + oy
-            entries.append((gx, gy, wx * _tsc_weight(uy, gy)))
+    for gx, wx in x_nodes:
+        for gy, wy in y_nodes:
+            entries.append((gx, gy, wx * wy))
     deposited, boundary_count, min_retained = _deposit_stencil(density, slice_indices, charge, valid, entries, resources)
     deposited_charge = np.bincount(slice_indices[deposited], weights=charge[deposited], minlength=n_slices)
     deposited_count = np.bincount(slice_indices[deposited], minlength=n_slices).astype(np.int64)
@@ -671,6 +678,370 @@ def gather_quadratic(field, particles, geometry, resources=None, slice_id=None, 
     return _gather(field, particles, geometry, slice_id, resources, True, tag)
 
 
+def gather_potential_jet(potential, x, y, geometry, *, method="TSC", xp=np, error_flags=None):
+    """Return reconstructed Psi and its exact stencil gradients Ex/Ey.
+
+    Collision tracking requires full stencil coverage. Differentiating the
+    normalized weights also preserves the constant-potential null space at
+    clipped stencils; coverage errors are never converted to physical losses.
+    """
+    dtype = potential.dtype
+    scalar = np.dtype(dtype).type
+    x, y = xp.broadcast_arrays(xp.asarray(x, dtype=dtype), xp.asarray(y, dtype=dtype))
+    tsc = method.upper() == "TSC"
+    if method.upper() not in {"TSC", "CIC"}:
+        raise ValueError("potential gather method must be CIC or TSC")
+    # Nearest-node TSC uses three nodes. All nonzero weights and derivatives
+    # fit once the particle is half a cell inward from either outer node.
+    margin = scalar(.5 if tsc else 0)
+    lower_x, upper_x = scalar(geometry.x_min + float(margin) * geometry.dx), scalar(geometry.x_max - float(margin) * geometry.dx)
+    lower_y, upper_y = scalar(geometry.y_min + float(margin) * geometry.dy), scalar(geometry.y_max - float(margin) * geometry.dy)
+    if xp is not np:
+        if potential.shape != (geometry.ny, geometry.nx):
+            raise ValueError("potential shape must match the two-dimensional grid")
+        if error_flags is not None and (error_flags.dtype != xp.int32 or not error_flags.flags.c_contiguous):
+            raise TypeError("GPU potential gather error_flags must be a contiguous int32 array")
+        outputs = tuple(xp.empty(x.shape, dtype=dtype) for _ in range(3))
+        flags = error_flags if error_flags is not None else xp.empty(0, dtype=xp.int32)
+        launch_gpu_kernel(_POTENTIAL_JET_CUDA, "gather_potential_jet", x.size,
+                          (xp.ascontiguousarray(potential), xp.ascontiguousarray(x), xp.ascontiguousarray(y), *outputs, flags, np.int64(
+                              flags.size), np.int64(x.size), np.int32(geometry.nx), np.int32(geometry.ny), np.int32(tsc), scalar(geometry.x_min),
+                           scalar(geometry.y_min), scalar(geometry.dx), scalar(geometry.dy), lower_x, upper_x, lower_y, upper_y), dtype)
+        return outputs
+    return tuple(values[0] for values in _gather_potential_planes(potential[None], x, y, geometry, tsc, error_flags))
+
+
+def _gather_potential_planes(potential, x, y, geometry, tsc, error_flags):
+    """Share one CPU stencil while accumulating each potential independently."""
+    xp, dtype = np, potential.dtype
+    scalar = dtype.type
+    margin = scalar(.5 if tsc else 0)
+    lower_x, upper_x = scalar(geometry.x_min + float(margin) * geometry.dx), scalar(geometry.x_max - float(margin) * geometry.dx)
+    lower_y, upper_y = scalar(geometry.y_min + float(margin) * geometry.dy), scalar(geometry.y_max - float(margin) * geometry.dy)
+    ux, uy = (x - scalar(geometry.x_min)) / scalar(geometry.dx), (y - scalar(geometry.y_min)) / scalar(geometry.dy)
+    outside = xp.any((x < lower_x) | (x > upper_x) | (y < lower_y) | (y > upper_y) | ~xp.isfinite(x) | ~xp.isfinite(y))
+    if xp is np and bool(outside):
+        raise ValueError("BeamBeam grid does not cover a complete target interpolation stencil")
+    if error_flags is not None:
+        error_flags[...] |= outside.astype(xp.int32)
+    # Bounds are checked in stored-coordinate precision. A representable
+    # physical boundary can normalize just outside by a rounding unit.
+    ux = xp.clip(ux, margin, scalar(geometry.nx - 1) - margin)
+    uy = xp.clip(uy, margin, scalar(geometry.ny - 1) - margin)
+    cx = xp.floor(ux + scalar(.5) if tsc else ux).astype(xp.int64)
+    cy = xp.floor(uy + scalar(.5) if tsc else uy).astype(xp.int64)
+    if not tsc:
+        cx, cy = xp.minimum(cx, geometry.nx - 2), xp.minimum(cy, geometry.ny - 2)
+
+    def weight(position, node, spacing, offset):
+        distance = position - node.astype(dtype)
+        if tsc:
+            absolute = xp.abs(distance)
+            outer = xp.maximum(scalar(0), scalar(1.5) - absolute)
+            value = xp.where(absolute < scalar(.5), scalar(.75) - distance**2, scalar(.5) * outer**2)
+            derivative = xp.where(absolute < scalar(.5), -scalar(2) * distance, -xp.sign(distance) * outer) / scalar(spacing)
+        else:
+            value = scalar(1) - distance if offset == 0 else scalar(1) + distance
+            derivative = xp.full_like(value, (-1 if offset == 0 else 1) / spacing)
+        return value, derivative
+
+    def axis_nodes(position, center, spacing, count):
+        nodes = []
+        for offset in (-1, 0, 1) if tsc else (0, 1):
+            node = center + offset
+            value, derivative = weight(position, node, spacing, offset)
+            nodes.append((xp.clip(node, 0, count - 1), (node >= 0) & (node < count), value, derivative))
+        return nodes
+
+    x_nodes = axis_nodes(ux, cx, geometry.dx, geometry.nx)
+    y_nodes = axis_nodes(uy, cy, geometry.dy, geometry.ny)
+    norm, norm_x, norm_y = (xp.zeros_like(x) for _ in range(3))
+    value, value_x, value_y = (xp.zeros((potential.shape[0], ) + x.shape, dtype=dtype) for _ in range(3))
+    flat_potential = potential.reshape(potential.shape[0], -1)
+    for gx, inside_x, wx, dx in x_nodes:
+        for gy, inside_y, wy, dy in y_nodes:
+            inside = inside_x & inside_y
+            w, dwx, dwy = wx * wy * inside, dx * wy * inside, wx * dy * inside
+            # Match the C layout of the output accumulators.
+            phi = xp.take(flat_potential, gy * geometry.nx + gx, axis=1)
+            norm += w
+            norm_x += dwx
+            norm_y += dwy
+            value += phi * w
+            value_x += phi * dwx
+            value_y += phi * dwy
+    norm = xp.where(norm > 0, norm, scalar(1))
+    value /= norm
+    return value, -(value_x - value * norm_x) / norm, -(value_y - value * norm_y) / norm
+
+
+def gather_cubic_potential_jet(potential, x, y, weight, step, geometry, *, method="TSC", xp=np, error_flags=None):
+    """Gather a C1 Catmull-Rom jet from one base and three difference planes.
+
+    Planes are ``(Phi_i, Phi_{i-1}-Phi_i, Phi_{i+1}-Phi_i,
+    Phi_{i+2}-Phi_i)``. ``weight`` is the position within [S_i,S_{i+1}]
+    divided by the positive scalar ``step``. Fields differentiate the same
+    normalized transverse stencil; the S derivative uses differences only.
+    Passing GPU error_flags records errors without host synchronization.
+    Without flags, this helper synchronizes once and raises on invalid inputs.
+    """
+    dtype = potential.dtype
+    scalar = np.dtype(dtype).type
+    if potential.shape != (4, geometry.ny, geometry.nx):
+        raise ValueError("cubic potential must contain four planes matching the grid")
+    if method.upper() not in {"TSC", "CIC"}:
+        raise ValueError("potential gather method must be CIC or TSC")
+    if np.isscalar(step) and (not np.isfinite(step) or step <= 0):
+        raise ValueError("cubic propagation step must be positive finite")
+    step = xp.asarray(step, dtype=dtype)
+    if step.ndim != 0:
+        raise ValueError("cubic propagation step must be a scalar")
+    x, y, weight = xp.broadcast_arrays(*(xp.asarray(values, dtype=dtype) for values in (x, y, weight)))
+    tsc = method.upper() == "TSC"
+    tolerance = scalar(16 * np.finfo(dtype).eps)
+    if xp is np:
+        if not np.isfinite(step) or step <= 0:
+            raise ValueError("cubic propagation step must be positive finite")
+        if np.any(~np.isfinite(weight) | (weight < -tolerance) | (weight > 1 + tolerance)):
+            raise ValueError("cubic interpolation weight must lie within its source interval")
+        if x.size >= geometry.nx * geometry.ny and np.all(weight == 0):
+            # At a node, retain the base gauge separately from the S derivative.
+            planes = np.stack((potential[0], scalar(.5) * (potential[2] - potential[1])))
+            jets = _gather_potential_planes(planes, x, y, geometry, tsc, error_flags)
+            return *(component[0].copy() for component in jets), jets[0][1] / step
+        jets = _gather_potential_planes(potential, x, y, geometry, tsc, error_flags)
+        values = [component[0].copy() for component in jets]
+        t2, t3 = weight * weight, weight * weight * weight
+        coefficients = (-weight / 2 + t2 - t3 / 2, weight / 2 + 2 * t2 - 3 * t3 / 2, -t2 / 2 + t3 / 2)
+        slopes = (-.5 + 2 * weight - 1.5 * t2, .5 + 4 * weight - 4.5 * t2, -weight + 1.5 * t2)
+        derivative = np.zeros_like(weight)
+        for index, (coefficient, slope) in enumerate(zip(coefficients, slopes), start=1):
+            for component in range(3):
+                values[component] += coefficient * jets[component][index]
+            derivative += slope * jets[0][index]
+        return (*values, derivative / step)
+    if error_flags is not None and (error_flags.dtype != xp.int32 or not error_flags.flags.c_contiguous):
+        raise TypeError("GPU potential gather error_flags must be a contiguous int32 array")
+    margin = .5 if tsc else 0
+    bounds = tuple(
+        scalar(value) for value in (geometry.x_min + margin * geometry.dx, geometry.x_max - margin * geometry.dx,
+                                    geometry.y_min + margin * geometry.dy, geometry.y_max - margin * geometry.dy))
+    outputs = tuple(xp.empty(x.shape, dtype=dtype) for _ in range(4))
+    flags = error_flags if error_flags is not None else xp.zeros((), dtype=xp.int32)
+    launch_gpu_kernel(_POTENTIAL_JET_CUDA, "gather_cubic_potential_jet", x.size,
+                      (xp.ascontiguousarray(potential), xp.ascontiguousarray(x), xp.ascontiguousarray(y), xp.ascontiguousarray(weight), step,
+                       *outputs, flags, np.int64(flags.size), np.int64(x.size), np.int32(geometry.nx), np.int32(geometry.ny), np.int32(tsc),
+                       scalar(geometry.x_min), scalar(geometry.y_min), scalar(geometry.dx), scalar(geometry.dy), *bounds, tolerance), dtype)
+    if error_flags is None:
+        # Also validate a device step when there are no particle kernel threads.
+        flags |= ~xp.isfinite(step) | (step <= 0)
+        if bool(flags):
+            raise ValueError("cubic potential gather requires a complete target stencil, interval weight in [0,1], and positive finite step")
+    return outputs
+
+
+_POTENTIAL_JET_CUDA = r"""
+__device__ void potential_jet_weight(
+    T position,
+    int node,
+    T spacing,
+    int offset,
+    int quadratic,
+    T& value,
+    T& derivative
+) {
+    T distance = position - T(node);
+    if (quadratic) {
+        T absolute = abs(distance);
+        T outer = max(T(0), T(1.5) - absolute);
+        value = absolute < T(0.5) ? T(0.75) - distance * distance : T(0.5) * outer * outer;
+        T sign = distance > T(0) ? T(1) : (distance < T(0) ? T(-1) : T(0));
+        derivative = (absolute < T(0.5) ? -T(2) * distance : -sign * outer) / spacing;
+    } else {
+        value = offset == 0 ? T(1) - distance : T(1) + distance;
+        derivative = (offset == 0 ? T(-1) : T(1)) / spacing;
+    }
+}
+
+extern "C" __global__ void gather_potential_jet(
+    const T* potential,
+    const T* x,
+    const T* y,
+    T* output_value,
+    T* output_ex,
+    T* output_ey,
+    int* error_flags,
+    long long flag_count,
+    long long count,
+    int nx,
+    int ny,
+    int quadratic,
+    T x_min,
+    T y_min,
+    T dx,
+    T dy,
+    T lower_x,
+    T upper_x,
+    T lower_y,
+    T upper_y
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count)
+        return;
+    T xi = x[i], yi = y[i];
+    bool outside = xi < lower_x || xi > upper_x || yi < lower_y || yi > upper_y || !isfinite(xi) || !isfinite(yi);
+    if (outside) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+    }
+    T ux = (xi - x_min) / dx, uy = (yi - y_min) / dy;
+    if (isnan(ux) || isnan(uy)) {
+        output_value[i] = output_ex[i] = output_ey[i] = ux + uy;
+        return;
+    }
+    T margin = quadratic ? T(0.5) : T(0);
+    ux = min(max(ux, margin), T(nx - 1) - margin);
+    uy = min(max(uy, margin), T(ny - 1) - margin);
+    int cx = int(floor(ux + (quadratic ? T(0.5) : T(0))));
+    int cy = int(floor(uy + (quadratic ? T(0.5) : T(0))));
+    if (!quadratic) {
+        cx = min(cx, nx - 2);
+        cy = min(cy, ny - 2);
+    }
+    T norm = T(0), norm_x = T(0), norm_y = T(0);
+    T value = T(0), value_x = T(0), value_y = T(0);
+    for (int ox = quadratic ? -1 : 0; ox <= 1; ++ox) {
+        int gx = cx + ox;
+        T wx, derivative_x;
+        potential_jet_weight(ux, gx, dx, ox, quadratic, wx, derivative_x);
+        for (int oy = quadratic ? -1 : 0; oy <= 1; ++oy) {
+            int gy = cy + oy;
+            if (gx < 0 || gx >= nx || gy < 0 || gy >= ny)
+                continue;
+            T wy, derivative_y;
+            potential_jet_weight(uy, gy, dy, oy, quadratic, wy, derivative_y);
+            T w = wx * wy, dwx = derivative_x * wy, dwy = wx * derivative_y;
+            T phi = potential[gy * nx + gx];
+            norm += w;
+            norm_x += dwx;
+            norm_y += dwy;
+            value += phi * w;
+            value_x += phi * dwx;
+            value_y += phi * dwy;
+        }
+    }
+    norm = norm > T(0) ? norm : T(1);
+    value /= norm;
+    output_value[i] = value;
+    output_ex[i] = -(value_x - value * norm_x) / norm;
+    output_ey[i] = -(value_y - value * norm_y) / norm;
+}
+
+extern "C" __global__ void gather_cubic_potential_jet(
+    const T* potential,
+    const T* x,
+    const T* y,
+    const T* weight,
+    const T* step,
+    T* output_value,
+    T* output_ex,
+    T* output_ey,
+    T* output_derivative,
+    int* error_flags,
+    long long flag_count,
+    long long count,
+    int nx,
+    int ny,
+    int quadratic,
+    T x_min,
+    T y_min,
+    T dx,
+    T dy,
+    T lower_x,
+    T upper_x,
+    T lower_y,
+    T upper_y,
+    T tolerance
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count)
+        return;
+    T xi = x[i], yi = y[i], t = weight[i], h = step[0];
+    bool invalid_step = !isfinite(h) || h <= T(0);
+    bool outside = xi < lower_x || xi > upper_x || yi < lower_y || yi > upper_y || !isfinite(xi) || !isfinite(yi) || !isfinite(t) || t < -tolerance ||
+                   t > T(1) + tolerance || invalid_step;
+    if (outside) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+    }
+    T ux = (xi - x_min) / dx, uy = (yi - y_min) / dy;
+    if (isnan(ux) || isnan(uy) || !isfinite(t) || invalid_step) {
+        output_value[i] = output_ex[i] = output_ey[i] = output_derivative[i] = T(nan(""));
+        return;
+    }
+    T margin = quadratic ? T(0.5) : T(0);
+    ux = min(max(ux, margin), T(nx - 1) - margin);
+    uy = min(max(uy, margin), T(ny - 1) - margin);
+    int cx = int(floor(ux + (quadratic ? T(0.5) : T(0))));
+    int cy = int(floor(uy + (quadratic ? T(0.5) : T(0))));
+    if (!quadratic) {
+        cx = min(cx, nx - 2);
+        cy = min(cy, ny - 2);
+    }
+    int width = quadratic ? 3 : 2, first = quadratic ? -1 : 0;
+    int gx[3], gy[3];
+    T wx[3], wy[3], derivative_x[3], derivative_y[3];
+    for (int node = 0; node < width; ++node) {
+        int offset = first + node;
+        gx[node] = cx + offset;
+        gy[node] = cy + offset;
+        potential_jet_weight(ux, gx[node], dx, offset, quadratic, wx[node], derivative_x[node]);
+        potential_jet_weight(uy, gy[node], dy, offset, quadratic, wy[node], derivative_y[node]);
+    }
+    T norm = T(0), norm_x = T(0), norm_y = T(0);
+    T values[4] = {T(0), T(0), T(0), T(0)};
+    T values_x[4] = {T(0), T(0), T(0), T(0)};
+    T values_y[4] = {T(0), T(0), T(0), T(0)};
+    for (int ax = 0; ax < width; ++ax) {
+        for (int ay = 0; ay < width; ++ay) {
+            if (gx[ax] < 0 || gx[ax] >= nx || gy[ay] < 0 || gy[ay] >= ny)
+                continue;
+            T w = wx[ax] * wy[ay], dwx = derivative_x[ax] * wy[ay], dwy = wx[ax] * derivative_y[ay];
+            norm += w;
+            norm_x += dwx;
+            norm_y += dwy;
+            for (int plane = 0; plane < 4; ++plane) {
+                T phi = potential[(long long)plane * nx * ny + gy[ay] * nx + gx[ax]];
+                values[plane] += phi * w;
+                values_x[plane] += phi * dwx;
+                values_y[plane] += phi * dwy;
+            }
+        }
+    }
+    norm = norm > T(0) ? norm : T(1);
+    for (int plane = 0; plane < 4; ++plane) {
+        values[plane] /= norm;
+        values_x[plane] = -(values_x[plane] - values[plane] * norm_x) / norm;
+        values_y[plane] = -(values_y[plane] - values[plane] * norm_y) / norm;
+    }
+    T t2 = t * t, t3 = t * t * t;
+    T coefficients[3] = {-t / T(2) + t2 - t3 / T(2), t / T(2) + T(2) * t2 - T(3) * t3 / T(2), -t2 / T(2) + t3 / T(2)};
+    T slopes[3] = {-T(0.5) + T(2) * t - T(1.5) * t2, T(0.5) + T(4) * t - T(4.5) * t2, -t + T(1.5) * t2};
+    T derivative = T(0);
+    for (int plane = 1; plane < 4; ++plane) {
+        values[0] += coefficients[plane - 1] * values[plane];
+        values_x[0] += coefficients[plane - 1] * values_x[plane];
+        values_y[0] += coefficients[plane - 1] * values_y[plane];
+        derivative += slopes[plane - 1] * values[plane];
+    }
+    output_value[i] = values[0];
+    output_ex[i] = values_x[0];
+    output_ey[i] = values_y[0];
+    output_derivative[i] = derivative / h;
+}
+"""
+
+
 def pic_cpu(
     x,
     y,
@@ -780,6 +1151,7 @@ def build_pic_resources_gpu(
     fft_batch_size=16,
     deposition_strategy="atomic",
     dst_implementation="auto",
+    potential_reference_length=None,
 ):
     """Build one cached GPU solver, without constructing a CPU LU factorization."""
     import cupy as cp
@@ -804,8 +1176,8 @@ def build_pic_resources_gpu(
     if name != "fd" and not full:
         raise ValueError(f"{name} requires the full grid-aligned rectangular aperture")
     solver = ((GPUFDRectangleSolver(geometry, dtype) if full else GPUFDArbitrarySolver(geometry, aperture, dtype))
-              if name == "fd" else GPUDSTRectangleSolver(geometry, dtype, implementation=dst_implementation)
-              if name == "dst_rectangle" else GPUFFTFreeSpaceSolver(geometry, dtype, batch_size=fft_batch_size))
+              if name == "fd" else GPUDSTRectangleSolver(geometry, dtype, implementation=dst_implementation) if name == "dst_rectangle" else
+              GPUFFTFreeSpaceSolver(geometry, dtype, batch_size=fft_batch_size, potential_reference_length=potential_reference_length))
     result = GPUPICResources(geometry, spec, solver, name, cp.asarray(solver.interior_mask), deposition_strategy)
     # Compile once during initialization, before the first particle snapshot.
     _gpu_module(_PIC_CUDA, solver.dtype.str, solver.device).get_function("deposit")

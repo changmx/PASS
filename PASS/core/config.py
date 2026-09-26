@@ -38,6 +38,8 @@ class Config:
     input_data: list[dict] = field(default_factory=list)
     space_charge: list = field(default_factory=list)
     space_charge_configuration_counts: list[int] = field(default_factory=list)
+    beam_beam_enabled: bool = False
+    beam_beam_configurations: dict = field(default_factory=dict)
     timing: dict = field(default_factory=lambda: {
         "mode": "command",
         "log_interval": 10,
@@ -97,6 +99,9 @@ class Config:
                 expand_wake_configurations(raw1)
                 space_charge1, space_charge_count1 = self._load_space_charge(raw1)
                 data1 = convert_keys_to_lower(raw1)
+
+        from PASS.commands.collision.config import load_beam_beam
+        self.beam_beam_enabled, self.beam_beam_configurations = load_beam_beam([raw0] if beam1_path is None else [raw0, raw1])
 
         if beam1_path is None:
             self.num_beam = 1

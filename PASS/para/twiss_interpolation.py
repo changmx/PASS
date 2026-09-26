@@ -121,7 +121,7 @@ class RingTwissInterpolator:
 def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy, is_field_error, insert_patterns, longitudinal_transfer, interp_kind):
     """Build a uniform Twiss sequence with splits at kicks and optical jumps."""
     import tfs
-    from PASS.utils.command_order import command_priority
+    from PASS.utils.command_order import command_position_key, sort_commands
     from PASS.para.madx import _insert_elements, _make_match_key, read_madx_errors
     from PASS.para.schema.elements import MultipoleItem
     from PASS.para.schema.twiss import TwissItem
@@ -203,7 +203,20 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
             candidate, suffix = f"{name}_{suffix}", suffix + 1
         names[i] = candidate
         used.add(candidate)
-    ordered = sorted(zip(items, names), key=lambda pair: (pair[0].s, command_priority(pair[0].command)))
+    explicit_positions = {}
+    for item in items:
+        if getattr(item, "order", None) is not None:
+            explicit_positions.setdefault(command_position_key(item), []).append(item.order)
+    for position, orders in explicit_positions.items():
+        transports = [
+            i for i, item in enumerate(items)
+            if item.command == "Twiss" and command_position_key(item) == position and getattr(item, "order", None) is None
+        ]
+        # Arrival maps precede explicitly ordered thin elements at this point.
+        first = min(100, min(orders) - len(transports))
+        for offset, index in enumerate(transports):
+            items[index] = items[index].model_copy(update={"order": first + offset})
+    ordered = sort_commands(zip(items, names), key=lambda pair: pair[0])
     items, names = map(list, zip(*ordered))
     print(f"[Read MADX Twiss] {num_interp_slice} base points, {len(positions)-num_interp_slice} extra positions, "
           f"{len(items)} commands; phase-constrained quintic Hermite; C={circumference}")

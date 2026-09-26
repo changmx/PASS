@@ -7,8 +7,7 @@ from .rules import is_finite_number, is_integer
 
 
 def check_relations(check):
-    from PASS.utils.command_order import command_priority
-    from PASS.utils.constants import const
+    from PASS.utils.command_order import sort_commands
     raw = check.data.get("Space charge", {})
     root = ("Space charge", )
     sc = check.model(SpaceChargeConfig, {
@@ -31,7 +30,10 @@ def check_relations(check):
         except (ValueError, TypeError):
             pass
     ordered = [(name, kind, v) for name, (kind, v) in check.commands.items() if is_finite_number(v.get("S (m)"))]
-    ordered.sort(key=lambda row: (round(row[2]["S (m)"] / const.eps) if abs(row[2]["S (m)"]) < 1e290 else row[2]["S (m)"], command_priority(row[1])))
+    try:
+        ordered = sort_commands(ordered, key=lambda row: row[2])
+    except ValueError as exc:
+        check.add(("Sequence", ), "sequence.order", str(exc))
     valid_slices, used, contributions = set(), set(), []
     for name, kind, v in ordered:
         p = ("Sequence", name)

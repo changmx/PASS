@@ -13,6 +13,7 @@ class StatMonitorItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="StatMonitor", alias="Command")
     output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
@@ -26,6 +27,7 @@ class DistMonitorItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="DistMonitor", alias="Command")
     save_turns: list[list[int]] = Field(
@@ -41,6 +43,7 @@ class PhaseAdvanceMonitorItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="PhaseAdvanceMonitor", alias="Command")
     output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
@@ -78,6 +81,7 @@ class ParticleMonitorItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="ParticleMonitor", alias="Command")
     output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")

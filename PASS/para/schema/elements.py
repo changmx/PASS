@@ -28,6 +28,7 @@ class ElementBase(BaseModel):
     s: float = Field(alias="S (m)")
     command: str = Field(alias="Command")
     length: float = Field(default=0.0, ge=0, alias="Length (m)")
+    order: StrictInt | None = Field(default=None, alias="Order")
 
     # aperture (shared by all elements)
     aperture_type: str = Field(default="off", alias="Aperture type")
@@ -369,6 +370,95 @@ class ReorganizeBunchItem(ElementBase):
     )
 
 
+class CollisionElementBase(ElementBase):
+    """Strict zero-length collision-adjacent elements; aliases are case insensitive."""
+
+    model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
+    length: float = Field(default=0., ge=0, le=0, alias='Length (m)')
+    name: str | None = Field(default=None, exclude=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def normalize_aliases(cls, value):
+        if not isinstance(value, dict):
+            return value
+        aliases = {str(field.alias or name).lower(): name for name, field in cls.model_fields.items()}
+        return {aliases.get(str(key).lower(), str(key).lower()): item for key, item in value.items()}
+
+    @model_validator(mode='after')
+    def validate_collision_aperture(self):
+        if self.aperture_type != 'off' or self.aperture_value:
+            raise ValueError('Collision-adjacent ideal elements do not impose a physical aperture')
+        return self
+
+
+class CrossingAngleItem(CollisionElementBase):
+    command: str = Field(default='CrossingAngle', alias='Command')
+    configuration: str = Field(min_length=1, alias='Configuration')
+    direction: Literal['forward', 'inverse'] = Field(alias='Direction')
+
+
+class EquivalentDispersion(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra='forbid', allow_inf_nan=False)
+    dx: float = Field(default=0., alias='Dx (m)')
+    dpx: float = Field(default=0., alias='Dpx')
+    dy: float = Field(default=0., alias='Dy (m)')
+    dpy: float = Field(default=0., alias='Dpy')
+
+    @model_validator(mode='before')
+    @classmethod
+    def normalize_aliases(cls, value):
+        if not isinstance(value, dict):
+            return value
+        aliases = {str(field.alias or name).lower(): name for name, field in cls.model_fields.items()}
+        return {aliases.get(str(key).lower(), str(key).lower()): item for key, item in value.items()}
+
+
+class IPEquivalentItem(CollisionElementBase):
+    optics_reference: str = Field(min_length=1, alias='Optics reference')
+    side: Literal['before', 'after'] = Field(alias='Side')
+    equivalent_dispersion: EquivalentDispersion = Field(default_factory=EquivalentDispersion, alias='Equivalent dispersion')
+    longitudinal_shear: float = Field(default=0., alias='Longitudinal shear (m)')
+
+
+class CrabCavityItem(IPEquivalentItem):
+    command: str = Field(default='CrabCavity', alias='Command')
+    plane: Literal['x', 'y'] = Field(alias='Plane')
+    phase_advance: float = Field(alias='Phase advance (rad)')
+    equivalent_kick: float = Field(alias='Equivalent kick')
+    frequency: float = Field(gt=0., alias='Frequency (Hz)')
+    phase: float = Field(default=0., alias='Phase (rad)')
+    phase_epoch: float | None = Field(default=None, alias='Phase epoch (s)')
+
+
+class FloatWaisterItem(IPEquivalentItem):
+    command: str = Field(default='FloatWaister', alias='Command')
+    mode: Literal['rfq', 'theory'] = Field(alias='Mode')
+    phase_advance_x: float = Field(alias='Phase advance x (rad)')
+    phase_advance_y: float = Field(alias='Phase advance y (rad)')
+    strength_x: float | None = Field(default=None, alias='Strength x')
+    strength_y: float | None = Field(default=None, alias='Strength y')
+    gx: float | None = Field(default=None, alias='Equivalent gx (1/m)')
+    gy: float | None = Field(default=None, alias='Equivalent gy (1/m)')
+    frequency: float | None = Field(default=None, gt=0., alias='Frequency (Hz)')
+    phase: float | None = Field(default=None, alias='Phase (rad)')
+    phase_epoch: float | None = Field(default=None, alias='Phase epoch (s)')
+
+    @model_validator(mode='after')
+    def validate_model_parameters(self):
+        if self.mode == 'theory':
+            if self.strength_x is None or self.strength_y is None:
+                raise ValueError('Theory FloatWaister requires Strength x and Strength y')
+            if any(value is not None for value in (self.gx, self.gy, self.frequency, self.phase, self.phase_epoch)):
+                raise ValueError('Theory FloatWaister does not use RF gradients, frequency or phase')
+        else:
+            if self.gx is None or self.gy is None or self.frequency is None:
+                raise ValueError('RFQ FloatWaister requires Equivalent gx/gy and Frequency')
+            if self.strength_x is not None or self.strength_y is not None:
+                raise ValueError('RFQ FloatWaister does not use theory strengths')
+        return self
+
+
 # Convenience registry
 
 ELEMENT_REGISTRY: dict[str, type[ElementBase]] = {
@@ -385,5 +475,8 @@ ELEMENT_REGISTRY: dict[str, type[ElementBase]] = {
     "elseparator": ElSeparatorItem,
     "exciter": ExciterItem,
     "rfcavity": RFCavityItem,
+    "crossingangle": CrossingAngleItem,
+    "crabcavity": CrabCavityItem,
+    "floatwaister": FloatWaisterItem,
     "reorganizebunch": ReorganizeBunchItem,
 }

@@ -8,6 +8,7 @@ from PASS.core.config import Config
 from PASS.commands import Command
 from PASS.core.sequence import CommandSequence
 from PASS.core.timing import ExecutionProfiler
+from PASS.commands.beam_beam import CommandResult, get_collision_coordinator
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.plot.plot_main import plot_main
 
@@ -30,10 +31,56 @@ class Executor:
         """
         if result is None:
             return True
+        if isinstance(result, CommandResult):
+            return result is CommandResult.DONE
         if isinstance(result, bool):
             return result
-        raise TypeError("Command execute_cpu/execute_gpu must return bool or None, "
+        raise TypeError("Command execute_cpu/execute_gpu must return bool, None or CommandResult, "
                         f"got {type(result).__name__}")
+
+    def _run_turn(self, sim, seqs, profiler, turn, collision):
+        """Advance each whole-beam cursor until waiting or the common turn end."""
+        cursors = [0 for sequence in seqs]
+        last_completed = [None for sequence in seqs]
+        while any(cursor < len(sequence.cmds) for cursor, sequence in zip(cursors, seqs)):
+            progressed = False
+            for index, sequence in enumerate(seqs):
+                while cursors[index] < len(sequence.cmds):
+                    command = sequence.cmds[cursors[index]]
+                    if collision is not None:
+                        collision.check_command_frame(command)
+                    profiler.start_command(command, sim)
+                    executed = True
+                    try:
+                        if sim.cfg.use_cpu:
+                            result = command.execute_cpu(sim)
+                        elif sim.cfg.use_gpu:
+                            result = command.execute_gpu(sim)
+                        else:
+                            raise ValueError(f"unknown backend {sim.cfg.backend}")
+                        executed = self._command_executed(result)
+                    finally:
+                        profiler.stop_command(command, sim, turn, executed=executed)
+                    if result is CommandResult.WAITING:
+                        break
+                    last_completed[index] = getattr(command, "cmd_name", getattr(command, "cmd_type", type(command).__name__))
+                    cursors[index] += 1
+                    progressed = True
+            if not progressed:
+                waiting = []
+                for index, sequence in enumerate(seqs):
+                    if cursors[index] < len(sequence.cmds):
+                        command = sequence.cmds[cursors[index]]
+                        waiting.append({
+                            "beam": getattr(sequence, "beam_id", index),
+                            "command": getattr(command, "cmd_name", getattr(command, "cmd_type",
+                                                                            type(command).__name__)),
+                            "configuration": getattr(command, "configuration_id", None),
+                            "turn": turn,
+                            "occurrence": getattr(command, "occurrence", None),
+                            "last_completed": last_completed[index]
+                        })
+                raise RuntimeError(f"Beam-beam scheduling deadlock: {waiting}")
 
     def run(self, sim: Simulation, seqs: list[CommandSequence], *, stop_requested=None):
         """Run complete turns, honoring an optional stop request between turns."""
@@ -45,6 +92,12 @@ class Executor:
         validate_sc_coverage(sim, seqs)
         from PASS.commands.wake.wake_timing import prepare_wake_tracking
         prepare_wake_tracking(sim, seqs)
+        collision = None
+        has_collision_nodes = any(
+            getattr(command, "cmd_type", None) in {"BeamBeam", "CrossingAngle"} for sequence in seqs for command in sequence.cmds)
+        if getattr(cfg, "beam_beam_enabled", False) or getattr(sim, "collision", None) is not None or has_collision_nodes:
+            collision = get_collision_coordinator(sim)
+            collision.prepare(seqs)
         profiler = ExecutionProfiler(sim)
         profiler.start_run()
 
@@ -56,7 +109,10 @@ class Executor:
         current_turn = None
         stopped = False
         try:
-            for turn in range(total_turns):
+            first_turn = int(getattr(state, "next_turn", 0)) if collision is not None else 0
+            if collision is not None and collision.next_turn != first_turn:
+                raise ValueError("Simulation and collision checkpoint next-turn counters do not match")
+            for turn in range(first_turn, total_turns):
                 if stop_requested is not None and stop_requested():
                     stopped = True
                     logger.info("Stop requested at turn boundary before turn %d", turn)
@@ -64,27 +120,13 @@ class Executor:
                 current_turn = turn
                 state.turn = turn
                 profiler.start_turn(turn)
-
-                for seq in seqs:
-                    for cmd in seq.cmds:
-                        profiler.start_command(cmd, sim)
-                        executed = True
-                        try:
-                            if cfg.use_cpu:
-                                result = cmd.execute_cpu(sim)
-                            elif cfg.use_gpu:
-                                result = cmd.execute_gpu(sim)
-                            else:
-                                raise ValueError(f"unknown backend {cfg.backend}")
-                            # Existing commands return None.  Only an
-                            # explicit False means that this invocation did
-                            # no work and should be omitted from command
-                            # timing statistics.
-                            executed = self._command_executed(result)
-                        finally:
-                            profiler.stop_command(cmd, sim, turn, executed=executed)
-
+                if collision is not None:
+                    collision.begin_turn(turn)
+                self._run_turn(sim, seqs, profiler, turn, collision)
                 profiler.finish_turn(turn)
+                if collision is not None:
+                    collision.finish_turn(turn)
+                    state.next_turn = turn + 1
                 if profiler.should_log_turn(turn):
                     if profiler.mode == "off":
                         logger.info(f"Turn: {turn}/{total_turns}")

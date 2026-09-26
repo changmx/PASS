@@ -11,6 +11,8 @@ from PASS.gui.structured import ApertureEditor, NumericTable, ObjectEditor, Obje
 
 def capture_field(field):
     """Capture incomplete text without flushing a numeric delegate or validating."""
+    if callable(getattr(field, "capture_draft", None)):
+        return {"kind": "domain_draft", "state": field.capture_draft()}
     from PASS.gui.wake_configuration import WakeConfigurationEditor
     if isinstance(field, WakeConfigurationEditor):
         return {
@@ -68,7 +70,9 @@ def capture_field(field):
 
 def restore_field(field, state):
     kind = state.get("kind")
-    if kind == "wake":
+    if kind == "domain_draft" and callable(getattr(field, "restore_draft", None)):
+        field.restore_draft(state["state"])
+    elif kind == "wake":
         field.resources = deepcopy(state["resources"])
         field.references = deepcopy(state["references"])
         field.enabled.setChecked(state["enabled"])
@@ -150,7 +154,9 @@ def draft_value(field, reader, key, previous):
     """Show invalid input explicitly in a diff instead of dropping the draft."""
     from PASS.gui.wake_configuration import WakeConfigurationEditor
     detached = None
-    if isinstance(field, WakeConfigurationEditor):
+    if callable(getattr(field, "clone_for_preview", None)):
+        detached = field.clone_for_preview()
+    elif isinstance(field, WakeConfigurationEditor):
         state = capture_field(field)
         detached = WakeConfigurationEditor({"Configurations": state["resources"]}, {}, field.base_dir)
         restore_field(detached, state)

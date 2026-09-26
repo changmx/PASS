@@ -81,9 +81,11 @@ def parse_json(content: str | bytes, report=None):
         if isinstance(value, _Pairs):
             result, seen = {}, set()
             for key, child in value:
-                if key.casefold() in seen:
+                named_collision_configs = tuple(str(part).casefold() for part in path) == ("beam beam", "configurations")
+                identity = key if named_collision_configs else key.casefold()
+                if identity in seen:
                     report.add((*path, key), "json.duplicate", "重复的 JSON 键（包括大小写冲突）；引擎会覆盖其中一个值")
-                seen.add(key.casefold())
+                seen.add(identity)
                 result[key] = unpack(child, (*path, key))
             return result
         if isinstance(value, list):

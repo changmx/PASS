@@ -106,12 +106,16 @@ extern "C" __global__ void slice_times(
 
 
 def prepare_wake_tracking(sim, sequences):
-    """Prepare enabled wakes for a new run with no retained history."""
+    """Prepare new wakes or history restored with both beams at a safe boundary."""
     commands = [cmd for seq in sequences for cmd in seq.cmds if cmd.cmd_type == 'WakeField' and cmd.is_enabled]
     wake_ids = {cmd.beam_id for cmd in commands}
     for cmd in commands:
         if any(s.last_turn is not None for s in cmd.group_states):
-            raise ValueError('WakeField retains history from an earlier run; call reset_state() before a new run')
+            next_turn = getattr(sim.state, 'next_turn', 0)
+            if not getattr(sim, '_collision_state_restored', False):
+                raise ValueError('WakeField retains history from an earlier run; call reset_state() before a new run')
+            if next_turn <= 0 or any(s.last_turn is not None and s.last_turn >= next_turn for s in cmd.group_states):
+                raise ValueError('Restored WakeField history is inconsistent with the next tracking turn')
     for beam_id in wake_ids:
         names = {cmd.slice_set_name for cmd in commands if cmd.beam_id == beam_id}
         sim.beams[beam_id].wake_clock = WakeClock(sim.beams[beam_id], names)

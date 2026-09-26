@@ -30,7 +30,7 @@ class Beam:
 
     def _load_input(self) -> None:
         data = self.cfg.input_data[self.beam_id]
-        self.is_beambeam = data.get("is beam-beam", False)
+        self.is_beambeam = bool(getattr(self.cfg, "beam_beam_enabled", False))
         self.is_spaceCharge = bool(self.cfg.space_charge[self.beam_id].enabled)
         self._data = data
 

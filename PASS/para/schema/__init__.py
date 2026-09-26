@@ -59,10 +59,14 @@ from PASS.para.schema.elements import (
     ExciterItem,
     RFCavityItem,
     ReorganizeBunchItem,
+    CrossingAngleItem,
+    CrabCavityItem,
+    FloatWaisterItem,
 )
 from PASS.para.schema.monitors import StatMonitorItem, DistMonitorItem, PhaseAdvanceMonitorItem, ParticleMonitorItem
 from PASS.para.schema.sequence import Sequence
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem, ElementSpaceCharge
+from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 
 __all__ = [
     'MainConfig', 'TimingConfig', 'BunchConfig', 'OffsetConfig', 'InjectionItem', 'TwissItem', 'SlicerItem', 'WakeFieldItem', 'WakeFieldConfig',
@@ -71,5 +75,6 @@ __all__ = [
     'FileWake', 'WakeFileConvention', 'ElementBase', 'DriftItem', 'MarkerItem', 'SBendItem', 'QuadrupoleItem', 'SextupoleItem', 'OctupoleItem',
     'MultipoleItem', 'SolenoidItem', 'KickerItem', 'BumpItem', 'ElSeparatorItem', 'ExciterItem', 'RFCavityItem', 'RFComponent', 'ReferenceClock',
     'ReorganizeBunchItem', 'StatMonitorItem', 'DistMonitorItem', 'PhaseAdvanceMonitorItem', 'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig',
-    'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge'
+    'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge', 'BeamBeamConfig', 'BeamBeamConfiguration', 'BeamBeamSourceConfig',
+    'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem', 'CrabCavityItem', 'FloatWaisterItem'
 ]

@@ -5,14 +5,14 @@ Items can be any pydantic BaseModel with a ``command`` field
 
 The sequence dict key is the item name; the item itself does not store its name.
 On export, each item is serialized via model_dump(by_alias=True) and the
-result is sorted by (s, command priority).
+result follows the shared position/Order/legacy-priority rules.
 """
 
 from collections import OrderedDict
 
 from pydantic import BaseModel
 
-from PASS.utils.command_order import command_priority
+from PASS.utils.command_order import sort_commands
 
 
 def _convert_ordereddict(obj):
@@ -26,21 +26,15 @@ def _convert_ordereddict(obj):
 
 
 def _sort_sequence(sequence: dict) -> dict:
-    """Sort sequence items by (S position, command priority).
+    """Sort sequence items using the common explicit Order contract.
 
     Args:
         sequence: {name: {"S (m)": float, "Command": str, ...}}
 
     Returns:
-        Plain dict sorted by (s, priority).
+        Plain dict sorted by position and explicit Order or legacy priority.
     """
-    sorted_seq = OrderedDict(sorted(
-        sequence.items(),
-        key=lambda item: (
-            item[1]["S (m)"],
-            command_priority(item[1].get("Command", "")),
-        ),
-    ))
+    sorted_seq = OrderedDict(sort_commands(sequence.items(), key=lambda item: item[1]))
     return _convert_ordereddict(sorted_seq)
 
 

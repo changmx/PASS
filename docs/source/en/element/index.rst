@@ -3,6 +3,8 @@ Element
 
 This module introduces the various beamline elements supported in PASS.
 
+CrossingAngle, CrabCavity and FloatWaister are described in :doc:`../beam_beam`.
+
 .. toctree::
    :maxdepth: 2
 

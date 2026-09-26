@@ -562,6 +562,21 @@ class Project:
             if isinstance(value, dict):
                 if value.get("Configuration") is not None:
                     old = value["Configuration"]
+                    collision = value.get("Command") in {"BeamBeam", "CrossingAngle"} or (value.get("Command") == "Slicer"
+                                                                                          and value.get("Purpose") == "beam_beam")
+                    if collision:
+                        source_resources = [config.data.get("Beam beam", {}).get("Configurations", {}).get(old) for config in self.configs.values()]
+                        source_resources = [resource for resource in source_resources if isinstance(resource, dict)]
+                        target_resources = [(result if identifier == target_id else config.data).get("Beam beam", {}).get("Configurations",
+                                                                                                                          {}).get(old)
+                                            for identifier, config in target.configs.items()]
+                        target_resources = [resource for resource in target_resources if isinstance(resource, dict)]
+                        if len(source_resources) != 1 or len(target_resources) != 1 or source_resources[0] != target_resources[0]:
+                            raise ProjectError("束束命令依赖双束共享 IP 配置。请先在目标项目的一个输入中声明同名、相同的 Beam beam 配置；"
+                                               "复制单个命令不会复制或改写另一束的配置。")
+                        # The shared definition already exists exactly once. The
+                        # user places paired commands and slicing in each input.
+                        return
                     module = "Wake field" if value.get("Command") == "WakeField" else "Space charge"
                     identity = (module, old)
                     if identity not in config_names:

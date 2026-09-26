@@ -148,5 +148,5 @@ class MainConfig(BaseModel):
     is_beambeam: bool = Field(
         default=False,
         alias="Is beam-beam",
-        description="Whether beam-beam module is active",
+        description="Obsolete placeholder; keep False and use the top-level Beam beam block",
     )

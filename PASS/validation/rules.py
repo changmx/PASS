@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 from typing import Annotated, get_args, get_origin
 
-from pydantic import BaseModel, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, Field, StrictInt, TypeAdapter, ValidationError
 
 from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig
 from PASS.para.schema.elements import ELEMENT_REGISTRY
@@ -20,10 +20,12 @@ from PASS.para.schema.slicer import SlicerItem
 from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
 from PASS.para.schema.twiss import TwissItem
+from PASS.commands.collision.config import BeamBeamConfig, BeamBeamItem, load_beam_beam
 from .report import ValidationReport, parse_json
 
 
 class SortBunchModel(BaseModel):
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="SortBunch", alias="Command")
 
@@ -44,6 +46,7 @@ MODELS.update(Injection=InjectionItem,
               PhaseAdvanceMonitor=PhaseAdvanceMonitorItem,
               Slicer=SlicerItem,
               SpaceCharge=SpaceChargeItem,
+              BeamBeam=BeamBeamItem,
               WakeField=WakeFieldItem)
 
 
@@ -177,9 +180,11 @@ class Validator:
                 if not isinstance(key, str):
                     self.add(path, "json.key", "JSON 键必须是字符串")
                     continue
-                if key.casefold() in seen:
+                named_collision_configs = tuple(str(part).casefold() for part in path) == ("beam beam", "configurations")
+                identity = key if named_collision_configs else key.casefold()
+                if identity in seen:
                     self.add((*path, key), "json.duplicate", "键名存在大小写冲突；引擎会覆盖其中一个值")
-                seen.add(key.casefold())
+                seen.add(identity)
                 self.scan(child, (*path, key))
         elif isinstance(value, list):
             for i, child in enumerate(value):
@@ -246,7 +251,9 @@ class Validator:
             self.add(p, "turns.clipped", f"执行窗口超出本次运行 [0, {self.turn_count})", True)
 
     def globals(self):
-        raw = {k: v for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field"}}
+        raw = {k: v for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field", "Beam beam"}}
+        if "Beam beam" in self.data:
+            self.model(BeamBeamConfig, self.data["Beam beam"], ("Beam beam", ))
         self.wake_config = None
         if "Wake field" in self.data:
             self.model(WakeFieldConfig, self.data["Wake field"], ("Wake field", ))
@@ -284,7 +291,7 @@ class Validator:
         if g.get("Number of Protons") == 1 and g.get("Number of Neutrons") == 0 and charge not in {-1, 1}:
             self.add(("Number of Charges", ), "beam.species", "当前单质子质量模型只支持单位电荷数")
         if g.get("Is beam-beam"):
-            self.add(("Is beam-beam", ), "feature.unsupported", "当前引擎没有注册 BeamBeam 命令，开启此开关不会产生束束作用")
+            self.add(("Is beam-beam", ), "feature.obsolete", "Is beam-beam 已停用，请使用 Beam beam.Enabled 和显式 BeamBeam 命令")
         ids = g.get("Device Id", [])
         if isinstance(ids, list) and all(is_integer(i) for i in ids):
             if any(i < 0 for i in ids) or len(set(ids)) != len(ids) or self.backend == "gpu" and not ids:
@@ -540,7 +547,7 @@ class Validator:
     def slicer(self, v, p):
         self.choice(v, "Slice model", {"equal_length", "equal_particle", "equal_charge"}, p)
         self.choice(v, "Z range mode", {"auto", "explicit"}, p)
-        self.choice(v, "Coordinate", {"z_rel", "z_periodic", "arrival_phase"}, p)
+        self.choice(v, "Coordinate", {"z_rel", "z_periodic", "arrival_phase", "collision_z"}, p)
         name = v.get("Slice set")
         if not isinstance(name, str) or not name.strip() or name != name.strip():
             self.add((*p, "Slice set"), "slicer.name", "Slice set 名称不能为空或包含首尾空白")
@@ -637,6 +644,10 @@ def validate_files(paths, *, check_files=True):
 
 
 def check_shared_inputs(inputs, result):
+    try:
+        load_beam_beam([data for _, data in inputs])
+    except (ValueError, TypeError, KeyError) as exc:
+        result.add(("Beam beam", ), "beam_beam.configuration", str(exc))
     if len(inputs) == 2:
         try:
             first, second = [MainConfig.model_validate(data, strict=True).model_dump(by_alias=True) for _, data in inputs]

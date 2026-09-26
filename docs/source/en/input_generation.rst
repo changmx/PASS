@@ -101,7 +101,6 @@ The abbreviated structure below shows the nesting; empty bunch objects and omitt
        "Device Id": [0],
        "Output directory": "./output",
        "Is plot figure": false,
-       "Is beam-beam": false,
        "Sequence": {
            "injection": {
                "S (m)": 0.0,
@@ -224,7 +223,11 @@ MainConfig (Global Parameters)
      - ``Is beam-beam``
      - ``bool``
      - ``False``
-     - Reserved switch; keep False because beam-beam tracking is not implemented.
+     - Obsolete placeholder. A true value is rejected; generated input omits it.
+
+Beam-beam collisions use the separate top-level ``Beam beam`` block and explicit
+commands on both beam sequences. Pass ``beam_beam=BeamBeamConfig(...)`` to
+``generate_input``; see :doc:`beam_beam` for source methods, ordering and elements.
 
 
 Space charge is configured by the separate top-level ``Space charge`` block,

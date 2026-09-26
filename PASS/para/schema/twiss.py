@@ -1,6 +1,6 @@
 """Twiss transport configuration with current and previous optical functions."""
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, StrictInt
 
 
 class TwissItem(BaseModel):
@@ -9,6 +9,7 @@ class TwissItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     # Position
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="Twiss", alias="Command")
     s_previous: float = Field(alias="S previous (m)")

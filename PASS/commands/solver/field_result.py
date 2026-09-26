@@ -14,12 +14,12 @@ class FieldResult:
 
     ``potential`` has units V m and ``integrated_ex``/``integrated_ey`` have
     units V when the supplied source density is in C/m^2.
-    ``potential`` is None only when an optional field-only solve omits it.
+    Optional output selection returns None for omitted potential or fields.
     """
 
     potential: np.ndarray | None
-    integrated_ex: np.ndarray
-    integrated_ey: np.ndarray
+    integrated_ex: np.ndarray | None
+    integrated_ey: np.ndarray | None
 
 
 class GPUFieldSolver:
@@ -84,8 +84,8 @@ class GPUFieldSolver:
             )
             self._prepare(num_slices)
 
-    def _result(self, potential, squeeze, copy):
-        arrays = (potential, self._work["ex"], self._work["ey"])
+    def _result(self, potential, squeeze, copy, *, compute_fields=True):
+        arrays = (potential, self._work["ex"] if compute_fields else None, self._work["ey"] if compute_fields else None)
         return FieldResult(*(None if a is None else (a[0] if squeeze else a).copy() if copy else (a[0] if squeeze else a) for a in arrays))
 
     def _gradient(self):

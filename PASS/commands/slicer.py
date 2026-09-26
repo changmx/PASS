@@ -98,6 +98,8 @@ class SliceSet:
     periodic: bool = False
     max_phase_slip: float = 0.05
     coordinate: str | None = None
+    purpose: str = "general"
+    configuration_id: str | None = None
 
     slice_id: Any = field(default=None, repr=False)
     slice_table: Any = field(default=None, repr=False)
@@ -132,6 +134,11 @@ class SliceSet:
                 raise ValueError("Auto mode cannot include an 'explicit' block")
             self.explicit = None
         self.coordinate = resolve_slice_coordinate(self.coordinate, self.periodic)
+        if self.purpose == "beam_beam":
+            if not self.configuration_id or self.coordinate not in {"z_rel", "collision_z"}:
+                raise ValueError("Beam-beam slices require Configuration and z_rel or collision_z")
+        elif self.purpose != "general" or self.configuration_id is not None or self.coordinate == "collision_z":
+            raise ValueError("Collision Configuration/Coordinate require Purpose=beam_beam")
         # Compatibility attribute: this still means arrival phase only.
         self.periodic = self.coordinate == "arrival_phase"
         if not np.isfinite(self.max_phase_slip) or not 0 < self.max_phase_slip <= .1:
@@ -161,6 +168,8 @@ class SliceSet:
             self.explicit,
             self.coordinate,
             self.max_phase_slip,
+            self.purpose,
+            self.configuration_id,
         )
 
     @classmethod
@@ -178,6 +187,8 @@ class SliceSet:
             periodic=command_data.get("periodic", False),
             max_phase_slip=command_data.get("max phase slip", 0.05),
             coordinate=command_data.get("coordinate"),
+            purpose=command_data.get("purpose", "general"),
+            configuration_id=command_data.get("configuration"),
         )
 
 
@@ -262,6 +273,16 @@ def _compile_save_turns(raw_turns, num_turns: int, command_name: str) -> bytearr
 def _slice_coordinates(p, bunch, slice_set, turn=None, location=None):
     """Prepare the selected local coordinate, without touching particle arrays."""
     start, end = int(bunch.start_idx), int(bunch.end_idx)
+    if slice_set.purpose == "beam_beam":
+        xp = p.xp
+        z = p.z[start:end]
+        alive = p.tag[start:end] > 0
+        valid = xp.isfinite(z)
+        if slice_set.explicit is not None:
+            valid &= (z >= slice_set.explicit.z_min) & (z <= slice_set.explicit.z_max)
+        if not bool(xp.all(valid | ~alive)):
+            raise ValueError("Beam-beam slices require finite live coordinates and complete Explicit range coverage")
+        return z
     if slice_set.coordinate == "z_periodic":
         C = float(bunch.circum)
         if not np.isfinite(C) or C <= 0:
@@ -400,6 +421,8 @@ class Slicer(Command):
         self.cmd_name = kwargs["name"]
         self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
         self.slice_set_name = str(kwargs["slice set"]).strip()
+        self.purpose = kwargs.get("purpose", "general")
+        self.configuration_id = kwargs.get("configuration")
         if not self.slice_set_name:
             raise ValueError("Slicer requires a non-empty 'slice set' name")
         self._selected_turns = _compile_save_turns(kwargs.get("save turns", []), int(sim.cfg.num_turn), self.cmd_name)
@@ -410,6 +433,8 @@ class Slicer(Command):
         super().__init__()
 
     def execute_cpu(self, sim):
+        if not self._is_enabled(sim):
+            return False
         beam = sim.beams[self.beam_id]
         turn = int(sim.state.turn)
         for bunch in beam.bunches:
@@ -426,6 +451,8 @@ class Slicer(Command):
         return True
 
     def execute_gpu(self, sim):
+        if not self._is_enabled(sim):
+            return False
         # CuPy JIT artifacts are kept in memory (configured at module import),
         # so this path does not depend on a writable user cache directory.
         try:
@@ -507,10 +534,27 @@ class Slicer(Command):
         kernels['slicer_batch_table'](shape, (256, ), (*args, cache['diagnostics']))
         return records, cache['diagnostics'].get()
 
+    def _is_enabled(self, sim):
+        if self.purpose != "beam_beam":
+            return True
+        from PASS.commands.beam_beam import get_collision_coordinator
+        return get_collision_coordinator(sim).is_enabled(self.configuration_id)
+
     def _observation(self, beam, bunch, slices, turn):
+        frame = getattr(bunch, "collision_frame", None)
+        if self.purpose == "beam_beam":
+            if slices.purpose != self.purpose or slices.configuration_id != self.configuration_id:
+                raise ValueError("Beam-beam Slicer configuration does not match its registered SliceSet")
+            expected = "collision_z" if frame is not None else "z_rel"
+            if slices.coordinate != expected or frame is not None and frame["configuration"] != self.configuration_id:
+                raise ValueError("Beam-beam Slicer Coordinate/Configuration does not match the active frame")
+        elif frame is not None:
+            raise ValueError("An ordinary Slicer cannot execute in a collision frame")
+        slices.frame = "collision" if frame is not None else "lab"
+        slices.observation_generation = getattr(slices, "observation_generation", 0) + 1
         slices.reference_time = bunch.t0
         slices.reference_beta = bunch.beta
-        slices.coordinate_definition = "z=beta*c*(T-t)"
+        slices.coordinate_definition = "z_star in collision frame" if frame is not None else "z=beta*c*(T-t)"
         if slices.periodic:
             program = beam.reference_program
             slices.observation_time = program.inverse_integral(float(turn) + self.s / bunch.circum)
@@ -601,7 +645,7 @@ class Slicer(Command):
         p = beam.particles
         start, end = int(bunch.start_idx), int(bunch.end_idx)
         if local_z is None:
-            local_z = (p.z[start:end] if slice_set.coordinate == "z_rel" else
+            local_z = (p.z[start:end] if slice_set.coordinate in {"z_rel", "collision_z"} else
                        slice_set._ring_coordinate if slice_set.coordinate == "z_periodic" else slice_set._periodic_coordinate)
             local_z = local_z.astype(cp.float64, copy=False)
         n = end - start
@@ -827,10 +871,13 @@ class Slicer(Command):
             "HarmonicId": int(bunch.harmonic_id),
             "NumSlices": slice_set.num_slices,
             "NumAlive": int(np.count_nonzero(tags > 0)),
-            "ZCoordinate": "z_rel",
+            "ZCoordinate": "collision_z" if slice_set.coordinate == "collision_z" else "z_rel",
             "ReferenceArrivalTime": float(bunch.t0),
             "ReferenceBeta": float(bunch.beta),
-            "CoordinateDefinition": "z=beta*c*(T-t)",
+            "CoordinateDefinition": slice_set.coordinate_definition,
+            "Frame": slice_set.frame,
+            "Purpose": slice_set.purpose,
+            "Configuration": slice_set.configuration_id or "",
             "SliceCoordinate": "periodic_arrival_phase" if slice_set.periodic else slice_set.coordinate,
             "Coordinate": slice_set.coordinate,
             "Periodic": int(slice_set.periodic),
@@ -838,7 +885,7 @@ class Slicer(Command):
             "PASSVersion": __version__,
             "Time": get_current_time(),
         }
-        if slice_set.coordinate != "z_rel":
+        if slice_set.coordinate in {"z_periodic", "arrival_phase"}:
             common_headers["Circumference"] = float(bunch.circum)
             common_headers["CoordinateMin"] = float(_as_host(slice_set.slice_table["z_min"]).min())
             common_headers["CoordinateMax"] = float(_as_host(slice_set.slice_table["z_max"]).max())
@@ -855,7 +902,7 @@ class Slicer(Command):
             "lost_turn": _as_host(p.lost_turn[start:end]),
             "lost_position": _as_host(p.lost_position[start:end]),
         }
-        if slice_set.coordinate != "z_rel":
+        if slice_set.coordinate in {"z_periodic", "arrival_phase"}:
             local = (slice_set._periodic_coordinate if slice_set.periodic else slice_set._ring_coordinate)
             particle_columns["slice_coordinate"] = _as_host(local)
 

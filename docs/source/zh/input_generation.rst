@@ -101,7 +101,6 @@ JSON 文件结构
        "Device Id": [0],
        "Output directory": "./output",
        "Is plot figure": false,
-       "Is beam-beam": false,
        "Sequence": {
            "injection": {
                "S (m)": 0.0,
@@ -224,7 +223,11 @@ MainConfig（全局参数）
      - ``Is beam-beam``
      - ``bool``
      - ``False``
-     - 保留开关；当前未实现束束跟踪，须保持 False。
+     - 已停用的占位字段；true 报错，生成的输入不再输出此字段。
+
+束束相互作用使用独立顶层 ``Beam beam`` 配置块和两条 sequence 中的显式命令。
+调用 ``generate_input`` 时传入 ``beam_beam=BeamBeamConfig(...)``；
+源方法、执行顺序和相关元件见 :doc:`beam_beam`。
 
 
 空间电荷使用独立的顶层 ``Space charge``

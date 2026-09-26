@@ -15,11 +15,12 @@ import math
 import re
 import sys
 from pathlib import Path
-from typing import get_args
+from typing import Literal, get_args, get_origin
 from uuid import uuid4
 
 from PySide6.QtCore import QEvent, QItemSelectionModel, QSignalBlocker, QTimer, Qt, Signal, QSettings, QSize
 from PySide6.QtGui import QAction, QDoubleValidator, QIntValidator, QPainter, QPalette, QTextFormat
+from shiboken6 import isValid
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -288,6 +289,7 @@ class ConfigPage(QWidget):
         from PASS.para.schema.main import MainConfig
 
         self.data: dict = MainConfig().model_dump(by_alias=True)
+        self.data.pop("Is beam-beam", None)
         self.data["Sequence"] = {}
         self.path: str = ""
         self._selected_mapping: dict | None = None
@@ -450,7 +452,22 @@ class ConfigPage(QWidget):
             item.clicked.connect(handler)
             self.wake_menu.body_layout.addWidget(item)
         physics_layout.addWidget(self.wake_menu)
-        for title in ("束束效应", "电子云"):
+        self.beam_beam_menu = CollapsibleSection("束束效应", depth=1)
+        self.beam_beam_menu.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        for text, tip, handler in (
+            ("全局配置", "管理共享 IP、两束源模型和亮度输出。", self.configure_beam_beam),
+            ("插入束束切片", "在 IP 创建专用切片；交叉角非零时使用 collision_z。", lambda: self.select_slicer("beam_beam")),
+            ("插入对撞点", "两束序列在同名 IP 会合。", lambda: self.select_command("BeamBeam")),
+            ("交叉角变换", "在切片和对撞前后显式进入或退出碰撞坐标。", lambda: self.select_command("CrossingAngle")),
+            ("蟹腔", "配置 IP 等效蟹腔。", lambda: self.select_command("CrabCavity")),
+            ("浮动束腰", "配置 IP 等效浮动束腰。", lambda: self.select_command("FloatWaister")),
+        ):
+            item = button(text)
+            item.setToolTip(tip)
+            item.clicked.connect(handler)
+            self.beam_beam_menu.body_layout.addWidget(item)
+        physics_layout.addWidget(self.beam_beam_menu)
+        for title in ("电子云", ):
             section = CollapsibleSection(title, depth=1)
             section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             section.header.setEnabled(False)
@@ -745,6 +762,11 @@ class ConfigPage(QWidget):
                 self._populate_wake_configuration()
             else:
                 self._clear_form()
+        elif selected == ("__root__", "Beam beam"):
+            if isinstance(self.data.get("Beam beam"), dict):
+                self._populate_beam_beam_configuration()
+            else:
+                self._clear_form()
         elif selected:
             self._populate_root_configuration()
         else:
@@ -916,6 +938,13 @@ class ConfigPage(QWidget):
         element = ELEMENT_REGISTRY.get(command.casefold())
         if element is not None:
             required = {"S (m)": position}
+            if command in {"CrossingAngle", "CrabCavity", "FloatWaister"}:
+                if command == "CrossingAngle":
+                    required.update({
+                        "Configuration": next(iter(self.data.get("Beam beam", {}).get("Configurations", {})), "IP1"),
+                        "Direction": "forward"
+                    })
+                return model_draft(element, required)
             if command in {"Bump", "ElSeparator"}:
                 return model_draft(element, required)
             if command == "RFCavity":
@@ -968,6 +997,10 @@ class ConfigPage(QWidget):
             configurations = block.get("Configurations", {}) if isinstance(block, dict) else {}
             configuration = next(iter(configurations), "default") if isinstance(configurations, dict) else "default"
             return SpaceChargeItem(s=position, configuration=configuration).model_dump(by_alias=True)
+        if command == "BeamBeam":
+            from PASS.commands.collision.config import BeamBeamItem
+            name = next(iter(self.data.get("Beam beam", {}).get("Configurations", {})), "IP1")
+            return BeamBeamItem(s=position, configuration=name).model_dump(by_alias=True)
         if command in monitor_models:
             model, required = monitor_models[command]
             return model(**({"S (m)": position} | required)).model_dump(by_alias=True)
@@ -998,6 +1031,16 @@ class ConfigPage(QWidget):
             return
         template = self._command_template("Slicer")
         template.update({"Slice set": purpose, "Coordinate": "z_periodic" if purpose == "space_charge" else "z_rel"})
+        if purpose == "beam_beam":
+            configurations = self.data.get("Beam beam", {}).get("Configurations", {})
+            name = next(iter(configurations), "IP1")
+            crossing = configurations.get(name, {}).get("Full crossing angle (rad)", 0)
+            template.update({
+                "Slice set": "collision",
+                "Purpose": "beam_beam",
+                "Configuration": name,
+                "Coordinate": "collision_z" if crossing else "z_rel"
+            })
         self._populate_form("预览 · " + purpose + " Slicer", template, pending=True)
         self._pending_command = "Slicer"
 
@@ -1723,6 +1766,43 @@ class ConfigPage(QWidget):
             self._configuration_draft["Sequence"][name]["Configuration"] = reference
         self._selected_mapping = value
 
+    def configure_beam_beam(self) -> None:
+        if not self._confirm_form_navigation():
+            return
+        draft = deepcopy(self.data)
+        if draft.get("Beam beam") is None:
+            draft["Beam beam"] = {"Configurations": {}}
+        block = draft["Beam beam"]
+        if not isinstance(block, dict) or not isinstance(block.get("Configurations", {}), dict):
+            QMessageBox.warning(self, "束束配置无效", "Beam beam.Configurations 必须是对象，请先修正 JSON。")
+            return
+        self._populate_beam_beam_configuration(draft)
+        if draft != self.data:
+            self._mark_form_dirty()
+
+    def _populate_beam_beam_configuration(self, draft: dict | None = None) -> None:
+        from PASS.gui.beam_beam_configuration import BeamBeamConfigurationEditor
+        draft = deepcopy(self.data) if draft is None else draft
+        self._clear_form()
+        self._configuration_draft = draft
+        self._configuration_base = deepcopy(self.data)
+        self._selected_mapping = draft["Beam beam"]
+        self._selected_path = ("__root__", "Beam beam")
+        self.form_title.setText("束束效应 · 全局配置")
+        self.form_hint.setText("共享配置只声明一次；两束均插入专用 Slicer 和同名 BeamBeam。非零交叉角在同一 IP 用 CrossingAngle forward / inverse 包围切片与对撞。")
+        self._beam_beam_configuration_editor = BeamBeamConfigurationEditor(self._selected_mapping, draft.get("Sequence", {}), self.base_dir)
+        self._track_field(self._beam_beam_configuration_editor)
+        self.form_layout.addRow(self._beam_beam_configuration_editor)
+        self.form_apply.setEnabled(True)
+
+    def _write_beam_beam_configuration(self) -> None:
+        editor = self._beam_beam_configuration_editor
+        value = editor.get_value()
+        self._configuration_draft["Beam beam"] = value
+        for name, reference in editor.references.items():
+            self._configuration_draft["Sequence"][name]["Configuration"] = reference
+        self._selected_mapping = value
+
     def configure_space_charge(self) -> None:
         """Create or edit the top-level named space-charge configurations."""
         if not self._confirm_form_navigation():
@@ -2266,6 +2346,11 @@ class ConfigPage(QWidget):
             if len(path) >= 3 and path[1] == "Configurations" and path[2] in editor.resources:
                 editor._show(path[2])
                 focus_parameter(editor.editor, path[3:])
+        elif path and path[0] == "Beam beam" and isinstance(self.data.get("Beam beam"), dict):
+            self._populate_beam_beam_configuration()
+            editor = self._beam_beam_configuration_editor
+            if len(path) >= 3 and path[1] == "Configurations" and path[2] in editor.resources:
+                editor._show(path[2])
         else:
             self.configure_global()
             if path and path[0] in self._form_fields:
@@ -2297,8 +2382,7 @@ class ConfigPage(QWidget):
         return str(validator.report.errors[0]) if validator.report.errors else None
 
     def _refresh_sequence_table(self) -> None:
-        from PASS.utils.command_order import command_priority
-        from PASS.utils.constants import const
+        from PASS.utils.command_order import sort_commands
 
         sequence = self.data.get("Sequence", {})
         rows = []
@@ -2316,10 +2400,11 @@ class ConfigPage(QWidget):
                 rows.append((position, str(name), command, value))
         # Match the engine's stable ordering, including positions in the same
         # tolerance bin; names must not change the displayed execution order.
-        rows.sort(key=lambda row: (
-            round(row[0] / const.eps) if const.eps > 0 and abs(row[0]) < 1e290 else row[0],
-            command_priority(row[2]),
-        ))
+        try:
+            rows = sort_commands(rows, key=lambda row: {**row[3], "S (m)": row[0]})
+        except ValueError:
+            # Keep an incomplete editor draft visible; validation reports Order errors.
+            rows.sort(key=lambda row: row[0])
         selected_command = self.sequence_command_filter.currentText()
         commands = sorted({command for _, _, command, _ in rows if command})
         self.sequence_command_filter.blockSignals(True)
@@ -2344,7 +2429,10 @@ class ConfigPage(QWidget):
                 enabled = block.get("Enabled", False) if isinstance(block, dict) else False
             if command == "WakeField":
                 enabled = enabled and self.data.get("Wake field", {}).get("Enabled", True)
-            status = "启用" if enabled else "踢关闭（保留输运）" if command == "Bump" else "禁用"
+            if command in {"BeamBeam", "CrossingAngle"}:
+                block = self.data.get("Beam beam", {})
+                enabled = block.get("Enabled") if isinstance(block, dict) else None
+            status = "共享配置" if enabled is None else "启用" if enabled else "踢关闭（保留输运）" if command == "Bump" else "禁用"
             texts = [name, command, f"{position:.6g}", status]
             for column, field in [(4, "Configuration"), (5, "SC length (m)"), (6, "Aperture type"), (7, "Slice set")]:
                 cell = value.get(field, value.get("Length (m)", "") if column == 5 else "")
@@ -2464,6 +2552,9 @@ class ConfigPage(QWidget):
         if key == "Wake field" and isinstance(self.data[key], dict):
             self._populate_wake_configuration()
             return
+        if key == "Beam beam" and isinstance(self.data[key], dict):
+            self._populate_beam_beam_configuration()
+            return
         if key == "Timing" and isinstance(self.data[key], dict):
             self._populate_timing_configuration()
             return
@@ -2498,7 +2589,6 @@ class ConfigPage(QWidget):
             ("模拟控制", ("Number of turns", "Particle Precision")),
             ("计算后端", ("Backend (gpu/cpu)", "Number of GPU devices", "Device Id")),
             ("输出与文件", ("Output directory", "Is plot figure")),
-            ("物理模型开关", ("Is beam-beam", )),
         )
         shown = set()
         for section_name, keys in sections:
@@ -2523,7 +2613,7 @@ class ConfigPage(QWidget):
             if has_fields:
                 self.form_layout.addRow(box)
         for key, value in self._field_defaults.items():
-            if key in {"Sequence", "Timing", "Space charge", "Wake field"} or key in shown:
+            if key in {"Sequence", "Timing", "Space charge", "Wake field", "Beam beam", "Is beam-beam"} or key in shown:
                 continue
             field = self._make_field(key, value)
             self._add_property_row(self.form_layout, self._field_label(key, value), field)
@@ -3303,6 +3393,9 @@ class ConfigPage(QWidget):
         if key == "Groups" and getattr(self, "_field_context", {}).get("Command") == "WakeField":
             from PASS.para.schema.wake_field import WakeSolverGroup
             structured = make_editor(list[WakeSolverGroup], value or [], key, self.base_dir)
+        elif (getattr(self, "_field_context", {}).get("Command") in {"CrossingAngle", "CrabCavity", "FloatWaister"} and spec is not None
+              and get_origin(bare(spec.annotation)) is Literal):
+            structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif key in {"Reference clock", "Groups"} and spec is not None:
             structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif key == "Save turns":
@@ -3345,6 +3438,15 @@ class ConfigPage(QWidget):
             for name in names:
                 field.addItem(name, name)
             field.setCurrentIndex(max(0, field.findData(value)))
+            self._track_field(field)
+            return field
+        if key == "Configuration" and (getattr(self, "_field_context", {}).get("Command") in {"BeamBeam", "CrossingAngle"}
+                                       or getattr(self, "_field_context", {}).get("Purpose") == "beam_beam"):
+            field = PropertyComboBox()
+            field.setEditable(True)
+            field.addItems(list(self.data.get("Beam beam", {}).get("Configurations", {})))
+            field.setCurrentText(str(value or ""))
+            field.setToolTip("引用共享 Beam beam.Configurations 名称；该配置也可声明在另一束输入文件。")
             self._track_field(field)
             return field
         if key == "Slice set" and getattr(self, "_field_context", {}).get("Command") != "Slicer":
@@ -3470,6 +3572,8 @@ class ConfigPage(QWidget):
             })
         if self._selected_path == ("__root__", "Wake field"):
             fields[("Wake field", )] = self._wake_configuration_editor
+        if self._selected_path == ("__root__", "Beam beam"):
+            fields[("Beam beam", )] = self._beam_beam_configuration_editor
         return fields
 
     def _property_default(self, path, field):
@@ -3506,7 +3610,7 @@ class ConfigPage(QWidget):
 
     def _refresh_property_tools(self, *_args) -> None:
         self._property_tools_pending = False
-        if not hasattr(self, "property_matches"):
+        if not isValid(self) or not hasattr(self, "property_matches") or not isValid(self.property_matches):
             return
         previous = self.property_matches.currentText()
         needle = self.property_search.text().strip().casefold()
@@ -3696,6 +3800,8 @@ class ConfigPage(QWidget):
             self._populate_space_charge_configuration(state.get("active_space_charge"), draft=deepcopy(state.get("configuration_draft")))
         elif selected == ("__root__", "Wake field"):
             self._populate_wake_configuration(deepcopy(state.get("configuration_draft")))
+        elif selected == ("__root__", "Beam beam"):
+            self._populate_beam_beam_configuration(deepcopy(state.get("configuration_draft")))
         elif selected == ("__root__", "Timing"):
             self._populate_timing_configuration()
         elif selected:
@@ -3894,6 +4000,10 @@ class ConfigPage(QWidget):
                 active_space_charge_name = None
                 self._write_wake_configuration()
                 self.data = self._merge_configuration_draft()
+            elif self._selected_path == ("__root__", "Beam beam"):
+                active_space_charge_name = None
+                self._write_beam_beam_configuration()
+                self.data = self._merge_configuration_draft()
             else:
                 active_space_charge_name = None
                 self._write_form_values(self._selected_mapping)
@@ -3915,6 +4025,8 @@ class ConfigPage(QWidget):
             self._populate_space_charge_configuration(active_space_charge_name)
         elif self._selected_path == ("__root__", "Wake field"):
             self._populate_wake_configuration()
+        elif self._selected_path == ("__root__", "Beam beam"):
+            self._populate_beam_beam_configuration()
         self.file_changed.emit(self.path)
         self._data_dirty = True
         self._set_sync_status("表单修改已确认，尚未保存", "warning")

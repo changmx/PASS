@@ -69,6 +69,8 @@ from PASS.para.schema.wake_field import (
     WakeResourceConfig,
 )
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem
+from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
+from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem
 
 # Low-level: schema objects → JSON
 
@@ -80,6 +82,7 @@ def generate_input(
     space_charge: SpaceChargeConfig | None = None,
     extra_modules: dict | None = None,
     wake_field: WakeFieldConfig | None = None,
+    beam_beam: BeamBeamConfig | None = None,
 ) -> str:
     """Generate a PASS input JSON file from schema objects.
 
@@ -90,11 +93,14 @@ def generate_input(
         space_charge: optional space-charge configuration.
         extra_modules: optional additional top-level JSON blocks.
         wake_field: optional named wake model/solver configurations and global switch.
+        beam_beam: optional shared beam-beam configurations and explicit enable switch.
 
     Returns:
         The output file path.
     """
     result = main.model_dump(by_alias=True)
+    if result.pop("Is beam-beam", False):
+        raise ValueError("Is beam-beam is obsolete; use beam_beam=BeamBeamConfig(...)")
 
     if space_charge is not None:
         sc_dict = space_charge.model_dump(by_alias=True)
@@ -105,6 +111,9 @@ def generate_input(
 
     if wake_field is not None:
         result["Wake field"] = wake_field.model_dump(by_alias=True)
+
+    if beam_beam is not None:
+        result["Beam beam"] = beam_beam.model_dump(by_alias=True, exclude_none=True)
 
     result["Sequence"] = sequence.to_dict()
 
@@ -136,6 +145,7 @@ def load_input(path: str) -> tuple[MainConfig, dict]:
     sequence_data = data.pop("Sequence", {})
     data.pop("Space charge", None)
     data.pop("Wake field", None)
+    BeamBeamConfig.model_validate(data.pop("Beam beam", {}))
 
     main = MainConfig.model_validate(data)
     return main, sequence_data

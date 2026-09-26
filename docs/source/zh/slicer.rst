@@ -90,7 +90,14 @@
      - str
      - ``"z_rel"``
      - ``z_rel`` 为连续时间切片；``z_periodic`` 为 SC 环周折叠切片；
-       ``arrival_phase`` 使用尾场观察时钟。SC 必须显式选择 ``z_periodic``。
+       ``arrival_phase`` 使用尾场观察时钟；``collision_z`` 用于显式 CrossingAngle 区间。
+       SC 必须显式选择 ``z_periodic``。
+   * - ``purpose`` / ``configuration``
+     - ``"Purpose"`` / ``"Configuration"``
+     - str / str 或 null
+     - ``"general"`` / null
+     - ``beam_beam`` 要求匹配的 IP 配置以及 ``z_rel`` 或 ``collision_z``；
+       其显式区间必须覆盖全部存活粒子。坐标和顺序规则见 :doc:`beam_beam`。
    * - ``num_slices``
      - ``"Number of slices"``
      - int
@@ -276,7 +283,7 @@ SpaceCharge 必须使用下文的独立选项 ``z_periodic``。
 快照保存连续 z、参考时间、beta 和坐标
 定义；周期快照还保存 ``slice_coordinate``。密度单位是每米真实粒子数，不是 C/m。
 
-输出元数据 ``ZCoordinate="z_rel"`` 描述原始粒子 ``z`` 列，是输出元数据，
+碰撞坐标区间外，输出元数据 ``ZCoordinate="z_rel"`` 描述原始粒子 ``z`` 列，是输出元数据，
 不是输入选项，也不是默认值赋值。``Coordinate`` 标识所选切片投影；
 ``CoordinateDefinition="z=beta*c*(T-t)"``、``ReferenceArrivalTime``（秒）和
 ``ReferenceBeta`` 定义原始粒子坐标。到达相位快照还保存 ``ObservationTime``

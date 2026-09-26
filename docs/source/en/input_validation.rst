@@ -34,6 +34,11 @@ backend, precision, GPU settings and timing settings must agree. Direct
 What is checked
 ---------------
 
+Two-input beam-beam checks cover the shared switch, exact configuration IDs,
+fixed pairing, source methods, explicit Slicer dependencies, crossing frames,
+and matching IP visit order. At any position using integer ``Order``, all
+commands there must supply distinct Order values. See :doc:`beam_beam`.
+
 * JSON syntax, object root, duplicate keys (including case collisions), finite
   numbers, strict numeric/boolean/list types, unknown fields and missing fields
   required by the engine. Use the current exported schema aliases and Command

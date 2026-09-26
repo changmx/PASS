@@ -28,20 +28,26 @@ class FFTFreeSpaceSolver:
     _potential_kernel_fft: np.ndarray | None
     _ex_kernel_fft: np.ndarray
     _ey_kernel_fft: np.ndarray
+    dtype: object = np.dtype("float64")
+    potential_reference_length: float | None = None
 
     @property
     def interior_indices(self) -> np.ndarray:
         return np.flatnonzero(self.interior_mask.ravel())
 
-    def solve(self, density: np.ndarray, *, compute_potential: bool = True) -> FieldResult:
+    def solve(self, density: np.ndarray, *, compute_potential: bool = True, compute_fields: bool = True) -> FieldResult:
         """Convolve every density slice with free-space potential and field kernels.
 
         ``density`` is C/m^2.  The returned potential is V m up to an additive
         constant; ``Ex`` and ``Ey`` are integrated transverse fields in V.
         ``compute_potential=False`` skips the potential inverse transform and
-        returns ``potential=None``. Default calls retain all three outputs.
+        returns ``potential=None``. ``compute_fields=False`` skips both field
+        transforms and returns ``integrated_ex=integrated_ey=None``. At least
+        one output must be requested. Default calls retain all three outputs.
         """
-        source = np.asarray(density, dtype=float)
+        if not compute_potential and not compute_fields:
+            raise ValueError("request at least one of potential or fields")
+        source = np.asarray(density, dtype=self.dtype)
         if not np.all(np.isfinite(source)):
             raise ValueError("density must be finite")
         squeeze = source.ndim == 2
@@ -61,7 +67,11 @@ class FFTFreeSpaceSolver:
             with np.errstate(divide="ignore"):
                 kernel = -np.log(np.sqrt(radius_squared) / np.sqrt(self.geometry.dx * self.geometry.dy)) / (2.0 * const.pi * const.epsilon0)
             kernel[0, 0] = 0.0
-            self._potential_kernel_fft = rfftn(kernel)
+            if self.potential_reference_length is not None:
+                kernel[0, 0] = (np.log(np.sqrt(self.geometry.dx * self.geometry.dy)) - _cell_mean_log_radius(self.geometry)) / (2 * const.pi *
+                                                                                                                                const.epsilon0)
+                kernel += np.log(self.potential_reference_length / np.sqrt(self.geometry.dx * self.geometry.dy)) / (2 * const.pi * const.epsilon0)
+            self._potential_kernel_fft = rfftn(kernel.astype(self.dtype))
             del dx, dy, radius_squared, kernel
 
         source_fft = rfftn(source, s=self._shape, axes=(-2, -1))
@@ -79,15 +89,26 @@ class FFTFreeSpaceSolver:
             return padded[crop].copy()
 
         potential = convolve(self._potential_kernel_fft) if compute_potential else None
-        ex = convolve(self._ex_kernel_fft)
-        ey = convolve(self._ey_kernel_fft)
+        ex = convolve(self._ex_kernel_fft) if compute_fields else None
+        ey = convolve(self._ey_kernel_fft) if compute_fields else None
         if squeeze:
-            return FieldResult(None if potential is None else potential[0], ex[0], ey[0])
+            return FieldResult(*(None if a is None else a[0] for a in (potential, ex, ey)))
         return FieldResult(potential, ex, ey)
 
 
-def build_fft_free_space_resources(geometry) -> FFTFreeSpaceSolver:
+def _cell_mean_log_radius(geometry):
+    """Exact rectangular-cell average of log(r) for the self interaction."""
+    a, b = geometry.dx / 2, geometry.dy / 2
+    return np.log(np.hypot(a, b)) - 1.5 + (a / b * np.arctan(b / a) + b / a * np.arctan(a / b)) / 2
+
+
+def build_fft_free_space_resources(geometry, *, dtype="float64", potential_reference_length=None) -> FFTFreeSpaceSolver:
     """Build zero-padded free-space kernels for one uniform grid geometry."""
+    dtype = np.dtype(dtype)
+    if dtype not in {np.dtype("float32"), np.dtype("float64")}:
+        raise ValueError("FFT precision must be float32 or float64")
+    if potential_reference_length is not None and (not np.isfinite(potential_reference_length) or potential_reference_length <= 0):
+        raise ValueError("potential_reference_length must be positive finite")
     ny_pad = next_fast_len(2 * geometry.ny - 1)
     nx_pad = next_fast_len(2 * geometry.nx - 1)
     iy = np.arange(ny_pad)
@@ -107,25 +128,30 @@ def build_fft_free_space_resources(geometry) -> FFTFreeSpaceSolver:
         aperture_mask.copy(),
         (ny_pad, nx_pad),
         None,
-        rfftn(ex_kernel),
-        rfftn(ey_kernel),
+        rfftn(ex_kernel.astype(dtype)),
+        rfftn(ey_kernel.astype(dtype)),
+        dtype,
+        potential_reference_length,
     )
 
 
-def solve_poisson_fft_free_space(density: np.ndarray, geometry, *, compute_potential: bool = True):
+def solve_poisson_fft_free_space(density: np.ndarray, geometry, *, compute_potential: bool = True, compute_fields: bool = True):
     """One-shot wrapper around :func:`build_fft_free_space_resources`."""
-    return build_fft_free_space_resources(geometry).solve(density, compute_potential=compute_potential)
+    return build_fft_free_space_resources(geometry).solve(density, compute_potential=compute_potential, compute_fields=compute_fields)
 
 
 class GPUFFTFreeSpaceSolver(GPUFieldSolver):
 
-    def __init__(self, geometry, dtype="float64", *, batch_size=16):
+    def __init__(self, geometry, dtype="float64", *, batch_size=16, potential_reference_length=None):
         import cupy as cp
 
         super().__init__(geometry, dtype)
         if (isinstance(batch_size, bool) or int(batch_size) != batch_size or batch_size < 1):
             raise ValueError("FFT batch_size must be a positive integer")
         self.batch_size = int(batch_size)
+        if potential_reference_length is not None and (not np.isfinite(potential_reference_length) or potential_reference_length <= 0):
+            raise ValueError("potential_reference_length must be positive finite")
+        self.potential_reference_length = potential_reference_length
         self.aperture_mask = np.ones((geometry.ny, geometry.nx), dtype=bool)
         self.interior_mask = self.aperture_mask.copy()
         # Small-prime padding preserves the exact zero-padded linear convolution.
@@ -146,8 +172,11 @@ class GPUFFTFreeSpaceSolver(GPUFieldSolver):
             -np.log(np.sqrt(r2) / np.sqrt(geometry.dx * geometry.dy)) * factor,
         ]
         self.kernels = []
-        for kernel in kernels:
+        for index, kernel in enumerate(kernels):
             kernel[0, 0] = 0
+            if index == 2 and potential_reference_length is not None:
+                kernel[0, 0] = (np.log(np.sqrt(geometry.dx * geometry.dy)) - _cell_mean_log_radius(geometry)) * factor
+                kernel += np.log(potential_reference_length / np.sqrt(geometry.dx * geometry.dy)) * factor
             self.kernels.append(cp.fft.rfft2(cp.asarray(kernel, dtype=self.dtype)))
 
     def _prepare(self, n_slices):
@@ -169,10 +198,17 @@ class GPUFFTFreeSpaceSolver(GPUFieldSolver):
             batch["inverse"] = get_fft_plan(batch["scratch"], shape=self.shape, axes=(-2, -1), value_type="C2R")
             workspace["fft_batches"][count] = batch
 
-    def solve(self, density, *, compute_potential=True, validate=True, copy=True):
+    def solve(self, density, *, compute_potential=True, compute_fields=True, validate=True, copy=True):
+        """Convolve requested outputs; omitted potential or fields return None.
+
+        At least one of ``compute_potential`` and ``compute_fields`` must be
+        true. Results own requested arrays unless ``copy=False`` borrows them.
+        """
         import cupy as cp
         from cupy.cuda import cufft
 
+        if not compute_potential and not compute_fields:
+            raise ValueError("request at least one of potential or fields")
         src, squeeze = self._source(density, validate)
         grid, workspace = self.geometry, self._work
         py, px = self.shape
@@ -197,6 +233,8 @@ class GPUFFTFreeSpaceSolver(GPUFieldSolver):
             for kernel, target in zip(self.kernels, ("ex", "ey", "phi")):
                 if target == "phi" and not compute_potential:
                     continue
+                if target != "phi" and not compute_fields:
+                    continue
                 output_view = workspace[target][first:first + count]
                 cp.multiply(batch["spectrum"], kernel, out=batch["scratch"])
                 batch["inverse"].fft(batch["scratch"], padded, cufft.CUFFT_INVERSE)
@@ -213,7 +251,7 @@ class GPUFFTFreeSpaceSolver(GPUFieldSolver):
                     ),
                     self.dtype,
                 )
-        return self._result(workspace["phi"] if compute_potential else None, squeeze, copy)
+        return self._result(workspace["phi"] if compute_potential else None, squeeze, copy, compute_fields=compute_fields)
 
 
 _FFT_CUDA = r"""

@@ -189,6 +189,7 @@ class InjectionItem(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(
         default=0.0,
         alias="S (m)",
@@ -245,6 +246,8 @@ class InjectionItem(BaseModel):
             "Harmonic Number": self.harmonic_number,
             "Random Seed": self.random_seed,
         }
+        if self.order is not None:
+            result["Order"] = self.order
         for i, bunch in enumerate(self.bunches):
             result[f"bunch{i}"] = bunch.model_dump(by_alias=True)
         return result
