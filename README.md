@@ -59,7 +59,7 @@ python -m PASS.validation path/to/beam.json --report validation-report.json
 
 - [Coordinates and injection](https://changmx.github.io/PASS/en/injection.html)
 - [Elements](https://changmx.github.io/PASS/en/element/index.html) and [Twiss maps](https://changmx.github.io/PASS/en/twiss.html)
-- [Space charge](https://changmx.github.io/PASS/en/space_charge.html) and [wakefields](https://changmx.github.io/PASS/en/wake_field.html)
+- [Space charge](https://changmx.github.io/PASS/en/space_charge.html), [wakefields](https://changmx.github.io/PASS/en/wake_field.html) and [electron clouds: frozen kicks and prescribed-beam build-up](https://changmx.github.io/PASS/en/electron_cloud.html)
 - [Monitors and output formats](https://changmx.github.io/PASS/en/monitor/index.html)
 
 With the `docs` extra installed, run this command from the repository root to build both languages:

@@ -171,7 +171,7 @@ GPU interfaces require a compatible CUDA environment and GPU dependencies; insta
 
 ``build_pic_resources_gpu`` accepts the same geometry and low-level solver
 names as ``build_pic_resources``, plus ``dtype``, ``num_slices``,
-``dst_implementation``, ``fft_batch_size`` and ``deposition_strategy``.
+``dst_implementation``, ``fft_batch_size``, ``deposition_strategy`` and ``deterministic``.
 The defaults are ``float64``, automatic DST selection, 16-slice FFT chunks and
 direct atomic deposition. ``num_slices`` should be supplied at initialization.
 For example, given device arrays ``x``, ``y`` and integer ``slice_id``:
@@ -200,6 +200,17 @@ maximum read. Reuse requires the creation device and stream, serialized calls,
 unchanged geometry, boundary operator and precision. ``close()`` releases
 workspaces and cuDSS handles; further use raises an error. A different slice
 count rebuilds the batch workspace, retaining the FD factorization.
+
+The optional ``deterministic=True`` selects cuDSS deterministic mode for
+``field_solver="fd"`` only, on one GPU with one right-hand side (one slice);
+multi-slice input is explicitly rejected. The default ``False`` preserves
+existing batched behavior. ``GPUFDRectangleSolver`` and
+``GPUFDArbitrarySolver`` accept the same keyword. This controls the cuDSS
+solve, not general ``pic_gpu`` deposition; coupled electron clouds separately
+use fixed-order deposition. Repeatability is limited to the same GPU
+architecture, SM count and software stack, with no cross-device guarantee.
+If the installed cuDSS cannot enable this mode, initialization raises a clear
+error instead of falling back to a nondeterministic solve.
 
 ``dst_implementation`` accepts ``auto``, ``cufft``, ``cufftdx`` or ``fused``.
 The default ``auto`` validates optional implementations before selecting one;

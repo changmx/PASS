@@ -168,14 +168,19 @@ def solve_poisson_fd(
 
 
 class GPUFDRectangleSolver(GPUFieldSolver):
-    """cuDSS factorization and batched solves for a full rectangular chamber."""
+    """cuDSS factorization and batched solves for a full rectangular chamber.
+
+    ``deterministic=True`` opts into bitwise repeatability on the same GPU
+    architecture and SM count. It permits only one right-hand side, using
+    device-only execution without iterative refinement or hybrid memory.
+    """
 
     arbitrary = False
 
-    def __init__(self, geometry, dtype="float64"):
-        self._initialize(geometry, dtype, build_fd_resources(geometry, factorize=False))
+    def __init__(self, geometry, dtype="float64", *, deterministic=False):
+        self._initialize(geometry, dtype, build_fd_resources(geometry, factorize=False), deterministic=deterministic)
 
-    def _initialize(self, geometry, dtype, reference):
+    def _initialize(self, geometry, dtype, reference, *, deterministic=False):
         """Own the cuDSS lifecycle for either rectangular or Shortley-Weller FD."""
         import cupy as cp
 
@@ -183,6 +188,7 @@ class GPUFDRectangleSolver(GPUFieldSolver):
         from nvmath.bindings import cudss
 
         self.api = cudss_api = cudss
+        self.deterministic = bool(deterministic)
         self.handle = self.config = self.data = self.matrix_handle = None
         self._dense_handles = []
         self._factored = False
@@ -206,6 +212,12 @@ class GPUFDRectangleSolver(GPUFieldSolver):
             self.handle = cudss_api.create()
             cudss_api.set_stream(self.handle, self.stream.ptr)
             self.config = cudss_api.config_create()
+            if self.deterministic:
+                enabled = np.ones(1, dtype=np.int32)
+                try:
+                    cudss_api.config_set(self.config, cudss_api.ConfigParam.DETERMINISTIC_MODE, enabled.ctypes.data, enabled.nbytes)
+                except Exception as exc:
+                    raise RuntimeError("cuDSS deterministic mode could not be enabled; a supported cuDSS version is required") from exc
             self.data = cudss_api.data_create(self.handle)
             self.matrix_handle = cudss_api.matrix_create_csr(
                 self.n,
@@ -229,6 +241,11 @@ class GPUFDRectangleSolver(GPUFieldSolver):
 
     def _prepare_geometry(self, reference):
         self.coefficients = None
+
+    def prepare(self, num_slices):
+        if self.deterministic and num_slices != 1:
+            raise ValueError("deterministic GPU FD supports only one right-hand side")
+        super().prepare(num_slices)
 
     def _prepare(self, n_slices):
         import cupy as cp

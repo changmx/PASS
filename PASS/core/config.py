@@ -38,6 +38,7 @@ class Config:
     input_data: list[dict] = field(default_factory=list)
     space_charge: list = field(default_factory=list)
     space_charge_configuration_counts: list[int] = field(default_factory=list)
+    electron_cloud: list = field(default_factory=list)
     beam_beam_enabled: bool = False
     beam_beam_configurations: dict = field(default_factory=dict)
     timing: dict = field(default_factory=lambda: {
@@ -76,6 +77,7 @@ class Config:
         self.input_data.clear()
         self.space_charge.clear()
         self.space_charge_configuration_counts.clear()
+        self.electron_cloud.clear()
 
         path0 = Path(beam0_path)
         if not path0.exists():
@@ -87,7 +89,9 @@ class Config:
             from PASS.para.schema.wake_field import expand_wake_configurations
             expand_wake_configurations(raw0)
             space_charge0, space_charge_count0 = self._load_space_charge(raw0)
+            electron_cloud0 = self._load_electron_cloud(raw0)
             data0 = convert_keys_to_lower(raw0)
+            data0["electron cloud"] = self._electron_cloud_engine_data(electron_cloud0)
 
         if beam1_path is not None:
             path1 = Path(beam1_path)
@@ -98,7 +102,9 @@ class Config:
                 resolve_input_paths(raw1, path1.resolve().parent)
                 expand_wake_configurations(raw1)
                 space_charge1, space_charge_count1 = self._load_space_charge(raw1)
+                electron_cloud1 = self._load_electron_cloud(raw1)
                 data1 = convert_keys_to_lower(raw1)
+                data1["electron cloud"] = self._electron_cloud_engine_data(electron_cloud1)
 
         from PASS.commands.collision.config import load_beam_beam
         self.beam_beam_enabled, self.beam_beam_configurations = load_beam_beam([raw0] if beam1_path is None else [raw0, raw1])
@@ -114,6 +120,7 @@ class Config:
             self.input_data.append(data0)
             self.space_charge.append(space_charge0)
             self.space_charge_configuration_counts.append(space_charge_count0)
+            self.electron_cloud.append(electron_cloud0)
             h0 = int(data0["sequence"]["injection"]["harmonic number"])
             self.harmonic_number.append(h0)
         else:
@@ -127,6 +134,7 @@ class Config:
             self.space_charge.append(space_charge1)
             self.space_charge_configuration_counts.append(space_charge_count0)
             self.space_charge_configuration_counts.append(space_charge_count1)
+            self.electron_cloud.extend((electron_cloud0, electron_cloud1))
             h0 = int(data0["sequence"]["injection"]["harmonic number"])
             h1 = int(data1["sequence"]["injection"]["harmonic number"])
             self.harmonic_number.append(h0)
@@ -246,6 +254,23 @@ class Config:
         shutil.copy(beam0_path, Path(self.output_dir_para) / f"{self.output_hms}_beam0.json")
         if beam1_path is not None:
             shutil.copy(beam1_path, Path(self.output_dir_para) / f"{self.output_hms}_beam1.json")
+
+    @staticmethod
+    def _load_electron_cloud(data: dict):
+        """Validate electron-cloud configurations and active named references."""
+        from PASS.para.schema.electron_cloud import load_electron_cloud
+        return load_electron_cloud(data)
+
+    @staticmethod
+    def _electron_cloud_engine_data(block):
+        """Normalize parameter keys while preserving case-sensitive configuration names."""
+        return {
+            "enabled": block.enabled,
+            "configurations": {
+                name: convert_keys_to_lower(config.model_dump(by_alias=True))
+                for name, config in block.configurations.items()
+            },
+        }
 
     @staticmethod
     def _load_space_charge(data: dict):

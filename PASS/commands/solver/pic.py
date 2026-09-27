@@ -1152,13 +1152,21 @@ def build_pic_resources_gpu(
     deposition_strategy="atomic",
     dst_implementation="auto",
     potential_reference_length=None,
+    deterministic=False,
 ):
-    """Build one cached GPU solver, without constructing a CPU LU factorization."""
+    """Build one cached GPU solver, without constructing a CPU LU factorization.
+
+    ``deterministic=True`` opts into cuDSS deterministic FD factorization and
+    solves on one GPU with one RHS and no hybrid modes. The default preserves
+    existing batched solver behavior; this flag does not change deposition.
+    """
     import cupy as cp
 
     name = str(field_solver).strip().lower().replace("-", "_")
     if name not in ("fd", "dst_rectangle", "fft_free_space"):
         raise ValueError("field_solver must be 'fd', 'dst_rectangle', or 'fft_free_space'")
+    if deterministic and (name != "fd" or num_slices not in (None, 1)):
+        raise ValueError("deterministic GPU PIC resources require FD and one right-hand side")
     if deposition_strategy not in ("atomic", "warp", "sorted_warp"):
         raise ValueError("deposition_strategy must be 'atomic', 'warp', or 'sorted_warp'")
     spec = (RectangleAperture(geometry.x_min, geometry.x_max, geometry.y_min, geometry.y_max) if aperture is None else build_aperture(aperture))
@@ -1175,7 +1183,8 @@ def build_pic_resources_gpu(
     ) == (geometry.x_min, geometry.x_max, geometry.y_min, geometry.y_max)
     if name != "fd" and not full:
         raise ValueError(f"{name} requires the full grid-aligned rectangular aperture")
-    solver = ((GPUFDRectangleSolver(geometry, dtype) if full else GPUFDArbitrarySolver(geometry, aperture, dtype))
+    solver = ((GPUFDRectangleSolver(geometry, dtype, deterministic=deterministic)
+               if full else GPUFDArbitrarySolver(geometry, aperture, dtype, deterministic=deterministic))
               if name == "fd" else GPUDSTRectangleSolver(geometry, dtype, implementation=dst_implementation) if name == "dst_rectangle" else
               GPUFFTFreeSpaceSolver(geometry, dtype, batch_size=fft_batch_size, potential_reference_length=potential_reference_length))
     result = GPUPICResources(geometry, spec, solver, name, cp.asarray(solver.interior_mask), deposition_strategy)

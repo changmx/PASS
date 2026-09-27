@@ -38,6 +38,7 @@ purpose, configuration, physical model, and limits in one place.
    space_charge
    field_solver
    wake_field
+   electron_cloud
    beam_beam
 
 .. toctree::

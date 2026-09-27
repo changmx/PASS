@@ -69,6 +69,7 @@ from PASS.para.schema.wake_field import (
     WakeResourceConfig,
 )
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem
+from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem
 
@@ -83,6 +84,7 @@ def generate_input(
     extra_modules: dict | None = None,
     wake_field: WakeFieldConfig | None = None,
     beam_beam: BeamBeamConfig | None = None,
+    electron_cloud: ElectronCloudConfig | None = None,
 ) -> str:
     """Generate a PASS input JSON file from schema objects.
 
@@ -94,6 +96,7 @@ def generate_input(
         extra_modules: optional additional top-level JSON blocks.
         wake_field: optional named wake model/solver configurations and global switch.
         beam_beam: optional shared beam-beam configurations and explicit enable switch.
+        electron_cloud: optional per-beam frozen-cloud or dilute build-up configurations.
 
     Returns:
         The output file path.
@@ -114,6 +117,9 @@ def generate_input(
 
     if beam_beam is not None:
         result["Beam beam"] = beam_beam.model_dump(by_alias=True, exclude_none=True)
+
+    if electron_cloud is not None:
+        result["Electron cloud"] = electron_cloud.model_dump(by_alias=True)
 
     result["Sequence"] = sequence.to_dict()
 
@@ -140,11 +146,15 @@ def load_input(path: str) -> tuple[MainConfig, dict]:
 
     from PASS.core.config import Config
     Config._load_space_charge(data)
+    Config._load_electron_cloud(data)
     from PASS.para.schema.wake_field import expand_wake_configurations
     expand_wake_configurations(data)
     sequence_data = data.pop("Sequence", {})
     data.pop("Space charge", None)
     data.pop("Wake field", None)
+    for key in list(data):
+        if str(key).casefold() == "electron cloud":
+            data.pop(key)
     BeamBeamConfig.model_validate(data.pop("Beam beam", {}))
 
     main = MainConfig.model_validate(data)
@@ -411,5 +421,6 @@ __all__ = [
     'generate_input', 'load_input', 'generate_from_tfs', 'build_sequence', 'MainConfig', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig',
     'SpaceChargeItem', 'WakeFieldItem', 'WakeFieldConfig', 'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake',
     'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
-    'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem'
+    'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem',
+    'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration'
 ]

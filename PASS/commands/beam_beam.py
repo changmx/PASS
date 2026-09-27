@@ -411,7 +411,40 @@ class BeamBeam(Command):
         logger.info("S=%.4f, Command=BeamBeam, Name=%s, Configuration=%s", self.s, self.cmd_name, self.configuration_id)
 
 
-def _checkpoint_input_digest(sim, sequences):
+def _legacy_electron_cloud_inputs(inputs, *, frozen_defaults=True):
+    """Normalize a zero magnetic gradient and optional legacy frozen fields."""
+    inputs = copy.deepcopy(inputs)
+
+    def value(mapping, name, default):
+        return next((item for key, item in mapping.items() if str(key).casefold() == name), default)
+
+    for data in inputs:
+        block = value(data, "electron cloud", {})
+        configurations = value(block, "configurations", {})
+        frozen = set()
+        for name, configuration in configurations.items():
+            buildup = value(configuration, "build up", value(configuration, "buildup", None))
+            if isinstance(buildup, dict):
+                for key in list(buildup):
+                    if str(key).casefold() in {"magnetic gradient (t/m)", "magnetic_gradient"} and buildup[key] == 0:
+                        buildup.pop(key)
+            if not frozen_defaults or value(configuration, "mode", "frozen") != "frozen":
+                continue
+            frozen.add(name)
+            for key in list(configuration):
+                if str(key).casefold() in {"build up", "buildup"} and configuration[key] is None:
+                    configuration.pop(key)
+        for command in value(data, "sequence", {}).values():
+            if not isinstance(command, dict) or str(value(command, "command", "")).casefold() != "electroncloud":
+                continue
+            if value(command, "configuration", None) in frozen:
+                for key in list(command):
+                    if str(key).casefold() in {"slice set", "slice_set"} and command[key] is None:
+                        command.pop(key)
+    return inputs
+
+
+def _checkpoint_input_digest(sim, sequences, *, legacy_electron_cloud=False):
     sequence = [[(command.cmd_name, command.cmd_type, float(command.s), getattr(command, "order", None)) for command in item.cmds]
                 for item in sequences]
     loaded_programs = []
@@ -432,7 +465,8 @@ def _checkpoint_input_digest(sim, sequences):
                 loaded_programs.append((item.beam_id, command.cmd_name, components))
             elif command.cmd_type == "Bump":
                 loaded_programs.append((item.beam_id, command.cmd_name, command.waveform.tolist(), command.waveform_bounds.tolist()))
-    values = {"inputs": sim.cfg.input_data, "sequence": sequence, "precision": sim.cfg.particle_precision, "loaded_programs": loaded_programs}
+    inputs = _legacy_electron_cloud_inputs(sim.cfg.input_data, frozen_defaults=legacy_electron_cloud)
+    values = {"inputs": inputs, "sequence": sequence, "precision": sim.cfg.particle_precision, "loaded_programs": loaded_programs}
     return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest()
 
 
@@ -444,6 +478,8 @@ def _capture_command_state(command):
     kind = command.cmd_type
     if kind == "WakeField":
         return command.state_dict()
+    if kind == "ElectronCloud":
+        return command.state_dict() if command.is_enabled else None
     if kind == "Injection":
         if not command._finished or any(source.Np_injected != source.planned_count for source in command.inj_bunchs):
             raise ValueError("Collision checkpoints require every Injection batch to be complete")
@@ -538,6 +574,16 @@ def capture_collision_state(sim, sequences):
 def _stage_command_state(command, data, next_turn, xp):
     """Validate all command state using detached objects before the commit."""
     kind = command.cmd_type
+    if kind == "ElectronCloud":
+        if not command.is_enabled:
+            if data is not None:
+                raise ValueError("Disabled ElectronCloud cannot restore an active cloud source")
+            return {}
+        fields = command._fields_from_state(data)
+        if command.configuration.mode in {"build_up", "coupled"} and fields.state.last_turn is not None and fields.state.last_turn >= next_turn:
+            fields.close()
+            raise ValueError("ElectronCloud build-up state is not earlier than the checkpoint's next turn")
+        return {"fields": fields, "last_diagnostics": None}
     if kind == "StatMonitor":
         _capture_command_state(command)
     if kind == "WakeField":
@@ -654,7 +700,10 @@ def restore_collision_state(sim, sequences, data):
     coordinator = getattr(sim, "collision", None)
     if coordinator is not None:
         coordinator.state_dict()
-    if data.get("format") != "PASS-beam-beam-state-1" or data.get("input_sha256") != _checkpoint_input_digest(sim, sequences):
+    input_matches = data.get("input_sha256") == _checkpoint_input_digest(sim, sequences)
+    if not input_matches:
+        input_matches = data.get("input_sha256") == _checkpoint_input_digest(sim, sequences, legacy_electron_cloud=True)
+    if data.get("format") != "PASS-beam-beam-state-1" or not input_matches:
         raise ValueError("Collision checkpoint inputs or execution sequence do not match")
     state = data["simulation"]
     if set(state) != {"turn", "next_turn", "time", "revolution", "Ek"}:
@@ -798,7 +847,10 @@ def restore_collision_state(sim, sequences, data):
     for command, values in staged_commands:
         sources = values.pop("_checkpoint_injection_sources", None)
         written = values.pop("_checkpoint_window_written", None)
+        previous_cloud_fields = command.fields if command.cmd_type == "ElectronCloud" and "fields" in values else None
         command.__dict__.update(values)
+        if previous_cloud_fields is not None:
+            previous_cloud_fields.close()
         if sources is not None:
             for source, saved in zip(command.inj_bunchs, sources):
                 source.Np_injected, source.Np_inj_curTurn, source._saved_init_dist = saved["Np_injected"], saved["Np_inj_curTurn"], saved[

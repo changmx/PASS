@@ -8,6 +8,7 @@ from .rules import is_finite_number, is_integer
 
 def check_relations(check):
     from PASS.utils.command_order import sort_commands
+    check_electron_cloud(check)
     raw = check.data.get("Space charge", {})
     root = ("Space charge", )
     sc = check.model(SpaceChargeConfig, {
@@ -35,10 +36,12 @@ def check_relations(check):
     except ValueError as exc:
         check.add(("Sequence", ), "sequence.order", str(exc))
     valid_slices, used, contributions = set(), set(), []
+    slice_positions = {}
     for name, kind, v in ordered:
         p = ("Sequence", name)
         if kind == "Slicer" and v.get("Slice set") in check.slice_sets:
             valid_slices.add(v["Slice set"])
+            slice_positions[v["Slice set"]] = v.get("S (m)")
         if kind in {"SortBunch", "ReorganizeBunch"}:
             start = v.get("Start turn", 0)
             if kind == "SortBunch" or is_integer(start) and 0 <= start < check.turn_count:
@@ -56,6 +59,17 @@ def check_relations(check):
                 check.add((*p, "Slice set"), "wake.slicer_missing", f"未定义 Slice set {slice_name!r}")
             elif slice_name not in valid_slices:
                 check.add(p, "wake.slicer_order", "WakeField 之前必须运行对应的 Slicer")
+        cloud_config = check.electron_cloud_config
+        if kind == "ElectronCloud" and cloud_config is not None and cloud_config.enabled and v.get("Is enabled", True):
+            cloud = cloud_config.configurations.get(v.get("Configuration"))
+            if cloud is not None and cloud.mode in {"build_up", "coupled"}:
+                slice_name = v.get("Slice set")
+                if slice_name not in check.slice_sets:
+                    check.add((*p, "Slice set"), "electron_cloud.slicer_missing", f"{cloud.mode} 需要指定已定义的 Slice set")
+                elif slice_name not in valid_slices or slice_positions.get(slice_name) != v.get("S (m)"):
+                    check.add(p, "electron_cloud.slicer_order", f"{cloud.mode} 之前必须在同一位置执行对应的 Slicer")
+                elif check.slice_sets[slice_name][4] != "z_rel" or check.slice_sets[slice_name][6] != "general":
+                    check.add(p, "electron_cloud.slice_coordinate", f"{cloud.mode} 只接受 general 用途的连续 z_rel 切片")
         if kind == "ParticleMonitor":
             maximum = v.get("Max tag", 0)
             if is_integer(maximum):
@@ -141,6 +155,40 @@ def check_relations(check):
             except (ValueError, OverflowError) as exc:
                 check.add(root, "sc.coverage_numeric", f"覆盖参数导致数值溢出或无效区间：{exc}")
     check_longitudinal(check)
+
+
+def check_electron_cloud(check):
+    """Validate named cloud references without allocating electron or field arrays."""
+    config = check.electron_cloud_config
+    if config is None:
+        return
+    used = set()
+    for name, (kind, values) in check.commands.items():
+        if kind != "ElectronCloud":
+            continue
+        path = ("Sequence", name)
+        if not config.enabled:
+            check.add(path, "electron_cloud.disabled", "全局 Electron cloud.Enabled 已关闭，此命令不产生电子云作用", True)
+            continue
+        if not values.get("Is enabled", True):
+            continue
+        reference = values.get("Configuration")
+        if reference not in config.configurations:
+            check.add((*path, "Configuration"), "electron_cloud.reference", f"未定义 Electron cloud configuration {reference!r}")
+            continue
+        used.add(reference)
+        cloud = config.configurations[reference]
+        if cloud.mode in {"build_up", "coupled"}:
+            if values.get("Slice set") is None:
+                check.add((*path, "Slice set"), "electron_cloud.slicer_missing", f"{cloud.mode} 需要指定 Slice set")
+            continue
+        if values.get("Interaction length (m)") == 0:
+            check.add((*path, "Interaction length (m)"), "electron_cloud.zero_length", "相互作用长度为零，不产生电子云踢", True)
+        if cloud.electron_density == 0:
+            check.add(path, "electron_cloud.zero_density", "所引用配置的电子密度为零，不产生电子云踢", True)
+    if config.enabled:
+        for reference in config.configurations.keys() - used:
+            check.add(("Electron cloud", "Configurations", reference), "electron_cloud.unused", "此电子云配置未被启用的命令引用", True)
 
 
 def check_resource_combinations(check, values, path):

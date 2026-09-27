@@ -19,6 +19,7 @@ from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, Phas
 from PASS.para.schema.slicer import SlicerItem
 from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
+from PASS.para.schema.electron_cloud import ElectronCloudItem, load_electron_cloud
 from PASS.para.schema.twiss import TwissItem
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamItem, load_beam_beam
 from .report import ValidationReport, parse_json
@@ -46,6 +47,7 @@ MODELS.update(Injection=InjectionItem,
               PhaseAdvanceMonitor=PhaseAdvanceMonitorItem,
               Slicer=SlicerItem,
               SpaceCharge=SpaceChargeItem,
+              ElectronCloud=ElectronCloudItem,
               BeamBeam=BeamBeamItem,
               WakeField=WakeFieldItem)
 
@@ -180,8 +182,9 @@ class Validator:
                 if not isinstance(key, str):
                     self.add(path, "json.key", "JSON 键必须是字符串")
                     continue
-                named_collision_configs = tuple(str(part).casefold() for part in path) == ("beam beam", "configurations")
-                identity = key if named_collision_configs else key.casefold()
+                named_physics_configs = tuple(str(part).casefold() for part in path) in {("beam beam", "configurations"),
+                                                                                         ("electron cloud", "configurations")}
+                identity = key if named_physics_configs else key.casefold()
                 if identity in seen:
                     self.add((*path, key), "json.duplicate", "键名存在大小写冲突；引擎会覆盖其中一个值")
                 seen.add(identity)
@@ -251,7 +254,19 @@ class Validator:
             self.add(p, "turns.clipped", f"执行窗口超出本次运行 [0, {self.turn_count})", True)
 
     def globals(self):
-        raw = {k: v for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field", "Beam beam"}}
+        raw = {
+            k: v
+            for k, v in self.data.items()
+            if k not in {"Sequence", "Space charge", "Wake field", "Beam beam"} and str(k).casefold() != "electron cloud"
+        }
+        self.electron_cloud_config = None
+        try:
+            self.electron_cloud_config = load_electron_cloud(self.data, validate_sequence=False)
+        except ValidationError as exc:
+            for issue in exc.errors():
+                self.add(("Electron cloud", *issue["loc"]), "electron_cloud.configuration", issue["msg"])
+        except (TypeError, ValueError) as exc:
+            self.add(("Electron cloud", ), "electron_cloud.configuration", str(exc))
         if "Beam beam" in self.data:
             self.model(BeamBeamConfig, self.data["Beam beam"], ("Beam beam", ))
         self.wake_config = None
@@ -416,12 +431,34 @@ class Validator:
         if not isinstance(raw, dict):
             self.add(p, "command.object", "command 必须是对象")
             return
+        cloud_kind = next((value for key, value in raw.items() if str(key).casefold() == "command"), "")
+        if str(cloud_kind).casefold() == "electroncloud":
+            try:
+                normalized = ElectronCloudItem._normalize_fields(raw)
+                raw = {
+                    (ElectronCloudItem.model_fields[key].alias if key in ElectronCloudItem.model_fields else key): value
+                    for key, value in normalized.items()
+                }
+                raw["Command"] = "ElectronCloud"
+            except ValueError as exc:
+                self.add(p, "electron_cloud.configuration", str(exc))
+                return
         kind = raw.get("Command")
         if not isinstance(kind, str) or kind not in MODELS:
             self.add((*p, "Command"), "command.unknown", f"未知或缺少 Command：{kind!r}；可选值：{', '.join(MODELS)}")
             return
         if kind == "Injection":
             v = self.injection(raw, p)
+        elif kind == "ElectronCloud" and self.electron_cloud_config is not None and not self.electron_cloud_config.enabled:
+            v = {key: raw[key] for key in ("S (m)", "Order", "Configuration") if key in raw}
+            v["Is enabled"] = False
+            for field_name in ("s", "order"):
+                alias = ElectronCloudItem.model_fields[field_name].alias
+                if alias in raw:
+                    try:
+                        field_adapter(ElectronCloudItem, field_name).validate_python(raw[alias], strict=True)
+                    except ValidationError as exc:
+                        self.add((*p, alias), "field.type", str(exc))
         else:
             v = self.model(MODELS[kind], raw, p)
         if kind == "WakeField":
@@ -495,7 +532,7 @@ class Validator:
             if is_finite_number(s) and is_finite_number(previous) and (previous < 0 or previous > s):
                 self.add((*p, "S previous (m)"), "twiss.position", "要求 0 ≤ S previous ≤ S；反向间隔会产生反向漂移")
         if "Save turns" in v:
-            self.turns(v["Save turns"], (*p, "Save turns"), flat=kind == "SpaceCharge")
+            self.turns(v["Save turns"], (*p, "Save turns"), flat=kind in {"SpaceCharge", "ElectronCloud"})
         if kind == "PhaseAdvanceMonitor":
             self.turns(v.get("Turn ranges", 0), (*p, "Turn ranges"), analysis=True)
             self.numeric(v, "Min action", p, minimum=0)

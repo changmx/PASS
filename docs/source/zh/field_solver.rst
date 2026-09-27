@@ -160,7 +160,7 @@ GPU 接口要求兼容的 CUDA 环境及 GPU 依赖；安装项目时选择 ``cu
 
 ``build_pic_resources_gpu`` 使用与 ``build_pic_resources`` 相同的几何和底层
 求解器名称，另提供 ``dtype``、``num_slices``、``dst_implementation``、
-``fft_batch_size`` 与 ``deposition_strategy``。默认精度为 ``float64``，
+``fft_batch_size``、``deposition_strategy`` 与 ``deterministic``。默认精度为 ``float64``，
 DST 自动择优，FFT 每批 16 个切片，沉积使用直接原子加。
 建议初始化时提供 ``num_slices``。假定 ``x``、``y`` 和整数 ``slice_id``
 已经是设备数组：
@@ -188,6 +188,14 @@ DST 自动择优，FFT 每批 16 个切片，沉积使用直接原子加。
 复用要求串行调用、创建时的 device 和 stream，以及相同的几何、边界算子和精度。
 ``close()`` 释放工作区与 cuDSS 句柄，关闭后再次使用会报错。
 切片数改变会重建批量工作区，但保留 FD 分解。
+
+可选的 ``deterministic=True`` 仅为 ``field_solver="fd"`` 启用 cuDSS
+确定性模式，要求单 GPU、单右端项（一个切片）；多切片输入会明确报错。
+默认 ``False`` 保留现有批量行为。``GPUFDRectangleSolver`` 和
+``GPUFDArbitrarySolver`` 接受相同关键字。此选项只控制 cuDSS 求解，
+不控制通用 ``pic_gpu`` 沉积；耦合电子云另行采用固定次序沉积。
+可重复性限定于相同 GPU 架构、SM 数量及软件栈，不承诺跨设备一致。
+如果安装的 cuDSS 无法启用该模式，初始化会给出明确错误，不退回非确定性求解。
 
 ``dst_implementation`` 可取 ``auto``、``cufft``、``cufftdx`` 或 ``fused``。
 默认 ``auto`` 校验可选实现的数值结果后选择执行方式；可选依赖不可用时使用 cuFFT，

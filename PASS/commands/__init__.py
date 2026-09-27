@@ -25,6 +25,7 @@ from .element.float_waister import FloatWaister
 from .beam_beam import BeamBeam
 from .space_charge import SpaceCharge
 from .wake_field import WakeField
+from .electron_cloud import ElectronCloud
 from .monitor.statistic import StatMonitor
 from .monitor.distribution import DistMonitor
 from .monitor.phase_advance import PhaseAdvanceMonitor
@@ -59,6 +60,7 @@ __all__ = [
     "BeamBeam",
     "SpaceCharge",
     "WakeField",
+    "ElectronCloud",
     "StatMonitor",
     "DistMonitor",
     "PhaseAdvanceMonitor",

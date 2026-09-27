@@ -237,6 +237,13 @@ MainConfig（全局参数）
 定义粒子损失孔径，并在 Dirichlet 中同时定义导体壁，
 网格输入必须完整选择全宽或半宽一组；省略命令孔径时默认使用网格同尺寸矩形。
 
+电子云使用独立顶层 ``Electron cloud`` 配置块。
+调用 ``generate_input`` 时传入 ``electron_cloud=ElectronCloudConfig(...)``，
+通过 ``ElectronCloudItem`` 引用命名配置。``frozen`` 不要求 Slicer；
+外驱动 ``build_up`` 与 PIC ``coupled`` 均要求当前 ``z_rel`` SliceSet
+和嵌套 ``ElectronCloudBuildUpConfiguration``；耦合模式包含云自场和横向束流响应。
+物理约定、参数与限制见 :doc:`electron_cloud`。
+
 .. _zh-reference-clock:
 
 规定的机器时钟与初始化
@@ -636,6 +643,7 @@ Python 字段 ``num_electron`` 沿用历史命名，实际表示带符号电荷�
    │   ├── elements.py     元件配置类
    │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
    │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
+   │   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
    │   └── sequence.py     Sequence：有序容器 + 自动排序
    ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
    ├── smooth.py      解析平滑近似 twiss
@@ -669,4 +677,4 @@ Python 字段 ``num_electron`` 沿用历史命名，实际表示带符号电荷�
 API 入口
 ------------
 
-``PASS.para.api`` 提供 ``generate_input``、``build_sequence``、``generate_from_tfs`` 和 ``load_input``。``load_input(path)`` 返回 ``(MainConfig, raw_sequence_dict)``，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field 配置块。编辑现有完整文件时应单独保留这些配置块。
+``PASS.para.api`` 提供 ``generate_input``、``build_sequence``、``generate_from_tfs`` 和 ``load_input``。``load_input(path)`` 返回 ``(MainConfig, raw_sequence_dict)``，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud 配置块；返回前会校验电子云配置及其引用。编辑现有完整文件时应单独保留这些配置块。

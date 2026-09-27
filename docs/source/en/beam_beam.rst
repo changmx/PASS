@@ -965,8 +965,9 @@ containing NumPy arrays; these functions do not define a file format.
 Capture requires a complete common turn in ordinary PASS coordinates, finished
 Injection batches and successfully flushed monitor output. Save both beams
 together: the state includes particles, bunch reference quantities, the
-prescribed clock, collision counts, completed injection state, wake history
-and particle/tune-monitor accumulation required for continuation.
+prescribed clock, collision counts, completed injection state, wake history,
+enabled frozen or dynamic electron-cloud states and particle/tune-monitor
+accumulation required for continuation.
 
 Restore validates the full input/sequence fingerprint, array layout, physical
 references and command state before modifying either beam. It invalidates

@@ -200,12 +200,12 @@ def solve_poisson_fd_arbitrary(density, geometry, aperture):
 
 
 class GPUFDArbitrarySolver(GPUFDRectangleSolver):
-    """cuDSS solves with continuous-aperture Shortley-Weller coefficients."""
+    """cuDSS Shortley-Weller solves; optional determinism requires a single RHS."""
 
     arbitrary = True
 
-    def __init__(self, geometry, aperture, dtype="float64"):
-        self._initialize(geometry, dtype, build_fd_arbitrary_resources(geometry, aperture, factorize=False))
+    def __init__(self, geometry, aperture, dtype="float64", *, deterministic=False):
+        self._initialize(geometry, dtype, build_fd_arbitrary_resources(geometry, aperture, factorize=False), deterministic=deterministic)
 
     def _prepare_geometry(self, reference):
         import cupy as cp

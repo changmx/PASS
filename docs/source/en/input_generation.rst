@@ -238,6 +238,15 @@ condition in its name. The command's ``Aperture type/value`` defines particle
 losses and, for Dirichlet solvers, the conducting wall.  Supply a complete grid full-width or half-width pair;
 omitting the command aperture selects a rectangle equal to that grid.
 
+Electron clouds use the independent top-level ``Electron cloud`` block.
+Pass ``electron_cloud=ElectronCloudConfig(...)`` to ``generate_input`` and
+reference a named configuration with ``ElectronCloudItem``. The ``frozen``
+model needs no Slicer; externally driven ``build_up`` and PIC ``coupled``
+require a current ``z_rel`` SliceSet and nested
+``ElectronCloudBuildUpConfiguration``. Coupled mode includes cloud self-fields
+and transverse beam response. Physics, parameters and limits are in
+:doc:`electron_cloud`.
+
 .. _en-reference-clock:
 
 Prescribed machine clock and initialization
@@ -652,6 +661,7 @@ The parameter modules construct, validate and serialize the input objects:
    │   ├── elements.py     Element configuration classes
    │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
    │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
+   │   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
    │   └── sequence.py     Sequence: ordered container + auto-sorting
    ├── madx.py        MADX TFS → schema objects (element / twiss / error)
    ├── smooth.py      Analytical smooth approximation twiss
@@ -685,4 +695,4 @@ The data flow is as follows:
 API entry points
 --------------------------------
 
-``PASS.para.api`` exports ``generate_input``, ``build_sequence``, ``generate_from_tfs`` and ``load_input``. ``load_input(path)`` returns ``(MainConfig, raw_sequence_dict)``; it does not reconstruct typed commands or return the top-level Space charge/Wake field blocks. Preserve those blocks explicitly when editing a complete existing file.
+``PASS.para.api`` exports ``generate_input``, ``build_sequence``, ``generate_from_tfs`` and ``load_input``. ``load_input(path)`` returns ``(MainConfig, raw_sequence_dict)``; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud blocks. It validates electron-cloud configuration and references before returning. Preserve those blocks explicitly when editing a complete existing file.
