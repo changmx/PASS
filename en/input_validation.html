@@ -86,6 +86,8 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
@@ -149,6 +151,10 @@ backend, precision, GPU settings and timing settings must agree. Direct
 </section>
 <section id="what-is-checked">
 <h2>What is checked<a class="headerlink" href="#what-is-checked" title="Link to this heading"></a></h2>
+<p>Two-input beam-beam checks cover the shared switch, exact configuration IDs,
+fixed pairing, source methods, explicit Slicer dependencies, crossing frames,
+and matching IP visit order. At any position using integer <code class="docutils literal notranslate"><span class="pre">Order</span></code>, all
+commands there must supply distinct Order values. See <a class="reference internal" href="beam_beam.html"><span class="doc">Beam-Beam Interaction (BeamBeam)</span></a>.</p>
 <ul class="simple">
 <li><p>JSON syntax, object root, duplicate keys (including case collisions), finite
 numbers, strict numeric/boolean/list types, unknown fields and missing fields

@@ -120,6 +120,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
@@ -361,7 +363,7 @@ Shortley–Weller 距离。</p></td>
 <p>GPU 接口要求兼容的 CUDA 环境及 GPU 依赖；安装项目时选择 <code class="docutils literal notranslate"><span class="pre">cuda</span></code> 可选依赖。CPU 接口不要求 CuPy。</p>
 <p><code class="docutils literal notranslate"><span class="pre">build_pic_resources_gpu</span></code> 使用与 <code class="docutils literal notranslate"><span class="pre">build_pic_resources</span></code> 相同的几何和底层
 求解器名称，另提供 <code class="docutils literal notranslate"><span class="pre">dtype</span></code>、<code class="docutils literal notranslate"><span class="pre">num_slices</span></code>、<code class="docutils literal notranslate"><span class="pre">dst_implementation</span></code>、
-<code class="docutils literal notranslate"><span class="pre">fft_batch_size</span></code> 与 <code class="docutils literal notranslate"><span class="pre">deposition_strategy</span></code>。默认精度为 <code class="docutils literal notranslate"><span class="pre">float64</span></code>，
+<code class="docutils literal notranslate"><span class="pre">fft_batch_size</span></code>、<code class="docutils literal notranslate"><span class="pre">deposition_strategy</span></code> 与 <code class="docutils literal notranslate"><span class="pre">deterministic</span></code>。默认精度为 <code class="docutils literal notranslate"><span class="pre">float64</span></code>，
 DST 自动择优，FFT 每批 16 个切片，沉积使用直接原子加。
 建议初始化时提供 <code class="docutils literal notranslate"><span class="pre">num_slices</span></code>。假定 <code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code> 和整数 <code class="docutils literal notranslate"><span class="pre">slice_id</span></code>
 已经是设备数组：</p>
@@ -387,6 +389,13 @@ DST 自动择优，FFT 每批 16 个切片，沉积使用直接原子加。
 复用要求串行调用、创建时的 device 和 stream，以及相同的几何、边界算子和精度。
 <code class="docutils literal notranslate"><span class="pre">close()</span></code> 释放工作区与 cuDSS 句柄，关闭后再次使用会报错。
 切片数改变会重建批量工作区，但保留 FD 分解。</p>
+<p>可选的 <code class="docutils literal notranslate"><span class="pre">deterministic=True</span></code> 仅为 <code class="docutils literal notranslate"><span class="pre">field_solver=&quot;fd&quot;</span></code> 启用 cuDSS
+确定性模式，要求单 GPU、单右端项（一个切片）；多切片输入会明确报错。
+默认 <code class="docutils literal notranslate"><span class="pre">False</span></code> 保留现有批量行为。<code class="docutils literal notranslate"><span class="pre">GPUFDRectangleSolver</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">GPUFDArbitrarySolver</span></code> 接受相同关键字。此选项只控制 cuDSS 求解，
+不控制通用 <code class="docutils literal notranslate"><span class="pre">pic_gpu</span></code> 沉积；耦合电子云另行采用固定次序沉积。
+可重复性限定于相同 GPU 架构、SM 数量及软件栈，不承诺跨设备一致。
+如果安装的 cuDSS 无法启用该模式，初始化会给出明确错误，不退回非确定性求解。</p>
 <p><code class="docutils literal notranslate"><span class="pre">dst_implementation</span></code> 可取 <code class="docutils literal notranslate"><span class="pre">auto</span></code>、<code class="docutils literal notranslate"><span class="pre">cufft</span></code>、<code class="docutils literal notranslate"><span class="pre">cufftdx</span></code> 或 <code class="docutils literal notranslate"><span class="pre">fused</span></code>。
 默认 <code class="docutils literal notranslate"><span class="pre">auto</span></code> 校验可选实现的数值结果后选择执行方式；可选依赖不可用时使用 cuFFT，
 数值校验失败则报错。显式指定可选实现时，其依赖或编译错误直接报告。

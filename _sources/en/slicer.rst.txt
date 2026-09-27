@@ -108,7 +108,15 @@ Common command parameters
      - str
      - ``"z_rel"``
      - ``z_rel`` for continuous time slicing; ``z_periodic`` for circumference-folded SC slicing;
-       ``arrival_phase`` for the wake observation clock. SC requires an explicit ``z_periodic`` selection.
+       ``arrival_phase`` for the wake observation clock; ``collision_z`` inside
+       an explicit CrossingAngle interval. SC requires an explicit ``z_periodic`` selection.
+   * - ``purpose`` / ``configuration``
+     - ``"Purpose"`` / ``"Configuration"``
+     - str / str or null
+     - ``"general"`` / null
+     - ``beam_beam`` requires a matching IP configuration and ``z_rel`` or
+       ``collision_z``. Its explicit range must cover all live particles;
+       see :doc:`beam_beam` for frame and ordering rules.
    * - ``num_slices``
      - ``"Number of slices"``
      - int
@@ -342,7 +350,7 @@ Snapshots preserve continuous z and record the reference time, beta and
 coordinate definition. Periodic snapshots also include ``slice_coordinate``.
 The density is real-particle count per metre, not coulombs per metre.
 
-The output metadata ``ZCoordinate="z_rel"`` describes the original particle ``z``
+Outside a collision frame, output metadata ``ZCoordinate="z_rel"`` describes the original particle ``z``
 column; it is output metadata, not an input option or a default assignment.
 ``Coordinate`` identifies the selected slicing projection, while
 ``CoordinateDefinition="z=beta*c*(T-t)"``, ``ReferenceArrivalTime`` (seconds)

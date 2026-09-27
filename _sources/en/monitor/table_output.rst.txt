@@ -7,11 +7,13 @@ Format selection
 ``output_format`` (JSON ``"Output format"``) is the single format and
 compression selector:
 
-- ``"hdf5-gzip1"``: HDF5 with lossless gzip level 1 and shuffle (**default**).
+- ``"hdf5-gzip1"``: HDF5 with lossless gzip level 1 and shuffle.
 - ``"hdf5"``: uncompressed HDF5, with no shuffle.
 - ``"tfs"``: TFS text output.
 
-Omitting the option selects ``"hdf5-gzip1"``. Selecting a format does not
+Omitting the option selects ``"hdf5-gzip1"`` for the monitors, Injection and
+Slicer. :doc:`BeamBeam luminosity <../beam_beam>` instead defaults to ``"tfs"``
+in its shared ``Luminosity`` configuration. Selecting a format does not
 enable a disabled output or change the configured recording turns.
 
 .. list-table::
@@ -40,6 +42,9 @@ enable a disabled output or change the configured recording turns.
    * - Slicer
      - Particle details per bunch and selected turn
      - Slice summaries remain TFS and CSV
+   * - BeamBeam luminosity
+     - One sampled encounter history per IP configuration and occurrence
+     - None; defaults to TFS
 
 HDF5 tables use ``.h5``; TFS tables use ``.tfs`` with the same filename stem.
 SpaceCharge field output uses a multidimensional HDF5 layout
@@ -114,6 +119,10 @@ at zero-based turns 99, 199, and so on. The final turn flushes any remaining
 rows. Normal executor cleanup also flushes a partial batch after a catchable
 exception or keyboard interruption; forced process termination can lose the
 unwritten batch.
+
+BeamBeam luminosity uses a separate **sample interval**, with first/final-turn
+handling. It computes only the selected encounters and appends their records
+after a complete common turn; it does not buffer luminosity for every turn.
 
 .. code-block:: python
 

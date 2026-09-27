@@ -6,11 +6,13 @@
 
 ``output_format``（JSON ``"Output format"``）统一选择格式和压缩方式：
 
-- ``"hdf5-gzip1"``：HDF5，使用无损 gzip level 1 和 shuffle（**默认**）。
+- ``"hdf5-gzip1"``：HDF5，使用无损 gzip level 1 和 shuffle。
 - ``"hdf5"``：不压缩的 HDF5，也不启用 shuffle。
 - ``"tfs"``：TFS 文本输出。
 
-省略此选项时使用 ``"hdf5-gzip1"``。格式选择不启用原本关闭的输出，
+监视器、Injection 与 Slicer 省略此选项时使用 ``"hdf5-gzip1"``。
+:doc:`BeamBeam 亮度 <../beam_beam>` 的共享 ``Luminosity`` 配置则默认 ``"tfs"``。
+格式选择不启用原本关闭的输出，
 也不改变配置的记录圈数。
 
 .. list-table::
@@ -39,6 +41,9 @@
    * - Slicer
      - 每个束团、每个选定圈的逐粒子信息
      - 切片汇总仍为 TFS 和 CSV
+   * - BeamBeam 亮度
+     - 每个 IP 配置与 occurrence 的采样相遇历史
+     - 无；默认 TFS
 
 HDF5 表格使用 ``.h5``，TFS 表格使用 ``.tfs``，文件名主体保持一致。
 SpaceCharge 场输出使用多维 HDF5 结构，不增加 TFS 导出。
@@ -101,6 +106,9 @@ StatMonitor **每圈计算并缓存一行**。可选参数 ``write_interval_turn
 设置为 100 时，在零起始圈号 99、199 等处刷新；最后一圈补写剩余记录。
 执行器在可捕获异常或键盘中断后的清理阶段也会补写不足一批的记录；
 强制终止进程可能丢失尚未写入的一批。
+
+BeamBeam 亮度使用独立的 **采样间隔**，并处理首末圈。它只计算选定的相遇，
+在两束共同完成整圈后追加记录，不缓存每圈亮度。
 
 .. code-block:: python
 

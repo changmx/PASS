@@ -80,6 +80,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
@@ -134,11 +136,13 @@
 <h2>格式选择<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">output_format``（JSON</span> <span class="pre">``&quot;Output</span> <span class="pre">format&quot;</span></code>）统一选择格式和压缩方式：</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>：HDF5，使用无损 gzip level 1 和 shuffle（<strong>默认</strong>）。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>：HDF5，使用无损 gzip level 1 和 shuffle。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>：不压缩的 HDF5，也不启用 shuffle。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>：TFS 文本输出。</p></li>
 </ul>
-<p>省略此选项时使用 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>。格式选择不启用原本关闭的输出，
+<p>监视器、Injection 与 Slicer 省略此选项时使用 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>。
+<a class="reference internal" href="../beam_beam.html"><span class="doc">BeamBeam 亮度</span></a> 的共享 <code class="docutils literal notranslate"><span class="pre">Luminosity</span></code> 配置则默认 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>。
+格式选择不启用原本关闭的输出，
 也不改变配置的记录圈数。</p>
 <table class="docutils align-default">
 <colgroup>
@@ -177,6 +181,10 @@
 <tr class="row-odd"><td><p>Slicer</p></td>
 <td><p>每个束团、每个选定圈的逐粒子信息</p></td>
 <td><p>切片汇总仍为 TFS 和 CSV</p></td>
+</tr>
+<tr class="row-even"><td><p>BeamBeam 亮度</p></td>
+<td><p>每个 IP 配置与 occurrence 的采样相遇历史</p></td>
+<td><p>无；默认 TFS</p></td>
 </tr>
 </tbody>
 </table>
@@ -234,6 +242,8 @@ CSV 保持不变，SpaceCharge 继续使用独立的场数据写入器。
 设置为 100 时，在零起始圈号 99、199 等处刷新；最后一圈补写剩余记录。
 执行器在可捕获异常或键盘中断后的清理阶段也会补写不足一批的记录；
 强制终止进程可能丢失尚未写入的一批。</p>
+<p>BeamBeam 亮度使用独立的 <strong>采样间隔</strong>，并处理首末圈。它只计算选定的相遇，
+在两束共同完成整圈后追加记录，不缓存每圈亮度。</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitorItem</span>
 
 <span class="n">stat</span> <span class="o">=</span> <span class="n">StatMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5-gzip1"</span><span class="p">,</span> <span class="n">write_interval_turns</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>

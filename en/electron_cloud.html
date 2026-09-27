@@ -1,0 +1,845 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Electron Cloud (ElectronCloud) &mdash; PASS 0.4.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Beam-Beam Interaction (BeamBeam)" href="beam_beam.html" />
+    <link rel="prev" title="WakeField" href="wake_field.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="../zh/electron_cloud.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">Element</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Electron Cloud (ElectronCloud)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-and-execution">Configuration and execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-parameters">Configuration parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#frozen-cloud-field-and-momentum-conventions">Frozen-cloud field and momentum conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pic-normalization-and-boundary-conditions">PIC normalization and boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dynamic-models-and-physical-time">Dynamic models and physical time</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prescribed-drive-and-electron-integration">Prescribed drive and electron integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#coupled-pic-fields-and-beam-response">Coupled PIC fields and beam response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#primary-and-secondary-emission">Primary and secondary emission</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output-and-state">Output and state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#runnable-example">Runnable example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitors and output</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS User Manual</a></li>
+      <li class="breadcrumb-item active">Electron Cloud (ElectronCloud)</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="electron-cloud-electroncloud">
+<h1>Electron Cloud (ElectronCloud)<a class="headerlink" href="#electron-cloud-electroncloud" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">ElectronCloud</span></code> provides three modes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> applies a transverse thin kick from a prescribed stationary
+uniform electron disk. Its field is analytic in free space or calculated
+once from sampled macro electrons with a PIC solver.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> tracks electrons driven by prescribed beam slices and external
+magnetic fields in a circular chamber, including primary wall emission,
+absorption and simplified true-secondary emission. It applies no beam kick.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coupled</span></code> adds electron-cloud PIC self-fields and a transverse beam kick.
+The actual saved beam-slice particles drive the electrons in a grounded
+circular chamber.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">build_up</span></code> model is an externally driven, low-density approximation. It
+does not include electron-cloud self-fields, beam feedback or physical
+space-charge saturation. <code class="docutils literal notranslate"><span class="pre">coupled</span></code> is a first quasistatic, transverse thin-lens
+coupling model; it has not been validated for instability thresholds or
+equilibrium cloud densities. These modes are selected explicitly.</p>
+<section id="configuration-and-execution">
+<h2>Configuration and execution<a class="headerlink" href="#configuration-and-execution" title="Link to this heading"></a></h2>
+<p>Enable the top-level <code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">cloud</span></code> block and define named configurations.
+Each <code class="docutils literal notranslate"><span class="pre">ElectronCloud</span></code> sequence command selects a configuration and supplies
+its own <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">length</span> <span class="pre">(m)</span></code>. The command does not transport particles
+over that length. Insert actual transport commands separately. In <code class="docutils literal notranslate"><span class="pre">build_up</span></code>
+this required field is retained for API compatibility but does not change
+electron dynamics, because no beam feedback is applied.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">frozen</span></code>, no <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> is required: the prescribed field is independent of longitudinal
+position and time. The command leaves <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>, <code class="docutils literal notranslate"><span class="pre">dp</span></code>, <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> and the
+reference energy unchanged. In <code class="docutils literal notranslate"><span class="pre">build_up</span></code>, the command requires a current
+<code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet and leaves all beam particle coordinates unchanged.
+<code class="docutils literal notranslate"><span class="pre">coupled</span></code> also requires that SliceSet and changes only <code class="docutils literal notranslate"><span class="pre">px</span></code> and <code class="docutils literal notranslate"><span class="pre">py</span></code>.
+See <a class="reference internal" href="injection.html"><span class="doc">Injection / Particle Generation</span></a> for the coordinate convention.
+The configured density prescribes the frozen cloud or initializes the dynamic
+cloud; it is not inferred from beam intensity or bunch grouping.</p>
+<p>The following is an input fragment; injection and transport must also be
+supplied:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Electron cloud"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Configurations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"round_cloud"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"frozen"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform_round_free_space"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Electron density (1/m^3)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e12</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Radius (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Center X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Center Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"cloud_at_ip"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ElectronCloud"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"round_cloud"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Interaction length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save fields"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save turns"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mi">0</span><span class="p">]]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Python input generation uses <code class="docutils literal notranslate"><span class="pre">ElectronCloudConfig</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ElectronCloudConfiguration</span></code> and <code class="docutils literal notranslate"><span class="pre">ElectronCloudItem</span></code> from
+<code class="docutils literal notranslate"><span class="pre">PASS.para.schema.electron_cloud</span></code>. Pass the top-level model to
+<code class="docutils literal notranslate"><span class="pre">generate_input(...,</span> <span class="pre">electron_cloud=cloud_config)</span></code>. Configuration names are
+case-sensitive; each command owns its own cloud state and resources.
+The same explicit random seed gives the same initial macro-electron
+sample for equal source parameters. An omitted seed or JSON <code class="docutils literal notranslate"><span class="pre">null</span></code> is
+nondeterministic. Booleans and fractional values are not valid integer seeds.</p>
+</section>
+<section id="configuration-parameters">
+<h2>Configuration parameters<a class="headerlink" href="#configuration-parameters" title="Link to this heading"></a></h2>
+<p>The top-level block contains <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> (boolean, default <code class="docutils literal notranslate"><span class="pre">false</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">Configurations</span></code> (mapping of names to the following configuration objects).
+Disabling the block skips its configurations and all electron-cloud actions.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Named configuration</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 18.0%" />
+<col style="width: 52.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON key / Python field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code> / <code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code>, externally driven <code class="docutils literal notranslate"><span class="pre">build_up</span></code>, or <code class="docutils literal notranslate"><span class="pre">coupled</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code> / <code class="docutils literal notranslate"><span class="pre">solver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code></p></td>
+<td><p>Frozen: analytic free space or <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>, <code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code> PIC. Build-up requires <code class="docutils literal notranslate"><span class="pre">round_gaussian_beam</span></code>; coupled requires <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">density</span> <span class="pre">(1/m^3)</span></code> / <code class="docutils literal notranslate"><span class="pre">electron_density</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Nonnegative physical electron number density inside the disk. In dynamic modes this initializes the cloud only.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">radius</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Positive uniform-disk radius; for dynamic modes, the initial disk radius. This is not an RMS beam size.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">center_x</span></code>, <code class="docutils literal notranslate"><span class="pre">center_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Transverse cloud center, in metres.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">n_macroparticles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10000</span></code></p></td>
+<td><p>Positive integer source sample size for frozen PIC or the initial dynamic cloud. It does not alter physical density.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">seed</span></code> / <code class="docutils literal notranslate"><span class="pre">random_seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Integer or <code class="docutils literal notranslate"><span class="pre">null</span></code> for cloud initialization and emission randomness.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Nx</span></code>, <code class="docutils literal notranslate"><span class="pre">Ny</span></code> / <code class="docutils literal notranslate"><span class="pre">nx</span></code>, <code class="docutils literal notranslate"><span class="pre">ny</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">65</span></code>, <code class="docutils literal notranslate"><span class="pre">65</span></code></p></td>
+<td><p>Grid point counts, integers at least 3; coupled requires odd counts of at least 5.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">grid_width_x</span></code>, <code class="docutils literal notranslate"><span class="pre">grid_width_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1</span></code>, <code class="docutils literal notranslate"><span class="pre">0.1</span></code></p></td>
+<td><p>Full positive widths of the grid, centered at the origin.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code> / <code class="docutils literal notranslate"><span class="pre">deposition_method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CIC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CIC</span></code> or <code class="docutils literal notranslate"><span class="pre">TSC</span></code> for PIC deposition and interpolation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code>, <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code> / <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code>, <code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">default</span></code>, <code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>Frozen field-domain geometry. Dynamic modes require <code class="docutils literal notranslate"><span class="pre">default</span></code> or <code class="docutils literal notranslate"><span class="pre">off</span></code> and an empty value; their circular wall comes from <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> / <code class="docutils literal notranslate"><span class="pre">buildup</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Required nested <code class="docutils literal notranslate"><span class="pre">ElectronCloudBuildUpConfiguration</span></code> in both dynamic modes; forbidden in frozen mode.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The grid and deposition fields apply to frozen PIC, frozen field diagnostics
+and coupled PIC. <code class="docutils literal notranslate"><span class="pre">build_up</span></code> does not use the PIC grid. In coupled mode,
+both grid widths must cover the complete chamber diameter and each grid
+spacing must be at most half the chamber radius. This is a minimum
+resolvability check, not a convergence criterion. The circular Dirichlet
+wall is defined by <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code>.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Sequence command</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 18.0%" />
+<col style="width: 52.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON key / Python field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Thin-kick location in the sequence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code> / <code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Optional integer order at the same position, following the shared sequence rules.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code> / <code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Name in this beam’s <code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">cloud.Configurations</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">length</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">interaction_length</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Nonnegative represented machine length for frozen/coupled beam kicks. Build-up dynamics are independent of this value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code> / <code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Required current <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet in both dynamic modes; unnecessary for frozen clouds.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Per-command switch.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">fields</span></code> / <code class="docutils literal notranslate"><span class="pre">save_fields</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Save frozen fields, or dynamic particle state/history at selected turns. Coupled output also contains the final cloud fields.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code> / <code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[[turn],</span> <span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step],</span> <span class="pre">...]</span></code> with inclusive endpoints and zero-based turns. Empty disables saving.</p></td>
+</tr>
+</tbody>
+</table>
+<p>All numeric configuration values must be finite. Unknown electron-cloud fields
+are rejected, so unsupported dynamic-model parameters cannot silently enable
+physics that is absent.</p>
+</section>
+<section id="frozen-cloud-field-and-momentum-conventions">
+<h2>Frozen-cloud field and momentum conventions<a class="headerlink" href="#frozen-cloud-field-and-momentum-conventions" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(n_e\ge0\)</span> be the electron density, <span class="math notranslate nohighlight">\(e&gt;0\)</span> the elementary charge,
+<span class="math notranslate nohighlight">\(\rho_e=-e n_e\)</span>, <span class="math notranslate nohighlight">\(a\)</span> the cloud radius and
+<span class="math notranslate nohighlight">\(\boldsymbol r=(x-x_c,y-y_c)\)</span>. Gauss’s law for an infinitely long,
+uniform charged cylinder gives</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\boldsymbol E_e(\boldsymbol r)
+=-\frac{e n_e}{2\epsilon_0}\boldsymbol r
+\begin{cases}
+    1, &amp; r\le a,\\
+    a^2/r^2, &amp; r&gt;a.
+\end{cases}\end{split}\]</div>
+<p>The field is zero at the center and points toward it. The analytic field
+includes the exterior <span class="math notranslate nohighlight">\(1/r\)</span> radial dependence. A convenient potential
+reference is <span class="math notranslate nohighlight">\(\phi(a)=0\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\phi(r)=\begin{cases}
+   \dfrac{e n_e}{4\epsilon_0}(r^2-a^2), &amp; r\le a,\\
+   \dfrac{e n_e a^2}{2\epsilon_0}\ln(r/a), &amp; r&gt;a.
+\end{cases}\end{split}\]</div>
+<p>Free-space two-dimensional potentials have an arbitrary additive constant;
+this choice does not affect the kick.</p>
+<p>PASS stores normalized transverse mechanical momenta
+<span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span> and <span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>. Under the small-angle,
+reference-speed thin-kick approximation, the command applies</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x=\frac{q_b L_{\mathrm{int}}}{P_0\beta_0 c}E_{e,x},
+\qquad
+\Delta p_y=\frac{q_b L_{\mathrm{int}}}{P_0\beta_0 c}E_{e,y}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(q_b\)</span> is signed and <span class="math notranslate nohighlight">\(P_0\)</span> is the full particle reference
+momentum in SI units. Internally the equivalent factor is
+<span class="math notranslate nohighlight">\(\operatorname{sign}(q_b)L_{\mathrm{int}}/(\beta_0 c B\rho)\)</span> with
+positive <span class="math notranslate nohighlight">\(B\rho=P_0/|q_b|\)</span>, including the ion charge-to-mass
+normalization. The resulting kick focuses positively charged particles and
+defocuses electrons near the cloud center.</p>
+<p>There is no <span class="math notranslate nohighlight">\(1/\gamma_0^2\)</span> factor: the stationary electron cloud has
+no prescribed longitudinal current whose magnetic force cancels its electric
+force. That cancellation belongs to the co-moving self-field model in
+<a class="reference internal" href="space_charge.html"><span class="doc">Space-Charge Effect (SpaceCharge)</span></a>. This is not a full six-dimensional electromagnetic
+integrator: longitudinal electric fields, cloud magnetic fields, energy work,
+and corrections for individual-particle speed are outside the approximation.</p>
+</section>
+<section id="pic-normalization-and-boundary-conditions">
+<h2>PIC normalization and boundary conditions<a class="headerlink" href="#pic-normalization-and-boundary-conditions" title="Link to this heading"></a></h2>
+<p>PIC samples uniformly in disk area, with equal nonnegative electron-number
+weights. Using an internal source length <span class="math notranslate nohighlight">\(L_s=1\,\mathrm{m}\)</span> and
+<span class="math notranslate nohighlight">\(N_m\)</span> samples,</p>
+<div class="math notranslate nohighlight">
+\[w=\frac{n_e\pi a^2 L_s}{N_m},\qquad Q_m=-ew.\]</div>
+<p>The shared PIC solver deposits these signed charges and returns the integrated
+density <span class="math notranslate nohighlight">\(\widetilde\rho\)</span> in C/m<sup>2</sup>, potential
+<span class="math notranslate nohighlight">\(\widetilde\phi\)</span> in V m and fields <span class="math notranslate nohighlight">\(\widetilde E_x,\widetilde E_y\)</span>
+in V. <code class="docutils literal notranslate"><span class="pre">ElectronCloud</span></code> divides them by <span class="math notranslate nohighlight">\(L_s\)</span> to obtain C/m<sup>3</sup>, V
+and V/m. Only the final beam kick multiplies by the separate machine length
+<span class="math notranslate nohighlight">\(L_{\mathrm{int}}\)</span>. Neither length is a longitudinal slice width.</p>
+<p><code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code> uses open-boundary fields. <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code> supports the
+conducting geometries of <a class="reference internal" href="field_solver.html"><span class="doc">Transverse Field Solvers</span></a>; <code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code> requires the
+full grid-aligned rectangle, using <code class="docutils literal notranslate"><span class="pre">default</span></code> or a matching rectangular
+aperture. Dirichlet solvers impose zero wall potential and require a finite
+aperture. Their result generally differs physically from the free-space
+analytic cylinder. FD and DST can be compared directly only on the same
+rectangular domain with identical deposited charge.</p>
+<p>For frozen PIC, the complete source disk and deposition support must fit within the
+supported field domain; the command rejects invalid geometry instead of
+clipping electron charge. The aperture configures the field domain rather
+than a particle-loss operation. Use transport-element <a class="reference internal" href="aperture.html"><span class="doc">Aperture</span></a> settings
+for beam losses. Free-space analytic evaluation includes points outside the source
+disk. PIC evaluation requires particles to lie in its supported interpolation
+domain; it does not substitute a zero field for out-of-grid particles.</p>
+<p>Nonconvex polygon source containment is checked against the continuous edges,
+including concave features smaller than a grid cell. For a nonconvex racetrack
+with unequal rectangle and end-cap heights, source containment uses an inner
+polygon with 128 segments per curved end. This conservative check can reject a
+source extremely close to a curved wall; move the source inward in that case.</p>
+</section>
+<section id="dynamic-models-and-physical-time">
+<h2>Dynamic models and physical time<a class="headerlink" href="#dynamic-models-and-physical-time" title="Link to this heading"></a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">Mode=&quot;build_up&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">Solver=&quot;round_gaussian_beam&quot;</span></code> and provide a
+<code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> object. For coupled PIC instead select <code class="docutils literal notranslate"><span class="pre">Mode=&quot;coupled&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Solver=&quot;fd_dirichlet&quot;</span></code> with the same nested object.
+The top-level electron density, disk radius and center
+describe the initial electron cloud; the entire disk must lie strictly inside
+the circular chamber. Initial directions are isotropic in three dimensions,
+with the specified monoenergetic kinetic energy. A zero initial density is
+allowed; primary sources can subsequently create electrons.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.electron_cloud</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ElectronCloudBuildUpConfiguration</span><span class="p">,</span> <span class="n">ElectronCloudConfiguration</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ElectronCloudConfiguration</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">"build_up"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"round_gaussian_beam"</span><span class="p">,</span>
+    <span class="n">electron_density</span><span class="o">=</span><span class="mf">1e8</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">n_macroparticles</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+    <span class="n">random_seed</span><span class="o">=</span><span class="mi">20260926</span><span class="p">,</span>
+    <span class="n">buildup</span><span class="o">=</span><span class="n">ElectronCloudBuildUpConfiguration</span><span class="p">(</span>
+        <span class="n">chamber_radius</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">beam_sigma</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span> <span class="n">max_time_step</span><span class="o">=</span><span class="mf">5e-11</span><span class="p">,</span>
+        <span class="n">primary_electrons_per_particle_per_m</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">secondary_yield_max</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> parameters</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON key / Python field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">chamber_radius</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Positive circular wall radius, centered on the beam axis.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">sigma</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">beam_sigma</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Positive fixed transverse Gaussian sigma for build-up. Still required for schema compatibility in coupled mode, but unused by its fields and time-step controls.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">time</span> <span class="pre">step</span> <span class="pre">(s)</span></code> / <code class="docutils literal notranslate"><span class="pre">max_time_step</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Positive integration-step ceiling; the pusher may shorten it further.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Magnetic</span> <span class="pre">field</span> <span class="pre">(T)</span></code> / <code class="docutils literal notranslate"><span class="pre">magnetic_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></code></p></td>
+<td><p>Uniform part <code class="docutils literal notranslate"><span class="pre">[B0x,</span> <span class="pre">B0y,</span> <span class="pre">B0z]</span></code> of the external field in local beam coordinates.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Magnetic</span> <span class="pre">gradient</span> <span class="pre">(T/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">magnetic_gradient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Signed finite normal-quadrupole gradient; Boolean values are rejected.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">electron</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_energy_ev</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Nonnegative initial kinetic energy per electron.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">electrons</span> <span class="pre">per</span> <span class="pre">beam</span> <span class="pre">particle</span> <span class="pre">(1/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_electrons_per_particle_per_m</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Nonnegative prescribed primary yield per real beam particle per metre.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_macroparticles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">64</span></code></p></td>
+<td><p>Positive integer samples created at each nonzero primary-emission event.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">yield</span> <span class="pre">max</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_yield_max</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Nonnegative peak of the uncapped true-secondary yield curve; zero is an absorbing wall.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">peak</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_peak_energy_ev</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">300</span></code></p></td>
+<td><p>Positive incident energy at the uncapped yield maximum.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">shape</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.35</span></code></p></td>
+<td><p>Yield-curve shape parameter, strictly greater than one.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Emission</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">emission_energy_ev</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Positive primary emission energy and nominal secondary emission energy.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">max_macroparticles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100000</span></code></p></td>
+<td><p>Positive integer population limit; exceeding it raises an error instead of discarding charge.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">steps</span></code> / <code class="docutils literal notranslate"><span class="pre">max_steps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100000</span></code></p></td>
+<td><p>Positive integer integration-step limit per physical interval.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">wall</span> <span class="pre">hits</span> <span class="pre">per</span> <span class="pre">step</span></code> / <code class="docutils literal notranslate"><span class="pre">max_wall_hits_per_step</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">32</span></code></p></td>
+<td><p>Positive integer per-particle wall-event limit within one integration step.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Execute the selected <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> at the same position and turn before the
+cloud. Only continuous <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> intervals are supported; complete live-particle
+coverage and positive occupied-bin widths are required. Zero-width empty bins
+are skipped. The saved Slicer memberships and
+intervals are consumed without silently recomputing or rescaling them.
+For interval <span class="math notranslate nohighlight">\([z_{\min},z_{\max}]\)</span>, the physical passage interval is</p>
+<div class="math notranslate nohighlight">
+\[t_{\mathrm{start}}=t_0-\frac{z_{\max}}{\beta_0c},\qquad
+t_{\mathrm{end}}=t_0-\frac{z_{\min}}{\beta_0c},\qquad
+\lambda_b=\frac{Z_b e N_{\mathrm{slice}}}{\Delta z}.\]</div>
+<p>The driver sorts intervals from all bunches by these times. Intervals may
+touch but may not overlap; repeated turns and backwards physical time are
+rejected. Empty bins still advance the cloud with zero beam field. Gaps also
+advance electron motion, external-field effects and wall events.
+Endpoint roundoff tolerance is bounded by the smaller of eight absolute-time
+ULPs and <span class="math notranslate nohighlight">\(10^{-12}\)</span> times the shorter slice duration. If subtracting
+absolute endpoints changes a saved slice duration by more than <span class="math notranslate nohighlight">\(10^{-6}\)</span>
+relative to <span class="math notranslate nohighlight">\(\Delta z/(\beta_0c)\)</span>, execution is rejected. This prevents
+large absolute clocks from silently erasing short bunch pulses.
+The first interval start establishes the initial cloud time, including negative
+times; no unspecified earlier history is invented. Each command call ends at
+the last saved bin’s trailing edge, not automatically at the end of the ring
+period. The following call advances the intervening gap. Declared empty
+bunches contribute their saved empty intervals; missing buckets are not
+created implicitly.</p>
+<p>Reference time advances through transport commands, not through the executor’s
+turn counter. Multi-turn input therefore needs an actual closed transport path.
+Use <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> and saved intervals for timing, never nominal <code class="docutils literal notranslate"><span class="pre">z_center</span></code> or
+<code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> as a substitute for physical passage time.</p>
+<section id="prescribed-drive-and-electron-integration">
+<h3>Prescribed drive and electron integration<a class="headerlink" href="#prescribed-drive-and-electron-integration" title="Link to this heading"></a></h3>
+<p>In <code class="docutils literal notranslate"><span class="pre">build_up</span></code>, during each slice the transverse source is a fixed, axis-centered round
+Gaussian truncated at chamber radius <span class="math notranslate nohighlight">\(R\)</span>, with configured sigma
+<span class="math notranslate nohighlight">\(\sigma_b\)</span>. The current slice population sets its signed line charge;
+tracked transverse beam coordinates do not change its center or size.
+For <span class="math notranslate nohighlight">\(0&lt;r&lt;R\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol E_b(\boldsymbol r)=
+\frac{\lambda_b}{2\pi\epsilon_0}
+\frac{1-\exp[-r^2/(2\sigma_b^2)]}
+     {1-\exp[-R^2/(2\sigma_b^2)]}
+\frac{\boldsymbol r}{r^2},\qquad
+\boldsymbol B_b=\frac{\beta_0}{c}(-E_y,E_x,0).\]</div>
+<p>The center uses the continuous linear limit. The denominator ensures that
+<code class="docutils literal notranslate"><span class="pre">lambda_b</span></code> is the line charge contained within the chamber. Axial symmetry
+makes the grounded circular wall affect the electrostatic potential reference,
+not the radial electric field. The beam magnetic field and configured external
+field both act on the electrons.</p>
+<p>Both dynamic modes support a uniform external field plus an ideal normal
+quadrupole, evaluated at the electron’s transverse midpoint:</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol B_{\mathrm{ext}}(x,y)
+= (B_{0x}+G y,\ B_{0y}+G x,\ B_{0z}),
+\qquad G=\texttt{magnetic\_gradient}.\]</div>
+<p>This field belongs to the local electron-cloud station. It is configured
+explicitly and is not inferred from lattice <code class="docutils literal notranslate"><span class="pre">Quadrupole</span></code> commands.
+A pure dipole uses <code class="docutils literal notranslate"><span class="pre">magnetic_gradient=0</span></code> and a transverse uniform field.
+For the circular chamber the conservative field bound is
+<span class="math notranslate nohighlight">\(|\boldsymbol B_0|+|G|R\)</span>. The model is longitudinally uniform:
+transverse magnetic-mirror trapping can occur, but finite magnet length,
+fringe fields and longitudinal electron losses are not represented.</p>
+<p>Electrons use two position coordinates and three dimensionless momentum components,
+<span class="math notranslate nohighlight">\(\boldsymbol u=\boldsymbol P/(m_ec)=\gamma_e\boldsymbol v/c\)</span>,
+with <span class="math notranslate nohighlight">\(\gamma_e=\sqrt{1+|\boldsymbol u|^2}\)</span>. A relativistic Boris
+momentum update is combined with symmetric half drifts. Each half drift finds
+the first circular-wall intersection, emits or absorbs there, then advances
+the remaining time. No longitudinal transport between cloud stations is modeled.
+The Boris update is described in the
+<a class="reference external" href="https://warpx.readthedocs.io/en/24.01/theory/pic.html#boris-relativistic-velocity-rotation">WarpX particle-pusher documentation</a>.</p>
+<p>The configured time-step ceiling is additionally restricted using conservative
+beam-oscillation, cyclotron and transverse-displacement estimates. These
+controls do not replace resolution studies: force splitting near wall impacts
+and Boris phase error still depend on the time step. Particle count and
+emission statistics need independent convergence checks. The standard
+relativistic Boris method also has known limitations for relativistic
+<span class="math notranslate nohighlight">\(\boldsymbol E\times\boldsymbol B\)</span> drift; see
+<a class="reference external" href="https://arxiv.org/pdf/1701.05605">Higuera and Cary</a>.</p>
+</section>
+<section id="coupled-pic-fields-and-beam-response">
+<h3>Coupled PIC fields and beam response<a class="headerlink" href="#coupled-pic-fields-and-beam-response" title="Link to this heading"></a></h3>
+<p>In <code class="docutils literal notranslate"><span class="pre">coupled</span></code>, the beam source uses the saved slice’s live transverse
+coordinates and memberships. Each beam macro particle deposits line charge
+<span class="math notranslate nohighlight">\(q_{\ell,j}=r_b Z_b e/\Delta z\)</span>, where <span class="math notranslate nohighlight">\(r_b\)</span> is the real-to-macro
+particle ratio. Its transverse source distribution is held fixed throughout
+the saved physical slice interval. It is not replaced by the Gaussian profile;
+<code class="docutils literal notranslate"><span class="pre">beam_sigma</span></code> has no physical effect in this mode.</p>
+<p>The grounded circular FD solver separately solves the beam field and cloud
+field. Dynamic cloud particles deposit line charges
+<span class="math notranslate nohighlight">\(q_{\ell,e,j}=-e w_j/L_s\)</span> in C/m, with source length <span class="math notranslate nohighlight">\(L_s\)</span>
+initially 1 m. Dividing by cell area gives density in C/m<sup>3</sup>;
+Poisson then returns potential in V and field in V/m, with no further
+source-length division. Restored snapshots may carry another source length;
+scaling electron weights with that length preserves the physical field.
+Each electron step performs a half drift with wall events,
+rebuilds the cloud field at the midpoint, applies the Boris update using
+<span class="math notranslate nohighlight">\(\boldsymbol E_b+\boldsymbol E_e\)</span> and
+<span class="math notranslate nohighlight">\(\boldsymbol B_{\mathrm{ext}}+\boldsymbol B_b\)</span>, then performs the second
+half drift. Empty-beam gaps still evolve cloud self-fields.
+There is no cloud magnetic field or longitudinal electric field.</p>
+<p>For a witness at the slice’s fixed transverse position, midpoint quadrature
+accumulates the cloud field over the slice duration <span class="math notranslate nohighlight">\(\Delta t_s\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\overline{\boldsymbol E}_{e,j}
+  =\frac{1}{\Delta t_s}\sum_k
+    \boldsymbol E_e(\boldsymbol r_j,t_{k+1/2})\Delta t_k,\qquad
+\Delta\boldsymbol p_{\perp,j}
+  =\frac{\operatorname{sign}(Z_b)L_{\mathrm{int}}}
+         {\beta_0 c B\rho}\overline{\boldsymbol E}_{e,j}.\]</div>
+<p>Only the cloud field contributes to the beam kick. There is no beam self-kick
+or <span class="math notranslate nohighlight">\(1/\gamma_0^2\)</span> reduction. The operation changes only <code class="docutils literal notranslate"><span class="pre">px</span></code> and <code class="docutils literal notranslate"><span class="pre">py</span></code>;
+<code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>, <code class="docutils literal notranslate"><span class="pre">dp</span></code>, reference energy and <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> stay fixed.
+Beam source coordinates are not advanced during a slice. The interaction
+length scales this beam response, not electron counts or their physical clock.</p>
+<p>Near the circular wall, deposition and interpolation renormalize each stencil
+over its supported interior nodes to conserve deposited charge. This treatment
+has first-order wall error and is not an exact Hamiltonian or energy-conserving
+particle-field discretization. Time steps are limited by <code class="docutils literal notranslate"><span class="pre">max_time_step</span></code>,
+external/beam cyclotron estimates, cloud plasma and cell-acceleration frequency
+estimates (<span class="math notranslate nohighlight">\(\omega\Delta t\le0.2\)</span>), and electron displacement
+(<span class="math notranslate nohighlight">\(v_\perp\Delta t\le0.2h\)</span>, with the smaller grid spacing <span class="math notranslate nohighlight">\(h\)</span>).
+These controls are safeguards, not a convergence proof. Independently vary
+grid size, macro-electron/primary sample counts, random seeds, slice widths
+and time steps before drawing physical conclusions.</p>
+</section>
+<section id="primary-and-secondary-emission">
+<h3>Primary and secondary emission<a class="headerlink" href="#primary-and-secondary-emission" title="Link to this heading"></a></h3>
+<p>At a slice’s leading edge, a prescribed primary source creates
+<span class="math notranslate nohighlight">\(N_{\mathrm{primary}}=Y_p N_{\mathrm{slice}}L_s\)</span> electrons, represented
+by equal-weight macro electrons sampled uniformly around the wall and directed
+inward. Here <span class="math notranslate nohighlight">\(L_s\)</span> is the source length (initially 1 m) and <span class="math notranslate nohighlight">\(Y_p\)</span>
+has units 1/m. This phenomenological source does not calculate gas ionization,
+synchrotron-photon transport or a material photoelectric spectrum.
+Primary production is concentrated at the slice front rather than distributed
+continuously across its duration. Reducing only the electron time step does
+not remove that source-time approximation; also refine the Slicer intervals.</p>
+<p>For incident kinetic energy <span class="math notranslate nohighlight">\(E_i\)</span>, let <span class="math notranslate nohighlight">\(x=E_i/E_{\max}\)</span> and
+<span class="math notranslate nohighlight">\(s&gt;1\)</span>. The uncapped true-secondary curve and implemented limits are</p>
+<div class="math notranslate nohighlight">
+\[\delta(E_i)=\delta_{\max}\frac{s x}{s-1+x^s},\qquad
+\delta_{\mathrm{eff}}=\min\!\left(\delta(E_i),\frac{E_i}{E_{\mathrm{emit}}}\right),
+\qquad E_o=\min(E_{\mathrm{emit}},E_i).\]</div>
+<p>Each incident macro electron creates at most one macro secondary, with
+weight <span class="math notranslate nohighlight">\(w_o=w_i\delta_{\mathrm{eff}}\)</span> and per-electron energy <span class="math notranslate nohighlight">\(E_o\)</span>.
+Zero weight means absorption. This enforces both the per-electron and weighted
+aggregate incident-energy bound, conservatively suppressing low-energy emission.
+The curve uses the true-secondary shape of
+<a class="reference external" href="https://www.classe.cornell.edu/~critten/cesrta/ecloud/doc/furmanpivi.pdf">Furman and Pivi, Eqs. 31-32</a>.
+It is not their full probabilistic model: elastic/reflected and rediffused
+components, angle-dependent material yield and a joint secondary energy
+spectrum are absent. Macro-particle multiplication is represented by weights,
+not integer branching.</p>
+<p>Primary and secondary directions obey a three-dimensional cosine distribution
+about the inward normal: <span class="math notranslate nohighlight">\(\mu=\cos\theta=\sqrt U\)</span> and
+<span class="math notranslate nohighlight">\(\phi=2\pi V\)</span>, for independent uniform random values <span class="math notranslate nohighlight">\(U,V\)</span>.
+All three momentum components are retained although only x and y are tracked.
+Initial cloud directions instead use an isotropic full sphere.</p>
+</section>
+</section>
+<section id="output-and-state">
+<h2>Output and state<a class="headerlink" href="#output-and-state" title="Link to this heading"></a></h2>
+<p>Frozen selected-turn HDF5 diagnostics are written below the current PASS run directory
+as <code class="docutils literal notranslate"><span class="pre">electron_cloud/&lt;run_id&gt;/beam&lt;id&gt;_&lt;command&gt;/turn_&lt;turn&gt;_call_&lt;call&gt;.h5</span></code>.
+The run identifier contains a fresh token; call numbers distinguish repeated
+executions at the same turn. The command’s <code class="docutils literal notranslate"><span class="pre">saved_fields</span></code> lists written paths.
+Required field output completes before staged beam kicks are committed. A failed
+write leaves beam momenta unchanged; a retry reserves a new diagnostic filename.
+Files have format marker <code class="docutils literal notranslate"><span class="pre">PASS-electron-cloud-fields-1</span></code> and contain:</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Field snapshot datasets</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 45.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grid/x</span></code>, <code class="docutils literal notranslate"><span class="pre">grid/y</span></code></p></td>
+<td><p>m</p></td>
+<td><p>One-dimensional grid axes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fields/charge_density</span></code></p></td>
+<td><p>C/m<sup>3</sup></p></td>
+<td><p>Signed physical volume charge density.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fields/electron_density</span></code></p></td>
+<td><p>1/m<sup>3</sup></p></td>
+<td><p>Physical electron number density.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fields/potential</span></code></p></td>
+<td><p>V</p></td>
+<td><p>Electrostatic potential.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fields/ex</span></code>, <code class="docutils literal notranslate"><span class="pre">fields/ey</span></code></p></td>
+<td><p>V/m</p></td>
+<td><p>Transverse electric fields.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source/x</span></code>, <code class="docutils literal notranslate"><span class="pre">source/y</span></code>, <code class="docutils literal notranslate"><span class="pre">source/weight</span></code></p></td>
+<td><p>m, m, 1</p></td>
+<td><p>PIC source coordinates and electron-number weights; absent for analytic clouds.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Two-dimensional grid arrays use <code class="docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> ordering. Dataset attributes specify
+units. File <code class="docutils literal notranslate"><span class="pre">metadata_json</span></code> records the command, beam, turn, position,
+interaction length, configuration and kick diagnostics; PIC source metadata
+includes the represented source length and random state. After execution,
+<code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code> gives live-particle counts and maximum fields/kicks, with
+per-bunch records. The analytic potential uses the reference stated above.
+PIC sampling noise and conducting-wall image fields should be distinguished
+from force-normalization errors when interpreting these plots.</p>
+<p>Both dynamic modes use the same output-directory and selection rules and save
+<code class="docutils literal notranslate"><span class="pre">source/x,y,ux,uy,uz,weight</span></code> arrays and source metadata. <code class="docutils literal notranslate"><span class="pre">build_up</span></code> saves no
+cloud self-field maps. Coupled output additionally stores the actual final
+cloud <code class="docutils literal notranslate"><span class="pre">grid</span></code> and <code class="docutils literal notranslate"><span class="pre">fields</span></code> datasets with the SI units above, plus history
+and maximum-kick diagnostics. The momentum components
+<code class="docutils literal notranslate"><span class="pre">ux,</span> <span class="pre">uy,</span> <span class="pre">uz</span></code> are dimensionless. Source metadata
+contains <code class="docutils literal notranslate"><span class="pre">source_length</span></code>, physical <code class="docutils literal notranslate"><span class="pre">time</span></code>, <code class="docutils literal notranslate"><span class="pre">last_turn</span></code>, RNG state and
+cumulative number/energy counters. <code class="docutils literal notranslate"><span class="pre">history_json</span></code> records each gap or slice,
+including times, beam population, signed line charge, primary input, electron
+populations before/after, incident/emitted populations and step count.
+Each record satisfies</p>
+<div class="math notranslate nohighlight">
+\[N_{\mathrm{after}}=N_{\mathrm{before}}+N_{\mathrm{primary}}
+                   -N_{\mathrm{incident}}+N_{\mathrm{emitted}}.\]</div>
+<p>Accumulated wall energy is incident minus emitted kinetic energy, in eV for
+all represented electrons. Multiply by <span class="math notranslate nohighlight">\(e\)</span> for joules. Counts and wall
+energies refer to the saved source length; scale by <span class="math notranslate nohighlight">\(L/L_s\)</span> for a
+station representing machine length <span class="math notranslate nohighlight">\(L\)</span>. This is not a self-consistent
+machine heat-load prediction. The configured interaction length does not
+rescale the underlying electron ensemble.</p>
+<p>The cumulative energy ledger stores <code class="docutils literal notranslate"><span class="pre">initial_energy_ev</span></code>,
+<code class="docutils literal notranslate"><span class="pre">primary_energy_ev</span></code> and signed <code class="docutils literal notranslate"><span class="pre">field_work_ev</span></code> (the kinetic-energy change
+at Boris force updates). With <span class="math notranslate nohighlight">\(K=\sum w(\gamma_e-1)m_ec^2\)</span> in eV,
+it obeys
+<span class="math notranslate nohighlight">\(K_{\mathrm{final}}=K_{\mathrm{initial}}+K_{\mathrm{primary}}+W_{\mathrm{field}}-E_{\mathrm{wall}}\)</span>.
+This checks numerical bookkeeping; it does not measure the integrator’s
+physical trajectory error.
+In coupled mode it also does not establish conservation of total beam,
+electron and field energy under the quasistatic thin-lens approximation.
+The entire dynamic command stages electron state, RNG state and beam kicks;
+all are committed only after successful evolution and requested output.
+An evolution or output failure leaves them unchanged.</p>
+<p>The command provides <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> / <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">save_state(path)</span></code> / <code class="docutils literal notranslate"><span class="pre">load_state(path)</span></code> for its own source,
+configuration identity and random state. This preserves a nondeterministic
+PIC realization, or a dynamic population with time and momenta, for reuse.
+These APIs are cloud snapshots, not a complete
+simulation restart: matching beam particles, beam reference state, turn and
+any other collective-effect state must be handled separately. Frozen mode
+has no evolving cloud clock; both dynamic modes restore their saved physical
+clock. Coupled snapshots use the same dynamic-state format, validate mode and
+configuration identity, and rebuild field resources rather than saving caches.</p>
+<p>During tracking, dynamic electron arrays remain on the selected CPU or GPU
+backend. Staged states own detached particle data; coupled mode reuses the fixed
+grid, field factorization and numerical workspace through serial calls. Reading a
+public cloud state, writing source/field snapshots or capturing a checkpoint materializes
+a validated host snapshot; on GPU this adds a device-to-host transfer.
+Input fields and checkpoint formats are unchanged. Scalar diagnostics and
+emission sampling can still synchronize the host and device.
+When comparing CPU/GPU performance, warm compilation and solver setup first,
+measure synchronized tracking separately from setup and snapshot output,
+and include both wall-free and wall-emission workloads. Small clouds need
+not run faster on GPU.</p>
+<p>Coupled GPU execution combines fixed-order deposition with deterministic
+cuDSS solves. Highly occupied cells use a fixed reduction tree, so the last
+bits may differ from earlier serial summation. Repeatability checks apply
+to the same code, GPU architecture, SM count and software stack, not across
+devices. See <a class="reference internal" href="field_solver.html"><span class="doc">Transverse Field Solvers</span></a>.</p>
+<p>For simulations already using the joint two-beam checkpoint interface,
+<code class="docutils literal notranslate"><span class="pre">capture_collision_state</span></code> / <code class="docutils literal notranslate"><span class="pre">restore_collision_state</span></code> also capture and
+restore enabled electron-cloud realizations. They validate the cloud
+identity and rebuild its field resources before committing the joint restore.
+The existing common-turn and output requirements still apply; see
+<a class="reference internal" href="beam_beam.html"><span class="doc">Beam-Beam Interaction (BeamBeam)</span></a>. This integration does not introduce a separate single-beam
+machine-restart interface.</p>
+</section>
+<section id="runnable-example">
+<h2>Runnable example<a class="headerlink" href="#runnable-example" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">example/07_electron_cloud</span></code> contains an English walkthrough and six serial
+one-kick cases: zero density, analytic density and doubled density, free-space
+PIC, rectangular FD and rectangular DST. Explicit probe particles sample the
+interior and exterior fields. Analysis reads before/after distribution
+snapshots, compares with Gauss’s law, checks density proportionality and
+unchanged coordinates/reference time, and compares FD/DST under identical
+boundary conditions. It writes JSON, CSV and a scientific PNG figure under
+the Git-ignored <code class="docutils literal notranslate"><span class="pre">tests/codex/electron_cloud/example_output</span></code> directory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">example/08_electron_cloud_buildup</span></code> adds four serial bunch-train cases:
+initial-cloud absorption, primary production with absorption, primary plus
+true-secondary emission, and a halved time-step comparison. A real one-turn
+Drift advances the reference clocks while the prescribed driver distribution
+stays fixed. Its analysis verifies number/energy bookkeeping, timeline
+continuity and unchanged beam coordinates, and writes JSON, CSV and population
+histories under <code class="docutils literal notranslate"><span class="pre">tests/codex/electron_cloud/buildup_example_output</span></code>.
+Changes under time-step halving are reported as a resolution comparison,
+not as proof of physical saturation or statistical convergence.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="wake_field.html" class="btn btn-neutral float-left" title="WakeField" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="beam_beam.html" class="btn btn-neutral float-right" title="Beam-Beam Interaction (BeamBeam)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

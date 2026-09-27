@@ -1,0 +1,752 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>电子云（ElectronCloud） &mdash; PASS 0.4.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="束束相互作用（BeamBeam）" href="beam_beam.html" />
+    <link rel="prev" title="尾场（WakeField）" href="wake_field.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../en/electron_cloud.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">电子云（ElectronCloud）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">配置与执行</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">配置参数</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">静态云的场与动量约定</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pic">PIC 归一化与边界条件</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">动态模型与物理时间</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">预设驱动与电子推进</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">耦合 PIC 场与束流响应</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">初级源与二次发射</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">输出与状态</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">可运行示例</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
+      <li class="breadcrumb-item active">电子云（ElectronCloud）</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="electroncloud">
+<h1>电子云（ElectronCloud）<a class="headerlink" href="#electroncloud" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">ElectronCloud</span></code> 提供三种模式：</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 对束流施加预设静止均匀电子圆盘产生的横向薄透镜踢角，
+场采用自由空间解析式，或对宏电子采样后通过 PIC 求解一次。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> 在圆形真空室中跟踪受预设束流切片及外加磁场驱动的电子，
+包括壁面初级电子产生、吸收及简化真二次发射；不对束流施加踢角。</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coupled</span></code> 加入电子云 PIC 自场和横向束流踢角，
+在接地圆形真空室内使用已保存束流切片的真实粒子分布驱动电子。</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">build_up</span></code> 属于外驱动低密度近似，不包含电子云自场、束流反作用或物理空间电荷饱和机制。
+<code class="docutils literal notranslate"><span class="pre">coupled</span></code> 是首个准静态横向薄透镜耦合模型，尚未完成不稳定性阈值或平衡电子云密度的验证。
+这三种模式需显式选择。</p>
+<section id="id1">
+<h2>配置与执行<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>启用顶层 <code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">cloud</span></code> 配置块并定义命名配置。
+每个 <code class="docutils literal notranslate"><span class="pre">ElectronCloud</span></code> 序列命令选择一个配置，同时给出自己的 <code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">length</span> <span class="pre">(m)</span></code>。
+该命令不将粒子输运过这一长度，实际输运需另行添加对应命令。
+<code class="docutils literal notranslate"><span class="pre">build_up</span></code> 保留此必填字段以维持 API 兼容，但由于没有束流反作用，
+它不改变电子积累动力学。</p>
+<p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 不要求 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code>，因为预设场与纵向位置及时间无关。
+命令保持 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>、<code class="docutils literal notranslate"><span class="pre">dp</span></code>、<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 和参考能量不变。
+<code class="docutils literal notranslate"><span class="pre">build_up</span></code> 要求当前 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet，并保持全部束流粒子坐标不变。
+<code class="docutils literal notranslate"><span class="pre">coupled</span></code> 同样要求该 SliceSet，且只改变 <code class="docutils literal notranslate"><span class="pre">px</span></code> 和 <code class="docutils literal notranslate"><span class="pre">py</span></code>。
+坐标约定见 <a class="reference internal" href="injection.html"><span class="doc">注入与粒子生成（Injection）</span></a>。
+给定密度确定静态云或初始化动态云，不从束流强度或束团分组推算。</p>
+<p>以下为输入片段，还需另行提供注入与输运：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Electron cloud"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Configurations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"round_cloud"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"frozen"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uniform_round_free_space"</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Electron density (1/m^3)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1e12</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Radius (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Center X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">                </span><span class="nt">"Center Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"cloud_at_ip"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ElectronCloud"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"round_cloud"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Interaction length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save fields"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Save turns"</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="mi">0</span><span class="p">]]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Python 输入生成使用 <code class="docutils literal notranslate"><span class="pre">PASS.para.schema.electron_cloud</span></code> 中的
+<code class="docutils literal notranslate"><span class="pre">ElectronCloudConfig</span></code>、<code class="docutils literal notranslate"><span class="pre">ElectronCloudConfiguration</span></code> 和 <code class="docutils literal notranslate"><span class="pre">ElectronCloudItem</span></code>，
+通过 <code class="docutils literal notranslate"><span class="pre">generate_input(...,</span> <span class="pre">electron_cloud=cloud_config)</span></code> 传入顶层配置。
+配置名称区分大小写；每个命令拥有独立的云状态与资源。
+相同源参数与显式随机种子产生相同的初始宏电子样本。
+省略种子或使用 JSON <code class="docutils literal notranslate"><span class="pre">null</span></code> 表示非确定性初始化；布尔值与非整数不属于合法整数种子。</p>
+</section>
+<section id="id2">
+<h2>配置参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>顶层块包含 <code class="docutils literal notranslate"><span class="pre">Enabled``（布尔值，默认</span> <span class="pre">``false</span></code>）和 <code class="docutils literal notranslate"><span class="pre">Configurations</span></code>
+（名称到下列配置对象的映射）。关闭顶层开关时跳过配置及全部电子云操作。</p>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">命名配置</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 18.0%" />
+<col style="width: 52.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON 字段 / Python 字段</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code> / <code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code>、外驱动 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 或 <code class="docutils literal notranslate"><span class="pre">coupled</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code> / <code class="docutils literal notranslate"><span class="pre">solver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code></p></td>
+<td><p>静态：自由空间解析场或 <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>、<code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code> PIC；积累模式要求 <code class="docutils literal notranslate"><span class="pre">round_gaussian_beam</span></code>，耦合模式要求 <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">density</span> <span class="pre">(1/m^3)</span></code> / <code class="docutils literal notranslate"><span class="pre">electron_density</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>圆盘内非负物理电子数密度；动态模式仅用其初始化云。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">radius</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>均匀圆盘的正半径，动态模式为初始云半径；不是束流 RMS 尺寸。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">center_x</span></code>、<code class="docutils literal notranslate"><span class="pre">center_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code>、<code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>电子云横向中心，单位为米。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">n_macroparticles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10000</span></code></p></td>
+<td><p>静态 PIC 或初始动态云的源样本数，须为正整数，不改变物理密度。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">seed</span></code> / <code class="docutils literal notranslate"><span class="pre">random_seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>云初始化和发射随机数的整数种子或 <code class="docutils literal notranslate"><span class="pre">null</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Nx</span></code>、<code class="docutils literal notranslate"><span class="pre">Ny</span></code> / <code class="docutils literal notranslate"><span class="pre">nx</span></code>、<code class="docutils literal notranslate"><span class="pre">ny</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">65</span></code>、<code class="docutils literal notranslate"><span class="pre">65</span></code></p></td>
+<td><p>网格点数，均为至少 3 的整数；耦合模式要求至少 5 的奇数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">grid_width_x</span></code>、<code class="docutils literal notranslate"><span class="pre">grid_width_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1</span></code>、<code class="docutils literal notranslate"><span class="pre">0.1</span></code></p></td>
+<td><p>以原点为中心的网格完整宽度，须为正值。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code> / <code class="docutils literal notranslate"><span class="pre">deposition_method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CIC</span></code></p></td>
+<td><p>PIC 沉积和插值采用 <code class="docutils literal notranslate"><span class="pre">CIC</span></code> 或 <code class="docutils literal notranslate"><span class="pre">TSC</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type</span></code>、<code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">value</span></code> / <code class="docutils literal notranslate"><span class="pre">aperture_type</span></code>、<code class="docutils literal notranslate"><span class="pre">aperture_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">default</span></code>、<code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>静态场计算区域的几何；动态模式要求 <code class="docutils literal notranslate"><span class="pre">default</span></code> 或 <code class="docutils literal notranslate"><span class="pre">off</span></code> 且参数为空，其圆形壁面由 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 定义。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> / <code class="docutils literal notranslate"><span class="pre">buildup</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>两种动态模式均必填的嵌套 <code class="docutils literal notranslate"><span class="pre">ElectronCloudBuildUpConfiguration</span></code>；静态模式不允许设置。</p></td>
+</tr>
+</tbody>
+</table>
+<p>网格和沉积参数用于静态 PIC、静态场诊断和耦合 PIC；<code class="docutils literal notranslate"><span class="pre">build_up</span></code> 不使用 PIC 网格。
+耦合模式要求两个网格宽度均覆盖完整真空室直径，每轴网格间距不超过真空室半径的一半。
+这是最低可分辨性检查，不是充分收敛条件。
+圆形 Dirichlet 壁面由 <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up.Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code> 定义。</p>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">序列命令</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 18.0%" />
+<col style="width: 52.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON 字段 / Python 字段</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>序列中薄透镜作用位置。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code> / <code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>同一位置的可选整数顺序，遵循共享序列排序规则。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code> / <code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>当前束流 <code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">cloud.Configurations</span></code> 中的名称。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">length</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">interaction_length</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>静态或耦合束流踢角所代表的非负机器作用长度；积累动力学与该值无关。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code> / <code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>两种动态模式均要求当前 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet；静态模式无需设置。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>当前命令的启用开关。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">fields</span></code> / <code class="docutils literal notranslate"><span class="pre">save_fields</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>在指定圈保存静态场，或动态粒子状态和事件历史；耦合输出还包含最终云场。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code> / <code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[[turn],</span> <span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step],</span> <span class="pre">...]</span></code>，端点均包含，圈数从零开始；空列表关闭保存。</p></td>
+</tr>
+</tbody>
+</table>
+<p>所有数值配置必须有限。未知电子云字段会报错，因此未实现的动态模型参数不会被静默忽略。</p>
+</section>
+<section id="id3">
+<h2>静态云的场与动量约定<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>设电子密度 <span class="math notranslate nohighlight">\(n_e\ge0\)</span>、元电荷 <span class="math notranslate nohighlight">\(e&gt;0\)</span>、电荷密度
+<span class="math notranslate nohighlight">\(\rho_e=-e n_e\)</span>、云半径 <span class="math notranslate nohighlight">\(a\)</span>，以及
+<span class="math notranslate nohighlight">\(\boldsymbol r=(x-x_c,y-y_c)\)</span>。
+由无限长均匀带电圆柱的高斯定律得到</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\boldsymbol E_e(\boldsymbol r)
+=-\frac{e n_e}{2\epsilon_0}\boldsymbol r
+\begin{cases}
+    1, &amp; r\le a,\\
+    a^2/r^2, &amp; r&gt;a.
+\end{cases}\end{split}\]</div>
+<p>电场在中心为零，方向指向中心；解析解同时包含圆盘外径向 <span class="math notranslate nohighlight">\(1/r\)</span> 的场。
+选择 <span class="math notranslate nohighlight">\(\phi(a)=0\)</span> 作为势参考时，</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\phi(r)=\begin{cases}
+   \dfrac{e n_e}{4\epsilon_0}(r^2-a^2), &amp; r\le a,\\
+   \dfrac{e n_e a^2}{2\epsilon_0}\ln(r/a), &amp; r&gt;a.
+\end{cases}\end{split}\]</div>
+<p>二维自由空间势具有任意加法常数；该参考选择不影响踢角。</p>
+<p>PASS 保存归一化横向机械动量 <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span> 和 <span class="math notranslate nohighlight">\(p_y=P_y/P_0\)</span>。
+在小角度、参考速度薄透镜近似下，命令施加</p>
+<div class="math notranslate nohighlight">
+\[\Delta p_x=\frac{q_b L_{\mathrm{int}}}{P_0\beta_0 c}E_{e,x},
+\qquad
+\Delta p_y=\frac{q_b L_{\mathrm{int}}}{P_0\beta_0 c}E_{e,y}.\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(q_b\)</span> 带符号，<span class="math notranslate nohighlight">\(P_0\)</span> 为完整粒子的 SI 单位参考动量。
+内部使用等价因子 <span class="math notranslate nohighlight">\(\operatorname{sign}(q_b)L_{\mathrm{int}}/(\beta_0 c B\rho)\)</span>，
+其中正值 <span class="math notranslate nohighlight">\(B\rho=P_0/|q_b|\)</span> 包含离子的电荷质量比归一化。
+因此近轴电子云聚焦正电荷粒子、散焦电子束粒子。</p>
+<p>该公式不含 <span class="math notranslate nohighlight">\(1/\gamma_0^2\)</span>，因为静止电子云没有可抵消电力的预设纵向电流磁场。
+同速自场中的相对论抵消属于 <a class="reference internal" href="space_charge.html"><span class="doc">空间电荷效应（SpaceCharge）</span></a> 的物理模型。
+这里不是完整六维电磁积分：纵向电场、云磁场、电场做功，以及逐粒子速度修正均不在此近似内。</p>
+</section>
+<section id="pic">
+<h2>PIC 归一化与边界条件<a class="headerlink" href="#pic" title="Link to this heading"></a></h2>
+<p>PIC 在圆盘面积内均匀采样，各样本具有相等的非负电子数权重。
+内部源长度 <span class="math notranslate nohighlight">\(L_s=1\,\mathrm{m}\)</span>、样本数 <span class="math notranslate nohighlight">\(N_m\)</span> 对应</p>
+<div class="math notranslate nohighlight">
+\[w=\frac{n_e\pi a^2 L_s}{N_m},\qquad Q_m=-ew.\]</div>
+<p>共享 PIC 求解器沉积带符号电荷，输出积分密度 <span class="math notranslate nohighlight">\(\widetilde\rho\)</span>
+（C/m<sup>2</sup>）、积分势 <span class="math notranslate nohighlight">\(\widetilde\phi`（V m）和积分场
+:math:\)</span>widetilde E_x,widetilde E_y`（V）。<code class="docutils literal notranslate"><span class="pre">ElectronCloud</span></code> 将其除以
+<span class="math notranslate nohighlight">\(L_s\)</span>，得到 C/m<sup>3</sup>、V 和 V/m；仅最终束流踢角乘以独立的机器作用长度
+<span class="math notranslate nohighlight">\(L_{\mathrm{int}}\)</span>。这两个长度都不是纵向切片宽度。</p>
+<p><code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code> 采用开放边界场；<code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code> 支持 <a class="reference internal" href="field_solver.html"><span class="doc">横向场求解器</span></a>
+中的导体几何；<code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code> 要求完整网格对齐矩形，采用 <code class="docutils literal notranslate"><span class="pre">default</span></code>
+或完全匹配的矩形 aperture。Dirichlet 求解器使用零壁面势，必须提供有限边界。
+其结果通常与自由空间解析圆柱具有真实的边界物理差异。
+只有矩形计算区域和沉积电荷完全相同时，才应直接比较 FD 与 DST。</p>
+<p>对于静态 PIC，完整源圆盘及沉积支撑域必须位于支持的场区域内；
+无效几何会报错，不会裁掉源电荷。
+此处 aperture 用于场计算域，不会执行束流粒子丢失；束流损失请配置输运元件的 <a class="reference internal" href="aperture.html"><span class="doc">孔径（Aperture）</span></a> 属性。
+自由空间解析场可作用于源圆盘外的粒子。PIC 要求粒子位于有效插值区域内，
+不会用零场替代网格外粒子的场。</p>
+<p>非凸多边形的源包含检查使用连续边线，因此能够发现小于网格单元的凹缺口。
+对于矩形部分与端帽高度不等的非凸 racetrack，源包含检查使用每个曲线端 128 段的内接多边形。
+这一保守检查可能拒绝极接近曲壁的合法源；此时需将源向内移动。</p>
+</section>
+<section id="id4">
+<h2>动态模型与物理时间<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>选择 <code class="docutils literal notranslate"><span class="pre">Mode=&quot;build_up&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">Solver=&quot;round_gaussian_beam&quot;</span></code> 并提供
+<code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 对象。耦合 PIC 则选择 <code class="docutils literal notranslate"><span class="pre">Mode=&quot;coupled&quot;</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Solver=&quot;fd_dirichlet&quot;</span></code>，使用相同嵌套对象。
+顶层电子密度、圆盘半径与中心描述初始电子云，
+整个初始圆盘必须严格位于圆形真空室内。
+初始方向在三维空间各向同性，动能为给定单能值。
+初始密度可以为零，之后由初级源产生电子。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.electron_cloud</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ElectronCloudBuildUpConfiguration</span><span class="p">,</span> <span class="n">ElectronCloudConfiguration</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ElectronCloudConfiguration</span><span class="p">(</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">"build_up"</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"round_gaussian_beam"</span><span class="p">,</span>
+    <span class="n">electron_density</span><span class="o">=</span><span class="mf">1e8</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">n_macroparticles</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+    <span class="n">random_seed</span><span class="o">=</span><span class="mi">20260926</span><span class="p">,</span>
+    <span class="n">buildup</span><span class="o">=</span><span class="n">ElectronCloudBuildUpConfiguration</span><span class="p">(</span>
+        <span class="n">chamber_radius</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">beam_sigma</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span> <span class="n">max_time_step</span><span class="o">=</span><span class="mf">5e-11</span><span class="p">,</span>
+        <span class="n">primary_electrons_per_particle_per_m</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">secondary_yield_max</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> 参数</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON 字段 / Python 字段</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Chamber</span> <span class="pre">radius</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">chamber_radius</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>以束流轴为中心的正圆形壁面半径。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">sigma</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">beam_sigma</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>积累模式的正固定横向高斯 sigma；耦合模式为保持 schema 兼容仍要求填写，但其场与步长控制不使用此值。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">time</span> <span class="pre">step</span> <span class="pre">(s)</span></code> / <code class="docutils literal notranslate"><span class="pre">max_time_step</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>正积分步长上限；推进器还可进一步缩短。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Magnetic</span> <span class="pre">field</span> <span class="pre">(T)</span></code> / <code class="docutils literal notranslate"><span class="pre">magnetic_field</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></code></p></td>
+<td><p>束流局部坐标系中外加磁场的均匀部分 <code class="docutils literal notranslate"><span class="pre">[B0x,</span> <span class="pre">B0y,</span> <span class="pre">B0z]</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Magnetic</span> <span class="pre">gradient</span> <span class="pre">(T/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">magnetic_gradient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>带符号有限正规四极磁场梯度；拒绝布尔值。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Initial</span> <span class="pre">electron</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">initial_energy_ev</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>每电子的非负初始动能。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">electrons</span> <span class="pre">per</span> <span class="pre">beam</span> <span class="pre">particle</span> <span class="pre">(1/m)</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_electrons_per_particle_per_m</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>每真实束流粒子、每米的非负预设初级电子产额。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Primary</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">primary_macroparticles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">64</span></code></p></td>
+<td><p>每个非零初级发射事件产生的宏电子样本数，须为正整数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">yield</span> <span class="pre">max</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_yield_max</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>未经能量截断的真二次产额曲线峰值，非负；零表示吸收壁。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">peak</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_peak_energy_ev</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">300</span></code></p></td>
+<td><p>未截断曲线峰值处的入射动能，须为正值。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Secondary</span> <span class="pre">shape</span></code> / <code class="docutils literal notranslate"><span class="pre">secondary_shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.35</span></code></p></td>
+<td><p>严格大于一的曲线形状参数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Emission</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code> / <code class="docutils literal notranslate"><span class="pre">emission_energy_ev</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>正的初级发射能量和名义二次发射能量。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">macro</span> <span class="pre">electrons</span></code> / <code class="docutils literal notranslate"><span class="pre">max_macroparticles</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100000</span></code></p></td>
+<td><p>正整数粒子数上限；超过时报告错误，不丢弃电荷。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">steps</span></code> / <code class="docutils literal notranslate"><span class="pre">max_steps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100000</span></code></p></td>
+<td><p>每个物理时间区间内允许的积分步数，须为正整数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">wall</span> <span class="pre">hits</span> <span class="pre">per</span> <span class="pre">step</span></code> / <code class="docutils literal notranslate"><span class="pre">max_wall_hits_per_step</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">32</span></code></p></td>
+<td><p>每粒子在单个积分步内允许的壁面事件数，须为正整数。</p></td>
+</tr>
+</tbody>
+</table>
+<p>在同一圈、同一位置执行指定 <code class="docutils literal notranslate"><span class="pre">Slicer</span></code>，再调用云命令。
+只支持连续 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 区间，要求覆盖全部存活粒子且含粒子切片宽度为正；
+零宽度空切片会被跳过。
+命令消费已保存的切片归属和区间，不隐式重算或缩放。
+区间 <span class="math notranslate nohighlight">\([z_{\min},z_{\max}]\)</span> 对应的物理通过时间和线电荷为</p>
+<div class="math notranslate nohighlight">
+\[t_{\mathrm{start}}=t_0-\frac{z_{\max}}{\beta_0c},\qquad
+t_{\mathrm{end}}=t_0-\frac{z_{\min}}{\beta_0c},\qquad
+\lambda_b=\frac{Z_b e N_{\mathrm{slice}}}{\Delta z}.\]</div>
+<p>驱动器按这些时间合并排序全部束团区间；区间可以端点相接，但不能重叠。
+重复圈和物理时间倒退会被拒绝。空切片仍以零束流场推进电子，
+间隙内继续计算运动、外加磁场及壁面事件。
+端点舍入容限不超过八个绝对时间 ULP 与较短切片时长的 <span class="math notranslate nohighlight">\(10^{-12}\)</span> 倍中的较小值。
+若绝对端点相减得到的时长相对保存值 <span class="math notranslate nohighlight">\(\Delta z/(\beta_0c)\)</span> 的误差超过
+<span class="math notranslate nohighlight">\(10^{-6}\)</span>，则拒绝执行，避免很大的绝对时钟悄悄吞掉短束流脉冲。
+第一个区间起点建立初始云时钟，允许负时间，不凭空补算未定义的过去。
+每次调用在最后一个保存切片的后沿结束，不自动推进至环周期末端；
+下次调用首先推进中间间隙。显式声明的空束团贡献其保存的空区间，
+缺失桶位不会被隐式补造。</p>
+<p>参考时间由输运命令推进，不由执行器的圈计数推进，因此多圈输入需要真实闭合输运路径。
+必须使用 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 与保存区间构造时间，不能用名义 <code class="docutils literal notranslate"><span class="pre">z_center</span></code> 或
+<code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code> 替代物理到达时间。</p>
+<section id="id5">
+<h3>预设驱动与电子推进<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>在 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 的每个切片内，横向源是位于轴心、在壁面半径 <span class="math notranslate nohighlight">\(R\)</span> 截断的圆高斯，
+sigma 为给定 <span class="math notranslate nohighlight">\(\sigma_b\)</span>。当前切片粒子数确定带符号线电荷；
+跟踪束流的横向坐标不会改变源中心和尺寸。
+在 <span class="math notranslate nohighlight">\(0&lt;r&lt;R\)</span> 内，</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol E_b(\boldsymbol r)=
+\frac{\lambda_b}{2\pi\epsilon_0}
+\frac{1-\exp[-r^2/(2\sigma_b^2)]}
+     {1-\exp[-R^2/(2\sigma_b^2)]}
+\frac{\boldsymbol r}{r^2},\qquad
+\boldsymbol B_b=\frac{\beta_0}{c}(-E_y,E_x,0).\]</div>
+<p>中心使用连续线性极限。分母保证 <code class="docutils literal notranslate"><span class="pre">lambda_b</span></code> 是真空室内包含的总线电荷。
+由于轴对称，接地圆壁只改变静电势参考，不改变径向电场。
+束流磁场与配置的外加磁场共同作用于电子。</p>
+<p>两种动态模式均支持均匀外场与理想正规四极场叠加，在电子横向中点求值：</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol B_{\mathrm{ext}}(x,y)
+= (B_{0x}+G y,\ B_{0y}+G x,\ B_{0z}),
+\qquad G=\texttt{magnetic\_gradient}.\]</div>
+<p>此外场属于局部电子云作用点，须显式配置，不从格架 <code class="docutils literal notranslate"><span class="pre">Quadrupole</span></code> 命令自动推断。
+纯二极场使用 <code class="docutils literal notranslate"><span class="pre">magnetic_gradient=0</span></code> 和横向均匀磁场。
+圆形真空室内的保守场强上界为 <span class="math notranslate nohighlight">\(|\boldsymbol B_0|+|G|R\)</span>。
+模型沿纵向均匀，可以出现横向磁镜俘获，但不包含有限磁铁长度、
+端部边缘场或纵向电子损失。</p>
+<p>电子采用两个位置坐标和三个无量纲动量分量
+<span class="math notranslate nohighlight">\(\boldsymbol u=\boldsymbol P/(m_ec)=\gamma_e\boldsymbol v/c\)</span>，
+其中 <span class="math notranslate nohighlight">\(\gamma_e=\sqrt{1+|\boldsymbol u|^2}\)</span>。
+相对论 Boris 动量推进与对称半漂移组合；每个半漂移求首次圆壁交点，
+在交点吸收或发射后继续推进剩余时间。不模拟不同云作用点之间的纵向电子输运。
+Boris 方法参见
+<a class="reference external" href="https://warpx.readthedocs.io/en/24.01/theory/pic.html#boris-relativistic-velocity-rotation">WarpX 粒子推进器文档</a>。</p>
+<p>时间步长上限还受到保守的束流振荡频率、回旋频率和横向位移估计限制。
+这些限制不能替代分辨率研究：撞壁附近的力分裂误差和 Boris 相位误差仍依赖步长。
+宏粒子数与发射统计还需独立检查收敛。
+标准相对论 Boris 对相对论 <span class="math notranslate nohighlight">\(\boldsymbol E\times\boldsymbol B\)</span> 漂移也有已知限制，见
+<a class="reference external" href="https://arxiv.org/pdf/1701.05605">Higuera 与 Cary</a>。</p>
+</section>
+<section id="id6">
+<h3>耦合 PIC 场与束流响应<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">coupled</span></code> 使用保存切片的存活粒子横向坐标及归属。
+每个束流宏粒子沉积线电荷 <span class="math notranslate nohighlight">\(q_{\ell,j}=r_b Z_b e/\Delta z\)</span>，
+其中 <span class="math notranslate nohighlight">\(r_b\)</span> 为真实粒子与宏粒子的数量比。
+在保存的物理切片时间区间内，横向源分布保持固定，不再用高斯轮廓替代；
+<code class="docutils literal notranslate"><span class="pre">beam_sigma</span></code> 对本模式的物理计算没有影响。</p>
+<p>接地圆形 FD 求解器分别求束流场和云场。动态云粒子先沉积
+<span class="math notranslate nohighlight">\(q_{\ell,e,j}=-e w_j/L_s`（C/m），其中源长度 :math:`L_s\)</span> 初始为 1 m。
+除以网格面积后得到 C/m<sup>3</sup> 的密度，Poisson 直接给出 V 的电势与 V/m 的电场，
+不再额外除以源长度。恢复的快照可以包含其他源长度；电子权重随该长度同比缩放时，物理场不变。
+每个电子步先执行含壁面事件的半漂移，在中点重建云场，
+使用 <span class="math notranslate nohighlight">\(\boldsymbol E_b+\boldsymbol E_e\)</span> 和
+<span class="math notranslate nohighlight">\(\boldsymbol B_{\mathrm{ext}}+\boldsymbol B_b\)</span> 执行 Boris 更新，
+再执行第二次半漂移。无束流间隙内仍推进云自场。
+不包含云磁场或纵向电场。</p>
+<p>对位于切片固定横向坐标的见证粒子，以中点求积累积时长 <span class="math notranslate nohighlight">\(\Delta t_s\)</span> 内的云场：</p>
+<div class="math notranslate nohighlight">
+\[\overline{\boldsymbol E}_{e,j}
+  =\frac{1}{\Delta t_s}\sum_k
+    \boldsymbol E_e(\boldsymbol r_j,t_{k+1/2})\Delta t_k,\qquad
+\Delta\boldsymbol p_{\perp,j}
+  =\frac{\operatorname{sign}(Z_b)L_{\mathrm{int}}}
+         {\beta_0 c B\rho}\overline{\boldsymbol E}_{e,j}.\]</div>
+<p>束流踢角只使用云场，不含束流自踢角或 <span class="math notranslate nohighlight">\(1/\gamma_0^2\)</span> 折减。
+此操作只改变 <code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code>；<code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code>、<code class="docutils literal notranslate"><span class="pre">z_rel</span></code>、<code class="docutils literal notranslate"><span class="pre">dp</span></code>、
+参考能量和 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 均不变，切片内不推进束流源坐标。
+作用长度缩放束流响应，不缩放电子数或电子物理时钟。</p>
+<p>靠近圆壁时，沉积和插值将每个模板在有效内节点上重新归一化，保持沉积电荷。
+此处理在壁面附近具有一阶误差，并非精确 Hamiltonian 或严格能量守恒的粒子—场离散。
+步长受 <code class="docutils literal notranslate"><span class="pre">max_time_step</span></code>、外场与束流场的回旋频率估计、
+云等离子体及网格加速度频率估计（<span class="math notranslate nohighlight">\(\omega\Delta t\le0.2\)</span>），
+以及电子位移（<span class="math notranslate nohighlight">\(v_\perp\Delta t\le0.2h\)</span>，<span class="math notranslate nohighlight">\(h\)</span> 为较小网格间距）限制。
+这些控制不能证明收敛。得出物理结论前，应分别检查网格、宏电子与初级发射样本数、
+随机种子、切片宽度和时间步长。</p>
+</section>
+<section id="id7">
+<h3>初级源与二次发射<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>每个切片前沿产生预设初级电子数
+<span class="math notranslate nohighlight">\(N_{\mathrm{primary}}=Y_p N_{\mathrm{slice}}L_s\)</span>，
+使用沿壁面周向均匀采样、朝内发射的等权宏电子表示。
+其中源长度 <span class="math notranslate nohighlight">\(L_s\)</span> 初始为 1 m，<span class="math notranslate nohighlight">\(Y_p\)</span> 单位为 1/m。
+这一经验源不计算残余气体电离、同步光子输运或材料光电发射能谱。
+初级产生集中在切片前沿，没有在整个切片时长内连续分布。
+仅缩短电子积分步长无法消除这一源时间近似，还应检查 Slicer 宽度收敛。</p>
+<p>设入射动能为 <span class="math notranslate nohighlight">\(E_i\)</span>，<span class="math notranslate nohighlight">\(x=E_i/E_{\max}\)</span> 且 <span class="math notranslate nohighlight">\(s&gt;1\)</span>。
+未经截断的真二次曲线与实现的限制为</p>
+<div class="math notranslate nohighlight">
+\[\delta(E_i)=\delta_{\max}\frac{s x}{s-1+x^s},\qquad
+\delta_{\mathrm{eff}}=\min\!\left(\delta(E_i),\frac{E_i}{E_{\mathrm{emit}}}\right),
+\qquad E_o=\min(E_{\mathrm{emit}},E_i).\]</div>
+<p>每个入射宏电子至多产生一个宏二次电子，其权重为
+<span class="math notranslate nohighlight">\(w_o=w_i\delta_{\mathrm{eff}}\)</span>，每电子能量为 <span class="math notranslate nohighlight">\(E_o\)</span>；
+权重为零表示吸收。这样同时限制单电子能量与加权总能量不超过入射能量，
+并在低能端保守地抑制发射。
+曲线使用
+<a class="reference external" href="https://www.classe.cornell.edu/~critten/cesrta/ecloud/doc/furmanpivi.pdf">Furman 与 Pivi 式 31–32</a>
+的真二次形状，并非完整概率模型：未实现弹性反射、再扩散、角度相关材料产额及联合二次能谱。
+宏粒子通过权重表示倍增，不采用整数分支。</p>
+<p>初级和二次发射方向均服从相对于朝内法向的三维余弦分布：
+<span class="math notranslate nohighlight">\(\mu=\cos\theta=\sqrt U\)</span>、<span class="math notranslate nohighlight">\(\phi=2\pi V\)</span>，
+其中 <span class="math notranslate nohighlight">\(U,V\)</span> 为独立均匀随机数。
+尽管只跟踪 x、y 位置，三个动量分量均保留；初始电子云方向则使用各向同性完整球面。</p>
+</section>
+</section>
+<section id="id8">
+<h2>输出与状态<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>静态模式选定圈的 HDF5 诊断写入当前 PASS 运行目录下的
+<code class="docutils literal notranslate"><span class="pre">electron_cloud/&lt;run_id&gt;/beam&lt;id&gt;_&lt;command&gt;/turn_&lt;turn&gt;_call_&lt;call&gt;.h5</span></code>。
+运行标识包含新生成的唯一标识；调用编号区分同一圈的重复执行。
+命令的 <code class="docutils literal notranslate"><span class="pre">saved_fields</span></code> 列出已写入路径。
+所需场输出写入成功后才提交暂存的束流动量踢角。写入失败时束流动量保持不变，
+重试会使用新的诊断文件名。文件格式标记为
+<code class="docutils literal notranslate"><span class="pre">PASS-electron-cloud-fields-1</span></code>，包含：</p>
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">场快照数据集</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 45.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>数据集</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grid/x</span></code>、<code class="docutils literal notranslate"><span class="pre">grid/y</span></code></p></td>
+<td><p>m</p></td>
+<td><p>一维网格坐标轴。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fields/charge_density</span></code></p></td>
+<td><p>C/m<sup>3</sup></p></td>
+<td><p>带符号的物理体电荷密度。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fields/electron_density</span></code></p></td>
+<td><p>1/m<sup>3</sup></p></td>
+<td><p>物理电子数密度。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fields/potential</span></code></p></td>
+<td><p>V</p></td>
+<td><p>静电势。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fields/ex</span></code>、<code class="docutils literal notranslate"><span class="pre">fields/ey</span></code></p></td>
+<td><p>V/m</p></td>
+<td><p>横向电场。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source/x</span></code>、<code class="docutils literal notranslate"><span class="pre">source/y</span></code>、<code class="docutils literal notranslate"><span class="pre">source/weight</span></code></p></td>
+<td><p>m、m、1</p></td>
+<td><p>PIC 源坐标与电子数权重；解析云不含这些数据集。</p></td>
+</tr>
+</tbody>
+</table>
+<p>二维网格数组按 <code class="docutils literal notranslate"><span class="pre">(y,</span> <span class="pre">x)</span></code> 排列，各数据集属性注明单位。
+文件 <code class="docutils literal notranslate"><span class="pre">metadata_json</span></code> 记录命令、束流、圈数、位置、作用长度、配置和踢角诊断；
+PIC 源元数据含所代表的源长度与随机数状态。
+执行后的 <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code> 提供存活粒子数、最大电场与踢角以及逐束团记录。
+解析势采用上文给出的势参考。解释结果时，应区分 PIC 采样噪声、导体壁面像场与力归一化误差。</p>
+<p>两种动态模式采用相同的输出目录与选圈规则，保存
+<code class="docutils literal notranslate"><span class="pre">source/x,y,ux,uy,uz,weight</span></code> 数组和源元数据；<code class="docutils literal notranslate"><span class="pre">build_up</span></code> 不保存云自场图。
+耦合输出还包含最终真实云场的 <code class="docutils literal notranslate"><span class="pre">grid</span></code> 和 <code class="docutils literal notranslate"><span class="pre">fields</span></code> 数据集，
+采用上表 SI 单位，并保存历史与最大踢角诊断。
+<code class="docutils literal notranslate"><span class="pre">ux,uy,uz</span></code> 为无量纲动量。源元数据包含 <code class="docutils literal notranslate"><span class="pre">source_length</span></code>、物理 <code class="docutils literal notranslate"><span class="pre">time</span></code>、
+<code class="docutils literal notranslate"><span class="pre">last_turn</span></code>、随机数状态及累计粒子数/能量计数器。
+<code class="docutils literal notranslate"><span class="pre">history_json</span></code> 逐间隙或切片记录时间、束流粒子数、带符号线电荷、初级注入、
+作用前后电子数、入射/发射电子数和步数。每条记录满足</p>
+<div class="math notranslate nohighlight">
+\[N_{\mathrm{after}}=N_{\mathrm{before}}+N_{\mathrm{primary}}
+                   -N_{\mathrm{incident}}+N_{\mathrm{emitted}}.\]</div>
+<p>累计壁面能量为全部代表电子的入射动能减发射动能，单位 eV，乘 <span class="math notranslate nohighlight">\(e\)</span> 可转换为焦耳。
+计数和壁面能量对应保存的源长度；若代表机器长度 <span class="math notranslate nohighlight">\(L\)</span>，可乘 <span class="math notranslate nohighlight">\(L/L_s\)</span> 换算。
+这不是自洽的机器热负荷预测。配置的作用长度不缩放底层电子集合。</p>
+<p>累计能量收支保存 <code class="docutils literal notranslate"><span class="pre">initial_energy_ev</span></code>、<code class="docutils literal notranslate"><span class="pre">primary_energy_ev</span></code> 和带符号
+<code class="docutils literal notranslate"><span class="pre">field_work_ev</span></code> （Boris 力更新时的动能变化）。以 eV 为单位计算
+<span class="math notranslate nohighlight">\(K=\sum w(\gamma_e-1)m_ec^2\)</span>，满足
+<span class="math notranslate nohighlight">\(K_{\mathrm{final}}=K_{\mathrm{initial}}+K_{\mathrm{primary}}+W_{\mathrm{field}}-E_{\mathrm{wall}}\)</span>。
+该关系验证数值收支，不度量积分器的物理轨迹误差。
+在耦合模式下，它也不证明准静态薄透镜近似中的束流、电子和场总能量守恒。
+整个动态命令暂存电子状态、随机数状态及束流踢角，
+全部演化和请求的输出成功后才一并提交；演化或输出失败时均保持不变。</p>
+<p>命令提供 <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> / <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">save_state(path)</span></code> / <code class="docutils literal notranslate"><span class="pre">load_state(path)</span></code>，保存自身源、配置标识和随机数状态，
+从而可重复使用非确定性 PIC 样本，或带时间和动量的动态电子状态。
+这些 API 是云快照，不是完整模拟重启：匹配的束流粒子、束流参考状态、圈数和其他集体效应状态
+仍需分别处理。静态模式没有演化时钟，两种动态模式均恢复保存的物理时钟。
+耦合快照沿用动态状态格式，校验模式与配置标识，并重建场资源而不保存缓存。</p>
+<p>跟踪期间，动态电子数组驻留于所选 CPU 或 GPU 后端。
+暂存状态拥有独立粒子数据；耦合模式通过串行调用复用固定网格、场分解和数值工作区。
+读取公开云状态、写入源/场快照或捕获检查点时才构造经过校验的主机快照；
+GPU 上这会增加设备到主机的数据传输。输入字段与检查点格式保持不变。
+标量诊断和发射采样仍可能引发主机与设备同步。
+比较 CPU/GPU 性能时，应先完成编译和求解器初始化预热，
+分别测量同步后的跟踪、初始化与快照输出耗时，并覆盖无碰壁和壁面发射负载；
+少量电子使用 GPU 不一定更快。</p>
+<p>耦合 GPU 执行结合固定次序沉积与确定性 cuDSS 求解。
+高度聚集的单元使用固定归约树，因此与此前串行求和相比可能出现末位差异。
+复现检查限定于相同代码、GPU 架构、SM 数量及软件栈，
+不承诺跨设备一致，见 <a class="reference internal" href="field_solver.html"><span class="doc">横向场求解器</span></a>。</p>
+<p>对于已使用双束流联合检查点接口的模拟，<code class="docutils literal notranslate"><span class="pre">capture_collision_state</span></code> /
+<code class="docutils literal notranslate"><span class="pre">restore_collision_state</span></code> 也会保存并恢复已启用的电子云状态，
+在提交联合恢复前校验云标识并重建场资源。
+现有共同整圈边界和输出约束仍然适用，见 <a class="reference internal" href="beam_beam.html"><span class="doc">束束相互作用（BeamBeam）</span></a>。
+这一接入没有新增独立的单束流整机重启接口。</p>
+</section>
+<section id="id9">
+<h2>可运行示例<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">example/07_electron_cloud</span></code> 提供英文入门说明和六个串行单踢角算例：零密度、
+解析密度与双倍密度、自由空间 PIC、矩形 FD 和矩形 DST。
+显式探针粒子覆盖云内外区域。分析从作用前后分布快照读取踢角，与高斯定律比较，
+检查密度正比关系、坐标和参考时间不变，并在相同边界条件下比较 FD/DST。
+JSON、CSV 和科学绘图 PNG 输出位于 Git 忽略的
+<code class="docutils literal notranslate"><span class="pre">tests/codex/electron_cloud/example_output</span></code> 目录。</p>
+<p><code class="docutils literal notranslate"><span class="pre">example/08_electron_cloud_buildup</span></code> 提供四个串行束团列算例：初始云吸收、
+初级产生与吸收、初级产生与真二次发射，以及时间步长减半比较。
+真实单圈 Drift 推进参考时钟，同时保持预设驱动束流分布不变。
+分析检查粒子数/能量收支、时间连续性和束流坐标不变，
+在 <code class="docutils literal notranslate"><span class="pre">tests/codex/electron_cloud/buildup_example_output</span></code> 保存 JSON、CSV 和电子数历史图。
+时间步减半的差异作为分辨率比较报告，不表示物理饱和或统计收敛已被证明。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="wake_field.html" class="btn btn-neutral float-left" title="尾场（WakeField）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="beam_beam.html" class="btn btn-neutral float-right" title="束束相互作用（BeamBeam）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

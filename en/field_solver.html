@@ -120,6 +120,8 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
@@ -372,7 +374,7 @@ dimensions must match the solver geometry.</p>
 <p>GPU interfaces require a compatible CUDA environment and GPU dependencies; install the project with the <code class="docutils literal notranslate"><span class="pre">cuda</span></code> optional dependency. CPU interfaces do not require CuPy.</p>
 <p><code class="docutils literal notranslate"><span class="pre">build_pic_resources_gpu</span></code> accepts the same geometry and low-level solver
 names as <code class="docutils literal notranslate"><span class="pre">build_pic_resources</span></code>, plus <code class="docutils literal notranslate"><span class="pre">dtype</span></code>, <code class="docutils literal notranslate"><span class="pre">num_slices</span></code>,
-<code class="docutils literal notranslate"><span class="pre">dst_implementation</span></code>, <code class="docutils literal notranslate"><span class="pre">fft_batch_size</span></code> and <code class="docutils literal notranslate"><span class="pre">deposition_strategy</span></code>.
+<code class="docutils literal notranslate"><span class="pre">dst_implementation</span></code>, <code class="docutils literal notranslate"><span class="pre">fft_batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">deposition_strategy</span></code> and <code class="docutils literal notranslate"><span class="pre">deterministic</span></code>.
 The defaults are <code class="docutils literal notranslate"><span class="pre">float64</span></code>, automatic DST selection, 16-slice FFT chunks and
 direct atomic deposition. <code class="docutils literal notranslate"><span class="pre">num_slices</span></code> should be supplied at initialization.
 For example, given device arrays <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> and integer <code class="docutils literal notranslate"><span class="pre">slice_id</span></code>:</p>
@@ -399,6 +401,16 @@ maximum read. Reuse requires the creation device and stream, serialized calls,
 unchanged geometry, boundary operator and precision. <code class="docutils literal notranslate"><span class="pre">close()</span></code> releases
 workspaces and cuDSS handles; further use raises an error. A different slice
 count rebuilds the batch workspace, retaining the FD factorization.</p>
+<p>The optional <code class="docutils literal notranslate"><span class="pre">deterministic=True</span></code> selects cuDSS deterministic mode for
+<code class="docutils literal notranslate"><span class="pre">field_solver=&quot;fd&quot;</span></code> only, on one GPU with one right-hand side (one slice);
+multi-slice input is explicitly rejected. The default <code class="docutils literal notranslate"><span class="pre">False</span></code> preserves
+existing batched behavior. <code class="docutils literal notranslate"><span class="pre">GPUFDRectangleSolver</span></code> and
+<code class="docutils literal notranslate"><span class="pre">GPUFDArbitrarySolver</span></code> accept the same keyword. This controls the cuDSS
+solve, not general <code class="docutils literal notranslate"><span class="pre">pic_gpu</span></code> deposition; coupled electron clouds separately
+use fixed-order deposition. Repeatability is limited to the same GPU
+architecture, SM count and software stack, with no cross-device guarantee.
+If the installed cuDSS cannot enable this mode, initialization raises a clear
+error instead of falling back to a nondeterministic solve.</p>
 <p><code class="docutils literal notranslate"><span class="pre">dst_implementation</span></code> accepts <code class="docutils literal notranslate"><span class="pre">auto</span></code>, <code class="docutils literal notranslate"><span class="pre">cufft</span></code>, <code class="docutils literal notranslate"><span class="pre">cufftdx</span></code> or <code class="docutils literal notranslate"><span class="pre">fused</span></code>.
 The default <code class="docutils literal notranslate"><span class="pre">auto</span></code> validates optional implementations before selecting one;
 unavailable optional dependencies fall back to cuFFT, while a numerical discrepancy raises an error.

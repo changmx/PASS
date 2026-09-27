@@ -80,6 +80,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
@@ -135,11 +137,13 @@
 <p><code class="docutils literal notranslate"><span class="pre">output_format</span></code> (JSON <code class="docutils literal notranslate"><span class="pre">&quot;Output</span> <span class="pre">format&quot;</span></code>) is the single format and
 compression selector:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>: HDF5 with lossless gzip level 1 and shuffle (<strong>default</strong>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>: HDF5 with lossless gzip level 1 and shuffle.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code>: uncompressed HDF5, with no shuffle.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>: TFS text output.</p></li>
 </ul>
-<p>Omitting the option selects <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>. Selecting a format does not
+<p>Omitting the option selects <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code> for the monitors, Injection and
+Slicer. <a class="reference internal" href="../beam_beam.html"><span class="doc">BeamBeam luminosity</span></a> instead defaults to <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>
+in its shared <code class="docutils literal notranslate"><span class="pre">Luminosity</span></code> configuration. Selecting a format does not
 enable a disabled output or change the configured recording turns.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -178,6 +182,10 @@ set <code class="docutils literal notranslate"><span class="pre">output_format</
 <tr class="row-odd"><td><p>Slicer</p></td>
 <td><p>Particle details per bunch and selected turn</p></td>
 <td><p>Slice summaries remain TFS and CSV</p></td>
+</tr>
+<tr class="row-even"><td><p>BeamBeam luminosity</p></td>
+<td><p>One sampled encounter history per IP configuration and occurrence</p></td>
+<td><p>None; defaults to TFS</p></td>
 </tr>
 </tbody>
 </table>
@@ -247,6 +255,9 @@ at zero-based turns 99, 199, and so on. The final turn flushes any remaining
 rows. Normal executor cleanup also flushes a partial batch after a catchable
 exception or keyboard interruption; forced process termination can lose the
 unwritten batch.</p>
+<p>BeamBeam luminosity uses a separate <strong>sample interval</strong>, with first/final-turn
+handling. It computes only the selected encounters and appends their records
+after a complete common turn; it does not buffer luminosity for every turn.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.monitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatMonitorItem</span>
 
 <span class="n">stat</span> <span class="o">=</span> <span class="n">StatMonitorItem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">"hdf5-gzip1"</span><span class="p">,</span> <span class="n">write_interval_turns</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>

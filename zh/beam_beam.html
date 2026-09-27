@@ -1,0 +1,1205 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>束束相互作用（BeamBeam） &mdash; PASS 0.4.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="监视器与输出" href="monitor/index.html" />
+    <link rel="prev" title="电子云（ElectronCloud）" href="electron_cloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../en/beam_beam.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">束束相互作用（BeamBeam）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">配置与执行顺序</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gui">GUI 配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">接口参数</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#beam-beam">顶层 <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> 配置块</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ip">命名 IP 配置</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">BeamBeam 序列命令</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">逐束源配置</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#frozen-parameters-slice-parameters">Frozen parameters 与 Slice parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">物理与数值模型</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pic">PIC 源与距离插值</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">解析源与沙漏传播</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">切片事件与六维作用</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">亮度诊断</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id9">采样与归一化</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10">重叠量定义</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">输出文件与列</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#crossinganglecrabcavity-floatwaister">CrossingAngle、CrabCavity 与 FloatWaister</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id12">交叉角坐标变换</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">IP 等效元件的共同参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#crabcavity">CrabCavity 参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#floatwaister">FloatWaister 参数与强度约定</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id14">共同整圈边界上的检查点</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id15">实现位置与验证范围</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id16">理论参考</a></li>
+</ul>
+</li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
+      <li class="breadcrumb-item active">束束相互作用（BeamBeam）</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="beambeam">
+<h1>束束相互作用（BeamBeam）<a class="headerlink" href="#beambeam" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">BeamBeam</span></code> 是两条束流 sequence 中的显式会合命令，采用理想同步、同圈对撞和固定束团配对。
+等待状态只协调执行顺序，不推进或修正任何束团的物理参考时间。两束的参考到达时间必须在
+浮点容差内一致；多个 IP 在两条 sequence 中的访问顺序也必须相同。</p>
+<section id="id1">
+<h2>配置与执行顺序<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>使用顶层 <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> 配置块。配置 ID 区分大小写，在两个输入中只能定义一次。
+共享 <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> 可由任一输入提供；两侧显式提供时必须一致，全部缺省时关闭。
+<code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code> 已停用：值为 true 时明确报错，输入生成器不再输出该旧字段。</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Beam beam"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Configurations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"IP1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Beams"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"weak-strong"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Weak beam"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">},</span>
+<span class="w">          </span><span class="nt">"1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"frozen"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gaussian_round_free_space"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Frozen parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Sigma (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>两条 sequence 都需要在 IP 放置 Slicer 和 BeamBeam，例如以下 <span class="math notranslate nohighlight">\(s=0\)</span> 的节点。
+同一位置的其他命令，包括 Injection、到达该点的 Twiss 和监测命令，也必须具有互不重复的
+整数 <code class="docutils literal notranslate"><span class="pre">Order</span></code>。某位置完全未使用 Order 时，保持原有命令类别优先级。
+GUI、输入生成器、校验器与运行时使用同一排序规则。</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"slice_ip1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Slicer"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"Order"</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Purpose"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam_beam"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"IP1"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Coordinate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"z_rel"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Slice model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"equal_particle"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Number of slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Z range mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"auto"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"ip1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BeamBeam"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"Order"</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"IP1"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>最近一次显式 Slicer 决定成员关系；BeamBeam 不重新切片，也不重排粒子池。
+显式区间必须覆盖所有存活粒子，越界时报错而不是夹到边界切片。
+再次访问同一 IP 前必须重新显式执行 Slicer。保存的切片快照保持原始几何信息，
+碰撞中更新的源矩另行计算。</p>
+</section>
+<section id="gui">
+<h2>GUI 配置<a class="headerlink" href="#gui" title="Link to this heading"></a></h2>
+<p>GUI 左侧 <strong>物理效应 → 束束效应</strong> 包含全局配置、插入束束切片、插入对撞点、交叉角变换、
+蟹腔和浮动束腰编辑器。全局配置支持命名 IP，并分别设置碰撞、beam0 源、beam1 源和亮度。
+源编辑器只显示所选源方法适用的参数。
+PIC 的 <code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code> 必须手动填写，控件不能关闭，GUI 不提供默认正值。</p>
+<p>每个共享 IP 只在一个束流输入中定义；另一输入的序列命令可填写该配置名作为引用。
+共享 Enabled 控件的半选状态表示此输入不声明开关。按上述顺序与切片要求配置两条序列，
+再联合校验两个输入；填写 GUI 表单不能替代另一侧匹配的序列。</p>
+</section>
+<section id="id2">
+<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<section id="beam-beam">
+<h3>顶层 <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> 配置块<a class="headerlink" href="#beam-beam" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Enabled</span></code></p></td>
+<td><p>—</p></td>
+<td><p>未声明</p></td>
+<td><p>可选共享开关；两个文件显式值必须一致。全部缺省时关闭。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configurations</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configurations</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>区分大小写的名称到 IP 配置的映射；每个名称只能在两个输入中定义一次。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="ip">
+<h3>命名 IP 配置<a class="headerlink" href="#ip" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beams</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beams</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code></p></td>
+<td><p>只能为这两个 beam ID；两束的后端与粒子精度必须一致。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">strong-strong</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">strong-strong</span></code> 更新两束；<code class="docutils literal notranslate"><span class="pre">weak-strong</span></code> 只更新 <code class="docutils literal notranslate"><span class="pre">weak_beam</span></code>；<code class="docutils literal notranslate"><span class="pre">weak-weak</span></code> 不施加束束 kick。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">weak_beam</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Weak</span> <span class="pre">beam</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>weak-strong 必须指定 0 或 1；其他模式不能设置。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bunch_pairs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunch</span> <span class="pre">pairs</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>可选完整双射 <code class="docutils literal notranslate"><span class="pre">[[id0,</span> <span class="pre">id1],</span> <span class="pre">...]</span></code>；省略时按相同稳定束团 ID 配对。所有 IP 共用配对关系。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">full_crossing_angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Full</span> <span class="pre">crossing</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>两束设计轨道相对严格反向的全偏离角，严格位于 −π 和 π 之间。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crossing_plane</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Crossing</span> <span class="pre">plane</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>共同几何中的交叉平面方向角。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interaction_map</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">map</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">synchro_beam_6d</span></code></p></td>
+<td><p>支持的六维 synchro-beam 映射。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">potential_reference_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Potential</span> <span class="pre">reference</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.0</span></code></p></td>
+<td><p>正的固定对数势参考长度。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sources</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sources</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>必须恰好包含键 <code class="docutils literal notranslate"><span class="pre">&quot;0&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">&quot;1&quot;</span></code>。两侧均需切片引用，实际供源侧还需 Method 与 Solver。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">luminosity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Luminosity</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>可选共享诊断配置；省略时关闭输出，生成 JSON 时也省略。</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">weak-weak</span></code> 未启用亮度时还跳过碰撞切片、坐标变换和场资源分配。
+CrabCavity 与 FloatWaister 仍独立执行。固定配对不兼容 ReorganizeBunch。</p>
+</section>
+<section id="id3">
+<h3>BeamBeam 序列命令<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Command</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BeamBeam</span></code></p></td>
+<td><p>命令类型。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>必填</p></td>
+<td><p>本束 sequence 中的 IP 位置。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>遵循统一命令排序规则的可选整数顺序。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>共享 IP 配置的准确名称。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id4">
+<h3>逐束源配置<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>源束显式碰撞 Slicer 结果的非空名称。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code>、<code class="docutils literal notranslate"><span class="pre">frozen</span></code> 或 <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code>；仅作为目标的一侧可只包含 Slice set。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">solver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>指定 Method 时必填，组合见下方数值模型表。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">statistics_precision</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Statistics</span> <span class="pre">precision</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>源矩累加精度 <code class="docutils literal notranslate"><span class="pre">float32</span></code> 或 <code class="docutils literal notranslate"><span class="pre">float64</span></code>；null 跟随粒子精度。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">/</span> <span class="pre">ny</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Nx</span> <span class="pre">/</span> <span class="pre">Ny</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">128</span></code></p></td>
+<td><p>仅 PIC：每轴整数网格节点数，至少为 3。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_half_width_x</span> <span class="pre">/</span> <span class="pre">grid_half_width_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>PIC 必须指定两个正半宽，定义居中的固定网格。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">deposition_method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TSC</span></code></p></td>
+<td><p>仅 PIC：<code class="docutils literal notranslate"><span class="pre">CIC</span></code> 或 <code class="docutils literal notranslate"><span class="pre">TSC</span></code>，复用 SpaceCharge 沉积基础实现。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">propagation_step</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>PIC 必填</p></td>
+<td><p>仅 PIC：手动指定正且有限的源势采样步长，沿碰撞距离采样；缺失或 null 均报错。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_parameters</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">parameters</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>frozen 必填；按下表尺寸定义一个预设轮廓。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_parameters</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">parameters</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>仅 frozen：非负切片编号映射到完整的逐片 Frozen parameters。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_optics_reference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">optics</span> <span class="pre">reference</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>仅 frozen：源束在本 IP 的 Twiss 条目引用，用于沙漏传播所需的预设角向矩。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source_center_slopes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">center</span> <span class="pre">slopes</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">0.0]</span></code></p></td>
+<td><p>仅 frozen：两个带符号横向中心斜率。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="frozen-parameters-slice-parameters">
+<h3>Frozen parameters 与 Slice parameters<a class="headerlink" href="#frozen-parameters-slice-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">center_x</span> <span class="pre">/</span> <span class="pre">center_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>预设横向中心。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>椭圆方向角；圆对称轮廓必须为零。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>圆 Gaussian 的正 RMS 尺寸。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_x</span> <span class="pre">/</span> <span class="pre">sigma_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Sigma</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>椭圆 Gaussian 的正主轴 RMS 尺寸。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">radius</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>uniform/parabolic 圆盘的正支撑半径。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">/</span> <span class="pre">b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>uniform/parabolic 椭圆的正支撑半轴。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_delta</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">delta</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>色散贡献采用的非负 RMS 动量展宽；正值要求 Frozen optics reference。</p></td>
+</tr>
+</tbody>
+</table>
+<p>每个轮廓必须且只能指定对应的尺寸组合；没有任意协方差输入接口。</p>
+</section>
+</section>
+<section id="id5">
+<h2>物理与数值模型<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">支持的源表示</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>方法</p></th>
+<th class="head"><p>求解器</p></th>
+<th class="head"><p>源表示</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></p></td>
+<td><p>当前粒子通过 CIC 或 TSC 沉积到固定横向网格。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform</span></code> 或 <code class="docutils literal notranslate"><span class="pre">parabolic</span></code>，分别加 <code class="docutils literal notranslate"><span class="pre">round_free_space</span></code> 或 <code class="docutils literal notranslate"><span class="pre">ellipse_free_space</span></code> 后缀</p></td>
+<td><p>预设空间轮廓；可选 IP 光学参数提供角向矩。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
+<td><p>相同的六种解析求解器</p></td>
+<td><p>每个切片对事件前，用当前切片矩重建轮廓。</p></td>
+</tr>
+</tbody>
+</table>
+<section id="pic">
+<h3>PIC 源与距离插值<a class="headerlink" href="#pic" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">pic</span></code> 使用 <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">Nx</span></code>、<code class="docutils literal notranslate"><span class="pre">Ny</span></code> 以及正的
+<code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code>。
+沉积复用 SpaceCharge 实现，<code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code> 可选 <code class="docutils literal notranslate"><span class="pre">CIC</span></code> 或默认 <code class="docutils literal notranslate"><span class="pre">TSC</span></code>。
+源和目标的完整形函数支撑必须落在固定网格中；不覆盖时报数值错误，不标记物理粒子损失。
+该固定网格是自由空间计算的数值区域，不表示接地导体壁。</p>
+<p>纵向作用还需要势，不能只使用横向场。PIC 在以 <span class="math notranslate nohighlight">\(S=0\)</span> 为锚点的均匀传播网格
+<span class="math notranslate nohighlight">\(S_k=kh\)</span> 上计算源势。目标粒子只决定需要求值的区间，其极值不决定网格原点或步长。
+对于 <span class="math notranslate nohighlight">\(kh\le S&lt;(k+1)h\)</span>，四节点 Catmull–Rom 插值使用
+<span class="math notranslate nohighlight">\((k-1)h\)</span>、<span class="math notranslate nohighlight">\(kh\)</span>、<span class="math notranslate nohighlight">\((k+1)h\)</span>、<span class="math notranslate nohighlight">\((k+2)h\)</span> 上的源势。
+横向 kick 与纵向源项均对同一个插值势求导，并采用相同的固定对数势参考长度。</p>
+<p>每个 PIC 源都必须显式设置 <code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)``（Python</span> <span class="pre">名为</span> <span class="pre">``propagation_step</span></code>），
+其值是正且有限的步长 <span class="math notranslate nohighlight">\(h\)</span>。缺失或 <code class="docutils literal notranslate"><span class="pre">null</span></code> 在追踪前报错；程序不自动计算或补填步长，
+源斜率全部为零时也必须手动指定。该值在所选粒子精度中仍须为正且有限，
+转换后下溢为零或上溢为无穷时均报错。这是沿 <span class="math notranslate nohighlight">\(S\)</span> 对源势采样的间隔，
+不是实际碰撞距离 <span class="math notranslate nohighlight">\(S\)</span>、束团长度或沙漏效应的开关。
+解析源直接计算传播量，不使用且必须省略这一 PIC 专用字段。</p>
+<p>以下源配置示例手动选择 <span class="math notranslate nohighlight">\(h=0.001\,\mathrm{m}\)</span>，该数值仅作示例，需针对具体算例检查收敛。</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pic"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fft_free_space"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Nx"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="nt">"Ny"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Grid Half Width X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Grid Half Width Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Propagation step (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>横向网格必须在所需节点的完整外延范围内覆盖源的全部沉积支撑，即从
+<span class="math notranslate nohighlight">\((k_{\min}-1)h\)</span> 到 <span class="math notranslate nohighlight">\((k_{\max}+2)h\)</span>，同时覆盖各目标粒子在相遇位置的完整取样支撑。
+只覆盖目标传播距离的极值还不够。覆盖失败时应扩大横向区域或选择可分辨的传播步长；
+数值网格边界不作为物理粒子损失孔径。</p>
+<p>只对有目标粒子的传播区间求场。每个区间使用固定的四平面批次：一层基准密度和三层相对
+该密度的差值。密度差求势减少纵向导数中的大数相消；横向场直接由取样势求导，
+不计算未使用的网格场数组。减小 <span class="math notranslate nohighlight">\(h\)</span> 可能增加需要求解的区间数。
+GPU 势工作区在同一 stream 上提交对应取样后才复用；独立的源快照在整个事件中保持有效。</p>
+<p>传播方向的插值势为分段三次、<span class="math notranslate nohighlight">\(C^1\)</span> 连续，但完整粒子映射并非处处光滑：
+传播节点处的二阶导数可能变化，横向沉积和取样也受网格形函数的光滑性限制。
+当源势数据光滑时，Catmull–Rom 一般具有 <span class="math notranslate nohighlight">\(O(h^3)\)</span> 的势误差和
+<span class="math notranslate nohighlight">\(O(h^2)\)</span> 的导数误差，不能称为四阶精度。应比较显式设置的 <span class="math notranslate nohighlight">\(h\)</span> 与 <span class="math notranslate nohighlight">\(h/2\)</span>，
+分别检查纵向、横向 kick。横向网格、粒子数及切片数需要独立改变并检查收敛；
+单独检查网格收敛时，应保持手动指定的步长不变。</p>
+<p>CIC 对横向双线性插值势求导，因此力在网格线上可能跳变。位于网格线上或极近处的坐标，
+在 float32 与 float64 中可能选到不同侧的梯度，不能保证这些位置的逐点结果一致。
+对于固定网格势且完整插值支撑得到覆盖的情况，TSC 重建的横向势连续可微，梯度也连续。
+精度对比建议使用 TSC，并同时检查横向网格与宏粒子数分辨率；仅提高算术精度不能证明 PIC 收敛。</p>
+</section>
+<section id="id6">
+<h3>解析源与沙漏传播<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> 与 <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code> 支持六种自由空间解析求解器：
+<code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">gaussian_ellipse_free_space</span></code>、
+<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>、<code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code>、
+<code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code> 和 <code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code>。
+Gaussian 跟踪在数值条件良好时使用完整闭式势导数：横向场由 Bassetti–Erskine 公式计算，
+纵向源导数由 Gaussian 热方程恒等式得到，包含中心变化和全部协方差分量。
+严格圆形轮廓直接使用径向 Hessian；近圆椭圆、接近奇异的协方差以及远处观察点，
+保守回退到统一的共焦 Green 积分，并用两个积分阶数检查收敛。
+需要标量势值时，以及 uniform/parabolic 轮廓，仍使用该积分。
+CPU/GPU 闭式计算均采用 float64 中间量，返回配置的粒子精度。
+两条路径均保留完整纵向导数；改变的是求值代价，不是源模型。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">parameters</span></code> 包含默认均为零的 <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">(rad)</span></code>，以及对应轮廓所需的尺寸：<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">(m)</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">Y</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code> 或
+<code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code>。不接受任意协方差输入。
+可选 <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">parameters</span></code> 按切片索引提供完整的逐片参数覆盖。
+包括 frozen 在内，电荷始终由当前存活源粒子数确定。</p>
+<p>不提供 <code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">optics</span> <span class="pre">reference</span></code> 时，规定的宽度没有角度展宽；可选的
+<code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">center</span> <span class="pre">slopes``（两个数，默认零）决定中心传播。</span>
+<span class="pre">需要</span> <span class="pre">hourglass</span> <span class="pre">时，引用源束自身位于</span> <span class="pre">IP</span> <span class="pre">的</span> <span class="pre">Twiss</span> <span class="pre">节点，角度矩由其非耦合</span> <span class="pre">beta、alpha</span> <span class="pre">模型构造，</span>
+<span class="pre">再与规定的空间轮廓一起旋转。</span>
+<span class="pre">此时</span> <span class="pre">Frozen</span> <span class="pre">parameters</span> <span class="pre">中可选的</span> <span class="pre">``Sigma</span> <span class="pre">delta</span></code> 规定色散贡献；输入投影尺寸扣除色散后
+必须保留正的 betatron 方差。目前普通 IP Twiss 仅提供水平色散。
+内部相空间矩是派生量，不要求用户额外提供。</p>
+<p>Quasi-frozen 在每个切片对事件前重新统计源中心和横向相空间矩。
+<code class="docutils literal notranslate"><span class="pre">Statistics</span> <span class="pre">precision</span></code> 可选 float32/float64，缺省跟随粒子精度。
+均匀及抛物轮廓按矩重建，半轴分别为 <span class="math notranslate nohighlight">\(2\sigma\)</span>、<span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span>。
+圆形求解器在传播后仍采用两个横向方差的平均值。</p>
+</section>
+<section id="id7">
+<h3>切片事件与六维作用<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<p>每个事件先准备双方的源快照，再施加两个方向的 kick。
+事件按两个入口切片质心之和从大到小执行，后续事件因此能使用前一事件已更新的状态。
+PIC 快照独立保存源的四个横向坐标，因此计算第二个方向时不会读取已被第一个 kick 改变的粒子。
+目标坐标为 <span class="math notranslate nohighlight">\(z\)</span>、对方切片质心为 <span class="math notranslate nohighlight">\(\bar z_s\)</span> 时，
+相遇距离为 <span class="math notranslate nohighlight">\(S=(z-\bar z_s)/2\)</span>，源传播距离为 <span class="math notranslate nohighlight">\(-S\)</span>。
+令 <span class="math notranslate nohighlight">\(X=x+Sp_x\)</span>、<span class="math notranslate nohighlight">\(Y=y+Sp_y\)</span>，映射为</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\Delta p_x=C E_x(X,Y,S),\quad \Delta p_y=C E_y(X,Y,S),
+\qquad x'=x-S\Delta p_x,\quad y'=y-S\Delta p_y,\\\eta'=\eta-\frac{C}{2}\partial_S\Psi+
+\frac{2p_x\Delta p_x+\Delta p_x^2+2p_y\Delta p_y+\Delta p_y^2}{4}.\end{aligned}\end{align} \]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\eta=(E-E_0)/(\beta_0P_0c)\)</span>。交叉角坐标区间外，公开 <code class="docutils literal notranslate"><span class="pre">dp</span></code> 存储动量偏差
+<span class="math notranslate nohighlight">\(\delta\)</span>，边界使用稳定的相对论转换。在 PASS 能量单位中，离子的
+<span class="math notranslate nohighlight">\(C=\operatorname{sgn}(Z)|Z|/(A p_0)\)</span>，因为参考动量按每核子存储。
+交叉角坐标区间内，分母采用该坐标系的参考动量 <span class="math notranslate nohighlight">\(p_0^*=p_0\cos(\Theta/2)\)</span>。
+源电荷为 <span class="math notranslate nohighlight">\(N_{\rm live}wZ_s e\)</span>。不额外乘二、SpaceCharge 作用长度、切片宽度，
+也不沿用 SpaceCharge 的 <span class="math notranslate nohighlight">\(\gamma^{-2}\)</span> 因子。
+碰撞几何采用超相对论近轴模型；精确转换 delta/eta 不表示该模型适用于一般有限速度对撞。</p>
+</section>
+</section>
+<section id="id8">
+<h2>亮度诊断<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<p>在 IP 的共享配置中启用原生亮度输出，例如：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Luminosity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Sample interval (turns)"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Output format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tfs"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Enabled</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>为每个 IP occurrence 启用一个共享亮度记录器。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sample_interval_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sample</span> <span class="pre">interval</span> <span class="pre">(turns)</span></code></p></td>
+<td><p>turn</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+<td><p>正整数；设为 10 表示每十圈采样，首末圈规则见下文。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tfs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">hdf5</span></code> 或 <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code>；为兼容旧输入，默认 tfs 在生成 JSON 时省略。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">reference_luminosity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">luminosity</span> <span class="pre">(cm^-2</span> <span class="pre">s^-1)</span></code></p></td>
+<td><p>cm⁻² s⁻¹</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>可选正固定参考亮度，分别用于每对束团；null 使用该对首次测量值。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collision_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>可选正归一化频率；null 使用两束相匹配的参考周回频率。</p></td>
+</tr>
+</tbody>
+</table>
+<section id="id9">
+<h3>采样与归一化<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>默认使用该束团对在此 IP occurrence 的参考周回频率 <span class="math notranslate nohighlight">\(\beta_0 c/C\)</span>。
+两束的参考周回频率必须在运行时容差内一致，否则需要显式提供 <code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code>。
+显式值只改变诊断归一化，不会修正物理上的非同步相遇。参考 beta 用于频率换算；
+碰撞平面的重叠量仍采用超相对论共同坐标模型，不表示对非相对论束流或速度明显不同的两束精确成立。</p>
+<p>首圈、满足 <code class="docutils literal notranslate"><span class="pre">(turn</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">%</span> <span class="pre">interval</span> <span class="pre">==</span> <span class="pre">0</span></code> 的圈，以及配置的最后一圈都会采样。
+输出圈号沿用 PASS 从零开始的约定。每行表示该次相遇的快照，不是此前采样间隔内的平均值。
+两侧 BeamBeam 会合节点只生成一次物理记录，不分别重复测量。
+各 IP occurrence 有独立的表格输出；改变采样间隔只改变诊断工作量，不改变碰撞 kick。
+诊断本身不施加粒子 kick。GPU 浮点归约在等价运行之间可能采用不同求和顺序，
+因此数值一致不意味着坐标逐位相同；重复运行同一诊断设置时也需要考虑这一点。
+每次采样正式提交时，日志同时显示当前 IP 的亮度（<code class="docutils literal notranslate"><span class="pre">cm^-2</span> <span class="pre">s^-1</span></code>）、因子和损失；
+多对束团时显示 IP 合计，只有一对时显示该束团对的结果。
+在非采样圈停止时，不会回头补算亮度。只有两束共同完成的整圈记录才正式提交，
+异常中断的半圈不会作为完整圈结果写入。</p>
+<p>对每个切片对，诊断在本事件两个 kick 之前、切片中心的碰撞平面计算横向密度重叠。
+后续切片对使用当时的源状态，因此包含更早切片事件的 kick。
+它与跟踪采用相同的薄切片碰撞几何，需要检查有限切片长度和所选横向密度表示的收敛性，
+不能解释为任意连续六维分布的精确积分。</p>
+</section>
+<section id="id10">
+<h3>重叠量定义<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>对切片对 <span class="math notranslate nohighlight">\((i,j)\)</span>，<span class="math notranslate nohighlight">\(N_{A,i}\)</span>、<span class="math notranslate nohighlight">\(N_{B,j}\)</span> 为真实粒子数，
+<span class="math notranslate nohighlight">\(\rho_{A,i}\)</span>、<span class="math notranslate nohighlight">\(\rho_{B,j}\)</span> 为积分归一到一的横向密度。
+下式的位置、中心及协方差均在相同碰撞平面坐标中求值，
+<span class="math notranslate nohighlight">\(S_{ij}=(\bar z_{A,i}-\bar z_{B,j})/2\)</span>。每对束团的重叠量为</p>
+<div class="math notranslate nohighlight">
+\[\mathcal O=\sum_{i,j}\mathcal O_{ij},\qquad
+\mathcal O_{ij}=N_{A,i}N_{B,j}
+   \int \rho_{A,i}(\mathbf r)\rho_{B,j}(\mathbf r)\,d^2\mathbf r.\]</div>
+<p>Gaussian 切片的中心差记为 <span class="math notranslate nohighlight">\(\mathbf d\)</span>，协方差之和为
+<span class="math notranslate nohighlight">\(\mathbf V=\mathbf C_{A,i}+\mathbf C_{B,j}\)</span>，则</p>
+<div class="math notranslate nohighlight">
+\[\mathcal O_{ij}=\frac{N_{A,i}N_{B,j}}{2\pi\sqrt{\det\mathbf V}}
+    \exp\!\left(-\tfrac12\mathbf d^T\mathbf V^{-1}\mathbf d\right).\]</div>
+<p>PIC 中，<span class="math notranslate nohighlight">\(n_{A,i,g}\)</span>、<span class="math notranslate nohighlight">\(n_{B,j,g}\)</span> 为沉积到横向网格节点 <span class="math notranslate nohighlight">\(g\)</span>
+的真实粒子数，已包含宏粒子权重。令网格单元面积为 <span class="math notranslate nohighlight">\(A_g=\Delta x\Delta y\)</span>，则</p>
+<div class="math notranslate nohighlight">
+\[\mathcal O_{ij}^{\rm PIC}
+=\sum_g\frac{n_{A,i,g}n_{B,j,g}}{A_g}
+=\sum_g\nu_{A,i,g}\nu_{B,j,g}\,A_g,\qquad
+\nu_{A,i,g}=n_{A,i,g}/A_g.\]</div>
+<p>因此计算需要累加 <strong>所有切片对</strong>，不是只取编号相同的切片。
+<span class="math notranslate nohighlight">\(N_{A,i}\)</span>、<span class="math notranslate nohighlight">\(N_{B,j}\)</span> 已包含各片粒子数，不再乘纵向切片宽度。
+两种等价 PIC 写法分别使用粒子数和数密度，不能混用归一化。</p>
+<p>双方均为 Gaussian 解析源时，使用传播后的中心和协方差之和计算闭式重叠。
+Gaussian 与 uniform/parabolic 混合时，在有界轮廓上用确定性极坐标求积积分平滑的 Gaussian 密度。
+双方均为有界轮廓时，先将每条径向射线裁剪到双方支撑区域的交集，解析积分径向密度多项式的乘积，
+再执行角向数值求积。角向积分和混合轮廓积分仍存在有限求积误差。</p>
+<p>解析源与粒子表示混合时，在另一侧传播后的粒子位置上平均解析密度。
+双方均为粒子表示时，在共同横向网格上沉积两侧密度，对真实粒子数密度的乘积积分。
+共同区域覆盖双方已配置的 PIC 区域，间距不粗于任一输入网格；任一 PIC 源要求 TSC 时使用 TSC，
+否则使用 CIC。切片对碰撞平面上的完整沉积支撑必须得到覆盖。诊断只沉积数密度，不求解势。
+因此 PIC 亮度保留粒子采样和网格误差，不会将源替换成 Gaussian 拟合。
+所有路径均采用真实粒子数权重，不依赖电荷符号或离子的电荷态。
+CPU/GPU 均用 float64 累加；源矩和传播坐标仍含有配置跟踪精度带来的误差。</p>
+<p>将包含真实粒子数权重的单次相遇重叠量记作 <span class="math notranslate nohighlight">\(\mathcal O\)</span>，单位为
+<span class="math notranslate nohighlight">\(\mathrm{m}^{-2}\)</span>，输出亮度为</p>
+<div class="math notranslate nohighlight">
+\[L\,[\mathrm{cm}^{-2}\mathrm{s}^{-1}]
+=10^{-4} f_{\mathrm{coll}}\,[\mathrm{Hz}]
+ \mathcal O\,[\mathrm{m}^{-2}].\]</div>
+<p>提供参考亮度时，每对束团的输出比值都使用该固定值；否则采用该对束团首次实际测得的亮度
+作为基准。首次测量通常已经包含配置的交叉角、沙漏效应和束流状态，不能自动视为
+零交叉角、无沙漏的参考亮度。研究交叉角或沙漏损失时，应提供独立测量或理论计算的适当基准。
+若初始基准为零，比值无定义并输出 <code class="docutils literal notranslate"><span class="pre">NaN</span></code>，后续非零测量不会自动替换该基准。</p>
+</section>
+<section id="id11">
+<h3>输出文件与列<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>文件位于 <code class="docutils literal notranslate"><span class="pre">&lt;输出目录&gt;/luminosity/</span></code>，文件名主体为
+<code class="docutils literal notranslate"><span class="pre">{output_hms}_{configuration_with_hash}_ip{occurrence}</span></code>，扩展名为 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 或 <code class="docutils literal notranslate"><span class="pre">.h5</span></code>。
+配置名会转换为安全文件名并附加哈希，以区分转换后重名的配置。
+默认使用 TFS；<code class="docutils literal notranslate"><span class="pre">hdf5</span></code> 不压缩，<code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code> 使用无损 gzip level 1 和 shuffle。
+各格式的列、单位和采样语义一致。每批采样结果直接追加，不需要输出完整粒子分布，
+也不会重写全部历史行；不额外生成 CSV。</p>
+<p>HDF5 遵循 <a class="reference internal" href="monitor/table_output.html"><span class="doc">表格输出格式</span></a> ：每列对应文件根目录下一个可扩展的一维 dataset。
+<code class="docutils literal notranslate"><span class="pre">TURN</span></code>、<code class="docutils literal notranslate"><span class="pre">BUNCH_A</span></code>、<code class="docutils literal notranslate"><span class="pre">BUNCH_B</span></code> 使用 int64，其余列使用 float64；每列 chunk 至少包含 128 行。
+根属性保留对应的 TFS headers，包括配置名、IP occurrence、源模型、几何、频率约定、参考约定和单位。
+保留属性为 <code class="docutils literal notranslate"><span class="pre">_pass_table_version=1</span></code> 及 <code class="docutils literal notranslate"><span class="pre">_pass_table_columns</span></code> （按输出顺序编码为 JSON 的列名列表）。</p>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">亮度表格列</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>列</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TURN</span></code> / <code class="docutils literal notranslate"><span class="pre">TIME</span></code></p></td>
+<td><p>从零开始的圈号和参考相遇时间，时间单位为秒。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BUNCH_A</span></code> / <code class="docutils literal notranslate"><span class="pre">BUNCH_B</span></code></p></td>
+<td><p>实际配对的稳定束团 ID。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FREQUENCY_HZ</span></code></p></td>
+<td><p>该束团对亮度归一化采用的频率。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">N_A</span></code> / <code class="docutils literal notranslate"><span class="pre">N_B</span></code></p></td>
+<td><p>本次相遇时存活的真实粒子数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OVERLAP_M2</span></code></p></td>
+<td><p>包含粒子数权重的单次相遇重叠量，单位为平方米的倒数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LUMINOSITY</span></code> / <code class="docutils literal notranslate"><span class="pre">L_REFERENCE</span></code></p></td>
+<td><p>测量和参考亮度，单位为每平方厘米每秒。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FACTOR</span></code> / <code class="docutils literal notranslate"><span class="pre">LOSS</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(L/L_{\rm ref}\)</span> 与 <span class="math notranslate nohighlight">\(1-L/L_{\rm ref}\)</span>，不截断到 [0, 1]。</p></td>
+</tr>
+</tbody>
+</table>
+<p>存在多对束团时，额外输出 <code class="docutils literal notranslate"><span class="pre">BUNCH_A=BUNCH_B=-1</span></code> 的合计行，累加各对束团的亮度和参考亮度。
+合计因子是 <span class="math notranslate nohighlight">\(\sum L/\sum L_{\rm ref}\)</span>，不是各束团对因子的算术平均；
+<code class="docutils literal notranslate"><span class="pre">FREQUENCY_HZ</span></code> 为 <code class="docutils literal notranslate"><span class="pre">NaN</span></code>，因为合计行没有单一的束团对频率。
+仅有一对束团时只输出该对的行，不重复输出合计。</p>
+<p>两种格式均可使用公共表格读取器，返回带有 <code class="docutils literal notranslate"><span class="pre">headers</span></code> 元数据的 <code class="docutils literal notranslate"><span class="pre">TfsDataFrame</span></code>，
+分析代码无需区分文件格式。HDF5 应在运行结束后或两次写入之间读取，
+不要在跟踪时持续占用文件；该写入器不启用 SWMR。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.utils.table_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_table</span>
+
+<span class="n">luminosity</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="s2">"output/luminosity/run_IP1_hash_ip0.h5"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">luminosity</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">luminosity</span><span class="p">[[</span><span class="s2">"TURN"</span><span class="p">,</span> <span class="s2">"BUNCH_A"</span><span class="p">,</span> <span class="s2">"BUNCH_B"</span><span class="p">,</span> <span class="s2">"LUMINOSITY"</span><span class="p">,</span> <span class="s2">"FACTOR"</span><span class="p">,</span> <span class="s2">"LOSS"</span><span class="p">]])</span>
+</pre></div>
+</div>
+<p>上述文件名仅为示意，应替换为本次运行实际生成的文件；读取 TFS 时使用实际的 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 文件名。</p>
+<p><code class="docutils literal notranslate"><span class="pre">weak-weak</span></code> 模式可以在不施加 kick 的情况下计算亮度，但仍需匹配的碰撞 Slicer，
+以及有交叉角时所需的坐标变换。至少一侧必须指定源密度方法；两侧均无密度模型时，
+启用亮度诊断会报错。</p>
+</section>
+</section>
+<section id="crossinganglecrabcavity-floatwaister">
+<h2>CrossingAngle、CrabCavity 与 FloatWaister<a class="headerlink" href="#crossinganglecrabcavity-floatwaister" title="Link to this heading"></a></h2>
+<section id="id12">
+<h3>交叉角坐标变换<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>共享 IP 配置名。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">forward</span></code> 或 <code class="docutils literal notranslate"><span class="pre">inverse</span></code>，在同一 IP 包围匹配的 Slicer 与 BeamBeam。</p></td>
+</tr>
+</tbody>
+</table>
+<p>非零交叉角需要显式使用 <code class="docutils literal notranslate"><span class="pre">CrossingAngle</span></code> 包围 Slicer 与 BeamBeam，
+两端的 <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> 一致，<code class="docutils literal notranslate"><span class="pre">Direction</span></code> 分别为 <code class="docutils literal notranslate"><span class="pre">forward</span></code>、<code class="docutils literal notranslate"><span class="pre">inverse</span></code>。
+推荐局部 Order 为到达=100、可选前置元件=200、正变换=300、Slicer=400、
+BeamBeam=500、逆变换=600、可选后置元件=700、监测=800。
+区间内 Slicer 必须使用 <code class="docutils literal notranslate"><span class="pre">Coordinate:</span> <span class="pre">collision_z</span></code>，两次变换之间只允许匹配的
+碰撞 Slicer 与 BeamBeam。区间内 <code class="docutils literal notranslate"><span class="pre">dp</span></code> 临时存储 eta，切片输出标明碰撞坐标系。
+逆变换恢复普通 PASS 坐标，公开参考动量和参考时钟保持不变。</p>
+<p>正碰时共同基底对 beam 0 为 <span class="math notranslate nohighlight">\((X,Y,Z)\)</span>，对 beam 1 为 <span class="math notranslate nohighlight">\((-X,Y,-Z)\)</span>；
+两侧纵向坐标均以提前到达为正。无需显式交叉角变换时，碰撞计算仍包含该横向反射。
+交叉角区间内的 frozen 源采用设计轨道附近的线性薄切片变换，
+不将其解释为任意六维分布的精确变换。</p>
+</section>
+<section id="id13">
+<h3>IP 等效元件的共同参数<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>必填</p></td>
+<td><p>IP 位置；碰撞相关理想元件为零长度且不施加物理孔径。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>整数执行顺序；同一 IP 的各命令应显式区分。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optics_reference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Optics</span> <span class="pre">reference</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>本束在此 IP 的 Twiss 条目引用。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">side</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Side</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">before</span></code> 或 <code class="docutils literal notranslate"><span class="pre">after</span></code>；只描述位置，不自动翻转符号。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">equivalent_dispersion</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">dispersion</span></code></p></td>
+<td><p>—</p></td>
+<td><p>零</p></td>
+<td><p>包含 Dx (m)、Dpx、Dy (m)、Dpy 的对象，各项默认零。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">longitudinal_shear</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">shear</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>等效传输中的带符号纵向剪切。</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">CrabCavity</span></code>、<code class="docutils literal notranslate"><span class="pre">FloatWaister</span></code> 是普通 IP 坐标系内的独立零长度元件。
+两者都需要同一 IP 的 <code class="docutils literal notranslate"><span class="pre">Optics</span> <span class="pre">reference</span></code>，以及 <code class="docutils literal notranslate"><span class="pre">Side``（``before</span></code> 或 <code class="docutils literal notranslate"><span class="pre">after</span></code>）。
+Side 仅描述位置，不自动改变强度或相位的符号。
+可选 <code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">dispersion</span></code> 包含 Dx/Dpx/Dy/Dpy，
+<code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">shear</span> <span class="pre">(m)</span></code> 默认零。规范传输包含色散对应的纵向项，
+逆传输使用 kick 后的能量。这是光学等效薄映射，不是有限长度电磁腔跟踪。</p>
+<p>CrabCavity 需要 <code class="docutils literal notranslate"><span class="pre">Plane</span></code> （x/y）、带符号的 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">(rad)</span></code> 、
+<code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">kick</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>。
+FloatWaister 需要 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">x</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">y</span> <span class="pre">(rad)</span></code>；
+<code class="docutils literal notranslate"><span class="pre">Mode:</span> <span class="pre">rfq</span></code> 还需 <code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">gx</span> <span class="pre">(1/m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">gy</span> <span class="pre">(1/m)</span></code> 和频率，
+<code class="docutils literal notranslate"><span class="pre">Mode:</span> <span class="pre">theory</span></code> 则需 <code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">y</span></code>。
+RF 相位由 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> （默认零）、<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code> （默认束流参考时钟原点）
+及每个粒子的物理到达时间确定。等效强度已经包含电荷符号与归一化，不再重复乘电荷。
+两个元件均保留与横向作用来自同一生成势的纵向 kick。</p>
+</section>
+<section id="crabcavity">
+<h3>CrabCavity 参数<a class="headerlink" href="#crabcavity" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plane</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Plane</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">x</span></code> 或 <code class="docutils literal notranslate"><span class="pre">y</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_advance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p>必填</p></td>
+<td><p>等效传输的带符号相移。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">equivalent_kick</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">kick</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p>已含电荷符号的带符号归一化横向 kick 幅度。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p>必填</p></td>
+<td><p>正 RF 频率。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>相位历元处的 RF 相位。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>null 使用束流参考时钟原点。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="floatwaister">
+<h3>FloatWaister 参数与强度约定<a class="headerlink" href="#floatwaister" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 属性</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>单位</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>说明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
+<td><p>—</p></td>
+<td><p>必填</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rfq</span></code> 或 <code class="docutils literal notranslate"><span class="pre">theory</span></code>，不能混用另一模式的参数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_advance_x</span> <span class="pre">/</span> <span class="pre">phase_advance_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">x</span> <span class="pre">(rad)</span> <span class="pre">/</span> <span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">y</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p>必填</p></td>
+<td><p>两个平面的带符号等效相移。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">strength_x</span> <span class="pre">/</span> <span class="pre">strength_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">x</span> <span class="pre">/</span> <span class="pre">Strength</span> <span class="pre">y</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>theory 模式均必填，带符号强度定义见下文。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gx</span> <span class="pre">/</span> <span class="pre">gy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">gx</span> <span class="pre">(1/m)</span> <span class="pre">/</span> <span class="pre">Equivalent</span> <span class="pre">gy</span> <span class="pre">(1/m)</span></code></p></td>
+<td><p>m⁻¹</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>rfq 模式均必填，表示带符号等效四极系数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>rfq 模式必填且为正；theory 模式不能设置。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>仅 RFQ；null 按零相位计算。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>仅 RFQ；null 使用束流参考时钟原点。</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">theory</span></code> 是规定的理想行进腰点映射。在零色散、零纵向 shear、
+<span class="math notranslate nohighlight">\(\alpha_u^*=0\)</span> 和 <span class="math notranslate nohighlight">\(\mu_u=\pi/2\)</span> 时，普通 IP 坐标中的作用为</p>
+<div class="math notranslate nohighlight">
+\[\Delta u=-\frac{s_u}{2}z p_u,\qquad \Delta p_u=0,\qquad
+\Delta\eta=\frac{s_xp_x^2+s_yp_y^2}{4}.\]</div>
+<p>这里 <span class="math notranslate nohighlight">\(s_u\)</span> 是 <code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">x/y</span></code>，纵向坐标正值表示提前到达。
+正强度将漂移等效腰点移至局部距离 <span class="math notranslate nohighlight">\(s_u z/2\)</span>。
+<code class="docutils literal notranslate"><span class="pre">rfq</span></code> 具有 RF 曲率，不能对有限束长自动等同于 theory；两个等效梯度也不能任意解释为
+一只普通物理 RF 四极腔。该行进腰点模型与交叉角碰撞中的 sextupole crab-waist 方案应分别验证。</p>
+</section>
+</section>
+<section id="id14">
+<h2>共同整圈边界上的检查点<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.commands.beam_beam</span></code> 提供 <code class="docutils literal notranslate"><span class="pre">capture_collision_state(sim,</span> <span class="pre">sequences)</span></code>
+和 <code class="docutils literal notranslate"><span class="pre">restore_collision_state(sim,</span> <span class="pre">sequences,</span> <span class="pre">state)</span></code>。检查点是含 NumPy 数组的
+独立 Python 字典；这两个函数不定义文件格式。
+保存要求两束完成同一整圈并回到普通 PASS 坐标、所有 Injection 批次已结束，
+且监测输出已成功刷新。必须一起保存两束：状态包含粒子、束团参考量、规定时钟、
+碰撞次数、已完成注入状态、尾场历史、已启用的静态或动态电子云状态，以及续跑所需的粒子/调谐监测累计量。</p>
+<p>恢复在修改任一束前校验完整输入及 sequence 指纹、数组布局、物理参考量和命令状态，
+使旧切片失效，并重新构建可丢弃的场资源。
+跟踪从 <code class="docutils literal notranslate"><span class="pre">sim.state.next_turn</span></code> 继续至 <code class="docutils literal notranslate"><span class="pre">cfg.num_turn</span></code>。
+仅恢复协调对象的 <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> 不是完整仿真恢复。</p>
+<p>检查点不包含已有输出文件，也不回退输出文件。新的输出目录不会自动补齐历史
+StatMonitor 或已完成调谐窗口的文件；已有超过保存边界圈数的数据时，不能将其与续跑输出混用。
+最终写入阶段若发生设备故障，不能自动回滚。</p>
+<p>启用亮度输出后，检查点还保存各记录器的初始参考值、输出格式和最后提交圈号。
+恢复要求所选格式的现有表格历史与检查点匹配，包括列定义、元数据、完整配对行和输出水位。
+历史缺失、重复、截断或超前时明确报错，不会补造历史、覆盖已有运行或静默改变参考亮度。
+检查点保留各亮度输出文件的路径，修改仿真的输出目录不会自动迁移这部分历史。</p>
+</section>
+<section id="id15">
+<h2>实现位置与验证范围<a class="headerlink" href="#id15" title="Link to this heading"></a></h2>
+<p>主命令与会合状态位于 <code class="docutils literal notranslate"><span class="pre">PASS/commands/beam_beam.py</span></code>。
+三个独立元件位于 <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/</span></code>。
+在 <code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/</span></code> 中，<code class="docutils literal notranslate"><span class="pre">config.py</span></code> 定义配置，<code class="docutils literal notranslate"><span class="pre">interaction.py</span></code> 负责源准备、
+切片对顺序和六维 kick。<code class="docutils literal notranslate"><span class="pre">hourglass.py</span></code> 负责已准备源的中心、协方差及其距离导数的传播，
+并管理 PIC 源的传播采样网格。源沿 <span class="math notranslate nohighlight">\(-S\)</span> 传播，势的距离导数保持碰撞平面的横向坐标不变；
+亮度诊断复用同一组传播矩。<code class="docutils literal notranslate"><span class="pre">luminosity.py</span></code> 负责密度重叠和 TFS/HDF5 追加记录，
+输出生命周期由会合协调对象管理，传播模块不执行文件 I/O。</p>
+<p>共享场求解器、沉积形函数和融合势取样核仍保留为底层数值工具。
+内部传播模块不增加独立的物理沙漏元件，也不增加任意耦合 frozen 源输入。
+不新增 core 碰撞模块，也不拆独立 coordinator/coordinates 文件。</p>
+<p>CPU/GPU 支持 float32、float64，碰撞主数组跟随配置精度，时钟和 Slicer 边界保留各自所需的
+较高精度。单次解析 kick、势导数、PIC 收敛、CPU/GPU 对照及真实多 IP 跟踪属于不同验证层级，
+不等同于长期束流品质误差保证或 A100 性能结果。选择切片、网格及精度时，
+需要将纵向误差与横向误差分开检查。</p>
+</section>
+<section id="id16">
+<h2>理论参考<a class="headerlink" href="#id16" title="Link to this heading"></a></h2>
+<p>独立亮度检查可参考 <a class="reference external" href="https://lss.fnal.gov/archive/test-fn/1000/fermilab-fn-1175-ad.pdf">T. Sen, FERMILAB-FN-1175-AD (2022)</a>：
+式 2.12 给出对称 Gaussian 束的交叉角与沙漏联合积分，式 2.15 为正碰沙漏极限，
+式 2.17 为纯交叉角损失因子。这些公式假设两束 Gaussian 分布及 IP 光学匹配，
+不能直接作为有限宏粒子或 PIC 网格结果的无误差参考。</p>
+<p><a class="reference external" href="https://inspirehep.net/files/6ca30a0993d21afd34ef80ede1e30590">R. B. Palmer, SLAC-PUB-4707 (1988)</a> 提出了蟹形对撞；
+<a class="reference external" href="https://proceedings.jacow.org/IPAC2011/papers/tupc004.pdf">L. I. Malysheva 等，IPAC2011 TUPC004</a> 讨论了行进焦点及其对偏移的敏感性。
+这些文献提供物理背景；PASS 的等效元件强度和纵向坐标符号由上述映射规定，
+对照时必须显式匹配。特别是对较长束团，有限频率蟹腔补偿不必与理想线性倾斜产生完全相同的亮度。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="electron_cloud.html" class="btn btn-neutral float-left" title="电子云（ElectronCloud）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="monitor/index.html" class="btn btn-neutral float-right" title="监视器与输出" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

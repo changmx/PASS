@@ -100,6 +100,8 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
@@ -245,34 +247,43 @@ the command for diagnostics.</p></td>
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;z_rel&quot;</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">z_rel</span></code> for continuous time slicing; <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code> for circumference-folded SC slicing;
-<code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> for the wake observation clock. SC requires an explicit <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code> selection.</p></td>
+<code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> for the wake observation clock; <code class="docutils literal notranslate"><span class="pre">collision_z</span></code> inside
+an explicit CrossingAngle interval. SC requires an explicit <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code> selection.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">purpose</span></code> / <code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Purpose&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;Configuration&quot;</span></code></p></td>
+<td><p>str / str or null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;general&quot;</span></code> / null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">beam_beam</span></code> requires a matching IP configuration and <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> or
+<code class="docutils literal notranslate"><span class="pre">collision_z</span></code>. Its explicit range must cover all live particles;
+see <a class="reference internal" href="beam_beam.html"><span class="doc">Beam-Beam Interaction (BeamBeam)</span></a> for frame and ordering rules.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Number</span> <span class="pre">of</span> <span class="pre">slices&quot;</span></code></p></td>
 <td><p>int</p></td>
 <td><p>10</p></td>
 <td><p>Configured number of longitudinal bins.  Must be at least 1; the value
 is retained even when the live population is smaller.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">z_range_mode</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z_range_mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Z</span> <span class="pre">range</span> <span class="pre">mode&quot;</span></code></p></td>
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code></p></td>
 <td><p>Selects <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;explicit&quot;</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">turns&quot;</span></code></p></td>
 <td><p>list of int lists</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
 <td><p>Optional snapshot selections: <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> or <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">periodic</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">periodic</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Periodic&quot;</span></code></p></td>
 <td><p>bool</p></td>
 <td><p>false</p></td>
 <td><p>Whole-ring arrival-phase projection for coasting WakeField; requires equal_length, explicit [-C,0].</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_phase_slip</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_phase_slip</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Max</span> <span class="pre">phase</span> <span class="pre">slip&quot;</span></code></p></td>
 <td><p>float</p></td>
 <td><p>0.05</p></td>
@@ -480,7 +491,7 @@ into a nonuniform one. The tracked particle coordinates remain unchanged.
 Snapshots preserve continuous z and record the reference time, beta and
 coordinate definition. Periodic snapshots also include <code class="docutils literal notranslate"><span class="pre">slice_coordinate</span></code>.
 The density is real-particle count per metre, not coulombs per metre.</p>
-<p>The output metadata <code class="docutils literal notranslate"><span class="pre">ZCoordinate=&quot;z_rel&quot;</span></code> describes the original particle <code class="docutils literal notranslate"><span class="pre">z</span></code>
+<p>Outside a collision frame, output metadata <code class="docutils literal notranslate"><span class="pre">ZCoordinate=&quot;z_rel&quot;</span></code> describes the original particle <code class="docutils literal notranslate"><span class="pre">z</span></code>
 column; it is output metadata, not an input option or a default assignment.
 <code class="docutils literal notranslate"><span class="pre">Coordinate</span></code> identifies the selected slicing projection, while
 <code class="docutils literal notranslate"><span class="pre">CoordinateDefinition=&quot;z=beta*c*(T-t)&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime</span></code> (seconds)

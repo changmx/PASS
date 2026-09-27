@@ -100,6 +100,8 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
@@ -227,33 +229,41 @@
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;z_rel&quot;</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 为连续时间切片；<code class="docutils literal notranslate"><span class="pre">z_periodic</span></code> 为 SC 环周折叠切片；
-<code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> 使用尾场观察时钟。SC 必须显式选择 <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code>。</p></td>
+<code class="docutils literal notranslate"><span class="pre">arrival_phase</span></code> 使用尾场观察时钟；<code class="docutils literal notranslate"><span class="pre">collision_z</span></code> 用于显式 CrossingAngle 区间。
+SC 必须显式选择 <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code>。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">purpose</span></code> / <code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Purpose&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;Configuration&quot;</span></code></p></td>
+<td><p>str / str 或 null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;general&quot;</span></code> / null</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">beam_beam</span></code> 要求匹配的 IP 配置以及 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 或 <code class="docutils literal notranslate"><span class="pre">collision_z</span></code>；
+其显式区间必须覆盖全部存活粒子。坐标和顺序规则见 <a class="reference internal" href="beam_beam.html"><span class="doc">束束相互作用（BeamBeam）</span></a>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Number</span> <span class="pre">of</span> <span class="pre">slices&quot;</span></code></p></td>
 <td><p>int</p></td>
 <td><p>10</p></td>
 <td><p>纵向切片数，必须至少为 1。当存活粒子数更少时，该配置值仍然保留。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">z_range_mode</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z_range_mode</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Z</span> <span class="pre">range</span> <span class="pre">mode&quot;</span></code></p></td>
 <td><p>str</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code></p></td>
 <td><p>选择范围模式：<code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> 或 <code class="docutils literal notranslate"><span class="pre">&quot;explicit&quot;</span></code>。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Save</span> <span class="pre">turns&quot;</span></code></p></td>
 <td><p>整数列表的列表</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
 <td><p>可选快照圈数：<code class="docutils literal notranslate"><span class="pre">[turn]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code>。</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">periodic</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">periodic</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Periodic&quot;</span></code></p></td>
 <td><p>bool</p></td>
 <td><p>false</p></td>
 <td><p>非聚束束流 WakeField 的全环到达相位投影，要求 equal_length、explicit [-C,0]。</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_phase_slip</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_phase_slip</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;Max</span> <span class="pre">phase</span> <span class="pre">slip&quot;</span></code></p></td>
 <td><p>float</p></td>
 <td><p>0.05</p></td>
@@ -412,7 +422,7 @@ SpaceCharge 必须使用下文的独立选项 <code class="docutils literal notr
 避免切片几何的舍入使等间距尾场网格变得不等间距；跟踪粒子坐标不变。
 快照保存连续 z、参考时间、beta 和坐标
 定义；周期快照还保存 <code class="docutils literal notranslate"><span class="pre">slice_coordinate</span></code>。密度单位是每米真实粒子数，不是 C/m。</p>
-<p>输出元数据 <code class="docutils literal notranslate"><span class="pre">ZCoordinate=&quot;z_rel&quot;</span></code> 描述原始粒子 <code class="docutils literal notranslate"><span class="pre">z</span></code> 列，是输出元数据，
+<p>碰撞坐标区间外，输出元数据 <code class="docutils literal notranslate"><span class="pre">ZCoordinate=&quot;z_rel&quot;</span></code> 描述原始粒子 <code class="docutils literal notranslate"><span class="pre">z</span></code> 列，是输出元数据，
 不是输入选项，也不是默认值赋值。<code class="docutils literal notranslate"><span class="pre">Coordinate</span></code> 标识所选切片投影；
 <code class="docutils literal notranslate"><span class="pre">CoordinateDefinition=&quot;z=beta*c*(T-t)&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">ReferenceArrivalTime``（秒）和</span>
 <span class="pre">``ReferenceBeta</span></code> 定义原始粒子坐标。到达相位快照还保存 <code class="docutils literal notranslate"><span class="pre">ObservationTime</span></code>

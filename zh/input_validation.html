@@ -86,6 +86,8 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
@@ -144,6 +146,9 @@ Timing 必须一致，因为引擎共享这些设置。直接调用 <code class=
 </section>
 <section id="id2">
 <h2>检测范围<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>双输入束束检查包含共享开关、精确配置 ID、固定配对、源方法、显式 Slicer 依赖、
+交叉角坐标区间和相同的 IP 访问次序。同一位置只要使用整数 <code class="docutils literal notranslate"><span class="pre">Order</span></code>，
+该位置全部命令都必须提供互不重复的 Order。详见 <a class="reference internal" href="beam_beam.html"><span class="doc">束束相互作用（BeamBeam）</span></a>。</p>
 <ul class="simple">
 <li><p>JSON 语法、对象根节点、重复键（包括大小写冲突）、有限数值、严格的数值/布尔/
 列表类型、未知参数和引擎必需字段。请使用当前导出的 schema 别名和 Command

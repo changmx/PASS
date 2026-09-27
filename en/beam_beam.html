@@ -1,0 +1,1324 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beam-Beam Interaction (BeamBeam) &mdash; PASS 0.4.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Monitors and output" href="monitor/index.html" />
+    <link rel="prev" title="Electron Cloud (ElectronCloud)" href="electron_cloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="../zh/beam_beam.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">Element</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Beam-Beam Interaction (BeamBeam)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-and-ordering">Configuration and ordering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gui-configuration">GUI configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interface-parameters">Interface Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#top-level-beam-beam-block">Top-level <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#named-ip-configuration">Named IP configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#beambeam-sequence-command">BeamBeam sequence command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#per-beam-source-configuration">Per-beam source configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#frozen-parameters-and-slice-parameters">Frozen parameters and Slice parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#physics-and-numerical-model">Physics and Numerical Model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pic-sources-and-distance-interpolation">PIC sources and distance interpolation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#analytic-sources-and-hourglass-propagation">Analytic sources and hourglass propagation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slice-events-and-the-six-dimensional-kick">Slice events and the six-dimensional kick</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#luminosity-diagnostics">Luminosity diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sampling-and-normalization">Sampling and normalization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#overlap-definition">Overlap definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-files-and-columns">Output files and columns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#crossingangle-crabcavity-and-floatwaister">CrossingAngle, CrabCavity and FloatWaister</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#crossing-angle-coordinate-charts">Crossing-angle coordinate charts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#common-ip-equivalent-element-parameters">Common IP-equivalent element parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#crabcavity-parameters">CrabCavity parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#floatwaister-parameters-and-strength-convention">FloatWaister parameters and strength convention</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#checkpoint-at-a-common-turn-boundary">Checkpoint at a common turn boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation-and-validation-scope">Implementation and validation scope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#theory-references">Theory references</a></li>
+</ul>
+</li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitors and output</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS User Manual</a></li>
+      <li class="breadcrumb-item active">Beam-Beam Interaction (BeamBeam)</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="beam-beam-interaction-beambeam">
+<h1>Beam-Beam Interaction (BeamBeam)<a class="headerlink" href="#beam-beam-interaction-beambeam" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">BeamBeam</span></code> is an explicit rendezvous command on both beam sequences. It
+implements ideal synchronous, same-turn collisions with fixed bunch pairing.
+The waiting state coordinates execution; it does not advance or correct either
+bunch’s physical reference time. Reference encounters must agree within floating
+point tolerance. Different IPs must occur in the same order on both sequences.</p>
+<section id="configuration-and-ordering">
+<h2>Configuration and ordering<a class="headerlink" href="#configuration-and-ordering" title="Link to this heading"></a></h2>
+<p>Use the top-level <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> block. Configuration IDs are case sensitive and
+must be defined exactly once across the two inputs. Either file can supply the
+shared <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> switch; explicitly supplied switches must agree. If neither
+file supplies it, collisions are disabled. <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code> is obsolete: a true
+value is rejected, and the input generator no longer emits it.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Beam beam"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Configurations"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"IP1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Beams"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">],</span>
+<span class="w">        </span><span class="nt">"Mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"weak-strong"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Weak beam"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Sources"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">"0"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">},</span>
+<span class="w">          </span><span class="nt">"1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"frozen"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gaussian_round_free_space"</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">"Frozen parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Sigma (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span><span class="p">}</span>
+<span class="w">          </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Both sequences need a Slicer and BeamBeam at the IP, for example the following
+entries at <span class="math notranslate nohighlight">\(s=0\)</span>. Other commands at that position, including Injection,
+the arriving Twiss map and monitors, must also have distinct integer <code class="docutils literal notranslate"><span class="pre">Order</span></code>
+values. With no explicit Order at a position, the existing command priorities
+remain in use. The GUI, input generator, validator and runtime share this rule.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"slice_ip1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Slicer"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"Order"</span><span class="p">:</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Purpose"</span><span class="p">:</span><span class="w"> </span><span class="s2">"beam_beam"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"IP1"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Coordinate"</span><span class="p">:</span><span class="w"> </span><span class="s2">"z_rel"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Slice model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"equal_particle"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Number of slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Z range mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"auto"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"ip1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"BeamBeam"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"Order"</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Configuration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"IP1"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The latest explicit Slicer defines membership. BeamBeam neither reslices nor
+reorders the particle pool. An explicit range must cover every live particle;
+out-of-range particles cause an error instead of being clipped. A repeated IP
+visit requires another explicit Slicer execution. Saved slice snapshots retain
+their original geometry; source moments used during collisions are separate.</p>
+</section>
+<section id="gui-configuration">
+<h2>GUI configuration<a class="headerlink" href="#gui-configuration" title="Link to this heading"></a></h2>
+<p>The GUI’s <strong>Physics Effects → BeamBeam</strong> module contains the shared configuration
+editor and sequence editors for the collision Slicer, BeamBeam, CrossingAngle,
+CrabCavity and FloatWaister. The configuration editor supports named IPs with
+separate Collision, beam0 Source, beam1 Source and Luminosity tabs. Source
+controls show only the parameters applicable to the selected source method.
+For PIC, <code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code> is a required manual input. Its control cannot
+be disabled, and the GUI does not supply a positive default.</p>
+<p>Define each shared IP in one beam input only; the other beam’s sequence can
+reference that configuration name. The shared Enabled control has an unset
+state for an input that does not declare the switch. Configure both sequences
+using the ordering and slicing requirements above, then validate the two inputs
+together. A GUI form does not remove the need for a matching second sequence.</p>
+</section>
+<section id="interface-parameters">
+<h2>Interface Parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
+<section id="top-level-beam-beam-block">
+<h3>Top-level <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> block<a class="headerlink" href="#top-level-beam-beam-block" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Enabled</span></code></p></td>
+<td><p>—</p></td>
+<td><p>unset</p></td>
+<td><p>Optional shared switch; explicit values in the two files must agree. No supplied switch means disabled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configurations</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configurations</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>Mapping of case-sensitive names to IP configurations, each defined exactly once across the inputs.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="named-ip-configuration">
+<h3>Named IP configuration<a class="headerlink" href="#named-ip-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beams</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Beams</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code></p></td>
+<td><p>Exactly these two beam IDs; their backend and particle precision must agree.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">strong-strong</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">strong-strong</span></code> kicks both beams; <code class="docutils literal notranslate"><span class="pre">weak-strong</span></code> kicks only <code class="docutils literal notranslate"><span class="pre">weak_beam</span></code>; <code class="docutils literal notranslate"><span class="pre">weak-weak</span></code> applies no beam-beam kick.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">weak_beam</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Weak</span> <span class="pre">beam</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Required 0 or 1 for weak-strong; forbidden in other modes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bunch_pairs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunch</span> <span class="pre">pairs</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Optional complete bijection <code class="docutils literal notranslate"><span class="pre">[[id0,</span> <span class="pre">id1],</span> <span class="pre">...]</span></code>; omission pairs equal stable bunch IDs. All IPs share the pairing.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">full_crossing_angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Full</span> <span class="pre">crossing</span> <span class="pre">angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Full deviation from antiparallel design trajectories; strictly between −π and π.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">crossing_plane</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Crossing</span> <span class="pre">plane</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Crossing-plane orientation in the common geometry.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interaction_map</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">map</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">synchro_beam_6d</span></code></p></td>
+<td><p>The supported six-dimensional synchro-beam map.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">potential_reference_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Potential</span> <span class="pre">reference</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.0</span></code></p></td>
+<td><p>Positive fixed logarithmic-potential reference length.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sources</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sources</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p>Exactly keys <code class="docutils literal notranslate"><span class="pre">&quot;0&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;1&quot;</span></code>. Both require a slice reference; each emitting side requires Method and Solver.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">luminosity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Luminosity</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Optional shared diagnostic block; omission disables output and is omitted from generated JSON.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Without luminosity, <code class="docutils literal notranslate"><span class="pre">weak-weak</span></code> also skips collision slicing, coordinate
+charts and field allocation. CrabCavity and FloatWaister remain independent
+elements. Fixed pairing is incompatible with ReorganizeBunch.</p>
+</section>
+<section id="beambeam-sequence-command">
+<h3>BeamBeam sequence command<a class="headerlink" href="#beambeam-sequence-command" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Command</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BeamBeam</span></code></p></td>
+<td><p>Command type.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>required</p></td>
+<td><p>IP position on this beam’s sequence.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Optional integer order under the shared command-ordering rules.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p>Exact name of the shared IP configuration.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="per-beam-source-configuration">
+<h3>Per-beam source configuration<a class="headerlink" href="#per-beam-source-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p>Nonempty name of the source beam’s explicit collision Slicer result.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code>, <code class="docutils literal notranslate"><span class="pre">frozen</span></code> or <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code>. A target-only entry may contain only Slice set.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">solver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Solver</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Required with Method; use a supported combination in the numerical-model table below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">statistics_precision</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Statistics</span> <span class="pre">precision</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float32</span></code> or <code class="docutils literal notranslate"><span class="pre">float64</span></code> source-moment accumulation; null follows particle precision.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nx</span> <span class="pre">/</span> <span class="pre">ny</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Nx</span> <span class="pre">/</span> <span class="pre">Ny</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">128</span></code></p></td>
+<td><p>PIC only: integer mesh nodes per axis, at least 3.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_half_width_x</span> <span class="pre">/</span> <span class="pre">grid_half_width_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>PIC requires both positive half widths of the fixed, centered mesh.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">deposition_method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TSC</span></code></p></td>
+<td><p>PIC only: <code class="docutils literal notranslate"><span class="pre">CIC</span></code> or <code class="docutils literal notranslate"><span class="pre">TSC</span></code>; shares the SpaceCharge deposition primitives.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">propagation_step</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>Required for PIC</p></td>
+<td><p>PIC only: manually specified positive finite source-potential sampling step along the collision distance; missing or null is rejected.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_parameters</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">parameters</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Required for frozen; one prescribed profile using the dimensions below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_parameters</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">parameters</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>Frozen only: nonnegative slice indices mapped to complete per-slice Frozen parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_optics_reference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">optics</span> <span class="pre">reference</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Frozen only: Twiss entry at this IP on the source’s own beam; enables the prescribed angular moments for hourglass.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source_center_slopes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">center</span> <span class="pre">slopes</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">0.0]</span></code></p></td>
+<td><p>Frozen only: two signed transverse center slopes.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="frozen-parameters-and-slice-parameters">
+<h3>Frozen parameters and Slice parameters<a class="headerlink" href="#frozen-parameters-and-slice-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">center_x</span> <span class="pre">/</span> <span class="pre">center_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Prescribed transverse center.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">angle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Ellipse orientation; must remain zero for a round profile.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Positive RMS size for a round Gaussian.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_x</span> <span class="pre">/</span> <span class="pre">sigma_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Sigma</span> <span class="pre">Y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Positive principal RMS sizes for an elliptic Gaussian.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">radius</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Positive support radius for a uniform/parabolic disk.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">/</span> <span class="pre">b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span> <span class="pre">/</span> <span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Positive support semi-axes for a uniform/parabolic ellipse.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_delta</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">delta</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Nonnegative RMS momentum spread for the dispersion contribution; requires Frozen optics reference when positive.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Supply exactly the dimensions required by the chosen profile; arbitrary
+covariance input is not supported.</p>
+</section>
+</section>
+<section id="physics-and-numerical-model">
+<h2>Physics and Numerical Model<a class="headerlink" href="#physics-and-numerical-model" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Supported source representations</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>Solver</p></th>
+<th class="head"><p>Source representation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code></p></td>
+<td><p>Current particles deposited with CIC or TSC on a fixed transverse grid.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code>, <code class="docutils literal notranslate"><span class="pre">uniform</span></code> or <code class="docutils literal notranslate"><span class="pre">parabolic</span></code>, each with <code class="docutils literal notranslate"><span class="pre">round_free_space</span></code> or <code class="docutils literal notranslate"><span class="pre">ellipse_free_space</span></code> suffix</p></td>
+<td><p>Prescribed spatial profile; optional IP optics supplies angular moments.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
+<td><p>The same six analytic solvers</p></td>
+<td><p>Profile reconstructed from current slice moments before each slice-pair event.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="pic-sources-and-distance-interpolation">
+<h3>PIC sources and distance interpolation<a class="headerlink" href="#pic-sources-and-distance-interpolation" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">pic</span></code> uses <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">Nx</span></code>, <code class="docutils literal notranslate"><span class="pre">Ny</span></code>, and positive
+<code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">X</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">Half</span> <span class="pre">Width</span> <span class="pre">Y</span> <span class="pre">(m)</span></code>. Deposition reuses the
+SpaceCharge implementation: <code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Deposition</span> <span class="pre">Method</span></code> is <code class="docutils literal notranslate"><span class="pre">CIC</span></code> or
+<code class="docutils literal notranslate"><span class="pre">TSC</span></code> (default). Complete source and target stencils must fit in the fixed
+grid; this numerical coverage error does not mark physical particle loss.
+The fixed grid is a numerical free-space domain, not a grounded conducting wall.</p>
+<p>The longitudinal force needs the potential as well as transverse fields.
+PIC samples the propagated source on a uniform distance lattice
+<span class="math notranslate nohighlight">\(S_k=kh\)</span>, anchored at <span class="math notranslate nohighlight">\(S=0\)</span>. The target particles select which
+intervals need evaluation; their extrema do not set the lattice origin or step.
+For <span class="math notranslate nohighlight">\(kh\le S&lt;(k+1)h\)</span>, four-node Catmull–Rom interpolation uses source
+potentials at <span class="math notranslate nohighlight">\((k-1)h\)</span>, <span class="math notranslate nohighlight">\(kh\)</span>, <span class="math notranslate nohighlight">\((k+1)h\)</span> and <span class="math notranslate nohighlight">\((k+2)h\)</span>.
+Transverse kicks and the longitudinal source term differentiate this same
+interpolated potential, using one fixed logarithmic-potential reference.</p>
+<p>Every PIC source must explicitly set <code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code> (Python:
+<code class="docutils literal notranslate"><span class="pre">propagation_step</span></code>) to a positive finite <span class="math notranslate nohighlight">\(h\)</span>. Missing or <code class="docutils literal notranslate"><span class="pre">null</span></code> values
+are rejected before tracking; PASS never computes or substitutes a step, even
+when all source slopes are zero. The value must remain positive and finite in
+the selected particle precision; conversion to zero or infinity is rejected.
+This is the source-potential sampling interval
+along <span class="math notranslate nohighlight">\(S\)</span>, not the actual collision distance <span class="math notranslate nohighlight">\(S\)</span>, the bunch length,
+or a switch that enables the hourglass effect. Analytic sources evaluate their
+propagation directly and must omit this PIC-only field.</p>
+<p>For example, a source entry with a manually chosen <span class="math notranslate nohighlight">\(h=0.001\,\mathrm{m}\)</span>
+is shown below. The value is illustrative; check its convergence for the case.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pic"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fft_free_space"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Nx"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="nt">"Ny"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Grid Half Width X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Grid Half Width Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Propagation step (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Grid coverage must include the complete source deposition stencil throughout
+the required node halo, from <span class="math notranslate nohighlight">\((k_{\min}-1)h\)</span> to
+<span class="math notranslate nohighlight">\((k_{\max}+2)h\)</span>, as well as every target gather stencil at its collision
+position. Covering only the target distance extrema is insufficient. Enlarge
+the transverse domain or choose a resolved propagation step when coverage
+fails; the numerical boundary is not a particle-loss aperture.</p>
+<p>Only occupied propagation intervals are solved. Each uses a fixed four-plane
+batch: one base density and three differences from that density. Solving
+potential differences reduces cancellation in the longitudinal derivative;
+transverse fields are obtained by differentiating the gathered potential,
+without computing unused grid-field arrays. A smaller <span class="math notranslate nohighlight">\(h\)</span> can require
+more interval solves. GPU potential workspace is reused only after its gathers
+have been enqueued on the same stream; the independent source snapshot remains
+valid for the whole event.</p>
+<p>The propagation interpolant is <span class="math notranslate nohighlight">\(C^1\)</span>, piecewise cubic. This does not make
+the complete particle map smooth everywhere: second derivatives can change at
+propagation nodes, and transverse deposition/gather has its own mesh regularity.
+For smooth source-potential data, Catmull–Rom generally gives
+<span class="math notranslate nohighlight">\(O(h^3)\)</span> potential and <span class="math notranslate nohighlight">\(O(h^2)\)</span> derivative errors, not fourth-order
+accuracy. Compare an explicit <span class="math notranslate nohighlight">\(h\)</span> with <span class="math notranslate nohighlight">\(h/2\)</span>, inspecting longitudinal
+and transverse kicks separately. Vary transverse mesh, particle count and
+slice count independently; hold the manually specified step fixed when
+isolating mesh convergence.</p>
+<p>CIC differentiates a bilinear transverse potential, so its force can jump at
+mesh lines. Coordinates on or very near a line can select different one-sided
+gradients in float32 and float64; pointwise agreement is not guaranteed there.
+TSC reconstructs a continuously differentiable transverse potential and hence
+a continuous gradient for a fixed grid potential with full stencil coverage.
+Use TSC for precision comparisons, and check transverse mesh and macro-particle
+resolution together; higher arithmetic precision alone does not establish PIC
+convergence.</p>
+</section>
+<section id="analytic-sources-and-hourglass-propagation">
+<h3>Analytic sources and hourglass propagation<a class="headerlink" href="#analytic-sources-and-hourglass-propagation" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">frozen</span></code> and <code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code> support the six free-space analytic solvers
+<code class="docutils literal notranslate"><span class="pre">gaussian_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">gaussian_ellipse_free_space</span></code>,
+<code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">uniform_ellipse_free_space</span></code>,
+<code class="docutils literal notranslate"><span class="pre">parabolic_round_free_space</span></code> and <code class="docutils literal notranslate"><span class="pre">parabolic_ellipse_free_space</span></code>.
+Gaussian tracking uses a complete closed-form jet when well conditioned:
+Bassetti–Erskine transverse fields and the Gaussian heat identity provide the
+longitudinal source derivative, including changing centers and every covariance
+component. Exact round profiles use the radial Hessian. Near-round ellipses,
+nearly singular covariance and remote points conservatively retain the common
+confocal Green integral, with two quadrature orders for convergence checking.
+Requests for the scalar potential and uniform/parabolic profiles also use that
+integral. CPU and GPU closed-form calculations use float64 intermediates and
+return the configured particle precision. This changes evaluation cost, not
+the source model; longitudinal derivatives are retained on both paths.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">parameters</span></code> supplies <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">X</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">Y</span> <span class="pre">(m)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">(rad)</span></code> (all default zero), plus the appropriate dimensions:
+<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">X</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">Y</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">A</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">Semi-axis</span> <span class="pre">B</span> <span class="pre">(m)</span></code>. No arbitrary covariance input is
+accepted. <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">parameters</span></code> optionally maps slice indices to complete
+per-slice parameter sets. Charge always comes from the current live source
+population, including for frozen sources.</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">optics</span> <span class="pre">reference</span></code>, prescribed widths have no angular spread;
+the optional <code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">center</span> <span class="pre">slopes</span></code> (two numbers, default zero) propagate the
+center. For hourglass, reference a Twiss entry at the IP on the source’s own
+beam. Angular moments follow the prescribed uncoupled Twiss model and are then
+rotated with the spatial profile. Optional
+<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">delta</span></code> in Frozen parameters then defines the dispersion contribution;
+input projected widths must leave positive betatron variance after subtracting
+that contribution. Ordinary IP Twiss currently supplies horizontal dispersion
+only. The internal moments are derived quantities, not additional user inputs.</p>
+<p>Quasi-frozen recomputes source centers and transverse phase-space moments before
+every slice-pair event. <code class="docutils literal notranslate"><span class="pre">Statistics</span> <span class="pre">precision</span></code> optionally selects float32 or
+float64 accumulation; by default it follows particle precision. Uniform and
+parabolic profiles are reconstructed from moments, with semi-axes respectively
+<span class="math notranslate nohighlight">\(2\sigma\)</span> and <span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span>. A round solver uses the average
+transverse variance, including after propagation.</p>
+</section>
+<section id="slice-events-and-the-six-dimensional-kick">
+<h3>Slice events and the six-dimensional kick<a class="headerlink" href="#slice-events-and-the-six-dimensional-kick" title="Link to this heading"></a></h3>
+<p>Both directions prepare their source snapshots before either kick. Events run
+in descending sum of the two entrance slice centroids; a later event therefore
+sees the earlier physical update. A PIC snapshot owns the source’s four
+transverse coordinates, so evaluating the second direction cannot observe
+particles already changed by the first kick. With target coordinate <span class="math notranslate nohighlight">\(z\)</span> and opposing
+slice centroid <span class="math notranslate nohighlight">\(\bar z_s\)</span>, the collision distance is
+<span class="math notranslate nohighlight">\(S=(z-\bar z_s)/2\)</span> and the source propagates by <span class="math notranslate nohighlight">\(-S\)</span>.
+Writing <span class="math notranslate nohighlight">\(X=x+Sp_x\)</span>, <span class="math notranslate nohighlight">\(Y=y+Sp_y\)</span>, the map is</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\Delta p_x=C E_x(X,Y,S),\quad \Delta p_y=C E_y(X,Y,S),
+\qquad x'=x-S\Delta p_x,\quad y'=y-S\Delta p_y,\\\eta'=\eta-\frac{C}{2}\partial_S\Psi+
+\frac{2p_x\Delta p_x+\Delta p_x^2+2p_y\Delta p_y+\Delta p_y^2}{4}.\end{aligned}\end{align} \]</div>
+<p>Here <span class="math notranslate nohighlight">\(\eta=(E-E_0)/(\beta_0P_0c)\)</span>. Public <code class="docutils literal notranslate"><span class="pre">dp</span></code> stores momentum deviation
+<span class="math notranslate nohighlight">\(\delta\)</span> outside the crossing chart; stable relativistic conversions are
+used at the boundaries. In PASS energy units, <span class="math notranslate nohighlight">\(C=\operatorname{sgn}(Z)
+|Z|/(A p_0)\)</span> for ions because their reference momentum is stored per nucleon.
+Inside a crossing chart this denominator is the frame reference momentum
+<span class="math notranslate nohighlight">\(p_0^*=p_0\cos(\Theta/2)\)</span>.
+The source charge is <span class="math notranslate nohighlight">\(N_{\rm live} w Z_s e\)</span>. There is no extra factor of
+two, SpaceCharge length, slice width or SpaceCharge <span class="math notranslate nohighlight">\(\gamma^{-2}\)</span> factor.
+The collision geometry is the ultrarelativistic paraxial model; exact
+delta/eta conversion does not turn it into a general finite-velocity collision model.</p>
+</section>
+</section>
+<section id="luminosity-diagnostics">
+<h2>Luminosity diagnostics<a class="headerlink" href="#luminosity-diagnostics" title="Link to this heading"></a></h2>
+<p>Enable native luminosity output inside the shared IP configuration, for example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Luminosity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Sample interval (turns)"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Output format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tfs"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Enabled</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Enable one shared luminosity recorder per IP occurrence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sample_interval_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sample</span> <span class="pre">interval</span> <span class="pre">(turns)</span></code></p></td>
+<td><p>turn</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+<td><p>Positive integer; set 10 to sample every ten turns, with first/final-turn handling below.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tfs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tfs</span></code>, <code class="docutils literal notranslate"><span class="pre">hdf5</span></code> or <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code>. The TFS default is omitted from generated JSON for compatibility.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">reference_luminosity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">luminosity</span> <span class="pre">(cm^-2</span> <span class="pre">s^-1)</span></code></p></td>
+<td><p>cm⁻² s⁻¹</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Optional positive fixed reference applied separately to each bunch pair; null uses its first measured value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collision_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Optional positive normalization frequency; null uses the matching reference revolution frequencies.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="sampling-and-normalization">
+<h3>Sampling and normalization<a class="headerlink" href="#sampling-and-normalization" title="Link to this heading"></a></h3>
+<p>By default, each bunch pair uses its reference revolution frequency
+<span class="math notranslate nohighlight">\(\beta_0 c/C\)</span> for this IP occurrence. The two beams’ reference revolution
+frequencies must agree within the runtime tolerance; otherwise provide an
+explicit <code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code>. This override changes only the diagnostic
+normalization and does not repair asynchronous physical encounters. Reference
+beta enters this frequency conversion; the collision-plane overlap still uses
+the ultrarelativistic common-coordinate model and is not an exact treatment of
+nonrelativistic beams or substantially different beam velocities.</p>
+<p>The first turn, turns satisfying <code class="docutils literal notranslate"><span class="pre">(turn</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">%</span> <span class="pre">interval</span> <span class="pre">==</span> <span class="pre">0</span></code>, and the final
+configured turn are sampled. The stored turn index follows PASS’s zero-based
+convention. A row is a snapshot of that encounter, not a mean over the preceding
+sampling interval. The two BeamBeam rendezvous nodes produce one physical
+record, not two independent measurements. Each IP occurrence has its own table
+output; changing the sample interval changes diagnostic work, not collision kicks.
+The diagnostic applies no particle kick. GPU floating-point reductions can
+change their summation order between otherwise equivalent runs, so numerical
+agreement does not imply bitwise-identical coordinates; this is also relevant
+when repeating a run with the same diagnostic setting.
+At each committed sample, the log also reports the current IP luminosity in
+<code class="docutils literal notranslate"><span class="pre">cm^-2</span> <span class="pre">s^-1</span></code>, factor and loss. It uses the IP total for multiple bunch pairs
+and the pair result when only one pair is present.
+Stopping at an unsampled turn does not retrospectively calculate a luminosity
+sample. Only records from completed common turns are committed; an interrupted
+partial turn does not produce a complete-turn record.</p>
+<p>For each slice pair, the diagnostic evaluates the transverse density overlap
+at the slice-center collision plane before either slice receives that event’s
+kick. Later slice pairs use their then-current source state, including earlier
+kicks. This is the same thin-slice collision geometry as tracking; finite slice
+length and the chosen transverse density representation require convergence
+checks. It is not an exact integral over an arbitrary continuous six-dimensional
+distribution.</p>
+</section>
+<section id="overlap-definition">
+<h3>Overlap definition<a class="headerlink" href="#overlap-definition" title="Link to this heading"></a></h3>
+<p>For slice pair <span class="math notranslate nohighlight">\((i,j)\)</span>, let <span class="math notranslate nohighlight">\(N_{A,i}\)</span> and <span class="math notranslate nohighlight">\(N_{B,j}\)</span> be
+real-particle populations and let <span class="math notranslate nohighlight">\(\rho_{A,i}\)</span>, <span class="math notranslate nohighlight">\(\rho_{B,j}\)</span> be
+transverse densities normalized to unit integral. All positions, centers and
+covariances below are evaluated in the same collision-plane coordinates at
+<span class="math notranslate nohighlight">\(S_{ij}=(\bar z_{A,i}-\bar z_{B,j})/2\)</span>. The per-bunch-pair overlap is</p>
+<div class="math notranslate nohighlight">
+\[\mathcal O=\sum_{i,j}\mathcal O_{ij},\qquad
+\mathcal O_{ij}=N_{A,i}N_{B,j}
+   \int \rho_{A,i}(\mathbf r)\rho_{B,j}(\mathbf r)\,d^2\mathbf r.\]</div>
+<p>For Gaussian slices, define the center difference <span class="math notranslate nohighlight">\(\mathbf d\)</span> and
+covariance sum <span class="math notranslate nohighlight">\(\mathbf V=\mathbf C_{A,i}+\mathbf C_{B,j}\)</span>. Then</p>
+<div class="math notranslate nohighlight">
+\[\mathcal O_{ij}=\frac{N_{A,i}N_{B,j}}{2\pi\sqrt{\det\mathbf V}}
+    \exp\!\left(-\tfrac12\mathbf d^T\mathbf V^{-1}\mathbf d\right).\]</div>
+<p>For PIC, let <span class="math notranslate nohighlight">\(n_{A,i,g}\)</span> and <span class="math notranslate nohighlight">\(n_{B,j,g}\)</span> be the deposited
+real-particle counts assigned to transverse mesh node <span class="math notranslate nohighlight">\(g\)</span>, including
+macro-particle weights. With cell area <span class="math notranslate nohighlight">\(A_g=\Delta x\Delta y\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\mathcal O_{ij}^{\rm PIC}
+=\sum_g\frac{n_{A,i,g}n_{B,j,g}}{A_g}
+=\sum_g\nu_{A,i,g}\nu_{B,j,g}\,A_g,\qquad
+\nu_{A,i,g}=n_{A,i,g}/A_g.\]</div>
+<p>Thus the calculation sums <strong>all slice pairs</strong>, not only equally numbered
+slices. No longitudinal bin-width factor is added: <span class="math notranslate nohighlight">\(N_{A,i}\)</span> and
+<span class="math notranslate nohighlight">\(N_{B,j}\)</span> already contain the slice populations. The two equivalent PIC
+forms use counts and number densities respectively; they must not be mixed.</p>
+<p>Two Gaussian analytic sources use the closed overlap of their propagated
+centers and covariance sum. For Gaussian/uniform or Gaussian/parabolic pairs,
+deterministic polar quadrature integrates the bounded profile against the
+smooth Gaussian density. For two bounded profiles, each radial ray is clipped
+to the intersection of their supports; its polynomial density product is
+integrated analytically, followed by angular quadrature. These numerical angular
+and mixed-profile integrals retain finite quadrature error.</p>
+<p>For an analytic/particle pair, the analytic density is averaged over the other
+side’s propagated particles. For two particle representations, both are
+deposited on a common transverse mesh and the product of the number densities
+is integrated. The common domain covers both configured PIC domains and uses
+spacing no coarser than either grid; TSC is used if either PIC source requests
+TSC, otherwise CIC. Each deposition stencil must remain covered at the slice-pair
+collision plane. This diagnostic deposits number density without solving a
+potential. PIC luminosity therefore retains its particle and mesh dependence
+instead of replacing the source by a Gaussian fit. All branches use real
+particle populations, independently of electric charge sign or ion charge
+state. Accumulation uses float64 on both backends; source moments and propagated
+coordinates still carry their configured tracking-precision error.</p>
+<p>Writing the population-weighted overlap per encounter as
+<span class="math notranslate nohighlight">\(\mathcal O\)</span> in <span class="math notranslate nohighlight">\(\mathrm{m}^{-2}\)</span>, the reported luminosity is</p>
+<div class="math notranslate nohighlight">
+\[L\,[\mathrm{cm}^{-2}\mathrm{s}^{-1}]
+=10^{-4} f_{\mathrm{coll}}\,[\mathrm{Hz}]
+ \mathcal O\,[\mathrm{m}^{-2}].\]</div>
+<p>When a reference is supplied, the reported ratio uses that fixed value for
+each bunch pair. Otherwise its first measured luminosity defines the pair’s
+baseline. This measured baseline generally includes the configured crossing
+angle, hourglass effect and beam state; it is not automatically a head-on,
+zero-hourglass reference. A crossing-angle or hourglass loss study must supply
+the appropriate independently measured or theoretical reference.
+If the initial baseline is zero, the ratio remains undefined and is written as
+<code class="docutils literal notranslate"><span class="pre">NaN</span></code>; a later nonzero measurement does not silently replace the baseline.</p>
+</section>
+<section id="output-files-and-columns">
+<h3>Output files and columns<a class="headerlink" href="#output-files-and-columns" title="Link to this heading"></a></h3>
+<p>Files are written under <code class="docutils literal notranslate"><span class="pre">&lt;output</span> <span class="pre">directory&gt;/luminosity/</span></code> with the stem
+<code class="docutils literal notranslate"><span class="pre">{output_hms}_{configuration_with_hash}_ip{occurrence}</span></code> and the extension
+<code class="docutils literal notranslate"><span class="pre">.tfs</span></code> or <code class="docutils literal notranslate"><span class="pre">.h5</span></code>. The configuration name is made safe for filenames and
+includes a hash to distinguish names that sanitize identically. TFS is the
+default; <code class="docutils literal notranslate"><span class="pre">hdf5</span></code> is uncompressed and <code class="docutils literal notranslate"><span class="pre">hdf5-gzip1</span></code> uses lossless gzip level 1
+with shuffle. All formats have the same columns, units and sampling semantics.
+A sampled batch appends rows; it does not require a full particle dump or
+rewrite all earlier rows. No additional CSV is produced.</p>
+<p>HDF5 follows <a class="reference internal" href="monitor/table_output.html"><span class="doc">Table output formats</span></a>: each column is a one-dimensional,
+extendible root dataset. <code class="docutils literal notranslate"><span class="pre">TURN</span></code>, <code class="docutils literal notranslate"><span class="pre">BUNCH_A</span></code> and <code class="docutils literal notranslate"><span class="pre">BUNCH_B</span></code> use int64; all
+other columns use float64. Column chunks contain at least 128 rows. Root
+attributes preserve the TFS headers, including configuration, IP occurrence,
+source models, geometry, frequency convention, reference convention and units.
+The reserved attributes are <code class="docutils literal notranslate"><span class="pre">_pass_table_version=1</span></code> and
+<code class="docutils literal notranslate"><span class="pre">_pass_table_columns</span></code> (the ordered column-name list encoded as JSON).</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Luminosity table columns</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TURN</span></code> / <code class="docutils literal notranslate"><span class="pre">TIME</span></code></p></td>
+<td><p>Zero-based turn and reference encounter time in seconds.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BUNCH_A</span></code> / <code class="docutils literal notranslate"><span class="pre">BUNCH_B</span></code></p></td>
+<td><p>Stable bunch IDs of the physical pair.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FREQUENCY_HZ</span></code></p></td>
+<td><p>Frequency used to normalize this pair’s luminosity.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">N_A</span></code> / <code class="docutils literal notranslate"><span class="pre">N_B</span></code></p></td>
+<td><p>Live real-particle populations for the encounter.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OVERLAP_M2</span></code></p></td>
+<td><p>Population-weighted per-encounter overlap in inverse square metres.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LUMINOSITY</span></code> / <code class="docutils literal notranslate"><span class="pre">L_REFERENCE</span></code></p></td>
+<td><p>Measured and reference luminosities in inverse square centimetres per second.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FACTOR</span></code> / <code class="docutils literal notranslate"><span class="pre">LOSS</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(L/L_{\rm ref}\)</span> and <span class="math notranslate nohighlight">\(1-L/L_{\rm ref}\)</span>; no clipping to [0, 1].</p></td>
+</tr>
+</tbody>
+</table>
+<p>With multiple bunch pairs, an additional row with <code class="docutils literal notranslate"><span class="pre">BUNCH_A=BUNCH_B=-1</span></code> sums
+their luminosities and reference luminosities. Its factor is
+<span class="math notranslate nohighlight">\(\sum L/\sum L_{\rm ref}\)</span>, rather than the arithmetic mean of pair factors;
+<code class="docutils literal notranslate"><span class="pre">FREQUENCY_HZ</span></code> is <code class="docutils literal notranslate"><span class="pre">NaN</span></code> because the total has no single assigned pair frequency.
+One bunch pair produces only its pair row.</p>
+<p>Read either format with the shared table reader. It returns a <code class="docutils literal notranslate"><span class="pre">TfsDataFrame</span></code>
+with metadata in <code class="docutils literal notranslate"><span class="pre">headers</span></code>; no format-specific analysis code is needed.
+Read HDF5 after completion or between writes, without holding it open during
+tracking; this writer does not enable SWMR.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.utils.table_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_table</span>
+
+<span class="n">luminosity</span> <span class="o">=</span> <span class="n">read_table</span><span class="p">(</span><span class="s2">"output/luminosity/run_IP1_hash_ip0.h5"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">luminosity</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">luminosity</span><span class="p">[[</span><span class="s2">"TURN"</span><span class="p">,</span> <span class="s2">"BUNCH_A"</span><span class="p">,</span> <span class="s2">"BUNCH_B"</span><span class="p">,</span> <span class="s2">"LUMINOSITY"</span><span class="p">,</span> <span class="s2">"FACTOR"</span><span class="p">,</span> <span class="s2">"LOSS"</span><span class="p">]])</span>
+</pre></div>
+</div>
+<p>The filename above is illustrative; use the file produced by your run. Replace
+<code class="docutils literal notranslate"><span class="pre">.h5</span></code> with the actual <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> filename for TFS input.</p>
+<p>Luminosity diagnostics can run in <code class="docutils literal notranslate"><span class="pre">weak-weak</span></code> mode without applying a kick,
+but still need matching collision Slicers and the required crossing-coordinate
+charts. At least one side must specify a source density method; enabling the
+diagnostic with no density model on either side is rejected.</p>
+</section>
+</section>
+<section id="crossingangle-crabcavity-and-floatwaister">
+<h2>CrossingAngle, CrabCavity and FloatWaister<a class="headerlink" href="#crossingangle-crabcavity-and-floatwaister" title="Link to this heading"></a></h2>
+<section id="crossing-angle-coordinate-charts">
+<h3>Crossing-angle coordinate charts<a class="headerlink" href="#crossing-angle-coordinate-charts" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p>Name of the shared IP configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Direction</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">forward</span></code> or <code class="docutils literal notranslate"><span class="pre">inverse</span></code>; bracket the matching Slicer and BeamBeam at the same IP.</p></td>
+</tr>
+</tbody>
+</table>
+<p>For nonzero crossing angle, explicitly bracket Slicer and BeamBeam with
+<code class="docutils literal notranslate"><span class="pre">CrossingAngle</span></code> commands having matching <code class="docutils literal notranslate"><span class="pre">Configuration</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Direction:</span> <span class="pre">forward</span></code> / <code class="docutils literal notranslate"><span class="pre">inverse</span></code>. A typical local Order is arrival=100,
+optional pre-elements=200, forward=300, Slicer=400, BeamBeam=500, inverse=600,
+optional post-elements=700, monitor=800. The Slicer must use
+<code class="docutils literal notranslate"><span class="pre">Coordinate:</span> <span class="pre">collision_z</span></code> inside this interval. Only that Slicer and BeamBeam
+may run between the two charts. Within it <code class="docutils literal notranslate"><span class="pre">dp</span></code> temporarily stores eta and
+the coordinate frame is labeled in slice output. The inverse restores ordinary
+PASS coordinates without changing the public reference momentum or clock.</p>
+<p>At head-on geometry the common basis is <span class="math notranslate nohighlight">\((X,Y,Z)\)</span> for beam 0 and
+<span class="math notranslate nohighlight">\((-X,Y,-Z)\)</span> for beam 1. Both longitudinal coordinates remain positive
+for early passage. The collision calculation applies this transverse reflection
+also when no explicit crossing chart is needed. Frozen sources in a crossing
+chart use a linear, thin-slice transform about the design orbit; they do not
+claim an exact transformation of an arbitrary six-dimensional distribution.</p>
+</section>
+<section id="common-ip-equivalent-element-parameters">
+<h3>Common IP-equivalent element parameters<a class="headerlink" href="#common-ip-equivalent-element-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p>required</p></td>
+<td><p>IP position; collision-adjacent elements have zero length and no physical aperture.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Integer sequence order; explicitly distinguish commands sharing the IP.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optics_reference</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Optics</span> <span class="pre">reference</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p>Twiss entry at this IP on this beam.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">side</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Side</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">before</span></code> or <code class="docutils literal notranslate"><span class="pre">after</span></code>; descriptive, without an automatic sign change.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">equivalent_dispersion</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">dispersion</span></code></p></td>
+<td><p>—</p></td>
+<td><p>zero</p></td>
+<td><p>Object with Dx (m), Dpx, Dy (m), Dpy, each default zero.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">longitudinal_shear</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">shear</span> <span class="pre">(m)</span></code></p></td>
+<td><p>m</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Signed longitudinal shear in the equivalent transport.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">CrabCavity</span></code> and <code class="docutils literal notranslate"><span class="pre">FloatWaister</span></code> are independent zero-length elements in the
+ordinary IP frame. Both require <code class="docutils literal notranslate"><span class="pre">Optics</span> <span class="pre">reference</span></code> at the same IP and
+<code class="docutils literal notranslate"><span class="pre">Side</span></code> (<code class="docutils literal notranslate"><span class="pre">before</span></code> or <code class="docutils literal notranslate"><span class="pre">after</span></code>). Side is descriptive and does not negate
+strength or phase. Optional <code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">dispersion</span></code> contains Dx/Dpx/Dy/Dpy,
+and <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">shear</span> <span class="pre">(m)</span></code> defaults to zero. Their canonical transport
+includes the longitudinal companion of dispersion and uses the updated energy
+on inverse transport. These are optics-equivalent thin maps, not finite-length
+electromagnetic cavity tracking.</p>
+<p>CrabCavity requires <code class="docutils literal notranslate"><span class="pre">Plane</span></code> (x/y), signed <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">(rad)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">kick</span></code> and <code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>. FloatWaister requires
+<code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">x</span> <span class="pre">(rad)</span></code> and <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">y</span> <span class="pre">(rad)</span></code>; <code class="docutils literal notranslate"><span class="pre">Mode:</span> <span class="pre">rfq</span></code> also
+requires <code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">gx</span> <span class="pre">(1/m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">gy</span> <span class="pre">(1/m)</span></code> and frequency,
+whereas <code class="docutils literal notranslate"><span class="pre">Mode:</span> <span class="pre">theory</span></code> requires <code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">y</span></code>.
+RF phase uses <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> (default zero), <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code> (default
+the beam reference clock origin) and each particle’s physical arrival time.
+Equivalent strengths already include the sign and normalization of charge;
+they are not multiplied by charge a second time. Both elements retain the
+longitudinal kick from the same generating potential as the transverse kick.</p>
+</section>
+<section id="crabcavity-parameters">
+<h3>CrabCavity parameters<a class="headerlink" href="#crabcavity-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">plane</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Plane</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">x</span></code> or <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_advance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p>required</p></td>
+<td><p>Signed phase advance of the equivalent transport.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">equivalent_kick</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">kick</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p>Signed normalized transverse kick amplitude, including charge sign.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p>required</p></td>
+<td><p>Positive RF frequency.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>RF phase at the epoch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Null selects the beam reference clock origin.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="floatwaister-parameters-and-strength-convention">
+<h3>FloatWaister parameters and strength convention<a class="headerlink" href="#floatwaister-parameters-and-strength-convention" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 13.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python attribute</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code></p></td>
+<td><p>—</p></td>
+<td><p>required</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rfq</span></code> or <code class="docutils literal notranslate"><span class="pre">theory</span></code>; parameters of the other mode are rejected.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase_advance_x</span> <span class="pre">/</span> <span class="pre">phase_advance_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">x</span> <span class="pre">(rad)</span> <span class="pre">/</span> <span class="pre">Phase</span> <span class="pre">advance</span> <span class="pre">y</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p>required</p></td>
+<td><p>Signed equivalent phase advances in both planes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">strength_x</span> <span class="pre">/</span> <span class="pre">strength_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">x</span> <span class="pre">/</span> <span class="pre">Strength</span> <span class="pre">y</span></code></p></td>
+<td><p>—</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Both required in theory mode; signed strengths with the convention below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gx</span> <span class="pre">/</span> <span class="pre">gy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Equivalent</span> <span class="pre">gx</span> <span class="pre">(1/m)</span> <span class="pre">/</span> <span class="pre">Equivalent</span> <span class="pre">gy</span> <span class="pre">(1/m)</span></code></p></td>
+<td><p>m⁻¹</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Both required in rfq mode; signed equivalent quadrupole coefficients.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>Hz</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>Positive and required in rfq mode; forbidden in theory mode.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">phase</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>rad</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>RFQ only; null evaluates as zero phase.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">phase_epoch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">epoch</span> <span class="pre">(s)</span></code></p></td>
+<td><p>s</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
+<td><p>RFQ only; null uses the beam reference clock origin.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">theory</span></code> is a prescribed ideal traveling-waist map. With zero dispersion
+and longitudinal shear, <span class="math notranslate nohighlight">\(\alpha_u^*=0\)</span> and <span class="math notranslate nohighlight">\(\mu_u=\pi/2\)</span>,
+its action in ordinary IP coordinates is</p>
+<div class="math notranslate nohighlight">
+\[\Delta u=-\frac{s_u}{2}z p_u,\qquad \Delta p_u=0,\qquad
+\Delta\eta=\frac{s_xp_x^2+s_yp_y^2}{4}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(s_u\)</span> is <code class="docutils literal notranslate"><span class="pre">Strength</span> <span class="pre">x/y</span></code> and positive z means early passage.
+Positive strength shifts the drift-equivalent waist to local distance
+<span class="math notranslate nohighlight">\(s_u z/2\)</span>. The <code class="docutils literal notranslate"><span class="pre">rfq</span></code> model retains RF curvature and is not automatically
+equivalent to theory at finite bunch length; arbitrary pairs of equivalent
+gradients also need not represent one physical RF quadrupole. Validate this
+traveling-waist model separately from the sextupole crab-waist scheme used
+with crossing-angle collisions.</p>
+</section>
+</section>
+<section id="checkpoint-at-a-common-turn-boundary">
+<h2>Checkpoint at a common turn boundary<a class="headerlink" href="#checkpoint-at-a-common-turn-boundary" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">capture_collision_state(sim,</span> <span class="pre">sequences)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">restore_collision_state(sim,</span> <span class="pre">sequences,</span> <span class="pre">state)</span></code> are provided in
+<code class="docutils literal notranslate"><span class="pre">PASS.commands.beam_beam</span></code>. The checkpoint is an owned Python dictionary
+containing NumPy arrays; these functions do not define a file format.
+Capture requires a complete common turn in ordinary PASS coordinates, finished
+Injection batches and successfully flushed monitor output. Save both beams
+together: the state includes particles, bunch reference quantities, the
+prescribed clock, collision counts, completed injection state, wake history,
+enabled frozen or dynamic electron-cloud states and particle/tune-monitor
+accumulation required for continuation.</p>
+<p>Restore validates the full input/sequence fingerprint, array layout, physical
+references and command state before modifying either beam. It invalidates
+slice results and rebuilds disposable field resources. Execution resumes at
+<code class="docutils literal notranslate"><span class="pre">sim.state.next_turn</span></code> and continues to <code class="docutils literal notranslate"><span class="pre">cfg.num_turn</span></code>. Restoring only the
+coordinator’s <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> is not a complete simulation restart.</p>
+<p>Existing output files are not included or rewound. A new output directory does
+not acquire historical StatMonitor or completed tune-window files; an output
+directory already containing turns beyond the saved boundary must not be
+mixed with resumed output. Device failure during the final restore commit
+cannot be rolled back automatically.</p>
+<p>For enabled luminosity output, the checkpoint additionally preserves each
+recorder’s initial references, output format and last committed turn. Restore
+requires matching existing table history in that format, including schema,
+metadata, complete pair rows and the
+output watermark. Missing, duplicated, truncated or newer history is rejected;
+restore does not synthesize history, overwrite an existing run or silently
+change the reference luminosity. The checkpoint retains each luminosity output
+path; changing the simulation’s output directory does not relocate this history.</p>
+</section>
+<section id="implementation-and-validation-scope">
+<h2>Implementation and validation scope<a class="headerlink" href="#implementation-and-validation-scope" title="Link to this heading"></a></h2>
+<p>The command and rendezvous state live in <code class="docutils literal notranslate"><span class="pre">PASS/commands/beam_beam.py</span></code>.
+The three independent elements live in <code class="docutils literal notranslate"><span class="pre">PASS/commands/element/</span></code>.
+Within <code class="docutils literal notranslate"><span class="pre">PASS/commands/collision/</span></code>, <code class="docutils literal notranslate"><span class="pre">config.py</span></code> defines the schema and
+<code class="docutils literal notranslate"><span class="pre">interaction.py</span></code> owns source preparation, slice-pair order and the six-dimensional
+kick. <code class="docutils literal notranslate"><span class="pre">hourglass.py</span></code> propagates prepared source centers and covariances, their
+distance derivatives, and the PIC source sampling lattice. Source propagation
+uses <span class="math notranslate nohighlight">\(-S\)</span>; its potential derivative holds collision-plane transverse
+coordinates fixed. The luminosity diagnostic reuses those propagated moments.
+<code class="docutils literal notranslate"><span class="pre">luminosity.py</span></code> owns density overlap and append-only TFS/HDF5 records. The coordinator
+owns output lifetime; the propagation module performs no file I/O.</p>
+<p>Existing field solvers, deposition shapes and fused potential-gather kernels
+remain shared numerical primitives. The internal propagation module neither
+adds a separate physical hourglass element nor introduces arbitrary coupled
+frozen-source inputs. No core collision module or separate
+coordinator/coordinates module is added.</p>
+<p>CPU and GPU support float32 and float64. Main collision arrays follow the
+configured precision; clocks and Slicer boundaries retain their appropriate
+higher precision. Single-kick analytical checks, potential derivative checks,
+PIC convergence, CPU/GPU comparisons, and actual multi-IP tracking are distinct
+validation layers. They do not establish a many-turn beam-quality error bound
+or A100 throughput. Recheck longitudinal errors separately from transverse
+errors when selecting slicing, mesh size and precision.</p>
+</section>
+<section id="theory-references">
+<h2>Theory references<a class="headerlink" href="#theory-references" title="Link to this heading"></a></h2>
+<p>For independent luminosity checks, <a class="reference external" href="https://lss.fnal.gov/archive/test-fn/1000/fermilab-fn-1175-ad.pdf">T. Sen, FERMILAB-FN-1175-AD (2022)</a> gives
+the symmetric Gaussian crossing-angle/hourglass integral (Eq. 2.12), the
+head-on hourglass limit (Eq. 2.15), and the crossing-only reduction
+(Eq. 2.17). These formulas assume matched Gaussian beams and the specified
+IP optics; they are not finite-particle or PIC-grid references.</p>
+<p><a class="reference external" href="https://inspirehep.net/files/6ca30a0993d21afd34ef80ede1e30590">R. B. Palmer, SLAC-PUB-4707 (1988)</a> introduces
+crab crossing. <a class="reference external" href="https://proceedings.jacow.org/IPAC2011/papers/tupc004.pdf">L. I. Malysheva et al., IPAC2011 TUPC004</a> discusses
+traveling focus and its offset sensitivity. These papers provide physical
+context; the equivalent element strengths and longitudinal-coordinate signs
+in PASS are defined by the maps above and must be matched explicitly in a
+comparison. In particular, a compensated finite-frequency crab cavity and an
+ideal linear tilt need not give identical luminosity for a long bunch.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="electron_cloud.html" class="btn btn-neutral float-left" title="Electron Cloud (ElectronCloud)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="monitor/index.html" class="btn btn-neutral float-right" title="Monitors and output" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

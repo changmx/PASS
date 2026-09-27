@@ -21,6 +21,8 @@
    exciter
    rfcavity
 
+CrossingAngle、CrabCavity 和 FloatWaister 见 :doc:`../beam_beam`。
+
 .. _zh-element-integration-precision:
 
 积分计算精度

@@ -110,6 +110,8 @@
 <li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
@@ -230,7 +232,6 @@
 <span class="w">    </span><span class="nt">"Device Id"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
 <span class="w">    </span><span class="nt">"Output directory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"./output"</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Is plot figure"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"Is beam-beam"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"Sequence"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="nt">"injection"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">            </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
@@ -374,10 +375,13 @@
 <td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">beam-beam</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
-<td><p>Reserved switch; keep False because beam-beam tracking is not implemented.</p></td>
+<td><p>Obsolete placeholder. A true value is rejected; generated input omits it.</p></td>
 </tr>
 </tbody>
 </table>
+<p>Beam-beam collisions use the separate top-level <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">beam</span></code> block and explicit
+commands on both beam sequences. Pass <code class="docutils literal notranslate"><span class="pre">beam_beam=BeamBeamConfig(...)</span></code> to
+<code class="docutils literal notranslate"><span class="pre">generate_input</span></code>; see <a class="reference internal" href="beam_beam.html"><span class="doc">Beam-Beam Interaction (BeamBeam)</span></a> for source methods, ordering and elements.</p>
 <p>Space charge is configured by the separate top-level <code class="docutils literal notranslate"><span class="pre">Space</span> <span class="pre">charge</span></code> block,
 not by <code class="docutils literal notranslate"><span class="pre">MainConfig</span></code>. See <a class="reference internal" href="space_charge.html"><span class="doc">Space-Charge Effect (SpaceCharge)</span></a> for its named resource schema
 and sequence-command references. Each resource selects <code class="docutils literal notranslate"><span class="pre">Method</span></code> (<code class="docutils literal notranslate"><span class="pre">pic</span></code>,
@@ -385,6 +389,14 @@ and sequence-command references. Each resource selects <code class="docutils lit
 condition in its name. The command’s <code class="docutils literal notranslate"><span class="pre">Aperture</span> <span class="pre">type/value</span></code> defines particle
 losses and, for Dirichlet solvers, the conducting wall.  Supply a complete grid full-width or half-width pair;
 omitting the command aperture selects a rectangle equal to that grid.</p>
+<p>Electron clouds use the independent top-level <code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">cloud</span></code> block.
+Pass <code class="docutils literal notranslate"><span class="pre">electron_cloud=ElectronCloudConfig(...)</span></code> to <code class="docutils literal notranslate"><span class="pre">generate_input</span></code> and
+reference a named configuration with <code class="docutils literal notranslate"><span class="pre">ElectronCloudItem</span></code>. The <code class="docutils literal notranslate"><span class="pre">frozen</span></code>
+model needs no Slicer; externally driven <code class="docutils literal notranslate"><span class="pre">build_up</span></code> and PIC <code class="docutils literal notranslate"><span class="pre">coupled</span></code>
+require a current <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet and nested
+<code class="docutils literal notranslate"><span class="pre">ElectronCloudBuildUpConfiguration</span></code>. Coupled mode includes cloud self-fields
+and transverse beam response. Physics, parameters and limits are in
+<a class="reference internal" href="electron_cloud.html"><span class="doc">Electron Cloud (ElectronCloud)</span></a>.</p>
 </section>
 <section id="prescribed-machine-clock-and-initialization">
 <span id="en-reference-clock"></span><h3>Prescribed machine clock and initialization<a class="headerlink" href="#prescribed-machine-clock-and-initialization" title="Link to this heading"></a></h3>
@@ -770,6 +782,7 @@ also accepts <code class="docutils literal notranslate"><span class="pre">is_ali
 │   ├── elements.py     Element configuration classes
 │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
 │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
+│   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
 │   └── sequence.py     Sequence: ordered container + auto-sorting
 ├── madx.py        MADX TFS → schema objects (element / twiss / error)
 ├── smooth.py      Analytical smooth approximation twiss
@@ -801,7 +814,7 @@ also accepts <code class="docutils literal notranslate"><span class="pre">is_ali
 </section>
 <section id="api-entry-points">
 <h2>API entry points<a class="headerlink" href="#api-entry-points" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> exports <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>, <code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">load_input</span></code>. <code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> returns <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>; it does not reconstruct typed commands or return the top-level Space charge/Wake field blocks. Preserve those blocks explicitly when editing a complete existing file.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> exports <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>, <code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">load_input</span></code>. <code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> returns <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud blocks. It validates electron-cloud configuration and references before returning. Preserve those blocks explicitly when editing a complete existing file.</p>
 </section>
 </section>
 
