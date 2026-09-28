@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDia
                                QListWidget, QListWidgetItem, QMessageBox, QPlainTextEdit, QPushButton, QSplitter, QTabWidget, QTableWidget,
                                QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QScrollArea, QSizePolicy)
 
+from PASS.gui.widgets import file_dialog_directory
+
 
 class ConversionPage(QWidget):
     """Each job owns a subprocess and temporary directory; source files are read-only."""
@@ -234,7 +236,7 @@ class ConversionPage(QWidget):
         pass
 
     def choose_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "打开数据文件", "", "数据文件 (*.sdds *.h5 *.hdf5 *.tfs *.csv);;所有文件 (*)")
+        path, _ = QFileDialog.getOpenFileName(self, "打开数据文件", file_dialog_directory(self), "数据文件 (*.sdds *.h5 *.hdf5 *.tfs *.csv);;所有文件 (*)")
         if path:
             self.open_path(path)
 

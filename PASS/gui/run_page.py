@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
 
 from PASS import __version__
 from PASS.gui.appearance import code_font
+from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.project import atomic_write, file_references, json_bytes, read_json, resolved_file
 from PASS.gui.runner import RunExitCode
 from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
@@ -542,7 +543,7 @@ class RunPage(QWidget):
         return values
 
     def _choose_output(self):
-        directory = QFileDialog.getExistingDirectory(self, "选择运行输出目录", self.output_directory.text())
+        directory = QFileDialog.getExistingDirectory(self, "选择运行输出目录", self.output_directory.text() or file_dialog_directory(self))
         if directory:
             self.output_directory.setText(directory)
 

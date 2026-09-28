@@ -64,8 +64,9 @@ from PySide6.QtWidgets import (
 from PASS import __version__
 from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
 from PASS.gui.help import HelpMenu
+from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.plotting import PlotCanvas, PlotPage
-from PASS.gui.project import FILE_FIELDS, missing_files, read_json
+from PASS.gui.project import input_file_fields, missing_files, read_json
 from PASS.gui.run_page import RunPage
 from PASS.gui.tools import ToolsPage
 from PASS.gui.parameters import IntegerValidator, model_draft, make_editor, nullable, bare, focus_parameter
@@ -1422,7 +1423,7 @@ class ConfigPage(QWidget):
         path, _ = QFileDialog.getOpenFileName(
             field.window(),
             title,
-            "",
+            file_dialog_directory(field),
             "MAD-X Twiss/TFS (*.tfs *.TFS *.dat *.DAT *.madx *.MADX);;All files (*)",
         )
         if path:
@@ -1430,7 +1431,7 @@ class ConfigPage(QWidget):
 
     @staticmethod
     def _browse_madx_directory(field: QLineEdit, title: str) -> None:
-        path = QFileDialog.getExistingDirectory(field.window(), title)
+        path = QFileDialog.getExistingDirectory(field.window(), title, file_dialog_directory(field))
         if path:
             field.setText(path)
 
@@ -1484,6 +1485,8 @@ class ConfigPage(QWidget):
         )
 
     def _read_madx_import(self) -> tuple[list, list[str], float] | None:
+        if not self._tool_resources_ready():
+            return None
         source_field = self._madx_fields.get("Twiss TFS 文件")
         source = source_field.text().strip() if isinstance(source_field, QLineEdit) else ""
         if "Twiss TFS 文件" not in self._madx_fields:
@@ -2828,7 +2831,17 @@ class ConfigPage(QWidget):
         self.insert_button.setVisible(pending)
         self._update_action_visibility(pending=pending)
 
+    def _tool_resources_ready(self):
+        """Do not wait on a background import lock from an interactive callback."""
+        tools = getattr(self.window(), "tools", None)
+        if tools is None or tools._ready:
+            return True
+        self.window().statusBar().showMessage("正在加载计算与绘图资源，请稍后重试；可以继续编辑参数或切换页面。", 5000)
+        return False
+
     def _preview_parameters(self):
+        if not self._tool_resources_ready():
+            return
         try:
             from PASS.gui.parameter_preview import ParameterPreview
             value = deepcopy(self._selected_mapping)
@@ -2853,10 +2866,12 @@ class ConfigPage(QWidget):
                 QMessageBox.warning(self, "无法预览", str(exc))
 
     def _convert_bump_csv(self):
-        horizontal, _ = QFileDialog.getOpenFileName(self, "水平 CISP CSV：时间(s), ΔPx/P0", str(self.base_dir), "CSV (*.csv)")
+        if not self._tool_resources_ready():
+            return
+        horizontal, _ = QFileDialog.getOpenFileName(self, "水平 CISP CSV：时间(s), ΔPx/P0", file_dialog_directory(self), "CSV (*.csv)")
         if not horizontal:
             return
-        vertical, _ = QFileDialog.getOpenFileName(self, "垂直 CISP CSV：时间(s), ΔPy/P0", str(self.base_dir), "CSV (*.csv)")
+        vertical, _ = QFileDialog.getOpenFileName(self, "垂直 CISP CSV：时间(s), ΔPy/P0", file_dialog_directory(self), "CSV (*.csv)")
         if not vertical:
             return
         output, _ = QFileDialog.getSaveFileName(self, "保存转换的 Bump 波形", str(self.base_dir / "bump.tfs"), "TFS (*.tfs)")
@@ -3501,13 +3516,13 @@ class ConfigPage(QWidget):
         field.setObjectName("valueField")
         field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         field.setMinimumWidth(100)
-        if key.casefold() in FILE_FIELDS:
+        if key.casefold() in input_file_fields():
             choose = field.addAction(icon("folder", self.palette().color(QPalette.Text).name()), QLineEdit.TrailingPosition)
             choose.setProperty("themeIcon", "folder")
             choose.setToolTip("选择输入文件")
 
             def browse():
-                path, _ = QFileDialog.getOpenFileName(self, key, str(self.base_dir), "All files (*)")
+                path, _ = QFileDialog.getOpenFileName(self, key, file_dialog_directory(self), "All files (*)")
                 if path:
                     field.setText(path)
 
@@ -3881,7 +3896,7 @@ class ConfigPage(QWidget):
         if old_value is None:
             if not text or text.casefold() == "null":
                 return None
-            if key.casefold() not in FILE_FIELDS:
+            if key.casefold() not in input_file_fields():
                 try:
                     return json.loads(text)
                 except json.JSONDecodeError:
@@ -4249,7 +4264,7 @@ from PASS.gui.workspace import DocumentWindowMixin
 
 class MainWindow(DocumentWindowMixin, QMainWindow):
 
-    def __init__(self) -> None:
+    def __init__(self, *, defer_configuration: bool = False) -> None:
         super().__init__()
         self.settings = QSettings("PASS", "Editor")
         self.resize(1200, 760)
@@ -4303,44 +4318,94 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         header.addWidget(self.help_button)
         outer.addLayout(header)
         self.stack = QStackedWidget()
-        self.config = ConfigPage()
-        self.run = RunPage(self.config)
-        self.run.controller = self
+        self.config = self.run = None
+        self.project = None
+        self._document_busy = False
+        self._close_confirmed = False
+        self._configuration_error = ""
+        self.file_button.setEnabled(False)
+        self.setWindowTitle("PASS")
+        for label in ("正在准备输入配置…", "正在准备运行页面…"):
+            page = QWidget()
+            layout = QVBoxLayout(page)
+            layout.addWidget(QLabel(label))
+            layout.addStretch()
+            self.stack.addWidget(page)
         self.plot = PlotPage()
         self.tools = ToolsPage()
-        for page in (self.config, self.run, self.plot, self.tools):
-            self.stack.addWidget(page)
+        self.tools.preloader.wait_for_configuration = defer_configuration
+        self.stack.addWidget(self.plot)
+        self.stack.addWidget(self.tools)
         outer.addWidget(self.stack, 1)
         self.setCentralWidget(central)
         self.setStatusBar(QStatusBar())
-        self.preload_status = QLabel("正在准备工具…")
+        self.preload_status = QLabel("正在准备界面…")
         self.statusBar().addPermanentWidget(self.preload_status)
         self.tools.preparation_changed.connect(self.preload_status.setText)
-        self.tools.pause_preload = lambda: self.run.busy or self._document_busy or self.plot.busy
-        self._close_confirmed = False
+        self.tools.pause_preload = lambda: (self.run is not None and self.run.busy) or self._document_busy or self.plot.busy
+        self.tools.preloader.configuration_ready.connect(self._initialize_configuration)
+        self.tools.preloader.finished.connect(self._configuration_finished)
         self.tools.preloader.finished.connect(self._finish_preload_close)
-        self._init_documents()
-        self.run.shutdown_finished.connect(self._finish_background_close)
         self.plot.shutdown_finished.connect(self._finish_background_close)
         self._close_force_button = button("强制结束运行")
-        self._close_force_button.clicked.connect(self.run.force_stop)
+        self._close_force_button.clicked.connect(lambda: self.run.force_stop() if self.run is not None else None)
         self._close_force_button.hide()
         self.statusBar().addPermanentWidget(self._close_force_button)
         self._show_page(0)
         geometry = self.settings.value("window/geometry")
         if geometry:
             self.restoreGeometry(geometry)
-        split = self.settings.value("window/splitter")
-        if split:
-            self.config.splitter.restoreState(split)
         self.theme_preference = self.settings.value("theme", "dark", type=str)
         self.apply_theme(self.theme_preference)
         QApplication.instance().styleHints().colorSchemeChanged.connect(self._system_theme_changed)
-        from PASS.gui.file_drop import FileDropRouter
-        self.drop_router = FileDropRouter(self)
-        QApplication.instance().installEventFilter(self.drop_router)
-        self.setAcceptDrops(True)
+        if not defer_configuration:
+            self._initialize_configuration()
         QTimer.singleShot(150, self.tools.start_preload)
+
+    def _initialize_configuration(self):
+        """Build Qt controls on the GUI thread after shared schemas are imported."""
+        try:
+            if self._close_confirmed or self.config is not None:
+                return
+            try:
+                config = ConfigPage()
+                run = RunPage(config)
+            except Exception as exc:
+                self._configuration_error = str(exc)
+                self._configuration_finished()
+                return
+            self.config, self.run = config, run
+            self.run.controller = self
+            selected = self.stack.currentIndex()
+            for index, page in enumerate((self.config, self.run)):
+                placeholder = self.stack.widget(index)
+                self.stack.removeWidget(placeholder)
+                placeholder.deleteLater()
+                self.stack.insertWidget(index, page)
+            self.stack.setCurrentIndex(selected)
+            self._init_documents()
+            self.run.shutdown_finished.connect(self._finish_background_close)
+            split = self.settings.value("window/splitter")
+            if split:
+                self.config.splitter.restoreState(split)
+            self.apply_theme(self.theme_preference)
+            from PASS.gui.file_drop import FileDropRouter
+            self.drop_router = FileDropRouter(self)
+            QApplication.instance().installEventFilter(self.drop_router)
+            self.setAcceptDrops(True)
+            self.file_button.setEnabled(True)
+            self._show_page(selected)
+        finally:
+            self.tools.preloader.configuration_initialized.set()
+
+    def _configuration_finished(self):
+        if self._close_confirmed or self.config is not None:
+            return
+        errors = self._configuration_error or "; ".join(getattr(self.tools.preloader, "errors", []))
+        message = "配置页面准备失败，请重启后重试。" + ("\n" + errors if errors else "")
+        for index in (0, 1):
+            self.stack.widget(index).findChild(QLabel).setText(message)
+        self.preload_status.setText("配置页面准备失败")
 
     def apply_theme(self, preference: str) -> None:
         if preference not in ("dark", "light", "system"):
@@ -4353,11 +4418,13 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.settings.setValue("theme", preference)
         apply_application_theme(theme)
         self.tools.set_theme(theme)
-        self.config.json_highlighter.set_theme(theme)
         self.theme_button.setText({"dark": "深色", "light": "浅色", "system": "跟随系统"}[preference])
         self.theme_button.setIcon(icon("moon" if theme == "dark" else "sun", THEMES[theme]["muted"]))
         for mode, action in self.theme_actions.items():
             action.setChecked(mode == preference)
+        if self.config is None:
+            return
+        self.config.json_highlighter.set_theme(theme)
         for name, glyph in [("输入配置", "settings"), ("Twiss 与光学", "optics"), ("元件", "box"), ("序列工具", "tools"), ("监测与诊断", "chart"), ("物理效应", "layers")]:
             self.config.library_sections[name].header.setIcon(icon(glyph, THEMES[theme]["muted"]))
         for widget, glyph in [(self.config.validate_button, "check"), (self.config.delete_sequence_button, "trash"),
@@ -4375,10 +4442,25 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.stack.setCurrentIndex(index)
         for i, item in enumerate(self.nav):
             item.setChecked(i == index)
-        if index == 1:
+        if index == 1 and self.run is not None:
             self.run.refresh_inputs()
 
     def closeEvent(self, event) -> None:
+        if self.config is None:
+            if not self._close_confirmed and not self.help_menu.confirm_close():
+                event.ignore()
+                return
+            self._close_confirmed = True
+            self.help_menu.builder.shutdown()
+            ready = [self.plot.shutdown(), self.tools.shutdown()]
+            if not all(ready):
+                self.centralWidget().setEnabled(False)
+                self.preload_status.setText("正在等待后台准备结束…")
+                event.ignore()
+                return
+            self.settings.setValue("window/geometry", self.saveGeometry())
+            event.accept()
+            return
         if self._document_busy:
             self.statusBar().showMessage("请先完成或取消当前文件操作。", 5000)
             event.ignore()
@@ -4423,7 +4505,7 @@ def main() -> None:
     app.setApplicationName("PASS")
     app.setOrganizationName("PASS")
     app.setStyle("Fusion")
-    window = MainWindow()
+    window = MainWindow(defer_configuration=True)
     window.show()
     sys.exit(app.exec())
 

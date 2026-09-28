@@ -1,7 +1,7 @@
 """Top-level tools workspace; calculations never change the active input."""
-import time
+from threading import Event
 
-from PySide6.QtCore import QEvent, QSize, Signal, QThread, QTimer
+from PySide6.QtCore import QSize, Signal, QThread, QTimer
 from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QPushButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget, QLabel, QApplication
 
 from PASS.gui.appearance import THEMES, icon
@@ -45,16 +45,30 @@ class ToolNavigation(QFrame):
 class ModulePreloader(QThread):
     """Prepare numerical dependencies off the GUI thread; never create widgets."""
     progress = Signal(str)
+    configuration_ready = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.wait_for_configuration = False
+        self.configuration_initialized = Event()
 
     def run(self):
         import importlib
         self.errors = []
-        for name in ("pandas", "scipy.interpolate", "h5py", "tfs", "matplotlib.figure", "matplotlib.mathtext", "sdds", "turn_by_turn"):
+        for name in ("PASS.validation.files", "pandas", "scipy.interpolate", "h5py", "tfs", "matplotlib.figure", "matplotlib.mathtext", "sdds",
+                     "turn_by_turn", "PASS.gui.tool_beam", "PASS.gui.tool_tune", "PASS.gui.tool_rf", "PASS.gui.tool_emittance",
+                     "PASS.gui.tool_magnets", "PASS.gui.tool_exciter", "PASS.gui.tool_conversion", "PASS.gui.parameter_preview", "PASS.para.madx"):
             if self.isInterruptionRequested():
                 break
             self.progress.emit("正在准备工具资源…")
             try:
                 importlib.import_module(name)
+                if name == "PASS.validation.files" and not self.isInterruptionRequested():
+                    self.configuration_ready.emit()
+                    # Let Qt build the editor without competing Python imports.
+                    while self.wait_for_configuration and not self.configuration_initialized.wait(0.025):
+                        if self.isInterruptionRequested():
+                            return
             except Exception as exc:
                 self.errors.append(f"{name}: {exc}")
 
@@ -72,7 +86,6 @@ class ToolsPage(QWidget):
         self._requested = 0
         self._ready = False
         self._closing = False
-        self._last_interaction = 0.
         self.pause_preload = lambda: False
         self._pending_file = None
         layout = QHBoxLayout(self)
@@ -97,22 +110,21 @@ class ToolsPage(QWidget):
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self._prepare_next)
-        QApplication.instance().installEventFilter(self)
-
-    def eventFilter(self, watched, event):
-        if (not self._closing and self._pending and isinstance(watched, QWidget) and watched.window() is self.window()
-                and event.type() in (QEvent.KeyPress, QEvent.MouseButtonPress, QEvent.Wheel, QEvent.InputMethod)):
-            self._last_interaction = time.monotonic()
-        return super().eventFilter(watched, event)
 
     def start_preload(self):
         if not self.preloader.isRunning() and not self._ready and not self._closing:
-            self.preloader.start()
+            self.preloader.start(QThread.LowPriority)
 
     def _imports_ready(self):
         if not self._closing:
             self._ready = True
+            self.preparation_changed.emit("工具资源已就绪" if not self.preloader.errors else "部分工具资源加载失败，可进入对应栏目查看原因")
             self.timer.start(30)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self._ready:
+            self.timer.start(0)
 
     def _select(self, index):
         self._requested = index
@@ -158,29 +170,22 @@ class ToolsPage(QWidget):
             page.open_path(path)
 
     def _prepare_next(self):
-        if self._closing or not self._pending:
+        if self._closing or not self._ready or not self.isVisible() or self._requested not in self._pending:
             return
-        requested = self._requested if self.isVisible() else None
+        requested = self._requested
         busy = self.pause_preload() or bool(self.conversion and self.conversion.busy) or QApplication.activeModalWidget() is not None
         if busy:
             self.timer.start(250)
             return
-        remaining = 0.6 - (time.monotonic() - self._last_interaction)
-        if requested not in self._pending and remaining > 0:
-            self.timer.start(max(1, int(remaining * 1000) + 1))
-            return
-        index = requested if requested in self._pending else self._pending[0]
+        index = requested
         self._pending.remove(index)
         try:
             self._create_page(index)
         except Exception as exc:
             self._failed[index] = str(exc)
             self.stack.widget(index).findChild(QLabel).setText(f"工具准备失败：{exc}\n再次选择此栏目可重试。")
-        prepared = len(self._attributes) - len(self._pending) - len(self._failed)
-        message = f"正在准备工具（{prepared}/{len(self._attributes)}）…" if self._pending else ("工具已就绪" if not self._failed else "部分工具未就绪，可进入对应栏目查看原因")
+        message = "工具资源已就绪" if not self._failed else "部分工具未就绪，可进入对应栏目查看原因"
         self.preparation_changed.emit(message)
-        if self._pending:
-            self.timer.start(180)
 
     def open_conversion(self, path):
         self._pending_file = str(path)
@@ -199,7 +204,6 @@ class ToolsPage(QWidget):
 
     def shutdown(self):
         self._closing = True
-        QApplication.instance().removeEventFilter(self)
         self.timer.stop()
         if self.conversion:
             self.conversion.shutdown()

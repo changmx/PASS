@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from PASS.gui.appearance import THEMES
+from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.structured import IntegerSpinBox
 from PASS.gui.tool_beam import hint, create_number_input
 from PASS.gui.tool_formulas import FormulaDialog, TUNE_FORMULAS
@@ -493,7 +494,7 @@ class TuneDiagramPage(QWidget):
         return True
 
     def import_points(self):
-        path, _ = QFileDialog.getOpenFileName(self, "导入工作点（追加）", "", "CSV / TSV (*.csv *.tsv);;All files (*)")
+        path, _ = QFileDialog.getOpenFileName(self, "导入工作点（追加）", file_dialog_directory(self), "CSV / TSV (*.csv *.tsv);;All files (*)")
         if path:
             try:
                 self.load_points_text(Path(path).read_text(encoding="utf-8-sig"))

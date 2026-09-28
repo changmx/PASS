@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.project import Project, ProjectError, atomic_write, file_references, json_bytes, read_json, resolved_file
 
 
@@ -366,7 +367,7 @@ class ResourceDialog(QDialog):
             QMessageBox.warning(self, "导出失败", str(exc))
 
     def _add_source(self):
-        paths, _ = QFileDialog.getOpenFileNames(self, "添加源文件到项目", "", "All files (*)")
+        paths, _ = QFileDialog.getOpenFileNames(self, "添加源文件到项目", file_dialog_directory(self), "All files (*)")
         try:
             for path in paths:
                 self.project.add_asset(Path(path), "source")
@@ -514,7 +515,7 @@ class DocumentWindowMixin:
         self._set_input(data)
 
     def open_json(self):
-        path, _ = QFileDialog.getOpenFileName(self, "打开独立 JSON", "", "JSON (*.json)")
+        path, _ = QFileDialog.getOpenFileName(self, "打开独立 JSON", file_dialog_directory(self), "JSON (*.json)")
         if not path:
             return
         self.open_json_path(path)
@@ -609,7 +610,7 @@ class DocumentWindowMixin:
         self.save_document(True)
 
     def open_project(self):
-        path, _ = QFileDialog.getOpenFileName(self, "打开 PASS 项目", "", "PASS project (*.passproj)")
+        path, _ = QFileDialog.getOpenFileName(self, "打开 PASS 项目", file_dialog_directory(self), "PASS project (*.passproj)")
         if not path:
             return
         self.open_project_path(path)
@@ -679,7 +680,7 @@ class DocumentWindowMixin:
     def import_json(self):
         if not self.project or not self._commit_current():
             return
-        paths, _ = QFileDialog.getOpenFileNames(self, "导入 JSON 及其全部输入依赖", "", "JSON (*.json)")
+        paths, _ = QFileDialog.getOpenFileNames(self, "导入 JSON 及其全部输入依赖", file_dialog_directory(self), "JSON (*.json)")
         self.import_json_paths(paths)
 
     def import_json_paths(self, paths):
@@ -881,7 +882,7 @@ class DocumentWindowMixin:
     def browse_project(self):
         from PASS.gui.jobs import TaskCancelled
 
-        path, _ = QFileDialog.getOpenFileName(self, "只读查看其他项目", "", "PASS project (*.passproj)")
+        path, _ = QFileDialog.getOpenFileName(self, "只读查看其他项目", file_dialog_directory(self), "PASS project (*.passproj)")
         if not path:
             return
         try:

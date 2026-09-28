@@ -23,10 +23,19 @@ import zipfile
 from PASS import __version__
 
 FORMAT_VERSION = 1
-from PASS.validation.files import INPUT_FILE_FIELDS
-
-FILE_FIELDS = INPUT_FILE_FIELDS
 JSON_LIMIT = 64 * 1024 * 1024
+
+
+def input_file_fields():
+    """Resolve the shared field catalog only after GUI schema preparation."""
+    from PASS.validation.files import INPUT_FILE_FIELDS
+    return INPUT_FILE_FIELDS
+
+
+def __getattr__(name):
+    if name == "FILE_FIELDS":
+        return input_file_fields()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class ProjectError(ValueError):
@@ -68,7 +77,7 @@ def file_references(value: object, pointer: str = "") -> Iterator[tuple[dict, st
     if isinstance(value, dict):
         for key, item in value.items():
             address = pointer + "/" + str(key).replace("~", "~0").replace("/", "~1")
-            if str(key).casefold() in FILE_FIELDS and isinstance(item, str) and item.strip():
+            if str(key).casefold() in input_file_fields() and isinstance(item, str) and item.strip():
                 yield value, key, address
             elif isinstance(item, (dict, list)):
                 yield from file_references(item, address)

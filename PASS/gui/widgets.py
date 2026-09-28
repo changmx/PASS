@@ -1,6 +1,8 @@
 """Shared Qt controls without dependencies on pages or parameter schemas."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QComboBox, QPushButton, QWidget
@@ -77,3 +79,27 @@ class BusyProgressBar(QWidget):
         width = max(48, int(self.width() * 0.22))
         x = int((self.width() + width) * self._offset - width)
         painter.fillRect(x, 0, width, self.height(), self.palette().link())
+
+
+def file_dialog_directory(widget=None, fallback=None):
+    """Prefer the saved project or JSON directory, never a project extraction cache."""
+    owner = widget
+    has_document = False
+    while owner is not None:
+        project = getattr(owner, "project", None)
+        if project is not None:
+            has_document = True
+            if project.path:
+                return str(Path(project.path).resolve().parent)
+        config = getattr(owner, "config", None)
+        if config is not None:
+            has_document = True
+            if project is None and config.path:
+                return str(Path(config.path).resolve().parent)
+        owner = owner.parentWidget()
+    if not has_document and fallback is not None:
+        return str(Path(fallback).resolve())
+    source = Path(__file__).resolve().parents[2]
+    if (source / "pyproject.toml").is_file():
+        return str(source)
+    return str(Path.cwd())

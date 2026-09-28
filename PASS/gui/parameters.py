@@ -29,9 +29,10 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
+from PASS.gui.widgets import file_dialog_directory
 from PASS.gui.structured import Column, NumericTable, StructuredField
 from PASS.gui.widgets import Choice
-from PASS.validation.files import INPUT_FILE_FIELDS
+from PASS.gui.project import input_file_fields
 
 
 class IntegerValidator(QValidator):
@@ -106,14 +107,14 @@ class ScalarField(StructuredField):
             if self.annotation is int:
                 self.input.setValidator(IntegerValidator(self.input))
             self.input.textChanged.connect(self.changed)
-            if label.casefold() in INPUT_FILE_FIELDS:
+            if label.casefold() in input_file_fields():
                 choose = QPushButton("浏览…")
                 choose.clicked.connect(lambda: self._browse(base_dir))
                 root.addWidget(choose)
         root.insertWidget(0, self.input, 1)
 
     def _browse(self, base_dir):
-        path, _ = QFileDialog.getOpenFileName(self, self.label, str(base_dir), "All files (*)")
+        path, _ = QFileDialog.getOpenFileName(self, self.label, file_dialog_directory(self, base_dir), "All files (*)")
         if path:
             self.input.setText(path)
 
@@ -129,7 +130,7 @@ class ScalarField(StructuredField):
                 raise ValueError(f"{self.label}：请明确选择是或否")
             return self.input.isChecked()
         text = self.input.text().strip()
-        if self.label.casefold() in INPUT_FILE_FIELDS and not text:
+        if self.label.casefold() in input_file_fields() and not text:
             raise ValueError(f"{self.label}：请选择文件，或关闭文件输入模式")
         if self.annotation is int:
             if not re.fullmatch(r"[+-]?\d+", text):

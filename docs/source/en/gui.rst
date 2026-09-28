@@ -19,9 +19,27 @@ Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
 Startup and file drops
 ----------------------
 
-Tools are prepared automatically after the main window opens. The status bar
-shows progress; selecting an unfinished tool prioritizes it. Tool values persist
-when switching pages in the same window.
+Open-file dialogs start in the folder containing the current ``.passproj`` file,
+or the current standalone input JSON. Before a document is opened, source-checkout
+launches default to the PASS repository folder; installed copies use the working
+directory. A project's temporary extraction directory is not used for browsing
+external files. This does not change how relative paths inside inputs are resolved.
+
+The main window opens before schemas, scientific libraries and tool modules load
+in a background thread. Navigation, themes, Help and the Plot page are available
+immediately. Configuration and Run show loading messages until schemas are ready;
+their controls, the File menu and document drops are then enabled automatically,
+without waiting for the remaining tool resources. An unfinished tool shows a
+loading message. Each tool's controls and initial plot
+are created on its first visit, after the modules finish loading. Unvisited tools
+are not constructed in the background. Tool values persist when switching pages
+in the same window.
+
+The status bar reports when resources are ready. Before then, waveform/electrode
+previews, MAD-X previews/imports and Bump CSV conversion display a brief status
+message instead of waiting for imports on the interface thread; retry these
+actions after loading completes. File reading and actual calculations still take
+time, and creating a tool on its first visit can cause a short pause.
 
 Drop one local ``.passproj`` or PASS input JSON onto the window, including child
 editors. File contents are checked before replacing the current document. A

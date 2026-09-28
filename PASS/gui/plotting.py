@@ -7,6 +7,8 @@ from PySide6.QtCore import QPointF, QRectF, QThread, Qt, Signal
 from PySide6.QtGui import QImage, QPainter, QPainterPath, QPalette, QPen, QPolygonF
 from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QLabel, QMessageBox, QProgressBar, QPushButton, QSpinBox, QStackedWidget, QVBoxLayout, QWidget
 
+from PASS.gui.widgets import file_dialog_directory
+
 
 def _line_indices(x, y, valid, width, x_limits, monotonic):
     """Keep extrema in source order; missing samples still break each line."""
@@ -384,7 +386,7 @@ class PlotPage(QWidget):
         QApplication.instance().aboutToQuit.connect(self._wait_reader)
 
     def load_data(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(self, "加载结果文件", "", "Data files (*.csv *.tfs *.h5 *.hdf5);;All files (*)")
+        paths, _ = QFileDialog.getOpenFileNames(self, "加载结果文件", file_dialog_directory(self), "Data files (*.csv *.tfs *.h5 *.hdf5);;All files (*)")
         if not paths:
             return
         self.load_paths_async(paths)
