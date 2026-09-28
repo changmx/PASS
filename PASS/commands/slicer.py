@@ -82,7 +82,10 @@ class SliceSet:
     results are local to the owning bunch. ``slice_id`` is an integer
     array in current particle order (lost particles are -1). ``slice_table``
     contains per-slice ``z_min``, ``z_max``, ``z_center``, ``delta_z``,
-    ``macro_count``, ``real_charge`` and ``lind_density``. ``real_charge``
+    ``z_particle_min``, ``z_particle_max``, ``macro_count``, ``real_charge``
+    and ``lind_density``. Particle extrema use the actual live members in
+    the selected coordinate before explicit-range clipping; empty slices
+    have NaN extrema. ``real_charge``
     means equivalent real-particle count (macro count times ``bunch.ratio``),
     while physical charge requires multiplying by particle charge and e.
     ``valid_turn`` and ``valid_s`` record where the result was made;
@@ -353,6 +356,14 @@ def _slice_one_bunch_cpu(p, bunch, slice_set: SliceSet, turn=None, location=None
         local_id[alive] = active_id
 
     counts = np.bincount(local_id[local_id >= 0], minlength=n_slices).astype(np.int64)
+    particle_min = np.full(n_slices, np.inf)
+    particle_max = np.full(n_slices, -np.inf)
+    if n_alive:
+        # Membership may use clipped coordinates, but head/tail remain physical.
+        np.minimum.at(particle_min, local_id[alive], z[alive])
+        np.maximum.at(particle_max, local_id[alive], z[alive])
+    particle_min[counts == 0] = np.nan
+    particle_max[counts == 0] = np.nan
     if active_z.size and slice_set.model in {"equal_particle", "equal_charge"}:
         quantiles = np.linspace(0.0, 1.0, n_slices + 1)
         edges = np.quantile(active_z, quantiles, method="linear")
@@ -371,6 +382,8 @@ def _slice_one_bunch_cpu(p, bunch, slice_set: SliceSet, turn=None, location=None
         "z_min": table_z_min,
         "z_max": table_z_max,
         "z_center": 0.5 * (table_z_min + table_z_max),
+        "z_particle_min": particle_min,
+        "z_particle_max": particle_max,
         "delta_z": delta_z,
         "macro_count": counts,
         "effective_num_slices": int(min(n_alive, n_slices)),
@@ -499,7 +512,7 @@ class Slicer(Command):
         p = beam.particles
         layout, pointers, parameters, records = [], [], [], []
         names = ("slice_id", "counts", "edges", "table_z_min", "table_z_max", "table_z_center", "table_delta_z", "table_real_charge",
-                 "table_lind_density", "alive_count", "outside_count")
+                 "table_lind_density", "alive_count", "outside_count", "table_z_particle_min", "table_z_particle_max")
         max_particles = max_slices = 0
         for bunch, slices, local_z in pending:
             ws = self._workspace(bunch, slices, p, cp)
@@ -527,7 +540,8 @@ class Slicer(Command):
         args = (cache['layout'], cache['pointers'], cache['parameters'])
         shape = ((max_slices + 256) // 256, len(pending))
         kernels['slicer_batch_initialize'](shape, (256, ), args)
-        shared = (max_slices + 2) * 4 if (max_slices + 2) * 4 <= 48 * 1024 else 0
+        shared = max_slices * (2 * np.dtype(np.float64).itemsize + 4) + 8
+        shared = shared if shared <= 48 * 1024 else 0
         kernels['slicer_batch_assign']((min(4096, max(1, (max_particles + 255) // 256)), len(pending)), (256, ),
                                        (*args, p.tag, np.int32(bool(shared))),
                                        shared_mem=shared)
@@ -586,6 +600,8 @@ class Slicer(Command):
             "table_z_min": cp.empty(n_slices, dtype=real_dtype),
             "table_z_max": cp.empty(n_slices, dtype=real_dtype),
             "table_z_center": cp.empty(n_slices, dtype=real_dtype),
+            "table_z_particle_min": cp.empty(n_slices, dtype=real_dtype),
+            "table_z_particle_max": cp.empty(n_slices, dtype=real_dtype),
             "table_delta_z": cp.empty(n_slices, dtype=real_dtype),
             "table_real_charge": cp.empty(n_slices, dtype=real_dtype),
             "table_lind_density": cp.empty(n_slices, dtype=real_dtype),
@@ -667,7 +683,7 @@ class Slicer(Command):
             (init_blocks, ),
             (init_threads, ),
             (np.int32(n), np.int32(n_slices), z_min, z_max, ws["z_min"], ws["z_max"], ws["alive_count"], ws["outside_count"], ws["slice_id"],
-             ws["counts"]),
+             ws["counts"], ws["table_z_particle_min"], ws["table_z_particle_max"]),
         )
 
         if slice_set.z_range_mode != "explicit":
@@ -713,7 +729,7 @@ class Slicer(Command):
             )
             threads = 256
             blocks = min(max(1, (n + threads - 1) // threads), 4096)
-            shared = n_slices * np.dtype(np.int32).itemsize
+            shared = n_slices * (2 * np.dtype(np.float64).itemsize + np.dtype(np.int32).itemsize)
             # Shared histogram is fastest for normal slice counts.  For very
             # large meshes use direct global atomics to stay within limits.
             if shared <= 48 * 1024:
@@ -721,7 +737,7 @@ class Slicer(Command):
                     (blocks, ),
                     (threads, ),
                     (local_z, p.tag, np.int32(start), np.int32(end), z_min, z_max, np.int32(n_slices), ws["edges"], ws["slice_id"], ws["counts"],
-                     ws["outside_count"], ws["alive_count"]),
+                     ws["outside_count"], ws["alive_count"], ws["table_z_particle_min"], ws["table_z_particle_max"]),
                     shared_mem=shared,
                 )
             else:
@@ -729,7 +745,7 @@ class Slicer(Command):
                     (blocks, ),
                     (threads, ),
                     (local_z, p.tag, np.int32(start), np.int32(end), z_min, z_max, np.int32(n_slices), ws["edges"], ws["slice_id"], ws["counts"],
-                     ws["outside_count"], ws["alive_count"]),
+                     ws["outside_count"], ws["alive_count"], ws["table_z_particle_min"], ws["table_z_particle_max"]),
                 )
             n_alive = None
         else:
@@ -798,10 +814,11 @@ class Slicer(Command):
                     n_slices + 1,
                     (z_min, z_max, np.int32(n_slices), ws["edges"]),
                 )
-            self._launch_1d(
-                kernels["slicer_fill_counts_equal_particle"],
-                n_slices,
-                (np.int32(n_alive or 0), np.int32(n_slices), ws["counts"]),
+            kernels["slicer_fill_counts_equal_particle"](
+                (n_slices, ),
+                (256, ),
+                (local_z, ws["sort_values_b"], np.int32(
+                    n_alive or 0), np.int32(n_slices), ws["counts"], ws["table_z_particle_min"], ws["table_z_particle_max"], ws["outside_count"]),
             )
             if n_alive:
                 # The sorter may have toggled its DoubleBuffer selector; the
@@ -816,8 +833,9 @@ class Slicer(Command):
         self._launch_1d(
             kernels["slicer_build_table"],
             n_slices,
-            (ws["edges"], ws["counts"], np.int32(n_slices), real(getattr(bunch, "ratio", 0.0)), ws["table_z_min"], ws["table_z_max"],
-             ws["table_z_center"], ws["table_delta_z"], ws["table_real_charge"], ws["table_lind_density"]),
+            (ws["edges"], ws["counts"], np.int32(n_slices), real(getattr(
+                bunch, "ratio", 0.0)), ws["table_z_min"], ws["table_z_max"], ws["table_z_center"], ws["table_delta_z"], ws["table_real_charge"],
+             ws["table_lind_density"], ws["table_z_particle_min"], ws["table_z_particle_max"]),
         )
         alive_host = int(ws["alive_count"].get()[0]) if n_alive is None else n_alive
         outside_host = int(ws["outside_count"].get()[0])
@@ -842,6 +860,8 @@ class Slicer(Command):
             "z_min": ws["table_z_min"],
             "z_max": ws["table_z_max"],
             "z_center": ws["table_z_center"],
+            "z_particle_min": ws["table_z_particle_min"],
+            "z_particle_max": ws["table_z_particle_max"],
             "delta_z": ws["table_delta_z"],
             "macro_count": ws["counts"],
             "effective_num_slices": int(min(alive_host, n_slices)),
@@ -928,6 +948,8 @@ class Slicer(Command):
             "z_min": _as_host(table["z_min"]),
             "z_max": _as_host(table["z_max"]),
             "z_center": _as_host(table["z_center"]),
+            "z_particle_min": _as_host(table["z_particle_min"]),
+            "z_particle_max": _as_host(table["z_particle_max"]),
             "delta_z": _as_host(table["delta_z"]),
             "macro_count": _as_host(table["macro_count"]),
             "real_charge": _as_host(table["real_charge"]),
@@ -964,6 +986,44 @@ class Slicer(Command):
 
 # GPU implementation
 
+
+@lru_cache(maxsize=None)
+def _get_slicer_kernels(dtype):
+    """Compile Slicer CUDA kernels once per particle precision."""
+    try:
+        import cupy as cp
+    except (ImportError, OSError) as exc:
+        raise RuntimeError("GPU Slicer requires the optional 'cuda' dependencies "
+                           "(install PASS with the [cuda] extra).") from exc
+    dtype = np.dtype(dtype)
+    use_float = dtype == np.dtype(np.float32)
+    options = ("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}")
+    names = (
+        "slicer_initialize",
+        "slicer_batch_initialize",
+        "slicer_batch_assign",
+        "slicer_batch_table",
+        "slicer_reduce",
+        "slicer_assign",
+        "slicer_assign_global",
+        "slicer_gather_active",
+        "slicer_scatter_rank",
+        "slicer_edges_quantile",
+        "slicer_edges_uniform",
+        "slicer_build_table",
+        "slicer_fill_counts_equal_particle",
+    )
+    return {name: cp.RawKernel(_SLICER_CUDA_SOURCE, name, options=options) for name in names}
+
+
+def _is_cupy_array(value) -> bool:
+    return value is not None and value.__class__.__module__.startswith("cupy")
+
+
+def _as_host(value):
+    return value.get() if _is_cupy_array(value) else np.asarray(value)
+
+
 _SLICER_CUDA_PREAMBLE = r'''
 #ifndef PASS_USE_FLOAT
 #define PASS_USE_FLOAT 0
@@ -975,12 +1035,14 @@ using pass_real_t = float;
 #define PASS_FLOOR floorf
 #define PASS_ISFINITE isfinite
 #define PASS_POS_INF 3.402823466e+38F
+#define PASS_NAN __int_as_float(0x7fffffff)
 #else
 using pass_real_t = double;
 #define PASS_FABS fabs
 #define PASS_FLOOR floor
 #define PASS_ISFINITE isfinite
 #define PASS_POS_INF 1.7976931348623157e+308
+#define PASS_NAN __longlong_as_double(0x7ff8000000000000LL)
 #endif
 '''
 
@@ -1126,7 +1188,9 @@ extern "C" __global__ void slicer_initialize(
     int* __restrict__ alive_count,
     int* __restrict__ outside_count,
     int* __restrict__ slice_id,
-    int* __restrict__ counts
+    int* __restrict__ counts,
+    pass_real_t* __restrict__ particle_min,
+    pass_real_t* __restrict__ particle_max
 ) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i == 0) {
@@ -1137,8 +1201,11 @@ extern "C" __global__ void slicer_initialize(
     }
     if (i < n)
         slice_id[i] = -1;
-    if (i < num_slices)
+    if (i < num_slices) {
         counts[i] = 0;
+        particle_min[i] = (pass_real_t)PASS_POS_INF;
+        particle_max[i] = (pass_real_t)-PASS_POS_INF;
+    }
 }
 
 extern "C" __device__ __forceinline__ pass_real_t pass_uniform_edge(
@@ -1175,20 +1242,23 @@ extern "C" __device__ __forceinline__ int pass_uniform_bin(
 }
 
 // Batch pointer rows: coordinate, IDs, counts, edges, six table fields,
-// alive count, outside count. Particle arrays remain in their original order.
+// alive count, outside count, particle extrema. Original particle order remains.
 extern "C" __global__ void slicer_batch_initialize(
     const int* layout,
     const unsigned long long* pointers,
     const pass_real_t* parameters
 ) {
     int b = blockIdx.y, i = blockIdx.x * blockDim.x + threadIdx.x, n_slices = layout[3 * b + 2];
-    const unsigned long long* row = pointers + 12 * b;
+    const unsigned long long* row = pointers + 14 * b;
     if (i == 0) {
         *((int*)row[10]) = 0;
         *((int*)row[11]) = 0;
     }
-    if (i < n_slices)
+    if (i < n_slices) {
         ((int*)row[2])[i] = 0;
+        ((pass_real_t*)row[12])[i] = (pass_real_t)PASS_POS_INF;
+        ((pass_real_t*)row[13])[i] = (pass_real_t)-PASS_POS_INF;
+    }
     if (i <= n_slices) {
         pass_real_t lo = parameters[3 * b], hi = parameters[3 * b + 1];
         ((pass_real_t*)row[3])[i] = pass_uniform_edge((double)lo, (double)hi, n_slices, i);
@@ -1203,21 +1273,30 @@ extern "C" __global__ void slicer_batch_assign(
     int use_shared
 ) {
     int b = blockIdx.y, start = layout[3 * b], end = layout[3 * b + 1], n_slices = layout[3 * b + 2];
-    const unsigned long long* row = pointers + 12 * b;
+    const unsigned long long* row = pointers + 14 * b;
     const pass_real_t* z = (const pass_real_t*)row[0];
     int* ids = (int*)row[1];
     int* counts = (int*)row[2];
     int* alive = (int*)row[10];
     int* outside = (int*)row[11];
+    pass_real_t* particle_min = (pass_real_t*)row[12];
+    pass_real_t* particle_max = (pass_real_t*)row[13];
     pass_real_t lo = parameters[3 * b], hi = parameters[3 * b + 1];
     if (!(lo < hi)) {
         lo = (pass_real_t)-1.e-12;
         hi = (pass_real_t)1.e-12;
     }
-    extern __shared__ int hist[];
+    extern __shared__ pass_real_t extrema[];
+    pass_real_t* local_min = extrema;
+    pass_real_t* local_max = extrema + n_slices;
+    int* hist = (int*)(extrema + 2 * n_slices);
     if (use_shared) {
         for (int k = threadIdx.x; k < n_slices + 2; k += blockDim.x)
             hist[k] = 0;
+        for (int k = threadIdx.x; k < n_slices; k += blockDim.x) {
+            local_min[k] = (pass_real_t)PASS_POS_INF;
+            local_max[k] = (pass_real_t)-PASS_POS_INF;
+        }
     }
     __syncthreads();
     int live = 0, out = 0;
@@ -1233,10 +1312,15 @@ extern "C" __global__ void slicer_batch_assign(
         pass_real_t clipped = value < lo ? lo : (value > hi ? hi : value);
         int id = pass_uniform_bin((double)clipped, (double)lo, (double)hi, n_slices, (const pass_real_t*)row[3]);
         ids[local] = id;
-        if (use_shared)
+        if (use_shared) {
             atomicAdd(hist + id, 1);
-        else
+            pass_atomic_min_real(local_min + id, value);
+            pass_atomic_max_real(local_max + id, value);
+        } else {
             atomicAdd(counts + id, 1);
+            pass_atomic_min_real(particle_min + id, value);
+            pass_atomic_max_real(particle_max + id, value);
+        }
     }
     if (use_shared) {
         if (live)
@@ -1244,9 +1328,13 @@ extern "C" __global__ void slicer_batch_assign(
         if (out)
             atomicAdd(hist + n_slices + 1, out);
         __syncthreads();
-        for (int k = threadIdx.x; k < n_slices; k += blockDim.x)
-            if (hist[k])
+        for (int k = threadIdx.x; k < n_slices; k += blockDim.x) {
+            if (hist[k]) {
                 atomicAdd(counts + k, hist[k]);
+                pass_atomic_min_real(particle_min + k, local_min[k]);
+                pass_atomic_max_real(particle_max + k, local_max[k]);
+            }
+        }
         if (threadIdx.x == 0 && hist[n_slices])
             atomicAdd(alive, hist[n_slices]);
         if (threadIdx.x == 1 && hist[n_slices + 1])
@@ -1266,7 +1354,7 @@ extern "C" __global__ void slicer_batch_table(
     int* diagnostics
 ) {
     int b = blockIdx.y, i = blockIdx.x * blockDim.x + threadIdx.x, n_slices = layout[3 * b + 2];
-    const unsigned long long* row = pointers + 12 * b;
+    const unsigned long long* row = pointers + 14 * b;
     if (i == 0) {
         diagnostics[2 * b] = *((int*)row[10]);
         diagnostics[2 * b + 1] = *((int*)row[11]);
@@ -1283,6 +1371,10 @@ extern "C" __global__ void slicer_batch_table(
     ((pass_real_t*)row[7])[i] = dz;
     ((pass_real_t*)row[8])[i] = charge;
     ((pass_real_t*)row[9])[i] = dz > (pass_real_t)0. ? charge / dz : (pass_real_t)0.;
+    if (((const int*)row[2])[i] == 0) {
+        ((pass_real_t*)row[12])[i] = PASS_NAN;
+        ((pass_real_t*)row[13])[i] = PASS_NAN;
+    }
 }
 
 extern "C" __global__ void slicer_assign(
@@ -1297,11 +1389,19 @@ extern "C" __global__ void slicer_assign(
     int* __restrict__ slice_id,
     int* __restrict__ counts,
     int* __restrict__ outside_count,
-    int* __restrict__ alive_count
+    int* __restrict__ alive_count,
+    pass_real_t* __restrict__ particle_min,
+    pass_real_t* __restrict__ particle_max
 ) {
-    extern __shared__ int local_counts[];
-    for (int s = threadIdx.x; s < num_slices; s += blockDim.x)
+    extern __shared__ pass_real_t extrema[];
+    pass_real_t* local_min = extrema;
+    pass_real_t* local_max = extrema + num_slices;
+    int* local_counts = (int*)(extrema + 2 * num_slices);
+    for (int s = threadIdx.x; s < num_slices; s += blockDim.x) {
         local_counts[s] = 0;
+        local_min[s] = (pass_real_t)PASS_POS_INF;
+        local_max[s] = (pass_real_t)-PASS_POS_INF;
+    }
     __syncthreads();
 
     if (!(z_min < z_max)) {
@@ -1325,11 +1425,16 @@ extern "C" __global__ void slicer_assign(
         int slice_index = pass_uniform_bin((double)clipped, (double)z_min, (double)z_max, num_slices, edges);
         slice_id[local] = slice_index;
         atomicAdd(&local_counts[slice_index], 1);
+        pass_atomic_min_real(local_min + slice_index, zi);
+        pass_atomic_max_real(local_max + slice_index, zi);
     }
     __syncthreads();
     for (int s = threadIdx.x; s < num_slices; s += blockDim.x) {
-        if (local_counts[s] != 0)
+        if (local_counts[s] != 0) {
             atomicAdd(&counts[s], local_counts[s]);
+            pass_atomic_min_real(particle_min + s, local_min[s]);
+            pass_atomic_max_real(particle_max + s, local_max[s]);
+        }
     }
 }
 
@@ -1346,7 +1451,9 @@ extern "C" __global__ void slicer_assign_global(
     int* __restrict__ slice_id,
     int* __restrict__ counts,
     int* __restrict__ outside_count,
-    int* __restrict__ alive_count
+    int* __restrict__ alive_count,
+    pass_real_t* __restrict__ particle_min,
+    pass_real_t* __restrict__ particle_max
 ) {
     if (!(z_min < z_max)) {
         z_min = (pass_real_t)-1.0e-12;
@@ -1368,6 +1475,8 @@ extern "C" __global__ void slicer_assign_global(
         int slice_index = pass_uniform_bin((double)clipped, (double)z_min, (double)z_max, num_slices, edges);
         slice_id[local] = slice_index;
         atomicAdd(&counts[slice_index], 1);
+        pass_atomic_min_real(particle_min + slice_index, zi);
+        pass_atomic_max_real(particle_max + slice_index, zi);
     }
 }
 
@@ -1458,7 +1567,9 @@ extern "C" __global__ void slicer_build_table(
     pass_real_t* __restrict__ z_center,
     pass_real_t* __restrict__ delta_z,
     pass_real_t* __restrict__ real_charge,
-    pass_real_t* __restrict__ lind_density
+    pass_real_t* __restrict__ lind_density,
+    pass_real_t* __restrict__ particle_min,
+    pass_real_t* __restrict__ particle_max
 ) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= num_slices)
@@ -1473,58 +1584,75 @@ extern "C" __global__ void slicer_build_table(
     delta_z[i] = dz;
     real_charge[i] = (pass_real_t)counts[i] * ratio;
     lind_density[i] = dz > (pass_real_t)0.0 ? real_charge[i] / dz : (pass_real_t)0.0;
+    if (counts[i] == 0) {
+        particle_min[i] = PASS_NAN;
+        particle_max[i] = PASS_NAN;
+    }
 }
 
 extern "C" __global__ void slicer_fill_counts_equal_particle(
+    const pass_real_t* __restrict__ z,
+    const int* __restrict__ sorted_index,
     int n_active,
     int num_slices,
-    int* __restrict__ counts
+    int* __restrict__ counts,
+    pass_real_t* __restrict__ particle_min,
+    pass_real_t* __restrict__ particle_max,
+    const int* __restrict__ outside_count
 ) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= num_slices)
-        return;
+    int i = blockIdx.x;
     int reverse_i = num_slices - 1 - i;
     long long hi = (((long long)(reverse_i + 1) * (long long)n_active) + (long long)num_slices - 1LL) / (long long)num_slices;
     long long lo = (((long long)reverse_i * (long long)n_active) + (long long)num_slices - 1LL) / (long long)num_slices;
-    counts[i] = (int)(hi - lo);
+    if (outside_count[0] == 0 || hi == lo) {
+        if (threadIdx.x == 0) {
+            counts[i] = (int)(hi - lo);
+            particle_min[i] = hi > lo ? z[sorted_index[lo]] : PASS_NAN;
+            particle_max[i] = hi > lo ? z[sorted_index[hi - 1]] : PASS_NAN;
+        }
+        return;
+    }
+    // Explicit-range clipping can tie keys whose raw coordinates are unordered.
+    pass_real_t local_min = (pass_real_t)PASS_POS_INF;
+    pass_real_t local_max = (pass_real_t)-PASS_POS_INF;
+    for (long long rank = lo + threadIdx.x; rank < hi; rank += blockDim.x) {
+        pass_real_t value = z[sorted_index[rank]];
+        local_min = local_min < value ? local_min : value;
+        local_max = local_max > value ? local_max : value;
+    }
+    __shared__ pass_real_t warp_min[32];
+    __shared__ pass_real_t warp_max[32];
+    int lane = threadIdx.x & 31;
+    int warp = threadIdx.x >> 5;
+#pragma unroll
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        pass_real_t other_min = __shfl_down_sync(0xffffffff, local_min, offset);
+        pass_real_t other_max = __shfl_down_sync(0xffffffff, local_max, offset);
+        local_min = local_min < other_min ? local_min : other_min;
+        local_max = local_max > other_max ? local_max : other_max;
+    }
+    if (lane == 0) {
+        warp_min[warp] = local_min;
+        warp_max[warp] = local_max;
+    }
+    __syncthreads();
+    if (warp == 0) {
+        local_min = lane < ((blockDim.x + 31) >> 5) ? warp_min[lane] : (pass_real_t)PASS_POS_INF;
+        local_max = lane < ((blockDim.x + 31) >> 5) ? warp_max[lane] : (pass_real_t)-PASS_POS_INF;
+#pragma unroll
+        for (int offset = 16; offset > 0; offset >>= 1) {
+            pass_real_t other_min = __shfl_down_sync(0xffffffff, local_min, offset);
+            pass_real_t other_max = __shfl_down_sync(0xffffffff, local_max, offset);
+            local_min = local_min < other_min ? local_min : other_min;
+            local_max = local_max > other_max ? local_max : other_max;
+        }
+        if (lane == 0) {
+            counts[i] = (int)(hi - lo);
+            particle_min[i] = hi > lo ? local_min : PASS_NAN;
+            particle_max[i] = hi > lo ? local_max : PASS_NAN;
+        }
+    }
 }
 '''
 
 _SLICER_CUDA_SOURCE = _SLICER_CUDA_PREAMBLE + _SLICER_CUDA_BODY
-
-
-@lru_cache(maxsize=None)
-def _get_slicer_kernels(dtype):
-    """Compile Slicer CUDA kernels once per particle precision."""
-    try:
-        import cupy as cp
-    except (ImportError, OSError) as exc:
-        raise RuntimeError("GPU Slicer requires the optional 'cuda' dependencies "
-                           "(install PASS with the [cuda] extra).") from exc
-    dtype = np.dtype(dtype)
-    use_float = dtype == np.dtype(np.float32)
-    options = ("--std=c++14", f"-DPASS_USE_FLOAT={int(use_float)}")
-    names = (
-        "slicer_initialize",
-        "slicer_batch_initialize",
-        "slicer_batch_assign",
-        "slicer_batch_table",
-        "slicer_reduce",
-        "slicer_assign",
-        "slicer_assign_global",
-        "slicer_gather_active",
-        "slicer_scatter_rank",
-        "slicer_edges_quantile",
-        "slicer_edges_uniform",
-        "slicer_build_table",
-        "slicer_fill_counts_equal_particle",
-    )
-    return {name: cp.RawKernel(_SLICER_CUDA_SOURCE, name, options=options) for name in names}
-
-
-def _is_cupy_array(value) -> bool:
-    return value is not None and value.__class__.__module__.startswith("cupy")
-
-
-def _as_host(value):
-    return value.get() if _is_cupy_array(value) else np.asarray(value)

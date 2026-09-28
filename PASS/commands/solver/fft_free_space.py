@@ -146,6 +146,7 @@ class GPUFFTFreeSpaceSolver(GPUFieldSolver):
         import cupy as cp
 
         super().__init__(geometry, dtype)
+        self._fft_batches = {}
         if (isinstance(batch_size, bool) or int(batch_size) != batch_size or batch_size < 1):
             raise ValueError("FFT batch_size must be a positive integer")
         self.batch_size = int(batch_size)
@@ -185,18 +186,41 @@ class GPUFFTFreeSpaceSolver(GPUFieldSolver):
 
         workspace = self._work
         py, px = self.shape
-        sizes = {min(n_slices, self.batch_size)}
-        if n_slices % self.batch_size:
-            sizes.add(n_slices % self.batch_size)
+        sizes = [min(n_slices, self.batch_size)]
+        remainder = n_slices % self.batch_size
+        if remainder and remainder != sizes[0]:
+            sizes.append(remainder)
+        # Shape changes replace the output workspace; retain at most two FFT
+        # batches so adjacent one/two-plane source solves reuse their plans.
+        for count in sizes:
+            if count in self._fft_batches:
+                self._fft_batches[count] = self._fft_batches.pop(count)
+        missing = [count for count in sizes if count not in self._fft_batches]
+        if len(self._fft_batches) + len(missing) > 2:
+            # Plans own temporary device storage, which must outlive queued FFTs.
+            self.stream.synchronize()
+        while len(self._fft_batches) + len(missing) > 2:
+            del self._fft_batches[next(iter(self._fft_batches))]
         workspace["fft_batches"] = {}
         for count in sizes:
-            batch = {}
-            batch["padded"] = cp.empty((count, py, px), self.dtype)
-            batch["spectrum"] = cp.empty((count, py, px // 2 + 1), self.complex_dtype)
-            batch["scratch"] = cp.empty_like(batch["spectrum"])
-            batch["forward"] = get_fft_plan(batch["padded"], axes=(-2, -1), value_type="R2C")
-            batch["inverse"] = get_fft_plan(batch["scratch"], shape=self.shape, axes=(-2, -1), value_type="C2R")
-            workspace["fft_batches"][count] = batch
+            if count not in self._fft_batches:
+                batch = {}
+                batch["padded"] = cp.empty((count, py, px), self.dtype)
+                batch["spectrum"] = cp.empty((count, py, px // 2 + 1), self.complex_dtype)
+                batch["scratch"] = cp.empty_like(batch["spectrum"])
+                batch["forward"] = get_fft_plan(batch["padded"], axes=(-2, -1), value_type="R2C")
+                batch["inverse"] = get_fft_plan(batch["scratch"], shape=self.shape, axes=(-2, -1), value_type="C2R")
+                self._fft_batches[count] = batch
+            workspace["fft_batches"][count] = self._fft_batches[count]
+
+    def close(self):
+        import cupy as cp
+
+        if self._closed:
+            return
+        with cp.cuda.Device(self.device), self.stream:
+            super().close()
+            self._fft_batches.clear()
 
     def solve(self, density, *, compute_potential=True, compute_fields=True, validate=True, copy=True):
         """Convolve requested outputs; omitted potential or fields return None.

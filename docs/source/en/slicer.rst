@@ -237,6 +237,13 @@ array per slice:
 ``z_min``, ``z_max``, ``z_center``
     Boundaries and center in the selected slice coordinate, listed from high-z to
     low-z (slice ``0`` is the high-z interval).
+``z_particle_min``, ``z_particle_max``
+    Actual minimum and maximum of the slice's live macroparticle members in the
+    selected coordinate at this Slicer execution. These values precede explicit
+    range clipping and can therefore extend beyond the diagnostic boundaries.
+    Empty slices have NaN extrema; zero-width live slices have equal extrema.
+    Beam-beam PIC uses these member bounds for head/tail sampling. Equal-particle
+    rank membership, rather than quantile geometry, determines these extrema.
 ``delta_z``
     ``z_max - z_min`` for each slice.
 ``macro_count``

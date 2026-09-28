@@ -104,6 +104,8 @@ class CollisionSourceEditor(StructuredField):
         self.form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self.form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         values = model_draft(BeamBeamSourceConfig, value)
+        if any(str(key).casefold() in {"propagation_step", "propagation step (m)"} for key in values):
+            raise ValueError("Propagation step (m) is obsolete; PIC uses the target slice's actual particle head and tail")
         self.method, self.solver = Choice(), Choice()
         for title, method in (("仅目标粒子", None), ("PIC", "pic"), ("固定解析源 frozen", "frozen"), ("随粒子矩更新 quasi-frozen", "quasi-frozen")):
             self.method.addItem(title, method)
@@ -123,10 +125,6 @@ class CollisionSourceEditor(StructuredField):
             self.fields[key] = field
             label = QLabel(key)
             label.setWordWrap(True)
-            if key == "Propagation step (m)":
-                label.setText(key + " *")
-                field.setToolTip("PIC 必填：沿碰撞距离 S 采样源势的正有限步长，单位 m；不是实际碰撞距离 S。程序不自动设置。")
-                field.editor.input.setPlaceholderText("必填：沿 S 的采样步长（m）")
             self.rows[key] = label
             if key in {"Frozen parameters", "Slice parameters"}:
                 self.form.addRow(label)
@@ -157,8 +155,8 @@ class CollisionSourceEditor(StructuredField):
         if method:
             active.add("Statistics precision")
         if method == "pic":
-            active.update({"Nx", "Ny", "Grid Half Width X (m)", "Grid Half Width Y (m)", "Particle Deposition Method", "Propagation step (m)"})
-            for key in ("Grid Half Width X (m)", "Grid Half Width Y (m)", "Propagation step (m)"):
+            active.update({"Nx", "Ny", "Grid Half Width X (m)", "Grid Half Width Y (m)", "Particle Deposition Method"})
+            for key in ("Grid Half Width X (m)", "Grid Half Width Y (m)"):
                 self.fields[key].enabled_box.setChecked(True)
                 self.fields[key].enabled_box.hide()
                 self.fields[key].enabled_box.setEnabled(False)
@@ -193,6 +191,8 @@ class CollisionSourceEditor(StructuredField):
 
     def restore_draft(self, state):
         from PASS.gui.property_state import restore_field
+        if any(str(key).casefold() in {"propagation_step", "propagation step (m)"} for key in state["fields"]):
+            raise ValueError("Propagation step (m) is obsolete; recreate this source draft using head/tail PIC")
         self.method.setCurrentIndex(self.method.findData(state["method"]))
         self.solver.setCurrentIndex(max(0, self.solver.findData(state["solver"])))
         for key, value in state["fields"].items():

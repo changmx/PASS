@@ -775,271 +775,338 @@ def _gather_potential_planes(potential, x, y, geometry, tsc, error_flags):
     return value, -(value_x - value * norm_x) / norm, -(value_y - value * norm_y) / norm
 
 
-def gather_cubic_potential_jet(potential, x, y, weight, step, geometry, *, method="TSC", xp=np, error_flags=None):
-    """Gather a C1 Catmull-Rom jet from one base and three difference planes.
+def deposit_source_pair(x, px, y, py, low, high, geometry, *, charge_per_macro=1.0, method="CIC", xp=np, error_flags=None):
+    """Deposit rho(low) and the stable per-particle difference rho(high)-rho(low).
 
-    Planes are ``(Phi_i, Phi_{i-1}-Phi_i, Phi_{i+1}-Phi_i,
-    Phi_{i+2}-Phi_i)``. ``weight`` is the position within [S_i,S_{i+1}]
+    The source moves as x(S)=x-S*px and y(S)=y-S*py. Geometry, shape differences,
+    and accumulation use FP64, independently of tracking/FFT precision. Shape
+    differences integrate the exact piecewise-linear CIC or piecewise-quadratic
+    TSC basis analytically; no additional propagation samples are introduced.
+    Complete open-grid stencils are required at both supplied endpoints.
+    """
+    if method.upper() not in {"CIC", "TSC"}:
+        raise ValueError("source pair method must be CIC or TSC")
+    low, high = float(low), float(high)
+    width = high - low
+    if not np.isfinite(low) or not np.isfinite(high) or not np.isfinite(width) or width <= 0:
+        raise ValueError("source pair endpoints must be finite and increasing")
+    x = xp.asarray(x)
+    dtype = x.dtype if x.dtype in (xp.float32, xp.float64) else np.dtype("float64")
+    arrays = xp.broadcast_arrays(*(xp.asarray(value, dtype=dtype) for value in (x, px, y, py)))
+    x, px, y, py = (xp.ascontiguousarray(value).ravel() for value in arrays)
+    charge = xp.asarray(charge_per_macro, dtype=xp.float64, order="C").ravel()
+    if charge.size not in (1, x.size):
+        raise ValueError("charge_per_macro must be scalar or match particle shape")
+    density = xp.zeros((2, geometry.ny, geometry.nx), dtype=xp.float64)
+    tsc = method.upper() == "TSC"
+    if xp is not np:
+        if error_flags is not None and (error_flags.dtype != xp.int32 or not error_flags.flags.c_contiguous):
+            raise TypeError("GPU source pair error_flags must be a contiguous int32 array")
+        flags = error_flags if error_flags is not None else xp.zeros((), dtype=xp.int32)
+        launch_gpu_kernel(_POTENTIAL_JET_CUDA, "deposit_source_pair", x.size,
+                          (x, px, y, py, charge, np.int32(charge.size == 1), density, flags, np.int64(flags.size), np.int64(x.size),
+                           np.int32(geometry.nx), np.int32(geometry.ny), np.int32(tsc), np.float64(low), np.float64(width), np.float64(
+                               geometry.x_min), np.float64(geometry.y_min), np.float64(geometry.dx), np.float64(geometry.dy)), dtype)
+        if error_flags is None and bool(flags):
+            raise ValueError("source pair requires finite data and complete endpoint stencils")
+        return density
+    x, px, y, py = (value.astype(np.float64, copy=False) for value in (x, px, y, py))
+    charge = np.broadcast_to(charge, x.shape)
+    if any(np.any(~np.isfinite(value)) for value in (x, px, y, py, charge)):
+        raise ValueError("source pair requires finite data")
+
+    def axis_geometry(position, momentum, minimum, spacing, count):
+        coordinate = (position - minimum) / spacing
+        if np.any(~np.isfinite(coordinate)):
+            raise ValueError("source pair requires finite normalized coordinates")
+        anchor = np.floor(coordinate).astype(np.int64)
+        fraction = coordinate - anchor
+        rate = momentum / spacing
+        left = fraction - low * rate
+        delta = -width * rate
+        right = left + delta
+        if np.any(~np.isfinite(left) | ~np.isfinite(right) | ~np.isfinite(delta)):
+            raise ValueError("source pair requires finite propagated coordinates")
+        margin = .5 if tsc else 0
+        outside = ((left < margin - anchor) | (left > count - 1 - margin - anchor) | (right < margin - anchor)
+                   | (right > count - 1 - margin - anchor))
+        if np.any(outside):
+            raise ValueError("source pair requires complete endpoint stencils")
+        centers = [anchor + np.floor(offset + (.5 if tsc else 0)).astype(np.int64) for offset in (left, right)]
+        if not tsc:
+            centers = [np.minimum(center, count - 2) for center in centers]
+        return anchor, left, delta, centers
+
+    def shape_pair(integer_distance, offset, delta):
+        distance = integer_distance + offset
+        positive_step, absolute_step = np.maximum(delta, 0.), np.abs(delta)
+        direction = np.sign(delta)
+        if tsc:
+            absolute = np.abs(distance)
+            outer = np.where(distance >= 0, (1.5 - integer_distance) - offset, (1.5 + integer_distance) + offset)
+            value = np.where(absolute < .5, .75 - distance**2, .5 * np.maximum(0., outer)**2)
+            knots, coefficients = (-1.5, -.5, .5, 1.5), (.5, -1.5, 1.5, -.5)
+        else:
+            value = np.maximum(0., np.where(distance >= 0, (1. - integer_distance) - offset, (1. + integer_distance) + offset))
+            knots, coefficients = (-1., 0., 1.), (1., -2., 1.)
+        difference = np.zeros_like(distance)
+        # A truncated-power representation makes every knot crossing an exact
+        # clipped ramp difference, avoiding divisions and almost-equal values.
+        for knot, coefficient in zip(knots, coefficients):
+            relative = (integer_distance - knot) + offset
+            ramp_delta = direction * np.clip(relative + positive_step, 0., absolute_step)
+            if tsc:
+                ramp_delta *= 2 * np.maximum(relative, 0.) + ramp_delta
+            difference += coefficient * ramp_delta
+        wide = np.abs(delta) >= 1
+        if np.any(wide):
+            # Endpoint subtraction is well scaled after a whole-cell move;
+            # avoid cancellation among large truncated powers outside support.
+            end_distance = distance[wide] + delta[wide]
+            absolute = np.abs(end_distance)
+            end_value = np.maximum(0., 1 - absolute)
+            if tsc:
+                end_value = np.where(absolute < .5, .75 - end_distance**2, .5 * np.maximum(0., 1.5 - absolute)**2)
+            difference[wide] = end_value - value[wide]
+        return value, difference
+
+    ax, ux, du, cx = axis_geometry(x, px, geometry.x_min, geometry.dx, geometry.nx)
+    ay, uy, dv, cy = axis_geometry(y, py, geometry.y_min, geometry.dy, geometry.ny)
+    first, last = (-1, 1) if tsc else (0, 1)
+    scale = charge / (geometry.dx * geometry.dy)
+    flat = density.reshape(2, -1)
+    unchanged = (cx[0] == cx[1]) & (cy[0] == cy[1])
+    if np.any(unchanged):
+        selected = np.flatnonzero(unchanged)
+
+        def fixed_axis(anchor, offset, delta, center):
+            fraction = (anchor[selected] - center[selected]) + offset[selected]
+            displacement = delta[selected]
+            if tsc:
+                weights = np.stack((.5 * (.5 - fraction)**2, .75 - fraction**2, .5 * (.5 + fraction)**2), axis=1)
+                differences = np.stack((displacement * (fraction - .5 + .5 * displacement), -displacement *
+                                        (2 * fraction + displacement), displacement * (fraction + .5 + .5 * displacement)),
+                                       axis=1)
+            else:
+                weights = np.stack((1 - fraction, fraction), axis=1)
+                differences = np.stack((-displacement, displacement), axis=1)
+            return weights, differences
+
+        wx, dwx = fixed_axis(ax, ux, du, cx[0])
+        wy, dwy = fixed_axis(ay, uy, dv, cy[0])
+        gx = cx[0][selected, None] + np.arange(first, last + 1)
+        gy = cy[0][selected, None] + np.arange(first, last + 1)
+        indices = (gy[:, :, None] * geometry.nx + gx[:, None, :]).ravel()
+        values = scale[selected, None, None] * wy[:, :, None] * wx[:, None, :]
+        differences = scale[selected, None, None] * (wy[:, :, None] * dwx[:, None, :] + dwy[:, :, None] * (wx + dwx)[:, None, :])
+        inside = ((gy[:, :, None] >= 0) & (gy[:, :, None] < geometry.ny) & (gx[:, None, :] >= 0) & (gx[:, None, :] < geometry.nx)).ravel()
+        if np.all(inside):
+            inside = slice(None)
+        flat[0] += np.bincount(indices[inside], weights=values.ravel()[inside], minlength=flat.shape[1])
+        flat[1] += np.bincount(indices[inside], weights=differences.ravel()[inside], minlength=flat.shape[1])
+    changed = np.flatnonzero(~unchanged)
+    if not changed.size:
+        return density
+    # Only particles crossing a source stencil need the general union path.
+    ax, ay, ux, uy, du, dv, scale = (value[changed] for value in (ax, ay, ux, uy, du, dv, scale))
+    cx, cy = ([center[changed] for center in centers] for centers in (cx, cy))
+    changed = np.flatnonzero((cx[0] != cx[1]) | (cy[0] != cy[1]))
+    for endpoint in (0, 1):
+        if endpoint and not changed.size:
+            continue
+        selected_particles = changed if endpoint else slice(None)
+        anchor_x, anchor_y = ax[selected_particles], ay[selected_particles]
+        offset_x, offset_y = ux[selected_particles], uy[selected_particles]
+        delta_x, delta_y = du[selected_particles], dv[selected_particles]
+        center_x, center_y = cx[endpoint][selected_particles], cy[endpoint][selected_particles]
+        base_x, base_y = cx[0][selected_particles], cy[0][selected_particles]
+        scale_local = scale[selected_particles]
+        x_nodes, y_nodes = [], []
+        for ox in range(first, last + 1):
+            gx = center_x + ox
+            x_nodes.append((gx, *shape_pair(anchor_x - gx, offset_x, delta_x)))
+        for oy in range(first, last + 1):
+            gy = center_y + oy
+            y_nodes.append((gy, *shape_pair(anchor_y - gy, offset_y, delta_y)))
+        for gx, wx, dwx in x_nodes:
+            for gy, wy, dwy in y_nodes:
+                selected = (gx >= 0) & (gx < geometry.nx) & (gy >= 0) & (gy < geometry.ny)
+                if endpoint:
+                    selected &= ~((gx >= base_x + first) & (gx <= base_x + last) & (gy >= base_y + first) & (gy <= base_y + last))
+                if np.all(selected):
+                    selected = slice(None)
+                index = gy[selected] * geometry.nx + gx[selected]
+                if not index.size:
+                    continue
+                base = scale_local[selected] * wx[selected] * wy[selected] if not endpoint else None
+                difference = scale_local[selected] * (dwx[selected] * wy[selected] + (wx[selected] + dwx[selected]) * dwy[selected])
+                if flat.shape[1] <= 8 * index.size:
+                    if not endpoint:
+                        flat[0] += np.bincount(index, weights=base, minlength=flat.shape[1])
+                    flat[1] += np.bincount(index, weights=difference, minlength=flat.shape[1])
+                else:
+                    if not endpoint:
+                        np.add.at(flat[0], index, base)
+                    np.add.at(flat[1], index, difference)
+    return density
+
+
+def deposit_source_density_jet(x, y, dx_ds, dy_ds, geometry, *, charge_per_macro=1.0, method="CIC", xp=np, error_flags=None):
+    """Deposit a source density and its propagation derivative on an open grid.
+
+    ``dx_ds`` and ``dy_ds`` are source velocities with respect to S. The two
+    returned FP64 planes contain rho and d(rho)/dS. Complete CIC/TSC stencils
+    are required. At a CIC knot, the derivative is the right-hand S limit,
+    using the cell entered by the source velocity. An outward velocity at an
+    outer CIC grid boundary is therefore invalid. No finite step is used.
+    GPU error flags avoid host synchronization when the caller provides them.
+    """
+    if method.upper() not in {"CIC", "TSC"}:
+        raise ValueError("source density jet method must be CIC or TSC")
+    x = xp.asarray(x)
+    dtype = x.dtype if x.dtype in (xp.float32, xp.float64) else np.dtype("float64")
+    arrays = xp.broadcast_arrays(*(xp.asarray(values, dtype=dtype) for values in (x, y, dx_ds, dy_ds, charge_per_macro)))
+    x, y, dx_ds, dy_ds, charge = (xp.ascontiguousarray(values).ravel() for values in arrays)
+    density = xp.zeros((2, geometry.ny, geometry.nx), dtype=xp.float64)
+    tsc = method.upper() == "TSC"
+    if xp is not np:
+        if error_flags is not None and (error_flags.dtype != xp.int32 or not error_flags.flags.c_contiguous):
+            raise TypeError("GPU source density error_flags must be a contiguous int32 array")
+        flags = error_flags if error_flags is not None else xp.zeros((), dtype=xp.int32)
+        launch_gpu_kernel(
+            _POTENTIAL_JET_CUDA, "deposit_source_density_jet", x.size,
+            (x, y, dx_ds, dy_ds, charge, density, flags, np.int64(flags.size), np.int64(x.size), np.int32(geometry.nx), np.int32(geometry.ny),
+             np.int32(tsc), np.float64(geometry.x_min), np.float64(geometry.y_min), np.float64(geometry.dx), np.float64(geometry.dy)), dtype)
+        if error_flags is None and bool(flags):
+            raise ValueError("source density derivative requires finite data and complete propagation stencils")
+        return density
+
+    x, y, dx_ds, dy_ds, charge = (values.astype(np.float64, copy=False) for values in (x, y, dx_ds, dy_ds, charge))
+    if any(np.any(~np.isfinite(values)) for values in (x, y, dx_ds, dy_ds, charge)):
+        raise ValueError("source density derivative requires finite data")
+
+    def axis_nodes(position, velocity, minimum, spacing, count):
+        coordinate = (position - minimum) / spacing
+        margin = .5 if tsc else 0
+        outside = (coordinate < margin) | (coordinate > count - 1 - margin)
+        if not tsc:
+            outside |= ((coordinate == 0) & (velocity < 0)) | ((coordinate == count - 1) & (velocity > 0))
+        if np.any(outside):
+            raise ValueError("source density derivative requires a complete propagation stencil")
+        center = np.floor(coordinate + (.5 if tsc else 0)).astype(np.int64)
+        if not tsc:
+            center -= (coordinate == center) & (velocity < 0)
+            center = np.minimum(center, count - 2)
+        nodes = []
+        for offset in (-1, 0, 1) if tsc else (0, 1):
+            node = center + offset
+            distance = coordinate - node
+            if tsc:
+                absolute = np.abs(distance)
+                outer = np.maximum(0.0, 1.5 - absolute)
+                value = np.where(absolute < .5, .75 - distance**2, .5 * outer**2)
+                derivative = np.where(absolute < .5, -2 * distance, -np.sign(distance) * outer)
+            else:
+                value = 1 - distance if offset == 0 else 1 + distance
+                derivative = -1 if offset == 0 else 1
+            inside = (node >= 0) & (node < count)
+            nodes.append((np.clip(node, 0, count - 1), value * inside, derivative * velocity / spacing * inside))
+        return nodes
+
+    x_nodes = axis_nodes(x, dx_ds, geometry.x_min, geometry.dx, geometry.nx)
+    y_nodes = axis_nodes(y, dy_ds, geometry.y_min, geometry.dy, geometry.ny)
+    entries = [(gy * geometry.nx + gx, wx * wy, dwx * wy + wx * dwy) for gx, wx, dwx in x_nodes for gy, wy, dwy in y_nodes]
+    norm = sum(value for _, value, _ in entries)
+    norm_derivative = sum(derivative for _, _, derivative in entries)
+    scale = charge / (norm * geometry.dx * geometry.dy)
+    flat = density.reshape(2, -1)
+    for index, value, derivative in entries:
+        np.add.at(flat[0], index, scale * value)
+        np.add.at(flat[1], index, scale * (derivative - value * norm_derivative / norm))
+    return density
+
+
+def _gather_linear_cic(potential, x, y, weight, step, geometry, compute_potential):
+    """Differentiate the four-corner bilinear polynomial without normalization."""
+    scalar = potential.dtype.type
+    if np.any((x < scalar(geometry.x_min)) | (x > scalar(geometry.x_max)) | (y < scalar(geometry.y_min)) | (y > scalar(geometry.y_max))
+              | ~np.isfinite(x) | ~np.isfinite(y)):
+        raise ValueError("BeamBeam grid does not cover a complete target interpolation stencil")
+    ux = np.clip((x - scalar(geometry.x_min)) / scalar(geometry.dx), 0, geometry.nx - 1)
+    uy = np.clip((y - scalar(geometry.y_min)) / scalar(geometry.dy), 0, geometry.ny - 1)
+    ix = np.minimum(np.floor(ux).astype(np.int64), geometry.nx - 2)
+    iy = np.minimum(np.floor(uy).astype(np.int64), geometry.ny - 2)
+    u, v = ux - ix.astype(potential.dtype), uy - iy.astype(potential.dtype)
+    phi00, phi10 = potential[:, iy, ix], potential[:, iy, ix + 1]
+    phi01, phi11 = potential[:, iy + 1, ix], potential[:, iy + 1, ix + 1]
+    delta_x, delta_y = phi10 - phi00, phi01 - phi00
+    cross = phi11 - phi01 - delta_x
+    # Interpolate coefficients before evaluating both transverse derivatives.
+    cross_at_s = cross[0] + weight * cross[1]
+    ex = -(delta_x[0] + weight * delta_x[1] + v * cross_at_s) / scalar(geometry.dx)
+    ey = -(delta_y[0] + weight * delta_y[1] + u * cross_at_s) / scalar(geometry.dy)
+    difference = phi00[1] + u * delta_x[1] + v * (delta_y[1] + u * cross[1])
+    value = None
+    if compute_potential:
+        value = phi00[0] + u * delta_x[0] + v * (delta_y[0] + u * cross[0]) + weight * difference
+    return value, ex, ey, difference / step
+
+
+def gather_linear_potential_jet(potential, x, y, weight, step, geometry, *, method="TSC", xp=np, error_flags=None, compute_potential=True):
+    """Gather a linear S jet from one base and one difference plane.
+
+    Planes are ``(Phi_i, Phi_{i+1}-Phi_i)``.
+    ``weight`` is the position within [S_i,S_{i+1}]
     divided by the positive scalar ``step``. Fields differentiate the same
     normalized transverse stencil; the S derivative uses differences only.
     Passing GPU error_flags records errors without host synchronization.
     Without flags, this helper synchronizes once and raises on invalid inputs.
+    ``compute_potential=False`` returns ``None`` in the first tuple position.
     """
     dtype = potential.dtype
     scalar = np.dtype(dtype).type
-    if potential.shape != (4, geometry.ny, geometry.nx):
-        raise ValueError("cubic potential must contain four planes matching the grid")
+    if potential.shape != (2, geometry.ny, geometry.nx):
+        raise ValueError("linear potential must contain two planes matching the grid")
     if method.upper() not in {"TSC", "CIC"}:
         raise ValueError("potential gather method must be CIC or TSC")
     if np.isscalar(step) and (not np.isfinite(step) or step <= 0):
-        raise ValueError("cubic propagation step must be positive finite")
+        raise ValueError("linear propagation step must be positive finite")
     step = xp.asarray(step, dtype=dtype)
     if step.ndim != 0:
-        raise ValueError("cubic propagation step must be a scalar")
+        raise ValueError("linear propagation step must be a scalar")
     x, y, weight = xp.broadcast_arrays(*(xp.asarray(values, dtype=dtype) for values in (x, y, weight)))
     tsc = method.upper() == "TSC"
     tolerance = scalar(16 * np.finfo(dtype).eps)
     if xp is np:
         if not np.isfinite(step) or step <= 0:
-            raise ValueError("cubic propagation step must be positive finite")
+            raise ValueError("linear propagation step must be positive finite")
         if np.any(~np.isfinite(weight) | (weight < -tolerance) | (weight > 1 + tolerance)):
-            raise ValueError("cubic interpolation weight must lie within its source interval")
-        if x.size >= geometry.nx * geometry.ny and np.all(weight == 0):
-            # At a node, retain the base gauge separately from the S derivative.
-            planes = np.stack((potential[0], scalar(.5) * (potential[2] - potential[1])))
-            jets = _gather_potential_planes(planes, x, y, geometry, tsc, error_flags)
-            return *(component[0].copy() for component in jets), jets[0][1] / step
+            raise ValueError("linear interpolation weight must lie within its source interval")
+        if not tsc:
+            return _gather_linear_cic(potential, x, y, weight, step, geometry, compute_potential)
         jets = _gather_potential_planes(potential, x, y, geometry, tsc, error_flags)
-        values = [component[0].copy() for component in jets]
-        t2, t3 = weight * weight, weight * weight * weight
-        coefficients = (-weight / 2 + t2 - t3 / 2, weight / 2 + 2 * t2 - 3 * t3 / 2, -t2 / 2 + t3 / 2)
-        slopes = (-.5 + 2 * weight - 1.5 * t2, .5 + 4 * weight - 4.5 * t2, -weight + 1.5 * t2)
-        derivative = np.zeros_like(weight)
-        for index, (coefficient, slope) in enumerate(zip(coefficients, slopes), start=1):
-            for component in range(3):
-                values[component] += coefficient * jets[component][index]
-            derivative += slope * jets[0][index]
-        return (*values, derivative / step)
+        value = jets[0][0] + weight * jets[0][1] if compute_potential else None
+        return value, *(component[0] + weight * component[1] for component in jets[1:]), jets[0][1] / step
     if error_flags is not None and (error_flags.dtype != xp.int32 or not error_flags.flags.c_contiguous):
         raise TypeError("GPU potential gather error_flags must be a contiguous int32 array")
     margin = .5 if tsc else 0
     bounds = tuple(
         scalar(value) for value in (geometry.x_min + margin * geometry.dx, geometry.x_max - margin * geometry.dx,
                                     geometry.y_min + margin * geometry.dy, geometry.y_max - margin * geometry.dy))
-    outputs = tuple(xp.empty(x.shape, dtype=dtype) for _ in range(4))
+    outputs = (xp.empty(x.shape if compute_potential else (0, ), dtype=dtype), *(xp.empty(x.shape, dtype=dtype) for _ in range(3)))
     flags = error_flags if error_flags is not None else xp.zeros((), dtype=xp.int32)
-    launch_gpu_kernel(_POTENTIAL_JET_CUDA, "gather_cubic_potential_jet", x.size,
-                      (xp.ascontiguousarray(potential), xp.ascontiguousarray(x), xp.ascontiguousarray(y), xp.ascontiguousarray(weight), step,
-                       *outputs, flags, np.int64(flags.size), np.int64(x.size), np.int32(geometry.nx), np.int32(geometry.ny), np.int32(tsc),
-                       scalar(geometry.x_min), scalar(geometry.y_min), scalar(geometry.dx), scalar(geometry.dy), *bounds, tolerance), dtype)
-    if error_flags is None:
-        # Also validate a device step when there are no particle kernel threads.
+    launch_gpu_kernel(
+        _POTENTIAL_JET_CUDA, "gather_linear_potential_jet", x.size,
+        (xp.ascontiguousarray(potential), xp.ascontiguousarray(x), xp.ascontiguousarray(y), xp.ascontiguousarray(weight), step, *outputs, flags,
+         np.int64(flags.size), np.int64(x.size), np.int32(geometry.nx), np.int32(geometry.ny), np.int32(tsc), scalar(geometry.x_min),
+         scalar(geometry.y_min), scalar(geometry.dx), scalar(geometry.dy), *bounds, tolerance, np.int32(compute_potential)), dtype)
+    if not x.size:
+        # A device step still requires validation without particle threads.
         flags |= ~xp.isfinite(step) | (step <= 0)
+    if error_flags is None:
         if bool(flags):
-            raise ValueError("cubic potential gather requires a complete target stencil, interval weight in [0,1], and positive finite step")
-    return outputs
-
-
-_POTENTIAL_JET_CUDA = r"""
-__device__ void potential_jet_weight(
-    T position,
-    int node,
-    T spacing,
-    int offset,
-    int quadratic,
-    T& value,
-    T& derivative
-) {
-    T distance = position - T(node);
-    if (quadratic) {
-        T absolute = abs(distance);
-        T outer = max(T(0), T(1.5) - absolute);
-        value = absolute < T(0.5) ? T(0.75) - distance * distance : T(0.5) * outer * outer;
-        T sign = distance > T(0) ? T(1) : (distance < T(0) ? T(-1) : T(0));
-        derivative = (absolute < T(0.5) ? -T(2) * distance : -sign * outer) / spacing;
-    } else {
-        value = offset == 0 ? T(1) - distance : T(1) + distance;
-        derivative = (offset == 0 ? T(-1) : T(1)) / spacing;
-    }
-}
-
-extern "C" __global__ void gather_potential_jet(
-    const T* potential,
-    const T* x,
-    const T* y,
-    T* output_value,
-    T* output_ex,
-    T* output_ey,
-    int* error_flags,
-    long long flag_count,
-    long long count,
-    int nx,
-    int ny,
-    int quadratic,
-    T x_min,
-    T y_min,
-    T dx,
-    T dy,
-    T lower_x,
-    T upper_x,
-    T lower_y,
-    T upper_y
-) {
-    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= count)
-        return;
-    T xi = x[i], yi = y[i];
-    bool outside = xi < lower_x || xi > upper_x || yi < lower_y || yi > upper_y || !isfinite(xi) || !isfinite(yi);
-    if (outside) {
-        for (long long flag = 0; flag < flag_count; ++flag)
-            atomicOr(error_flags + flag, 1);
-    }
-    T ux = (xi - x_min) / dx, uy = (yi - y_min) / dy;
-    if (isnan(ux) || isnan(uy)) {
-        output_value[i] = output_ex[i] = output_ey[i] = ux + uy;
-        return;
-    }
-    T margin = quadratic ? T(0.5) : T(0);
-    ux = min(max(ux, margin), T(nx - 1) - margin);
-    uy = min(max(uy, margin), T(ny - 1) - margin);
-    int cx = int(floor(ux + (quadratic ? T(0.5) : T(0))));
-    int cy = int(floor(uy + (quadratic ? T(0.5) : T(0))));
-    if (!quadratic) {
-        cx = min(cx, nx - 2);
-        cy = min(cy, ny - 2);
-    }
-    T norm = T(0), norm_x = T(0), norm_y = T(0);
-    T value = T(0), value_x = T(0), value_y = T(0);
-    for (int ox = quadratic ? -1 : 0; ox <= 1; ++ox) {
-        int gx = cx + ox;
-        T wx, derivative_x;
-        potential_jet_weight(ux, gx, dx, ox, quadratic, wx, derivative_x);
-        for (int oy = quadratic ? -1 : 0; oy <= 1; ++oy) {
-            int gy = cy + oy;
-            if (gx < 0 || gx >= nx || gy < 0 || gy >= ny)
-                continue;
-            T wy, derivative_y;
-            potential_jet_weight(uy, gy, dy, oy, quadratic, wy, derivative_y);
-            T w = wx * wy, dwx = derivative_x * wy, dwy = wx * derivative_y;
-            T phi = potential[gy * nx + gx];
-            norm += w;
-            norm_x += dwx;
-            norm_y += dwy;
-            value += phi * w;
-            value_x += phi * dwx;
-            value_y += phi * dwy;
-        }
-    }
-    norm = norm > T(0) ? norm : T(1);
-    value /= norm;
-    output_value[i] = value;
-    output_ex[i] = -(value_x - value * norm_x) / norm;
-    output_ey[i] = -(value_y - value * norm_y) / norm;
-}
-
-extern "C" __global__ void gather_cubic_potential_jet(
-    const T* potential,
-    const T* x,
-    const T* y,
-    const T* weight,
-    const T* step,
-    T* output_value,
-    T* output_ex,
-    T* output_ey,
-    T* output_derivative,
-    int* error_flags,
-    long long flag_count,
-    long long count,
-    int nx,
-    int ny,
-    int quadratic,
-    T x_min,
-    T y_min,
-    T dx,
-    T dy,
-    T lower_x,
-    T upper_x,
-    T lower_y,
-    T upper_y,
-    T tolerance
-) {
-    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= count)
-        return;
-    T xi = x[i], yi = y[i], t = weight[i], h = step[0];
-    bool invalid_step = !isfinite(h) || h <= T(0);
-    bool outside = xi < lower_x || xi > upper_x || yi < lower_y || yi > upper_y || !isfinite(xi) || !isfinite(yi) || !isfinite(t) || t < -tolerance ||
-                   t > T(1) + tolerance || invalid_step;
-    if (outside) {
-        for (long long flag = 0; flag < flag_count; ++flag)
-            atomicOr(error_flags + flag, 1);
-    }
-    T ux = (xi - x_min) / dx, uy = (yi - y_min) / dy;
-    if (isnan(ux) || isnan(uy) || !isfinite(t) || invalid_step) {
-        output_value[i] = output_ex[i] = output_ey[i] = output_derivative[i] = T(nan(""));
-        return;
-    }
-    T margin = quadratic ? T(0.5) : T(0);
-    ux = min(max(ux, margin), T(nx - 1) - margin);
-    uy = min(max(uy, margin), T(ny - 1) - margin);
-    int cx = int(floor(ux + (quadratic ? T(0.5) : T(0))));
-    int cy = int(floor(uy + (quadratic ? T(0.5) : T(0))));
-    if (!quadratic) {
-        cx = min(cx, nx - 2);
-        cy = min(cy, ny - 2);
-    }
-    int width = quadratic ? 3 : 2, first = quadratic ? -1 : 0;
-    int gx[3], gy[3];
-    T wx[3], wy[3], derivative_x[3], derivative_y[3];
-    for (int node = 0; node < width; ++node) {
-        int offset = first + node;
-        gx[node] = cx + offset;
-        gy[node] = cy + offset;
-        potential_jet_weight(ux, gx[node], dx, offset, quadratic, wx[node], derivative_x[node]);
-        potential_jet_weight(uy, gy[node], dy, offset, quadratic, wy[node], derivative_y[node]);
-    }
-    T norm = T(0), norm_x = T(0), norm_y = T(0);
-    T values[4] = {T(0), T(0), T(0), T(0)};
-    T values_x[4] = {T(0), T(0), T(0), T(0)};
-    T values_y[4] = {T(0), T(0), T(0), T(0)};
-    for (int ax = 0; ax < width; ++ax) {
-        for (int ay = 0; ay < width; ++ay) {
-            if (gx[ax] < 0 || gx[ax] >= nx || gy[ay] < 0 || gy[ay] >= ny)
-                continue;
-            T w = wx[ax] * wy[ay], dwx = derivative_x[ax] * wy[ay], dwy = wx[ax] * derivative_y[ay];
-            norm += w;
-            norm_x += dwx;
-            norm_y += dwy;
-            for (int plane = 0; plane < 4; ++plane) {
-                T phi = potential[(long long)plane * nx * ny + gy[ay] * nx + gx[ax]];
-                values[plane] += phi * w;
-                values_x[plane] += phi * dwx;
-                values_y[plane] += phi * dwy;
-            }
-        }
-    }
-    norm = norm > T(0) ? norm : T(1);
-    for (int plane = 0; plane < 4; ++plane) {
-        values[plane] /= norm;
-        values_x[plane] = -(values_x[plane] - values[plane] * norm_x) / norm;
-        values_y[plane] = -(values_y[plane] - values[plane] * norm_y) / norm;
-    }
-    T t2 = t * t, t3 = t * t * t;
-    T coefficients[3] = {-t / T(2) + t2 - t3 / T(2), t / T(2) + T(2) * t2 - T(3) * t3 / T(2), -t2 / T(2) + t3 / T(2)};
-    T slopes[3] = {-T(0.5) + T(2) * t - T(1.5) * t2, T(0.5) + T(4) * t - T(4.5) * t2, -t + T(1.5) * t2};
-    T derivative = T(0);
-    for (int plane = 1; plane < 4; ++plane) {
-        values[0] += coefficients[plane - 1] * values[plane];
-        values_x[0] += coefficients[plane - 1] * values_x[plane];
-        values_y[0] += coefficients[plane - 1] * values_y[plane];
-        derivative += slopes[plane - 1] * values[plane];
-    }
-    output_value[i] = values[0];
-    output_ex[i] = values_x[0];
-    output_ey[i] = values_y[0];
-    output_derivative[i] = derivative / h;
-}
-"""
+            raise ValueError("linear potential gather requires a complete target stencil, interval weight in [0,1], and positive finite step")
+    return (outputs[0] if compute_potential else None), *outputs[1:]
 
 
 def pic_cpu(
@@ -1118,15 +1185,16 @@ class GPUPICResources:
     def dtype(self):
         return self.field_solver.dtype
 
-    def prepare(self, num_slices, num_particles=0):
+    def prepare(self, num_slices, num_particles=0, *, accumulation_dtype=None):
         import cupy as cp
 
         self.field_solver.prepare(num_slices)
         workspace = self._workspace
         grid = self.geometry
         shape = (int(num_slices), grid.ny, grid.nx)
-        if "density" not in workspace or workspace["density"].shape != shape:
-            workspace["density"] = cp.empty(shape, self.dtype)
+        density_dtype = self.dtype if accumulation_dtype is None else np.dtype(accumulation_dtype)
+        if "density" not in workspace or workspace["density"].shape != shape or workspace["density"].dtype != density_dtype:
+            workspace["density"] = cp.empty(shape, density_dtype)
         if "status" not in workspace or workspace["status"].size != num_particles:
             for name in ("status", "bins"):
                 workspace[name] = cp.empty(num_particles, cp.int32)
@@ -1266,7 +1334,14 @@ def deposit_particles_gpu(
     tag=None,
     validate=True,
     copy=True,
+    accumulation_dtype=None,
 ):
+    """Deposit with the tracking precision, optionally summing density in FP64.
+
+    The wider accumulator preserves small differences between propagated source
+    densities. Particle stencil arithmetic and the field solver keep their
+    prescribed precision; the default retains the shared PIC behavior.
+    """
     import cupy as cp
 
     if resources is None:
@@ -1275,6 +1350,8 @@ def deposit_particles_gpu(
         resources = build_pic_resources_gpu(geometry, dtype=dtype)
     if not isinstance(resources, GPUPICResources) or resources.geometry != geometry:
         raise ValueError("matching GPUPICResources are required")
+    if accumulation_dtype is not None and np.dtype(accumulation_dtype) != np.dtype("float64"):
+        raise ValueError("accumulation_dtype must be None or float64")
     x, y, slice_indices, valid = _particles_gpu(particles, slice_id, resources, tag, validate)
     n_slices = _slice_count_gpu(slice_indices, num_slices)
     macro_charges = cp.asarray(charge_per_macro, dtype=resources.dtype, order="C").ravel()
@@ -1282,7 +1359,7 @@ def deposit_particles_gpu(
         raise ValueError("charge_per_macro must be scalar or match particle shape")
     if validate and not bool(cp.all(cp.isfinite(macro_charges))):
         raise ValueError("charge_per_macro must be finite")
-    resources.prepare(n_slices, x.size)
+    resources.prepare(n_slices, x.size, accumulation_dtype=accumulation_dtype)
     workspace = resources._workspace
     workspace["density"].fill(0)
     if resources.deposition_strategy == "sorted_warp" and x.size:
@@ -1311,6 +1388,7 @@ def deposit_particles_gpu(
             macro_charges,
             np.int32(macro_charges.size == 1),
             workspace["density"],
+            np.int32(workspace["density"].dtype.itemsize > resources.dtype.itemsize),
             workspace["status"],
             workspace["bins"],
             workspace["q"],
@@ -1466,6 +1544,425 @@ def pic_gpu(
     )
 
 
+_POTENTIAL_JET_CUDA = r"""
+__device__ void source_pair_shape(
+    int integer_distance,
+    double offset,
+    double delta,
+    int quadratic,
+    double& value,
+    double& difference
+) {
+    double distance = integer_distance + offset;
+    double absolute = fabs(distance);
+    if (quadratic) {
+        double outer = distance >= 0 ? (1.5 - integer_distance) - offset : (1.5 + integer_distance) + offset;
+        outer = fmax(0.0, outer);
+        value = absolute < 0.5 ? 0.75 - distance * distance : 0.5 * outer * outer;
+    } else {
+        value = fmax(0.0, distance >= 0 ? (1.0 - integer_distance) - offset : (1.0 + integer_distance) + offset);
+    }
+    difference = 0;
+    if (delta == 0)
+        return;
+    int count = quadratic ? 3 : 2;
+    for (int part = 0; part < count; ++part) {
+        double begin = quadratic ? -1.5 + part : -1.0 + part;
+        double end = begin + 1.0;
+        double a = fmin(1.0, fmax(0.0, ((begin - integer_distance) - offset) / delta));
+        double b = fmin(1.0, fmax(0.0, ((end - integer_distance) - offset) / delta));
+        double average;
+        if (quadratic) {
+            double midpoint = delta * ((a + b) * 0.5);
+            average = part == 1 ? -2.0 * (integer_distance + offset + midpoint) : (integer_distance + (part == 0 ? 1.5 : -1.5)) + offset + midpoint;
+        } else {
+            average = part == 0 ? 1.0 : -1.0;
+        }
+        difference += fabs(b - a) * average;
+    }
+    difference *= delta;
+}
+
+extern "C" __global__ void deposit_source_pair(
+    const T* x,
+    const T* px,
+    const T* y,
+    const T* py,
+    const double* charge,
+    int scalar_charge,
+    double* density,
+    int* error_flags,
+    long long flag_count,
+    long long count,
+    int nx,
+    int ny,
+    int quadratic,
+    double low,
+    double width,
+    double x_min,
+    double y_min,
+    double dx,
+    double dy
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count)
+        return;
+    double u = (double(x[i]) - x_min) / dx, v = (double(y[i]) - y_min) / dy;
+    double rate_x = double(px[i]) / dx, rate_y = double(py[i]) / dy;
+    double q = charge[scalar_charge ? 0 : i];
+    if (!isfinite(u) || !isfinite(v) || !isfinite(rate_x) || !isfinite(rate_y) || !isfinite(q)) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+        return;
+    }
+    int ax = int(floor(u)), ay = int(floor(v));
+    double ux = (u - ax) - low * rate_x, uy = (v - ay) - low * rate_y;
+    double du = -width * rate_x, dv = -width * rate_y;
+    double rx = ux + du, ry = uy + dv, margin = quadratic ? 0.5 : 0.0;
+    bool outside = !isfinite(ux) || !isfinite(uy) || !isfinite(rx) || !isfinite(ry) || !isfinite(du) || !isfinite(dv) || ux < margin - ax ||
+                   ux > nx - 1 - margin - ax || uy < margin - ay || uy > ny - 1 - margin - ay || rx < margin - ax || rx > nx - 1 - margin - ax ||
+                   ry < margin - ay || ry > ny - 1 - margin - ay;
+    if (outside) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+        return;
+    }
+    int cx[2] = {ax + int(floor(ux + margin)), ax + int(floor(rx + margin))};
+    int cy[2] = {ay + int(floor(uy + margin)), ay + int(floor(ry + margin))};
+    if (!quadratic) {
+        cx[0] = min(cx[0], nx - 2);
+        cx[1] = min(cx[1], nx - 2);
+        cy[0] = min(cy[0], ny - 2);
+        cy[1] = min(cy[1], ny - 2);
+    }
+    int first = quadratic ? -1 : 0, axis_count = quadratic ? 3 : 2;
+    double scale = q / (dx * dy);
+    long long stride = (long long)nx * ny;
+    for (int endpoint = 0; endpoint < 2; ++endpoint) {
+        double wx[3], wy[3], dwx[3], dwy[3];
+        for (int k = 0; k < axis_count; ++k) {
+            source_pair_shape(ax - cx[endpoint] - first - k, ux, du, quadratic, wx[k], dwx[k]);
+            source_pair_shape(ay - cy[endpoint] - first - k, uy, dv, quadratic, wy[k], dwy[k]);
+        }
+        for (int ox = 0; ox < axis_count; ++ox) {
+            int gx = cx[endpoint] + first + ox;
+            for (int oy = 0; oy < axis_count; ++oy) {
+                int gy = cy[endpoint] + first + oy;
+                if (gx < 0 || gx >= nx || gy < 0 || gy >= ny)
+                    continue;
+                if (endpoint && gx >= cx[0] + first && gx <= cx[0] + 1 && gy >= cy[0] + first && gy <= cy[0] + 1)
+                    continue;
+                long long index = (long long)gy * nx + gx;
+                double value = wx[ox] * wy[oy];
+                double difference = dwx[ox] * wy[oy] + (wx[ox] + dwx[ox]) * dwy[oy];
+                atomicAdd(density + index, scale * value);
+                atomicAdd(density + stride + index, scale * difference);
+            }
+        }
+    }
+}
+
+__device__ void source_density_axis(
+    double coordinate,
+    double velocity,
+    double spacing,
+    int count,
+    int quadratic,
+    int* nodes,
+    double* weights,
+    double* derivatives
+) {
+    int center = int(floor(coordinate + (quadratic ? 0.5 : 0.0)));
+    if (!quadratic) {
+        if (coordinate == center && velocity < 0)
+            --center;
+        center = min(center, count - 2);
+    }
+    int width = quadratic ? 3 : 2, first = quadratic ? -1 : 0;
+    for (int k = 0; k < width; ++k) {
+        int offset = first + k, node = center + offset;
+        double distance = coordinate - node, value, derivative;
+        if (quadratic) {
+            double absolute = fabs(distance), outer = fmax(0.0, 1.5 - absolute);
+            value = absolute < 0.5 ? 0.75 - distance * distance : 0.5 * outer * outer;
+            double sign = distance > 0 ? 1.0 : (distance < 0 ? -1.0 : 0.0);
+            derivative = absolute < 0.5 ? -2.0 * distance : -sign * outer;
+        } else {
+            value = offset == 0 ? 1.0 - distance : 1.0 + distance;
+            derivative = offset == 0 ? -1.0 : 1.0;
+        }
+        bool inside = node >= 0 && node < count;
+        nodes[k] = min(max(node, 0), count - 1);
+        weights[k] = inside ? value : 0.0;
+        derivatives[k] = inside ? derivative * velocity / spacing : 0.0;
+    }
+}
+
+extern "C" __global__ void deposit_source_density_jet(
+    const T* x,
+    const T* y,
+    const T* dx_ds,
+    const T* dy_ds,
+    const T* charge,
+    double* density,
+    int* error_flags,
+    long long flag_count,
+    long long count,
+    int nx,
+    int ny,
+    int quadratic,
+    double x_min,
+    double y_min,
+    double dx,
+    double dy
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count)
+        return;
+    double ux = (double(x[i]) - x_min) / dx, uy = (double(y[i]) - y_min) / dy;
+    double vx = double(dx_ds[i]), vy = double(dy_ds[i]), q = double(charge[i]);
+    double margin = quadratic ? 0.5 : 0.0;
+    bool outside = !isfinite(ux) || !isfinite(uy) || !isfinite(vx) || !isfinite(vy) || !isfinite(q) || ux < margin || uy < margin ||
+                   ux > nx - 1 - margin || uy > ny - 1 - margin;
+    if (!quadratic)
+        outside = outside || (ux == 0 && vx < 0) || (uy == 0 && vy < 0) || (ux == nx - 1 && vx > 0) || (uy == ny - 1 && vy > 0);
+    if (outside) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+        return;
+    }
+    int gx[3], gy[3];
+    double wx[3], wy[3], dwx[3], dwy[3];
+    source_density_axis(ux, vx, dx, nx, quadratic, gx, wx, dwx);
+    source_density_axis(uy, vy, dy, ny, quadratic, gy, wy, dwy);
+    int width = quadratic ? 3 : 2;
+    double norm = 0, norm_derivative = 0;
+    for (int ax = 0; ax < width; ++ax) {
+        for (int ay = 0; ay < width; ++ay) {
+            norm += wx[ax] * wy[ay];
+            norm_derivative += dwx[ax] * wy[ay] + wx[ax] * dwy[ay];
+        }
+    }
+    double scale = q / (norm * dx * dy);
+    long long stride = (long long)nx * ny;
+    for (int ax = 0; ax < width; ++ax) {
+        for (int ay = 0; ay < width; ++ay) {
+            long long index = (long long)gy[ay] * nx + gx[ax];
+            double value = wx[ax] * wy[ay], derivative = dwx[ax] * wy[ay] + wx[ax] * dwy[ay];
+            atomicAdd(density + index, scale * value);
+            atomicAdd(density + stride + index, scale * (derivative - value * norm_derivative / norm));
+        }
+    }
+}
+
+__device__ void potential_jet_weight(
+    T position,
+    int node,
+    T spacing,
+    int offset,
+    int quadratic,
+    T& value,
+    T& derivative
+) {
+    T distance = position - T(node);
+    if (quadratic) {
+        T absolute = abs(distance);
+        T outer = max(T(0), T(1.5) - absolute);
+        value = absolute < T(0.5) ? T(0.75) - distance * distance : T(0.5) * outer * outer;
+        T sign = distance > T(0) ? T(1) : (distance < T(0) ? T(-1) : T(0));
+        derivative = (absolute < T(0.5) ? -T(2) * distance : -sign * outer) / spacing;
+    } else {
+        value = offset == 0 ? T(1) - distance : T(1) + distance;
+        derivative = (offset == 0 ? T(-1) : T(1)) / spacing;
+    }
+}
+
+extern "C" __global__ void gather_potential_jet(
+    const T* potential,
+    const T* x,
+    const T* y,
+    T* output_value,
+    T* output_ex,
+    T* output_ey,
+    int* error_flags,
+    long long flag_count,
+    long long count,
+    int nx,
+    int ny,
+    int quadratic,
+    T x_min,
+    T y_min,
+    T dx,
+    T dy,
+    T lower_x,
+    T upper_x,
+    T lower_y,
+    T upper_y
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count)
+        return;
+    T xi = x[i], yi = y[i];
+    bool outside = xi < lower_x || xi > upper_x || yi < lower_y || yi > upper_y || !isfinite(xi) || !isfinite(yi);
+    if (outside) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+    }
+    T ux = (xi - x_min) / dx, uy = (yi - y_min) / dy;
+    if (isnan(ux) || isnan(uy)) {
+        output_value[i] = output_ex[i] = output_ey[i] = ux + uy;
+        return;
+    }
+    T margin = quadratic ? T(0.5) : T(0);
+    ux = min(max(ux, margin), T(nx - 1) - margin);
+    uy = min(max(uy, margin), T(ny - 1) - margin);
+    int cx = int(floor(ux + (quadratic ? T(0.5) : T(0))));
+    int cy = int(floor(uy + (quadratic ? T(0.5) : T(0))));
+    if (!quadratic) {
+        cx = min(cx, nx - 2);
+        cy = min(cy, ny - 2);
+    }
+    T norm = T(0), norm_x = T(0), norm_y = T(0);
+    T value = T(0), value_x = T(0), value_y = T(0);
+    for (int ox = quadratic ? -1 : 0; ox <= 1; ++ox) {
+        int gx = cx + ox;
+        T wx, derivative_x;
+        potential_jet_weight(ux, gx, dx, ox, quadratic, wx, derivative_x);
+        for (int oy = quadratic ? -1 : 0; oy <= 1; ++oy) {
+            int gy = cy + oy;
+            if (gx < 0 || gx >= nx || gy < 0 || gy >= ny)
+                continue;
+            T wy, derivative_y;
+            potential_jet_weight(uy, gy, dy, oy, quadratic, wy, derivative_y);
+            T w = wx * wy, dwx = derivative_x * wy, dwy = wx * derivative_y;
+            T phi = potential[gy * nx + gx];
+            norm += w;
+            norm_x += dwx;
+            norm_y += dwy;
+            value += phi * w;
+            value_x += phi * dwx;
+            value_y += phi * dwy;
+        }
+    }
+    norm = norm > T(0) ? norm : T(1);
+    value /= norm;
+    output_value[i] = value;
+    output_ex[i] = -(value_x - value * norm_x) / norm;
+    output_ey[i] = -(value_y - value * norm_y) / norm;
+}
+
+extern "C" __global__ void gather_linear_potential_jet(
+    const T* potential,
+    const T* x,
+    const T* y,
+    const T* weight,
+    const T* step,
+    T* output_value,
+    T* output_ex,
+    T* output_ey,
+    T* output_derivative,
+    int* error_flags,
+    long long flag_count,
+    long long count,
+    int nx,
+    int ny,
+    int quadratic,
+    T x_min,
+    T y_min,
+    T dx,
+    T dy,
+    T lower_x,
+    T upper_x,
+    T lower_y,
+    T upper_y,
+    T tolerance,
+    int compute_potential
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= count)
+        return;
+    T xi = x[i], yi = y[i], t = weight[i], h = step[0];
+    bool invalid_step = !isfinite(h) || h <= T(0);
+    bool outside = xi < lower_x || xi > upper_x || yi < lower_y || yi > upper_y || !isfinite(xi) || !isfinite(yi) || !isfinite(t) || t < -tolerance ||
+                   t > T(1) + tolerance || invalid_step;
+    if (outside) {
+        for (long long flag = 0; flag < flag_count; ++flag)
+            atomicOr(error_flags + flag, 1);
+    }
+    T ux = (xi - x_min) / dx, uy = (yi - y_min) / dy;
+    if (isnan(ux) || isnan(uy) || !isfinite(t) || invalid_step) {
+        if (compute_potential)
+            output_value[i] = T(nan(""));
+        output_ex[i] = output_ey[i] = output_derivative[i] = T(nan(""));
+        return;
+    }
+    T margin = quadratic ? T(0.5) : T(0);
+    ux = min(max(ux, margin), T(nx - 1) - margin);
+    uy = min(max(uy, margin), T(ny - 1) - margin);
+    int cx = int(floor(ux + (quadratic ? T(0.5) : T(0))));
+    int cy = int(floor(uy + (quadratic ? T(0.5) : T(0))));
+    if (!quadratic) {
+        cx = min(cx, nx - 2);
+        cy = min(cy, ny - 2);
+        long long index = (long long)cy * nx + cx, stride = (long long)nx * ny;
+        T u = ux - T(cx), v = uy - T(cy);
+        T a0 = potential[index], a1 = potential[stride + index];
+        T bx0 = potential[index + 1] - a0, bx1 = potential[stride + index + 1] - a1;
+        T by0 = potential[index + nx] - a0, by1 = potential[stride + index + nx] - a1;
+        T cross0 = potential[index + nx + 1] - potential[index + nx] - bx0;
+        T cross1 = potential[stride + index + nx + 1] - potential[stride + index + nx] - bx1;
+        T difference = a1 + u * bx1 + v * (by1 + u * cross1);
+        if (compute_potential)
+            output_value[i] = a0 + u * bx0 + v * (by0 + u * cross0) + t * difference;
+        output_ex[i] = -(bx0 + t * bx1 + v * (cross0 + t * cross1)) / dx;
+        output_ey[i] = -(by0 + t * by1 + u * (cross0 + t * cross1)) / dy;
+        output_derivative[i] = difference / h;
+        return;
+    }
+    int width = quadratic ? 3 : 2, first = quadratic ? -1 : 0;
+    int gx[3], gy[3];
+    T wx[3], wy[3], derivative_x[3], derivative_y[3];
+    for (int node = 0; node < width; ++node) {
+        int offset = first + node;
+        gx[node] = cx + offset;
+        gy[node] = cy + offset;
+        potential_jet_weight(ux, gx[node], dx, offset, quadratic, wx[node], derivative_x[node]);
+        potential_jet_weight(uy, gy[node], dy, offset, quadratic, wy[node], derivative_y[node]);
+    }
+    T norm = T(0), norm_x = T(0), norm_y = T(0);
+    T values[2] = {T(0), T(0)};
+    T values_x[2] = {T(0), T(0)};
+    T values_y[2] = {T(0), T(0)};
+    for (int ax = 0; ax < width; ++ax) {
+        for (int ay = 0; ay < width; ++ay) {
+            if (gx[ax] < 0 || gx[ax] >= nx || gy[ay] < 0 || gy[ay] >= ny)
+                continue;
+            T w = wx[ax] * wy[ay], dwx = derivative_x[ax] * wy[ay], dwy = wx[ax] * derivative_y[ay];
+            norm += w;
+            norm_x += dwx;
+            norm_y += dwy;
+            for (int plane = 0; plane < 2; ++plane) {
+                T phi = potential[(long long)plane * nx * ny + gy[ay] * nx + gx[ax]];
+                values[plane] += phi * w;
+                values_x[plane] += phi * dwx;
+                values_y[plane] += phi * dwy;
+            }
+        }
+    }
+    norm = norm > T(0) ? norm : T(1);
+    for (int plane = 0; plane < 2; ++plane) {
+        values[plane] /= norm;
+        values_x[plane] = -(values_x[plane] - values[plane] * norm_x) / norm;
+        values_y[plane] = -(values_y[plane] - values[plane] * norm_y) / norm;
+    }
+    if (compute_potential)
+        output_value[i] = values[0] + t * values[1];
+    output_ex[i] = values_x[0] + t * values_x[1];
+    output_ey[i] = values_y[0] + t * values_y[1];
+    output_derivative[i] = values[1] / h;
+}
+"""
+
 _PIC_CUDA = r"""
 __device__ long long read_sid(
     const void* ids,
@@ -1482,9 +1979,10 @@ __device__ double tsc_weight(
     return d < 0.5 ? 0.75 - d * d : 0.5 * outer * outer;
 }
 
+template <typename Accumulation>
 __device__ void deposit_add(
-    T* address,
-    T value,
+    Accumulation* address,
+    Accumulation value,
     int strategy
 ) {
     if (strategy == 0) {
@@ -1497,7 +1995,7 @@ __device__ void deposit_add(
         atomicAdd(address, value);
         return;
     }
-    T sum = 0;
+    Accumulation sum = 0;
     for (unsigned peers = group; peers; peers &= peers - 1)
         sum += __shfl_sync(group, value, __ffs(peers) - 1);
     if ((threadIdx.x & 31) == __ffs(group) - 1)
@@ -1554,7 +2052,8 @@ extern "C" __global__ void deposit(
     const bool* active,
     const T* charge,
     int scalar_charge,
-    T* rho,
+    void* rho,
+    int wide_density,
     int* status,
     int* bins,
     T* deposited_q,
@@ -1595,8 +2094,14 @@ extern "C" __global__ void deposit(
     retained[i] = norm;
     T q = charge[scalar_charge ? 0 : i], scale = q / (norm * dx * dy);
     deposited_q[i] = q;
-    for (int k = 0; k < count; ++k)
-        deposit_add(rho + s * nx * ny + nodes[k], weights[k] * scale, strategy);
+    for (int k = 0; k < count; ++k) {
+        long long index = s * nx * ny + nodes[k];
+        T contribution = weights[k] * scale;
+        if (wide_density)
+            deposit_add(static_cast<double*>(rho) + index, static_cast<double>(contribution), strategy);
+        else
+            deposit_add(static_cast<T*>(rho) + index, contribution, strategy);
+    }
 }
 
 extern "C" __global__ void gather_pair(

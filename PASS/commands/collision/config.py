@@ -67,7 +67,6 @@ class BeamBeamSourceConfig(_CollisionInput):
     grid_half_width_x: float | None = Field(default=None, gt=0, alias="Grid Half Width X (m)")
     grid_half_width_y: float | None = Field(default=None, gt=0, alias="Grid Half Width Y (m)")
     deposition_method: Literal["CIC", "TSC"] = Field(default="TSC", alias="Particle Deposition Method")
-    propagation_step: float | None = Field(default=None, gt=0, alias="Propagation step (m)")
     frozen_parameters: FrozenParameters | None = Field(default=None, alias="Frozen parameters")
     slice_parameters: dict[int | str, FrozenParameters] = Field(default_factory=dict, alias="Slice parameters")
     frozen_optics_reference: str | None = Field(default=None, min_length=1, alias="Frozen optics reference")
@@ -78,7 +77,7 @@ class BeamBeamSourceConfig(_CollisionInput):
     def _validate_source(self):
         if self.slice_set != self.slice_set.strip():
             raise ValueError("Slice set must not have surrounding whitespace")
-        pic_fields = {"nx", "ny", "grid_half_width_x", "grid_half_width_y", "deposition_method", "propagation_step"}
+        pic_fields = {"nx", "ny", "grid_half_width_x", "grid_half_width_y", "deposition_method"}
         frozen_fields = {"frozen_parameters", "slice_parameters", "frozen_optics_reference", "source_center_slopes"}
         if self.method is None:
             if self.model_fields_set - {"slice_set", "method", "solver"} or self.solver is not None:
@@ -90,8 +89,6 @@ class BeamBeamSourceConfig(_CollisionInput):
             raise ValueError("Grid and deposition parameters apply only to PIC")
         if self.method == "pic" and (self.grid_half_width_x is None or self.grid_half_width_y is None):
             raise ValueError("PIC requires both Grid Half Width X/Y (m)")
-        if self.method == "pic" and self.propagation_step is None:
-            raise ValueError("PIC requires an explicit positive Propagation step (m); automatic step selection is not supported")
         if self.method != "frozen" and self.model_fields_set & frozen_fields:
             raise ValueError("Prescribed profile/optics parameters apply only to frozen")
         if self.method == "frozen":
@@ -123,7 +120,7 @@ class BeamBeamSourceConfig(_CollisionInput):
         if self.method is not None:
             names.update({"method", "solver", "statistics_precision"})
         if self.method == "pic":
-            names.update({"nx", "ny", "grid_half_width_x", "grid_half_width_y", "deposition_method", "propagation_step"})
+            names.update({"nx", "ny", "grid_half_width_x", "grid_half_width_y", "deposition_method"})
         if self.method == "frozen":
             names.update({"frozen_parameters", "slice_parameters", "frozen_optics_reference", "source_center_slopes"})
         keys = {(type(self).model_fields[name].alias if info.by_alias else name) for name in names}

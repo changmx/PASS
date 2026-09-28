@@ -11,7 +11,7 @@ import numpy as np
 
 from PASS.commands.solver.analytic import evaluate_potential_jet
 from PASS.commands.solver.field_result import launch_gpu_kernel
-from PASS.commands.solver.pic import deposit_particles, deposit_particles_gpu, gather_cubic_potential_jet
+from PASS.commands.solver.pic import deposit_source_density_jet, deposit_source_pair, gather_linear_potential_jet
 
 
 @dataclass
@@ -64,6 +64,83 @@ class AnalyticSource:
                                       self.reference_length)
 
 
+@dataclass
+class PICSource:
+    coordinates: object
+    charge_per_macro: float
+    grid: object
+    method: str
+    resources: object
+    pic: object
+
+    def _solve_endpoints(self, endpoints):
+        xp = self.resources.xp
+        x, px, y, py = self.coordinates
+        if endpoints[0] == endpoints[1]:
+            # The derivative of a zero-width source interval need not vanish.
+            x = xp.asarray(x, dtype=xp.float64) - float(endpoints[0]) * xp.asarray(px, dtype=xp.float64)
+            y = xp.asarray(y, dtype=xp.float64) - float(endpoints[0]) * xp.asarray(py, dtype=xp.float64)
+            density = deposit_source_density_jet(x,
+                                                 y,
+                                                 -px,
+                                                 -py,
+                                                 self.grid,
+                                                 charge_per_macro=self.charge_per_macro,
+                                                 method=self.method,
+                                                 xp=xp,
+                                                 error_flags=self.resources.error_flags)
+        else:
+            # Form each particle's endpoint difference before grid accumulation.
+            density = deposit_source_pair(x,
+                                          px,
+                                          y,
+                                          py,
+                                          float(endpoints[0]),
+                                          float(endpoints[1]),
+                                          self.grid,
+                                          charge_per_macro=self.charge_per_macro,
+                                          method=self.method,
+                                          xp=xp,
+                                          error_flags=self.resources.error_flags)
+        if xp is np:
+            return self.pic.field_solver.solve(density, compute_fields=False).potential
+        return self.pic.field_solver.solve(density, compute_fields=False, validate=False, copy=False).potential
+
+    def evaluate(self, x, y, distance, *, endpoints):
+        xp, dtype = self.resources.xp, self.resources.dtype
+        x, y, distance = xp.broadcast_arrays(xp.asarray(x, dtype=dtype), xp.asarray(y, dtype=dtype), xp.asarray(distance, dtype=dtype))
+        shape = x.shape
+        if not x.size:
+            return None, *(xp.empty(shape, dtype=dtype) for _ in range(3))
+        # Bounds come from one compact SliceSet schedule, never a GPU reduction
+        # for each slice pair. Cast before subtracting to match tracked S.
+        endpoints = np.asarray(endpoints, dtype=dtype)
+        if endpoints.shape != (2, ) or not np.all(np.isfinite(endpoints)) or endpoints[1] < endpoints[0]:
+            raise ValueError("BeamBeam requires finite ordered actual slice endpoints")
+        width = dtype.type(endpoints[1] - endpoints[0])
+        if not np.isfinite(width):
+            raise ValueError("BeamBeam actual slice span is not representable")
+        if width == 0:
+            invalid = xp.any(~xp.isfinite(distance) | (distance != endpoints[0]))
+            if xp is np and bool(invalid):
+                raise ValueError("BeamBeam target distances exceed its zero-width slice")
+            self.resources.error_flags[...] |= invalid.astype(xp.int32)
+            weight, denominator = xp.zeros(shape, dtype=dtype), dtype.type(1)
+        else:
+            weight, denominator = (distance - endpoints[0]) / width, width
+        potential = self._solve_endpoints(endpoints)
+        return gather_linear_potential_jet(potential,
+                                           x,
+                                           y,
+                                           weight,
+                                           denominator,
+                                           self.grid,
+                                           method=self.method,
+                                           xp=xp,
+                                           error_flags=self.resources.error_flags,
+                                           compute_potential=False)
+
+
 _PROPAGATION_CUDA = r"""
 extern "C" __global__ void collision_propagate_moments(
     const T* distance,
@@ -105,98 +182,3 @@ extern "C" __global__ void collision_propagate_moments(
     derivative[3 * i + 2] = dyy;
 }
 """
-
-
-def _validate_propagation_step(prescribed_step, resources):
-    """Require a manually prescribed S spacing representable in tracking precision."""
-    if prescribed_step is None:
-        raise ValueError("PIC requires an explicit positive Propagation step (m); automatic step selection is not supported")
-    with np.errstate(over="ignore", under="ignore"):
-        step = resources.dtype.type(prescribed_step)
-    if not np.isfinite(step) or step <= 0:
-        raise ValueError(f"Propagation step (m) must remain finite and positive in {resources.dtype.name}")
-    return resources.xp.asarray(step, dtype=resources.dtype)
-
-
-@dataclass
-class PICSource:
-    coordinates: object
-    charge_per_macro: float
-    step: object
-    grid: object
-    method: str
-    resources: object
-    pic: object
-
-    def _check_coverage(self, distances):
-        xp, scalar = self.resources.xp, self.resources.dtype.type
-        normalized = distances / self.step
-        limit = scalar(2**(20 if self.resources.dtype.itemsize == 4 else 50))
-        invalid = xp.any(~xp.isfinite(normalized) | (xp.abs(normalized) > limit))
-        self.resources.error_flags[...] |= invalid.astype(xp.int32)
-        normalized = xp.nan_to_num(normalized, nan=0., posinf=float(limit), neginf=-float(limit))
-        normalized = xp.clip(normalized, -limit, limit)
-        intervals = xp.floor(normalized).astype(xp.int64)
-        endpoints = xp.stack((intervals.min() - 1, intervals.max() + 2)).astype(self.resources.dtype) * self.step
-        x, px, y, py = self.coordinates
-        x = x[None, :] - endpoints[:, None] * px[None, :]
-        y = y[None, :] - endpoints[:, None] * py[None, :]
-        margin = .5 if self.method == "TSC" else 0
-        outside = xp.any((x < self.grid.x_min + margin * self.grid.dx) | (x > self.grid.x_max - margin * self.grid.dx)
-                         | (y < self.grid.y_min + margin * self.grid.dy) | (y > self.grid.y_max - margin * self.grid.dy)
-                         | ~xp.isfinite(x) | ~xp.isfinite(y))
-        if xp is np and bool(outside | invalid):
-            raise ValueError("BeamBeam propagation grid does not cover complete source stencils or resolvable distances")
-        self.resources.error_flags[...] |= outside.astype(xp.int32)
-        return intervals, normalized - intervals.astype(self.resources.dtype)
-
-    def _solve_interval(self, interval):
-        xp, dtype = self.resources.xp, self.resources.dtype
-        # Every interval uses the same absolute S lattice, including its halo.
-        nodes = xp.asarray([interval, interval - 1, interval + 1, interval + 2], dtype=dtype) * self.step
-        x, px, y, py = self.coordinates
-        kwargs = dict(resources=self.pic, method=self.method, charge_per_macro=self.charge_per_macro)
-        if xp is np:
-            # A plane at a time bounds CPU stencil temporaries without changing
-            # the accumulation order within any physical density plane.
-            sid = np.zeros(self.coordinates.shape[1], dtype=np.int64)
-            density = np.stack([
-                deposit_particles({
-                    "x": x - node * px,
-                    "y": y - node * py
-                }, sid, self.grid, dtype=dtype, num_slices=1, **kwargs).density[0] for node in nodes
-            ])
-        else:
-            x = x[None, :] - nodes[:, None] * px[None, :]
-            y = y[None, :] - nodes[:, None] * py[None, :]
-            sid = xp.repeat(xp.arange(4, dtype=xp.int64), self.coordinates.shape[1])
-            density = deposit_particles_gpu({
-                "x": x.ravel(),
-                "y": y.ravel()
-            }, sid, self.grid, num_slices=4, validate=False, copy=False, **kwargs).density
-        # Difference densities remove the large common potential before FFT.
-        density[1:] -= density[:1]
-        if xp is np:
-            return self.pic.field_solver.solve(density, compute_fields=False).potential
-        # All gathers finish on this stream before the next interval reuses phi.
-        return self.pic.field_solver.solve(density, compute_fields=False, validate=False, copy=False).potential
-
-    def evaluate(self, x, y, distance):
-        xp, dtype = self.resources.xp, self.resources.dtype
-        x, y, distance = xp.broadcast_arrays(xp.asarray(x, dtype=dtype), xp.asarray(y, dtype=dtype), xp.asarray(distance, dtype=dtype))
-        shape = x.shape
-        x, y, distance = x.ravel(), y.ravel(), distance.ravel()
-        if not x.size:
-            return tuple(xp.empty(shape, dtype=dtype) for _ in range(4))
-        intervals, weight = self._check_coverage(distance)
-        occupied = xp.unique(intervals)
-        occupied = occupied if xp is np else xp.asnumpy(occupied)
-        outputs = tuple(xp.empty(x.size, dtype=dtype) for _ in range(4))
-        kwargs = dict(method=self.method, xp=xp, error_flags=self.resources.error_flags)
-        for interval in occupied:
-            selected = slice(None) if occupied.size == 1 else xp.flatnonzero(intervals == interval)
-            potential = self._solve_interval(int(interval))
-            values = gather_cubic_potential_jet(potential, x[selected], y[selected], weight[selected], self.step, self.grid, **kwargs)
-            for output, value in zip(outputs, values):
-                output[selected] = value
-        return tuple(output.reshape(shape) for output in outputs)
