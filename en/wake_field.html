@@ -86,7 +86,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#response-models">Response models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#example">Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#diagnostics-and-state">Diagnostics and state</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#file-input">File input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#file-input">File input</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#canonical-wake-tfs-and-external-conversion">Canonical wake TFS and external conversion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#coasting-beams">Coasting beams</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#stationary-multibunch-and-long-history">Stationary multibunch and long history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#variable-period-general-history">Variable-period general history</a></li>
@@ -266,7 +269,7 @@ and checks convergence.</p>
 <td><p>Increasing <code class="docutils literal notranslate"><span class="pre">Times</span> <span class="pre">(s)</span></code>, matching <code class="docutils literal notranslate"><span class="pre">Values</span></code>, <code class="docutils literal notranslate"><span class="pre">Causal</span></code> (default true). Linear interpolation, zero outside the table. Causal tables start at zero; two-sided tables can include negative delays.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
-<td><p>Numeric <code class="docutils literal notranslate"><span class="pre">table</span></code> or <code class="docutils literal notranslate"><span class="pre">headtail</span></code> input with explicit column indices, units, signs and normalization. See File input below. Loaded once, with content fingerprinting.</p></td>
+<td><p>Canonical wake TFS only. Convert external CSV/TXT/HEADTAIL data before tracking. See File input below. Loaded once, with content fingerprinting.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">impedance</span></code></p></td>
 <td><p>Increasing nonnegative <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>, matching <code class="docutils literal notranslate"><span class="pre">Real</span></code>/<code class="docutils literal notranslate"><span class="pre">Imag</span></code>, explicit <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>. Original samples remain immutable.</p></td>
@@ -343,52 +346,238 @@ activated particles retain their original weights. See <a class="reference inter
 </section>
 <section id="file-input">
 <h2>File input<a class="headerlink" href="#file-input" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> takes <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">Format</span></code> (<code class="docutils literal notranslate"><span class="pre">table</span></code> default or
-<code class="docutils literal notranslate"><span class="pre">headtail</span></code>), <code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code> (default 0), required <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>, optional
-<code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>, <code class="docutils literal notranslate"><span class="pre">Delimiter</span></code> (null for whitespace), <code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code> (default 0),
-<code class="docutils literal notranslate"><span class="pre">Causal</span></code> (default true), <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> (<code class="docutils literal notranslate"><span class="pre">two_sided</span></code> default), optional
-<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>, and required <code class="docutils literal notranslate"><span class="pre">Convention</span></code>. Columns are zero-based, distinct,
-and numeric. UTF-8 files may contain # comments and a byte-order mark. General
-tables are linearly interpolated with zero outside their supplied support;
-causal tables must include zero delay. Unordered/duplicate samples are rejected;
-a reversed time/distance axis is accepted and reordered.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Convention</span></code> declares <code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">kind</span></code> (<code class="docutils literal notranslate"><span class="pre">wake_function</span></code>/<code class="docutils literal notranslate"><span class="pre">impedance</span></code>),
-<code class="docutils literal notranslate"><span class="pre">Axis</span></code> (<code class="docutils literal notranslate"><span class="pre">time</span></code>/<code class="docutils literal notranslate"><span class="pre">distance</span></code>/<code class="docutils literal notranslate"><span class="pre">frequency</span></code>), <code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">unit</span></code>, <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">unit</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Positive</span> <span class="pre">trailing</span></code>, <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">positive</span> <span class="pre">loss</span></code>, <code class="docutils literal notranslate"><span class="pre">Integrated</span></code>, and
-<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">beta</span></code>. <code class="docutils literal notranslate"><span class="pre">Fourier</span> <span class="pre">exponent</span></code> defaults to -1,
-<code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">impedance</span> <span class="pre">factor</span></code> to i (also -i or 1), and
-<code class="docutils literal notranslate"><span class="pre">Shunt</span> <span class="pre">impedance</span> <span class="pre">convention</span></code> to <code class="docutils literal notranslate"><span class="pre">not_applicable</span></code> (provenance only: numeric
-samples are already normalized; this field does not rescale a shunt impedance).</p>
-<p>Time units: s/ms/us/ns/ps; distance: m/cm/mm; frequency: Hz/kHz/MHz/GHz.
-Wake amplitudes explicitly use V/kV/MV divided by C/nC/pC and the required
-spatial powers, for example <code class="docutils literal notranslate"><span class="pre">V/C/m^2</span></code> or <code class="docutils literal notranslate"><span class="pre">V/(pC*mm)</span></code>. Impedance units use
-ohm/Ohm/kOhm/MOhm with spatial powers. Per-length data add one denominator
-length power and require physical <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>; integrated data forbid it.
-Distance coordinates convert to delay through reference beta*c, without an
-additional wake-amplitude Jacobian. Fourier and longitudinal signs are
-converted explicitly. Impedance files require both real and imaginary columns
-and positive-trailing delay convention; use the Fourier sign field for
-opposite transform signs. Finite-band causal projection retains its documented
-approximation. A finite-bunch wake potential requires separate deconvolution
-and is rejected as a point-charge wake.</p>
-<p>HEADTAIL supports several column layouts, so select the columns explicitly.
-Its contract is ns and integrated V/pC for order zero, V/(pC*mm) for order one;
-signs remain explicit. See the <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL table specification</a>.
-For example:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="s2">"tail.dat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"headtail"</span><span class="p">,</span>
-    <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span>
-        <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/(pC*mm)"</span><span class="p">,</span> <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reference_beta</span><span class="o">=</span><span class="n">beta</span><span class="p">))</span>
-</pre></div>
-</div>
+<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> reads canonical wake TFS only. Its model fields are
+<code class="docutils literal notranslate"><span class="pre">Kind=&quot;file&quot;</span></code>, required <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>, <code class="docutils literal notranslate"><span class="pre">Format=&quot;tfs&quot;</span></code> (default), and
+<code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> (default <code class="docutils literal notranslate"><span class="pre">two_sided</span></code>, used for impedance spectra).
+Units, signs, spatial powers and temporal causality come from the file.
+<code class="docutils literal notranslate"><span class="pre">Component</span></code> and <code class="docutils literal notranslate"><span class="pre">Velocity</span></code> remain explicit component-level settings.</p>
+<p>CSV, whitespace tables and HEADTAIL files must first be converted with
+<code class="docutils literal notranslate"><span class="pre">PASS.tool.wake_conversion</span></code> or the GUI wake importer. Tracking no longer
+accepts <code class="docutils literal notranslate"><span class="pre">Format=&quot;table&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;headtail&quot;</span></code>, nor the former model fields
+<code class="docutils literal notranslate"><span class="pre">Convention</span></code>, <code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code>, <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>, <code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>, <code class="docutils literal notranslate"><span class="pre">Delimiter</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code>, <code class="docutils literal notranslate"><span class="pre">Causal</span></code> or <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>. These source interpretation settings
+belong to the conversion step. Renaming an external file to <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> is
+insufficient: it must contain the canonical columns and required headers below.</p>
+<p>Temporal tables use linear interpolation and zero response outside their
+support. Causal tables start at zero delay. The converter rejects duplicate
+or unordered samples and can reorder a reversed time/distance axis; it
+retains the original sample locations after unit and direction conversion.</p>
 <p>Input JSON resolves <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code> relative to its directory. Direct Python
 construction uses the supplied path relative to the current directory. Files
 are read only at construction; source hash and conversion metadata remain on
 the model. Checkpoints verify file-content hashes as well as configuration.
 CST project/binary parsing, automatic unit detection and wake-potential
-deconvolution are not included; exported numeric files can use <code class="docutils literal notranslate"><span class="pre">table</span></code> with
-their actual conventions explicitly provided.</p>
+deconvolution are not included. Export numeric data and convert it using
+its explicitly declared source conventions.</p>
+<section id="canonical-wake-tfs-and-external-conversion">
+<span id="wake-tfs-en"></span><h3>Canonical wake TFS and external conversion<a class="headerlink" href="#canonical-wake-tfs-and-external-conversion" title="Link to this heading"></a></h3>
+<p>Use one TFS file per wake component. The canonical time-domain columns are
+<code class="docutils literal notranslate"><span class="pre">TAU</span></code> and <code class="docutils literal notranslate"><span class="pre">W</span></code>: delay in seconds and the integrated point-charge wake in
+SI units. Positive delay means a trailing witness; positive longitudinal wake
+means energy loss. The amplitude unit is <code class="docutils literal notranslate"><span class="pre">V/C/m^n</span></code>, where n is the sum of
+the source and witness transverse powers (<code class="docutils literal notranslate"><span class="pre">V/C</span></code> for the longitudinal
+monopole). Impedance files use <code class="docutils literal notranslate"><span class="pre">FREQUENCY</span></code>, <code class="docutils literal notranslate"><span class="pre">REAL</span></code> and <code class="docutils literal notranslate"><span class="pre">IMAG</span></code> in Hz and
+the corresponding integrated SI impedance units.</p>
+<p>Header names and canonical values are case-sensitive. All headers below are
+required except <code class="docutils literal notranslate"><span class="pre">SOURCE_METADATA</span></code>; <code class="docutils literal notranslate"><span class="pre">CAUSAL</span></code> and <code class="docutils literal notranslate"><span class="pre">ZERO_VALUE</span></code> are required
+only for temporal wakes and forbidden for impedance spectra. Header records
+use <code class="docutils literal notranslate"><span class="pre">&#64;</span> <span class="pre">NAME</span> <span class="pre">TYPE</span> <span class="pre">VALUE</span></code> before the <code class="docutils literal notranslate"><span class="pre">*</span></code> column names and <code class="docutils literal notranslate"><span class="pre">$</span></code> column types.
+All data columns have real floating types (the writer uses <code class="docutils literal notranslate"><span class="pre">%le</span></code>), and all
+numeric samples and metadata must be finite.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Canonical wake TFS version 1 headers</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 12.0%" />
+<col style="width: 53.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Header</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PASS_WAKE_VERSION</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DATA_KIND</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wake_function</span></code> or <code class="docutils literal notranslate"><span class="pre">impedance</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMPONENT</span></code>, <code class="docutils literal notranslate"><span class="pre">PLANE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>Configured component name and its plane (<code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code> or <code class="docutils literal notranslate"><span class="pre">z</span></code>); both must match the selected component.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_POWERS</span></code>, <code class="docutils literal notranslate"><span class="pre">TEST_POWERS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>JSON lists <code class="docutils literal notranslate"><span class="pre">[x_power,</span> <span class="pre">y_power]</span></code> matching the component; for example, <code class="docutils literal notranslate"><span class="pre">&quot;[0,</span> <span class="pre">0]&quot;</span></code> for each longitudinal monopole factor.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AXIS_UNIT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">s</span></code> for temporal wakes; <code class="docutils literal notranslate"><span class="pre">Hz</span></code> for impedance spectra.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">VALUE_UNIT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">V/C</span></code> for wakes or <code class="docutils literal notranslate"><span class="pre">ohm</span></code> for impedance at order zero; append <code class="docutils literal notranslate"><span class="pre">/m</span></code> at order one or <code class="docutils literal notranslate"><span class="pre">/m^n</span></code> at higher order n.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REFERENCE_BETA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%le</span></code></p></td>
+<td><p>Reference speed divided by c, with <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;</span> <span class="pre">beta</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">INTEGRATED</span></code>, <code class="docutils literal notranslate"><span class="pre">POSITIVE_TRAILING</span></code>, <code class="docutils literal notranslate"><span class="pre">LONGITUDINAL_POSITIVE_LOSS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code></p></td>
+<td><p>Each is <code class="docutils literal notranslate"><span class="pre">1</span></code>: integrated response, positive-trailing delay and positive longitudinal loss.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FOURIER_EXPONENT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TRANSVERSE_IMPEDANCE_FACTOR</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">i</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SHUNT_IMPEDANCE_CONVENTION</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">not_applicable</span></code>; samples are already normalized. Original source conventions may be retained in provenance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CAUSAL</span></code>, <code class="docutils literal notranslate"><span class="pre">ZERO_VALUE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code>, <code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>Temporal wakes only: <code class="docutils literal notranslate"><span class="pre">1</span></code> and <code class="docutils literal notranslate"><span class="pre">right_limit</span></code> for causal tables, or <code class="docutils literal notranslate"><span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">sample</span></code> for two-sided tables.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_METADATA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>Optional quoted JSON object containing source provenance, such as its hash and original import convention.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The TFS headers record the component, source/witness powers, data kind, units,
+signs, normalization, reference beta and causal convention. A causal time-domain
+zero-delay sample stores the right limit <span class="math notranslate nohighlight">\(W(0^+)\)</span>; the solver applies
+the half-self-interaction rule. Supply the full right limit, without halving
+it in the file. A nonzero final wake sample warns of truncation because
+the response is zero beyond the supplied support. Extend the source data
+and check convergence when this truncation matters.</p>
+<p>Convert exported CSV, whitespace tables or HEADTAIL data with the dedicated
+<code class="docutils literal notranslate"><span class="pre">PASS.tool.wake_conversion</span></code> utility. It checks the declared physical
+conventions, converts units and signs, and writes canonical TFS. It preserves
+the original sample locations after unit/direction conversion: it does not
+resample the response or convert delay to tracking turns. The general
+CSV/TFS converter only changes table representation; it does not establish
+this wake-specific physical contract.</p>
+<p>The converter’s <code class="docutils literal notranslate"><span class="pre">format</span></code> is <code class="docutils literal notranslate"><span class="pre">table</span></code> by default; use <code class="docutils literal notranslate"><span class="pre">headtail</span></code> for its
+specific unit contract. Numeric columns are zero-based and distinct:
+<code class="docutils literal notranslate"><span class="pre">axis_column=0</span></code> and <code class="docutils literal notranslate"><span class="pre">value_column=1</span></code> are defaults, with <code class="docutils literal notranslate"><span class="pre">imag_column</span></code>
+required for impedance. <code class="docutils literal notranslate"><span class="pre">delimiter=None</span></code> selects whitespace, and
+<code class="docutils literal notranslate"><span class="pre">skiprows=0</span></code> skips no initial rows. UTF-8 files support # comments and a
+byte-order mark. Specify <code class="docutils literal notranslate"><span class="pre">causal=False</span></code> for a two-sided temporal response.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">convention</span></code> dictionary declares <code class="docutils literal notranslate"><span class="pre">data_kind</span></code> (<code class="docutils literal notranslate"><span class="pre">wake_function</span></code> or
+<code class="docutils literal notranslate"><span class="pre">impedance</span></code>), <code class="docutils literal notranslate"><span class="pre">axis</span></code> (<code class="docutils literal notranslate"><span class="pre">time</span></code>, <code class="docutils literal notranslate"><span class="pre">distance</span></code> or <code class="docutils literal notranslate"><span class="pre">frequency</span></code>),
+<code class="docutils literal notranslate"><span class="pre">axis_unit</span></code>, <code class="docutils literal notranslate"><span class="pre">value_unit</span></code>, <code class="docutils literal notranslate"><span class="pre">positive_trailing</span></code>,
+<code class="docutils literal notranslate"><span class="pre">longitudinal_positive_loss</span></code>, <code class="docutils literal notranslate"><span class="pre">integrated</span></code> and <code class="docutils literal notranslate"><span class="pre">reference_beta</span></code>.
+<code class="docutils literal notranslate"><span class="pre">fourier_exponent</span></code> defaults to -1, <code class="docutils literal notranslate"><span class="pre">transverse_impedance_factor</span></code> to <code class="docutils literal notranslate"><span class="pre">i</span></code>
+(also <code class="docutils literal notranslate"><span class="pre">-i</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>), and <code class="docutils literal notranslate"><span class="pre">shunt_impedance_convention</span></code> to
+<code class="docutils literal notranslate"><span class="pre">not_applicable</span></code>. The last field records provenance without rescaling
+already normalized samples.</p>
+<p>Time units are s/ms/us/ns/ps, distance units m/cm/mm, and frequency units
+Hz/kHz/MHz/GHz. Wake amplitudes use V/kV/MV divided by C/nC/pC and the required
+spatial powers, such as <code class="docutils literal notranslate"><span class="pre">V/C/m^2</span></code> or <code class="docutils literal notranslate"><span class="pre">V/(pC*mm)</span></code>. Impedance units use
+ohm/Ohm/kOhm/MOhm and spatial powers. Per-length data add one denominator
+length power and require <code class="docutils literal notranslate"><span class="pre">length</span></code> in metres; integrated data forbid it.
+Impedance requires real and imaginary columns and positive-trailing delay;
+declare the Fourier exponent to convert an opposite transform sign.
+Finite-band causal projection retains its documented approximation.</p>
+<p>For a distance axis, distinguish the source’s definitions explicitly in
+<code class="docutils literal notranslate"><span class="pre">convention</span></code>: <code class="docutils literal notranslate"><span class="pre">distance_convention=&quot;beta_c_tau&quot;</span></code> (default) means
+<span class="math notranslate nohighlight">\(s=\beta_{\mathrm{ref}}c\tau\)</span>, while <code class="docutils literal notranslate"><span class="pre">&quot;c_tau&quot;</span></code> means
+<span class="math notranslate nohighlight">\(s=c\tau\)</span>. Select the latter with <code class="docutils literal notranslate"><span class="pre">--distance-convention</span> <span class="pre">c_tau</span></code>.
+The conversion changes the delay axis without an additional wake-amplitude
+Jacobian. These definitions coincide only at beta = 1; the tool does not
+infer one from a column labelled distance or z.</p>
+<p>HEADTAIL supports multiple column layouts, so select the columns explicitly.
+Its contract is ns and integrated V/pC at order zero, V/(pC*mm) at order one;
+signs remain explicit. See the <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL table specification</a>.
+The output <code class="docutils literal notranslate"><span class="pre">SOURCE_METADATA</span></code> preserves the source hash and complete import
+settings, including column mapping, skipped rows, delimiter, length,
+causality, reconstruction and distance definition, for reproducibility.</p>
+<p>For example, save this illustrative nonuniform table as <code class="docutils literal notranslate"><span class="pre">wake.csv</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span># delay_ns,wake_V_per_pC
+0,4
+0.25,3
+0.8,1
+2,0
+</pre></div>
+</div>
+<p>Convert it with:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m PASS.tool.wake_conversion wake.csv wake_longitudinal.tfs --component longitudinal --axis time --axis-unit ns --value-unit V/pC --reference-beta 0.9 --delimiter ","</span>
+</pre></div>
+</div>
+<p>The defaults declare positive-trailing delay, positive longitudinal loss and
+an integrated response. Use <code class="docutils literal notranslate"><span class="pre">--negative-trailing</span></code> or <code class="docutils literal notranslate"><span class="pre">--positive-gain</span></code>
+only when that is the source’s convention. Per-length data require
+<code class="docutils literal notranslate"><span class="pre">--per-length</span> <span class="pre">--length</span> <span class="pre">LENGTH_IN_METRES</span></code> and the corresponding per-length
+amplitude unit. Select columns and skipped header rows explicitly when the
+source has a different layout. A finite-bunch wake potential requires
+separate deconvolution and is rejected as a point-charge wake.</p>
+<p>Place the resulting component in a group’s <code class="docutils literal notranslate"><span class="pre">Components</span></code> list:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Component"</span><span class="p">:</span><span class="w"> </span><span class="s2">"longitudinal"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Velocity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fixed"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Beta"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.9</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"Model"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"file"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tfs"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"File path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"wake_longitudinal.tfs"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Keep <code class="docutils literal notranslate"><span class="pre">Velocity</span></code> explicit and consistent with the file’s reference beta.
+The example describes a stationary response at beta = 0.9; changing the
+tracking speed does not derive a new response from that table. The normal
+Slicer, group solver and source-history configuration is still required.</p>
+<p>The selected <code class="docutils literal notranslate"><span class="pre">Component</span></code> must match the file. Temporal causality and
+conventions are read exclusively from the TFS headers. For impedance TFS,
+choose <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> in the tracking model; the spectrum does not
+declare temporal causality. The minimal file model above is sufficient for
+temporal wakes because <code class="docutils literal notranslate"><span class="pre">Format</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">tfs</span></code>.</p>
+<p>The Qt-independent Python APIs are
+<code class="docutils literal notranslate"><span class="pre">preview_wake_file(source,</span> <span class="pre">**options)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">convert_wake_file(source,</span> <span class="pre">destination,</span> <span class="pre">**options)</span></code> in
+<code class="docutils literal notranslate"><span class="pre">PASS.tool.wake_conversion</span></code>. Its <code class="docutils literal notranslate"><span class="pre">read_external_wake(source,</span> <span class="pre">**options)</span></code>
+function reads declared <code class="docutils literal notranslate"><span class="pre">table</span></code>/<code class="docutils literal notranslate"><span class="pre">headtail</span></code> input into an SI response model;
+<code class="docutils literal notranslate"><span class="pre">read_wake_file</span></code> in the runtime package reads canonical TFS only. Import
+options include <code class="docutils literal notranslate"><span class="pre">component</span></code>, column selection and a <code class="docutils literal notranslate"><span class="pre">convention</span></code> dictionary
+or <code class="docutils literal notranslate"><span class="pre">WakeConvention</span></code>. Conversion defaults to <code class="docutils literal notranslate"><span class="pre">overwrite=False</span></code>;
+<code class="docutils literal notranslate"><span class="pre">expected_sha256</span></code> can protect a previewed source against changes before
+saving. For the CSV example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.tool.wake_conversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_wake_file</span><span class="p">,</span> <span class="n">preview_wake_file</span>
+
+<span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">component</span><span class="o">=</span><span class="s2">"longitudinal"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"table"</span><span class="p">,</span> <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span> <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span> <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/pC"</span><span class="p">,</span>
+        <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">reference_beta</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">fourier_exponent</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">transverse_impedance_factor</span><span class="o">=</span><span class="s2">"i"</span><span class="p">,</span>
+        <span class="n">shunt_impedance_convention</span><span class="o">=</span><span class="s2">"not_applicable"</span><span class="p">))</span>
+<span class="n">preview</span> <span class="o">=</span> <span class="n">preview_wake_file</span><span class="p">(</span><span class="s2">"wake.csv"</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">convert_wake_file</span><span class="p">(</span>
+    <span class="s2">"wake.csv"</span><span class="p">,</span> <span class="s2">"wake_longitudinal.tfs"</span><span class="p">,</span> <span class="n">expected_sha256</span><span class="o">=</span><span class="n">preview</span><span class="p">[</span><span class="s2">"sha256"</span><span class="p">],</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For read-only inspection of an existing canonical file, use
+<code class="docutils literal notranslate"><span class="pre">preview_wake_file(&quot;wake_longitudinal.tfs&quot;,</span> <span class="pre">format=&quot;tfs&quot;)</span></code>; the component is
+read from its headers. TFS preview and successful conversion return
+<code class="docutils literal notranslate"><span class="pre">component_config</span></code>, a component JSON fragment with explicit fixed velocity
+and any required spatial or reconstruction settings. Raw-file preview leaves
+this field null because no canonical output path exists yet.</p>
+<p>Large-table preview keeps the endpoints and extrema of bounded sample groups
+instead of selecting evenly spaced rows, so narrow peaks remain visible.
+Full-table diagnostics report the peak magnitude, tail-to-peak ratio and sample-spacing range.
+Preview reduction only affects display; export preserves all original knots.</p>
+<p>The GUI exposes the same workflow through <strong>Import wake…</strong> in
+<a class="reference internal" href="gui_tools.html#gui-data-conversion-en"><span class="std std-ref">Data format conversion</span></a>.</p>
+</section>
 </section>
 <section id="coasting-beams">
 <h2>Coasting beams<a class="headerlink" href="#coasting-beams" title="Link to this heading"></a></h2>

@@ -85,7 +85,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#id2">命令与算法参数</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id3">响应模型</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id4">示例与恢复</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">文件输入</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">文件输入</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tfs">标准尾场 TFS 与外部文件转换</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#id6">非聚束束流适配范围</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id7">固定网格多束团与长历史</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id8">变周期下的一般历史计算</a></li>
@@ -252,7 +255,7 @@
 <td><p>递增 <code class="docutils literal notranslate"><span class="pre">Times</span> <span class="pre">(s)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Values</span></code>、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）。线性插值，表外为零。因果表从零开始，双侧表可含负延迟。</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
-<td><p>数值 table 或 headtail 文件，显式声明列、单位、符号与归一化；只在初始化读取，保存内容指纹，详见文件输入。</p></td>
+<td><p>仅接受标准尾场 TFS；外部 CSV/TXT/HEADTAIL 数据须先转换再跟踪。只在初始化读取，保存内容指纹，详见文件输入。</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">impedance</span></code></p></td>
 <td><p>递增非负 <code class="docutils literal notranslate"><span class="pre">Frequencies</span> <span class="pre">(Hz)</span></code>、对应 <code class="docutils literal notranslate"><span class="pre">Real</span></code>/<code class="docutils literal notranslate"><span class="pre">Imag</span></code>、显式 <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>；保留不可变原始采样。</p></td>
@@ -312,41 +315,207 @@ CPU/GPU 源投影均使用 <code class="docutils literal notranslate"><span clas
 </section>
 <section id="id5">
 <h2>文件输入<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> 接受 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>、<code class="docutils literal notranslate"><span class="pre">Format</span></code> （默认 table 或 headtail）、
-<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code> （默认 0）、必填 <code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>、可选 <code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>、
-<code class="docutils literal notranslate"><span class="pre">Delimiter</span></code> （null 为空白分隔）、<code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code> （默认 0）、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> （默认 true）、
-<code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> （默认 two_sided）、可选 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code> 和必填 <code class="docutils literal notranslate"><span class="pre">Convention</span></code>。
-列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
-一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
-采样，反向时间/距离轴可以重排。</p>
-<p><code class="docutils literal notranslate"><span class="pre">Convention</span></code> 声明 <code class="docutils literal notranslate"><span class="pre">Data</span> <span class="pre">kind</span></code> （wake_function/impedance）、<code class="docutils literal notranslate"><span class="pre">Axis</span></code>
-（time/distance/frequency）、<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">unit</span></code>、<code class="docutils literal notranslate"><span class="pre">Positive</span> <span class="pre">trailing</span></code>、
-<code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">positive</span> <span class="pre">loss</span></code>、<code class="docutils literal notranslate"><span class="pre">Integrated</span></code>、<code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">beta</span></code>。
-<code class="docutils literal notranslate"><span class="pre">Fourier</span> <span class="pre">exponent</span></code> 默认 -1，<code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">impedance</span> <span class="pre">factor</span></code> 默认 i（可为 -i/1），
-<code class="docutils literal notranslate"><span class="pre">Shunt</span> <span class="pre">impedance</span> <span class="pre">convention</span></code> 默认 not_applicable，仅记录来源：数值表已归一化，
-此字段不重新缩放分路阻抗。</p>
-<p>时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
-尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
-V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
-分母长度幂次，必须给定 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>；已经积分的数据不允许再次乘长度。
-距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
-显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
-约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
-有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。</p>
-<p>HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
-V/(pC*mm)，符号仍需声明。参见 <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL 表格规范</a>。
-文件输入示例：</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="s2">"tail.dat"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"headtail"</span><span class="p">,</span>
-    <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span>
-        <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/(pC*mm)"</span><span class="p">,</span> <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reference_beta</span><span class="o">=</span><span class="n">beta</span><span class="p">))</span>
-</pre></div>
-</div>
+<p><code class="docutils literal notranslate"><span class="pre">Model.Kind=&quot;file&quot;</span></code> 仅读取标准尾场 TFS。模型字段为 <code class="docutils literal notranslate"><span class="pre">Kind=&quot;file&quot;</span></code>、
+必填 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code>、<code class="docutils literal notranslate"><span class="pre">Format=&quot;tfs&quot;</span></code> （默认），以及用于阻抗频谱的
+<code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code> （默认 <code class="docutils literal notranslate"><span class="pre">two_sided</span></code>）。单位、符号、空间幂次与时域因果性
+均从文件读取。<code class="docutils literal notranslate"><span class="pre">Component</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Velocity</span></code> 仍在分量配置中显式指定。</p>
+<p>CSV、空白分隔表格与 HEADTAIL 文件须先通过 <code class="docutils literal notranslate"><span class="pre">PASS.tool.wake_conversion</span></code>
+或 GUI 尾场导入工具转换。跟踪不再接受 <code class="docutils literal notranslate"><span class="pre">Format=&quot;table&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">&quot;headtail&quot;</span></code>，
+也不接受原模型字段 <code class="docutils literal notranslate"><span class="pre">Convention</span></code>、<code class="docutils literal notranslate"><span class="pre">Axis</span> <span class="pre">column</span></code>、<code class="docutils literal notranslate"><span class="pre">Value</span> <span class="pre">column</span></code>、
+<code class="docutils literal notranslate"><span class="pre">Imag</span> <span class="pre">column</span></code>、<code class="docutils literal notranslate"><span class="pre">Delimiter</span></code>、<code class="docutils literal notranslate"><span class="pre">Skip</span> <span class="pre">rows</span></code>、<code class="docutils literal notranslate"><span class="pre">Causal</span></code> 或 <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code>。
+这些解释源数据的选项属于转换阶段。仅将外部文件改名为 <code class="docutils literal notranslate"><span class="pre">.tfs</span></code> 并不足够，
+文件必须包含下述标准列与必需头部。</p>
+<p>时域表采用分段线性插值，支撑范围外响应为零，因果表从零延迟开始。
+转换器拒绝重复或乱序采样，可重排反向时间/距离轴；单位与方向换算后保留
+原始采样位置。</p>
 <p>JSON 输入将 <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">path</span></code> 相对其所在目录解析；直接 Python 构造则相对当前
 工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
-校验文件内容与配置。不读取 CST 工程或二进制文件、自动单位猜测或
-wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。</p>
+校验文件内容与配置。不包含 CST 工程或二进制读取、自动单位猜测或
+wake-potential 反卷积；应导出数值数据，再声明实际源约定完成转换。</p>
+<section id="tfs">
+<span id="wake-tfs-zh"></span><h3>标准尾场 TFS 与外部文件转换<a class="headerlink" href="#tfs" title="Link to this heading"></a></h3>
+<p>一个 TFS 文件保存一个尾场分量。时域标准列为 <code class="docutils literal notranslate"><span class="pre">TAU</span></code> 和 <code class="docutils literal notranslate"><span class="pre">W</span></code>，分别表示
+以秒为单位的延迟和采用 SI 单位的积分点电荷尾函数。正延迟表示尾随测试粒子，
+纵向尾函数正值表示能量损失。幅值单位为 <code class="docutils literal notranslate"><span class="pre">V/C/m^n</span></code>，n 是源与测试粒子横向
+幂次之和；纵向单极分量使用 <code class="docutils literal notranslate"><span class="pre">V/C</span></code>。阻抗文件使用 <code class="docutils literal notranslate"><span class="pre">FREQUENCY</span></code>、<code class="docutils literal notranslate"><span class="pre">REAL</span></code>、
+<code class="docutils literal notranslate"><span class="pre">IMAG</span></code> 三列，频率以 Hz 表示，阻抗采用对应的积分 SI 单位。</p>
+<p>头部字段名与标准值区分大小写。下表除 <code class="docutils literal notranslate"><span class="pre">SOURCE_METADATA</span></code> 外均为必填；
+<code class="docutils literal notranslate"><span class="pre">CAUSAL</span></code> 与 <code class="docutils literal notranslate"><span class="pre">ZERO_VALUE</span></code> 仅对时域尾函数必填，阻抗频谱禁止使用这两个字段。
+头部使用 <code class="docutils literal notranslate"><span class="pre">&#64;</span> <span class="pre">NAME</span> <span class="pre">TYPE</span> <span class="pre">VALUE</span></code>，放在 <code class="docutils literal notranslate"><span class="pre">*</span></code> 列名与 <code class="docutils literal notranslate"><span class="pre">$</span></code> 列类型之前。
+数据列均使用实数浮点类型（写出时为 <code class="docutils literal notranslate"><span class="pre">%le</span></code>），所有数值样本与数值元数据
+必须有限。</p>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">标准尾场 TFS 第 1 版头部</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 12.0%" />
+<col style="width: 53.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>字段</p></th>
+<th class="head"><p>类型</p></th>
+<th class="head"><p>取值</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PASS_WAKE_VERSION</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DATA_KIND</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wake_function</span></code> 或 <code class="docutils literal notranslate"><span class="pre">impedance</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMPONENT</span></code>、<code class="docutils literal notranslate"><span class="pre">PLANE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>配置所选的分量名称及其平面（<code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code> 或 <code class="docutils literal notranslate"><span class="pre">z</span></code>），两者均须与所选分量一致。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_POWERS</span></code>、<code class="docutils literal notranslate"><span class="pre">TEST_POWERS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>与分量匹配的 JSON 列表 <code class="docutils literal notranslate"><span class="pre">[x_power,</span> <span class="pre">y_power]</span></code>；纵向单极分量两者均为 <code class="docutils literal notranslate"><span class="pre">&quot;[0,</span> <span class="pre">0]&quot;</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AXIS_UNIT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>时域尾函数为 <code class="docutils literal notranslate"><span class="pre">s</span></code>，阻抗频谱为 <code class="docutils literal notranslate"><span class="pre">Hz</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">VALUE_UNIT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>零阶尾函数为 <code class="docutils literal notranslate"><span class="pre">V/C</span></code>，零阶阻抗为 <code class="docutils literal notranslate"><span class="pre">ohm</span></code>；一阶追加 <code class="docutils literal notranslate"><span class="pre">/m</span></code>，更高阶 n 追加 <code class="docutils literal notranslate"><span class="pre">/m^n</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REFERENCE_BETA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%le</span></code></p></td>
+<td><p>参考速度除以 c，满足 <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;</span> <span class="pre">beta</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">INTEGRATED</span></code>、<code class="docutils literal notranslate"><span class="pre">POSITIVE_TRAILING</span></code>、<code class="docutils literal notranslate"><span class="pre">LONGITUDINAL_POSITIVE_LOSS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code></p></td>
+<td><p>均为 <code class="docutils literal notranslate"><span class="pre">1</span></code>：响应已积分、正延迟表示尾随、纵向正值表示损失。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FOURIER_EXPONENT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-1</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TRANSVERSE_IMPEDANCE_FACTOR</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">i</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SHUNT_IMPEDANCE_CONVENTION</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">not_applicable</span></code>，样本已完成归一化；原始文件的约定可保存在来源元数据中。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CAUSAL</span></code>、<code class="docutils literal notranslate"><span class="pre">ZERO_VALUE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%d</span></code>、<code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>仅时域尾函数使用：因果表为 <code class="docutils literal notranslate"><span class="pre">1</span></code> 与 <code class="docutils literal notranslate"><span class="pre">right_limit</span></code>，双侧表为 <code class="docutils literal notranslate"><span class="pre">0</span></code> 与 <code class="docutils literal notranslate"><span class="pre">sample</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SOURCE_METADATA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">%s</span></code></p></td>
+<td><p>可选的带引号 JSON 对象，保存源文件哈希、原始导入约定等来源信息。</p></td>
+</tr>
+</tbody>
+</table>
+<p>TFS 头部记录分量、源/测试粒子幂次、数据类型、单位、符号、归一化、参考 beta
+与因果约定。因果时域响应的零延迟样本填写右极限 <span class="math notranslate nohighlight">\(W(0^+)\)</span>，求解器处理半自作用，
+文件中不要预先减半。末端尾函数非零时会提示截断，因为支撑范围外响应为零；
+截断不可忽略时，应延长原始数据范围并检查收敛。</p>
+<p>使用专用工具 <code class="docutils literal notranslate"><span class="pre">PASS.tool.wake_conversion</span></code> 转换导出的 CSV、空白分隔表格或
+HEADTAIL 数据。工具检查声明的物理约定，转换单位与符号，写出标准 TFS。
+单位与方向换算后保留原始采样位置，不重采样，也不将延迟转换为跟踪圈号。
+通用 CSV/TFS 转换仅改变表格格式，不会自动建立这些尾场物理约定。</p>
+<p>转换器的 <code class="docutils literal notranslate"><span class="pre">format</span></code> 默认为 <code class="docutils literal notranslate"><span class="pre">table</span></code>，HEADTAIL 特定单位约定使用 <code class="docutils literal notranslate"><span class="pre">headtail</span></code>。
+数值列号从零开始且不能重复，默认 <code class="docutils literal notranslate"><span class="pre">axis_column=0</span></code>、<code class="docutils literal notranslate"><span class="pre">value_column=1</span></code>，
+阻抗还须提供 <code class="docutils literal notranslate"><span class="pre">imag_column</span></code>。<code class="docutils literal notranslate"><span class="pre">delimiter=None</span></code> 表示空白分隔，
+<code class="docutils literal notranslate"><span class="pre">skiprows=0</span></code> 表示不跳过开头行。UTF-8 文件支持 # 注释与 BOM。
+双侧时域响应使用 <code class="docutils literal notranslate"><span class="pre">causal=False</span></code>。</p>
+<p><code class="docutils literal notranslate"><span class="pre">convention</span></code> 字典声明 <code class="docutils literal notranslate"><span class="pre">data_kind</span></code> （<code class="docutils literal notranslate"><span class="pre">wake_function</span></code> 或 <code class="docutils literal notranslate"><span class="pre">impedance</span></code>）、
+<code class="docutils literal notranslate"><span class="pre">axis</span></code> （<code class="docutils literal notranslate"><span class="pre">time</span></code>、<code class="docutils literal notranslate"><span class="pre">distance</span></code> 或 <code class="docutils literal notranslate"><span class="pre">frequency</span></code>）、<code class="docutils literal notranslate"><span class="pre">axis_unit</span></code>、
+<code class="docutils literal notranslate"><span class="pre">value_unit</span></code>、<code class="docutils literal notranslate"><span class="pre">positive_trailing</span></code>、<code class="docutils literal notranslate"><span class="pre">longitudinal_positive_loss</span></code>、
+<code class="docutils literal notranslate"><span class="pre">integrated</span></code> 与 <code class="docutils literal notranslate"><span class="pre">reference_beta</span></code>。<code class="docutils literal notranslate"><span class="pre">fourier_exponent</span></code> 默认 -1，
+<code class="docutils literal notranslate"><span class="pre">transverse_impedance_factor</span></code> 默认 <code class="docutils literal notranslate"><span class="pre">i</span></code> （可为 <code class="docutils literal notranslate"><span class="pre">-i</span></code> 或 <code class="docutils literal notranslate"><span class="pre">1</span></code>），
+<code class="docutils literal notranslate"><span class="pre">shunt_impedance_convention</span></code> 默认 <code class="docutils literal notranslate"><span class="pre">not_applicable</span></code>；最后一项仅记录来源，
+不会重新缩放已归一化的样本。</p>
+<p>时间单位为 s/ms/us/ns/ps，距离为 m/cm/mm，频率为 Hz/kHz/MHz/GHz。
+尾场幅值使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 <code class="docutils literal notranslate"><span class="pre">V/C/m^2</span></code> 或
+<code class="docutils literal notranslate"><span class="pre">V/(pC*mm)</span></code>；阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据
+多一个分母长度幂次，必须提供以米为单位的 <code class="docutils literal notranslate"><span class="pre">length</span></code>；已积分数据禁止提供
+长度。阻抗须提供实部、虚部列，并采用正延迟尾随约定；相反变换符号通过
+Fourier 指数字段换算。有限带宽因果投影仍存在其文档所述近似。</p>
+<p>距离轴必须明确源文件的定义：<code class="docutils literal notranslate"><span class="pre">convention</span></code> 中的
+<code class="docutils literal notranslate"><span class="pre">distance_convention=&quot;beta_c_tau&quot;</span></code> （默认）表示
+<span class="math notranslate nohighlight">\(s=\beta_{\mathrm{ref}}c\tau\)</span>，<code class="docutils literal notranslate"><span class="pre">&quot;c_tau&quot;</span></code> 表示 <span class="math notranslate nohighlight">\(s=c\tau\)</span>。
+命令行通过 <code class="docutils literal notranslate"><span class="pre">--distance-convention</span> <span class="pre">c_tau</span></code> 选择后者。转换仅改变延迟轴，
+尾函数幅值不额外乘雅可比。两种定义仅在 beta = 1 时相同，工具不会从名为
+distance 或 z 的列推测采用哪种定义。</p>
+<p>HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns、零阶积分 V/pC 和
+一阶积分 V/(pC*mm)，符号仍需声明。参见 <a class="reference external" href="https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf">CERN HEADTAIL 表格规范</a>。
+输出 <code class="docutils literal notranslate"><span class="pre">SOURCE_METADATA</span></code> 保存源文件哈希与完整导入设置，包括列映射、跳行、
+分隔符、长度、因果性、重构方式与距离定义，便于复现。</p>
+<p>例如，将下面用于演示的非均匀采样表保存为 <code class="docutils literal notranslate"><span class="pre">wake.csv</span></code>：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span># delay_ns,wake_V_per_pC
+0,4
+0.25,3
+0.8,1
+2,0
+</pre></div>
+</div>
+<p>执行转换：</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m PASS.tool.wake_conversion wake.csv wake_longitudinal.tfs --component longitudinal --axis time --axis-unit ns --value-unit V/pC --reference-beta 0.9 --delimiter ","</span>
+</pre></div>
+</div>
+<p>默认约定为正延迟尾随、纵向正值表示损失、响应已沿作用长度积分。
+仅当源文件采用相反约定时使用 <code class="docutils literal notranslate"><span class="pre">--negative-trailing</span></code> 或 <code class="docutils literal notranslate"><span class="pre">--positive-gain</span></code>。
+单位长度数据必须使用 <code class="docutils literal notranslate"><span class="pre">--per-length</span> <span class="pre">--length</span> <span class="pre">LENGTH_IN_METRES</span></code>，
+并声明对应的单位长度幅值单位。源文件列布局不同时，需明确指定列号与跳过的
+头部行数。有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数导入。</p>
+<p>将生成的分量放入算法组的 <code class="docutils literal notranslate"><span class="pre">Components</span></code> 列表：</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"Component"</span><span class="p">:</span><span class="w"> </span><span class="s2">"longitudinal"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"Velocity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"Kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fixed"</span><span class="p">,</span><span class="w"> </span><span class="nt">"Beta"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.9</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"Model"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"Kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"file"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"Format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tfs"</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">"File path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"wake_longitudinal.tfs"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Velocity</span></code> 仍需显式声明，并与文件参考 beta 一致。示例表示 beta = 0.9 时的
+定常响应；改变跟踪速度不会自动从该表推导出新的响应。仍需正常配置 Slicer、
+算法组求解器与源历史。</p>
+<p>所选 <code class="docutils literal notranslate"><span class="pre">Component</span></code> 必须与文件匹配。时域因果性与物理约定完全从 TFS 头部
+读取。阻抗 TFS 不声明时域因果性，应在跟踪模型中选择 <code class="docutils literal notranslate"><span class="pre">Reconstruction</span></code>。
+上面的最简文件模型已足够读取时域尾函数，其中 <code class="docutils literal notranslate"><span class="pre">Format</span></code> 默认为 <code class="docutils literal notranslate"><span class="pre">tfs</span></code>。</p>
+<p>不依赖 Qt 的 Python API 位于 <code class="docutils literal notranslate"><span class="pre">PASS.tool.wake_conversion</span></code>：
+<code class="docutils literal notranslate"><span class="pre">preview_wake_file(source,</span> <span class="pre">**options)</span></code> 与
+<code class="docutils literal notranslate"><span class="pre">convert_wake_file(source,</span> <span class="pre">destination,</span> <span class="pre">**options)</span></code>。同模块中的
+<code class="docutils literal notranslate"><span class="pre">read_external_wake(source,</span> <span class="pre">**options)</span></code> 根据声明读取 <code class="docutils literal notranslate"><span class="pre">table</span></code>/<code class="docutils literal notranslate"><span class="pre">headtail</span></code>，
+返回 SI 响应模型；运行时模块的 <code class="docutils literal notranslate"><span class="pre">read_wake_file</span></code> 仅读取标准 TFS。
+导入选项包括 <code class="docutils literal notranslate"><span class="pre">component</span></code>、列选择，以及字典或 <code class="docutils literal notranslate"><span class="pre">WakeConvention</span></code> 形式的
+<code class="docutils literal notranslate"><span class="pre">convention</span></code>。转换默认 <code class="docutils literal notranslate"><span class="pre">overwrite=False</span></code>；
+<code class="docutils literal notranslate"><span class="pre">expected_sha256</span></code> 可防止保存时使用已经改变的预览源文件。
+上面的 CSV 示例对应：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.tool.wake_conversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_wake_file</span><span class="p">,</span> <span class="n">preview_wake_file</span>
+
+<span class="n">options</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">component</span><span class="o">=</span><span class="s2">"longitudinal"</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">"table"</span><span class="p">,</span> <span class="n">axis_column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">value_column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span> <span class="n">convention</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">data_kind</span><span class="o">=</span><span class="s2">"wake_function"</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">"time"</span><span class="p">,</span> <span class="n">axis_unit</span><span class="o">=</span><span class="s2">"ns"</span><span class="p">,</span> <span class="n">value_unit</span><span class="o">=</span><span class="s2">"V/pC"</span><span class="p">,</span>
+        <span class="n">positive_trailing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">longitudinal_positive_loss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">integrated</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">reference_beta</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">fourier_exponent</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">transverse_impedance_factor</span><span class="o">=</span><span class="s2">"i"</span><span class="p">,</span>
+        <span class="n">shunt_impedance_convention</span><span class="o">=</span><span class="s2">"not_applicable"</span><span class="p">))</span>
+<span class="n">preview</span> <span class="o">=</span> <span class="n">preview_wake_file</span><span class="p">(</span><span class="s2">"wake.csv"</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">convert_wake_file</span><span class="p">(</span>
+    <span class="s2">"wake.csv"</span><span class="p">,</span> <span class="s2">"wake_longitudinal.tfs"</span><span class="p">,</span> <span class="n">expected_sha256</span><span class="o">=</span><span class="n">preview</span><span class="p">[</span><span class="s2">"sha256"</span><span class="p">],</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>只读复核已有标准文件可调用
+<code class="docutils literal notranslate"><span class="pre">preview_wake_file(&quot;wake_longitudinal.tfs&quot;,</span> <span class="pre">format=&quot;tfs&quot;)</span></code>，分量从文件头部读取。
+TFS 预览与成功转换会返回 <code class="docutils literal notranslate"><span class="pre">component_config</span></code>：包含显式固定速度及所需空间
+幂次或重构设置的分量 JSON 片段。原始文件预览时该字段为 null，因为尚无
+标准输出文件路径。</p>
+<p>大表预览保留端点与分组极值，避免等间隔抽行漏掉窄峰；全表诊断报告最大幅值、
+末点/峰值比与采样间距范围。预览点数减少仅影响显示，导出仍保留全部原始采样点。</p>
+<p>GUI 的 <a class="reference internal" href="gui_tools.html#gui-data-conversion-zh"><span class="std std-ref">数据格式转换</span></a> 页面通过 <strong>导入尾场…</strong>
+提供同一工作流程。</p>
+</section>
 </section>
 <section id="id6">
 <h2>非聚束束流适配范围<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>

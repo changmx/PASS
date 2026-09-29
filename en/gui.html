@@ -67,7 +67,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#structured-array-parameters">Structured array parameters</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#space-charge">Space charge</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#injection-clocks-rf-and-pulsed-elements">Injection, clocks, RF and pulsed elements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#wakefield-and-result-files">WakeField and result files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#wakefield">WakeField</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#electron-clouds">Electron clouds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#result-files">Result files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#twiss-and-optics">Twiss and optics</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mad-x-sampling">MAD-X sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#one-turn-transfer">One-turn transfer</a></li>
@@ -152,9 +154,25 @@ For project packaging, run snapshots, stopping, and rerunning, see <a class="ref
 Standalone calculations are available under <strong>Tools</strong>; see <a class="reference internal" href="gui_tools.html"><span class="doc">GUI tools</span></a>.</p>
 <section id="startup-and-file-drops">
 <h2>Startup and file drops<a class="headerlink" href="#startup-and-file-drops" title="Link to this heading"></a></h2>
-<p>Tools are prepared automatically after the main window opens. The status bar
-shows progress; selecting an unfinished tool prioritizes it. Tool values persist
-when switching pages in the same window.</p>
+<p>Open-file dialogs start in the folder containing the current <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> file,
+or the current standalone input JSON. Before a document is opened, source-checkout
+launches default to the PASS repository folder; installed copies use the working
+directory. A project’s temporary extraction directory is not used for browsing
+external files. This does not change how relative paths inside inputs are resolved.</p>
+<p>The main window opens before schemas, scientific libraries and tool modules load
+in a background thread. Navigation, themes, Help and the Plot page are available
+immediately. Configuration and Run show loading messages until schemas are ready;
+their controls, the File menu and document drops are then enabled automatically,
+without waiting for the remaining tool resources. An unfinished tool shows a
+loading message. Each tool’s controls and initial plot
+are created on its first visit, after the modules finish loading. Unvisited tools
+are not constructed in the background. Tool values persist when switching pages
+in the same window.</p>
+<p>The status bar reports when resources are ready. Before then, waveform/electrode
+previews, MAD-X previews/imports and Bump CSV conversion display a brief status
+message instead of waiting for imports on the interface thread; retry these
+actions after loading completes. File reading and actual calculations still take
+time, and creating a tool on its first visit can cause a short pause.</p>
 <p>Drop one local <code class="docutils literal notranslate"><span class="pre">.passproj</span></code> or PASS input JSON onto the window, including child
 editors. File contents are checked before replacing the current document. A
 replacement requires confirmation; unsaved changes offer Save/Discard/Cancel.
@@ -174,7 +192,7 @@ project window, launch another <code class="docutils literal notranslate"><span 
 <p>Property forms and the JSON source have separate drafts. Use <strong>Apply source</strong> or
 <strong>Discard source changes</strong> for JSON edits. If both contain pending changes,
 discard one draft before applying the other. Saving requires resolving drafts.
-Injection, Space charge, and WakeField forms apply their changes together as one
+Injection, Space charge, WakeField, and ElectronCloud forms apply their changes together as one
 undo step. <strong>Cancel</strong> restores applied parameters. Drafts are not automatically
 backed up; see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a> for manual saving and recovery.</p>
 <p>The read-only <code class="docutils literal notranslate"><span class="pre">Command</span></code> type appears beside the property heading. Editable
@@ -358,8 +376,8 @@ magnet ramping remains unavailable in tracking and cannot be newly enabled.</p>
 using continuous bunch-relative z and the local reference arrival time. Nominal
 bunch slots do not shift the preview.</p>
 </section>
-<section id="wakefield-and-result-files">
-<h2>WakeField and result files<a class="headerlink" href="#wakefield-and-result-files" title="Link to this heading"></a></h2>
+<section id="wakefield">
+<h2>WakeField<a class="headerlink" href="#wakefield" title="Link to this heading"></a></h2>
 <p><strong>Wakefields → Global configuration</strong> manages the global enable switch and named
 model/solver configurations. Opening it collects existing inline point definitions
 into separate named configurations, without merging them. Applying a configuration
@@ -375,6 +393,91 @@ The editor exposes all nine model families, spatial powers for custom components
 and fixed/factorized/ideal velocity laws. The shared schema validates combinations.
 File models require explicit units, axes, sign conventions, integration convention
 and reference beta; unknown external-file conventions are not guessed.</p>
+</section>
+<section id="electron-clouds">
+<h2>Electron clouds<a class="headerlink" href="#electron-clouds" title="Link to this heading"></a></h2>
+<p><strong>Physics effects → Electron cloud</strong> provides <strong>Global configuration</strong>,
+<strong>Insert electron-cloud slicing</strong>, and <strong>Electron-cloud interaction point</strong>.
+Start with a named configuration, select its mode and solver, then insert points
+that reference it. The global <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> and point <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code> switches must
+both be on. Points sharing one configuration own independent cloud states.
+The interface writes the ordinary input schema described in <a class="reference internal" href="electron_cloud.html"><span class="doc">Electron Cloud (ElectronCloud)</span></a>.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Mode and solver selection</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 35.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Solver</p></th>
+<th class="head"><p>Behavior and slicing</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">fft_free_space</span></code>, <code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code>, or <code class="docutils literal notranslate"><span class="pre">dst_dirichlet</span></code></p></td>
+<td><p>Fixed cloud with a transverse beam kick; no Slicer dependency.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">build_up</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">round_gaussian_beam</span></code></p></td>
+<td><p>Prescribed round-Gaussian beam drive, electron motion and wall emission; no cloud self-field or beam feedback. Requires a Slicer.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">coupled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fd_dirichlet</span></code></p></td>
+<td><p>Saved beam-slice particles drive the electrons; includes cloud PIC self-fields and a transverse beam kick. Requires a Slicer.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The editor groups the source, grid/boundary, and electron-motion/wall-emission
+parameters, and shows controls relevant to the selected mode and solver.
+Electron density is the physical number density in m<sup>−3</sup>; in dynamic
+modes it is only the initial density. The cloud disk radius, circular chamber
+radius, and beam RMS sigma are separate parameters. Supply the required density
+and disk radius; dynamic modes also require a chamber radius, positive maximum
+time step and positive beam sigma. <code class="docutils literal notranslate"><span class="pre">Beam</span> <span class="pre">sigma</span></code> controls only <code class="docutils literal notranslate"><span class="pre">build_up</span></code>;
+<code class="docutils literal notranslate"><span class="pre">coupled</span></code> retains the required schema field but uses the actual saved beam
+particles. The complete initial disk must lie strictly inside the chamber.</p>
+<p>For frozen fields, free-space solvers accept <code class="docutils literal notranslate"><span class="pre">default</span></code>/<code class="docutils literal notranslate"><span class="pre">off</span></code> boundaries;
+FD supports the available conducting aperture shapes; DST requires the full
+grid-aligned rectangle. Dynamic modes use the circular <code class="docutils literal notranslate"><span class="pre">Build</span> <span class="pre">up</span></code> chamber.
+Coupled grids require odd <code class="docutils literal notranslate"><span class="pre">Nx</span></code>/<code class="docutils literal notranslate"><span class="pre">Ny</span></code> of at least 5, widths covering the chamber
+diameter, and spacing no greater than half its radius. These bounds check that
+the geometry is resolved at all; users still choose and check numerical resolution.
+The dynamic form also exposes the uniform magnetic field, magnetic gradient,
+initial energy, primary and secondary emission, macro-electron limits, integration
+step limit and wall-hit limit. An unspecified random seed is saved as JSON
+<code class="docutils literal notranslate"><span class="pre">null</span></code>; an explicit integer makes sampling reproducible for equal inputs.</p>
+<p>For each dynamic point, explicitly insert or select a <code class="docutils literal notranslate"><span class="pre">Slicer</span></code> with
+<code class="docutils literal notranslate"><span class="pre">Purpose=general</span></code> and <code class="docutils literal notranslate"><span class="pre">Coordinate=z_rel</span></code> at the same <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>, before the
+point in execution order. It must cover all live particles. Periodic or
+beam-beam slices are incompatible. Re-run Slicer after structural regrouping;
+the cloud point does not generate or refresh slices. <strong>Validate</strong> reports missing
+configuration/slice references and incompatible execution order or coordinates.</p>
+<p>An interaction point exposes position, order, configuration, slice set, interaction
+length, local enable switch, <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">fields</span></code>, and <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code>. Interaction
+length scales frozen/coupled kicks; it does not transport the beam. It remains
+required in <code class="docutils literal notranslate"><span class="pre">build_up</span></code> but does not change that mode’s electron dynamics.
+Add transport separately. Output turns are zero-based, with inclusive
+<code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code> ranges; saving requires both <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">fields</span></code> and selected
+turns. Empty <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code> disables output.</p>
+<p>Add, duplicate, rename, or remove named configurations in the global editor.
+Applying a rename updates point references; referenced configurations cannot be
+removed. Mode, solver and aperture switches retain editing drafts so that returning
+to a previous selection restores its entries. Apply commits the complete edit as
+one undo step; Cancel restores the applied input. Disabling the global block
+preserves saved configuration definitions. Saving/reopening JSON or a project
+retains the three modes and their parameters, including <code class="docutils literal notranslate"><span class="pre">null</span></code> seeds.</p>
+<p>Copying a point between project inputs also copies its named configuration and,
+for a dynamic point, the referenced Slicer definitions. Name collisions receive
+suffixes and copied references are updated. The target’s existing enable switch
+is preserved. Dynamic copies compare the prescribed physical clocks and offer
+an explicit choice when they differ; copying a frozen point needs no clock choice.
+Copying input definitions does not transfer a running point’s electron state.</p>
+</section>
+<section id="result-files">
+<h2>Result files<a class="headerlink" href="#result-files" title="Link to this heading"></a></h2>
 <p>The plot page loads CSV, TFS, and one-dimensional DistMonitor HDF5 columns.
 Load multiple files to select beam/bunch/turn snapshots, filter live/lost particles
 and injection batches, and inspect reference metadata. <code class="docutils literal notranslate"><span class="pre">arrival_time_s</span></code> is
@@ -412,6 +515,25 @@ aperture. Raw density, potential, and integrated Ex/Ey have units C/m², V·m, a
 and positive finite widths. The view displays saved solver, potential-reference,
 and boundary metadata. Field export flattens the selected slice in y/x order,
 retains raw fields, and adds averages when selected; it does not recompute fields.</p>
+<p>Electron-cloud HDF5 outputs open a dedicated <strong>Electron-cloud view</strong> selector.
+Available views follow the saved data: <strong>Instantaneous fields</strong>, <strong>Weighted
+electron distribution</strong>, and <strong>Time history</strong>. Frozen analytic output has fields;
+frozen PIC can also contain sampled electrons. <code class="docutils literal notranslate"><span class="pre">build_up</span></code> provides source and
+history data, and <code class="docutils literal notranslate"><span class="pre">coupled</span></code> additionally provides fields at the final saved
+physical time. Metadata identifies the mode, solver, source length and field time.</p>
+<p>The source view selects saved <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">ux</span></code>, <code class="docutils literal notranslate"><span class="pre">uy</span></code>, <code class="docutils literal notranslate"><span class="pre">uz</span></code> or <code class="docutils literal notranslate"><span class="pre">weight</span></code>
+columns as available. Its two-dimensional histogram and projections sum saved
+electron-number weights per bin. They represent the physical electron number
+for the saved source length, not the number of macro-electron rows or a volume
+density. The history view plots a selected diagnostic against physical interval-end
+time <code class="docutils literal notranslate"><span class="pre">time_end</span></code> in seconds, initially using <code class="docutils literal notranslate"><span class="pre">n_electrons_after</span></code>. Other saved
+diagnostics include emission, wall hits and evolution steps.</p>
+<p>Electron-cloud fields use volume charge density (C/m³), number density (m<sup>−3</sup>),
+potential (V), and electric field (V/m). They are already physical instantaneous
+fields and have no SC slice-width division control. Export the selected view as
+CSV with its metadata sidecar, or as PNG/SVG/PDF. Source exports retain saved
+particle weights; history exports retain all diagnostic columns and phase IDs;
+field exports use the saved grid. Exports use the complete selected data.</p>
 </section>
 <section id="twiss-and-optics">
 <h2>Twiss and optics<a class="headerlink" href="#twiss-and-optics" title="Link to this heading"></a></h2>
@@ -548,8 +670,8 @@ boundaries to resize them; right-click the header to show additional columns.
 Name, Command, and position remain visible. The sequence follows the engine’s
 position bins and command priorities; hover over a position to inspect its full value.</p>
 <p>The left library starts with <strong>Input configuration (required)</strong> expanded. Under
-<strong>Physics effects</strong>, Space charge and Wakefields have independent submenus.
-Beam-beam effects and Electron cloud are disabled placeholders.</p>
+<strong>Physics effects</strong>, Space charge, Wakefields, Beam-beam effects and Electron cloud
+have independent submenus.</p>
 <p>Property fields for the selected mode remain expanded. Long forms scroll, and
 <strong>Expand</strong> gives the editor the full workspace; <strong>Restore</strong> returns to the previous
 layout while retaining drafts. Dropdowns change selection by clicking an item;

@@ -208,7 +208,11 @@ remain in use. The GUI, input generator, validator and runtime share this rule.<
 </pre></div>
 </div>
 <p>The latest explicit Slicer defines membership. BeamBeam neither reslices nor
-reorders the particle pool. An explicit range must cover every live particle;
+reorders the particle pool. Particle longitudinal coordinates and live membership
+must remain unchanged between the collision Slicer and BeamBeam; rerun Slicer
+after any change. BeamBeam rejects a nonempty bunch whose per-slice live counts
+have changed, preventing use of stale head/tail data.
+An explicit range must cover every live particle;
 out-of-range particles cause an error instead of being clipped. A repeated IP
 visit requires another explicit Slicer execution. Saved slice snapshots retain
 their original geometry; source moments used during collisions are separate.</p>
@@ -220,8 +224,8 @@ editor and sequence editors for the collision Slicer, BeamBeam, CrossingAngle,
 CrabCavity and FloatWaister. The configuration editor supports named IPs with
 separate Collision, beam0 Source, beam1 Source and Luminosity tabs. Source
 controls show only the parameters applicable to the selected source method.
-For PIC, <code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code> is a required manual input. Its control cannot
-be disabled, and the GUI does not supply a positive default.</p>
+PIC uses the actual particle head and tail recorded by the collision Slicer.
+Set the slice count and slicing mode there; no separate propagation step is used.</p>
 <p>Define each shared IP in one beam input only; the other beam’s sequence can
 reference that configuration name. The shared Enabled control has an unset
 state for an input that does not declare the switch. Configure both sequences
@@ -456,31 +460,25 @@ elements. Fixed pairing is incompatible with ReorganizeBunch.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">TSC</span></code></p></td>
 <td><p>PIC only: <code class="docutils literal notranslate"><span class="pre">CIC</span></code> or <code class="docutils literal notranslate"><span class="pre">TSC</span></code>; shares the SpaceCharge deposition primitives.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">propagation_step</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code></p></td>
-<td><p>m</p></td>
-<td><p>Required for PIC</p></td>
-<td><p>PIC only: manually specified positive finite source-potential sampling step along the collision distance; missing or null is rejected.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_parameters</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_parameters</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">parameters</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
 <td><p>Required for frozen; one prescribed profile using the dimensions below.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_parameters</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">slice_parameters</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">parameters</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
 <td><p>Frozen only: nonnegative slice indices mapped to complete per-slice Frozen parameters.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_optics_reference</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">frozen_optics_reference</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Frozen</span> <span class="pre">optics</span> <span class="pre">reference</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">null</span></code></p></td>
 <td><p>Frozen only: Twiss entry at this IP on the source’s own beam; enables the prescribed angular moments for hourglass.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source_center_slopes</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">source_center_slopes</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">center</span> <span class="pre">slopes</span></code></p></td>
 <td><p>—</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">0.0]</span></code></p></td>
@@ -582,7 +580,7 @@ covariance input is not supported.</p>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quasi-frozen</span></code></p></td>
 <td><p>The same six analytic solvers</p></td>
-<td><p>Profile reconstructed from current slice moments before each slice-pair event.</p></td>
+<td><p>Profile reconstructed from the current source slice moments used by each slice-pair event.</p></td>
 </tr>
 </tbody>
 </table>
@@ -595,66 +593,142 @@ SpaceCharge implementation: <code class="docutils literal notranslate"><span cla
 grid; this numerical coverage error does not mark physical particle loss.
 The fixed grid is a numerical free-space domain, not a grounded conducting wall.</p>
 <p>The longitudinal force needs the potential as well as transverse fields.
-PIC samples the propagated source on a uniform distance lattice
-<span class="math notranslate nohighlight">\(S_k=kh\)</span>, anchored at <span class="math notranslate nohighlight">\(S=0\)</span>. The target particles select which
-intervals need evaluation; their extrema do not set the lattice origin or step.
-For <span class="math notranslate nohighlight">\(kh\le S&lt;(k+1)h\)</span>, four-node Catmull–Rom interpolation uses source
-potentials at <span class="math notranslate nohighlight">\((k-1)h\)</span>, <span class="math notranslate nohighlight">\(kh\)</span>, <span class="math notranslate nohighlight">\((k+1)h\)</span> and <span class="math notranslate nohighlight">\((k+2)h\)</span>.
-Transverse kicks and the longitudinal source term differentiate this same
-interpolated potential, using one fixed logarithmic-potential reference.</p>
-<p>Every PIC source must explicitly set <code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code> (Python:
-<code class="docutils literal notranslate"><span class="pre">propagation_step</span></code>) to a positive finite <span class="math notranslate nohighlight">\(h\)</span>. Missing or <code class="docutils literal notranslate"><span class="pre">null</span></code> values
-are rejected before tracking; PASS never computes or substitutes a step, even
-when all source slopes are zero. The value must remain positive and finite in
-the selected particle precision; conversion to zero or infinity is rejected.
-This is the source-potential sampling interval
-along <span class="math notranslate nohighlight">\(S\)</span>, not the actual collision distance <span class="math notranslate nohighlight">\(S\)</span>, the bunch length,
-or a switch that enables the hourglass effect. Analytic sources evaluate their
-propagation directly and must omit this PIC-only field.</p>
-<p>For example, a source entry with a manually chosen <span class="math notranslate nohighlight">\(h=0.001\,\mathrm{m}\)</span>
-is shown below. The value is illustrative; check its convergence for the case.</p>
+For every slice pair and source direction, PIC uses two propagation positions
+determined by the target slice’s actual live-particle head and tail. The Slicer
+stores these extrema as <code class="docutils literal notranslate"><span class="pre">z_particle_min</span></code> and <code class="docutils literal notranslate"><span class="pre">z_particle_max</span></code>, separately
+from the existing interval boundaries <code class="docutils literal notranslate"><span class="pre">z_min</span></code> and <code class="docutils literal notranslate"><span class="pre">z_max</span></code>. For a source
+slice with particle mean <span class="math notranslate nohighlight">\(\bar z_s\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[S_0=\frac{z_{\mathrm{particle\ min}}-\bar z_s}{2},\qquad
+S_1=\frac{z_{\mathrm{particle\ max}}-\bar z_s}{2},\qquad
+u=\frac{S-S_0}{S_1-S_0},\qquad 0\le u\le1.\]</div>
+<p>The source center is its particle mean, not the midpoint of its head and tail.
+Collision-frame slicing supplies all three quantities in the same coordinate
+frame. Equal-length and equal-particle slicing both use their saved memberships;
+BeamBeam neither repartitions the slices nor introduces a second distance grid.
+Let <span class="math notranslate nohighlight">\(\Phi_0\)</span> be the potential of the density at <span class="math notranslate nohighlight">\(S_0\)</span>, and
+<span class="math notranslate nohighlight">\(\Delta\Phi\)</span> the potential obtained by solving the difference between
+the densities at <span class="math notranslate nohighlight">\(S_1\)</span> and <span class="math notranslate nohighlight">\(S_0\)</span>. With the same transverse
+CIC/TSC reconstruction applied to both planes,</p>
+<div class="math notranslate nohighlight">
+\[\Phi(x,y,S)=\Phi_0(x,y)+u\,\Delta\Phi(x,y),\qquad
+\left.\frac{\partial\Phi}{\partial S}\right|_{x,y}
+    =\frac{\Delta\Phi(x,y)}{S_1-S_0},
+\qquad E_x=-\partial_x\Phi,\quad E_y=-\partial_y\Phi.\]</div>
+<p>Transverse kicks and the longitudinal source term differentiate this same
+interpolated potential, using one fixed logarithmic-potential reference.
+The complete longitudinal kick of the six-dimensional map below remains active.</p>
+<p>There is no separate propagation-step input. Remove the obsolete
+<code class="docutils literal notranslate"><span class="pre">Propagation</span> <span class="pre">step</span> <span class="pre">(m)</span></code> / <code class="docutils literal notranslate"><span class="pre">propagation_step</span></code> field from older inputs; unknown
+fields are rejected. Control longitudinal resolution with the Slicer’s slice
+count and mode. The actual head-to-tail width can differ between equal-particle
+slices, particularly in the tails; check slice-count convergence for the chosen
+mode. Analytic sources continue to evaluate their propagation directly.</p>
+<p>A PIC source entry is shown below.</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">"Slice set"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bb_ip1"</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pic"</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Solver"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fft_free_space"</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Nx"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="nt">"Ny"</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Grid Half Width X (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Grid Half Width Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"Propagation step (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.001</span>
+<span class="w">  </span><span class="nt">"Grid Half Width Y (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Grid coverage must include the complete source deposition stencil throughout
-the required node halo, from <span class="math notranslate nohighlight">\((k_{\min}-1)h\)</span> to
-<span class="math notranslate nohighlight">\((k_{\max}+2)h\)</span>, as well as every target gather stencil at its collision
-position. Covering only the target distance extrema is insufficient. Enlarge
-the transverse domain or choose a resolved propagation step when coverage
-fails; the numerical boundary is not a particle-loss aperture.</p>
-<p>Only occupied propagation intervals are solved. Each uses a fixed four-plane
-batch: one base density and three differences from that density. Solving
-potential differences reduces cancellation in the longitudinal derivative;
-transverse fields are obtained by differentiating the gathered potential,
-without computing unused grid-field arrays. A smaller <span class="math notranslate nohighlight">\(h\)</span> can require
-more interval solves. GPU potential workspace is reused only after its gathers
-have been enqueued on the same stream; the independent source snapshot remains
-valid for the whole event.</p>
-<p>The propagation interpolant is <span class="math notranslate nohighlight">\(C^1\)</span>, piecewise cubic. This does not make
-the complete particle map smooth everywhere: second derivatives can change at
-propagation nodes, and transverse deposition/gather has its own mesh regularity.
-For smooth source-potential data, Catmull–Rom generally gives
-<span class="math notranslate nohighlight">\(O(h^3)\)</span> potential and <span class="math notranslate nohighlight">\(O(h^2)\)</span> derivative errors, not fourth-order
-accuracy. Compare an explicit <span class="math notranslate nohighlight">\(h\)</span> with <span class="math notranslate nohighlight">\(h/2\)</span>, inspecting longitudinal
-and transverse kicks separately. Vary transverse mesh, particle count and
-slice count independently; hold the manually specified step fixed when
-isolating mesh convergence.</p>
+<p>Grid coverage must include the complete source deposition stencil at both
+head/tail propagation positions and every target gather stencil at its actual
+collision position. Enlarge the transverse domain when coverage fails; the
+numerical boundary is not a particle-loss aperture.</p>
+<p>Every nonempty slice pair normally solves two potential planes per source
+direction: the first-endpoint density and the head-to-tail density difference.
+With <span class="math notranslate nohighlight">\(N_A,N_B\)</span> nonempty slices, this is normally <span class="math notranslate nohighlight">\(2N_AN_B\)</span> planes
+for weak–strong and <span class="math notranslate nohighlight">\(4N_AN_B\)</span> for strong–strong. These are Poisson
+solution planes, not FFT or kernel launch counts. Empty slices are skipped.
+For a zero-width target slice, the source density and its propagation derivative
+are evaluated at the same <span class="math notranslate nohighlight">\(S\)</span>; the longitudinal derivative is not set to
+zero and no finite auxiliary distance is introduced. Solving density differences
+before the FFT reduces cancellation in the longitudinal derivative. Transverse
+fields differentiate the gathered potential without computing unused grid-field
+arrays. The CIC gather directly expands the four-node shape derivatives and
+reuses the same potential samples for all kick components.</p>
+<p>The propagation coordinates and density sums are evaluated in float64 from the
+tracked particle values and the head/tail positions, including during float32
+tracking. The head-to-tail density difference is formed from stable paired
+particle contributions, avoiding subtraction of two nearly equal completed
+density grids. Density and density difference are converted to the configured
+precision for the FFT; particle and returned field arrays retain that precision.</p>
+<p>All particles of the target slice use the same pair of source planes; no
+distance-interval sorting or interval-by-interval host schedule is needed.
+GPU potential workspace is reused only after its gathers have been enqueued on
+the same stream; the independent source snapshot remains valid for the event.
+Each GPU FFT solver retains plans and workspaces for at most two recently used
+batch sizes, avoiding repeated plan creation when one- and two-plane solves
+are requested. This cache belongs to the solver’s device and stream and is released
+when its resources close.</p>
+<p>Within a slice pair, the propagation potential is linear between the actual
+head and tail; its <span class="math notranslate nohighlight">\(S\)</span> derivative is constant at fixed transverse position.
+Transverse deposition/gather has its own mesh regularity. For smooth
+source-potential data and <span class="math notranslate nohighlight">\(\Delta S=S_1-S_0\)</span>, linear interpolation generally
+gives <span class="math notranslate nohighlight">\(O(\Delta S^2)\)</span> potential error and <span class="math notranslate nohighlight">\(O(\Delta S)\)</span> pointwise
+<span class="math notranslate nohighlight">\(S\)</span>-derivative error. Increase the slice count and inspect longitudinal
+and transverse kicks separately. Vary transverse mesh and particle count
+independently; slice-count convergence alone does not establish transverse
+field convergence.</p>
 <p>CIC differentiates a bilinear transverse potential, so its force can jump at
 mesh lines. Coordinates on or very near a line can select different one-sided
 gradients in float32 and float64; pointwise agreement is not guaranteed there.
+Differencing the grid potential first and then interpolating the grid field is
+a different discretization: it can have better pointwise transverse accuracy,
+but does not generally equal the gradient of the same CIC interpolated potential.
+Compare accuracy as well as timing rather than treating the routes as identical.
 TSC reconstructs a continuously differentiable transverse potential and hence
 a continuous gradient for a fixed grid potential with full stencil coverage.
 Use TSC for precision comparisons, and check transverse mesh and macro-particle
 resolution together; higher arithmetic precision alone does not establish PIC
 convergence.</p>
+<section id="comparison-with-athena-s-head-tail-pic-path">
+<h4>Comparison with Athena’s head/tail PIC path<a class="headerlink" href="#comparison-with-athena-s-head-tail-pic-path" title="Link to this heading"></a></h4>
+<p>This comparison refers to the head/tail path in Athena’s <code class="docutils literal notranslate"><span class="pre">src/simulator.cu</span></code>,
+<code class="docutils literal notranslate"><span class="pre">transfer_headAndTail</span></code> and <code class="docutils literal notranslate"><span class="pre">cal_beamKick_interpolation</span></code> in
+<code class="docutils literal notranslate"><span class="pre">src/collision.cu</span></code>, and <code class="docutils literal notranslate"><span class="pre">calElectricField</span></code> in <code class="docutils literal notranslate"><span class="pre">src/pic.cu</span></code>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 40.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Item</p></th>
+<th class="head"><p>Athena head/tail path</p></th>
+<th class="head"><p>PASS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Distance samples</p></td>
+<td><p>For each slice pair and source direction, two collision locations are formed from the source slice center and the target slice head/tail; their separation is half the target slice width.</p></td>
+<td><p>The same head/tail geometry, using the actual particle extrema saved by Slicer and the source particle mean. Two potential planes per source direction; no independent distance step.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Interpolated quantity</p></td>
+<td><p>Centered differences of grid potential give <span class="math notranslate nohighlight">\(E_x,E_y\)</span>; these fields are interpolated transversely and between the head/tail samples.</p></td>
+<td><p>The reconstructed potential is interpolated along <span class="math notranslate nohighlight">\(S\)</span>; transverse fields and the source-distance derivative come from that same potential.</p></td>
+</tr>
+<tr class="row-even"><td><p>Collision kick</p></td>
+<td><p>The inspected head-on interpolated-kick kernel updates transverse <span class="math notranslate nohighlight">\(p_x,p_y\)</span>. The inverse crossing-angle transformation also produces a longitudinal beam-beam change in the laboratory frame.</p></td>
+<td><p>The complete six-dimensional kick includes the longitudinal source derivative and kinematic terms.</p></td>
+</tr>
+</tbody>
+</table>
+<p>In Athena’s horizontal crossing convention with half angle <span class="math notranslate nohighlight">\(\theta\)</span>,
+the inverse transformation gives
+<span class="math notranslate nohighlight">\(\Delta p_{z,\mathrm{lab}}=\sin\theta\,\Delta p_x^*\)</span> for a head-on transverse
+kick. Thus Athena does include crossing-induced longitudinal beam-beam effects;
+the inspected PIC kick does not include a separate head-on
+<span class="math notranslate nohighlight">\(\partial_S\Phi\)</span> term. PASS retains both its crossing transform and its
+explicit six-dimensional source-distance kick. Two-point interpolation therefore
+does not make the complete maps identical. Compare wall time with the same
+particle count, slicing, mesh, precision and requested diagnostics; the plane
+count alone does not establish a speedup.</p>
+</section>
 </section>
 <section id="analytic-sources-and-hourglass-propagation">
 <h3>Analytic sources and hourglass propagation<a class="headerlink" href="#analytic-sources-and-hourglass-propagation" title="Link to this heading"></a></h3>
@@ -688,9 +762,11 @@ rotated with the spatial profile. Optional
 input projected widths must leave positive betatron variance after subtracting
 that contribution. Ordinary IP Twiss currently supplies horizontal dispersion
 only. The internal moments are derived quantities, not additional user inputs.</p>
-<p>Quasi-frozen recomputes source centers and transverse phase-space moments before
-every slice-pair event. <code class="docutils literal notranslate"><span class="pre">Statistics</span> <span class="pre">precision</span></code> optionally selects float32 or
-float64 accumulation; by default it follows particle precision. Uniform and
+<p>Quasi-frozen uses the current source centers and transverse phase-space moments
+at every slice-pair event. A source that receives kicks is recomputed before
+each event; an un-kicked source can reuse its moments within the same bunch-pair
+encounter. <code class="docutils literal notranslate"><span class="pre">Statistics</span> <span class="pre">precision</span></code> optionally selects float32 or float64
+accumulation; by default it follows particle precision. Uniform and
 parabolic profiles are reconstructed from moments, with semi-axes respectively
 <span class="math notranslate nohighlight">\(2\sigma\)</span> and <span class="math notranslate nohighlight">\(\sqrt{6}\sigma\)</span>. A round solver uses the average
 transverse variance, including after propagation.</p>
@@ -701,7 +777,13 @@ transverse variance, including after propagation.</p>
 in descending sum of the two entrance slice centroids; a later event therefore
 sees the earlier physical update. A PIC snapshot owns the source’s four
 transverse coordinates, so evaluating the second direction cannot observe
-particles already changed by the first kick. With target coordinate <span class="math notranslate nohighlight">\(z\)</span> and opposing
+particles already changed by the first kick. Within one bunch-pair encounter,
+an un-kicked source slice can reuse its snapshot, PIC transverse coordinates,
+and analytic moments across slice-pair events. This includes the strong source
+in weak-strong tracking. A source that receives kicks is rebuilt before each
+event, as required for strong-strong updates; the source cache does not survive
+the encounter.</p>
+<p>With target coordinate <span class="math notranslate nohighlight">\(z\)</span> and opposing
 slice centroid <span class="math notranslate nohighlight">\(\bar z_s\)</span>, the collision distance is
 <span class="math notranslate nohighlight">\(S=(z-\bar z_s)/2\)</span> and the source propagates by <span class="math notranslate nohighlight">\(-S\)</span>.
 Writing <span class="math notranslate nohighlight">\(X=x+Sp_x\)</span>, <span class="math notranslate nohighlight">\(Y=y+Sp_y\)</span>, the map is</p>

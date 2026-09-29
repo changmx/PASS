@@ -353,6 +353,11 @@ HDF5 结构和读取方式见 <a class="reference internal" href="monitor/table_
 <dt><code class="docutils literal notranslate"><span class="pre">z_min</span></code>、<code class="docutils literal notranslate"><span class="pre">z_max</span></code>、<code class="docutils literal notranslate"><span class="pre">z_center</span></code></dt><dd><p>所选切片坐标中的边界和中心，按从大 <code class="docutils literal notranslate"><span class="pre">z</span></code> 到小 <code class="docutils literal notranslate"><span class="pre">z</span></code> 排列（切片 <code class="docutils literal notranslate"><span class="pre">0</span></code>
 是大 <code class="docutils literal notranslate"><span class="pre">z</span></code> 区间）。</p>
 </dd>
+<dt><code class="docutils literal notranslate"><span class="pre">z_particle_min</span></code>、<code class="docutils literal notranslate"><span class="pre">z_particle_max</span></code></dt><dd><p>本次 Slicer 执行时，每片存活宏粒子成员在所选坐标中的实际最小值与最大值。
+使用显式区间裁剪前的坐标，因此可能超出诊断区间边界。空片的极值为 NaN；
+实际零宽的非空片两端相等。束束 PIC 用这些成员边界进行头尾采样。
+等粒子数切片按实际秩分配成员求极值，不使用分位数几何边界替代。</p>
+</dd>
 <dt><code class="docutils literal notranslate"><span class="pre">delta_z</span></code></dt><dd><p>每个切片的 <code class="docutils literal notranslate"><span class="pre">z_max</span> <span class="pre">-</span> <span class="pre">z_min</span></code>。</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">macro_count</span></code></dt><dd><p>存活宏粒子数。</p>

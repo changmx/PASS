@@ -100,7 +100,7 @@ FFT 要求递增均匀当前网格，源宽度相同且不大于间距；History
    * - ``tabulated``
      - 递增 ``Times (s)``、对应 ``Values``、``Causal`` （默认 true）。线性插值，表外为零。因果表从零开始，双侧表可含负延迟。
    * - ``file``
-     - 数值 table 或 headtail 文件，显式声明列、单位、符号与归一化；只在初始化读取，保存内容指纹，详见文件输入。
+     - 仅接受标准尾场 TFS；外部 CSV/TXT/HEADTAIL 数据须先转换再跟踪。只在初始化读取，保存内容指纹，详见文件输入。
    * - ``impedance``
      - 递增非负 ``Frequencies (Hz)``、对应 ``Real``/``Imag``、显式 ``Reconstruction``；保留不可变原始采样。
    * - ``fitted_impedance``
@@ -159,47 +159,215 @@ CPU/GPU 源投影均使用 ``bunch.ratio * bunch.num_charge * e`` 作为每个�
 文件输入
 --------
 
-``Model.Kind="file"`` 接受 ``File path``、``Format`` （默认 table 或 headtail）、
-``Axis column`` （默认 0）、必填 ``Value column``、可选 ``Imag column``、
-``Delimiter`` （null 为空白分隔）、``Skip rows`` （默认 0）、``Causal`` （默认 true）、
-``Reconstruction`` （默认 two_sided）、可选 ``Length (m)`` 和必填 ``Convention``。
-列号从零起算，不能重复，必须为数值。UTF-8 文件支持 # 注释与 BOM。
-一般表格分段线性插值、支撑外为零，因果表必须包含零延迟；拒绝乱序和重复
-采样，反向时间/距离轴可以重排。
+``Model.Kind="file"`` 仅读取标准尾场 TFS。模型字段为 ``Kind="file"``、
+必填 ``File path``、``Format="tfs"`` （默认），以及用于阻抗频谱的
+``Reconstruction`` （默认 ``two_sided``）。单位、符号、空间幂次与时域因果性
+均从文件读取。``Component`` 与 ``Velocity`` 仍在分量配置中显式指定。
 
-``Convention`` 声明 ``Data kind`` （wake_function/impedance）、``Axis``
-（time/distance/frequency）、``Axis unit``、``Value unit``、``Positive trailing``、
-``Longitudinal positive loss``、``Integrated``、``Reference beta``。
-``Fourier exponent`` 默认 -1，``Transverse impedance factor`` 默认 i（可为 -i/1），
-``Shunt impedance convention`` 默认 not_applicable，仅记录来源：数值表已归一化，
-此字段不重新缩放分路阻抗。
+CSV、空白分隔表格与 HEADTAIL 文件须先通过 ``PASS.tool.wake_conversion``
+或 GUI 尾场导入工具转换。跟踪不再接受 ``Format="table"``、``"headtail"``，
+也不接受原模型字段 ``Convention``、``Axis column``、``Value column``、
+``Imag column``、``Delimiter``、``Skip rows``、``Causal`` 或 ``Length (m)``。
+这些解释源数据的选项属于转换阶段。仅将外部文件改名为 ``.tfs`` 并不足够，
+文件必须包含下述标准列与必需头部。
 
-时间单位 s/ms/us/ns/ps，距离 m/cm/mm，频率 Hz/kHz/MHz/GHz。
-尾场幅值显式使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 V/C/m^2 或
-V/(pC*mm)。阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据多一个
-分母长度幂次，必须给定 ``Length (m)``；已经积分的数据不允许再次乘长度。
-距离轴通过 reference beta*c 换算成延迟，尾函数幅值不额外乘雅可比。
-显式换算 Fourier 与纵向符号。阻抗输入必须有实部、虚部列和正延迟为尾随的
-约定，变换符号差异通过 Fourier 字段声明。有限带宽因果投影仍有上述近似；
-有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数直接读取。
-
-HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns，以及零阶 V/pC、一阶
-V/(pC*mm)，符号仍需声明。参见 `CERN HEADTAIL 表格规范
-<https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf>`_。
-文件输入示例：
-
-.. code-block:: python
-
-   model = dict(kind="file", file_path="tail.dat", format="headtail",
-       axis_column=0, value_column=2,
-       convention=dict(data_kind="wake_function", axis="time", axis_unit="ns",
-           value_unit="V/(pC*mm)", positive_trailing=True,
-           longitudinal_positive_loss=True, integrated=True, reference_beta=beta))
+时域表采用分段线性插值，支撑范围外响应为零，因果表从零延迟开始。
+转换器拒绝重复或乱序采样，可重排反向时间/距离轴；单位与方向换算后保留
+原始采样位置。
 
 JSON 输入将 ``File path`` 相对其所在目录解析；直接 Python 构造则相对当前
 工作目录。文件只在初始化读取，模型保存内容哈希和转换元数据，检查点同时
-校验文件内容与配置。不读取 CST 工程或二进制文件、自动单位猜测或
-wake-potential 反卷积；导出的数值文件可用 table 并明确实际约定。
+校验文件内容与配置。不包含 CST 工程或二进制读取、自动单位猜测或
+wake-potential 反卷积；应导出数值数据，再声明实际源约定完成转换。
+
+.. _wake-tfs-zh:
+
+标准尾场 TFS 与外部文件转换
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+一个 TFS 文件保存一个尾场分量。时域标准列为 ``TAU`` 和 ``W``，分别表示
+以秒为单位的延迟和采用 SI 单位的积分点电荷尾函数。正延迟表示尾随测试粒子，
+纵向尾函数正值表示能量损失。幅值单位为 ``V/C/m^n``，n 是源与测试粒子横向
+幂次之和；纵向单极分量使用 ``V/C``。阻抗文件使用 ``FREQUENCY``、``REAL``、
+``IMAG`` 三列，频率以 Hz 表示，阻抗采用对应的积分 SI 单位。
+
+头部字段名与标准值区分大小写。下表除 ``SOURCE_METADATA`` 外均为必填；
+``CAUSAL`` 与 ``ZERO_VALUE`` 仅对时域尾函数必填，阻抗频谱禁止使用这两个字段。
+头部使用 ``@ NAME TYPE VALUE``，放在 ``*`` 列名与 ``$`` 列类型之前。
+数据列均使用实数浮点类型（写出时为 ``%le``），所有数值样本与数值元数据
+必须有限。
+
+.. list-table:: 标准尾场 TFS 第 1 版头部
+   :header-rows: 1
+   :widths: 35 12 53
+
+   * - 字段
+     - 类型
+     - 取值
+   * - ``PASS_WAKE_VERSION``
+     - ``%d``
+     - ``1``。
+   * - ``DATA_KIND``
+     - ``%s``
+     - ``wake_function`` 或 ``impedance``。
+   * - ``COMPONENT``、``PLANE``
+     - ``%s``
+     - 配置所选的分量名称及其平面（``x``、``y`` 或 ``z``），两者均须与所选分量一致。
+   * - ``SOURCE_POWERS``、``TEST_POWERS``
+     - ``%s``
+     - 与分量匹配的 JSON 列表 ``[x_power, y_power]``；纵向单极分量两者均为 ``"[0, 0]"``。
+   * - ``AXIS_UNIT``
+     - ``%s``
+     - 时域尾函数为 ``s``，阻抗频谱为 ``Hz``。
+   * - ``VALUE_UNIT``
+     - ``%s``
+     - 零阶尾函数为 ``V/C``，零阶阻抗为 ``ohm``；一阶追加 ``/m``，更高阶 n 追加 ``/m^n``。
+   * - ``REFERENCE_BETA``
+     - ``%le``
+     - 参考速度除以 c，满足 ``0 < beta <= 1``。
+   * - ``INTEGRATED``、``POSITIVE_TRAILING``、``LONGITUDINAL_POSITIVE_LOSS``
+     - ``%d``
+     - 均为 ``1``：响应已积分、正延迟表示尾随、纵向正值表示损失。
+   * - ``FOURIER_EXPONENT``
+     - ``%d``
+     - ``-1``。
+   * - ``TRANSVERSE_IMPEDANCE_FACTOR``
+     - ``%s``
+     - ``i``。
+   * - ``SHUNT_IMPEDANCE_CONVENTION``
+     - ``%s``
+     - ``not_applicable``，样本已完成归一化；原始文件的约定可保存在来源元数据中。
+   * - ``CAUSAL``、``ZERO_VALUE``
+     - ``%d``、``%s``
+     - 仅时域尾函数使用：因果表为 ``1`` 与 ``right_limit``，双侧表为 ``0`` 与 ``sample``。
+   * - ``SOURCE_METADATA``
+     - ``%s``
+     - 可选的带引号 JSON 对象，保存源文件哈希、原始导入约定等来源信息。
+
+TFS 头部记录分量、源/测试粒子幂次、数据类型、单位、符号、归一化、参考 beta
+与因果约定。因果时域响应的零延迟样本填写右极限 :math:`W(0^+)`，求解器处理半自作用，
+文件中不要预先减半。末端尾函数非零时会提示截断，因为支撑范围外响应为零；
+截断不可忽略时，应延长原始数据范围并检查收敛。
+
+使用专用工具 ``PASS.tool.wake_conversion`` 转换导出的 CSV、空白分隔表格或
+HEADTAIL 数据。工具检查声明的物理约定，转换单位与符号，写出标准 TFS。
+单位与方向换算后保留原始采样位置，不重采样，也不将延迟转换为跟踪圈号。
+通用 CSV/TFS 转换仅改变表格格式，不会自动建立这些尾场物理约定。
+
+转换器的 ``format`` 默认为 ``table``，HEADTAIL 特定单位约定使用 ``headtail``。
+数值列号从零开始且不能重复，默认 ``axis_column=0``、``value_column=1``，
+阻抗还须提供 ``imag_column``。``delimiter=None`` 表示空白分隔，
+``skiprows=0`` 表示不跳过开头行。UTF-8 文件支持 # 注释与 BOM。
+双侧时域响应使用 ``causal=False``。
+
+``convention`` 字典声明 ``data_kind`` （``wake_function`` 或 ``impedance``）、
+``axis`` （``time``、``distance`` 或 ``frequency``）、``axis_unit``、
+``value_unit``、``positive_trailing``、``longitudinal_positive_loss``、
+``integrated`` 与 ``reference_beta``。``fourier_exponent`` 默认 -1，
+``transverse_impedance_factor`` 默认 ``i`` （可为 ``-i`` 或 ``1``），
+``shunt_impedance_convention`` 默认 ``not_applicable``；最后一项仅记录来源，
+不会重新缩放已归一化的样本。
+
+时间单位为 s/ms/us/ns/ps，距离为 m/cm/mm，频率为 Hz/kHz/MHz/GHz。
+尾场幅值使用 V/kV/MV 除以 C/nC/pC 及所需空间幂次，例如 ``V/C/m^2`` 或
+``V/(pC*mm)``；阻抗单位为 ohm/Ohm/kOhm/MOhm 附加空间幂次。单位长度数据
+多一个分母长度幂次，必须提供以米为单位的 ``length``；已积分数据禁止提供
+长度。阻抗须提供实部、虚部列，并采用正延迟尾随约定；相反变换符号通过
+Fourier 指数字段换算。有限带宽因果投影仍存在其文档所述近似。
+
+距离轴必须明确源文件的定义：``convention`` 中的
+``distance_convention="beta_c_tau"`` （默认）表示
+:math:`s=\beta_{\mathrm{ref}}c\tau`，``"c_tau"`` 表示 :math:`s=c\tau`。
+命令行通过 ``--distance-convention c_tau`` 选择后者。转换仅改变延迟轴，
+尾函数幅值不额外乘雅可比。两种定义仅在 beta = 1 时相同，工具不会从名为
+distance 或 z 的列推测采用哪种定义。
+
+HEADTAIL 有多种列布局，须明确列号；其单位约定为 ns、零阶积分 V/pC 和
+一阶积分 V/(pC*mm)，符号仍需声明。参见 `CERN HEADTAIL 表格规范
+<https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf>`_。
+输出 ``SOURCE_METADATA`` 保存源文件哈希与完整导入设置，包括列映射、跳行、
+分隔符、长度、因果性、重构方式与距离定义，便于复现。
+
+例如，将下面用于演示的非均匀采样表保存为 ``wake.csv``：
+
+.. code-block:: text
+
+   # delay_ns,wake_V_per_pC
+   0,4
+   0.25,3
+   0.8,1
+   2,0
+
+执行转换：
+
+.. code-block:: console
+
+   python -m PASS.tool.wake_conversion wake.csv wake_longitudinal.tfs --component longitudinal --axis time --axis-unit ns --value-unit V/pC --reference-beta 0.9 --delimiter ","
+
+默认约定为正延迟尾随、纵向正值表示损失、响应已沿作用长度积分。
+仅当源文件采用相反约定时使用 ``--negative-trailing`` 或 ``--positive-gain``。
+单位长度数据必须使用 ``--per-length --length LENGTH_IN_METRES``，
+并声明对应的单位长度幅值单位。源文件列布局不同时，需明确指定列号与跳过的
+头部行数。有限束长 wake potential 需要单独反卷积，不能作为点电荷尾函数导入。
+
+将生成的分量放入算法组的 ``Components`` 列表：
+
+.. code-block:: json
+
+   {
+       "Component": "longitudinal",
+       "Velocity": {"Kind": "fixed", "Beta": 0.9},
+       "Model": {
+           "Kind": "file",
+           "Format": "tfs",
+           "File path": "wake_longitudinal.tfs"
+       }
+   }
+
+``Velocity`` 仍需显式声明，并与文件参考 beta 一致。示例表示 beta = 0.9 时的
+定常响应；改变跟踪速度不会自动从该表推导出新的响应。仍需正常配置 Slicer、
+算法组求解器与源历史。
+
+所选 ``Component`` 必须与文件匹配。时域因果性与物理约定完全从 TFS 头部
+读取。阻抗 TFS 不声明时域因果性，应在跟踪模型中选择 ``Reconstruction``。
+上面的最简文件模型已足够读取时域尾函数，其中 ``Format`` 默认为 ``tfs``。
+
+不依赖 Qt 的 Python API 位于 ``PASS.tool.wake_conversion``：
+``preview_wake_file(source, **options)`` 与
+``convert_wake_file(source, destination, **options)``。同模块中的
+``read_external_wake(source, **options)`` 根据声明读取 ``table``/``headtail``，
+返回 SI 响应模型；运行时模块的 ``read_wake_file`` 仅读取标准 TFS。
+导入选项包括 ``component``、列选择，以及字典或 ``WakeConvention`` 形式的
+``convention``。转换默认 ``overwrite=False``；
+``expected_sha256`` 可防止保存时使用已经改变的预览源文件。
+上面的 CSV 示例对应：
+
+.. code-block:: python
+
+   from PASS.tool.wake_conversion import convert_wake_file, preview_wake_file
+
+   options = dict(
+       component="longitudinal", format="table", axis_column=0, value_column=1,
+       delimiter=",", convention=dict(
+           data_kind="wake_function", axis="time", axis_unit="ns", value_unit="V/pC",
+           positive_trailing=True, longitudinal_positive_loss=True, integrated=True,
+           reference_beta=0.9, fourier_exponent=-1, transverse_impedance_factor="i",
+           shunt_impedance_convention="not_applicable"))
+   preview = preview_wake_file("wake.csv", **options)
+   result = convert_wake_file(
+       "wake.csv", "wake_longitudinal.tfs", expected_sha256=preview["sha256"], **options)
+
+只读复核已有标准文件可调用
+``preview_wake_file("wake_longitudinal.tfs", format="tfs")``，分量从文件头部读取。
+TFS 预览与成功转换会返回 ``component_config``：包含显式固定速度及所需空间
+幂次或重构设置的分量 JSON 片段。原始文件预览时该字段为 null，因为尚无
+标准输出文件路径。
+
+大表预览保留端点与分组极值，避免等间隔抽行漏掉窄峰；全表诊断报告最大幅值、
+末点/峰值比与采样间距范围。预览点数减少仅影响显示，导出仍保留全部原始采样点。
+
+GUI 的 :ref:`数据格式转换 <gui-data-conversion-zh>` 页面通过 **导入尾场…**
+提供同一工作流程。
 
 非聚束束流适配范围
 ------------------

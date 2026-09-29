@@ -114,7 +114,7 @@ Response models
    * - ``tabulated``
      - Increasing ``Times (s)``, matching ``Values``, ``Causal`` (default true). Linear interpolation, zero outside the table. Causal tables start at zero; two-sided tables can include negative delays.
    * - ``file``
-     - Numeric ``table`` or ``headtail`` input with explicit column indices, units, signs and normalization. See File input below. Loaded once, with content fingerprinting.
+     - Canonical wake TFS only. Convert external CSV/TXT/HEADTAIL data before tracking. See File input below. Loaded once, with content fingerprinting.
    * - ``impedance``
      - Increasing nonnegative ``Frequencies (Hz)``, matching ``Real``/``Imag``, explicit ``Reconstruction``. Original samples remain immutable.
    * - ``fitted_impedance``
@@ -191,58 +191,246 @@ activated particles retain their original weights. See :doc:`injection`.
 File input
 ----------
 
-``Model.Kind="file"`` takes ``File path``, ``Format`` (``table`` default or
-``headtail``), ``Axis column`` (default 0), required ``Value column``, optional
-``Imag column``, ``Delimiter`` (null for whitespace), ``Skip rows`` (default 0),
-``Causal`` (default true), ``Reconstruction`` (``two_sided`` default), optional
-``Length (m)``, and required ``Convention``. Columns are zero-based, distinct,
-and numeric. UTF-8 files may contain # comments and a byte-order mark. General
-tables are linearly interpolated with zero outside their supplied support;
-causal tables must include zero delay. Unordered/duplicate samples are rejected;
-a reversed time/distance axis is accepted and reordered.
+``Model.Kind="file"`` reads canonical wake TFS only. Its model fields are
+``Kind="file"``, required ``File path``, ``Format="tfs"`` (default), and
+``Reconstruction`` (default ``two_sided``, used for impedance spectra).
+Units, signs, spatial powers and temporal causality come from the file.
+``Component`` and ``Velocity`` remain explicit component-level settings.
 
-``Convention`` declares ``Data kind`` (``wake_function``/``impedance``),
-``Axis`` (``time``/``distance``/``frequency``), ``Axis unit``, ``Value unit``,
-``Positive trailing``, ``Longitudinal positive loss``, ``Integrated``, and
-``Reference beta``. ``Fourier exponent`` defaults to -1,
-``Transverse impedance factor`` to i (also -i or 1), and
-``Shunt impedance convention`` to ``not_applicable`` (provenance only: numeric
-samples are already normalized; this field does not rescale a shunt impedance).
+CSV, whitespace tables and HEADTAIL files must first be converted with
+``PASS.tool.wake_conversion`` or the GUI wake importer. Tracking no longer
+accepts ``Format="table"`` or ``"headtail"``, nor the former model fields
+``Convention``, ``Axis column``, ``Value column``, ``Imag column``, ``Delimiter``,
+``Skip rows``, ``Causal`` or ``Length (m)``. These source interpretation settings
+belong to the conversion step. Renaming an external file to ``.tfs`` is
+insufficient: it must contain the canonical columns and required headers below.
 
-Time units: s/ms/us/ns/ps; distance: m/cm/mm; frequency: Hz/kHz/MHz/GHz.
-Wake amplitudes explicitly use V/kV/MV divided by C/nC/pC and the required
-spatial powers, for example ``V/C/m^2`` or ``V/(pC*mm)``. Impedance units use
-ohm/Ohm/kOhm/MOhm with spatial powers. Per-length data add one denominator
-length power and require physical ``Length (m)``; integrated data forbid it.
-Distance coordinates convert to delay through reference beta*c, without an
-additional wake-amplitude Jacobian. Fourier and longitudinal signs are
-converted explicitly. Impedance files require both real and imaginary columns
-and positive-trailing delay convention; use the Fourier sign field for
-opposite transform signs. Finite-band causal projection retains its documented
-approximation. A finite-bunch wake potential requires separate deconvolution
-and is rejected as a point-charge wake.
-
-HEADTAIL supports several column layouts, so select the columns explicitly.
-Its contract is ns and integrated V/pC for order zero, V/(pC*mm) for order one;
-signs remain explicit. See the `CERN HEADTAIL table specification
-<https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf>`_.
-For example:
-
-.. code-block:: python
-
-   model = dict(kind="file", file_path="tail.dat", format="headtail",
-       axis_column=0, value_column=2,
-       convention=dict(data_kind="wake_function", axis="time", axis_unit="ns",
-           value_unit="V/(pC*mm)", positive_trailing=True,
-           longitudinal_positive_loss=True, integrated=True, reference_beta=beta))
+Temporal tables use linear interpolation and zero response outside their
+support. Causal tables start at zero delay. The converter rejects duplicate
+or unordered samples and can reorder a reversed time/distance axis; it
+retains the original sample locations after unit and direction conversion.
 
 Input JSON resolves ``File path`` relative to its directory. Direct Python
 construction uses the supplied path relative to the current directory. Files
 are read only at construction; source hash and conversion metadata remain on
 the model. Checkpoints verify file-content hashes as well as configuration.
 CST project/binary parsing, automatic unit detection and wake-potential
-deconvolution are not included; exported numeric files can use ``table`` with
-their actual conventions explicitly provided.
+deconvolution are not included. Export numeric data and convert it using
+its explicitly declared source conventions.
+
+.. _wake-tfs-en:
+
+Canonical wake TFS and external conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use one TFS file per wake component. The canonical time-domain columns are
+``TAU`` and ``W``: delay in seconds and the integrated point-charge wake in
+SI units. Positive delay means a trailing witness; positive longitudinal wake
+means energy loss. The amplitude unit is ``V/C/m^n``, where n is the sum of
+the source and witness transverse powers (``V/C`` for the longitudinal
+monopole). Impedance files use ``FREQUENCY``, ``REAL`` and ``IMAG`` in Hz and
+the corresponding integrated SI impedance units.
+
+Header names and canonical values are case-sensitive. All headers below are
+required except ``SOURCE_METADATA``; ``CAUSAL`` and ``ZERO_VALUE`` are required
+only for temporal wakes and forbidden for impedance spectra. Header records
+use ``@ NAME TYPE VALUE`` before the ``*`` column names and ``$`` column types.
+All data columns have real floating types (the writer uses ``%le``), and all
+numeric samples and metadata must be finite.
+
+.. list-table:: Canonical wake TFS version 1 headers
+   :header-rows: 1
+   :widths: 35 12 53
+
+   * - Header
+     - Type
+     - Value
+   * - ``PASS_WAKE_VERSION``
+     - ``%d``
+     - ``1``.
+   * - ``DATA_KIND``
+     - ``%s``
+     - ``wake_function`` or ``impedance``.
+   * - ``COMPONENT``, ``PLANE``
+     - ``%s``
+     - Configured component name and its plane (``x``, ``y`` or ``z``); both must match the selected component.
+   * - ``SOURCE_POWERS``, ``TEST_POWERS``
+     - ``%s``
+     - JSON lists ``[x_power, y_power]`` matching the component; for example, ``"[0, 0]"`` for each longitudinal monopole factor.
+   * - ``AXIS_UNIT``
+     - ``%s``
+     - ``s`` for temporal wakes; ``Hz`` for impedance spectra.
+   * - ``VALUE_UNIT``
+     - ``%s``
+     - ``V/C`` for wakes or ``ohm`` for impedance at order zero; append ``/m`` at order one or ``/m^n`` at higher order n.
+   * - ``REFERENCE_BETA``
+     - ``%le``
+     - Reference speed divided by c, with ``0 < beta <= 1``.
+   * - ``INTEGRATED``, ``POSITIVE_TRAILING``, ``LONGITUDINAL_POSITIVE_LOSS``
+     - ``%d``
+     - Each is ``1``: integrated response, positive-trailing delay and positive longitudinal loss.
+   * - ``FOURIER_EXPONENT``
+     - ``%d``
+     - ``-1``.
+   * - ``TRANSVERSE_IMPEDANCE_FACTOR``
+     - ``%s``
+     - ``i``.
+   * - ``SHUNT_IMPEDANCE_CONVENTION``
+     - ``%s``
+     - ``not_applicable``; samples are already normalized. Original source conventions may be retained in provenance.
+   * - ``CAUSAL``, ``ZERO_VALUE``
+     - ``%d``, ``%s``
+     - Temporal wakes only: ``1`` and ``right_limit`` for causal tables, or ``0`` and ``sample`` for two-sided tables.
+   * - ``SOURCE_METADATA``
+     - ``%s``
+     - Optional quoted JSON object containing source provenance, such as its hash and original import convention.
+
+The TFS headers record the component, source/witness powers, data kind, units,
+signs, normalization, reference beta and causal convention. A causal time-domain
+zero-delay sample stores the right limit :math:`W(0^+)`; the solver applies
+the half-self-interaction rule. Supply the full right limit, without halving
+it in the file. A nonzero final wake sample warns of truncation because
+the response is zero beyond the supplied support. Extend the source data
+and check convergence when this truncation matters.
+
+Convert exported CSV, whitespace tables or HEADTAIL data with the dedicated
+``PASS.tool.wake_conversion`` utility. It checks the declared physical
+conventions, converts units and signs, and writes canonical TFS. It preserves
+the original sample locations after unit/direction conversion: it does not
+resample the response or convert delay to tracking turns. The general
+CSV/TFS converter only changes table representation; it does not establish
+this wake-specific physical contract.
+
+The converter's ``format`` is ``table`` by default; use ``headtail`` for its
+specific unit contract. Numeric columns are zero-based and distinct:
+``axis_column=0`` and ``value_column=1`` are defaults, with ``imag_column``
+required for impedance. ``delimiter=None`` selects whitespace, and
+``skiprows=0`` skips no initial rows. UTF-8 files support # comments and a
+byte-order mark. Specify ``causal=False`` for a two-sided temporal response.
+
+The ``convention`` dictionary declares ``data_kind`` (``wake_function`` or
+``impedance``), ``axis`` (``time``, ``distance`` or ``frequency``),
+``axis_unit``, ``value_unit``, ``positive_trailing``,
+``longitudinal_positive_loss``, ``integrated`` and ``reference_beta``.
+``fourier_exponent`` defaults to -1, ``transverse_impedance_factor`` to ``i``
+(also ``-i`` or ``1``), and ``shunt_impedance_convention`` to
+``not_applicable``. The last field records provenance without rescaling
+already normalized samples.
+
+Time units are s/ms/us/ns/ps, distance units m/cm/mm, and frequency units
+Hz/kHz/MHz/GHz. Wake amplitudes use V/kV/MV divided by C/nC/pC and the required
+spatial powers, such as ``V/C/m^2`` or ``V/(pC*mm)``. Impedance units use
+ohm/Ohm/kOhm/MOhm and spatial powers. Per-length data add one denominator
+length power and require ``length`` in metres; integrated data forbid it.
+Impedance requires real and imaginary columns and positive-trailing delay;
+declare the Fourier exponent to convert an opposite transform sign.
+Finite-band causal projection retains its documented approximation.
+
+For a distance axis, distinguish the source's definitions explicitly in
+``convention``: ``distance_convention="beta_c_tau"`` (default) means
+:math:`s=\beta_{\mathrm{ref}}c\tau`, while ``"c_tau"`` means
+:math:`s=c\tau`. Select the latter with ``--distance-convention c_tau``.
+The conversion changes the delay axis without an additional wake-amplitude
+Jacobian. These definitions coincide only at beta = 1; the tool does not
+infer one from a column labelled distance or z.
+
+HEADTAIL supports multiple column layouts, so select the columns explicitly.
+Its contract is ns and integrated V/pC at order zero, V/(pC*mm) at order one;
+signs remain explicit. See the `CERN HEADTAIL table specification
+<https://indico.cern.ch/event/178920/contributions/1446485/attachments/235706/329825/HDTL_lattice_def.pdf>`_.
+The output ``SOURCE_METADATA`` preserves the source hash and complete import
+settings, including column mapping, skipped rows, delimiter, length,
+causality, reconstruction and distance definition, for reproducibility.
+
+For example, save this illustrative nonuniform table as ``wake.csv``:
+
+.. code-block:: text
+
+   # delay_ns,wake_V_per_pC
+   0,4
+   0.25,3
+   0.8,1
+   2,0
+
+Convert it with:
+
+.. code-block:: console
+
+   python -m PASS.tool.wake_conversion wake.csv wake_longitudinal.tfs --component longitudinal --axis time --axis-unit ns --value-unit V/pC --reference-beta 0.9 --delimiter ","
+
+The defaults declare positive-trailing delay, positive longitudinal loss and
+an integrated response. Use ``--negative-trailing`` or ``--positive-gain``
+only when that is the source's convention. Per-length data require
+``--per-length --length LENGTH_IN_METRES`` and the corresponding per-length
+amplitude unit. Select columns and skipped header rows explicitly when the
+source has a different layout. A finite-bunch wake potential requires
+separate deconvolution and is rejected as a point-charge wake.
+
+Place the resulting component in a group's ``Components`` list:
+
+.. code-block:: json
+
+   {
+       "Component": "longitudinal",
+       "Velocity": {"Kind": "fixed", "Beta": 0.9},
+       "Model": {
+           "Kind": "file",
+           "Format": "tfs",
+           "File path": "wake_longitudinal.tfs"
+       }
+   }
+
+Keep ``Velocity`` explicit and consistent with the file's reference beta.
+The example describes a stationary response at beta = 0.9; changing the
+tracking speed does not derive a new response from that table. The normal
+Slicer, group solver and source-history configuration is still required.
+
+The selected ``Component`` must match the file. Temporal causality and
+conventions are read exclusively from the TFS headers. For impedance TFS,
+choose ``Reconstruction`` in the tracking model; the spectrum does not
+declare temporal causality. The minimal file model above is sufficient for
+temporal wakes because ``Format`` defaults to ``tfs``.
+
+The Qt-independent Python APIs are
+``preview_wake_file(source, **options)`` and
+``convert_wake_file(source, destination, **options)`` in
+``PASS.tool.wake_conversion``. Its ``read_external_wake(source, **options)``
+function reads declared ``table``/``headtail`` input into an SI response model;
+``read_wake_file`` in the runtime package reads canonical TFS only. Import
+options include ``component``, column selection and a ``convention`` dictionary
+or ``WakeConvention``. Conversion defaults to ``overwrite=False``;
+``expected_sha256`` can protect a previewed source against changes before
+saving. For the CSV example:
+
+.. code-block:: python
+
+   from PASS.tool.wake_conversion import convert_wake_file, preview_wake_file
+
+   options = dict(
+       component="longitudinal", format="table", axis_column=0, value_column=1,
+       delimiter=",", convention=dict(
+           data_kind="wake_function", axis="time", axis_unit="ns", value_unit="V/pC",
+           positive_trailing=True, longitudinal_positive_loss=True, integrated=True,
+           reference_beta=0.9, fourier_exponent=-1, transverse_impedance_factor="i",
+           shunt_impedance_convention="not_applicable"))
+   preview = preview_wake_file("wake.csv", **options)
+   result = convert_wake_file(
+       "wake.csv", "wake_longitudinal.tfs", expected_sha256=preview["sha256"], **options)
+
+For read-only inspection of an existing canonical file, use
+``preview_wake_file("wake_longitudinal.tfs", format="tfs")``; the component is
+read from its headers. TFS preview and successful conversion return
+``component_config``, a component JSON fragment with explicit fixed velocity
+and any required spatial or reconstruction settings. Raw-file preview leaves
+this field null because no canonical output path exists yet.
+
+Large-table preview keeps the endpoints and extrema of bounded sample groups
+instead of selecting evenly spaced rows, so narrow peaks remain visible.
+Full-table diagnostics report the peak magnitude, tail-to-peak ratio and sample-spacing range.
+Preview reduction only affects display; export preserves all original knots.
+
+The GUI exposes the same workflow through **Import wake…** in
+:ref:`Data format conversion <gui-data-conversion-en>`.
 
 Coasting beams
 --------------

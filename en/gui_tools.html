@@ -73,7 +73,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#phase-space-plotting-and-emittance-calculation">Phase-space plotting and emittance calculation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#magnet-conversion">Magnet conversion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#exciter-calculation-and-plotting">Exciter calculation and plotting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#data-format-conversion">Data format conversion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-format-conversion">Data format conversion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#wake-data-import">Wake data import</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -541,6 +544,54 @@ Custom reverse mappings use <code class="docutils literal notranslate"><span cla
 Calls return output paths, row counts and notices; overwrite defaults to false.
 Scripts can use <code class="docutils literal notranslate"><span class="pre">preview_file(path,</span> <span class="pre">selection,</span> <span class="pre">check_sdds=True)</span></code> to receive
 the complete-selection result in <code class="docutils literal notranslate"><span class="pre">sdds_check</span></code> while limiting displayed rows.</p>
+<section id="wake-data-import">
+<h3>Wake data import<a class="headerlink" href="#wake-data-import" title="Link to this heading"></a></h3>
+<p>Choose <strong>Import wake…</strong> in the conversion tool to prepare a canonical temporal wake TFS.
+Select the source file and component, map the numeric columns, and declare
+the source axis, units, signs, normalization and reference beta. For a file
+with an ordinary text header, set the number of rows to skip. Preview the
+normalized data and its validation messages, then save one component per TFS.
+WakeField tracking accepts these canonical TFS files only; external table
+interpretation stays in the importer. Changing the import settings or source
+requires a new preview.</p>
+<p>For distance data, choose whether the source coordinate means
+<code class="docutils literal notranslate"><span class="pre">beta_c_tau</span></code> (<span class="math notranslate nohighlight">\(s=\beta_{\mathrm{ref}}c\tau\)</span>) or <code class="docutils literal notranslate"><span class="pre">c_tau</span></code>
+(<span class="math notranslate nohighlight">\(s=c\tau\)</span>). The default is <code class="docutils literal notranslate"><span class="pre">beta_c_tau</span></code>. Switching components with
+the same spatial order preserves a custom unit. Changing the spatial order
+or length normalization displays a reminder to check the unit instead of
+silently replacing a user-specified scale.</p>
+<p>Name reusable import settings with <strong>Import preset name</strong>, then choose
+<strong>Save preset…</strong> or <strong>Load preset…</strong>. A versioned JSON preset stores its name
+and complete import options, including column mapping and physical conventions.
+It does not store a source path or source hash. Loading a preset requires a
+new preview of the selected source before export. TFS review presets store
+only the format and reconstruction choice; their physical metadata is always
+read from the selected TFS file.</p>
+<p>Select an existing canonical TFS to review its declared metadata and curve
+with its physical metadata read-only; this review does not export another file.
+Spectrum TFS review shows both real and imaginary impedance and lets you
+choose the tracking model’s reconstruction method. The preview of a large table retains
+endpoints and extrema instead of taking evenly spaced rows; the summary
+uses the complete table for the peak magnitude, tail-to-peak ratio and
+minimum/maximum spacing.
+Display reduction does not change exported samples.</p>
+<p>After a successful export or TFS review, <strong>Copy component JSON</strong> copies the
+fragment shown in the read-only <strong>Component configuration</strong> tab. It includes
+the file model and explicit fixed velocity, plus spatial or reconstruction
+settings where needed. Add it to a group’s <code class="docutils literal notranslate"><span class="pre">Components</span></code> list after checking
+the file path and reference speed; copying does not modify the current simulation.</p>
+<p>This dedicated import applies the wake conventions and preserves the original
+sample locations after unit/direction conversion. The ordinary <strong>Save as TFS</strong>
+route preserves general table data and does not infer wake physics. Delay is
+not converted to turns, and no resampling is performed. Supply the full
+zero-delay right limit, check a nonzero tail for truncation, and use the file
+at its declared reference speed. Finite-bunch wake potentials need separate
+deconvolution before point-charge wake import. See <a class="reference internal" href="wake_field.html#wake-tfs-en"><span class="std std-ref">Canonical wake TFS and external conversion</span></a> for
+the CSV example, command-line conversion, Python APIs and tracking configuration.
+External impedance-spectrum conversion is available through the command-line
+and Python APIs; the GUI imports time- or distance-domain point-charge wakes
+and reviews existing canonical wake or impedance TFS.</p>
+</section>
 </section>
 </section>
 
