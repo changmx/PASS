@@ -1,4 +1,4 @@
-"""Full-resolution result analysis and explicit SpaceCharge field semantics."""
+"""Full-resolution analysis with distinct SpaceCharge and electron-cloud units."""
 
 from copy import deepcopy
 from contextlib import contextmanager
@@ -14,6 +14,8 @@ import sys
 import tempfile
 
 import numpy as np
+
+from PASS.gui.electron_cloud_results import ElectronCloudResult
 
 
 @dataclass
@@ -71,6 +73,8 @@ class ExportSelection:
     index: int | None = None
     average: bool = False
     aperture: bool = True
+    electron_cloud_view: str = ""
+    electron_cloud_quantity: str = ""
 
 
 def freeze_result(result):
@@ -86,6 +90,8 @@ def freeze_result(result):
         return view
 
     metadata = deepcopy(result.metadata)
+    if isinstance(result, ElectronCloudResult):
+        return result.freeze()
     if isinstance(result, FieldResult):
         return FieldResult(*(readonly(value) for value in (result.x, result.y, result.slice_ids, result.delta_z)), {
             name: readonly(value)
@@ -107,6 +113,10 @@ def read_plot_result(path, *, cancelled=lambda: False, progress=lambda message: 
         import h5py
 
         with h5py.File(path, "r") as stream:
+            if stream.attrs.get("format") in {"PASS-electron-cloud-fields-1", "PASS-electron-cloud-buildup-1"}:
+                from PASS.gui.electron_cloud_results import read_electron_cloud_result
+
+                return read_electron_cloud_result(stream, cancelled=cancelled, progress=progress)
             field_names = [name for name in ("charge_density", "potential", "integrated_Ex", "integrated_Ey") if name in stream]
             if field_names:
                 required = ("x", "y", "slice_id", "delta_z")
@@ -186,15 +196,22 @@ def compare_columns(current, baseline, x_name, y_name, mode, status="all", batch
     return x, difference, reference
 
 
-def density_histogram(x, y, bins=80):
-    """Count macro-particle rows, without charge weighting or interpolation."""
+def density_histogram(x, y, bins=80, weights=None):
+    """Count rows or sum explicit electron-number weights without interpolation."""
     x, y = np.asarray(x), np.asarray(y)
     if x.shape != y.shape or x.ndim != 1:
         raise ValueError("密度图的 X / Y 必须一维且等长。")
     valid = np.isfinite(x) & np.isfinite(y)
+    if weights is not None:
+        weights = np.asarray(weights)
+        if weights.shape != x.shape or not np.isfinite(weights).all() or np.any(weights < 0):
+            raise ValueError("电子数权重必须与坐标等长、有限且非负。")
     if not valid.any():
-        raise ValueError("当前筛选没有有限的 X / Y 配对。")
-    histogram, x_edges, y_edges = np.histogram2d(x[valid], y[valid], bins=int(bins))
+        if weights is None or x.size:
+            raise ValueError("当前筛选没有有限的 X / Y 配对。")
+        # A completely depleted cloud is valid; display its zero population.
+        return np.zeros((int(bins), int(bins))), np.linspace(-1, 1, int(bins) + 1), np.linspace(-1, 1, int(bins) + 1)
+    histogram, x_edges, y_edges = np.histogram2d(x[valid], y[valid], bins=int(bins), weights=weights[valid] if weights is not None else None)
     return histogram.T, x_edges, y_edges
 
 
@@ -251,7 +268,15 @@ def export_selection_data(selection, path, *, context=None):
     result = selection.result
     metadata = {"source": selection.source, "status": selection.status, "batch": selection.batch, "display_reduction": False}
     definitions = dict(result.metadata.get("column_definitions", {}))
-    if isinstance(result, FieldResult):
+    if isinstance(result, ElectronCloudResult):
+        from PASS.gui.electron_cloud_results import electron_cloud_export_columns
+
+        columns, definitions = electron_cloud_export_columns(result, selection.electron_cloud_view)
+        metadata.update(view=selection.electron_cloud_view,
+                        quantity=selection.electron_cloud_quantity,
+                        axis_order="y,x",
+                        weighting="saved electron-number weights; no interaction-length rescaling")
+    elif isinstance(result, FieldResult):
         index = selection.index
         x, y = np.meshgrid(result.x, result.y)
         columns = {"x_m": x.ravel(), "y_m": y.ravel()}
@@ -289,6 +314,11 @@ def selection_figure_spec(selection, *, context=None):
     context = _task_context(context)
     context.report("准备完整图像数据…")
     result = selection.result
+    if isinstance(result, ElectronCloudResult):
+        from PASS.gui.electron_cloud_results import electron_cloud_figure_spec
+
+        return electron_cloud_figure_spec(result, selection.electron_cloud_view, selection.electron_cloud_quantity, selection.x_name,
+                                          selection.y_name, selection.bins)
     if isinstance(result, FieldResult):
         # Transfer only the selected field plane, retaining every grid node.
         index = selection.index
@@ -500,7 +530,14 @@ def create_figure(kind, payload, *, size=(10, 6), dpi=100):
 
     figure = Figure(figsize=size, dpi=dpi, layout="constrained")
     if kind == "density":
-        values, x_edges, y_edges = density_histogram(payload["x"], payload["y"], payload.get("bins", 80))
+        if "weights" in payload and not len(payload["weights"]):
+            axis = figure.add_subplot(111)
+            axis.text(0.5, 0.5, "No macro electrons (zero population)", ha="center", va="center", transform=axis.transAxes)
+            axis.set(xlabel=payload["x_label"], ylabel=payload["y_label"], title=payload.get("title", ""))
+            axis.set_xticks([])
+            axis.set_yticks([])
+            return figure
+        values, x_edges, y_edges = density_histogram(payload["x"], payload["y"], payload.get("bins", 80), payload.get("weights"))
         grid = figure.add_gridspec(4, 4)
         axis = figure.add_subplot(grid[1:, :3])
         top = figure.add_subplot(grid[0, :3], sharex=axis)
@@ -508,13 +545,31 @@ def create_figure(kind, payload, *, size=(10, 6), dpi=100):
         image = axis.pcolormesh(x_edges, y_edges, values, shading="flat", cmap="viridis")
         top.stairs(values.sum(axis=0), x_edges)
         right.stairs(values.sum(axis=1), y_edges, orientation="horizontal")
-        top.set_ylabel("Count")
-        right.set_xlabel("Count")
+        top.set_ylabel("Electrons" if "weights" in payload else "Count")
+        right.set_xlabel("Electrons" if "weights" in payload else "Count")
         top.tick_params(labelbottom=False)
         right.tick_params(labelleft=False)
-        figure.colorbar(image, ax=[axis, top, right], label="Macro-particle rows / bin", shrink=0.7)
+        figure.colorbar(image, ax=[axis, top, right], label=payload.get("weight_label", "Macro-particle rows / bin"), shrink=0.7)
         axis.set_xlabel(payload["x_label"])
         axis.set_ylabel(payload["y_label"])
+        if payload.get("title"):
+            top.set_title(payload["title"])
+    elif kind == "electron_cloud_field":
+        figure.set_layout_engine("compressed")
+        result, name = payload["result"], payload["field"]
+        axis = figure.add_subplot(111)
+        image = axis.pcolormesh(result.grid["x"],
+                                result.grid["y"],
+                                np.ma.masked_invalid(result.fields[name]),
+                                shading="nearest",
+                                cmap="RdBu_r" if name in {"ex", "ey"} else "viridis")
+        figure.colorbar(image, ax=axis, label=f"{name} [{result.unit('fields', name)}]")
+        source_time = result.metadata.get("source_metadata", {}).get("time")
+        title = f"turn={result.metadata.get('turn', '?')}" + (f", time={source_time:.9g} s" if source_time is not None else "")
+        axis.set(xlabel=f"x [{result.unit('grid', 'x')}]", ylabel=f"y [{result.unit('grid', 'y')}]", title=title)
+        axis.set_aspect("equal", adjustable="box")
+        axis.set_xlim(result.grid["x"][0], result.grid["x"][-1])
+        axis.set_ylim(result.grid["y"][0], result.grid["y"][-1])
     elif kind == "field":
         figure.set_layout_engine("compressed")
         result, name, index, average = payload["result"], payload["field"], payload["index"], payload["average"]
@@ -545,6 +600,8 @@ def create_figure(kind, payload, *, size=(10, 6), dpi=100):
             else:
                 axis.plot(x, y, label=label, marker="o" if np.count_nonzero(np.isfinite(x) & np.isfinite(y)) == 1 else None, markersize=3)
         axis.set(xlabel=payload["x_label"], ylabel=payload["y_label"])
+        if payload.get("title"):
+            axis.set_title(payload["title"])
         axis.grid(alpha=0.25)
         if len(payload["series"]) > 1:
             axis.legend()

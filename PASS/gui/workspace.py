@@ -938,7 +938,8 @@ class DocumentWindowMixin:
                 choice.setWindowTitle("命令的规定时钟不同")
                 choice.setText("复制的命令依赖规定时钟。请选择它在目标项目中使用的时钟。")
                 choice.setInformativeText("源：" + display_json(difference["source"]) + "\n目标：" + display_json(difference["target"]) +
-                                          ("\n" + difference["detail"] if difference.get("detail") else "") + "\n复制源时钟也会影响目标中已有的谐波 RF、Bump 和到达相位切片。")
+                                          ("\n" + difference["detail"] if difference.get("detail") else "") +
+                                          "\n复制源时钟也会影响目标中已有的谐波 RF、Bump、到达相位切片和动态电子云的束流时序。")
                 keep = choice.addButton("使用目标时钟", QMessageBox.AcceptRole)
                 copy_clock = choice.addButton("复制源时钟", QMessageBox.ActionRole)
                 choice.addButton(QMessageBox.Cancel)

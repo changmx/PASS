@@ -7,6 +7,7 @@ from PySide6.QtCore import QPointF, QRectF, QThread, Qt, Signal
 from PySide6.QtGui import QImage, QPainter, QPainterPath, QPalette, QPen, QPolygonF
 from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QLabel, QMessageBox, QProgressBar, QPushButton, QSpinBox, QStackedWidget, QVBoxLayout, QWidget
 
+from PASS.gui.electron_cloud_results import ElectronCloudResult
 from PASS.gui.widgets import file_dialog_directory
 
 
@@ -372,6 +373,30 @@ class PlotPage(QWidget):
             field.toggled.connect(self._select_series)
         self.field_controls.hide()
         root.addWidget(self.field_controls)
+        self.electron_cloud_controls = QWidget()
+        cloud_layout = QHBoxLayout(self.electron_cloud_controls)
+        cloud_layout.setContentsMargins(0, 0, 0, 0)
+        self.electron_cloud_view = QComboBox()
+        self.electron_cloud_quantity = QComboBox()
+        self.electron_cloud_x = QComboBox()
+        self.electron_cloud_y = QComboBox()
+        self.electron_cloud_bins = QSpinBox()
+        self.electron_cloud_bins.setRange(8, 256)
+        self.electron_cloud_bins.setValue(80)
+        self.electron_cloud_quantity_label = QLabel("物理量")
+        self.electron_cloud_x_label, self.electron_cloud_y_label = QLabel("X 列"), QLabel("Y 列")
+        self.electron_cloud_bins_label = QLabel("带权分箱")
+        for widget in (QLabel("电子云视图"), self.electron_cloud_view, self.electron_cloud_quantity_label, self.electron_cloud_quantity,
+                       self.electron_cloud_x_label, self.electron_cloud_x, self.electron_cloud_y_label, self.electron_cloud_y,
+                       self.electron_cloud_bins_label, self.electron_cloud_bins):
+            cloud_layout.addWidget(widget)
+        cloud_layout.addStretch()
+        self.electron_cloud_view.currentIndexChanged.connect(self._select_electron_cloud_view)
+        for field in (self.electron_cloud_quantity, self.electron_cloud_x, self.electron_cloud_y):
+            field.currentIndexChanged.connect(self._select_series)
+        self.electron_cloud_bins.valueChanged.connect(self._select_series)
+        self.electron_cloud_controls.hide()
+        root.addWidget(self.electron_cloud_controls)
         self.plot_stack = QStackedWidget()
         self.plot_stack.addWidget(self.canvas)
         self.analysis_view = QWidget()
@@ -499,7 +524,8 @@ class PlotPage(QWidget):
         self.result_selector.blockSignals(True)
         self.result_selector.clear()
         for path, result in self.result_files.items():
-            identity = " · ".join(f"{k}={result.metadata[k]}" for k in ("BeamId", "BunchId", "Turn") if k in result.metadata)
+            identity = " · ".join(f"{k}={result.metadata[k]}" for k in ("BeamId", "BunchId", "Turn", "beam_id", "command", "turn")
+                                  if k in result.metadata)
             self.result_selector.addItem(Path(path).name + (" · " + identity if identity else ""), path)
         index = self.result_selector.findData(selected)
         self.result_selector.setCurrentIndex(max(0, index) if self.result_files else -1)
@@ -507,7 +533,7 @@ class PlotPage(QWidget):
         self.baseline_box.blockSignals(True)
         self.baseline_box.clear()
         for path, result in self.result_files.items():
-            if not isinstance(result, FieldResult):
+            if not isinstance(result, (FieldResult, ElectronCloudResult)):
                 self.baseline_box.addItem(Path(path).name, path)
         index = self.baseline_box.findData(baseline)
         if index < 0:
@@ -538,10 +564,12 @@ class PlotPage(QWidget):
         self._active_path = path
         result = self.result_files.get(path)
         field_result = isinstance(result, FieldResult)
+        cloud_result = isinstance(result, ElectronCloudResult)
         self.field_controls.setVisible(field_result)
-        self.table_controls.setVisible(not field_result)
+        self.electron_cloud_controls.setVisible(cloud_result)
+        self.table_controls.setVisible(not (field_result or cloud_result))
         for field in (self.x_column_box, self.column_box, self.mode_box, self.preset_box, self.compare_mode, self.baseline_box, self.density_bins):
-            field.setEnabled(not field_result)
+            field.setEnabled(not (field_result or cloud_result))
         for field in (self.field_box, self.slice_box):
             field.blockSignals(True)
             field.clear()
@@ -572,6 +600,15 @@ class PlotPage(QWidget):
             box.setCurrentIndex(max(0, box.findData(selected)))
         for field in fields:
             field.blockSignals(False)
+        if cloud_result:
+            self.electron_cloud_view.blockSignals(True)
+            self.electron_cloud_view.clear()
+            for name, label in (("fields", "瞬时场图"), ("source", "带权电子分布"), ("history", "时间历史")):
+                if name in result.views:
+                    self.electron_cloud_view.addItem(label, name)
+            self.electron_cloud_view.blockSignals(False)
+            self._select_electron_cloud_view()
+            return
         self._select_series()
 
     @staticmethod
@@ -596,6 +633,9 @@ class PlotPage(QWidget):
             return
         if isinstance(result, FieldResult):
             self._select_field(result)
+            return
+        if isinstance(result, ElectronCloudResult):
+            self._select_electron_cloud(result)
             return
         x_name, y_name = self.x_column_box.currentText(), self.column_box.currentText()
         columns = result.select_columns((x_name, y_name), self.status_filter.currentData(), self.batch_filter.currentData())
@@ -653,8 +693,8 @@ class PlotPage(QWidget):
         self._save_preferences()
         n_rows = len(next(iter(self.columns.values()), []))
         n_valid = int(np.count_nonzero(np.isfinite(x) & np.isfinite(y)))
-        memory = sum(table.nbytes if isinstance(table, FieldResult) else sum(np.asarray(value).nbytes for value in table.columns.values())
-                     for table in self.result_files.values()) / 1024**2
+        memory = sum(table.nbytes if isinstance(table, (FieldResult, ElectronCloudResult)) else sum(
+            np.asarray(value).nbytes for value in table.columns.values()) for table in self.result_files.values()) / 1024**2
         detail = " · ".join(f"{k}={result.metadata[k]}" for k in ("NumAlive", "NumLost", "NumPending", "ZCoordinate", "ReferenceArrivalTime",
                                                                   "ReferenceBeta", "ReferenceMomentum") if k in result.metadata)
         convention = "PASS 粒子列：px=Px/P0、py=Py/P0，不能直接当作 x′/y′；z 为束团相对时间坐标。配套参考量仅适用于存活粒子。" if "tag" in names else ""
@@ -732,12 +772,84 @@ class PlotPage(QWidget):
             self.info.setText(str(exc))
             self.export_image_button.setEnabled(False)
 
+    def _select_electron_cloud_view(self, *_args):
+        result = self.result_files.get(self._active_path)
+        if not isinstance(result, ElectronCloudResult):
+            return
+        view = self.electron_cloud_view.currentData()
+        for widget in (self.electron_cloud_quantity_label, self.electron_cloud_quantity):
+            widget.setVisible(view != "source")
+        for widget in (self.electron_cloud_x_label, self.electron_cloud_x, self.electron_cloud_y_label, self.electron_cloud_y,
+                       self.electron_cloud_bins_label, self.electron_cloud_bins):
+            widget.setVisible(view == "source")
+        self.electron_cloud_quantity.blockSignals(True)
+        self.electron_cloud_quantity.clear()
+        if view == "fields":
+            names = list(result.fields)
+        elif view == "history":
+            names = [name for name, values in result.history.items() if values.dtype.kind in "biuf" and name not in {"time_start", "time_end"}]
+        else:
+            names = []
+        for name in names:
+            unit = result.unit(view, name)
+            self.electron_cloud_quantity.addItem(f"{name} [{unit}]" if unit else name, name)
+        if view == "history":
+            self.electron_cloud_quantity.setCurrentIndex(max(0, self.electron_cloud_quantity.findData("n_electrons_after")))
+        self.electron_cloud_quantity.blockSignals(False)
+        for box, default in ((self.electron_cloud_x, "x"), (self.electron_cloud_y, "y")):
+            box.blockSignals(True)
+            previous = box.currentData()
+            box.clear()
+            for name in result.source:
+                box.addItem(f"{name} [{result.unit('source', name)}]", name)
+            selected = previous if previous in result.source else default
+            box.setCurrentIndex(max(0, box.findData(selected)))
+            box.blockSignals(False)
+        self._select_series()
+
+    def _select_electron_cloud(self, result):
+        from PASS.gui.electron_cloud_results import electron_cloud_figure_spec
+
+        view = self.electron_cloud_view.currentData()
+        try:
+            spec = electron_cloud_figure_spec(result, view, self.electron_cloud_quantity.currentData(), self.electron_cloud_x.currentData(),
+                                              self.electron_cloud_y.currentData(), self.electron_cloud_bins.value())
+            self._show_figure(*spec)
+            attrs = result.metadata
+            configuration = attrs.get("configuration", {})
+            source_metadata = attrs.get("source_metadata", {})
+            detail = f"mode={configuration.get('mode', '?')} · beam={attrs.get('beam_id', '?')} · turn={attrs.get('turn', '?')}"
+            if view == "fields":
+                explanation = "二维 (y, x) 瞬时 SI 场：ρ [C/m³]、nₑ [1/m³]、φ [V]、E [V/m]；不除以 Δz。"
+                if configuration.get("mode") == "coupled":
+                    explanation += " 场图对应最终观测时刻的电子源。"
+            else:
+                detail += f" · source_length={source_metadata.get('source_length', '?')} m · time={source_metadata.get('time', '?')} s"
+                explanation = ("直方图与投影按保存的 weight 求和：每箱电子数，不是宏电子行数或体密度；ux, uy, uz = p/(mₑc)。"
+                               if view == "source" else "历史按保存顺序对物理区间结束时间绘图；电子数与壁面统计对应保存的源长度，未按作用长度缩放。")
+                if view == "source":
+                    detail += f" · 宏电子 {len(result.source['weight']):,} · 代表电子数 {result.source['weight'].sum():.9g}"
+            self.info.setText(f"{self._active_path}\n{detail}\n{explanation}")
+        except (ValueError, KeyError, TypeError) as exc:
+            self.plot_stack.setCurrentWidget(self.canvas)
+            self.canvas.set_series([], [], empty_message=str(exc))
+            self.info.setText(str(exc))
+            self.export_image_button.setEnabled(False)
+
     def _capture_export(self):
         from PASS.gui.plot_analysis import ExportSelection, freeze_result
 
         result = self.result_files.get(self._active_path)
         if result is None:
             raise ValueError("请先加载数据。")
+        if isinstance(result, ElectronCloudResult):
+            return ExportSelection(source=self._active_path,
+                                   result=freeze_result(result),
+                                   x_name=self.electron_cloud_x.currentData(),
+                                   y_name=self.electron_cloud_y.currentData(),
+                                   bins=self.electron_cloud_bins.value(),
+                                   electron_cloud_view=self.electron_cloud_view.currentData(),
+                                   electron_cloud_quantity=self.electron_cloud_quantity.currentData())
         return ExportSelection(source=self._active_path,
                                result=freeze_result(result),
                                x_name=self.x_column_box.currentText(),

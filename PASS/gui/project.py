@@ -117,6 +117,29 @@ def unique_name(name: str, existing) -> str:
     return candidate
 
 
+def _electron_cloud_block(data):
+    """Read cloud aliases without validating away disabled configuration drafts."""
+    from PASS.para.schema.electron_cloud import ElectronCloudConfig
+    keys = [key for key in data if str(key).casefold() == "electron cloud"]
+    if len(keys) > 1:
+        raise ProjectError("Duplicate Electron cloud input blocks")
+    key = keys[0] if keys else "Electron cloud"
+    raw = data.get(key, {})
+    if not isinstance(raw, dict):
+        raise ProjectError("Electron cloud must be an object")
+    normalized = ElectronCloudConfig._normalize_fields(deepcopy(raw))
+    block = {
+        (ElectronCloudConfig.model_fields[name].alias if name in ElectronCloudConfig.model_fields else name): value
+        for name, value in normalized.items()
+    }
+    return key, block
+
+
+def _electron_cloud_mode(resource):
+    from PASS.para.schema.electron_cloud import ElectronCloudConfiguration
+    return ElectronCloudConfiguration._normalize_fields(deepcopy(resource)).get("mode", "frozen") if isinstance(resource, dict) else "frozen"
+
+
 def safe_member(name: str) -> str:
     path = PurePosixPath(name)
     if (not name or "\\" in name or ":" in name or "\x00" in name or path.is_absolute() or any(part in (".", "..", "") or part.endswith(
@@ -534,7 +557,7 @@ class Project:
         self._write_archive(Path(destination), entries, context=context)
 
     def copy_command(self, source_id: str, name: str, target: Project, target_id: str, *, clock_policy: str = "check", context=None) -> str:
-        """Copy a command and its named SC/Slicer/file dependencies without overwrite."""
+        """Copy a command and its named physics/Slicer/file dependencies without overwrite."""
         source = self.configs[source_id].data
         result = deepcopy(target.configs[target_id].data)
         sequence = result.setdefault("Sequence", {})
@@ -586,13 +609,20 @@ class Project:
                         # The shared definition already exists exactly once. The
                         # user places paired commands and slicing in each input.
                         return
-                    module = "Wake field" if value.get("Command") == "WakeField" else "Space charge"
+                    module = {"WakeField": "Wake field", "ElectronCloud": "Electron cloud"}.get(value.get("Command"), "Space charge")
                     identity = (module, old)
                     if identity not in config_names:
-                        resource = source.get(module, {}).get("Configurations", {}).get(old)
+                        source_block = source.get(module, {})
+                        if module == "Electron cloud":
+                            _, source_block = _electron_cloud_block(source)
+                        resource = source_block.get("Configurations", {}).get(old)
                         if not isinstance(resource, dict):
                             raise ProjectError(f"Missing {module} configuration: {old}")
-                        block = result.setdefault(module, {})
+                        if module == "Electron cloud":
+                            block_key, block = _electron_cloud_block(result)
+                            result[block_key] = block
+                        else:
+                            block = result.setdefault(module, {})
                         resources = block.setdefault("Configurations", {})
                         new = unique_name(old, resources)
                         copied = target._capture(resource, self.config_base, context=context)
@@ -601,7 +631,7 @@ class Project:
                         resources[new] = copied
                         # Preserve target physics switches; create a usable block
                         # only when the target has no module settings yet.
-                        block.setdefault("Enabled", source.get(module, {}).get("Enabled", True))
+                        block.setdefault("Enabled", source_block.get("Enabled", module != "Electron cloud"))
                         config_names[identity] = new
                     value["Configuration"] = config_names[identity]
                 for item in value.values():
@@ -613,6 +643,13 @@ class Project:
         visit(command)
         if command.get("Command") == "WakeField":
             command["Slice set"] = copy_slice(command["Slice set"])
+        elif command.get("Command") == "ElectronCloud":
+            _, block = _electron_cloud_block(result)
+            resource = block["Configurations"][command["Configuration"]]
+            if _electron_cloud_mode(resource) in {"build_up", "coupled"}:
+                if not command.get("Slice set"):
+                    raise ProjectError("Dynamic ElectronCloud requires a Slice set dependency")
+                command["Slice set"] = copy_slice(command["Slice set"])
         command = target._capture(command, self.config_base, context=context)
         new_name = unique_name(name, sequence)
         sequence[new_name] = command
@@ -628,8 +665,12 @@ class Project:
         command = source["Sequence"][name]
         kind = command.get("Command")
         # Direct-frequency RF also integrates from the prescribed time origin.
-        # Initial particle times for Bump/Wake depend on the same machine clock.
+        # Initial particle times for Bump/Wake and dynamic clouds use this clock.
         needs_clock = kind in {"WakeField", "Bump", "RFCavity"}
+        if kind == "ElectronCloud":
+            _, block = _electron_cloud_block(source)
+            resource = block.get("Configurations", {}).get(command.get("Configuration"), {})
+            needs_clock = _electron_cloud_mode(resource) in {"build_up", "coupled"}
         if not needs_clock:
             return None
         from PASS.gui.clock import reference_clock_snapshot

@@ -62,7 +62,7 @@ Property ordering and sections
 Property forms and the JSON source have separate drafts. Use **Apply source** or
 **Discard source changes** for JSON edits. If both contain pending changes,
 discard one draft before applying the other. Saving requires resolving drafts.
-Injection, Space charge, and WakeField forms apply their changes together as one
+Injection, Space charge, WakeField, and ElectronCloud forms apply their changes together as one
 undo step. **Cancel** restores applied parameters. Drafts are not automatically
 backed up; see :doc:`project_files` for manual saving and recovery.
 
@@ -262,8 +262,8 @@ Exciter previews evaluate particle time as ``t = T_start + elapsed - z/(beta*c)`
 using continuous bunch-relative z and the local reference arrival time. Nominal
 bunch slots do not shift the preview.
 
-WakeField and result files
---------------------------
+WakeField
+---------
 
 **Wakefields → Global configuration** manages the global enable switch and named
 model/solver configurations. Opening it collects existing inline point definitions
@@ -281,6 +281,87 @@ The editor exposes all nine model families, spatial powers for custom components
 and fixed/factorized/ideal velocity laws. The shared schema validates combinations.
 File models require explicit units, axes, sign conventions, integration convention
 and reference beta; unknown external-file conventions are not guessed.
+
+Electron clouds
+---------------
+
+**Physics effects → Electron cloud** provides **Global configuration**,
+**Insert electron-cloud slicing**, and **Electron-cloud interaction point**.
+Start with a named configuration, select its mode and solver, then insert points
+that reference it. The global ``Enabled`` and point ``Is enabled`` switches must
+both be on. Points sharing one configuration own independent cloud states.
+The interface writes the ordinary input schema described in :doc:`electron_cloud`.
+
+.. list-table:: Mode and solver selection
+   :header-rows: 1
+   :widths: 15 35 50
+
+   * - Mode
+     - Solver
+     - Behavior and slicing
+   * - ``frozen``
+     - ``uniform_round_free_space``, ``fft_free_space``, ``fd_dirichlet``, or ``dst_dirichlet``
+     - Fixed cloud with a transverse beam kick; no Slicer dependency.
+   * - ``build_up``
+     - ``round_gaussian_beam``
+     - Prescribed round-Gaussian beam drive, electron motion and wall emission; no cloud self-field or beam feedback. Requires a Slicer.
+   * - ``coupled``
+     - ``fd_dirichlet``
+     - Saved beam-slice particles drive the electrons; includes cloud PIC self-fields and a transverse beam kick. Requires a Slicer.
+
+The editor groups the source, grid/boundary, and electron-motion/wall-emission
+parameters, and shows controls relevant to the selected mode and solver.
+Electron density is the physical number density in m\ :sup:`−3`; in dynamic
+modes it is only the initial density. The cloud disk radius, circular chamber
+radius, and beam RMS sigma are separate parameters. Supply the required density
+and disk radius; dynamic modes also require a chamber radius, positive maximum
+time step and positive beam sigma. ``Beam sigma`` controls only ``build_up``;
+``coupled`` retains the required schema field but uses the actual saved beam
+particles. The complete initial disk must lie strictly inside the chamber.
+
+For frozen fields, free-space solvers accept ``default``/``off`` boundaries;
+FD supports the available conducting aperture shapes; DST requires the full
+grid-aligned rectangle. Dynamic modes use the circular ``Build up`` chamber.
+Coupled grids require odd ``Nx``/``Ny`` of at least 5, widths covering the chamber
+diameter, and spacing no greater than half its radius. These bounds check that
+the geometry is resolved at all; users still choose and check numerical resolution.
+The dynamic form also exposes the uniform magnetic field, magnetic gradient,
+initial energy, primary and secondary emission, macro-electron limits, integration
+step limit and wall-hit limit. An unspecified random seed is saved as JSON
+``null``; an explicit integer makes sampling reproducible for equal inputs.
+
+For each dynamic point, explicitly insert or select a ``Slicer`` with
+``Purpose=general`` and ``Coordinate=z_rel`` at the same ``S (m)``, before the
+point in execution order. It must cover all live particles. Periodic or
+beam-beam slices are incompatible. Re-run Slicer after structural regrouping;
+the cloud point does not generate or refresh slices. **Validate** reports missing
+configuration/slice references and incompatible execution order or coordinates.
+
+An interaction point exposes position, order, configuration, slice set, interaction
+length, local enable switch, ``Save fields``, and ``Save turns``. Interaction
+length scales frozen/coupled kicks; it does not transport the beam. It remains
+required in ``build_up`` but does not change that mode's electron dynamics.
+Add transport separately. Output turns are zero-based, with inclusive
+``[start, end, step]`` ranges; saving requires both ``Save fields`` and selected
+turns. Empty ``Save turns`` disables output.
+
+Add, duplicate, rename, or remove named configurations in the global editor.
+Applying a rename updates point references; referenced configurations cannot be
+removed. Mode, solver and aperture switches retain editing drafts so that returning
+to a previous selection restores its entries. Apply commits the complete edit as
+one undo step; Cancel restores the applied input. Disabling the global block
+preserves saved configuration definitions. Saving/reopening JSON or a project
+retains the three modes and their parameters, including ``null`` seeds.
+
+Copying a point between project inputs also copies its named configuration and,
+for a dynamic point, the referenced Slicer definitions. Name collisions receive
+suffixes and copied references are updated. The target's existing enable switch
+is preserved. Dynamic copies compare the prescribed physical clocks and offer
+an explicit choice when they differ; copying a frozen point needs no clock choice.
+Copying input definitions does not transfer a running point's electron state.
+
+Result files
+------------
 
 The plot page loads CSV, TFS, and one-dimensional DistMonitor HDF5 columns.
 Load multiple files to select beam/bunch/turn snapshots, filter live/lost particles
@@ -324,6 +405,28 @@ aperture. Raw density, potential, and integrated Ex/Ey have units C/m², V·m, a
 and positive finite widths. The view displays saved solver, potential-reference,
 and boundary metadata. Field export flattens the selected slice in y/x order,
 retains raw fields, and adds averages when selected; it does not recompute fields.
+
+Electron-cloud HDF5 outputs open a dedicated **Electron-cloud view** selector.
+Available views follow the saved data: **Instantaneous fields**, **Weighted
+electron distribution**, and **Time history**. Frozen analytic output has fields;
+frozen PIC can also contain sampled electrons. ``build_up`` provides source and
+history data, and ``coupled`` additionally provides fields at the final saved
+physical time. Metadata identifies the mode, solver, source length and field time.
+
+The source view selects saved ``x``, ``y``, ``ux``, ``uy``, ``uz`` or ``weight``
+columns as available. Its two-dimensional histogram and projections sum saved
+electron-number weights per bin. They represent the physical electron number
+for the saved source length, not the number of macro-electron rows or a volume
+density. The history view plots a selected diagnostic against physical interval-end
+time ``time_end`` in seconds, initially using ``n_electrons_after``. Other saved
+diagnostics include emission, wall hits and evolution steps.
+
+Electron-cloud fields use volume charge density (C/m³), number density (m\ :sup:`−3`),
+potential (V), and electric field (V/m). They are already physical instantaneous
+fields and have no SC slice-width division control. Export the selected view as
+CSV with its metadata sidecar, or as PNG/SVG/PDF. Source exports retain saved
+particle weights; history exports retain all diagnostic columns and phase IDs;
+field exports use the saved grid. Exports use the complete selected data.
 
 Twiss and optics
 ----------------
@@ -480,8 +583,8 @@ Name, Command, and position remain visible. The sequence follows the engine's
 position bins and command priorities; hover over a position to inspect its full value.
 
 The left library starts with **Input configuration (required)** expanded. Under
-**Physics effects**, Space charge and Wakefields have independent submenus.
-Beam-beam effects and Electron cloud are disabled placeholders.
+**Physics effects**, Space charge, Wakefields, Beam-beam effects and Electron cloud
+have independent submenus.
 
 Property fields for the selected mode remain expanded. Long forms scroll, and
 **Expand** gives the editor the full workspace; **Restore** returns to the previous

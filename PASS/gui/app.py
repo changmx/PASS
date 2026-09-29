@@ -461,20 +461,25 @@ class ConfigPage(QWidget):
             ("插入对撞点", "两束序列在同名 IP 会合。", lambda: self.select_command("BeamBeam")),
             ("交叉角变换", "在切片和对撞前后显式进入或退出碰撞坐标。", lambda: self.select_command("CrossingAngle")),
             ("蟹腔", "配置 IP 等效蟹腔。", lambda: self.select_command("CrabCavity")),
-            ("浮动束腰", "配置 IP 等效浮动束腰。", lambda: self.select_command("FloatWaister")),
+            ("移动束腰", "配置 IP 等效移动束腰。", lambda: self.select_command("FloatWaister")),
         ):
             item = button(text)
             item.setToolTip(tip)
             item.clicked.connect(handler)
             self.beam_beam_menu.body_layout.addWidget(item)
         physics_layout.addWidget(self.beam_beam_menu)
-        for title in ("电子云", ):
-            section = CollapsibleSection(title, depth=1)
-            section.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            section.header.setEnabled(False)
-            section.toggle_button.setVisible(False)
-            section.header.setToolTip("尚未提供配置界面。")
-            physics_layout.addWidget(section)
+        self.electron_cloud_menu = CollapsibleSection("电子云", depth=1)
+        self.electron_cloud_menu.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        for text, tip, handler in (
+            ("全局配置", "管理冻结云、电子累积和耦合模式的命名配置。", self.configure_electron_cloud),
+            ("插入电子云切片", "动态模式需要在作用点之前、同一位置执行 general / z_rel 切片。", lambda: self.select_slicer("electron_cloud")),
+            ("电子云作用点", "引用命名配置；每个作用点保留独立电子云状态。", lambda: self.select_command("ElectronCloud")),
+        ):
+            item = button(text)
+            item.setToolTip(tip)
+            item.clicked.connect(handler)
+            self.electron_cloud_menu.body_layout.addWidget(item)
+        physics_layout.addWidget(self.electron_cloud_menu)
         library_layout.addStretch()
         library_scroll.setWidget(library_body)
         left_layout.addWidget(library_scroll, 1)
@@ -768,6 +773,11 @@ class ConfigPage(QWidget):
                 self._populate_beam_beam_configuration()
             else:
                 self._clear_form()
+        elif selected == ("__root__", "Electron cloud"):
+            if isinstance(self.data.get("Electron cloud"), dict):
+                self._populate_electron_cloud_configuration()
+            else:
+                self._clear_form()
         elif selected:
             self._populate_root_configuration()
         else:
@@ -991,6 +1001,11 @@ class ConfigPage(QWidget):
             configurations = self.data.get("Wake field", {}).get("Configurations", {})
             name = next(iter(configurations), None)
             return model_draft(WakeFieldItem, {"S (m)": position, "Slice set": "wake", "Configuration": name, "Groups": None if name else []})
+        if command == "ElectronCloud":
+            from PASS.para.schema.electron_cloud import ElectronCloudItem
+            configurations = self._electron_cloud_block().get("configurations", {})
+            name = next(iter(configurations), None) if isinstance(configurations, dict) else None
+            return model_draft(ElectronCloudItem, {"S (m)": position, "Configuration": name})
         if command == "SpaceCharge":
             from PASS.para.schema.space_charge import SpaceChargeItem
 
@@ -1026,6 +1041,9 @@ class ConfigPage(QWidget):
         elif command == "SpaceCharge":
             self.form_title.setText("空间电荷 · 插入计算点")
             self.form_hint.setText("引用共享计算配置；孔径默认与网格同尺寸，壁上和壁外粒子在求场前损失。Aperture type/value 在 FD/DST 中同时定义导体边界；DST 必须使用完整网格矩形，自由空间方法仅用孔径判断损失。")
+        elif command == "ElectronCloud":
+            self.form_title.setText("电子云 · 插入作用点")
+            self._update_electron_cloud_point()
 
     def select_slicer(self, purpose):
         if not self._confirm_form_navigation():
@@ -1042,8 +1060,13 @@ class ConfigPage(QWidget):
                 "Configuration": name,
                 "Coordinate": "collision_z" if crossing else "z_rel"
             })
+        elif purpose == "electron_cloud":
+            template.update({"Purpose": "general", "Coordinate": "z_rel", "Periodic": False, "Configuration": None})
         self._populate_form("预览 · " + purpose + " Slicer", template, pending=True)
         self._pending_command = "Slicer"
+        if purpose == "electron_cloud":
+            self.form_title.setText("电子云 · 插入切片")
+            self.form_hint.setText("动态电子云使用 general / z_rel 切片。在同一位置先执行 Slicer，再执行 ElectronCloud；冻结云不需要切片。")
 
     def insert_pending_command(self) -> None:
         if not self._guard_json_draft():
@@ -1806,6 +1829,48 @@ class ConfigPage(QWidget):
             self._configuration_draft["Sequence"][name]["Configuration"] = reference
         self._selected_mapping = value
 
+    def configure_electron_cloud(self) -> None:
+        if not self._confirm_form_navigation():
+            return
+        draft = deepcopy(self.data)
+        if draft.get("Electron cloud") is None:
+            draft["Electron cloud"] = {"Enabled": True, "Configurations": {}}
+        block = draft["Electron cloud"]
+        from PASS.para.schema.electron_cloud import ElectronCloudConfig
+        try:
+            normalized = ElectronCloudConfig._normalize_fields(block)
+            if not isinstance(normalized, dict) or not isinstance(normalized.get("configurations", {}), dict):
+                raise ValueError("Electron cloud.Configurations 必须是对象，请先修正 JSON。")
+        except ValueError as exc:
+            QMessageBox.warning(self, "电子云配置无效", str(exc))
+            return
+        self._populate_electron_cloud_configuration(draft)
+        if draft != self.data:
+            self._mark_form_dirty()
+
+    def _populate_electron_cloud_configuration(self, draft: dict | None = None) -> None:
+        from PASS.gui.electron_cloud_configuration import ElectronCloudConfigurationEditor
+        draft = deepcopy(self.data) if draft is None else draft
+        self._clear_form()
+        self._configuration_draft = draft
+        self._configuration_base = deepcopy(self.data)
+        self._selected_mapping = draft["Electron cloud"]
+        self._selected_path = ("__root__", "Electron cloud")
+        self.form_title.setText("电子云 · 全局配置")
+        self.form_hint.setText("配置定义初始云与物理模型；作用点设置位置、作用长度和切片集。各点状态独立。新配置的密度、半径及动态模式必填参数需按实际物理条件填写。")
+        self._electron_cloud_configuration_editor = ElectronCloudConfigurationEditor(self._selected_mapping, draft.get("Sequence", {}), self.base_dir)
+        self._track_field(self._electron_cloud_configuration_editor)
+        self.form_layout.addRow(self._electron_cloud_configuration_editor)
+        self.form_apply.setEnabled(True)
+
+    def _write_electron_cloud_configuration(self) -> None:
+        editor = self._electron_cloud_configuration_editor
+        value = editor.get_value()
+        self._configuration_draft["Electron cloud"] = value
+        for name, reference in editor.references.items():
+            self._configuration_draft["Sequence"][name]["Configuration"] = reference
+        self._selected_mapping = value
+
     def configure_space_charge(self) -> None:
         """Create or edit the top-level named space-charge configurations."""
         if not self._confirm_form_navigation():
@@ -2354,6 +2419,21 @@ class ConfigPage(QWidget):
             editor = self._beam_beam_configuration_editor
             if len(path) >= 3 and path[1] == "Configurations" and path[2] in editor.resources:
                 editor._show(path[2])
+        elif path and path[0] == "Electron cloud" and isinstance(self.data.get("Electron cloud"), dict):
+            self._populate_electron_cloud_configuration()
+            editor = self._electron_cloud_configuration_editor
+            if len(path) >= 3 and path[1] == "Configurations" and path[2] in editor.resources:
+                editor._show(path[2])
+                field = editor.editor.fields.get(path[3]) if len(path) >= 4 else editor.editor
+                if field is not None:
+                    tabs = editor.editor.tabs
+                    for index in range(tabs.count()):
+                        panel = tabs.widget(index)
+                        if panel is field or panel.isAncestorOf(field):
+                            tabs.setCurrentIndex(index)
+                            break
+                    self.form_scroll.ensureWidgetVisible(field)
+                    focus_parameter(field, path[4:])
         else:
             self.configure_global()
             if path and path[0] in self._form_fields:
@@ -2432,13 +2512,15 @@ class ConfigPage(QWidget):
                 enabled = block.get("Enabled", False) if isinstance(block, dict) else False
             if command == "WakeField":
                 enabled = enabled and self.data.get("Wake field", {}).get("Enabled", True)
+            if command == "ElectronCloud":
+                enabled = enabled and self._electron_cloud_block().get("enabled", False)
             if command in {"BeamBeam", "CrossingAngle"}:
                 block = self.data.get("Beam beam", {})
                 enabled = block.get("Enabled") if isinstance(block, dict) else None
             status = "共享配置" if enabled is None else "启用" if enabled else "踢关闭（保留输运）" if command == "Bump" else "禁用"
             texts = [name, command, f"{position:.6g}", status]
             for column, field in [(4, "Configuration"), (5, "SC length (m)"), (6, "Aperture type"), (7, "Slice set")]:
-                cell = value.get(field, value.get("Length (m)", "") if column == 5 else "")
+                cell = value.get(field, value.get("Interaction length (m)", value.get("Length (m)", "")) if column == 5 else "")
                 texts.append(str(cell))
             for column, text in enumerate(texts):
                 item = self.sequence_table.item(row_index, column)
@@ -2558,6 +2640,9 @@ class ConfigPage(QWidget):
         if key == "Beam beam" and isinstance(self.data[key], dict):
             self._populate_beam_beam_configuration()
             return
+        if key == "Electron cloud" and isinstance(self.data[key], dict):
+            self._populate_electron_cloud_configuration()
+            return
         if key == "Timing" and isinstance(self.data[key], dict):
             self._populate_timing_configuration()
             return
@@ -2616,7 +2701,7 @@ class ConfigPage(QWidget):
             if has_fields:
                 self.form_layout.addRow(box)
         for key, value in self._field_defaults.items():
-            if key in {"Sequence", "Timing", "Space charge", "Wake field", "Beam beam", "Is beam-beam"} or key in shown:
+            if key in {"Sequence", "Timing", "Space charge", "Wake field", "Beam beam", "Electron cloud", "Is beam-beam"} or key in shown:
                 continue
             field = self._make_field(key, value)
             self._add_property_row(self.form_layout, self._field_label(key, value), field)
@@ -2707,7 +2792,7 @@ class ConfigPage(QWidget):
             ("准直误差", ("Is alignment error", "Alignment DX (m)", "Alignment DY (m)", "Alignment DPSI (rad)")),
             ("孔径", ("Aperture type", "Aperture value", "Dp aperture")),
             ("Ramping", tuple(key for key in values if "ramping" in key.casefold())),
-            ("诊断输出", ("Save field", "Save potential", "Save density", "Save turns")),
+            ("诊断输出", ("Save field", "Save fields", "Save potential", "Save density", "Save turns")),
             ("内部空间电荷", ("Space charge", )),
         ]
         sections = [(title, [key for key in keys if key in values]) for title, keys in definitions]
@@ -3149,6 +3234,10 @@ class ConfigPage(QWidget):
             explicit.blockSignals(False)
             mode.currentTextChanged.connect(lambda text: explicit.set_active(text == "explicit"))
         command = getattr(self, "_field_context", {}).get("Command")
+        if command == "ElectronCloud":
+            fields["Configuration"].currentIndexChanged.connect(self._update_electron_cloud_point)
+            fields["Save fields"].toggled.connect(self._update_electron_cloud_point)
+            self._update_electron_cloud_point()
         if command == "WakeField":
             reference, groups = fields["Configuration"], fields["Groups"]
 
@@ -3295,15 +3384,62 @@ class ConfigPage(QWidget):
         target.clear()
         target.update(candidate)
 
+    def _electron_cloud_block(self) -> dict:
+        """Read accepted schema spellings without normalizing away disabled resources."""
+        from PASS.para.schema.electron_cloud import ElectronCloudConfig
+        block = self.data.get("Electron cloud", {})
+        if not isinstance(block, dict):
+            return {}
+        try:
+            return ElectronCloudConfig._normalize_fields(block)
+        except ValueError:
+            # The preflight report owns duplicate-field errors; keep the UI usable.
+            return {}
+
+    def _update_electron_cloud_point(self, *_args) -> None:
+        from PASS.para.schema.electron_cloud import ElectronCloudConfiguration
+        fields = self._form_fields
+        resources = self._electron_cloud_block().get("configurations", {})
+        resources = resources if isinstance(resources, dict) else {}
+        reference = fields["Configuration"].currentData()
+        resource = resources.get(reference, {})
+        try:
+            normalized = ElectronCloudConfiguration._normalize_fields(resource) if isinstance(resource, dict) else {}
+        except ValueError:
+            normalized = {}
+        mode = normalized.get("mode", "frozen")
+        dynamic = mode in {"build_up", "coupled"}
+        fields["Slice set"].setEnabled(dynamic)
+        fields["Slice set"].setToolTip("在同一位置、电子云之前执行的 general / z_rel Slicer；不自动创建或重算切片。" if dynamic else "冻结云不需要切片；已有引用保留。")
+        length = fields["Interaction length (m)"]
+        if mode == "build_up" and not length.text().strip():
+            # This required compatibility field is unused by build-up dynamics.
+            length.setText("0")
+        length.setReadOnly(mode == "build_up")
+        length.setToolTip("build_up 不反馈到束流，此兼容字段不参与电子动力学。" if mode == "build_up" else "横向踢代表的机器长度，单位 m；此命令不执行传输。")
+        fields["Save turns"].setEnabled(fields["Save fields"].isChecked())
+        fields["Save fields"].setToolTip("在所选圈保存场图。" if not dynamic else "在所选圈保存电子状态和时间历史；coupled 还保存最终电子云场。")
+        detail = {
+            "frozen": "固定电子云施加横向踢，无需 Slicer。作用长度不是输运长度。",
+            "build_up": "电子累积不反馈到束流。先在同一位置执行 general / z_rel Slicer；作用长度不参与电子动力学。",
+            "coupled": "电子云自场与束流横向踢耦合。先在同一位置执行 general / z_rel Slicer；作用长度不是输运长度。",
+        }.get(mode, "请在全局配置中选择有效模式。")
+        if reference not in resources:
+            detail = "请先在电子云全局配置中创建命名配置，再为作用点选择引用。"
+        self.form_hint.setText(detail + " 每个作用点保留独立电子云状态。")
+        self.form_hint.setToolTip(self.form_hint.text())
+
     def _field_label(self, key: str, value: object) -> QLabel:
         short = {
             "S (m)": "位置 s / m",
             "SC length (m)": "作用长度 / m",
+            "Interaction length (m)": "作用长度 / m",
             "SC start (m)": "区间起点 / m",
             "Configuration": "计算配置",
             "Aperture type": "孔径类型",
             "Aperture value": "孔径参数 / m",
             "Save field": "保存电场",
+            "Save fields": "保存电子云诊断",
             "Save potential": "保存电势",
             "Save density": "保存电荷密度",
             "Save turns": "保存圈数",
@@ -3414,6 +3550,9 @@ class ConfigPage(QWidget):
         elif key in {"Reference clock", "Groups"} and spec is not None:
             structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif key == "Save turns":
+            if getattr(self, "_field_context", {}).get("Command") == "ElectronCloud" and value and all(type(item) is int for item in value):
+                # ElectronCloud's flat form is one [turn] or [start, end, step] selection.
+                value = [value]
             structured = TurnsEditor(value, total_turns)
         elif key == "Turn ranges":
             structured = TurnsEditor(value, total_turns, analysis=True)
@@ -3443,6 +3582,26 @@ class ConfigPage(QWidget):
         if structured is not None:
             self._track_field(structured)
             return structured
+        if key in {"Configuration", "Slice set"} and getattr(self, "_field_context", {}).get("Command") == "ElectronCloud":
+            field = PropertyComboBox()
+            field.setProperty("usesItemData", True)
+            field.addItem("请选择命名配置" if key == "Configuration" else "未指定（冻结云无需切片）", None)
+            if key == "Configuration":
+                resources = self._electron_cloud_block().get("configurations", {})
+                names = list(resources) if isinstance(resources, dict) else []
+            else:
+                names = list(
+                    dict.fromkeys(
+                        item.get("Slice set") for item in self.data.get("Sequence", {}).values()
+                        if isinstance(item, dict) and item.get("Command") == "Slicer" and item.get("Slice set") and item.get("Purpose", "general") ==
+                        "general" and item.get("Coordinate", "z_rel") == "z_rel" and not item.get("Periodic", False)))
+            for name in names:
+                field.addItem(name, name)
+            if value is not None and value not in names:
+                field.addItem(str(value) + "（未定义或不兼容）", value)
+            field.setCurrentIndex(max(0, field.findData(value)))
+            self._track_field(field)
+            return field
         if key == "Configuration" and getattr(self, "_field_context", {}).get("Command") == "WakeField":
             field = PropertyComboBox()
             field.setProperty("usesItemData", True)
@@ -3589,6 +3748,8 @@ class ConfigPage(QWidget):
             fields[("Wake field", )] = self._wake_configuration_editor
         if self._selected_path == ("__root__", "Beam beam"):
             fields[("Beam beam", )] = self._beam_beam_configuration_editor
+        if self._selected_path == ("__root__", "Electron cloud"):
+            fields[("Electron cloud", )] = self._electron_cloud_configuration_editor
         return fields
 
     def _property_default(self, path, field):
@@ -3817,6 +3978,8 @@ class ConfigPage(QWidget):
             self._populate_wake_configuration(deepcopy(state.get("configuration_draft")))
         elif selected == ("__root__", "Beam beam"):
             self._populate_beam_beam_configuration(deepcopy(state.get("configuration_draft")))
+        elif selected == ("__root__", "Electron cloud"):
+            self._populate_electron_cloud_configuration(deepcopy(state.get("configuration_draft")))
         elif selected == ("__root__", "Timing"):
             self._populate_timing_configuration()
         elif selected:
@@ -3952,6 +4115,9 @@ class ConfigPage(QWidget):
                 from PASS.para.schema.wake_field import WakeFieldConfig, resolve_wake_point
                 block = WakeFieldConfig.model_validate(self.data.get("Wake field", {}))
                 resolve_wake_point(target, block)
+            elif target.get("Command") == "ElectronCloud":
+                from PASS.para.schema.electron_cloud import load_electron_cloud
+                load_electron_cloud({"Electron cloud": self.data.get("Electron cloud", {}), "Sequence": {"point": target}})
         elif target is self.data:
             from PASS.para.schema.main import MainConfig
             from PASS.utils.constants import const
@@ -4019,6 +4185,10 @@ class ConfigPage(QWidget):
                 active_space_charge_name = None
                 self._write_beam_beam_configuration()
                 self.data = self._merge_configuration_draft()
+            elif self._selected_path == ("__root__", "Electron cloud"):
+                active_space_charge_name = None
+                self._write_electron_cloud_configuration()
+                self.data = self._merge_configuration_draft()
             else:
                 active_space_charge_name = None
                 self._write_form_values(self._selected_mapping)
@@ -4042,6 +4212,8 @@ class ConfigPage(QWidget):
             self._populate_wake_configuration()
         elif self._selected_path == ("__root__", "Beam beam"):
             self._populate_beam_beam_configuration()
+        elif self._selected_path == ("__root__", "Electron cloud"):
+            self._populate_electron_cloud_configuration()
         self.file_changed.emit(self.path)
         self._data_dirty = True
         self._set_sync_status("表单修改已确认，尚未保存", "warning")

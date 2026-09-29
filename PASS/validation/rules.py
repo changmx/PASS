@@ -19,7 +19,7 @@ from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, Phas
 from PASS.para.schema.slicer import SlicerItem
 from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
-from PASS.para.schema.electron_cloud import ElectronCloudItem, load_electron_cloud
+from PASS.para.schema.electron_cloud import ElectronCloudConfig, ElectronCloudItem, load_electron_cloud
 from PASS.para.schema.twiss import TwissItem
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamItem, load_beam_beam
 from .report import ValidationReport, parse_json
@@ -100,6 +100,29 @@ def json_location(value, location):
     return tuple(result)
 
 
+def _electron_cloud_json_location(model, location):
+    """Restore JSON aliases after cloud normalization, preserving resource names."""
+    annotation, result = model, []
+    for part in location:
+        if get_origin(annotation) is dict:
+            # A configuration name may itself equal a schema field name.
+            result.append(part)
+            annotation = get_args(annotation)[1]
+            continue
+        child = _nested_models(annotation)
+        if child is not None:
+            field = child.model_fields.get(part)
+            if field is None:
+                field = next((value for name, value in child.model_fields.items() if (value.alias or name) == part), None)
+            if field is not None:
+                result.append(field.alias or part)
+                annotation = field.annotation
+                continue
+        result.append(part)
+        annotation = None
+    return tuple(result)
+
+
 class Validator:
 
     def __init__(self, data, base, report, check_files):
@@ -153,7 +176,8 @@ class Validator:
                 return checked.model_dump(by_alias=True)
             except ValidationError as exc:
                 for issue in exc.errors():
-                    self.add((*path, *json_location(raw, issue["loc"])), "field.constraint", issue["msg"])
+                    location = _electron_cloud_json_location(model, issue["loc"]) if model is ElectronCloudItem else issue["loc"]
+                    self.add((*path, *json_location(raw, location)), "field.constraint", issue["msg"])
         # Successful model validation already constructs its defaults. Only partial
         # results need these fallbacks; never cache mutable values across inputs.
         for alias, (_name, f) in known.items():
@@ -264,7 +288,8 @@ class Validator:
             self.electron_cloud_config = load_electron_cloud(self.data, validate_sequence=False)
         except ValidationError as exc:
             for issue in exc.errors():
-                self.add(("Electron cloud", *issue["loc"]), "electron_cloud.configuration", issue["msg"])
+                location = _electron_cloud_json_location(ElectronCloudConfig, issue["loc"])
+                self.add(("Electron cloud", *location), "electron_cloud.configuration", issue["msg"])
         except (TypeError, ValueError) as exc:
             self.add(("Electron cloud", ), "electron_cloud.configuration", str(exc))
         if "Beam beam" in self.data:
