@@ -20,6 +20,7 @@ from PASS.para.schema.slicer import SlicerItem
 from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
 from PASS.para.schema.electron_cloud import ElectronCloudConfig, ElectronCloudItem, load_electron_cloud
+from PASS.para.schema.ibs import IBSConfig, IBSItem, IBSOpticsConfig, load_intrabeam_scattering
 from PASS.para.schema.twiss import TwissItem
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamItem, load_beam_beam
 from .report import ValidationReport, parse_json
@@ -48,6 +49,7 @@ MODELS.update(Injection=InjectionItem,
               Slicer=SlicerItem,
               SpaceCharge=SpaceChargeItem,
               ElectronCloud=ElectronCloudItem,
+              IBS=IBSItem,
               BeamBeam=BeamBeamItem,
               WakeField=WakeFieldItem)
 
@@ -149,6 +151,13 @@ class Validator:
         if not isinstance(raw, dict):
             self.add(path, "field.object", "必须是对象")
             return {}
+        if model in {IBSItem, IBSOpticsConfig}:
+            try:
+                normalized = model._normalize_fields(raw)
+                raw = {(model.model_fields[key].alias if key in model.model_fields else key): value for key, value in normalized.items()}
+            except ValueError as exc:
+                self.add(path, "ibs.configuration", str(exc))
+                return {}
         known = {f.alias or name: (name, f) for name, f in model.model_fields.items() if name not in excluded}
         for key in raw.keys() - known.keys():
             self.add((*path, key), "field.unknown", "未知字段；请使用当前 JSON schema 中的名称")
@@ -176,7 +185,7 @@ class Validator:
                 return checked.model_dump(by_alias=True)
             except ValidationError as exc:
                 for issue in exc.errors():
-                    location = _electron_cloud_json_location(model, issue["loc"]) if model is ElectronCloudItem else issue["loc"]
+                    location = _electron_cloud_json_location(model, issue["loc"]) if model in {ElectronCloudItem, IBSItem} else issue["loc"]
                     self.add((*path, *json_location(raw, location)), "field.constraint", issue["msg"])
         # Successful model validation already constructs its defaults. Only partial
         # results need these fallbacks; never cache mutable values across inputs.
@@ -280,9 +289,18 @@ class Validator:
     def globals(self):
         raw = {
             k: v
-            for k, v in self.data.items()
-            if k not in {"Sequence", "Space charge", "Wake field", "Beam beam"} and str(k).casefold() != "electron cloud"
+            for k, v in self.data.items() if k not in {"Sequence", "Space charge", "Wake field", "Beam beam"}
+            and str(k).casefold() not in {"electron cloud", "intrabeam scattering"}
         }
+        self.intrabeam_scattering_config = None
+        try:
+            self.intrabeam_scattering_config = load_intrabeam_scattering(self.data, validate_sequence=False)
+        except ValidationError as exc:
+            for issue in exc.errors():
+                location = _electron_cloud_json_location(IBSConfig, issue["loc"])
+                self.add(("Intrabeam scattering", *location), "ibs.configuration", issue["msg"])
+        except (TypeError, ValueError) as exc:
+            self.add(("Intrabeam scattering", ), "ibs.configuration", str(exc))
         self.electron_cloud_config = None
         try:
             self.electron_cloud_config = load_electron_cloud(self.data, validate_sequence=False)
@@ -457,16 +475,17 @@ class Validator:
             self.add(p, "command.object", "command 必须是对象")
             return
         cloud_kind = next((value for key, value in raw.items() if str(key).casefold() == "command"), "")
-        if str(cloud_kind).casefold() == "electroncloud":
+        if str(cloud_kind).casefold() in {"electroncloud", "ibs"}:
+            command_model = IBSItem if str(cloud_kind).casefold() == "ibs" else ElectronCloudItem
             try:
-                normalized = ElectronCloudItem._normalize_fields(raw)
+                normalized = command_model._normalize_fields(raw)
                 raw = {
-                    (ElectronCloudItem.model_fields[key].alias if key in ElectronCloudItem.model_fields else key): value
+                    (command_model.model_fields[key].alias if key in command_model.model_fields else key): value
                     for key, value in normalized.items()
                 }
-                raw["Command"] = "ElectronCloud"
+                raw["Command"] = command_model.model_fields["command"].default
             except ValueError as exc:
-                self.add(p, "electron_cloud.configuration", str(exc))
+                self.add(p, "ibs.configuration" if command_model is IBSItem else "electron_cloud.configuration", str(exc))
                 return
         kind = raw.get("Command")
         if not isinstance(kind, str) or kind not in MODELS:
@@ -482,6 +501,16 @@ class Validator:
                 if alias in raw:
                     try:
                         field_adapter(ElectronCloudItem, field_name).validate_python(raw[alias], strict=True)
+                    except ValidationError as exc:
+                        self.add((*p, alias), "field.type", str(exc))
+        elif kind == "IBS" and self.intrabeam_scattering_config is not None and not self.intrabeam_scattering_config.enabled:
+            v = {key: raw[key] for key in ("S (m)", "Order", "Configuration") if key in raw}
+            v["Is enabled"] = False
+            for field_name in ("s", "order"):
+                alias = IBSItem.model_fields[field_name].alias
+                if alias in raw:
+                    try:
+                        field_adapter(IBSItem, field_name).validate_python(raw[alias], strict=True)
                     except ValidationError as exc:
                         self.add((*p, alias), "field.type", str(exc))
         else:
@@ -557,7 +586,7 @@ class Validator:
             if is_finite_number(s) and is_finite_number(previous) and (previous < 0 or previous > s):
                 self.add((*p, "S previous (m)"), "twiss.position", "要求 0 ≤ S previous ≤ S；反向间隔会产生反向漂移")
         if "Save turns" in v:
-            self.turns(v["Save turns"], (*p, "Save turns"), flat=kind in {"SpaceCharge", "ElectronCloud"})
+            self.turns(v["Save turns"], (*p, "Save turns"), flat=kind in {"SpaceCharge", "ElectronCloud", "IBS"})
         if kind == "PhaseAdvanceMonitor":
             self.turns(v.get("Turn ranges", 0), (*p, "Turn ranges"), analysis=True)
             self.numeric(v, "Min action", p, minimum=0)

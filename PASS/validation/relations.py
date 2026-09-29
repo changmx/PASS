@@ -9,6 +9,7 @@ from .rules import is_finite_number, is_integer
 def check_relations(check):
     from PASS.utils.command_order import sort_commands
     check_electron_cloud(check)
+    check_intrabeam_scattering(check)
     raw = check.data.get("Space charge", {})
     root = ("Space charge", )
     sc = check.model(SpaceChargeConfig, {
@@ -70,6 +71,19 @@ def check_relations(check):
                     check.add(p, "electron_cloud.slicer_order", f"{cloud.mode} 之前必须在同一位置执行对应的 Slicer")
                 elif check.slice_sets[slice_name][4] != "z_rel" or check.slice_sets[slice_name][6] != "general":
                     check.add(p, "electron_cloud.slice_coordinate", f"{cloud.mode} 只接受 general 用途的连续 z_rel 切片")
+        ibs_config = check.intrabeam_scattering_config
+        if kind == "IBS" and ibs_config is not None and ibs_config.enabled and v.get("Is enabled", True):
+            model = ibs_config.configurations.get(v.get("Configuration"))
+            if model is not None and model.slice_set is not None:
+                slice_name = model.slice_set
+                if slice_name not in check.slice_sets:
+                    check.add(p, "ibs.slicer_missing", f"未定义 Slice set {slice_name!r}")
+                elif slice_name not in valid_slices:
+                    check.add(p, "ibs.slicer_order", "IBS 之前必须运行对应的 Slicer，且不能被 SortBunch/ReorganizeBunch 失效")
+                else:
+                    accepted = {"z_rel"} if model.bunched else {"z_rel", "z_periodic"}
+                    if check.slice_sets[slice_name][4] not in accepted or check.slice_sets[slice_name][6] != "general":
+                        check.add(p, "ibs.slice_coordinate", "IBS 要求 general 用途的 z_rel 切片；连续束也允许 z_periodic")
         if kind == "ParticleMonitor":
             maximum = v.get("Max tag", 0)
             if is_integer(maximum):
@@ -189,6 +203,54 @@ def check_electron_cloud(check):
     if config.enabled:
         for reference in config.configurations.keys() - used:
             check.add(("Electron cloud", "Configurations", reference), "electron_cloud.unused", "此电子云配置未被启用的命令引用", True)
+
+
+def check_intrabeam_scattering(check):
+    """Check IBS references and optical prerequisites without constructing a beam."""
+    config = check.intrabeam_scattering_config
+    if config is None:
+        return
+    used = set()
+    interaction_lengths = []
+    for name, (kind, values) in check.commands.items():
+        if kind != "IBS":
+            continue
+        path = ("Sequence", name)
+        if not config.enabled:
+            check.add(path, "ibs.disabled", "全局 Intrabeam scattering.Enabled 已关闭，此命令不产生 IBS 作用", True)
+            continue
+        if not values.get("Is enabled", True):
+            continue
+        reference = values.get("Configuration")
+        if reference not in config.configurations:
+            check.add((*path, "Configuration"), "ibs.reference", f"未定义 Intrabeam scattering configuration {reference!r}")
+            continue
+        used.add(reference)
+        model = config.configurations[reference]
+        length = values.get("Interaction length (m)")
+        if model.method != "bjorken_mtingwa" and is_finite_number(length) and length >= 0:
+            interaction_lengths.append(length)
+        if not model.bunched:
+            for injection_kind, injection in check.commands.values():
+                if injection_kind == "Injection" and injection.get("Harmonic Number", 1) != 1:
+                    check.add(path, "ibs.coasting_groups", "连续束 IBS 要求 Harmonic Number=1，单个束团分组代表整圈束流")
+        if model.method in {"bjorken_mtingwa", "kinetic"} and values.get("Optics") is None:
+            check.add((*path, "Optics"), "ibs.optics", f"{model.method} 需要显式提供局部 Optics")
+        if model.method == "binary" and values.get("Optics") is not None:
+            check.add((*path, "Optics"), "ibs.optics", "binary 不使用 Optics，请省略该参数")
+        if model.method != "bjorken_mtingwa" and values.get("Interaction length (m)") == 0:
+            check.add((*path, "Interaction length (m)"), "ibs.zero_length", "相互作用长度为零，不产生 IBS 踢", True)
+    if config.enabled:
+        try:
+            total_length = math.fsum(interaction_lengths)
+        except OverflowError:
+            total_length = math.inf
+        if interaction_lengths and check.circumference > 0 and not math.isclose(total_length, check.circumference, rel_tol=1.e-9, abs_tol=0.0):
+            check.add(("Sequence", ), "ibs.exposure_length", f"启用的 IBS 踢每圈总相互作用长度为 {total_length:g} m，环周长为 {check.circumference:g} m "
+                      f"（比例 {total_length / check.circumference:g}）。若模拟整圈 IBS，请检查遗漏或重复计入；局部或缩放作用可有意不同。"
+                      "此检查只统计长度，不验证空间覆盖或变能量时的总作用时间。", True)
+        for reference in config.configurations.keys() - used:
+            check.add(("Intrabeam scattering", "Configurations", reference), "ibs.unused", "此 IBS 配置未被启用的命令引用", True)
 
 
 def check_resource_combinations(check, values, path):

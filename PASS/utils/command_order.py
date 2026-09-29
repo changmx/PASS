@@ -30,6 +30,7 @@ COMMAND_PRIORITY = {
     "CrabCavity": 300,
     "FloatWaister": 300,
     "SpaceCharge": 400,
+    "IBS": 450,
     "WakeField": 500,
     "BeamBeam": 600,
     "ElectronCloud": 700,

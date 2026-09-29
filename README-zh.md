@@ -58,6 +58,7 @@ python -m PASS.validation path/to/beam.json --report validation-report.json
 ## 查阅手册
 
 - [坐标约定与注入](https://changmx.github.io/PASS/zh/injection.html)
+- [束内散射](https://changmx.github.io/PASS/zh/ibs.html)：CPU/GPU 上的高斯增长率、动力学踢与局部二体碰撞
 - [元件](https://changmx.github.io/PASS/zh/element/index.html)与 [Twiss 传输映射](https://changmx.github.io/PASS/zh/twiss.html)
 - [空间电荷](https://changmx.github.io/PASS/zh/space_charge.html)、[尾场](https://changmx.github.io/PASS/zh/wake_field.html)与[电子云：静态踢角及预设束流驱动积累](https://changmx.github.io/PASS/zh/electron_cloud.html)
 - [监视器与输出格式](https://changmx.github.io/PASS/zh/monitor/index.html)

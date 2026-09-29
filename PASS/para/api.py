@@ -70,6 +70,7 @@ from PASS.para.schema.wake_field import (
 )
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
+from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOpticsConfig
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem
 
@@ -85,6 +86,7 @@ def generate_input(
     wake_field: WakeFieldConfig | None = None,
     beam_beam: BeamBeamConfig | None = None,
     electron_cloud: ElectronCloudConfig | None = None,
+    intrabeam_scattering: IBSConfig | None = None,
 ) -> str:
     """Generate a PASS input JSON file from schema objects.
 
@@ -97,6 +99,7 @@ def generate_input(
         wake_field: optional named wake model/solver configurations and global switch.
         beam_beam: optional shared beam-beam configurations and explicit enable switch.
         electron_cloud: optional per-beam frozen-cloud or dilute build-up configurations.
+        intrabeam_scattering: optional named intrabeam-scattering models and enable switch.
 
     Returns:
         The output file path.
@@ -120,6 +123,9 @@ def generate_input(
 
     if electron_cloud is not None:
         result["Electron cloud"] = electron_cloud.model_dump(by_alias=True)
+
+    if intrabeam_scattering is not None:
+        result["Intrabeam scattering"] = intrabeam_scattering.model_dump(by_alias=True)
 
     result["Sequence"] = sequence.to_dict()
 
@@ -147,13 +153,14 @@ def load_input(path: str) -> tuple[MainConfig, dict]:
     from PASS.core.config import Config
     Config._load_space_charge(data)
     Config._load_electron_cloud(data)
+    Config._load_intrabeam_scattering(data)
     from PASS.para.schema.wake_field import expand_wake_configurations
     expand_wake_configurations(data)
     sequence_data = data.pop("Sequence", {})
     data.pop("Space charge", None)
     data.pop("Wake field", None)
     for key in list(data):
-        if str(key).casefold() == "electron cloud":
+        if str(key).casefold() in {"electron cloud", "intrabeam scattering"}:
             data.pop(key)
     BeamBeamConfig.model_validate(data.pop("Beam beam", {}))
 
@@ -422,5 +429,6 @@ __all__ = [
     'SpaceChargeItem', 'WakeFieldItem', 'WakeFieldConfig', 'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake',
     'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
     'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem',
-    'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration'
+    'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
+    'IBSItem', 'IBSOpticsConfig'
 ]

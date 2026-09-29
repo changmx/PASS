@@ -26,6 +26,7 @@ from .beam_beam import BeamBeam
 from .space_charge import SpaceCharge
 from .wake_field import WakeField
 from .electron_cloud import ElectronCloud
+from .ibs import IBS
 from .monitor.statistic import StatMonitor
 from .monitor.distribution import DistMonitor
 from .monitor.phase_advance import PhaseAdvanceMonitor
@@ -61,6 +62,7 @@ __all__ = [
     "SpaceCharge",
     "WakeField",
     "ElectronCloud",
+    "IBS",
     "StatMonitor",
     "DistMonitor",
     "PhaseAdvanceMonitor",

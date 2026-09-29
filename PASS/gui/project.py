@@ -609,7 +609,11 @@ class Project:
                         # The shared definition already exists exactly once. The
                         # user places paired commands and slicing in each input.
                         return
-                    module = {"WakeField": "Wake field", "ElectronCloud": "Electron cloud"}.get(value.get("Command"), "Space charge")
+                    module = {
+                        "WakeField": "Wake field",
+                        "ElectronCloud": "Electron cloud",
+                        "IBS": "Intrabeam scattering"
+                    }.get(value.get("Command"), "Space charge")
                     identity = (module, old)
                     if identity not in config_names:
                         source_block = source.get(module, {})
@@ -628,6 +632,12 @@ class Project:
                         copied = target._capture(resource, self.config_base, context=context)
                         if module == "Space charge":
                             copied["Slice set"] = copy_slice(copied["Slice set"])
+                        elif module == "Intrabeam scattering":
+                            from PASS.para.schema.ibs import IBSConfiguration
+                            ibs = IBSConfiguration.model_validate(copied)
+                            if ibs.slice_set is not None:
+                                copied = ibs.model_dump(by_alias=True)
+                                copied["Slice set"] = copy_slice(ibs.slice_set)
                         resources[new] = copied
                         # Preserve target physics switches; create a usable block
                         # only when the target has no module settings yet.

@@ -247,6 +247,12 @@ require a current ``z_rel`` SliceSet and nested
 and transverse beam response. Physics, parameters and limits are in
 :doc:`electron_cloud`.
 
+Intrabeam scattering uses the separate top-level ``Intrabeam scattering`` block.
+Pass ``intrabeam_scattering=IBSConfig(...)`` to ``generate_input`` and reference
+a named model with ``IBSItem``. Gaussian growth diagnostics and kinetic kicks
+require explicit local ``IBSOpticsConfig``; binary collisions use a local
+three-dimensional mesh. See :doc:`ibs` for rates, exposure time and model limits.
+
 .. _en-reference-clock:
 
 Prescribed machine clock and initialization
@@ -662,6 +668,7 @@ The parameter modules construct, validate and serialize the input objects:
    │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
    │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
    │   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
+   │   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
    │   └── sequence.py     Sequence: ordered container + auto-sorting
    ├── madx.py        MADX TFS → schema objects (element / twiss / error)
    ├── smooth.py      Analytical smooth approximation twiss
@@ -695,4 +702,4 @@ The data flow is as follows:
 API entry points
 --------------------------------
 
-``PASS.para.api`` exports ``generate_input``, ``build_sequence``, ``generate_from_tfs`` and ``load_input``. ``load_input(path)`` returns ``(MainConfig, raw_sequence_dict)``; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud blocks. It validates electron-cloud configuration and references before returning. Preserve those blocks explicitly when editing a complete existing file.
+``PASS.para.api`` exports ``generate_input``, ``build_sequence``, ``generate_from_tfs`` and ``load_input``. ``load_input(path)`` returns ``(MainConfig, raw_sequence_dict)``; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud/Intrabeam scattering blocks. It validates electron-cloud and IBS configurations and references before returning. Preserve those blocks explicitly when editing a complete existing file.

@@ -67,6 +67,7 @@ from PASS.para.schema.monitors import StatMonitorItem, DistMonitorItem, PhaseAdv
 from PASS.para.schema.sequence import Sequence
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem, ElementSpaceCharge
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
+from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOpticsConfig
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 
 __all__ = [
@@ -78,5 +79,6 @@ __all__ = [
     'ReorganizeBunchItem', 'StatMonitorItem', 'DistMonitorItem', 'PhaseAdvanceMonitorItem', 'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig',
     'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge', 'BeamBeamConfig', 'BeamBeamConfiguration', 'BeamBeamSourceConfig',
     'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem', 'CrabCavityItem', 'FloatWaisterItem', 'ElectronCloudConfig',
-    'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration'
+    'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration', 'IBSItem',
+    'IBSOpticsConfig'
 ]
