@@ -483,3 +483,57 @@ Custom reverse mappings use ``DataSelection(tbt_columns={"BPM": "name", "BUNCH":
 Calls return output paths, row counts and notices; overwrite defaults to false.
 Scripts can use ``preview_file(path, selection, check_sdds=True)`` to receive
 the complete-selection result in ``sdds_check`` while limiting displayed rows.
+
+Wake data import
+~~~~~~~~~~~~~~~~
+
+Choose **Import wake…** in the conversion tool to prepare a canonical temporal wake TFS.
+Select the source file and component, map the numeric columns, and declare
+the source axis, units, signs, normalization and reference beta. For a file
+with an ordinary text header, set the number of rows to skip. Preview the
+normalized data and its validation messages, then save one component per TFS.
+WakeField tracking accepts these canonical TFS files only; external table
+interpretation stays in the importer. Changing the import settings or source
+requires a new preview.
+
+For distance data, choose whether the source coordinate means
+``beta_c_tau`` (:math:`s=\beta_{\mathrm{ref}}c\tau`) or ``c_tau``
+(:math:`s=c\tau`). The default is ``beta_c_tau``. Switching components with
+the same spatial order preserves a custom unit. Changing the spatial order
+or length normalization displays a reminder to check the unit instead of
+silently replacing a user-specified scale.
+
+Name reusable import settings with **Import preset name**, then choose
+**Save preset…** or **Load preset…**. A versioned JSON preset stores its name
+and complete import options, including column mapping and physical conventions.
+It does not store a source path or source hash. Loading a preset requires a
+new preview of the selected source before export. TFS review presets store
+only the format and reconstruction choice; their physical metadata is always
+read from the selected TFS file.
+
+Select an existing canonical TFS to review its declared metadata and curve
+with its physical metadata read-only; this review does not export another file.
+Spectrum TFS review shows both real and imaginary impedance and lets you
+choose the tracking model's reconstruction method. The preview of a large table retains
+endpoints and extrema instead of taking evenly spaced rows; the summary
+uses the complete table for the peak magnitude, tail-to-peak ratio and
+minimum/maximum spacing.
+Display reduction does not change exported samples.
+
+After a successful export or TFS review, **Copy component JSON** copies the
+fragment shown in the read-only **Component configuration** tab. It includes
+the file model and explicit fixed velocity, plus spatial or reconstruction
+settings where needed. Add it to a group's ``Components`` list after checking
+the file path and reference speed; copying does not modify the current simulation.
+
+This dedicated import applies the wake conventions and preserves the original
+sample locations after unit/direction conversion. The ordinary **Save as TFS**
+route preserves general table data and does not infer wake physics. Delay is
+not converted to turns, and no resampling is performed. Supply the full
+zero-delay right limit, check a nonzero tail for truncation, and use the file
+at its declared reference speed. Finite-bunch wake potentials need separate
+deconvolution before point-charge wake import. See :ref:`wake-tfs-en` for
+the CSV example, command-line conversion, Python APIs and tracking configuration.
+External impedance-spectrum conversion is available through the command-line
+and Python APIs; the GUI imports time- or distance-domain point-charge wakes
+and reviews existing canonical wake or impedance TFS.

@@ -38,7 +38,7 @@ def resolve_input_paths(data, base):
 
 
 def check_wake_files(check, values, path):
-    """Use the actual wake reader for file validation, never the TFS parser."""
+    """Validate canonical wake metadata and physics with the tracking reader."""
     if not check.check_files:
         return
     from copy import deepcopy
@@ -67,6 +67,8 @@ def check_wake_files(check, values, path):
             resolve_input_paths(prepared, check.base)
             try:
                 loaded = _build_component(WakeComponentConfig.model_validate(prepared))
+                if group.get("Boundary", "causal_passages") == "causal_passages" and not loaded.model.causal:
+                    raise ValueError("A two-sided response cannot use causal passage scheduling; select isolated or periodic Boundary")
                 actual = loaded.model.input_metadata["path"]
                 if actual not in check.report.checked_files:
                     check.report.checked_files.append(actual)

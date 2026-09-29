@@ -62,6 +62,8 @@ python -m PASS.validation path/to/beam.json --report validation-report.json
 - [Space charge](https://changmx.github.io/PASS/en/space_charge.html), [wakefields](https://changmx.github.io/PASS/en/wake_field.html) and [electron clouds: frozen kicks and prescribed-beam build-up](https://changmx.github.io/PASS/en/electron_cloud.html)
 - [Monitors and output formats](https://changmx.github.io/PASS/en/monitor/index.html)
 
+WakeField file models accept canonical wake TFS only. Convert CSV/TXT/HEADTAIL data with `python -m PASS.tool.wake_conversion` or **Import wake…** in the GUI conversion tool; the [wakefield guide](https://changmx.github.io/PASS/en/wake_field.html#wake-tfs-en) explains units, physical conventions and examples.
+
 With the `docs` extra installed, run this command from the repository root to build both languages:
 
 ```bash

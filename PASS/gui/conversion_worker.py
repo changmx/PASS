@@ -6,9 +6,18 @@ import sys
 
 
 def execute(request):
-    from PASS.tool.data_conversion import DataSelection, convert_file, inspect_file, preview_file, file_signature
     source = request["source"]
     action = request["action"]
+    if action in {"wake_preview", "wake_convert"}:
+        from PASS.tool.wake_conversion import convert_wake_file, preview_wake_file
+        if action == "wake_preview":
+            return preview_wake_file(source, **request["options"])
+        return convert_wake_file(source,
+                                 request["destination"],
+                                 expected_sha256=request["expected_sha256"],
+                                 overwrite=request.get("overwrite", False),
+                                 **request["options"])
+    from PASS.tool.data_conversion import DataSelection, convert_file, inspect_file, preview_file, file_signature
     if action == "inspect":
         return inspect_file(source)
     selection = DataSelection(**request.get("selection", {}))

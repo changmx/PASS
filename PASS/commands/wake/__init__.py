@@ -1,3 +1,11 @@
+"""Wake responses, source projection, solvers and per-location history.
+
+Models, spectra and walls define responses. Components, velocity laws and
+conventions define coupling; moments, timing and periodic projection define
+sources. Solvers and convolution engines evaluate responses, while state and
+execution manage history and resources. File I/O accepts canonical TFS only;
+external numeric conversion belongs to PASS.tool.wake_conversion.
+"""
 from .wake_components import WakeComponent, SpatialTerm, COMPONENTS
 from .convolution import ConvolutionGrid, PartitionedConvolution, ConvolutionState
 from .time_convolution import TimeGrid, TimeConvolution, TimeConvolutionState

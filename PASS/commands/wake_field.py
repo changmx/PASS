@@ -52,13 +52,13 @@ def _build_component(config):
     spatial = None if config.spatial is None else SpatialTerm(**config.spatial.model_dump())
     longitudinal = config.component == "longitudinal" if spatial is None else spatial.plane == "z"
     if config.model.kind == "file":
-        from .wake.wake_io import WakeConvention, read_wake_file
-        values = config.model.model_dump(exclude={"kind", "convention", "file_path"})
-        model = read_wake_file(config.model.file_path,
-                               convention=WakeConvention(**config.model.convention.model_dump()),
-                               component=config.component,
-                               spatial=spatial,
-                               **values)
+        from .wake.wake_io import read_wake_file
+        values = config.model.model_dump(exclude={"kind", "file_path"})
+        model = read_wake_file(config.model.file_path, component=config.component, spatial=spatial, **values)
+        if velocity.kind == "fixed":
+            reference_beta = model.input_metadata["convention"]["reference_beta"]
+            if not np.isclose(velocity.beta, reference_beta, rtol=1e-12, atol=0):
+                raise ValueError("Fixed Velocity beta does not match the wake TFS Reference beta")
     else:
         model = _build_model(config.model, longitudinal)
     return WakeComponent(config.component, model, config.scale, velocity, spatial)

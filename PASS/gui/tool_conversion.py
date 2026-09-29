@@ -33,11 +33,16 @@ class ConversionPage(QWidget):
         self._column_types = {}
         self._sdds_check = None
         self._preview_metadata = {}
+        self._wake_dialog = None
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         self.open_button = QPushButton("打开数据文件…")
         self.open_button.clicked.connect(self.choose_file)
         header.addWidget(self.open_button)
+        self.wake_import_button = QPushButton("导入尾场…")
+        self.wake_import_button.setToolTip("将 CSV / TXT / HEADTAIL 尾场转换为含物理约定的标准 TFS。")
+        self.wake_import_button.clicked.connect(self.open_wake_import)
+        header.addWidget(self.wake_import_button)
         self.source_label = QLabel("支持拖入 OMC3 SDDS、HDF5、TFS、CSV；原文件只读")
         self.source_label.setWordWrap(True)
         header.addWidget(self.source_label, 1)
@@ -230,10 +235,21 @@ class ConversionPage(QWidget):
 
     @property
     def busy(self):
-        return self.process is not None
+        return self.process is not None or bool(self._wake_dialog and self._wake_dialog.busy)
 
     def set_theme(self, theme):
         pass
+
+    def open_wake_import(self):
+        if self.busy or self._wake_dialog is not None:
+            return
+        from PASS.gui.wake_import import WakeImportDialog
+        dialog = WakeImportDialog(self)
+        self._wake_dialog = dialog
+        dialog.busy_changed.connect(self.busy_changed)
+        dialog.exec()
+        self._wake_dialog = None
+        dialog.deleteLater()
 
     def choose_file(self):
         path, _ = QFileDialog.getOpenFileName(self, "打开数据文件", file_dialog_directory(self), "数据文件 (*.sdds *.h5 *.hdf5 *.tfs *.csv);;所有文件 (*)")
@@ -268,6 +284,7 @@ class ConversionPage(QWidget):
 
     def _set_busy(self, busy):
         self.open_button.setEnabled(not busy)
+        self.wake_import_button.setEnabled(not busy)
         self.cancel_button.setEnabled(busy)
         self.preview_button.setEnabled(not busy and self.info is not None)
         self.export_button.setEnabled(not busy and self._can_export())
@@ -737,6 +754,8 @@ class ConversionPage(QWidget):
             self.process.kill()
 
     def shutdown(self):
+        if self._wake_dialog:
+            self._wake_dialog.shutdown()
         if self.process:
             self.cancel_job()
             self.process.waitForFinished(2000)

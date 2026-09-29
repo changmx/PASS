@@ -133,21 +133,14 @@ class WakeFileConvention(WakeParameters):
     shunt_impedance_convention: str = Field(default="not_applicable", alias="Shunt impedance convention")
     integrated: StrictBool = Field(alias="Integrated")
     reference_beta: float = Field(gt=0, le=1, alias="Reference beta")
+    distance_convention: Literal["beta_c_tau", "c_tau"] = Field(default="beta_c_tau", alias="Distance convention")
 
 
 class FileWake(WakeParameters):
     kind: Literal["file"] = Field(default="file", alias="Kind")
     file_path: str = Field(min_length=1, alias="File path")
-    format: Literal["table", "headtail"] = Field(default="table", alias="Format")
-    convention: WakeFileConvention = Field(alias="Convention")
-    axis_column: Annotated[StrictInt, Field(ge=0)] = Field(default=0, alias="Axis column")
-    value_column: Annotated[StrictInt, Field(ge=0)] = Field(alias="Value column")
-    imag_column: Annotated[StrictInt, Field(ge=0)] | None = Field(default=None, alias="Imag column")
-    delimiter: str | None = Field(default=None, alias="Delimiter")
-    skiprows: Annotated[StrictInt, Field(ge=0)] = Field(default=0, alias="Skip rows")
-    causal: StrictBool = Field(default=True, alias="Causal")
+    format: Literal["tfs"] = Field(default="tfs", alias="Format")
     reconstruction: Literal["two_sided", "causal_projection"] = Field(default="two_sided", alias="Reconstruction")
-    length: float | None = Field(default=None, gt=0, alias="Length (m)")
 
 
 class WakeSpatialTerm(WakeParameters):
@@ -288,10 +281,9 @@ class WakeSolverGroup(WakeParameters):
             raise ValueError("Periodic parameters require periodic boundary")
         for c in self.components:
             m = c.model
+            # File causality comes from the canonical TFS and is checked after loading.
             two_sided = (m.kind == "resistive_wall" or m.kind == "tabulated" and not m.causal
-                         or m.kind == "impedance" and m.reconstruction == "two_sided"
-                         or m.kind == "file" and (m.convention.data_kind == "wake_function" and not m.causal
-                                                  or m.convention.data_kind == "impedance" and m.reconstruction == "two_sided"))
+                         or m.kind == "impedance" and m.reconstruction == "two_sided")
             if two_sided and self.boundary == "causal_passages":
                 raise ValueError("Two-sided responses require explicit isolated or periodic spatial boundary")
             if self.boundary != "causal_passages" and c.velocity.kind != "fixed":
