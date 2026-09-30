@@ -398,8 +398,22 @@ class TimeConvolution:
         nblocks = max(1, math.ceil(size / block))
         frame_bytes = nblocks * block * 8 * (len(self.blocks.channels) + len(self.components))
         frame_bytes += len(source.times) * 8 * (16 + 2 * len(self.components) + 2 * len(self.blocks.channels))
+        if self.backend == 'gpu':
+            # Pair bounds, witness mesh positions and normalized source geometry.
+            frame_bytes += len(source.times) * 40
+            if state.recent is not None:
+                frame_bytes += len(state.recent.times) * 16
         frequency_cells = math.prod(self.blocks.frequency_shape)
         frame_bytes += 16 * frequency_cells * nblocks * len(self.blocks.channels)
+        if nblocks > 1:
+            # Batch input packing/padding, accumulated spectra and one row,
+            # inverse input copy and full inverse output. Source spectra and
+            # the final gathered grid are already included above.
+            nc, nu = len(self.components), len(self.blocks.channels)
+            fft_cells = math.prod(self.blocks.shape)
+            frame_bytes += 8 * nblocks * nu * (block + fft_cells)
+            frame_bytes += 16 * (2 * nblocks + 1) * nc * frequency_cells
+            frame_bytes += 8 * nblocks * nc * fft_cells
         if self.blocks.method == "uniform":
             frame_bytes += 16 * frequency_cells * nblocks * self.blocks.memory_turns * len(self.components)
         else:
@@ -419,34 +433,18 @@ class TimeConvolution:
                     (density, opened_before, np.int64(density.shape[1]), np.int64(opened_before.shape[1]), np.int64(opened_before.size)))
         else:
             density[:, :opened_before.shape[1]] += opened_before
-        values = xp.empty((len(self.components), nblocks * block), dtype=np.float64)
         # Keep one grid node before the passage end writable. Touching source
         # intervals computed independently can straddle a grid boundary by a
         # few time ULPs (accepted by the ordering check above). Their hat
         # deposition then touches the preceding node. Sealing that node here
         # would reject the next passage or discard part of its source charge.
         sealed = max(0, math.floor((last - origin) / dt - 1) // block - block_state.start_turn - block_state.count)
-        operations = []
-        if self.backend == 'gpu':
-            # This complete density was built on this plan's device. Validate
-            # it once before entering the transaction, rather than copying and
-            # synchronizing every strided sub-block independently.
-            from .wake_state import finite_gpu
-            self.blocks._validated_state(block_state, block_state.start_turn + block_state.count)
-            if not finite_gpu(self, density):
-                raise ValueError("Convolution block must be finite")
-        with BlockPreviewTransaction(block_state) as transaction:
-            for bi in range(nblocks):
-                block_density = density[:, bi * block:(bi + 1) * block][:, None, :]
-                if self.backend == 'gpu':
-                    row, update = self.blocks._convolve_block(block_density, block_state)
-                    row = row[:, :1, :block]
-                else:
-                    row, update = self.blocks.preview_block(block_density, block_state, turn=block_state.start_turn + block_state.count)
-                values[:, bi * block:(bi + 1) * block] = row[:, 0]
-                if bi < sealed:
-                    operations.append((update.spectrum, tuple(update.additions), update.plan))
-                transaction.apply(update)
+        # Validate the complete deposited density once, on its owning device.
+        from .wake_state import finite_gpu
+        self.blocks._validated_state(block_state, block_state.start_turn + block_state.count)
+        if not (finite_gpu(self, density) if self.backend == 'gpu' else bool(np.all(np.isfinite(density)))):
+            raise ValueError("Convolution block must be finite")
+        values, operations = self._batch_blocks(density, block_state, nblocks, sealed)
         joined = _join(state.recent, source, xp)
         if self.backend == 'gpu':
             correction = self._near_correction(source, state.recent, origin, frame_bytes, joined=joined)
@@ -470,6 +468,37 @@ class TimeConvolution:
             recent = _subset(joined, joined.times + joined.widths / 2 >= last - 2 * dt, xp)
         opened = density[:, sealed * block:size].copy()
         return result, TimeHistoryUpdate(state, operations, opened, recent, origin, last, block_state)
+
+    def _batch_blocks(self, density, state, nblocks, sealed):
+        """Batch spatial FFTs while preserving sequential spectral history."""
+        xp, blocks, block = self.xp, self.blocks, self.grid.block_size
+        if nblocks == 1:
+            values, _ = blocks._convolve_block(density[:, None, :], state, stage_history=False)
+            return values[:, 0, :block].copy(), []
+        packed = xp.ascontiguousarray(density.reshape(len(blocks.channels), nblocks, block).transpose(1, 0, 2))[:, :, None, :]
+        single_slot = self.backend == 'gpu'
+        spectrum = (blocks.fft.rfft(packed, n=blocks.shape[1], axis=-1) if single_slot else blocks.fft.rfft2(packed, s=blocks.shape, axes=(-2, -1)))
+        del packed
+        # Flat GPU accumulation requires each block's channels to be contiguous.
+        spectrum = xp.ascontiguousarray(spectrum)
+        accumulated = xp.empty((nblocks, len(self.components), *blocks.frequency_shape), dtype=np.complex128)
+        operations = []
+        with BlockPreviewTransaction(state) as transaction:
+            for bi in range(nblocks):
+                # Only the final unsealed block has no later preview witness.
+                stage_history = bi < nblocks - 1
+                row, update = blocks._convolve_spectrum(spectrum[bi], state, stage_history=stage_history)
+                accumulated[bi] = row
+                if bi < sealed:
+                    operations.append((update.spectrum, tuple(update.additions), update.plan))
+                if stage_history:
+                    transaction.apply(update)
+        # Staged updates retain their immutable spectrum views until commit.
+        # Inverse-transform failure occurs after the old rings are restored.
+        values = (blocks.fft.irfft(accumulated, n=blocks.shape[1], axis=-1)
+                  if single_slot else blocks.fft.irfft2(accumulated, s=blocks.shape, axes=(-2, -1)))
+        values = xp.ascontiguousarray(values[:, :, 0, :block].transpose(1, 0, 2))
+        return values.reshape(len(self.components), nblocks * block), operations
 
     def step(self, source, state=None, *, turn):
         values, update = self.preview(source, state, turn=turn)
@@ -706,21 +735,36 @@ def table_near_correction_gpu(plan, source, near, origin):
 
 
 def near_correction_gpu(plan, source, near, origin):
-    """Warp-per-witness correction for every supported model, bounded workspace."""
+    """Subwarp correction with the original pair reduction and bounded workspace."""
     import cupy as cp
     from .wake_models import response_gpu
     result = cp.empty((len(plan.components), len(source.times)), dtype=cp.float64)
+    if not len(source.times):
+        return result
     maximum = cp.zeros(1, dtype=cp.float64)
     first = response_gpu(plan.components[0].model, plan.components[0].longitudinal)
     if len(near.times):
         first.kernel('max_width', _CODE + _TIME_RESPONSE_CODE)((min(256, (len(near.times) + 255) // 256), ), (256, ),
                                                                (near.widths, np.int64(len(near.times)), maximum))
+    # All components share candidate intervals. Dense threads find each one
+    # once, while pair integration retains the original warp reduction.
+    ranges = cp.empty((len(source.times), 2), dtype=cp.int64)
+    target_positions = cp.empty(len(source.times), dtype=cp.float64)
+    near_coordinates = cp.empty((2, len(near.times)), dtype=cp.float64)
+    if len(near.times):
+        first.kernel('near_coordinates', _CODE + _TIME_RESPONSE_CODE)(
+            ((len(near.times) + 255) // 256, ), (256, ),
+            (near.times, near.widths, np.float64(origin), np.float64(plan.grid.step), np.int64(len(near.times)), near_coordinates))
+    first.kernel('near_ranges', _CODE + _TIME_RESPONSE_CODE)(
+        ((len(source.times) + 255) // 256, ), (256, ), (source.times, near.times, maximum, np.float64(
+            plan.grid.step), np.float64(origin), np.int64(len(near.times)), np.int64(len(source.times)), ranges, target_positions))
     for ci, c in enumerate(plan.components):
         response = response_gpu(c.model, c.longitudinal)
-        response.kernel('near_response', _CODE + _TIME_RESPONSE_CODE)(
-            (len(source.times), ), (32, ), (source.times, near.times, near.widths, plan._coupled(
-                c, near), maximum, plan.response[ci], plan.primitive[ci], np.int64(plan.response.shape[1]), response.data, np.float64(
-                    plan.memory_time), np.float64(c.scale), np.float64(plan.grid.step), np.float64(origin), np.int64(len(near.times)), result[ci]))
+        arguments = (source.times, near.times, near.widths, plan._coupled(c, near), ranges, target_positions, near_coordinates[0],
+                     near_coordinates[1], plan.response[ci], plan.primitive[ci], np.int64(plan.response.shape[1]), response.data,
+                     np.float64(plan.memory_time), np.float64(c.scale), np.float64(plan.grid.step), np.int64(len(source.times)), result[ci])
+        response.kernel('near_small_response', _CODE + _TIME_RESPONSE_CODE)(((len(source.times) + 127) // 128, ), (128, ), arguments)
+        response.kernel('near_response', _CODE + _TIME_RESPONSE_CODE)(((len(source.times) + 15) // 16, ), (128, ), arguments)
     return result
 
 
@@ -760,12 +804,65 @@ extern "C" __global__ void max_width(
     if (v > 0.)
         atomicMax((unsigned long long*)out, (unsigned long long)__double_as_longlong(v));
 }
-extern "C" __global__ void near_response(
+extern "C" __global__ void near_coordinates(
+    const double* times,
+    const double* widths,
+    double origin,
+    double dt,
+    long long n,
+    double* coordinates
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        coordinates[i] = (times[i] - origin) / dt;
+        coordinates[n + i] = widths[i] / dt;
+    }
+}
+extern "C" __global__ void near_ranges(
+    const double* target,
+    const double* times,
+    const double* max_width,
+    double dt,
+    double origin,
+    long long sources,
+    long long targets,
+    long long* ranges,
+    double* positions
+) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= targets)
+        return;
+    double t = target[i], radius = *max_width * .5 + 2 * dt;
+    positions[i] = (t - origin) / dt;
+    long long lo = 0, hi = sources;
+    while (lo < hi) {
+        long long m = (lo + hi) / 2;
+        if (times[m] < t - radius)
+            lo = m + 1;
+        else
+            hi = m;
+    }
+    ranges[2 * i] = lo;
+    lo = 0;
+    hi = sources;
+    while (lo < hi) {
+        long long m = (lo + hi) / 2;
+        if (times[m] <= t + radius)
+            lo = m + 1;
+        else
+            hi = m;
+    }
+    ranges[2 * i + 1] = lo;
+}
+extern "C" __global__ void near_small_response(
     const double* target,
     const double* times,
     const double* widths,
     const double* moments,
-    const double* max_width,
+    const long long* ranges,
+    const double* target_positions,
+    const double* source_positions,
+    const double* source_widths,
     const double* h,
     const double* p,
     long long nh,
@@ -773,45 +870,82 @@ extern "C" __global__ void near_response(
     double horizon,
     double scale,
     double dt,
-    double origin,
-    long long sources,
+    long long targets,
     double* out
 ) {
-    int lane = threadIdx.x;
-    long long i = blockIdx.x, first = 0, last = 0;
-    double t = target[i], radius = *max_width * .5 + 2 * dt;
-    if (lane == 0) {
-        long long lo = 0, hi = sources;
-        while (lo < hi) {
-            long long m = (lo + hi) / 2;
-            if (times[m] < t - radius)
-                lo = m + 1;
-            else
-                hi = m;
-        }
-        first = lo;
-        lo = 0;
-        hi = sources;
-        while (lo < hi) {
-            long long m = (lo + hi) / 2;
-            if (times[m] <= t + radius)
-                lo = m + 1;
-            else
-                hi = m;
-        }
-        last = lo;
-    }
-    first = __shfl_sync(0xffffffff, first, 0);
-    last = __shfl_sync(0xffffffff, last, 0);
-    double sum = 0.;
-    for (long long j = first + lane; j < last; j += 32) {
+    long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= targets)
+        return;
+    long long first = ranges[2 * i], last = ranges[2 * i + 1];
+    if (last - first > 8)
+        return;
+    // One thread owns short candidate lists. The explicit tree matches the
+    // original 32-lane reduction with all remaining lanes equal to zero.
+    double partial[8] = {0., 0., 0., 0., 0., 0., 0., 0.}, t = target[i];
+#pragma unroll
+    for (int k = 0; k < 8; k++) {
+        long long j = first + k;
+        if (j >= last)
+            continue;
+        double moment = moments[j];
+        if (moment == 0.)
+            continue;
         double tau = t - times[j], w = widths[j];
         if (fabs(tau) > w * .5 + 2 * dt)
             continue;
-        sum += (scale * averaged(tau, w, data, horizon) - mesh_pair((t - origin) / dt, (times[j] - origin) / dt, w / dt, h, p, nh)) * moments[j];
+        partial[k] +=
+            (scale * averaged(tau, w, data, horizon) - mesh_pair(target_positions[i], source_positions[j], source_widths[j], h, p, nh)) * moment;
     }
-    for (int k = 16; k; k /= 2)
-        sum += __shfl_down_sync(0xffffffff, sum, k);
+    out[i] = ((partial[0] + partial[4]) + (partial[2] + partial[6])) + ((partial[1] + partial[5]) + (partial[3] + partial[7]));
+}
+extern "C" __global__ void near_response(
+    const double* target,
+    const double* times,
+    const double* widths,
+    const double* moments,
+    const long long* ranges,
+    const double* target_positions,
+    const double* source_positions,
+    const double* source_widths,
+    const double* h,
+    const double* p,
+    long long nh,
+    const double* data,
+    double horizon,
+    double scale,
+    double dt,
+    long long targets,
+    double* out
+) {
+    // Four witnesses share a warp. Four partial sums emulate the original
+    // 32-lane pair assignment and reduction, including wide overlapping bins.
+    int lane = threadIdx.x & 7;
+    long long i = (long long)blockIdx.x * (blockDim.x / 8) + threadIdx.x / 8;
+    if (i >= targets)
+        return;
+    double t = target[i];
+    long long first = ranges[2 * i], last = ranges[2 * i + 1];
+    if (last - first <= 8)
+        return;
+    double partial[4] = {0., 0., 0., 0.};
+#pragma unroll
+    for (int group = 0; group < 4; group++) {
+        for (long long j = first + lane + 8 * group; j < last; j += 32) {
+            // Empty source moments contribute exactly zero, without a kernel lookup.
+            double moment = moments[j];
+            if (moment == 0.)
+                continue;
+            double tau = t - times[j], w = widths[j];
+            if (fabs(tau) > w * .5 + 2 * dt)
+                continue;
+            partial[group] +=
+                (scale * averaged(tau, w, data, horizon) - mesh_pair(target_positions[i], source_positions[j], source_widths[j], h, p, nh)) * moment;
+        }
+    }
+    double sum = (partial[0] + partial[2]) + (partial[1] + partial[3]);
+    unsigned mask = 0xffu << (threadIdx.x & 24);
+    for (int k = 4; k; k /= 2)
+        sum += __shfl_down_sync(mask, sum, k, 8);
     if (lane == 0)
         out[i] = sum;
 }

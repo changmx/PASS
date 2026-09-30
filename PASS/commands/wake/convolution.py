@@ -433,7 +433,7 @@ class PartitionedConvolution:
                 result[ci] *= component.witness_factor(source.betas)
         return result, update
 
-    def preview_block(self, density, state, *, turn):
+    def preview_block(self, density, state, *, turn, stage_history=True):
         """Convolve one preprojected block without changing persistent history.
 
         ``density`` is a finite float64 backend array with shape
@@ -441,6 +441,7 @@ class PartitionedConvolution:
         factors exactly once. The returned grid has one row per component;
         the caller applies witness factors after gathering physical times.
         The input array is not retained by the staged update.
+        With stage_history=False only values are returned, with no update.
         """
         state = self._validated_state(state, turn)
         if (not isinstance(density, self.xp.ndarray) or density.shape != self._density.shape or density.dtype != np.float64):
@@ -450,14 +451,20 @@ class PartitionedConvolution:
         from .wake_state import finite_gpu
         if not (finite_gpu(self, density) if self.backend == 'gpu' else bool(np.all(np.isfinite(density)))):
             raise ValueError("Convolution block must be finite")
-        values, update = self._convolve_block(density, state)
+        values, update = self._convolve_block(density, state, stage_history=stage_history)
         return values[:, :self.grid.slots, :self.grid.slices].copy(), update
 
-    def _convolve_block(self, density, state):
+    def _convolve_block(self, density, state, *, stage_history=True):
         """Shared spectral core; validation and coordinate mapping live at the boundary."""
-        xp = self.xp
         single_slot = self.backend == "gpu" and self.shape[0] == 1
         spectrum = (self.fft.rfft(density, n=self.shape[1], axis=-1) if single_slot else self.fft.rfft2(density, s=self.shape, axes=(-2, -1)))
+        accumulated, update = self._convolve_spectrum(spectrum, state, stage_history=stage_history)
+        values = (self.fft.irfft(accumulated, n=self.shape[1], axis=-1) if single_slot else self.fft.irfft2(accumulated, s=self.shape, axes=(-2, -1)))
+        return values, update
+
+    def _convolve_spectrum(self, spectrum, state, *, stage_history=True):
+        """Accumulate one contiguous spectrum and stage its causal history."""
+        xp = self.xp
         n = state.count
         if self.backend == "gpu":
             accumulated = accumulate_gpu(self, state, spectrum)
@@ -467,7 +474,8 @@ class PartitionedConvolution:
                 for (length, count), kernel in zip(self.levels, self.filters):
                     if count == 1 and n >= length:
                         accumulated += kernel * state.inputs[(n - length) % len(state.inputs)][self.indices]
-        values = (self.fft.irfft(accumulated, n=self.shape[1], axis=-1) if single_slot else self.fft.irfft2(accumulated, s=self.shape, axes=(-2, -1)))
+        if not stage_history:
+            return accumulated, None
         additions = []
         if self.method == "uniform" and self.backend == "cpu":
             # All prior lag contributions of this new source are scheduled once.
@@ -488,7 +496,7 @@ class PartitionedConvolution:
                 product = (transformed[:, self.indices] * kernel if self.backend == "cpu" else history_product_gpu(self, transformed, kernel))
                 contribution = self._time_inverse(product, length + count - 1)
                 additions.append(contribution)
-        return values, HistoryUpdate(state, spectrum, additions, self if self.method == "uniform" and self.backend == "gpu" else None)
+        return accumulated, HistoryUpdate(state, spectrum, additions, self if self.method == "uniform" and self.backend == "gpu" else None)
 
     def step(self, source, state=None, *, turn):
         values, update = self.preview(source, state, turn=turn)
