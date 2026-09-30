@@ -1,0 +1,629 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElectronCooler &mdash; PASS 0.4.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Kicker" href="kicker.html" />
+    <link rel="prev" title="Solenoid" href="solenoid.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="../../zh/element/electron_cooler.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="error.html">Element errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marker.html">Marker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drift.html">Drift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole.html">Quadrupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sextupole.html">Sextupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="octupole.html">Octupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multipole.html">Multipole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solenoid.html">Solenoid</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ElectronCooler</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#collision-models">Collision models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-example">Python example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#element-interface">Element interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#electron-reservoir-interface">Electron reservoir interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#collision-equations">Collision equations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#transport-timing-and-smooth-fields">Transport, timing and smooth fields</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#diagnostics-restart-and-ibs">Diagnostics, restart and IBS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="kicker.html">Kicker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">Monitors and output</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS User Manual</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Element</a></li>
+      <li class="breadcrumb-item active">ElectronCooler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="electroncooler">
+<h1>ElectronCooler<a class="headerlink" href="#electroncooler" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">ElectronCooler</span></code> transports ions through a finite cooling section and applies
+incoherent electron–ion collisions from a prescribed electron reservoir. DC
+electron beams and Gaussian electron bunches can have uniform round or Gaussian
+transverse density. NumPy and CuPy particle arrays use the same physics.
+<code class="docutils literal notranslate"><span class="pre">ElectronBeamConfig</span></code> and <code class="docutils literal notranslate"><span class="pre">ElectronCoolerItem</span></code> are exported by
+<code class="docutils literal notranslate"><span class="pre">PASS.para.schema</span></code> and <code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code>; no top-level named configuration is needed.</p>
+<p>The electron reservoir does not evolve in response to the ions. Its parameters
+do not simulate cathode emission, self-consistent electron optics, collective
+screening dynamics, recombination, coherent electron cooling or depletion.</p>
+<section id="collision-models">
+<h2>Collision models<a class="headerlink" href="#collision-models" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 33.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">Model</span></code></p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Assumptions and limits</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code></p></td>
+<td><p>Nonmagnetized Gaussian Landau friction and momentum diffusion.</p></td>
+<td><p>Any symmetric positive-definite 3 by 3 local electron velocity covariance.
+The name describes velocity distribution, not spatial profile. The
+collision operator omits gyromotion even if a solenoid field is configured.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parkhomchuk</span></code></p></td>
+<td><p>Empirical magnetized friction.</p></td>
+<td><p>Requires nonzero magnetic field, zero electron-axis angles and
+<code class="docutils literal notranslate"><span class="pre">Diffusion=False</span></code>. Suitable for
+calibrated friction/rate studies; it supplies no equilibrium diffusion law.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">magnetized_collision</span></code></p></td>
+<td><p>Finite-window magnetic-response friction and diffusion.</p></td>
+<td><p>A numerical reference model for weak response, weak deflection and a
+locally uniform gyrotropic reservoir. Requires explicit impact cutoffs,
+positive axial field, zero electron-axis angles, equal transverse thermal
+variances and zero cross-covariances.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The magnetic-response backend is not an all-regime model for a dense practical
+cooler. It rejects out-of-domain or unconverged calculations rather than falling
+back to another formula. Its bounds include <span class="math notranslate nohighlight">\(\omega_pT_*\leq0.3\)</span>,
+<span class="math notranslate nohighlight">\(\omega_iT_*\leq0.1\)</span> and an ultraviolet-cutoff deflection measure no larger
+than 0.1. Here <span class="math notranslate nohighlight">\(T_*\)</span> is the physical full-section interaction time,
+<span class="math notranslate nohighlight">\(\omega_p\)</span> is the electron plasma frequency and
+<span class="math notranslate nohighlight">\(\omega_i=|Z|eB/M\)</span> is the ion cyclotron frequency. Finite-window coefficients
+are applied as local Markov kick coefficients: ion momentum and the local
+reservoir must vary little during that window. The implementation does not
+resolve all temporal correlations between successive kicks. The coefficients
+describe a single finite interaction with an initially uncorrelated, locally
+uniform fresh reservoir, including transient polarization. They do not assert
+finite-window Maxwell detailed balance or a general screened-plasma equilibrium.</p>
+<p>The largest electron thermal RMS speed, encountered local mean velocity shear,
+and participating ion–electron relative speeds must not exceed <span class="math notranslate nohighlight">\(0.05c\)</span>.
+Relativistic laboratory reference motion is allowed; relativistic thermal
+collisions are not implemented. The Gaussian RMS criterion is an approximation
+check, not a truncation of the Gaussian’s mathematical tails.</p>
+</section>
+<section id="python-example">
+<h2>Python example<a class="headerlink" href="#python-example" title="Link to this heading"></a></h2>
+<p>Add this section to a sequence with injection and surrounding lattice transport.
+The electron energy is independent of the ion reference and does not follow its
+centroid. Velocity matching requires <span class="math notranslate nohighlight">\(E_{k,e}=(\gamma_i-1)m_ec^2\)</span>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElectronBeamConfig</span><span class="p">,</span> <span class="n">ElectronCoolerItem</span>
+
+<span class="n">electrons</span> <span class="o">=</span> <span class="n">ElectronBeamConfig</span><span class="p">(</span>
+    <span class="n">kinetic_energy</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="s2">"uniform_round"</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">"dc"</span><span class="p">,</span> <span class="n">current</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">temperature_transverse</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">temperature_longitudinal</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"cooler"</span><span class="p">,</span>
+    <span class="n">ElectronCoolerItem</span><span class="p">(</span>
+        <span class="n">s</span><span class="o">=</span><span class="mf">12.0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">electron_beam</span><span class="o">=</span><span class="n">electrons</span><span class="p">,</span>
+        <span class="n">model</span><span class="o">=</span><span class="s2">"gaussian"</span><span class="p">,</span> <span class="n">diffusion</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">coulomb_log</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">num_slices</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span> <span class="n">save_diagnostics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">10</span><span class="p">]],</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>This element occupies [10, 12] m; do not also transport that interval with a
+separate Drift or Solenoid. <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> is its exit position.</p>
+</section>
+<section id="element-interface">
+<h2>Element interface<a class="headerlink" href="#element-interface" title="Link to this heading"></a></h2>
+<p>Aliases are case-insensitive. Unknown fields and duplicate aliases are rejected.
+Inputs must be finite. Integer controls and booleans do not accept strings or
+coercible floating values. Standard <code class="docutils literal notranslate"><span class="pre">Order</span></code> and aperture fields are inherited
+from <code class="docutils literal notranslate"><span class="pre">ElementBase</span></code>; see <a class="reference internal" href="../input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 29.0%" />
+<col style="width: 15.0%" />
+<col style="width: 31.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python field</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code>, <code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>Required; 0</p></td>
+<td><p>Exit position and nonnegative physical section length.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">electron_beam</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">beam</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>One <code class="docutils literal notranslate"><span class="pre">ElectronBeamConfig</span></code>, described below.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code></p></td>
+<td><p>One of the three models above.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collisions</span></code>, <code class="docutils literal notranslate"><span class="pre">diffusion</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Collisions</span></code>, <code class="docutils literal notranslate"><span class="pre">Diffusion</span></code></p></td>
+<td><p>True, True</p></td>
+<td><p>Disable collisional drift and noise together, or only noise. Transport
+and optional smooth fields remain active.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">magnetic_field</span></code>, <code class="docutils literal notranslate"><span class="pre">mean_space_charge</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Magnetic</span> <span class="pre">field</span> <span class="pre">(T)</span></code>, <code class="docutils literal notranslate"><span class="pre">Mean</span> <span class="pre">space</span> <span class="pre">charge</span></code></p></td>
+<td><p>0, False</p></td>
+<td><p>Signed uniform axial field; optional prescribed electron smooth field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coulomb_log</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Positive fixed Gaussian/Parkhomchuk logarithm; omission selects effective
+cutoffs. Not allowed for magnetic response.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_impact_parameter</span></code>, <code class="docutils literal notranslate"><span class="pre">max_impact_parameter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Min</span> <span class="pre">impact</span> <span class="pre">parameter</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">impact</span> <span class="pre">parameter</span> <span class="pre">(m)</span></code></p></td>
+<td><p>None, None</p></td>
+<td><p>Magnetic response requires explicit <span class="math notranslate nohighlight">\(0&lt;b_{\min}&lt;b_{\max}\)</span>. The maximum
+can cap automatic Gaussian/Parkhomchuk cutoffs, but not a fixed logarithm.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">effective_velocity_spread</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Effective</span> <span class="pre">velocity</span> <span class="pre">spread</span> <span class="pre">(m/s)</span></code></p></td>
+<td><p>0</p></td>
+<td><p>Extra Parkhomchuk RMS speed from unresolved field errors or drift.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Positive number of transport/collision sections.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_fractional_step</span></code>, <code class="docutils literal notranslate"><span class="pre">max_substeps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">fractional</span> <span class="pre">step</span></code>, <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">substeps</span></code></p></td>
+<td><p>0.05, 1000</p></td>
+<td><p>Adaptive collision drift/noise step control and maximum internal
+collision substeps per transport section.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quadrature_order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Quadrature</span> <span class="pre">order</span></code></p></td>
+<td><p>64</p></td>
+<td><p>Gaussian velocity-integral order per integration interval, at least 8.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">radial_order</span></code>, <code class="docutils literal notranslate"><span class="pre">polar_order</span></code>, <code class="docutils literal notranslate"><span class="pre">azimuthal_order</span></code>, <code class="docutils literal notranslate"><span class="pre">time_order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radial</span> <span class="pre">order</span></code>, <code class="docutils literal notranslate"><span class="pre">Polar</span> <span class="pre">order</span></code>, <code class="docutils literal notranslate"><span class="pre">Azimuthal</span> <span class="pre">order</span></code>, <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">order</span></code></p></td>
+<td><p>16, 12, 16, 64</p></td>
+<td><p>Initial magnetic-response quadrature orders; refinement increases all four.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quadrature_rtol</span></code>, <code class="docutils literal notranslate"><span class="pre">max_refinements</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Quadrature</span> <span class="pre">relative</span> <span class="pre">tolerance</span></code>, <code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">refinements</span></code></p></td>
+<td><p>0.02, 2</p></td>
+<td><p>Magnetic-response convergence controls. Tolerance is in [1e-6, 0.1];
+unconverged coefficients raise an error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">random_seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Nonnegative strict integer, or nondeterministic entropy. JSON keeps null.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_diagnostics</span></code>, <code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">diagnostics</span></code>, <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code></p></td>
+<td><p>False, []</p></td>
+<td><p>Empty selection means every turn; otherwise [turn] or inclusive
+[start, end, step] entries.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Numerical controls belonging only to an inactive model cannot be changed from
+their defaults. Ion self-space-charge and IBS are separate explicit commands;
+avoid duplicate physical exposure when composing the lattice.</p>
+</section>
+<section id="electron-reservoir-interface">
+<h2>Electron reservoir interface<a class="headerlink" href="#electron-reservoir-interface" title="Link to this heading"></a></h2>
+<p>Widths describe the entrance. Optional exit widths prescribe linear interpolation
+of the width itself; omission makes it constant. This is a prescribed envelope,
+not a self-consistent electron transport or continuity solution.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 31.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python field</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Positive energy per electron.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">profile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Profile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round</span></code> or <code class="docutils literal notranslate"><span class="pre">gaussian</span></code> transverse spatial density.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">radius</span></code>, <code class="docutils literal notranslate"><span class="pre">radius_exit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Exit</span> <span class="pre">radius</span> <span class="pre">(m)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Positive hard radius for uniform round density; entrance radius required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_x</span></code>, <code class="docutils literal notranslate"><span class="pre">sigma_y</span></code>, <code class="docutils literal notranslate"><span class="pre">sigma_x_exit</span></code>, <code class="docutils literal notranslate"><span class="pre">sigma_y_exit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">x</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">y</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Exit</span> <span class="pre">sigma</span> <span class="pre">x</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Exit</span> <span class="pre">sigma</span> <span class="pre">y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Positive Gaussian RMS sizes; both entrance sizes required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code>, <code class="docutils literal notranslate"><span class="pre">current</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code>, <code class="docutils literal notranslate"><span class="pre">Current</span> <span class="pre">(A)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dc</span></code>, None</p></td>
+<td><p>DC mode requires a nonnegative electron-current magnitude.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bunch_charge</span></code>, <code class="docutils literal notranslate"><span class="pre">sigma_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunch</span> <span class="pre">charge</span> <span class="pre">(C)</span></code>, <code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Mode <code class="docutils literal notranslate"><span class="pre">gaussian_bunch</span></code> requires nonnegative charge magnitude and positive
+RMS duration; do not also supply current.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bunch_center_time</span></code>, <code class="docutils literal notranslate"><span class="pre">repetition_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunch</span> <span class="pre">center</span> <span class="pre">time</span> <span class="pre">(s)</span></code>, <code class="docutils literal notranslate"><span class="pre">Repetition</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>0, None</p></td>
+<td><p>Pulse centre at the entrance and optional positive repetition frequency.
+Repetition defines an infinite train; centre time is a phase origin,
+not turn-on. Without repetition there is a single pulse.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">center_x</span></code>, <code class="docutils literal notranslate"><span class="pre">center_y</span></code>, <code class="docutils literal notranslate"><span class="pre">angle_x</span></code>, <code class="docutils literal notranslate"><span class="pre">angle_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">x</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">y</span> <span class="pre">(m)</span></code>, <code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">x</span> <span class="pre">(rad)</span></code>, <code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">y</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>0</p></td>
+<td><p>Entrance offset and direction of the electron axis. The local basis
+rotates with this axis; the ion reference does not follow it.
+Both magnetized collision models require zero angles; use the Parkhomchuk
+effective velocity spread for unresolved field-line imperfections.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">temperature_transverse</span></code>, <code class="docutils literal notranslate"><span class="pre">temperature_longitudinal</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">temperature</span> <span class="pre">(eV)</span></code>, <code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">temperature</span> <span class="pre">(eV)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Positive rest-frame <span class="math notranslate nohighlight">\(k_BT\)</span> in eV, transverse per Cartesian component.
+Supply both temperatures or a covariance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">velocity_covariance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Velocity</span> <span class="pre">covariance</span> <span class="pre">(m2/s2)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Symmetric positive-definite conditional 3 by 3 covariance, in the
+electron-axis basis and mean electron rest frame.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">velocity_gradient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Velocity</span> <span class="pre">gradient</span> <span class="pre">(1/s)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>Finite 3 by 2 matrix <span class="math notranslate nohighlight">\(G\)</span> defining local mean velocity
+<span class="math notranslate nohighlight">\(\bar{\mathbf u}_e=G(x_e,y_e)^T\)</span>; zero when omitted. Magnetic response
+permits only its longitudinal row.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Temperature inputs give <span class="math notranslate nohighlight">\(C=\mathrm{diag}(T_\perp,T_\perp,T_\parallel)e/m_e\)</span>.
+With shear, <span class="math notranslate nohighlight">\(C\)</span> is conditioned on local position, not the covariance after
+averaging over the whole electron beam.
+DC proper density is</p>
+<div class="math notranslate nohighlight">
+\[n_*=\frac{I}{e\beta_e c\gamma_e}g_\perp(x_e,y_e;s),
+\qquad \int g_\perp\,dx_e\,dy_e=1.\]</div>
+<p>For a bunch replace <span class="math notranslate nohighlight">\(I\)</span> by <span class="math notranslate nohighlight">\(Q_bh(t)\)</span>, where <span class="math notranslate nohighlight">\(h\)</span> is its normalized
+Gaussian arrival-time profile. Repeated profiles include pulse overlap.
+Current and charge inputs are positive magnitudes; smooth fields use negative
+electron charge.</p>
+</section>
+<section id="collision-equations">
+<h2>Collision equations<a class="headerlink" href="#collision-equations" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(M\)</span> be complete ion mass, <span class="math notranslate nohighlight">\(g=|Z|e^2/(4\pi\epsilon_0)\)</span>, and
+<span class="math notranslate nohighlight">\(\mathbf w=\mathbf v-\mathbf u\)</span>. Averages below use the normalized local
+electron velocity distribution. The nonmagnetized coefficients are</p>
+<div class="math notranslate nohighlight">
+\[\mathbf F_*=-4\pi n_*g^2\ln\Lambda
+\left(\frac1{m_e}+\frac1M\right)
+\left\langle\frac{\mathbf w}{|\mathbf w|^3}\right\rangle,\qquad
+Q_*=4\pi n_*g^2\ln\Lambda
+\left\langle\frac{\mathsf I-\hat{\mathbf w}\hat{\mathbf w}^{T}}
+{|\mathbf w|}\right\rangle.\]</div>
+<p>Gaussian Rosenbluth convolutions are evaluated by one-dimensional quadrature
+partitioned geometrically around the thermal covariance eigenvalue scales.
+<span class="math notranslate nohighlight">\(\mathbf F_*\)</span> is in N;
+<span class="math notranslate nohighlight">\(Q_*=d\,\mathrm{cov}(\Delta\mathbf p_*)/dt_*\)</span> is in
+<span class="math notranslate nohighlight">\(\mathrm{kg^2\,m^2\,s^{-3}}\)</span>. The stochastic increment is</p>
+<div class="math notranslate nohighlight">
+\[\Delta\mathbf p_*=\mathbf F_*\Delta t_*+
+B_*\sqrt{\Delta t_*}\,\boldsymbol\xi,\qquad
+B_*B_*^T=Q_*,\quad \boldsymbol\xi\sim\mathcal N(0,\mathsf I).\]</div>
+<p>There is no extra factor of two. Ion recoil is retained. The mean kick is not
+removed: energy mismatch and misalignment can drag the ion centroid.
+The collision update is Itô Euler–Maruyama (weak order 1, strong order 1/2);
+drift-only collision stepping is also first order. Symmetric transport half maps
+do not raise the collision integrator’s order.
+Isotropic-bath equilibrium verification uses a fixed Coulomb logarithm.
+An automatic logarithm is an effective local approximation held outside the
+microscopic electron-velocity integral; it does not establish exact detailed
+balance for a velocity-dependent logarithm.</p>
+<p>Gaussian automatic cutoffs are</p>
+<div class="math notranslate nohighlight">
+\[u^2=v^2+\mathrm{tr}\,C,\quad
+b_{\min}=\max\left(\frac{g}{\mu u^2},\frac{\hbar}{2\mu u}\right),\quad
+b_{\max}=\min(a,uT_*,u/\omega_p),\quad
+\ln\Lambda=\ln(1+b_{\max}/b_{\min}),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mu=m_eM/(m_e+M)\)</span>, <span class="math notranslate nohighlight">\(\omega_p^2=n_*e^2/(\epsilon_0m_e)\)</span>, and
+<span class="math notranslate nohighlight">\(a\)</span> is the local hard radius or smaller Gaussian RMS size.
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">impact</span> <span class="pre">parameter</span> <span class="pre">(m)</span></code> can impose a further upper cap.</p>
+<p>Parkhomchuk uses</p>
+<div class="math notranslate nohighlight">
+\[\mathbf F_*=-\frac{4n_*g^2}{m_e}
+\frac{\ln\Lambda\,\mathbf v}
+{(v^2+\sigma_\parallel^2+v_{\rm extra}^2)^{3/2}},\qquad
+\ln\Lambda=\ln\left(1+\frac{b_{\max}}{b_{90}+\rho_L}\right),\]</div>
+<p>with <span class="math notranslate nohighlight">\(u^2=v^2+\sigma_\parallel^2+v_{\rm extra}^2\)</span>,
+<span class="math notranslate nohighlight">\(b_{90}=g/(m_eu^2)\)</span>, and
+<span class="math notranslate nohighlight">\(\rho_L=\sqrt2m_e\sigma_\perp/(e|B|)\)</span>.
+<span class="math notranslate nohighlight">\(\sigma_\perp\)</span> is the RMS of one Cartesian component. This empirical
+friction law does not define a diffusion tensor. For a full covariance input,
+Parkhomchuk reduces it to <span class="math notranslate nohighlight">\(\sigma_\parallel^2=C_{zz}\)</span> and
+<span class="math notranslate nohighlight">\(\sigma_\perp^2=(C_{xx}+C_{yy})/2\)</span> and omits its cross-correlations;
+only the Gaussian model integrates the full anisotropic covariance.</p>
+<p>For magnetic response set <span class="math notranslate nohighlight">\(\Omega=eB/m_e\)</span>, <span class="math notranslate nohighlight">\(\alpha=2g^2/\pi\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[C_k(t)=\exp\left[-\frac12\sigma_\parallel^2k_z^2t^2
+  -\sigma_\perp^2k_\perp^2\frac{1-\cos\Omega t}{\Omega^2}\right],
+\qquad R_e=k_z^2t+k_\perp^2\frac{\sin\Omega t}{\Omega}.\]</div>
+<p>Independent initially uniform electrons on unperturbed helices give</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}Q_* = 2n_*\alpha\int\frac{d^3k}{k^4}\mathbf k\mathbf k^T
+  \int_0^{T_*}\left(1-\frac{t}{T_*}\right)
+  C_k(t)\cos(\mathbf k\cdot\mathbf v t)\,dt,\\\mathbf F_*=-n_*\alpha\int\frac{d^3k}{k^4}\mathbf k
+  \int_0^{T_*}\left(1-\frac{t}{T_*}\right)
+  C_k(t)\sin(\mathbf k\cdot\mathbf v t)
+  \left(\frac{R_e}{m_e}+\frac{k^2t}{M}\right)\,dt.\end{aligned}\end{align} \]</div>
+<p>The Fourier convention is <span class="math notranslate nohighlight">\(k_{\min}=1/b_{\max}\)</span>,
+<span class="math notranslate nohighlight">\(k_{\max}=1/b_{\min}\)</span>. Recoil is
+<span class="math notranslate nohighlight">\(\nabla_{\mathbf v}\cdot Q_*/(2M)\)</span>, not an assigned Einstein noise law.
+The zero-field, long-window limit gives Landau coefficients with
+<span class="math notranslate nohighlight">\(\ln\Lambda=\ln(b_{\max}/b_{\min})\)</span>. The low-level coefficient function
+supports that zero-field verification limit; the magnetic command configuration
+requires positive field. Refinement doubles all four quadrature orders and
+checks force/tensor relative error, tensor positivity and cyclotron phase
+resolution. This controlled weak-response benchmark can be expensive.</p>
+</section>
+<section id="transport-timing-and-smooth-fields">
+<h2>Transport, timing and smooth fields<a class="headerlink" href="#transport-timing-and-smooth-fields" title="Link to this heading"></a></h2>
+<p>Each positive-length section uses half transport, a collision/mean-field kick,
+then half transport. Zero field gives drift transport; nonzero axial field gives
+the uniform-solenoid map. Dissipation and diffusion never use negative Yoshida
+stages. Inside the solenoid, mechanical transverse momentum is
+<span class="math notranslate nohighlight">\(p_x^{\rm mech}/P_0=p_x+k_sy/2\)</span>,
+<span class="math notranslate nohighlight">\(p_y^{\rm mech}/P_0=p_y-k_sx/2\)</span>. Collision velocities use those quantities.</p>
+<p>Boosts use relativistic mechanical momenta. PASS stores
+<span class="math notranslate nohighlight">\(dp=(|\mathbf P|-P_0)/P_0\)</span>, not longitudinal momentum deviation.
+Complete-ion SI impulses are converted back to PASS’s per-nucleon normalization.
+The reference energy does not follow the cooling centroid. Transport advances
+<span class="math notranslate nohighlight">\(t_0\)</span> by <span class="math notranslate nohighlight">\(L/(\beta_0c)\)</span> once; continuous <span class="math notranslate nohighlight">\(z\)</span> changes through time
+slip. At a physical node, <span class="math notranslate nohighlight">\(t_i=t_{0,\rm node}-z_i/(\beta_0c)\)</span>.
+Bunch grouping metadata does not enter this clock.</p>
+<p>Full-section interaction time remains fixed when numerical resolution changes.
+For parallel axes,
+<span class="math notranslate nohighlight">\(T_*=\gamma_eL(1-\beta_e\beta_0)/(\beta_0c)\)</span>.
+This cutoff time follows the ideal ion reference worldline, whereas each kick’s
+elapsed time follows the particle worldline. The cutoff therefore assumes motion
+near the reference; broad or strongly detuned beams require a transit-time cutoff
+sensitivity study. Exact momentum boosts do not remove this approximation.
+Substituting numerical section length into this cutoff would change the physics
+with resolution, as discussed in the
+<a class="reference external" href="https://inspirehep.net/files/aab738e313248932b9fad111f6c1bf7e">JSPEC thick-cooler study, IPAC 2023, TUPM030</a>.
+Zero physical length leaves coordinates and clock unchanged.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Mean</span> <span class="pre">space</span> <span class="pre">charge=True</span></code> adds a quasistatic, locally uniform, long-beam
+transverse electron field, separately from collisions. Rest-frame force and
+boosts include laboratory magnetic cancellation; parallel equal-speed transverse
+forces contain <span class="math notranslate nohighlight">\(1-\beta_e\beta_i\)</span>. This differs from a stationary electron
+cloud and from ion self-space-charge.</p>
+<p>For bunched electrons this approximation requires
+<span class="math notranslate nohighlight">\(\gamma_e\beta_ec\sigma_t\geq10a_{\max}\)</span>, using the largest configured
+entrance/exit radius or RMS width. End fields, conducting-pipe images,
+longitudinal space-charge acceleration and general 3D finite-bunch fields are
+not included. Electron kinetic energy is not adjusted for space-charge
+voltage depression.</p>
+</section>
+<section id="diagnostics-restart-and-ibs">
+<h2>Diagnostics, restart and IBS<a class="headerlink" href="#diagnostics-restart-and-ibs" title="Link to this heading"></a></h2>
+<p>Selected calls append to one JSONL file per cooler under
+<code class="docutils literal notranslate"><span class="pre">output/electron_cooler/beam&lt;id&gt;_&lt;name&gt;_&lt;unique&gt;.jsonl</span></code> and update
+<code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>. Records contain model and frames, interaction length,
+populations/losses, substeps, density/overlap, mean force, diffusion diagonal,
+energy exchange and model-specific numerical checks. Density, overlap and
+coefficient summaries describe the last interaction node; energy exchange and
+substeps accumulate across the element. Total represented-beam energy exchange
+includes macroparticle weight.</p>
+<p>Random streams are separated by beam, command name and bunch. Particles are
+gathered in stable tag order. NumPy random draws drive both backends, but
+floating-point trajectories need not be bit-identical.
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> contains configuration identity, entropy, calls and RNG states.
+This is not a complete checkpoint: restore matching particles, reference state
+and execution boundary as well. Supported full joint checkpoints preserve
+cooler and IBS random state together.</p>
+<p>Cooling–IBS balance requires IBS <code class="docutils literal notranslate"><span class="pre">kinetic</span></code> or <code class="docutils literal notranslate"><span class="pre">binary</span></code> tracking;
+<code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code> only reports rates. Establish convergence in lattice
+sampling, collision steps, particles and random statistics before interpreting
+equilibrium. Parkhomchuk alone does not predict an electron-collision diffusion
+floor. See <a class="reference internal" href="../ibs.html"><span class="doc">Intrabeam Scattering (IBS)</span></a>.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/1703.09735">Y. Derbenev, Theory of Electron Cooling, arXiv:1703.09735</a>: nonmagnetized force/diffusion and magnetic
+response. The finite-window average and recoil normalization above specify
+the numerical variant implemented here.</p></li>
+<li><p><a class="reference external" href="https://proceedings.jacow.org/p05/PAPERS/TPAT092.PDF">A. V. Fedotov et al., Numerical Studies of the Friction Force for the RHIC
+Electron Cooler, PAC 2005, TPAT092</a>: empirical magnetic
+friction and effective speed/cutoff conventions.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="solenoid.html" class="btn btn-neutral float-left" title="Solenoid" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="kicker.html" class="btn btn-neutral float-right" title="Kicker" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

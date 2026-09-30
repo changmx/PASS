@@ -111,6 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
@@ -397,6 +398,11 @@ require a current <code class="docutils literal notranslate"><span class="pre">z
 <code class="docutils literal notranslate"><span class="pre">ElectronCloudBuildUpConfiguration</span></code>. Coupled mode includes cloud self-fields
 and transverse beam response. Physics, parameters and limits are in
 <a class="reference internal" href="electron_cloud.html"><span class="doc">Electron Cloud (ElectronCloud)</span></a>.</p>
+<p>Intrabeam scattering uses the separate top-level <code class="docutils literal notranslate"><span class="pre">Intrabeam</span> <span class="pre">scattering</span></code> block.
+Pass <code class="docutils literal notranslate"><span class="pre">intrabeam_scattering=IBSConfig(...)</span></code> to <code class="docutils literal notranslate"><span class="pre">generate_input</span></code> and reference
+a named model with <code class="docutils literal notranslate"><span class="pre">IBSItem</span></code>. Gaussian growth diagnostics and kinetic kicks
+require explicit local <code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code>; binary collisions use a local
+three-dimensional mesh. See <a class="reference internal" href="ibs.html"><span class="doc">Intrabeam Scattering (IBS)</span></a> for rates, exposure time and model limits.</p>
 </section>
 <section id="prescribed-machine-clock-and-initialization">
 <span id="en-reference-clock"></span><h3>Prescribed machine clock and initialization<a class="headerlink" href="#prescribed-machine-clock-and-initialization" title="Link to this heading"></a></h3>
@@ -783,6 +789,7 @@ also accepts <code class="docutils literal notranslate"><span class="pre">is_ali
 │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
 │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
 │   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
+│   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
 │   └── sequence.py     Sequence: ordered container + auto-sorting
 ├── madx.py        MADX TFS → schema objects (element / twiss / error)
 ├── smooth.py      Analytical smooth approximation twiss
@@ -814,7 +821,7 @@ also accepts <code class="docutils literal notranslate"><span class="pre">is_ali
 </section>
 <section id="api-entry-points">
 <h2>API entry points<a class="headerlink" href="#api-entry-points" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> exports <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>, <code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">load_input</span></code>. <code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> returns <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud blocks. It validates electron-cloud configuration and references before returning. Preserve those blocks explicitly when editing a complete existing file.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> exports <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>, <code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>, <code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> and <code class="docutils literal notranslate"><span class="pre">load_input</span></code>. <code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> returns <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>; it does not reconstruct typed commands or return the top-level Space charge/Wake field/Electron cloud/Intrabeam scattering blocks. It validates electron-cloud and IBS configurations and references before returning. Preserve those blocks explicitly when editing a complete existing file.</p>
 </section>
 </section>
 

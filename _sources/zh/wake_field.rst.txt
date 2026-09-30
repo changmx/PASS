@@ -379,12 +379,15 @@ Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束�
 表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。
 
 演化非聚束束流使用 ``Coordinate=arrival_phase``（或 ``Periodic=true``）、
-``equal_length`` 及 ``Explicit={"z min": -C, "z max": 0}``。显式更新时
-:math:`z_{phase}=-C[(-u)\bmod1]`，其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
+``equal_length`` 及长度为 C 的显式区间，例如 ``[-C,0]`` 或 ``[-C/2,C/2]``。
+显式更新时 :math:`z_{phase}=z_{max}-C[(z_{max}/C-u)\bmod1]`，
+其中 :math:`u=v_{obs}(T_{obs}-t_i)/C`。
 规定时钟选择共同观测事件和速度，见 :doc:`slicer`。各束团的参考时间、速度可以
 不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。
 
-切片覆盖 :math:`[T_{obs},T_{obs}+C/v_{obs})`。恰好为整数圈的相位映射到窗口
+切片覆盖 :math:`[T_{obs}-z_{max}/v_{obs},T_{obs}-z_{min}/v_{obs})`。
+Slicer 使用相邻的积分时钟边界确定两个端点，使加速窗口也保持连续。
+恰好位于周期接缝的相位映射到窗口
 起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
 更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
 ``Boundary="causal_passages"``。``time_fft`` 支持变化且互不重叠的通过窗口，

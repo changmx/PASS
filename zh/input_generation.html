@@ -111,6 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
 </ul>
 
@@ -394,6 +395,11 @@
 外驱动 <code class="docutils literal notranslate"><span class="pre">build_up</span></code> 与 PIC <code class="docutils literal notranslate"><span class="pre">coupled</span></code> 均要求当前 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> SliceSet
 和嵌套 <code class="docutils literal notranslate"><span class="pre">ElectronCloudBuildUpConfiguration</span></code>；耦合模式包含云自场和横向束流响应。
 物理约定、参数与限制见 <a class="reference internal" href="electron_cloud.html"><span class="doc">电子云（ElectronCloud）</span></a>。</p>
+<p>束内散射使用独立顶层 <code class="docutils literal notranslate"><span class="pre">Intrabeam</span> <span class="pre">scattering</span></code> 配置块。
+调用 <code class="docutils literal notranslate"><span class="pre">generate_input</span></code> 时传入 <code class="docutils literal notranslate"><span class="pre">intrabeam_scattering=IBSConfig(...)</span></code>，
+通过 <code class="docutils literal notranslate"><span class="pre">IBSItem</span></code> 引用命名模型。高斯增长率诊断和动力学踢要求显式局部
+<code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code>；二体碰撞使用局部三维网格。
+增长率、作用时间和模型限制见 <a class="reference internal" href="ibs.html"><span class="doc">束内散射（IBS）</span></a>。</p>
 </section>
 <section id="zh-reference-clock">
 <span id="id4"></span><h3>规定的机器时钟与初始化<a class="headerlink" href="#zh-reference-clock" title="Link to this heading"></a></h3>
@@ -765,6 +771,7 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
 │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
 │   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
+│   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
 │   └── sequence.py     Sequence：有序容器 + 自动排序
 ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
 ├── smooth.py      解析平滑近似 twiss
@@ -796,7 +803,7 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 </section>
 <section id="api">
 <h2>API 入口<a class="headerlink" href="#api" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> 提供 <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>、<code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>、<code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 和 <code class="docutils literal notranslate"><span class="pre">load_input</span></code>。<code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> 返回 <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud 配置块；返回前会校验电子云配置及其引用。编辑现有完整文件时应单独保留这些配置块。</p>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> 提供 <code class="docutils literal notranslate"><span class="pre">generate_input</span></code>、<code class="docutils literal notranslate"><span class="pre">build_sequence</span></code>、<code class="docutils literal notranslate"><span class="pre">generate_from_tfs</span></code> 和 <code class="docutils literal notranslate"><span class="pre">load_input</span></code>。<code class="docutils literal notranslate"><span class="pre">load_input(path)</span></code> 返回 <code class="docutils literal notranslate"><span class="pre">(MainConfig,</span> <span class="pre">raw_sequence_dict)</span></code>，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud/Intrabeam scattering 配置块；返回前会校验电子云和 IBS 配置及其引用。编辑现有完整文件时应单独保留这些配置块。</p>
 </section>
 </section>
 

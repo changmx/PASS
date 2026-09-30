@@ -137,7 +137,7 @@ Common command parameters
      - ``"Periodic"``
      - bool
      - false
-     - Whole-ring arrival-phase projection for coasting WakeField; requires equal_length, explicit [-C,0].
+     - Whole-ring arrival-phase projection for coasting WakeField; requires equal_length and an explicit interval of length C.
    * - ``max_phase_slip``
      - ``"Max phase slip"``
      - float
@@ -452,22 +452,35 @@ the mode, including in saved output.
 Periodic arrival slicing for coasting wakes
 -------------------------------------------
 
-``Coordinate=arrival_phase`` requires ``equal_length``, ``explicit`` and
-``Explicit={"z min": -C, "z max": 0}``. At each explicit Slicer update, the
-common observation event is :math:`T_{obs}=\Psi^{-1}(n+s/C)` and
-:math:`v_{obs}=C f_{rev}(T_{obs})`. CPU and GPU form
+``Coordinate=arrival_phase`` requires ``equal_length``, ``explicit`` and an
+interval :math:`[z_{min},z_{max}]` of length C, for example
+``Explicit={"z min": -C, "z max": 0}`` or a centered ``[-C/2,C/2]`` interval.
+At each explicit Slicer update, let :math:`a=n+s/C` and let
+:math:`\Psi(t)` be the integrated prescribed revolution frequency. The physical
+window endpoints and its linear coordinate mapping are
+
+.. math::
+
+   T_L=\Psi^{-1}(a-z_{max}/C),\qquad T_R=\Psi^{-1}(a-z_{min}/C),
+
+   v_{obs}=\frac{C}{T_R-T_L},\qquad T_{obs}=T_L+\frac{z_{max}}{v_{obs}}.
+
+These windows meet exactly at their clock-cycle boundaries during acceleration;
+using the instantaneous frequency for their duration would create overlaps or
+gaps. For the centered interval, :math:`T_{obs}=(T_L+T_R)/2`.
+CPU and GPU form
 
 .. math::
 
    u_i=\frac{v_{obs}}{C}(T_{obs}-t_i),\qquad
-   z_{phase,i}=-C[(-u_i)\bmod1].
+   z_{phase,i}=z_{max}-C[(z_{max}/C-u_i)\bmod1].
 
-The bins represent the window :math:`[T_{obs},T_{obs}+C/v_{obs})`, and retain
+The bins represent the window :math:`[T_L,T_R)`, and retain
 that observation event until the next user update. Different bunch references
 are allowed; all populations contributing to one periodic wake must use the
 same saved observation window and circumference. Source bin 0 is the earliest
 arrival. Lost particles have ID -1; stored z is never folded.
-An exact integer phase maps to :math:`z_{phase}=0`, the start of the window
+An exact seam phase maps to :math:`z_{phase}=z_{max}`, the start of the window
 and slice 0. The right-endpoint phase is periodically identified with the window
 start, rather than the last slice; no extra source passage is emitted. Slip diagnostics continue to use
 the continuous, unreduced phase :math:`u_i`.

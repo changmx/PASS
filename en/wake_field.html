@@ -102,6 +102,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">Intrabeam Scattering (IBS)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
 </ul>
 
@@ -591,13 +592,16 @@ history produces a startup transient; allow the response memory to fill.
 <code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code> is a prescribed repeated steady distribution, with
 image-count convergence, rather than evolving transient history.</p>
 <p>For evolving coasting profiles, use <code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase</span></code> (or
-<code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code>), <code class="docutils literal notranslate"><span class="pre">equal_length</span></code> and <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>.
-At an explicit Slicer update, <span class="math notranslate nohighlight">\(z_{phase}=-C[(-u)\bmod1]\)</span> with
+<code class="docutils literal notranslate"><span class="pre">Periodic=true</span></code>), <code class="docutils literal notranslate"><span class="pre">equal_length</span></code> and an explicit interval of length C,
+such as <code class="docutils literal notranslate"><span class="pre">[-C,0]</span></code> or <code class="docutils literal notranslate"><span class="pre">[-C/2,C/2]</span></code>.
+At an explicit Slicer update, <span class="math notranslate nohighlight">\(z_{phase}=z_{max}-C[(z_{max}/C-u)\bmod1]\)</span> with
 <span class="math notranslate nohighlight">\(u=v_{obs}(T_{obs}-t_i)/C\)</span>. The prescribed clock selects the common
 observation event and velocity; see <a class="reference internal" href="slicer.html"><span class="doc">Longitudinal slicing (Slicer)</span></a>. Bunch reference times and
 velocities may differ. All populations must share the saved observation window
 and circumference, and Slicer must be at the wake location.</p>
-<p>The bins cover <span class="math notranslate nohighlight">\([T_{obs},T_{obs}+C/v_{obs})\)</span>. An exact integer phase maps
+<p>The bins cover <span class="math notranslate nohighlight">\([T_{obs}-z_{max}/v_{obs},T_{obs}-z_{min}/v_{obs})\)</span>.
+Slicer obtains both endpoints from consecutive integrated-clock boundaries,
+so accelerating windows remain contiguous. An exact seam phase maps
 to the window start and slice 0, rather than its excluded right endpoint.
 A new physical source passage
 requires a user Slicer update; reusing a periodic snapshot retains its old

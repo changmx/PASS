@@ -15,6 +15,7 @@
    octupole
    multipole
    solenoid
+   electron_cooler
    kicker
    bump
    elseparator

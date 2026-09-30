@@ -101,6 +101,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ibs.html">束内散射（IBS）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
 </ul>
 
@@ -525,11 +526,14 @@ Slicer 表示全环电荷/电流及横向源矩分布，并不要求 RF 成束�
 零初始历史会产生启动瞬态，应等待响应记忆填满。<code class="docutils literal notranslate"><span class="pre">Boundary=&quot;periodic&quot;</span></code>
 表示预先给定的重复稳态分布，需要镜像数收敛，不等同于演化中的瞬态历史。</p>
 <p>演化非聚束束流使用 <code class="docutils literal notranslate"><span class="pre">Coordinate=arrival_phase``（或</span> <span class="pre">``Periodic=true</span></code>）、
-<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 及 <code class="docutils literal notranslate"><span class="pre">Explicit={&quot;z</span> <span class="pre">min&quot;:</span> <span class="pre">-C,</span> <span class="pre">&quot;z</span> <span class="pre">max&quot;:</span> <span class="pre">0}</span></code>。显式更新时
-<span class="math notranslate nohighlight">\(z_{phase}=-C[(-u)\bmod1]\)</span>，其中 <span class="math notranslate nohighlight">\(u=v_{obs}(T_{obs}-t_i)/C\)</span>。
+<code class="docutils literal notranslate"><span class="pre">equal_length</span></code> 及长度为 C 的显式区间，例如 <code class="docutils literal notranslate"><span class="pre">[-C,0]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">[-C/2,C/2]</span></code>。
+显式更新时 <span class="math notranslate nohighlight">\(z_{phase}=z_{max}-C[(z_{max}/C-u)\bmod1]\)</span>，
+其中 <span class="math notranslate nohighlight">\(u=v_{obs}(T_{obs}-t_i)/C\)</span>。
 规定时钟选择共同观测事件和速度，见 <a class="reference internal" href="slicer.html"><span class="doc">纵向切片（Slicer）</span></a>。各束团的参考时间、速度可以
 不同，但所有粒子群必须共享保存的观测窗口与周长，Slicer 应位于尾场位置。</p>
-<p>切片覆盖 <span class="math notranslate nohighlight">\([T_{obs},T_{obs}+C/v_{obs})\)</span>。恰好为整数圈的相位映射到窗口
+<p>切片覆盖 <span class="math notranslate nohighlight">\([T_{obs}-z_{max}/v_{obs},T_{obs}-z_{min}/v_{obs})\)</span>。
+Slicer 使用相邻的积分时钟边界确定两个端点，使加速窗口也保持连续。
+恰好位于周期接缝的相位映射到窗口
 起点和切片 0，而非被排除的右端点。每个新的物理源通过事件需要用户
 更新 Slicer；复用周期快照保留旧窗口，不自动重切片。演化历史使用
 <code class="docutils literal notranslate"><span class="pre">Boundary=&quot;causal_passages&quot;</span></code>。<code class="docutils literal notranslate"><span class="pre">time_fft</span></code> 支持变化且互不重叠的通过窗口，

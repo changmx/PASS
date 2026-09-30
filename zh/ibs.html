@@ -1,0 +1,643 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>束内散射（IBS） &mdash; PASS 0.4.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" />
+    <link rel="next" title="束束相互作用（BeamBeam）" href="beam_beam.html" />
+    <link rel="prev" title="电子云（ElectronCloud）" href="electron_cloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../en/ibs.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">束内散射（IBS）</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">方法选择</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python">Python 配置</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">输入参数</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">作用时间、坐标与密度</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id4">高斯匹配检查</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id5">增长率与碰撞约定</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id6">诊断与可复现性</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id7">参考文献</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">监视器与输出</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS 使用手册</a></li>
+      <li class="breadcrumb-item active">束内散射（IBS）</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ibs">
+<h1>束内散射（IBS）<a class="headerlink" href="#ibs" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">IBS</span></code> 描述每个束团内部的小角度库仑散射。统一的粒子种类接口支持电子、正电子、
+质子和离子，以及聚束和连续束纵向密度。三种方法分别用于局部高斯增长率诊断、
+高斯动力学跟踪和局部二体碰撞。粒子更新使用 NumPy 或 CuPy；解析积分和随机数
+生成在 CPU 上执行。</p>
+<p>数值实现依据所列物理论文独立编写，没有导入、内置或翻译 Xsuite 的 IBS 实现。</p>
+<section id="id1">
+<h2>方法选择<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">可用方法</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></th>
+<th class="head"><p>操作</p></th>
+<th class="head"><p>假设与限制</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code></p></td>
+<td><p>计算瞬时局部增长率，不踢粒子。</p></td>
+<td><p>高斯、非耦合 betatron 分布，包含水平和垂直色散；需要提供局部光学参数。测量协方差不匹配时报告 <code class="docutils literal notranslate"><span class="pre">model_moments_matched=False</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic</span></code></p></td>
+<td><p>使用独立构造的张量 Ornstein–Uhlenbeck（OU）闭合，使其高斯协方差导数匹配 BM 核。</p></td>
+<td><p>要求测量协方差与指定的非耦合光学及无纵向相关性的束流矩一致；可选用已保存的纵向切片对碰撞密度加权。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">binary</span></code></p></td>
+<td><p>在三维网格单元内随机配对粒子，散射相对动量。</p></td>
+<td><p>不假设高斯密度；需要足够的每格粒子数，并验证网格和相互作用时间间隔收敛；不接受光学参数。</p></td>
+</tr>
+</tbody>
+</table>
+<p>所有方法要求弱库仑/等离子体耦合，并使用用户明确提供的正库仑对数；该假设
+针对二体相遇，不是横向 betatron 耦合。跟踪要求束流静止系中的
+热运动较小；当前实现拒绝固有速度满足 <span class="math notranslate nohighlight">\(|\mathbf p_*|/(Mc)&gt;0.05\)</span> 的情形。
+参考运动可以是相对论性的，但这不是完整的相对论热碰撞算子。模型不包含大角度
+散射和 Touschek 损失。辐射阻尼、量子激发和电子冷却属于独立物理过程，IBS
+不会自动添加这些作用。</p>
+<p>高斯模型不描述任意横向耦合或强非高斯分布。二体碰撞方法为非高斯研究提供局部
+碰撞算子；具体应用的精度必须通过宏粒子数和网格收敛验证。此版本不包含
+Nagaitsev 后端。</p>
+<p>动力学方法匹配规定高斯模型的二阶矩，不是完整 Landau 碰撞算子，也不是文献中
+修改随机踢的逐式实现。协方差匹配是必要条件，但不能证明高斯性或验证强空间
+电荷工况。IBS 与空间电荷联合应用时，应针对具体束流独立验证收敛性与物理精度。</p>
+</section>
+<section id="python">
+<h2>Python 配置<a class="headerlink" href="#python" title="Link to this heading"></a></h2>
+<p>下列片段向已有 <code class="docutils literal notranslate"><span class="pre">sequence</span></code> 添加一个动力学作用点。注入和输运应按
+<a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a> 配置。局部光学必须与该位置的实际分布、输运一致，
+包括下文说明的色散约定。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_input</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">IBSConfig</span><span class="p">,</span> <span class="n">IBSConfiguration</span><span class="p">,</span> <span class="n">IBSItem</span><span class="p">,</span> <span class="n">IBSOpticsConfig</span>
+
+<span class="n">ibs</span> <span class="o">=</span> <span class="n">IBSConfig</span><span class="p">(</span>
+    <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">configurations</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"CoreIBS"</span><span class="p">:</span> <span class="n">IBSConfiguration</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">"kinetic"</span><span class="p">,</span> <span class="n">coulomb_log</span><span class="o">=</span><span class="mf">12.0</span><span class="p">,</span>
+            <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span> <span class="n">bunched</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"ibs_at_s10"</span><span class="p">,</span>
+    <span class="n">IBSItem</span><span class="p">(</span>
+        <span class="n">s</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="s2">"CoreIBS"</span><span class="p">,</span> <span class="n">interaction_length</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">optics</span><span class="o">=</span><span class="n">IBSOpticsConfig</span><span class="p">(</span><span class="n">beta_x</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">beta_y</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">dx</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">save_diagnostics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">generate_input</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">sequence</span><span class="p">,</span> <span class="s2">"beam0.json"</span><span class="p">,</span> <span class="n">intrabeam_scattering</span><span class="o">=</span><span class="n">ibs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log=12</span></code> 是输入示例，不是普适物理默认值。应针对束流和适用工况选择
+碰撞参数的上下限；PASS 不自动推断截断、屏蔽或强耦合修正。
+<code class="docutils literal notranslate"><span class="pre">coulomb_log_note</span></code> 可记录选取 <span class="math notranslate nohighlight">\(\ln\Lambda=\ln(b_{\max}/b_{\min})\)</span>
+时使用的物理截断方法、数值、单位与来源。该文字仅用于来源记录，不改变碰撞
+计算。碰撞网格属于数值密度分辨率选择，单元尺寸不决定物理库仑对数。</p>
+<p>只计算增长率时选择 <code class="docutils literal notranslate"><span class="pre">method=&quot;bjorken_mtingwa&quot;</span></code>，相互作用长度可以为零，仍可
+计算增长率。二体碰撞跟踪选择 <code class="docutils literal notranslate"><span class="pre">method=&quot;binary&quot;</span></code>，需要时设置
+<code class="docutils literal notranslate"><span class="pre">grid_shape=(nx,</span> <span class="pre">ny,</span> <span class="pre">nz)</span></code> 和可选的
+<code class="docutils literal notranslate"><span class="pre">grid_bounds=((xmin,</span> <span class="pre">ymin,</span> <span class="pre">zmin),</span> <span class="pre">(xmax,</span> <span class="pre">ymax,</span> <span class="pre">zmax))``（实验室坐标，单位</span> <span class="pre">m），</span>
+<span class="pre">并省略</span> <span class="pre">``optics</span></code>。<code class="docutils literal notranslate"><span class="pre">collision_steps</span></code> 将作用时间分为若干步，每步重新随机配对。
+配置名称区分大小写；加载器
+接受不区分大小写的 schema 字段名。</p>
+</section>
+<section id="id2">
+<h2>输入参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>顶层 JSON 配置块为 <code class="docutils literal notranslate"><span class="pre">Intrabeam</span> <span class="pre">scattering</span></code>。<code class="docutils literal notranslate"><span class="pre">IBSConfig</span></code> 包含
+<code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">Enabled``（严格布尔值，默认</span> <span class="pre">``False</span></code>）和
+<code class="docutils literal notranslate"><span class="pre">configurations</span></code> / <code class="docutils literal notranslate"><span class="pre">Configurations``（名称到</span> <span class="pre">``IBSConfiguration</span></code> 的映射）。
+关闭全局开关时忽略配置内容，并关闭其所有 IBS 命令。</p>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">IBSConfiguration</span></code></span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 23.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 名称</p></th>
+<th class="head"><p>JSON 字段</p></th>
+<th class="head"><p>默认值 / 类型</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;bjorken_mtingwa&quot;</span></code></p></td>
+<td><p>上述三种方法之一。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coulomb_log</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log</span></code></p></td>
+<td><p>必填浮点数</p></td>
+<td><p>有限且严格为正，无量纲。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">coulomb_log_note</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log</span> <span class="pre">note</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>；字符串或 null</p></td>
+<td><p>可选的物理截断方法和来源。提供时必须非空且不包含首尾空白；仅记录来源，不参与物理状态哈希。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">random_seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>；整数或 null</p></td>
+<td><p>非负严格整数提供可复现的初始化；<code class="docutils literal notranslate"><span class="pre">None</span></code> 使用新熵。拒绝布尔、浮点和数字字符串。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bunched</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunched</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code>；严格布尔值</p></td>
+<td><p>聚束密度，或沿周长分布的连续束密度。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>；名称或 null</p></td>
+<td><p>动力学方法可选用已执行 Slicer 的线密度加权；其他方法要求 null。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grid_shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(8,</span> <span class="pre">8,</span> <span class="pre">8)</span></code>；三个严格正整数</p></td>
+<td><p>二体碰撞沿 x、y、纵向的网格数；非默认值仅允许用于 binary 方法。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_bounds</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">bounds</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> 或两个三元组</p></td>
+<td><p>实验室 <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z_rel)</span></code> 米坐标中的二体碰撞网格下界和上界。各轴上界必须大于下界；粒子在范围外时报告错误。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collision_steps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">steps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code>；严格正整数</p></td>
+<td><p>二体碰撞物理作用时间的细分次数，每步重新随机配对。命令内位置保持不变；非默认值仅允许用于 binary。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">matching_tolerance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Matching</span> <span class="pre">tolerance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1</span></code>；(0, 0.25] 内浮点数</p></td>
+<td><p>下文定义的高斯无量纲协方差偏差上限。非默认值仅允许用于高斯方法；无法关闭动力学匹配检查。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_scattering</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">scattering</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.05</span></code>；(0, 0.05] 内浮点数</p></td>
+<td><p>动力学摩擦作用量上限；二体碰撞每个角度子步的半散射角正切方差上限。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_substeps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">substeps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1000</span></code>；严格正整数</p></td>
+<td><p>超出时报告错误，不静默截断碰撞强度。</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">IBSItem</span></code> sequence 命令</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 23.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 名称</p></th>
+<th class="head"><p>JSON 字段</p></th>
+<th class="head"><p>默认值 / 类型</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;IBS&quot;</span></code></p></td>
+<td><p>注册的命令名称。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code>；有限浮点数</p></td>
+<td><p>sequence 位置，单位 m。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>；严格整数或 null</p></td>
+<td><p>同位置的可选显式执行顺序，见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></td>
+<td><p>必填名称</p></td>
+<td><p>引用 <code class="docutils literal notranslate"><span class="pre">Intrabeam</span> <span class="pre">scattering.Configurations</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interaction_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>必填非负浮点数</p></td>
+<td><p>正物理作用长度；此命令不会执行粒子输运。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">optics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Optics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> 或 <code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code></p></td>
+<td><p>高斯方法必填；二体碰撞不接受该参数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code>；严格布尔值</p></td>
+<td><p>在全局开关开启时启用此作用点。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">save_diagnostics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">diagnostics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code>；严格布尔值</p></td>
+<td><p>在 <code class="docutils literal notranslate"><span class="pre">save_turns</span></code> 选定的圈保存诊断 JSON。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code>；严格整数选择列表</p></td>
+<td><p>启用保存时，空列表表示每次执行都保存；非空使用 <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> 或 <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code> 行选择从零编号、包含结束圈的范围。</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code> 必须提供正且有限的 <code class="docutils literal notranslate"><span class="pre">beta_x</span></code> / <code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">x</span> <span class="pre">(m)</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">beta_y</span></code> / <code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">y</span> <span class="pre">(m)</span></code>。其余有限浮点数均默认为零：
+<code class="docutils literal notranslate"><span class="pre">alpha_x</span></code> / <code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">alpha_y</span></code> / <code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">y</span></code>、<code class="docutils literal notranslate"><span class="pre">dx</span></code> / <code class="docutils literal notranslate"><span class="pre">Dx</span> <span class="pre">(m)</span></code>、
+<code class="docutils literal notranslate"><span class="pre">dpx</span></code> / <code class="docutils literal notranslate"><span class="pre">Dpx</span></code>、<code class="docutils literal notranslate"><span class="pre">dy</span></code> / <code class="docutils literal notranslate"><span class="pre">Dy</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">dpy</span></code> / <code class="docutils literal notranslate"><span class="pre">Dpy</span></code>。
+色散导数对应 PASS 的归一化机械动量，不是精确横向斜率；高斯近似只在近轴阶次
+下等同二者。此版本不会从 Twiss 命令自动推断 IBS 光学；用户应明确提供一致的
+局部光学参数。</p>
+<p>PASS 要求四个色散字段均为对 <span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span> 的导数。
+MAD-X 原生 <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 表给出的则是对 <code class="docutils literal notranslate"><span class="pre">PT</span></code> 的导数；参考粒子附近满足</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{PT}=\frac{E-E_0}{P_0c}\simeq\beta_0\delta,
+\qquad D_{a,\delta}=\beta_0 D_{a,\mathrm{PT}},
+\qquad a\in\{x,p_x,y,p_y\}.\]</div>
+<p>因此将 MAD-X 原生 <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> 的 <code class="docutils literal notranslate"><span class="pre">DX</span></code>、<code class="docutils literal notranslate"><span class="pre">DPX</span></code>、<code class="docutils literal notranslate"><span class="pre">DY</span></code>、<code class="docutils literal notranslate"><span class="pre">DPY</span></code> 用于此处前，
+应乘以 <span class="math notranslate nohighlight">\(\beta_0\)</span>；参见
+<a class="reference external" href="https://raw.githubusercontent.com/MethodicalAcceleratorDesign/MAD-X/master/doc/usrguide/Introduction/tables.html#linear">MAD-X 手册的色散定义</a>。
+MAD-X <code class="docutils literal notranslate"><span class="pre">IBS</span></code> 表中的色散已经转换为动量偏差约定，不能再次乘以 beta。
+MAD-X 5.09.03 的公开 API 检查还表明，该表使用中点位置以及相邻 TWISS 值的
+平均值，因此不能只按元件名称将这些行替换为端点光学参数。</p>
+<p><code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig.from_twiss(twiss,</span> <span class="pre">endpoint=&quot;exit&quot;,</span> <span class="pre">dy=0.0,</span> <span class="pre">dpy=0.0)</span></code>
+可从 PASS <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code> 或其完整 JSON 映射构造这些显式值。
+<code class="docutils literal notranslate"><span class="pre">endpoint=&quot;exit&quot;</span></code> 选择当前 beta、alpha、Dx 和 Dpx；
+<code class="docutils literal notranslate"><span class="pre">endpoint=&quot;entrance&quot;</span></code> 选择对应的 previous 值。结果独立执行
+<code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code> 校验。此辅助函数不接受任意 MAD-X 表行，不推断缺失的
+必填 Twiss 数据，不选择 IBS sequence 位置，也不改变运行时输运。
+<code class="docutils literal notranslate"><span class="pre">TwissItem</span></code> 不包含垂直色散，因此非零 <code class="docutils literal notranslate"><span class="pre">dy</span></code>、<code class="docutils literal notranslate"><span class="pre">dpy</span></code> 需要显式提供。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># twiss_item is the PASS Twiss transport map associated with this location.</span>
+<span class="n">optics</span> <span class="o">=</span> <span class="n">IBSOpticsConfig</span><span class="o">.</span><span class="n">from_twiss</span><span class="p">(</span><span class="n">twiss_item</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="s2">"exit"</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dpy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id3">
+<h2>作用时间、坐标与密度<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>每个命令的实验室作用时间和束流静止系作用时间分别为</p>
+<div class="math notranslate nohighlight">
+\[\Delta t=\frac{L_{\mathrm{IBS}}}{\beta_0 c},
+\qquad \Delta t_* = \frac{\Delta t}{\gamma_0}.\]</div>
+<p>每次执行施加完整的规定作用量。环上分布式模型的各相互作用长度应代表相应格点
+路段，不应在每个节点都使用整圈周长。每次调用重新计算系数；动力学跟踪还会
+在每个自适应子步重新计算。IBS 是独立的正时间碰撞算子，不能把积分器的负子步
+作为碰撞作用时间。</p>
+<p>输入校验按束流累加已启用动力学和二体碰撞命令的非负相互作用长度，包括零长度
+节点。存在此类命令且总长度在
+相对容差 <span class="math notranslate nohighlight">\(10^{-9}\)</span> 下不同于周长，报告 <code class="docutils literal notranslate"><span class="pre">ibs.exposure_length</span></code> 警告。
+只做诊断的 BM 节点及关闭的命令不参与求和。局部环段研究可以有意触发该警告；
+它不会修改或拒绝规定的作用量。总长度相等既不能证明空间覆盖正确，也不能在
+参考 beta 变化时证明总碰撞时间正确。</p>
+<p>IBS 保持 <code class="docutils literal notranslate"><span class="pre">x</span></code>、<code class="docutils literal notranslate"><span class="pre">y</span></code>、连续 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>、参考能量和 <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> 不变，踢只更新
+<code class="docutils literal notranslate"><span class="pre">px</span></code>、<code class="docutils literal notranslate"><span class="pre">py</span></code> 和总相对动量偏差 <code class="docutils literal notranslate"><span class="pre">dp</span></code>。存活宏粒子数乘以束团的宏粒子权重得到
+真实粒子数。离子的经典半径使用完整离子质量 <span class="math notranslate nohighlight">\(M\)</span> 和电荷 <span class="math notranslate nohighlight">\(q=Ze\)</span>：</p>
+<div class="math notranslate nohighlight">
+\[r_0=\frac{q^2}{4\pi\epsilon_0 M c^2}.\]</div>
+<p>高斯束流矩在扣除质心与指定色散之后测量。聚束模型使用连续 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> 的 RMS。
+连续束高斯模型将 <span class="math notranslate nohighlight">\(\sigma_z\)</span> 替换为 <span class="math notranslate nohighlight">\(C/(2\sqrt{\pi})\)</span>，对应周长 C
+上的均匀线密度。</p>
+<p>动力学跟踪不指定 <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code> 时使用高斯空间平均系数。指定时应先执行命名
+<a class="reference internal" href="slicer.html"><span class="doc">纵向切片（Slicer）</span></a>。聚束使用 <code class="docutils literal notranslate"><span class="pre">Purpose=&quot;general&quot;</span></code> 和 <code class="docutils literal notranslate"><span class="pre">Coordinate=&quot;z_rel&quot;</span></code>；
+连续束还允许 <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code>。严格保留已保存的成员关系和切片宽度。重组会使其
+失效，需要再次显式执行 Slicer。所有存活粒子都必须具有有效的已保存切片编号。
+加权系数为测得的归一化线密度除以聚束的 <span class="math notranslate nohighlight">\(1/(2\sqrt{\pi}\sigma_z)\)</span> 或
+连续束的 <span class="math notranslate nohighlight">\(1/C\)</span>。该加权不会将横向高斯闭合变成完整的局部非高斯模型。</p>
+<p>二体碰撞使用冻结局部快照近似 <span class="math notranslate nohighlight">\(z_* = \gamma_0 z_{\mathrm{rel}}\)</span>，不会精确
+重建等时粒子事件。即使分布形状为非高斯，此适配仍要求接近参考运动的近轴分布
+和较窄的相对动量展宽；参考 beta 很小时，仅满足热速度上限并不能保证该近似。
+连续束只在临时
+碰撞数组中折叠纵向位置，绝不折叠保存的 <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>。网格覆盖粒子范围；连续束的
+纵向范围使用整圈周长。显式 <code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">bounds</span> <span class="pre">(m)</span></code> 替代自动范围，并且必须覆盖
+所有存活粒子，不会静默排除束晕。连续束的纵向边界必须在相对容差
+<span class="math notranslate nohighlight">\(10^{-12}\)</span> 内等于实验室区间 <span class="math notranslate nohighlight">\([-C/2,C/2]\)</span>；接受的舍入误差会被
+归一到这两个精确端点。命令将纵向边界乘以 <span class="math notranslate nohighlight">\(\gamma_0\)</span>，转换为静止系
+米坐标。固定边界有助于区分网格分辨率效应和样本极值变化。
+空单元或只有一个粒子的单元无法发生碰撞。诊断会报告
+网格占据与未配对粒子；若过细网格的大多数单元只有单个粒子，就没有充分解析
+碰撞动力学。</p>
+<p>连续束 IBS 要求 <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number=1</span></code>，由单个束团分组代表整圈粒子数。
+聚束 IBS 分别处理各束团，假设它们的物理分布互不重叠；不描述重叠束团分组
+之间的碰撞。</p>
+</section>
+<section id="id4">
+<h2>高斯匹配检查<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>每次高斯 IBS 命令求值都先对测量坐标去质心，并定义扣除色散的坐标
+<span class="math notranslate nohighlight">\(x_\beta=x-D_x\delta\)</span>、<span class="math notranslate nohighlight">\(p_{x\beta}=p_x-D_{p_x}\delta\)</span>，
+y 平面同理。使用测得的本征发射度和指定光学构造</p>
+<div class="math notranslate nohighlight">
+\[u_x=\frac{x_\beta}{\sqrt{\varepsilon_x\beta_x}},\qquad
+u_{p_x}=\frac{\beta_xp_{x\beta}+\alpha_xx_\beta}
+                {\sqrt{\varepsilon_x\beta_x}},\qquad
+u_\delta=\frac{\delta}{\sigma_\delta},\qquad
+u_z=\frac{z-\langle z\rangle}{\sigma_z}.\]</div>
+<p>连续束的向量顺序为 <span class="math notranslate nohighlight">\((u_x,u_{p_x},u_y,u_{p_y},u_\delta)\)</span>；聚束在末尾
+增加 <span class="math notranslate nohighlight">\(u_z\)</span>。规定的匹配模型满足</p>
+<div class="math notranslate nohighlight">
+\[C_{\mathrm{norm}}=\langle\mathbf u\mathbf u^T\rangle=I,
+\qquad e_{\mathrm{match}}=
+\max_{i,j}|(C_{\mathrm{norm}}-I)_{ij}|.\]</div>
+<p>此检查能够发现光学不匹配、不支持的 betatron 相关性，以及聚束中涉及 z 的
+相关性，包括动量啁啾；不会检测正态性、束晕或高阶矩。默认 0.1 是协方差检查
+阈值，不代表增长率误差保证在 10% 以内。在受控高斯包络扰动校准中，协方差
+偏差 0.01、0.02、0.05、0.09 分别产生 2.21%、4.33%、10.26%、17.22% 的
+增长率向量相对误差。这些是特定算例的校准结果，不是普适误差上界；耦合情形
+还可能在投影增长率中隐藏张量误差。</p>
+<p>定量计算可以从 0.01–0.02 的容差起步，前提是宏粒子数充分，并验证抽样和
+阈值收敛。有限样本的协方差噪声本身可能触发拒绝；噪声占主导时应增加粒子数，
+不能靠放宽阈值掩盖物理不匹配。持续存在的不匹配或耦合应改用二体碰撞模型，
+并独立验证其网格、粒子数和时间步收敛。</p>
+<p><code class="docutils literal notranslate"><span class="pre">kinetic</span></code> 在每个子步前以及最终暂存结果上检查匹配；失败时拒绝该命令，
+不提交粒子或随机流更新。<code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code> 保留增长率诊断，并报告匹配情况
+和 <code class="docutils literal notranslate"><span class="pre">model_moments_matched</span></code>。若后者为 false，这些增长率仅描述规定的高斯模型，不能
+当作测得实际分布的物理增长率。
+独立系数 API 只接收束流参数和光学，不能检查粒子或执行这一匹配检查。</p>
+</section>
+<section id="id5">
+<h2>增长率与碰撞约定<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>独立 API 位于 <code class="docutils literal notranslate"><span class="pre">PASS.commands.ibs</span></code>，提供 <code class="docutils literal notranslate"><span class="pre">IBSBeamParameters</span></code>、
+<code class="docutils literal notranslate"><span class="pre">IBSOptics</span></code>、<code class="docutils literal notranslate"><span class="pre">compute_local_coefficients``（别名</span> <span class="pre">``compute_bjorken_mtingwa</span></code>）
+和 <code class="docutils literal notranslate"><span class="pre">ring_average_growth_rates</span></code>，不依赖 Simulation 或粒子池。
+全环平均要求显式非负路段长度或驻留时间权重，不会自动补充闭合格点路段。</p>
+<p>高斯矩阵构造使用动量顺序
+<span class="math notranslate nohighlight">\((P_x/P_0,P_y/P_0,\delta/\gamma_0)\)</span>，相应单位基向量为
+<span class="math notranslate nohighlight">\(\mathbf e_x,\mathbf e_y,\mathbf e_z\)</span>。对于横向平面
+<span class="math notranslate nohighlight">\(u\in\{x,y\}\)</span>，定义</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\phi_u=D_{p_u}+\frac{\alpha_u D_u}{\beta_u},
+\qquad
+L_u=\frac{\beta_u}{\varepsilon_u}
+    (\mathbf e_u-\gamma_0\phi_u\mathbf e_z)
+    (\mathbf e_u-\gamma_0\phi_u\mathbf e_z)^T
+    +\frac{\gamma_0^2D_u^2}{\beta_u\varepsilon_u}
+     \mathbf e_z\mathbf e_z^T,\\L_z=\frac{\gamma_0^2}{\sigma_\delta^2}\mathbf e_z\mathbf e_z^T,
+\qquad L=L_x+L_y+L_z,\qquad \Sigma=L^{-1}.\end{aligned}\end{align} \]</div>
+<p>这里 <span class="math notranslate nohighlight">\(\Sigma\)</span> 是给定横向位置时的条件热动量协方差，不是整个束团的
+投影动量协方差。独立数值求解的 Bjorken–Mtingwa 积分和归一化系数为</p>
+<div class="math notranslate nohighlight">
+\[J=\int_0^\infty
+   \frac{\sqrt{\lambda}\,(L+\lambda I)^{-1}}
+        {\sqrt{\det(L+\lambda I)}}\,d\lambda,
+\qquad
+a=\frac{cNr_0^2\ln\Lambda}
+       {8\pi\beta_0^3\gamma_0^4\varepsilon_x\varepsilon_y
+        \sigma_z\sigma_\delta}.\]</div>
+<p>PASS 使用的摩擦、扩散和物理协方差导数为</p>
+<div class="math notranslate nohighlight">
+\[F=2aJL,\qquad D=2a[\operatorname{tr}(J)I-J],
+\qquad K=D-F\Sigma-\Sigma F^T
+        =2a[\operatorname{tr}(J)I-3J].\]</div>
+<p>通常的 BM 核为 <span class="math notranslate nohighlight">\(K/2\)</span>。将增长率积分转为粒子扩散过程时必须保留这个
+二倍因子。实际条件协方差等于匹配模型 <span class="math notranslate nohighlight">\(\Sigma\)</span> 时，
+迹 <span class="math notranslate nohighlight">\(\operatorname{tr}(K)=0\)</span> 表示主导阶热能守恒。协方差不匹配时，
+实际 OU 协方差导数的迹可以不为零。
+局部增长率为</p>
+<div class="math notranslate nohighlight">
+\[G_x=\tfrac12\operatorname{tr}(L_xK),\qquad
+G_y=\tfrac12\operatorname{tr}(L_yK),\qquad
+G_\delta=\frac{\gamma_0^2K_{zz}}{2\sigma_\delta^2}.\]</div>
+<p>增长率单位为实验室时间的每秒，定义为</p>
+<div class="math notranslate nohighlight">
+\[G_x=\frac{d\ln\varepsilon_x}{dt},\qquad
+G_y=\frac{d\ln\varepsilon_y}{dt},\qquad
+G_\delta=\frac{d\ln\sigma_\delta}{dt},\qquad
+G_{\delta^2}=2G_\delta.\]</div>
+<p>横向振幅增长率为 <span class="math notranslate nohighlight">\(G_x/2\)</span> 与 <span class="math notranslate nohighlight">\(G_y/2\)</span>。纵向增长率描述瞬时动量踢，
+没有进行同步振荡相位平均。后续 RF 和输运决定该踢如何在束长和动量展宽之间
+分配。与其他程序报告的 IBS 时间比较前，必须统一这些定义。</p>
+<p>动力学模型在 <span class="math notranslate nohighlight">\((P_x/P_0,P_y/P_0,\delta/\gamma_0)\)</span> 中构造去质心的条件
+热动量残差，并求解</p>
+<div class="math notranslate nohighlight">
+\[d\mathbf w=-F\mathbf w\,dt+B\,d\mathbf W,
+\qquad D=BB^T,\qquad
+\frac{d\Sigma}{dt}=D-F\Sigma-\Sigma F^T.\]</div>
+<p>条件均值包含横向位置相关性和色散。扩散为半正定，但较热自由度的净增长率可以
+为负。实现保留摩擦和非对角张量项。冻结系数的 Ornstein–Uhlenbeck 子步采用
+精确解，自适应正子步更新束流矩；有限样本质心修正保持平均归一化动量。
+当分布的条件协方差与模型匹配时，束流静止系主导阶热能守恒成立于瞬时高斯
+碰撞期望；有限时间步和有限粒子样本会引入误差，需要
+进行收敛验证。此闭合不强制逐对能量守恒。</p>
+<p>二体碰撞方法采用等权重的局部随机配对与 Takizuka–Abe 小角度散射定律。
+约化质量 <span class="math notranslate nohighlight">\(\mu=M/2\)</span>、相对速度 g 下，半散射角正切的方差为</p>
+<div class="math notranslate nohighlight">
+\[\left\langle\tan^2(\theta/2)\right\rangle
+=\frac{q^4 n\ln\Lambda\,\Delta t_*}
+       {8\pi\epsilon_0^2\mu^2 g^3}.\]</div>
+<p>在粒子对的零总动量系中，使用均匀方位角旋转相对动量，逐对四动量在舍入精度
+内守恒。散射频率仍使用非相对论热运动近似。奇数粒子单元随机选一个粒子不参与
+配对，并在期望意义下补偿配对作用量。<code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">steps</span></code> 细分物理作用时间，
+每次细分重新随机配对，位置保持固定。内部角度子步细分已选粒子对的旋转，不会
+重新配对。应同时验证物理碰撞步数和外部命令时间间隔的收敛；两种细分都不会
+在 IBS 内添加输运。</p>
+</section>
+<section id="id6">
+<h2>诊断与可复现性<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">IBS.last_diagnostics</span></code> 提供最近一次执行的诊断。启用保存时，
+<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns=[]</span></code> 表示每次执行都保存。例如，
+<code class="docutils literal notranslate"><span class="pre">save_turns=[[0],</span> <span class="pre">[10,</span> <span class="pre">50,</span> <span class="pre">10]]</span></code> 选择第 0、10、20、30、40、50 圈；
+<code class="docutils literal notranslate"><span class="pre">save_turns=[10,</span> <span class="pre">50,</span> <span class="pre">10]</span></code> 是单个范围的简写。圈数从零编号，结束圈包含在内。
+<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">diagnostics=False</span></code> 无论圈选择如何都不写文件。保存间隔不改变碰撞
+作用时间、系数更新、随机抽样或 <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>。JSON 文件位于
+本次运行输出目录下的
+<code class="docutils literal notranslate"><span class="pre">ibs/&lt;唯一目录&gt;/beam&lt;id&gt;_&lt;命令&gt;/turn_&lt;圈数&gt;_call_&lt;次数&gt;_&lt;唯一后缀&gt;.json</span></code>。
+实际求值的高斯记录包含测得束流参数和增长率。BM 报告 <code class="docutils literal notranslate"><span class="pre">matching</span></code> 与 <code class="docutils literal notranslate"><span class="pre">model_moments_matched</span></code>；
+动力学方法报告 <code class="docutils literal notranslate"><span class="pre">initial_matching</span></code>、<code class="docutils literal notranslate"><span class="pre">final_matching</span></code> 和 <code class="docutils literal notranslate"><span class="pre">max_matching_error</span></code>；
+后者包含每个子步前及最终检查的最大偏差。
+匹配记录包含 <code class="docutils literal notranslate"><span class="pre">dimension</span></code>、<code class="docutils literal notranslate"><span class="pre">normalized_covariance</span></code>、<code class="docutils literal notranslate"><span class="pre">max_abs_error</span></code>、<code class="docutils literal notranslate"><span class="pre">tolerance</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">matched</span></code>。</p>
+<p>每份诊断的顶层包含 <code class="docutils literal notranslate"><span class="pre">interaction_length_m</span></code> 和 <code class="docutils literal notranslate"><span class="pre">coulomb_log_note</span></code>。
+每个束团记录包含 <code class="docutils literal notranslate"><span class="pre">dt_lab_s</span></code> 和 <code class="docutils literal notranslate"><span class="pre">interaction_length_over_circumference</span></code>；
+仅在周长非正时后者为 null。这些量公开规定的局部作用量，不会推断格点覆盖，
+也不会证明库仑对数物理截断的正确性。</p>
+<p>实际求值的二体碰撞记录包含 <code class="docutils literal notranslate"><span class="pre">grid_shape</span></code>、<code class="docutils literal notranslate"><span class="pre">grid_bounds_m``（静止系米坐标）、</span>
+<span class="pre">``n_grid_cells</span></code>、<code class="docutils literal notranslate"><span class="pre">n_empty_cells</span></code>、<code class="docutils literal notranslate"><span class="pre">singleton_fraction</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">occupancy_histogram</span></code> 中的 <code class="docutils literal notranslate"><span class="pre">{&quot;particles&quot;:</span> <span class="pre">count,</span> <span class="pre">&quot;cells&quot;:</span> <span class="pre">count}</span></code> 条目，
+包括空单元。<code class="docutils literal notranslate"><span class="pre">n_pairs</span></code> 为每个物理步可配对的粒子对数；<code class="docutils literal notranslate"><span class="pre">n_pairings</span></code> 为已完成
+<code class="docutils literal notranslate"><span class="pre">n_collision_steps</span></code> 的配对总次数。<code class="docutils literal notranslate"><span class="pre">singleton_fraction</span></code> 是单粒子单元中的
+粒子数占总粒子数的比例；<code class="docutils literal notranslate"><span class="pre">n_unpaired_particles</span></code> 为每个物理步未配对的数量，
+不是跨步去重后的粒子数。<code class="docutils literal notranslate"><span class="pre">n_substeps</span></code> 为最大角度细分数，
+<code class="docutils literal notranslate"><span class="pre">max_scattering</span></code> 为每个物理碰撞步在角度细分前的最大方差，因此该诊断值可以
+超过输入规定的每子步上限。<code class="docutils literal notranslate"><span class="pre">n_zero_relative_pairs</span></code> 累计
+相对运动为零的粒子对数。<code class="docutils literal notranslate"><span class="pre">proper_speed_max_over_c</span></code> 为初始状态与每个物理
+碰撞步完成后的最大固有速度除以 c。诊断说明所选模型的结果，不能替代时间步、
+网格和粒子数收敛检查。</p>
+<p>随机流属于特定束流、命令和束团。固定种子在相同执行条件下提供可复现初始化。
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> 与 <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> 保存和恢复 IBS 随机流及执行计数。
+这是 IBS 组件检查点，不是完整模拟重启：粒子、参考状态、圈数、切片及其他集体
+效应状态必须匹配。CPU/GPU 的浮点计算可能产生不同轨迹，应验证后端间的统计
+一致性。
+解析较小 IBS 动量增量时建议使用 <code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Precision=&quot;float64&quot;</span></code>；float32
+存储可能将小增量舍入为零。
+诊断开关、保存圈选择及库仑对数备注不参与物理配置哈希，因此修改这些输出或
+来源记录设置，不会使其他条件仍匹配的 IBS 组件检查点失效。</p>
+</section>
+<section id="id7">
+<h2>参考文献<a class="headerlink" href="#id7" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>J. D. Bjorken and S. K. Mtingwa, <em>Intrabeam Scattering</em>, Particle Accelerators
+<strong>13</strong> (1983), 115–143：高斯 IBS 理论。</p></li>
+<li><p>M. Zampetakis et al., <a class="reference external" href="https://arxiv.org/abs/2310.03504">Interplay of space charge and intrabeam scattering in
+the LHC ion injector chain</a>：高斯矩阵
+系数及摩擦/扩散背景。PASS 使用独立的完整张量闭合，瞬时增长率约定见上文。</p></li>
+<li><p>T. Takizuka and H. Abe, <a class="reference external" href="https://doi.org/10.1016/0021-9991(77)90099-7">A binary collision model for plasma simulation with
+a particle code</a>, Journal of
+Computational Physics <strong>25</strong> (1977), 205–219：随机二体碰撞定律。</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="electron_cloud.html" class="btn btn-neutral float-left" title="电子云（ElectronCloud）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="beam_beam.html" class="btn btn-neutral float-right" title="束束相互作用（BeamBeam）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

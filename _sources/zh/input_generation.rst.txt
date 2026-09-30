@@ -244,6 +244,12 @@ MainConfig（全局参数）
 和嵌套 ``ElectronCloudBuildUpConfiguration``；耦合模式包含云自场和横向束流响应。
 物理约定、参数与限制见 :doc:`electron_cloud`。
 
+束内散射使用独立顶层 ``Intrabeam scattering`` 配置块。
+调用 ``generate_input`` 时传入 ``intrabeam_scattering=IBSConfig(...)``，
+通过 ``IBSItem`` 引用命名模型。高斯增长率诊断和动力学踢要求显式局部
+``IBSOpticsConfig``；二体碰撞使用局部三维网格。
+增长率、作用时间和模型限制见 :doc:`ibs`。
+
 .. _zh-reference-clock:
 
 规定的机器时钟与初始化
@@ -644,6 +650,7 @@ Python 字段 ``num_electron`` 沿用历史命名，实际表示带符号电荷�
    │   ├── monitors.py     StatMonitor / DistMonitor / PhaseAdvanceMonitor
    │   ├── space_charge.py SpaceChargeConfig + SpaceChargeResourceConfig + SpaceCharge
    │   ├── electron_cloud.py ElectronCloudConfig + ElectronCloudConfiguration + ElectronCloudItem
+   │   ├── ibs.py      IBSConfig + IBSConfiguration + IBSOpticsConfig + IBSItem
    │   └── sequence.py     Sequence：有序容器 + 自动排序
    ├── madx.py        MADX TFS → schema 对象（element / twiss / error）
    ├── smooth.py      解析平滑近似 twiss
@@ -677,4 +684,4 @@ Python 字段 ``num_electron`` 沿用历史命名，实际表示带符号电荷�
 API 入口
 ------------
 
-``PASS.para.api`` 提供 ``generate_input``、``build_sequence``、``generate_from_tfs`` 和 ``load_input``。``load_input(path)`` 返回 ``(MainConfig, raw_sequence_dict)``，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud 配置块；返回前会校验电子云配置及其引用。编辑现有完整文件时应单独保留这些配置块。
+``PASS.para.api`` 提供 ``generate_input``、``build_sequence``、``generate_from_tfs`` 和 ``load_input``。``load_input(path)`` 返回 ``(MainConfig, raw_sequence_dict)``，不会重建带类型的命令对象，也不返回顶层 Space charge/Wake field/Electron cloud/Intrabeam scattering 配置块；返回前会校验电子云和 IBS 配置及其引用。编辑现有完整文件时应单独保留这些配置块。

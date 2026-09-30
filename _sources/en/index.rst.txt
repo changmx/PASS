@@ -39,6 +39,7 @@ purpose, configuration, physical model, and limits in one place.
    field_solver
    wake_field
    electron_cloud
+   ibs
    beam_beam
 
 .. toctree::

@@ -1,0 +1,582 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElectronCooler（电子冷却） &mdash; PASS 0.4.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../../genindex.html" />
+    <link rel="search" title="搜索" href="../../search.html" />
+    <link rel="next" title="快脉冲偏转磁铁（Kicker）" href="kicker.html" />
+    <link rel="prev" title="螺线管（Solenoid）" href="solenoid.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../../en/element/electron_cooler.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="error.html">元件误差</a></li>
+<li class="toctree-l2"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dipole.html">弯转磁铁（Dipole / SBend）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole.html">四极铁（Quadrupole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sextupole.html">六极铁（Sextupole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="octupole.html">八极铁（Octupole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multipole.html">多极铁（Multipole）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solenoid.html">螺线管（Solenoid）</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ElectronCooler（电子冷却）</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">碰撞模型</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python">Python 示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">元件接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">电子库接口</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">碰撞方程</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">输运、时钟与平滑场</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ibs">诊断、恢复与 IBS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">参考资料</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="kicker.html">快脉冲偏转磁铁（Kicker）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bump.html">凸轨磁铁（Bump）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elseparator.html">静电偏转器（ElSeparator）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exciter.html">激励器（Exciter）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rfcavity.html">射频腔（RFCavity）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#zh-element-integration-precision">积分计算精度</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">束内散射（IBS）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">监视器与输出</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 使用手册</a></li>
+          <li class="breadcrumb-item"><a href="index.html">元件（Element）</a></li>
+      <li class="breadcrumb-item active">ElectronCooler（电子冷却）</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="electroncooler">
+<h1>ElectronCooler（电子冷却）<a class="headerlink" href="#electroncooler" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">ElectronCooler</span></code> 在有限长度冷却段内输运离子，并计算离子与给定电子库之间的
+非相干碰撞。电子束支持直流和高斯束团模式，横向密度可选均匀圆形或高斯分布。
+NumPy、CuPy 粒子数组使用相同物理模型。<code class="docutils literal notranslate"><span class="pre">ElectronBeamConfig</span></code> 和
+<code class="docutils literal notranslate"><span class="pre">ElectronCoolerItem</span></code> 由 <code class="docutils literal notranslate"><span class="pre">PASS.para.schema</span></code>、<code class="docutils literal notranslate"><span class="pre">PASS.para.api</span></code> 导出，
+无需新增顶层命名配置。</p>
+<p>电子库不会响应离子束而演化。本元件不模拟阴极发射、自洽电子光学、集体屏蔽动力学、
+复合、相干电子冷却或电子库耗竭。</p>
+<section id="id1">
+<h2>碰撞模型<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 33.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">Model</span></code></p></th>
+<th class="head"><p>功能</p></th>
+<th class="head"><p>假设与限制</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code></p></td>
+<td><p>非磁化高斯 Landau 摩擦和动量扩散。</p></td>
+<td><p>支持任意对称正定 3×3 局部电子速度协方差。名称指速度分布，与空间密度
+形状无关。即使设置螺线管场，碰撞算子也不包含电子回旋。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parkhomchuk</span></code></p></td>
+<td><p>经验磁化摩擦。</p></td>
+<td><p>要求磁场非零、电子轴倾角为零且 <code class="docutils literal notranslate"><span class="pre">Diffusion=False</span></code>。适用于经过标定的摩擦力、冷却率研究，
+不提供平衡扩散定律。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">magnetized_collision</span></code></p></td>
+<td><p>有限作用窗磁化响应摩擦与扩散。</p></td>
+<td><p>弱响应、弱偏转、局部均匀且回旋对称电子库的数值参考模型。要求显式冲量参数
+截断、正轴向磁场、电子轴倾角为零、两个横向热方差相等且交叉协方差为零。</p></td>
+</tr>
+</tbody>
+</table>
+<p>磁化响应后端不是覆盖高密度实际冷却器全部工况的通用模型。超出适用域或积分不收敛
+时明确报错，不静默切换公式。其约束包括 <span class="math notranslate nohighlight">\(\omega_pT_*\leq0.3\)</span>、
+<span class="math notranslate nohighlight">\(\omega_iT_*\leq0.1\)</span> 和不大于 0.1 的紫外截断偏转度量。
+<span class="math notranslate nohighlight">\(T_*\)</span> 是整段物理作用时间，<span class="math notranslate nohighlight">\(\omega_p\)</span> 是电子等离子体频率，
+<span class="math notranslate nohighlight">\(\omega_i=|Z|eB/M\)</span> 是离子回旋频率。这些有限窗系数作为局部 Markov
+踢作用：离子动量和局部电子库在该物理窗口内必须变化很小；程序不求解相邻踢之间
+全部时间相关性。系数描述与初始无关联、局部均匀的新电子库之间的一次有限作用，
+包含瞬态极化；不声称有限窗 Maxwell 细致平衡，也不代表一般屏蔽等离子体平衡。</p>
+<p>最大电子热 RMS 速度、实际遇到的局部平均剪切速度以及参与碰撞的离子相对电子速度
+均不得超过 <span class="math notranslate nohighlight">\(0.05c\)</span>。实验室系参考运动可相对论化，但热碰撞模型仍为非相对论。
+高斯 RMS 检查用于控制近似适用域，不截断高斯分布的数学尾部。</p>
+</section>
+<section id="python">
+<h2>Python 示例<a class="headerlink" href="#python" title="Link to this heading"></a></h2>
+<p>将下面元件加入含 Injection 和相邻束线输运的序列。电子能量独立于离子参考能量，
+不会跟随离子质心自动变化。速度匹配要求
+<span class="math notranslate nohighlight">\(E_{k,e}=(\gamma_i-1)m_ec^2\)</span>。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ElectronBeamConfig</span><span class="p">,</span> <span class="n">ElectronCoolerItem</span>
+
+<span class="n">electrons</span> <span class="o">=</span> <span class="n">ElectronBeamConfig</span><span class="p">(</span>
+    <span class="n">kinetic_energy</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span> <span class="n">profile</span><span class="o">=</span><span class="s2">"uniform_round"</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">"dc"</span><span class="p">,</span> <span class="n">current</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">temperature_transverse</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">temperature_longitudinal</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"cooler"</span><span class="p">,</span>
+    <span class="n">ElectronCoolerItem</span><span class="p">(</span>
+        <span class="n">s</span><span class="o">=</span><span class="mf">12.0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">electron_beam</span><span class="o">=</span><span class="n">electrons</span><span class="p">,</span>
+        <span class="n">model</span><span class="o">=</span><span class="s2">"gaussian"</span><span class="p">,</span> <span class="n">diffusion</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">coulomb_log</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">num_slices</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span> <span class="n">save_diagnostics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">save_turns</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">10</span><span class="p">]],</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>该元件占据 [10, 12] m，<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code> 是出口位置。不要再用独立 Drift 或 Solenoid
+重复输运同一段。</p>
+</section>
+<section id="id2">
+<h2>元件接口<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>别名不区分大小写；未知字段和重复别名会报错。输入必须有限。整数控制量与布尔量
+不接受字符串或可强制转换的浮点数。标准 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 和孔径字段继承自
+<code class="docutils literal notranslate"><span class="pre">ElementBase</span></code>，参见 <a class="reference internal" href="../input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 29.0%" />
+<col style="width: 15.0%" />
+<col style="width: 31.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 字段</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code>、<code class="docutils literal notranslate"><span class="pre">length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>必填；0</p></td>
+<td><p>出口位置和非负物理长度。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">electron_beam</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Electron</span> <span class="pre">beam</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>一个 <code class="docutils literal notranslate"><span class="pre">ElectronBeamConfig</span></code>，见下表。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Model</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code></p></td>
+<td><p>上述三种碰撞模型之一。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collisions</span></code>、<code class="docutils literal notranslate"><span class="pre">diffusion</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Collisions</span></code>、<code class="docutils literal notranslate"><span class="pre">Diffusion</span></code></p></td>
+<td><p>True、True</p></td>
+<td><p>分别控制整体碰撞漂移与噪声、仅扩散噪声。关闭碰撞后仍保留输运和可选平滑场。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">magnetic_field</span></code>、<code class="docutils literal notranslate"><span class="pre">mean_space_charge</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Magnetic</span> <span class="pre">field</span> <span class="pre">(T)</span></code>、<code class="docutils literal notranslate"><span class="pre">Mean</span> <span class="pre">space</span> <span class="pre">charge</span></code></p></td>
+<td><p>0、False</p></td>
+<td><p>带符号均匀轴向磁场；可选给定电子束平滑自场。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coulomb_log</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log</span></code></p></td>
+<td><p>None</p></td>
+<td><p>正的固定 Gaussian/Parkhomchuk 库仑对数；省略则使用有效截断。
+磁化响应不允许指定此项。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_impact_parameter</span></code>、<code class="docutils literal notranslate"><span class="pre">max_impact_parameter</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Min</span> <span class="pre">impact</span> <span class="pre">parameter</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">impact</span> <span class="pre">parameter</span> <span class="pre">(m)</span></code></p></td>
+<td><p>None、None</p></td>
+<td><p>磁化响应要求显式 <span class="math notranslate nohighlight">\(0&lt;b_{\min}&lt;b_{\max}\)</span>；最大值也可限制
+Gaussian/Parkhomchuk 自动截断，但不能与固定库仑对数同时使用。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">effective_velocity_spread</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Effective</span> <span class="pre">velocity</span> <span class="pre">spread</span> <span class="pre">(m/s)</span></code></p></td>
+<td><p>0</p></td>
+<td><p>Parkhomchuk 中代表未解析场误差或漂移的附加 RMS 速度。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_slices</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code></p></td>
+<td><p>1</p></td>
+<td><p>正整数输运/碰撞分段数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_fractional_step</span></code>、<code class="docutils literal notranslate"><span class="pre">max_substeps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">fractional</span> <span class="pre">step</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">substeps</span></code></p></td>
+<td><p>0.05、1000</p></td>
+<td><p>碰撞漂移/扩散自适应步长控制，以及每个输运段最大内部碰撞子步数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quadrature_order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Quadrature</span> <span class="pre">order</span></code></p></td>
+<td><p>64</p></td>
+<td><p>Gaussian 速度积分每个积分区间的阶数，至少 8。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">radial_order</span></code>、<code class="docutils literal notranslate"><span class="pre">polar_order</span></code>、<code class="docutils literal notranslate"><span class="pre">azimuthal_order</span></code>、<code class="docutils literal notranslate"><span class="pre">time_order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radial</span> <span class="pre">order</span></code>、<code class="docutils literal notranslate"><span class="pre">Polar</span> <span class="pre">order</span></code>、<code class="docutils literal notranslate"><span class="pre">Azimuthal</span> <span class="pre">order</span></code>、<code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">order</span></code></p></td>
+<td><p>16、12、16、64</p></td>
+<td><p>磁化响应初始积分阶数；加密时四者同时增加。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">quadrature_rtol</span></code>、<code class="docutils literal notranslate"><span class="pre">max_refinements</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Quadrature</span> <span class="pre">relative</span> <span class="pre">tolerance</span></code>、<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">refinements</span></code></p></td>
+<td><p>0.02、2</p></td>
+<td><p>磁化积分收敛控制；容差范围 [1e-6, 0.1]。不收敛时抛出错误。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">random_seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed</span></code></p></td>
+<td><p>None</p></td>
+<td><p>非负严格整数，或非确定性熵；JSON 保留 null。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_diagnostics</span></code>、<code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">diagnostics</span></code>、<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code></p></td>
+<td><p>False、[]</p></td>
+<td><p>空选择表示每圈；否则使用 [turn] 或含端点的 [start, end, step] 条目。</p></td>
+</tr>
+</tbody>
+</table>
+<p>仅属于未启用模型的数值参数不能偏离默认值。离子自身空间电荷和 IBS 使用独立显式
+命令；组合格架时避免重复计算相同物理作用。</p>
+</section>
+<section id="id3">
+<h2>电子库接口<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>宽度参数描述入口；可选出口宽度规定宽度自身沿程线性插值，省略则保持常数。
+这是给定包络，不是自洽电子输运或连续性方程解。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 31.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 字段</p></th>
+<th class="head"><p>JSON 键</p></th>
+<th class="head"><p>默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic_energy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Kinetic</span> <span class="pre">energy</span> <span class="pre">(eV)</span></code></p></td>
+<td><p>必填</p></td>
+<td><p>每个电子的正动能。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">profile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Profile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">uniform_round</span></code></p></td>
+<td><p>横向空间密度：<code class="docutils literal notranslate"><span class="pre">uniform_round</span></code> 或 <code class="docutils literal notranslate"><span class="pre">gaussian</span></code>。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">radius</span></code>、<code class="docutils literal notranslate"><span class="pre">radius_exit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Radius</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Exit</span> <span class="pre">radius</span> <span class="pre">(m)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>均匀圆形分布的正硬边界半径，入口半径必填。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sigma_x</span></code>、<code class="docutils literal notranslate"><span class="pre">sigma_y</span></code>、<code class="docutils literal notranslate"><span class="pre">sigma_x_exit</span></code>、<code class="docutils literal notranslate"><span class="pre">sigma_y_exit</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">x</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">y</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Exit</span> <span class="pre">sigma</span> <span class="pre">x</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Exit</span> <span class="pre">sigma</span> <span class="pre">y</span> <span class="pre">(m)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>高斯正 RMS 尺寸，两个入口尺寸均必填。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code>、<code class="docutils literal notranslate"><span class="pre">current</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Mode</span></code>、<code class="docutils literal notranslate"><span class="pre">Current</span> <span class="pre">(A)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dc</span></code>、None</p></td>
+<td><p>直流模式要求非负电子电流幅值。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bunch_charge</span></code>、<code class="docutils literal notranslate"><span class="pre">sigma_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunch</span> <span class="pre">charge</span> <span class="pre">(C)</span></code>、<code class="docutils literal notranslate"><span class="pre">Sigma</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>None</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gaussian_bunch</span></code> 模式要求非负电荷幅值和正 RMS 时间宽度；
+不能同时指定电流。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bunch_center_time</span></code>、<code class="docutils literal notranslate"><span class="pre">repetition_frequency</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunch</span> <span class="pre">center</span> <span class="pre">time</span> <span class="pre">(s)</span></code>、<code class="docutils literal notranslate"><span class="pre">Repetition</span> <span class="pre">frequency</span> <span class="pre">(Hz)</span></code></p></td>
+<td><p>0、None</p></td>
+<td><p>入口处电子脉冲中心时刻和可选正重复频率。重复模式定义无限脉冲列；
+中心时刻是相位原点，不是开启时刻。省略重复频率时只有一个脉冲。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">center_x</span></code>、<code class="docutils literal notranslate"><span class="pre">center_y</span></code>、<code class="docutils literal notranslate"><span class="pre">angle_x</span></code>、<code class="docutils literal notranslate"><span class="pre">angle_y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">x</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Center</span> <span class="pre">y</span> <span class="pre">(m)</span></code>、<code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">x</span> <span class="pre">(rad)</span></code>、<code class="docutils literal notranslate"><span class="pre">Angle</span> <span class="pre">y</span> <span class="pre">(rad)</span></code></p></td>
+<td><p>0</p></td>
+<td><p>电子轴入口偏移和方向；局部坐标基随电子轴旋转，离子参考轨道不随之改变。
+两个磁化碰撞模型均要求倾角为零；未解析场线缺陷可由 Parkhomchuk 的
+附加有效速度展宽近似表示。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">temperature_transverse</span></code>、<code class="docutils literal notranslate"><span class="pre">temperature_longitudinal</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Transverse</span> <span class="pre">temperature</span> <span class="pre">(eV)</span></code>、<code class="docutils literal notranslate"><span class="pre">Longitudinal</span> <span class="pre">temperature</span> <span class="pre">(eV)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>电子平均静止系中正的 <span class="math notranslate nohighlight">\(k_BT\)</span>，单位 eV，横向按每个笛卡尔分量。
+两个温度同时指定，或改用协方差。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">velocity_covariance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Velocity</span> <span class="pre">covariance</span> <span class="pre">(m2/s2)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>电子轴坐标基、电子平均静止系中的对称正定 3×3 条件协方差。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">velocity_gradient</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Velocity</span> <span class="pre">gradient</span> <span class="pre">(1/s)</span></code></p></td>
+<td><p>None</p></td>
+<td><p>有限 3×2 矩阵 <span class="math notranslate nohighlight">\(G\)</span>，给出局部平均速度
+<span class="math notranslate nohighlight">\(\bar{\mathbf u}_e=G(x_e,y_e)^T\)</span>；省略时为零。
+磁化响应只允许纵向一行非零。</p></td>
+</tr>
+</tbody>
+</table>
+<p>温度输入给出 <span class="math notranslate nohighlight">\(C=\mathrm{diag}(T_\perp,T_\perp,T_\parallel)e/m_e\)</span>。
+存在剪切时，<span class="math notranslate nohighlight">\(C\)</span> 是给定局部位置的条件协方差，不是对整个电子束平均后的协方差。
+直流电子固有密度为</p>
+<div class="math notranslate nohighlight">
+\[n_*=\frac{I}{e\beta_e c\gamma_e}g_\perp(x_e,y_e;s),
+\qquad \int g_\perp\,dx_e\,dy_e=1.\]</div>
+<p>束团模式用 <span class="math notranslate nohighlight">\(Q_bh(t)\)</span> 替换 <span class="math notranslate nohighlight">\(I\)</span>，其中 <span class="math notranslate nohighlight">\(h\)</span> 是归一化高斯到达时间
+分布。重复脉冲包含相互重叠。电流和电荷输入均为非负幅值，平滑场使用负电子电荷。</p>
+</section>
+<section id="id4">
+<h2>碰撞方程<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>令 <span class="math notranslate nohighlight">\(M\)</span> 为完整离子质量、<span class="math notranslate nohighlight">\(g=|Z|e^2/(4\pi\epsilon_0)\)</span>、
+<span class="math notranslate nohighlight">\(\mathbf w=\mathbf v-\mathbf u\)</span>。下式平均使用归一化局部电子速度分布。
+非磁化系数为</p>
+<div class="math notranslate nohighlight">
+\[\mathbf F_*=-4\pi n_*g^2\ln\Lambda
+\left(\frac1{m_e}+\frac1M\right)
+\left\langle\frac{\mathbf w}{|\mathbf w|^3}\right\rangle,\qquad
+Q_*=4\pi n_*g^2\ln\Lambda
+\left\langle\frac{\mathsf I-\hat{\mathbf w}\hat{\mathbf w}^{T}}
+{|\mathbf w|}\right\rangle.\]</div>
+<p>高斯 Rosenbluth 卷积采用一维数值积分，积分区间围绕热协方差特征值尺度进行几何分区。
+<span class="math notranslate nohighlight">\(\mathbf F_*\)</span> 单位为 N，
+<span class="math notranslate nohighlight">\(Q_*=d\,\mathrm{cov}(\Delta\mathbf p_*)/dt_*\)</span> 单位为
+<span class="math notranslate nohighlight">\(\mathrm{kg^2\,m^2\,s^{-3}}\)</span>。随机增量是</p>
+<div class="math notranslate nohighlight">
+\[\Delta\mathbf p_*=\mathbf F_*\Delta t_*+
+B_*\sqrt{\Delta t_*}\,\boldsymbol\xi,\qquad
+B_*B_*^T=Q_*,\quad \boldsymbol\xi\sim\mathcal N(0,\mathsf I).\]</div>
+<p>这里没有额外的因子 2。模型保留离子反冲，也不扣除平均踢；能量失配或轴线失配可以
+改变离子质心。碰撞更新使用 Itô Euler–Maruyama，弱阶为 1、强阶为 1/2；
+仅摩擦的碰撞步进也是一阶。对称输运半映射不会提高碰撞积分本身的阶数。
+各向同性热库的平衡验证使用固定库仑对数。自动库仑对数在微观电子速度
+积分之外保持局部常数，是有效近似；不能据此声称速度相关库仑对数的精确细致平衡。</p>
+<p>Gaussian 自动截断为</p>
+<div class="math notranslate nohighlight">
+\[u^2=v^2+\mathrm{tr}\,C,\quad
+b_{\min}=\max\left(\frac{g}{\mu u^2},\frac{\hbar}{2\mu u}\right),\quad
+b_{\max}=\min(a,uT_*,u/\omega_p),\quad
+\ln\Lambda=\ln(1+b_{\max}/b_{\min}),\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(\mu=m_eM/(m_e+M)\)</span>、<span class="math notranslate nohighlight">\(\omega_p^2=n_*e^2/(\epsilon_0m_e)\)</span>；
+<span class="math notranslate nohighlight">\(a\)</span> 为局部硬半径或两个高斯 RMS 尺寸中较小者。
+<code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">impact</span> <span class="pre">parameter</span> <span class="pre">(m)</span></code> 可以进一步限制上界。</p>
+<p>Parkhomchuk 使用</p>
+<div class="math notranslate nohighlight">
+\[\mathbf F_*=-\frac{4n_*g^2}{m_e}
+\frac{\ln\Lambda\,\mathbf v}
+{(v^2+\sigma_\parallel^2+v_{\rm extra}^2)^{3/2}},\qquad
+\ln\Lambda=\ln\left(1+\frac{b_{\max}}{b_{90}+\rho_L}\right),\]</div>
+<p>其中 <span class="math notranslate nohighlight">\(u^2=v^2+\sigma_\parallel^2+v_{\rm extra}^2\)</span>、
+<span class="math notranslate nohighlight">\(b_{90}=g/(m_eu^2)\)</span>、
+<span class="math notranslate nohighlight">\(\rho_L=\sqrt2m_e\sigma_\perp/(e|B|)\)</span>。
+<span class="math notranslate nohighlight">\(\sigma_\perp\)</span> 是单个笛卡尔分量的 RMS 速度。
+该经验摩擦定律不定义扩散张量。输入完整协方差时，Parkhomchuk 将其化约为
+<span class="math notranslate nohighlight">\(\sigma_\parallel^2=C_{zz}\)</span> 和 <span class="math notranslate nohighlight">\(\sigma_\perp^2=(C_{xx}+C_{yy})/2\)</span>，
+忽略交叉相关；只有 Gaussian 模型积分使用完整各向异性协方差。</p>
+<p>磁化响应使用 <span class="math notranslate nohighlight">\(\Omega=eB/m_e\)</span>、<span class="math notranslate nohighlight">\(\alpha=2g^2/\pi\)</span>，以及</p>
+<div class="math notranslate nohighlight">
+\[C_k(t)=\exp\left[-\frac12\sigma_\parallel^2k_z^2t^2
+  -\sigma_\perp^2k_\perp^2\frac{1-\cos\Omega t}{\Omega^2}\right],
+\qquad R_e=k_z^2t+k_\perp^2\frac{\sin\Omega t}{\Omega}.\]</div>
+<p>初始均匀、相互独立且沿未扰动螺旋线运动的电子给出</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}Q_* = 2n_*\alpha\int\frac{d^3k}{k^4}\mathbf k\mathbf k^T
+  \int_0^{T_*}\left(1-\frac{t}{T_*}\right)
+  C_k(t)\cos(\mathbf k\cdot\mathbf v t)\,dt,\\\mathbf F_*=-n_*\alpha\int\frac{d^3k}{k^4}\mathbf k
+  \int_0^{T_*}\left(1-\frac{t}{T_*}\right)
+  C_k(t)\sin(\mathbf k\cdot\mathbf v t)
+  \left(\frac{R_e}{m_e}+\frac{k^2t}{M}\right)\,dt.\end{aligned}\end{align} \]</div>
+<p>Fourier 截断约定为 <span class="math notranslate nohighlight">\(k_{\min}=1/b_{\max}\)</span>、
+<span class="math notranslate nohighlight">\(k_{\max}=1/b_{\min}\)</span>。反冲项是
+<span class="math notranslate nohighlight">\(\nabla_{\mathbf v}\cdot Q_*/(2M)\)</span>，不是人为指定的 Einstein 噪声律。
+零磁场、长窗口极限恢复库仑对数为
+<span class="math notranslate nohighlight">\(\ln\Lambda=\ln(b_{\max}/b_{\min})\)</span> 的 Landau 系数。
+底层系数函数支持零磁场验证极限，磁化命令配置则要求正磁场。
+积分加密时四个阶数同时翻倍，检查力/张量相对误差、张量正性以及回旋相位分辨率。
+这种受控弱响应参考计算的数值开销可能较高。</p>
+</section>
+<section id="id5">
+<h2>输运、时钟与平滑场<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<p>每个正长度分段采用半段输运、碰撞/平均场踢、半段输运。零磁场使用漂移，
+非零轴向磁场使用均匀螺线管映射；耗散和扩散不使用负 Yoshida 子步。
+螺线管内部的机械横向动量为
+<span class="math notranslate nohighlight">\(p_x^{\rm mech}/P_0=p_x+k_sy/2\)</span>、
+<span class="math notranslate nohighlight">\(p_y^{\rm mech}/P_0=p_y-k_sx/2\)</span>，碰撞速度由这些机械动量计算。</p>
+<p>坐标 boost 使用相对论机械动量。PASS 的
+<span class="math notranslate nohighlight">\(dp=(|\mathbf P|-P_0)/P_0\)</span> 是总动量偏差，不是纵向动量偏差。
+完整离子的 SI 冲量转换回 PASS 的每核子归一化。参考能量不会跟随冷却质心变化。
+输运只把 <span class="math notranslate nohighlight">\(t_0\)</span> 推进一次 <span class="math notranslate nohighlight">\(L/(\beta_0c)\)</span>，
+连续 <span class="math notranslate nohighlight">\(z\)</span> 随飞行时间差演化。物理节点上的粒子时刻为
+<span class="math notranslate nohighlight">\(t_i=t_{0,\rm node}-z_i/(\beta_0c)\)</span>，束团分组元数据不参与该时钟。</p>
+<p>改变数值分辨率时，整段物理作用时间保持不变。平行轴时
+<span class="math notranslate nohighlight">\(T_*=\gamma_eL(1-\beta_e\beta_0)/(\beta_0c)\)</span>。
+该截断时间沿理想离子参考世界线计算，而每次踢的实际时间增量沿粒子世界线计算。
+截断因此采用接近参考运动的近似；宽分布或明显失配的束流需要检查飞越时间截断的
+敏感性。精确动量 boost 并不能消除这项近似。
+若在截断公式中用数值分段长度代替整段物理长度，增加分段数就会改变物理模型，
+参见 <a class="reference external" href="https://inspirehep.net/files/aab738e313248932b9fad111f6c1bf7e">JSPEC 厚冷却器研究，IPAC 2023，TUPM030</a>。
+物理长度为零时坐标和时钟保持不变。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Mean</span> <span class="pre">space</span> <span class="pre">charge=True</span></code> 独立于碰撞地加入准静态、局部均匀、长束近似下的
+电子横向平滑场。静止系作用力和 boost 包含实验室系磁场抵消；
+平行近等速横向力含 <span class="math notranslate nohighlight">\(1-\beta_e\beta_i\)</span> 因子。
+这不同于静止电子云，也不同于离子自身空间电荷。</p>
+<p>束团电子要求 <span class="math notranslate nohighlight">\(\gamma_e\beta_ec\sigma_t\geq10a_{\max}\)</span>，
+其中使用配置的入口/出口半径或 RMS 宽度最大值。
+模型不包含端部场、导电管镜像、纵向空间电荷加速或一般三维有限束团场，
+也不按空间电荷电势降自动修正电子动能。</p>
+</section>
+<section id="ibs">
+<h2>诊断、恢复与 IBS<a class="headerlink" href="#ibs" title="Link to this heading"></a></h2>
+<p>选中圈次的调用追加到每个冷却器独立的 JSONL 文件：
+<code class="docutils literal notranslate"><span class="pre">output/electron_cooler/beam&lt;id&gt;_&lt;name&gt;_&lt;unique&gt;.jsonl</span></code>，
+同时更新 <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>。记录包括模型和参考系、作用长度、粒子数/损失、
+子步数、密度/重叠、平均力、扩散对角项、能量交换以及模型特有数值检查。
+密度、重叠与系数摘要描述最后一个作用节点；能量交换与子步数按整个元件累加。
+真实束流所代表的总能量交换包含宏粒子权重。</p>
+<p>随机流按束流、命令名和束团分离，粒子按稳定 tag 顺序汇集。
+NumPy 随机数驱动两个后端，但浮点轨迹不要求逐位一致。
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> 保存配置身份、熵、调用状态与随机数状态；它不是完整检查点，
+还必须恢复匹配的粒子、参考状态和执行边界。支持的完整联合检查点同时保留
+电子冷却与 IBS 随机数状态。</p>
+<p>冷却—IBS 平衡要求使用 IBS 的 <code class="docutils literal notranslate"><span class="pre">kinetic</span></code> 或 <code class="docutils literal notranslate"><span class="pre">binary</span></code> 实际跟踪；
+<code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code> 只报告增长率。解释平衡结果前，应验证格架采样、碰撞步长、
+宏粒子数及随机统计的收敛。仅 Parkhomchuk 摩擦不能预言电子碰撞的扩散下限。
+参见 <a class="reference internal" href="../ibs.html"><span class="doc">束内散射（IBS）</span></a>。</p>
+</section>
+<section id="id6">
+<h2>参考资料<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://arxiv.org/abs/1703.09735">Y. Derbenev, Theory of Electron Cooling, arXiv:1703.09735</a>：非磁化力/扩散及磁化响应。
+上述有限窗平均与反冲归一化明确了本程序采用的数值变体。</p></li>
+<li><p><a class="reference external" href="https://proceedings.jacow.org/p05/PAPERS/TPAT092.PDF">A. V. Fedotov et al., Numerical Studies of the Friction Force for the RHIC
+Electron Cooler, PAC 2005, TPAT092</a>：经验磁化摩擦、
+有效速度与截断约定。</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="solenoid.html" class="btn btn-neutral float-left" title="螺线管（Solenoid）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="kicker.html" class="btn btn-neutral float-right" title="快脉冲偏转磁铁（Kicker）" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

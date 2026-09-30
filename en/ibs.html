@@ -1,0 +1,718 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intrabeam Scattering (IBS) &mdash; PASS 0.4.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Beam-Beam Interaction (BeamBeam)" href="beam_beam.html" />
+    <link rel="prev" title="Electron Cloud (ElectronCloud)" href="electron_cloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PASS
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="../zh/ibs.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="element/index.html">Element</a></li>
+<li class="toctree-l1"><a class="reference internal" href="twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Intrabeam Scattering (IBS)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#choosing-a-method">Choosing a method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-configuration">Python configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-fields">Input fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exposure-coordinates-and-density">Exposure, coordinates and density</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gaussian-matching-guard">Gaussian matching guard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#growth-rate-and-collision-conventions">Growth-rate and collision conventions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#diagnostics-and-reproducibility">Diagnostics and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="monitor/index.html">Monitors and output</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">PASS User Manual</a></li>
+      <li class="breadcrumb-item active">Intrabeam Scattering (IBS)</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="intrabeam-scattering-ibs">
+<h1>Intrabeam Scattering (IBS)<a class="headerlink" href="#intrabeam-scattering-ibs" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">IBS</span></code> models small-angle Coulomb scattering within each bunch. The same
+species-aware interface supports electrons, positrons, protons and ions,
+with bunched or coasting longitudinal density. Three methods cover local
+Gaussian growth-rate diagnostics, Gaussian kinetic tracking, and local
+binary collisions. Particle updates use NumPy or CuPy; analytical quadrature
+and random-number generation run on the CPU.</p>
+<p>The implementations are derived independently from the cited physics papers.
+They do not import, vendor or translate Xsuite’s IBS implementation.</p>
+<section id="choosing-a-method">
+<h2>Choosing a method<a class="headerlink" href="#choosing-a-method" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Available methods</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></th>
+<th class="head"><p>Operation</p></th>
+<th class="head"><p>Assumptions and limits</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code></p></td>
+<td><p>Compute instantaneous local growth rates; do not kick particles.</p></td>
+<td><p>Gaussian, uncoupled betatron distribution; both horizontal and vertical dispersion are included. Supply local optics. Mismatched measured covariance is reported with <code class="docutils literal notranslate"><span class="pre">model_moments_matched=False</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kinetic</span></code></p></td>
+<td><p>Apply an independently constructed tensor Ornstein–Uhlenbeck (OU) closure whose Gaussian covariance derivative matches the BM kernel.</p></td>
+<td><p>Requires measured covariance consistent with supplied uncoupled optics and uncorrelated longitudinal moments. Optional saved longitudinal slices weight the collision density.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">binary</span></code></p></td>
+<td><p>Randomly pair particles within three-dimensional cells and scatter their relative momenta.</p></td>
+<td><p>Does not assume a Gaussian density; requires enough particles per cell and convergence in grid size and interaction interval. Do not supply optics.</p></td>
+</tr>
+</tbody>
+</table>
+<p>All methods assume weak Coulomb/plasma coupling and a prescribed positive
+Coulomb logarithm; this assumption concerns binary encounters, not transverse
+betatron coupling.
+Tracking requires small thermal motion in the beam rest frame; the current
+implementation rejects proper speed <span class="math notranslate nohighlight">\(|\mathbf p_*|/(Mc)&gt;0.05\)</span>.
+This permits relativistic reference motion, but does not implement a fully
+relativistic thermal collision operator. Large-angle scattering and Touschek
+losses are outside this model. Radiation damping, quantum excitation and
+electron cooling are separate physical processes and are not added by IBS.</p>
+<p>The Gaussian models do not represent arbitrary transverse coupling or a
+strongly non-Gaussian distribution. The binary model provides a local
+collision operator for non-Gaussian studies; macroparticle and mesh convergence
+must establish the accuracy of a particular application. No Nagaitsev backend
+is included in this version.</p>
+<p>The kinetic method matches second moments of a prescribed Gaussian model.
+It is not the full Landau collision operator or a literal implementation of
+the published modified stochastic kick. Covariance matching is necessary but
+does not establish Gaussianity or validate strong-space-charge operation.
+Combining IBS with space charge requires independent convergence and physical
+validation for the beam being studied.</p>
+</section>
+<section id="python-configuration">
+<h2>Python configuration<a class="headerlink" href="#python-configuration" title="Link to this heading"></a></h2>
+<p>This fragment adds one kinetic interaction point to an existing <code class="docutils literal notranslate"><span class="pre">sequence</span></code>.
+Supply injection and lattice transport as described in <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>.
+The local optics must describe the actual distribution and transport at this
+point, including the dispersion convention below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_input</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">IBSConfig</span><span class="p">,</span> <span class="n">IBSConfiguration</span><span class="p">,</span> <span class="n">IBSItem</span><span class="p">,</span> <span class="n">IBSOpticsConfig</span>
+
+<span class="n">ibs</span> <span class="o">=</span> <span class="n">IBSConfig</span><span class="p">(</span>
+    <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">configurations</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"CoreIBS"</span><span class="p">:</span> <span class="n">IBSConfiguration</span><span class="p">(</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">"kinetic"</span><span class="p">,</span> <span class="n">coulomb_log</span><span class="o">=</span><span class="mf">12.0</span><span class="p">,</span>
+            <span class="n">random_seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">,</span> <span class="n">bunched</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+    <span class="s2">"ibs_at_s10"</span><span class="p">,</span>
+    <span class="n">IBSItem</span><span class="p">(</span>
+        <span class="n">s</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="s2">"CoreIBS"</span><span class="p">,</span> <span class="n">interaction_length</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">optics</span><span class="o">=</span><span class="n">IBSOpticsConfig</span><span class="p">(</span><span class="n">beta_x</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">beta_y</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">dx</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+        <span class="n">save_diagnostics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+<span class="n">generate_input</span><span class="p">(</span><span class="n">main</span><span class="p">,</span> <span class="n">sequence</span><span class="p">,</span> <span class="s2">"beam0.json"</span><span class="p">,</span> <span class="n">intrabeam_scattering</span><span class="o">=</span><span class="n">ibs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log=12</span></code> is an example input, not a universal physical default.
+Choose the impact-parameter cutoffs for the beam and regime under study.
+PASS does not infer cutoffs, screening, or a strong-coupling correction.
+<code class="docutils literal notranslate"><span class="pre">coulomb_log_note</span></code> can record the physical cutoff prescription, values,
+units and source used to choose <span class="math notranslate nohighlight">\(\ln\Lambda=\ln(b_{\max}/b_{\min})\)</span>.
+It is provenance text only and does not change the collision calculation.
+The collision mesh is a numerical density-resolution choice; choosing its
+cell size does not determine the physical Coulomb logarithm.</p>
+<p>For rate diagnostics, select <code class="docutils literal notranslate"><span class="pre">method=&quot;bjorken_mtingwa&quot;</span></code>. An interaction
+length of zero is valid and still permits rate evaluation. For binary tracking,
+select <code class="docutils literal notranslate"><span class="pre">method=&quot;binary&quot;</span></code>, supply <code class="docutils literal notranslate"><span class="pre">grid_shape=(nx,</span> <span class="pre">ny,</span> <span class="pre">nz)</span></code> and optional
+<code class="docutils literal notranslate"><span class="pre">grid_bounds=((xmin,</span> <span class="pre">ymin,</span> <span class="pre">zmin),</span> <span class="pre">(xmax,</span> <span class="pre">ymax,</span> <span class="pre">zmax))</span></code> in laboratory metres,
+and omit <code class="docutils literal notranslate"><span class="pre">optics</span></code>. <code class="docutils literal notranslate"><span class="pre">collision_steps</span></code> divides the exposure into steps with
+new random partners in each step. Configuration names are case-sensitive; schema field names
+are accepted case-insensitively by the loader.</p>
+</section>
+<section id="input-fields">
+<h2>Input fields<a class="headerlink" href="#input-fields" title="Link to this heading"></a></h2>
+<p>The top-level JSON block is <code class="docutils literal notranslate"><span class="pre">Intrabeam</span> <span class="pre">scattering</span></code>. <code class="docutils literal notranslate"><span class="pre">IBSConfig</span></code> contains
+<code class="docutils literal notranslate"><span class="pre">enabled</span></code> / <code class="docutils literal notranslate"><span class="pre">Enabled</span></code> (strict boolean, default <code class="docutils literal notranslate"><span class="pre">False</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">configurations</span></code> / <code class="docutils literal notranslate"><span class="pre">Configurations</span></code> (a mapping of names to
+<code class="docutils literal notranslate"><span class="pre">IBSConfiguration</span></code>). A disabled block ignores configuration contents and
+disables all its IBS commands.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">IBSConfiguration</span></code></span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 23.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python name</p></th>
+<th class="head"><p>JSON field</p></th>
+<th class="head"><p>Default / type</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Method</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;bjorken_mtingwa&quot;</span></code></p></td>
+<td><p>One of the three methods above.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coulomb_log</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log</span></code></p></td>
+<td><p>Required float</p></td>
+<td><p>Finite and strictly positive, dimensionless.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">coulomb_log_note</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Coulomb</span> <span class="pre">log</span> <span class="pre">note</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>; string or null</p></td>
+<td><p>Optional physical-cutoff prescription and source. If present, must be nonempty without surrounding whitespace. Provenance only; excluded from the physics state hash.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">random_seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>; integer or null</p></td>
+<td><p>Nonnegative strict integer gives reproducible initialization; <code class="docutils literal notranslate"><span class="pre">None</span></code> requests fresh entropy. Booleans, floats and numeric strings are rejected.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bunched</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bunched</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code>; strict boolean</p></td>
+<td><p>Bunched density or coasting density over the circumference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">slice_set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>; name or null</p></td>
+<td><p>Optional kinetic line-density weighting from an executed Slicer. Other methods require null.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grid_shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">shape</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(8,</span> <span class="pre">8,</span> <span class="pre">8)</span></code>; three positive strict integers</p></td>
+<td><p>Binary cell counts along x, y and longitudinal position. Nondefault values require the binary method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_bounds</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">bounds</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> or two triples</p></td>
+<td><p>Binary lower and upper bounds in laboratory <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">z_rel)</span></code> metres. Every upper bound must exceed its lower bound; outside particles cause an error.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collision_steps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">steps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code>; positive strict integer</p></td>
+<td><p>Binary physical exposure subdivisions with fresh random partners. Positions remain fixed within the command. Nondefault values require binary.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">matching_tolerance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Matching</span> <span class="pre">tolerance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1</span></code>; float in (0, 0.25]</p></td>
+<td><p>Gaussian dimensionless covariance discrepancy limit, defined below. Nondefault values require a Gaussian method; there is no option to disable the kinetic guard.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_scattering</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">scattering</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.05</span></code>; float in (0, 0.05]</p></td>
+<td><p>Kinetic friction-exposure bound; binary bound on the variance of the half-angle tangent per angular substep.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_substeps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Max</span> <span class="pre">substeps</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1000</span></code>; positive strict integer</p></td>
+<td><p>Exceeding this limit raises an error; collision strength is not silently clipped.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">IBSItem</span></code> sequence command</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 23.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python name</p></th>
+<th class="head"><p>JSON field</p></th>
+<th class="head"><p>Default / type</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;IBS&quot;</span></code></p></td>
+<td><p>Registered command name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code>; finite float</p></td>
+<td><p>Sequence location in metres.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code>; strict integer or null</p></td>
+<td><p>Optional explicit order at a shared position; see <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">configuration</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Configuration</span></code></p></td>
+<td><p>Required name</p></td>
+<td><p>Reference to <code class="docutils literal notranslate"><span class="pre">Intrabeam</span> <span class="pre">scattering.Configurations</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">interaction_length</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Interaction</span> <span class="pre">length</span> <span class="pre">(m)</span></code></p></td>
+<td><p>Required nonnegative float</p></td>
+<td><p>Positive physical exposure; this command does not transport particles.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">optics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Optics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> or <code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code></p></td>
+<td><p>Required for Gaussian methods, rejected for binary collisions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code>; strict boolean</p></td>
+<td><p>Enable this point under the global switch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">save_diagnostics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">diagnostics</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code>; strict boolean</p></td>
+<td><p>Save diagnostic JSON records on turns selected by <code class="docutils literal notranslate"><span class="pre">save_turns</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code>; list of strict-integer selectors</p></td>
+<td><p>Empty means every execution when saving is enabled; otherwise select inclusive zero-based turns with <code class="docutils literal notranslate"><span class="pre">[turn]</span></code> or <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">end,</span> <span class="pre">step]</span></code> rows.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code> requires positive finite <code class="docutils literal notranslate"><span class="pre">beta_x</span></code> / <code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">x</span> <span class="pre">(m)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">beta_y</span></code> / <code class="docutils literal notranslate"><span class="pre">Beta</span> <span class="pre">y</span> <span class="pre">(m)</span></code>. Its remaining finite floats default to zero:
+<code class="docutils literal notranslate"><span class="pre">alpha_x</span></code> / <code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">alpha_y</span></code> / <code class="docutils literal notranslate"><span class="pre">Alpha</span> <span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">dx</span></code> / <code class="docutils literal notranslate"><span class="pre">Dx</span> <span class="pre">(m)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dpx</span></code> / <code class="docutils literal notranslate"><span class="pre">Dpx</span></code>, <code class="docutils literal notranslate"><span class="pre">dy</span></code> / <code class="docutils literal notranslate"><span class="pre">Dy</span> <span class="pre">(m)</span></code>, and <code class="docutils literal notranslate"><span class="pre">dpy</span></code> / <code class="docutils literal notranslate"><span class="pre">Dpy</span></code>.
+The dispersion derivatives refer to PASS normalized mechanical momenta,
+not exact transverse slopes. The Gaussian approximation identifies them
+only to paraxial order. This version does not infer IBS optics from a Twiss
+command; the user supplies consistent local optics explicitly.</p>
+<p>PASS expects all four dispersion fields as derivatives with respect to
+<span class="math notranslate nohighlight">\(\delta=(P-P_0)/P_0\)</span>. Native MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> instead reports derivatives
+with respect to <code class="docutils literal notranslate"><span class="pre">PT</span></code>; near the reference particle,</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{PT}=\frac{E-E_0}{P_0c}\simeq\beta_0\delta,
+\qquad D_{a,\delta}=\beta_0 D_{a,\mathrm{PT}},
+\qquad a\in\{x,p_x,y,p_y\}.\]</div>
+<p>Thus multiply native MAD-X <code class="docutils literal notranslate"><span class="pre">TWISS</span></code> values <code class="docutils literal notranslate"><span class="pre">DX</span></code>, <code class="docutils literal notranslate"><span class="pre">DPX</span></code>, <code class="docutils literal notranslate"><span class="pre">DY</span></code> and
+<code class="docutils literal notranslate"><span class="pre">DPY</span></code> by <span class="math notranslate nohighlight">\(\beta_0\)</span> before supplying them here; see the
+<a class="reference external" href="https://raw.githubusercontent.com/MethodicalAcceleratorDesign/MAD-X/master/doc/usrguide/Introduction/tables.html#linear">MAD-X manual’s dispersion definitions</a>.
+MAD-X <code class="docutils literal notranslate"><span class="pre">IBS</span></code>-table dispersion is already converted to the momentum
+convention: do not multiply it by beta again. Public-API checks with MAD-X
+5.09.03 also show midpoint positions and averaged adjacent TWISS values in
+that table, so its rows cannot be substituted for endpoint optics solely by
+matching element names.</p>
+<p><code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig.from_twiss(twiss,</span> <span class="pre">endpoint=&quot;exit&quot;,</span> <span class="pre">dy=0.0,</span> <span class="pre">dpy=0.0)</span></code>
+constructs those explicit values from a PASS <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code> or its complete
+JSON mapping. <code class="docutils literal notranslate"><span class="pre">endpoint=&quot;exit&quot;</span></code> selects current beta, alpha, Dx and Dpx;
+<code class="docutils literal notranslate"><span class="pre">endpoint=&quot;entrance&quot;</span></code> selects the corresponding previous values. The
+result is independently validated as <code class="docutils literal notranslate"><span class="pre">IBSOpticsConfig</span></code>. This helper does
+not accept arbitrary MAD-X rows, infer missing required Twiss data, choose
+the IBS sequence position, or change runtime transport. Because <code class="docutils literal notranslate"><span class="pre">TwissItem</span></code>
+does not store vertical dispersion, supply <code class="docutils literal notranslate"><span class="pre">dy</span></code> and <code class="docutils literal notranslate"><span class="pre">dpy</span></code> explicitly when
+nonzero.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># twiss_item is the PASS Twiss transport map associated with this location.</span>
+<span class="n">optics</span> <span class="o">=</span> <span class="n">IBSOpticsConfig</span><span class="o">.</span><span class="n">from_twiss</span><span class="p">(</span><span class="n">twiss_item</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="s2">"exit"</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dpy</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="exposure-coordinates-and-density">
+<h2>Exposure, coordinates and density<a class="headerlink" href="#exposure-coordinates-and-density" title="Link to this heading"></a></h2>
+<p>At each command the laboratory exposure and beam-rest exposure are</p>
+<div class="math notranslate nohighlight">
+\[\Delta t=\frac{L_{\mathrm{IBS}}}{\beta_0 c},
+\qquad \Delta t_* = \frac{\Delta t}{\gamma_0}.\]</div>
+<p>Each execution applies its full specified exposure. For a distributed ring
+model, interaction lengths should represent the intended lattice segments.
+Do not apply a full circumference at every node. Coefficients are recomputed
+on every call and, for kinetic tracking, at each adaptive substep. IBS is an
+independent positive-time collision operator; negative integration substeps
+are not accepted as collision exposures.</p>
+<p>Input validation sums the nonnegative interaction lengths of enabled kinetic
+and binary commands in each beam, including zero-length points. If any such
+command exists and the sum differs from the circumference
+with relative tolerance <span class="math notranslate nohighlight">\(10^{-9}\)</span>, it emits the warning
+<code class="docutils literal notranslate"><span class="pre">ibs.exposure_length</span></code>. Diagnostic-only BM points and disabled commands are
+excluded. Partial-ring studies can intentionally produce this warning; it
+does not change or reject the exposure. Equal total length does not establish
+spatial coverage, nor correct total collision time when reference beta varies.</p>
+<p>IBS leaves <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, continuous <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>, the reference energy and
+<code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code> unchanged. Kicks update <code class="docutils literal notranslate"><span class="pre">px</span></code>, <code class="docutils literal notranslate"><span class="pre">py</span></code> and total relative momentum
+deviation <code class="docutils literal notranslate"><span class="pre">dp</span></code>. Live macroparticle count times the bunch’s macroparticle
+weight gives the real population. Ion classical radius uses the complete
+ion mass <span class="math notranslate nohighlight">\(M\)</span> and charge <span class="math notranslate nohighlight">\(q=Ze\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[r_0=\frac{q^2}{4\pi\epsilon_0 M c^2}.\]</div>
+<p>Gaussian beam moments are measured after centroid and specified dispersion
+subtraction. A bunched model uses the RMS continuous <code class="docutils literal notranslate"><span class="pre">z_rel</span></code>. The coasting
+Gaussian model replaces <span class="math notranslate nohighlight">\(\sigma_z\)</span> by
+<span class="math notranslate nohighlight">\(C/(2\sqrt{\pi})\)</span>, giving uniform line density over circumference C.</p>
+<p>Kinetic tracking without <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code> uses Gaussian spatially averaged
+coefficients. With <code class="docutils literal notranslate"><span class="pre">Slice</span> <span class="pre">set</span></code>, execute the named <a class="reference internal" href="slicer.html"><span class="doc">Longitudinal slicing (Slicer)</span></a> first.
+Use <code class="docutils literal notranslate"><span class="pre">Purpose=&quot;general&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">Coordinate=&quot;z_rel&quot;</span></code> for bunched beams;
+coasting beams also permit <code class="docutils literal notranslate"><span class="pre">z_periodic</span></code>. The saved memberships and widths
+are retained exactly. Regrouping invalidates them; another explicit Slicer
+execution is required. All live particles must have a valid saved membership.
+The weighting is the measured normalized line density divided by
+<span class="math notranslate nohighlight">\(1/(2\sqrt{\pi}\sigma_z)\)</span> for bunched beams or <span class="math notranslate nohighlight">\(1/C\)</span> for coasting
+beams. It does not turn the transverse Gaussian closure into a fully local
+non-Gaussian model.</p>
+<p>Binary collisions use a frozen local snapshot approximation
+<span class="math notranslate nohighlight">\(z_* = \gamma_0 z_{\mathrm{rel}}\)</span>, not exact reconstruction of equal-time
+particle events. This adapter requires a near-reference, paraxial distribution
+with narrow relative momentum spread, even when its shape is non-Gaussian.
+The thermal-speed cap alone does not guarantee this at a very small reference
+beta. Coasting positions are folded only
+in a temporary collision array; stored <code class="docutils literal notranslate"><span class="pre">z_rel</span></code> is never wrapped. Cells span
+the particle extent, with the full circumference used longitudinally for a
+coasting beam. Explicit <code class="docutils literal notranslate"><span class="pre">Grid</span> <span class="pre">bounds</span> <span class="pre">(m)</span></code> replaces automatic bounds and
+must contain all live particles; tails are never silently excluded. Its
+longitudinal bounds for coasting beams must be exactly the laboratory interval
+<span class="math notranslate nohighlight">\([-C/2,C/2]\)</span>, within relative tolerance <span class="math notranslate nohighlight">\(10^{-12}\)</span>; accepted
+roundoff is canonicalized to these exact endpoints. The command converts the
+longitudinal bounds to rest-frame metres by multiplying by <span class="math notranslate nohighlight">\(\gamma_0\)</span>.
+Fixed bounds help separate mesh-resolution effects from changing sample extrema.
+Empty or singleton cells cannot collide. Diagnostics report
+occupancy and unpaired particles; a fine mesh with mostly singleton cells
+does not represent resolved collision kinetics.</p>
+<p>Coasting IBS requires <code class="docutils literal notranslate"><span class="pre">Harmonic</span> <span class="pre">Number=1</span></code>: one bunch group must represent
+the complete ring population. Bunched IBS processes bunches independently
+and assumes their physical distributions do not overlap. It does not model
+collisions between overlapping bunch groups.</p>
+</section>
+<section id="gaussian-matching-guard">
+<h2>Gaussian matching guard<a class="headerlink" href="#gaussian-matching-guard" title="Link to this heading"></a></h2>
+<p>For every Gaussian IBS command evaluation, center the measured coordinates and define
+dispersion-subtracted coordinates <span class="math notranslate nohighlight">\(x_\beta=x-D_x\delta\)</span> and
+<span class="math notranslate nohighlight">\(p_{x\beta}=p_x-D_{p_x}\delta\)</span>, with the same construction in y.
+Using the measured intrinsic emittances and supplied optics, form</p>
+<div class="math notranslate nohighlight">
+\[u_x=\frac{x_\beta}{\sqrt{\varepsilon_x\beta_x}},\qquad
+u_{p_x}=\frac{\beta_xp_{x\beta}+\alpha_xx_\beta}
+                {\sqrt{\varepsilon_x\beta_x}},\qquad
+u_\delta=\frac{\delta}{\sigma_\delta},\qquad
+u_z=\frac{z-\langle z\rangle}{\sigma_z}.\]</div>
+<p>The vector order is <span class="math notranslate nohighlight">\((u_x,u_{p_x},u_y,u_{p_y},u_\delta)\)</span> for coasting
+beams; bunched beams append <span class="math notranslate nohighlight">\(u_z\)</span>. The prescribed matched model has</p>
+<div class="math notranslate nohighlight">
+\[C_{\mathrm{norm}}=\langle\mathbf u\mathbf u^T\rangle=I,
+\qquad e_{\mathrm{match}}=
+\max_{i,j}|(C_{\mathrm{norm}}-I)_{ij}|.\]</div>
+<p>This check detects optics mismatch, unsupported betatron correlations and,
+for bunched beams, correlations involving z, including momentum chirp.
+It does not test normality, tails or higher-order moments. The default 0.1
+is a covariance guard, not a 10% growth-rate accuracy guarantee. In a controlled
+Gaussian-envelope perturbation check, covariance errors of 0.01, 0.02, 0.05
+and 0.09 produced relative growth-rate-vector errors of 2.21%, 4.33%, 10.26%
+and 17.22%, respectively. These are case-specific calibration results, not
+universal error bounds; coupled cases can also hide tensor errors in projected
+rates.</p>
+<p>For quantitative work, 0.01–0.02 is a starting tolerance only when sufficient
+macroparticles are available and sampling and threshold convergence have been
+checked. Finite-sample covariance noise can itself trigger rejection. Increase
+particle count when noise dominates instead of loosening the threshold to hide
+a physical mismatch. Persistent mismatch or coupling calls for the binary
+model with its own mesh, particle-count and time-step convergence checks.</p>
+<p><code class="docutils literal notranslate"><span class="pre">kinetic</span></code> checks matching before every substep and on the final staged
+result. Failure rejects the command without committing particle or random-stream
+updates. <code class="docutils literal notranslate"><span class="pre">bjorken_mtingwa</span></code> retains rate diagnostics and reports matching plus
+<code class="docutils literal notranslate"><span class="pre">model_moments_matched</span></code>. If false, those rates describe the prescribed Gaussian model;
+they must not be interpreted as the measured distribution’s physical growth rates.
+The standalone coefficient API receives beam parameters and optics only;
+it cannot inspect particles or perform this matching check.</p>
+</section>
+<section id="growth-rate-and-collision-conventions">
+<h2>Growth-rate and collision conventions<a class="headerlink" href="#growth-rate-and-collision-conventions" title="Link to this heading"></a></h2>
+<p>The standalone API in <code class="docutils literal notranslate"><span class="pre">PASS.commands.ibs</span></code> provides
+<code class="docutils literal notranslate"><span class="pre">IBSBeamParameters</span></code>, <code class="docutils literal notranslate"><span class="pre">IBSOptics</span></code>, <code class="docutils literal notranslate"><span class="pre">compute_local_coefficients</span></code>
+(<code class="docutils literal notranslate"><span class="pre">compute_bjorken_mtingwa</span></code> is an alias), and
+<code class="docutils literal notranslate"><span class="pre">ring_average_growth_rates</span></code>. It needs no Simulation or particle pool.
+Ring averaging takes explicit nonnegative segment-length or residence-time
+weights; it does not invent a closing lattice segment.</p>
+<p>The Gaussian matrix construction uses momentum order
+<span class="math notranslate nohighlight">\((P_x/P_0,P_y/P_0,\delta/\gamma_0)\)</span>. Let
+<span class="math notranslate nohighlight">\(\mathbf e_x,\mathbf e_y,\mathbf e_z\)</span> be its unit basis vectors.
+For transverse plane <span class="math notranslate nohighlight">\(u\in\{x,y\}\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\phi_u=D_{p_u}+\frac{\alpha_u D_u}{\beta_u},
+\qquad
+L_u=\frac{\beta_u}{\varepsilon_u}
+    (\mathbf e_u-\gamma_0\phi_u\mathbf e_z)
+    (\mathbf e_u-\gamma_0\phi_u\mathbf e_z)^T
+    +\frac{\gamma_0^2D_u^2}{\beta_u\varepsilon_u}
+     \mathbf e_z\mathbf e_z^T,\\L_z=\frac{\gamma_0^2}{\sigma_\delta^2}\mathbf e_z\mathbf e_z^T,
+\qquad L=L_x+L_y+L_z,\qquad \Sigma=L^{-1}.\end{aligned}\end{align} \]</div>
+<p>Here <span class="math notranslate nohighlight">\(\Sigma\)</span> is the thermal momentum covariance conditional on
+transverse position, not the projected whole-bunch momentum covariance.
+The independently evaluated Bjorken–Mtingwa integral and normalization are</p>
+<div class="math notranslate nohighlight">
+\[J=\int_0^\infty
+   \frac{\sqrt{\lambda}\,(L+\lambda I)^{-1}}
+        {\sqrt{\det(L+\lambda I)}}\,d\lambda,
+\qquad
+a=\frac{cNr_0^2\ln\Lambda}
+       {8\pi\beta_0^3\gamma_0^4\varepsilon_x\varepsilon_y
+        \sigma_z\sigma_\delta}.\]</div>
+<p>The friction, diffusion and physical covariance derivative used by PASS are</p>
+<div class="math notranslate nohighlight">
+\[F=2aJL,\qquad D=2a[\operatorname{tr}(J)I-J],
+\qquad K=D-F\Sigma-\Sigma F^T
+        =2a[\operatorname{tr}(J)I-3J].\]</div>
+<p>The conventional BM kernel is <span class="math notranslate nohighlight">\(K/2\)</span>. Keeping this factor of two is
+necessary when turning the rate integral into a particle diffusion process.
+The trace <span class="math notranslate nohighlight">\(\operatorname{tr}(K)=0\)</span> expresses leading-order thermal
+energy conservation when the actual conditional covariance equals the matched
+model covariance <span class="math notranslate nohighlight">\(\Sigma\)</span>. With an unmatched covariance, the actual
+OU covariance derivative can have nonzero trace. The local rates are</p>
+<div class="math notranslate nohighlight">
+\[G_x=\tfrac12\operatorname{tr}(L_xK),\qquad
+G_y=\tfrac12\operatorname{tr}(L_yK),\qquad
+G_\delta=\frac{\gamma_0^2K_{zz}}{2\sigma_\delta^2}.\]</div>
+<p>Rates are per laboratory second and mean</p>
+<div class="math notranslate nohighlight">
+\[G_x=\frac{d\ln\varepsilon_x}{dt},\qquad
+G_y=\frac{d\ln\varepsilon_y}{dt},\qquad
+G_\delta=\frac{d\ln\sigma_\delta}{dt},\qquad
+G_{\delta^2}=2G_\delta.\]</div>
+<p>Transverse amplitude rates are <span class="math notranslate nohighlight">\(G_x/2\)</span> and <span class="math notranslate nohighlight">\(G_y/2\)</span>.
+The longitudinal rates describe an instantaneous momentum kick, without
+synchrotron phase averaging. Subsequent RF and transport determine how that
+kick is shared between bunch length and momentum spread. These conventions
+must match before comparing another program’s reported IBS times.</p>
+<p>The kinetic model uses centered, conditional thermal residuals in
+<span class="math notranslate nohighlight">\((P_x/P_0,P_y/P_0,\delta/\gamma_0)\)</span> and evolves</p>
+<div class="math notranslate nohighlight">
+\[d\mathbf w=-F\mathbf w\,dt+B\,d\mathbf W,
+\qquad D=BB^T,\qquad
+\frac{d\Sigma}{dt}=D-F\Sigma-\Sigma F^T.\]</div>
+<p>The conditional mean accounts for transverse position correlations and
+dispersion. Diffusion is positive semidefinite; the net growth of a hot
+degree of freedom may be negative. The implementation retains friction and
+off-diagonal tensor contributions. A frozen-coefficient Ornstein–Uhlenbeck
+step is evaluated exactly; adaptive positive substeps update the moments.
+The finite-sample centroid correction preserves mean normalized momenta.
+For a distribution with the matched conditional model covariance,
+leading-order rest-frame thermal energy is conserved in the instantaneous
+Gaussian collision expectation;
+finite time steps and finite particle samples introduce errors that require
+convergence checks. This closure does not enforce pairwise energy conservation.</p>
+<p>The binary method uses equal-weight random local partners and the
+Takizuka–Abe small-angle scattering law. With reduced mass <span class="math notranslate nohighlight">\(\mu=M/2\)</span>
+and relative speed g, the half-angle tangent has variance</p>
+<div class="math notranslate nohighlight">
+\[\left\langle\tan^2(\theta/2)\right\rangle
+=\frac{q^4 n\ln\Lambda\,\Delta t_*}
+       {8\pi\epsilon_0^2\mu^2 g^3}.\]</div>
+<p>An isotropic azimuth rotates the relative momentum in the pair centre-of-momentum
+frame; pair four-momentum is preserved up to rounding. The scattering
+frequency still uses the nonrelativistic thermal approximation. One randomly
+selected particle sits out in an odd cell, and paired exposure is corrected
+in expectation. <code class="docutils literal notranslate"><span class="pre">Collision</span> <span class="pre">steps</span></code> divides the physical exposure
+and resamples partners at each division, while keeping positions fixed.
+Internal angular substeps subdivide each selected pair’s rotation and do not
+resample partners. Check convergence in both physical collision steps and
+the outer command interval; neither refinement adds transport inside IBS.</p>
+</section>
+<section id="diagnostics-and-reproducibility">
+<h2>Diagnostics and reproducibility<a class="headerlink" href="#diagnostics-and-reproducibility" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">IBS.last_diagnostics</span></code> exposes the most recent execution. With saving enabled,
+<code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">turns=[]</span></code> saves every execution. For example,
+<code class="docutils literal notranslate"><span class="pre">save_turns=[[0],</span> <span class="pre">[10,</span> <span class="pre">50,</span> <span class="pre">10]]</span></code> selects turns 0, 10, 20, 30, 40 and 50;
+<code class="docutils literal notranslate"><span class="pre">save_turns=[10,</span> <span class="pre">50,</span> <span class="pre">10]</span></code> is the flat shorthand for the single range.
+Endpoints are inclusive and turns are zero-based. <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">diagnostics=False</span></code>
+suppresses files regardless of the selection. Saving cadence does not change
+collision exposure, coefficient updates, random draws or <code class="docutils literal notranslate"><span class="pre">last_diagnostics</span></code>.
+JSON records are placed under
+<code class="docutils literal notranslate"><span class="pre">ibs/&lt;unique</span> <span class="pre">directory&gt;/beam&lt;id&gt;_&lt;command&gt;/turn_&lt;turn&gt;_call_&lt;call&gt;_&lt;unique</span> <span class="pre">suffix&gt;.json</span></code>
+in the run output directory. Active Gaussian
+records include measured beam parameters and growth rates. BM reports
+<code class="docutils literal notranslate"><span class="pre">matching</span></code> and <code class="docutils literal notranslate"><span class="pre">model_moments_matched</span></code>; kinetic reports <code class="docutils literal notranslate"><span class="pre">initial_matching</span></code>,
+<code class="docutils literal notranslate"><span class="pre">final_matching</span></code> and <code class="docutils literal notranslate"><span class="pre">max_matching_error</span></code> (the maximum over all pre-substep
+checks and the final check). A matching record contains
+<code class="docutils literal notranslate"><span class="pre">dimension</span></code>, <code class="docutils literal notranslate"><span class="pre">normalized_covariance</span></code>, <code class="docutils literal notranslate"><span class="pre">max_abs_error</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tolerance</span></code> and <code class="docutils literal notranslate"><span class="pre">matched</span></code>.</p>
+<p>Each diagnostic record includes top-level <code class="docutils literal notranslate"><span class="pre">interaction_length_m</span></code> and
+<code class="docutils literal notranslate"><span class="pre">coulomb_log_note</span></code>. Each bunch record includes <code class="docutils literal notranslate"><span class="pre">dt_lab_s</span></code> and
+<code class="docutils literal notranslate"><span class="pre">interaction_length_over_circumference</span></code> (null only for a nonpositive
+circumference). These values expose the prescribed local exposure; they
+do not infer lattice coverage or justify the physical Coulomb-log cutoffs.</p>
+<p>Active binary records include <code class="docutils literal notranslate"><span class="pre">grid_shape</span></code>, <code class="docutils literal notranslate"><span class="pre">grid_bounds_m</span></code> (rest-frame metres),
+<code class="docutils literal notranslate"><span class="pre">n_grid_cells</span></code>, <code class="docutils literal notranslate"><span class="pre">n_empty_cells</span></code>, <code class="docutils literal notranslate"><span class="pre">singleton_fraction</span></code> and
+<code class="docutils literal notranslate"><span class="pre">occupancy_histogram</span></code> entries <code class="docutils literal notranslate"><span class="pre">{&quot;particles&quot;:</span> <span class="pre">count,</span> <span class="pre">&quot;cells&quot;:</span> <span class="pre">count}</span></code>,
+including empty cells. <code class="docutils literal notranslate"><span class="pre">n_pairs</span></code> counts eligible pairs per physical step;
+<code class="docutils literal notranslate"><span class="pre">n_pairings</span></code> sums selected pairs over all completed <code class="docutils literal notranslate"><span class="pre">n_collision_steps</span></code>.
+<code class="docutils literal notranslate"><span class="pre">singleton_fraction</span></code> counts particles in singleton cells divided by the
+particle count; <code class="docutils literal notranslate"><span class="pre">n_unpaired_particles</span></code> counts omissions per physical step,
+not unique identities across steps.
+<code class="docutils literal notranslate"><span class="pre">n_substeps</span></code> is the maximum angular subdivision count, <code class="docutils literal notranslate"><span class="pre">max_scattering</span></code>
+is the maximum variance per physical collision step before angular subdivision
+(so this diagnostic can exceed the per-substep input bound), and
+<code class="docutils literal notranslate"><span class="pre">n_zero_relative_pairs</span></code> sums pairs with zero relative motion.
+<code class="docutils literal notranslate"><span class="pre">proper_speed_max_over_c</span></code> is the maximum proper speed divided by c over
+the initial state and the result of every physical collision step.
+Diagnostics describe
+the selected model and are not a substitute for time-step, grid and particle
+number convergence.</p>
+<p>Random streams belong to a particular beam, command and bunch. A fixed seed
+provides reproducible initialization under the same execution conditions.
+<code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> and <code class="docutils literal notranslate"><span class="pre">load_state_dict()</span></code> save and restore IBS random-stream
+state and execution counters. They are an IBS component checkpoint, not a
+complete simulation restart: particles, reference state, turn, slicing and
+other collective state must match. CPU/GPU floating-point arithmetic may
+produce different trajectories; validate statistical agreement between backends.
+Use <code class="docutils literal notranslate"><span class="pre">Particle</span> <span class="pre">Precision=&quot;float64&quot;</span></code> when resolving small IBS momentum
+increments; float32 storage can round small updates away.
+The diagnostic flags, turn selection and Coulomb-log note are excluded from
+the physics configuration hash, so changing those output/provenance settings
+does not invalidate an otherwise matching IBS component checkpoint.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>J. D. Bjorken and S. K. Mtingwa, <em>Intrabeam Scattering</em>, Particle Accelerators
+<strong>13</strong> (1983), 115–143: Gaussian IBS theory.</p></li>
+<li><p>M. Zampetakis et al., <a class="reference external" href="https://arxiv.org/abs/2310.03504">Interplay of space charge and intrabeam scattering in
+the LHC ion injector chain</a>: Gaussian
+matrix coefficients and friction/diffusion context. PASS uses its own full
+tensor closure and states its instantaneous growth-rate convention above.</p></li>
+<li><p>T. Takizuka and H. Abe, <a class="reference external" href="https://doi.org/10.1016/0021-9991(77)90099-7">A binary collision model for plasma simulation with
+a particle code</a>, Journal of
+Computational Physics <strong>25</strong> (1977), 205–219: random binary collision law.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="electron_cloud.html" class="btn btn-neutral float-left" title="Electron Cloud (ElectronCloud)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="beam_beam.html" class="btn btn-neutral float-right" title="Beam-Beam Interaction (BeamBeam)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
