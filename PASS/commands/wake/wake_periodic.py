@@ -9,8 +9,9 @@ def prepare_periodic_slices(p, bunch, slices, turn=None, location=None):
     if xp is not np:
         return prepare_periodic_gpu(p, bunch, slices, turn, location)
     C = float(bunch.circum)
-    if slices.explicit.z_max != 0. or not np.isclose(slices.explicit.z_min, -C, rtol=1e-13, atol=0):
-        raise ValueError('Arrival-phase slices require an explicit [-C,0] interval')
+    z_max = slices.explicit.z_max
+    if not np.isclose(z_max - slices.explicit.z_min, C, rtol=1e-13, atol=0):
+        raise ValueError('Arrival-phase slices require an explicit interval of one circumference')
     if not hasattr(slices, 'observation_time'):
         raise ValueError('Use Slicer to define a common observation event')
     bunch_slice = slice(bunch.start_idx, bunch.end_idx)
@@ -35,9 +36,9 @@ def prepare_periodic_slices(p, bunch, slices, turn=None, location=None):
     history[location] = samples
     slices._periodic_previous = history
     slices.periodic_max_step = step
-    # Reduce elapsed arrival time into [0, C/v_obs). Exact integer phases
-    # belong to the window start (z_phase=0), not the previous window end.
-    slices._periodic_coordinate = xp.where(alive, -xp.remainder(-phase, 1.) * C, 0.).astype(p.z.dtype)
+    # The maximum-z seam is the earliest event; the opposite endpoint is
+    # excluded. Only this local projection is folded, never the stored z.
+    slices._periodic_coordinate = xp.where(alive, z_max - xp.remainder(z_max / C - phase, 1.) * C, 0.).astype(p.z.dtype)
 
 
 def validate_periodic_wake(beam, name, turn):
@@ -48,7 +49,7 @@ def validate_periodic_wake(beam, name, turn):
         return
     if not all(s is not None and s.periodic and s.slice_table is not None for s in sets):
         raise ValueError('Periodic wake populations require common arrival-phase slices')
-    windows = {(s.observation_time, s.observation_velocity) for s in sets}
+    windows = {(s.observation_time, s.observation_velocity, s.explicit.z_min, s.explicit.z_max) for s in sets}
     if len(windows) != 1:
         raise ValueError('Periodic slices must share one observation window')
     for s in sets:
@@ -60,8 +61,9 @@ def prepare_periodic_gpu(p, bunch, slices, turn, location):
     """Fuse physical phase, validity and slip into one device pass."""
     import cupy as cp
     C = float(bunch.circum)
-    if slices.explicit.z_max != 0. or not np.isclose(slices.explicit.z_min, -C, rtol=1e-13, atol=0):
-        raise ValueError('Arrival-phase slices require an explicit [-C,0] interval')
+    z_max = slices.explicit.z_max
+    if not np.isclose(z_max - slices.explicit.z_min, C, rtol=1e-13, atol=0):
+        raise ValueError('Arrival-phase slices require an explicit interval of one circumference')
     if not hasattr(slices, 'observation_time'):
         raise ValueError('Use Slicer to define a common observation event')
     n = bunch.end_idx - bunch.start_idx
@@ -80,8 +82,8 @@ def prepare_periodic_gpu(p, bunch, slices, turn, location):
     if n:
         cache[key](
             (min(256, (n + 255) // 256), ), (256, ),
-            (p.z, p.tag, np.int64(bunch.start_idx), np.int64(n), np.float64(bunch.t0 - slices.observation_time), np.float64(
-                bunch.beta * const.c), np.float64(slices.observation_velocity / C), np.float64(C), previous[1] if use_previous else phase,
+            (p.z, p.tag, np.int64(bunch.start_idx), np.int64(n), np.float64(bunch.t0 - slices.observation_time), np.float64(bunch.beta * const.c),
+             np.float64(slices.observation_velocity / C), np.float64(C), np.float64(z_max), previous[1] if use_previous else phase,
              previous[2] if use_previous else alive, np.int32(use_previous), phase, alive, coordinate, status))
     invalid, step = status.get()
     if invalid:
@@ -109,6 +111,7 @@ extern "C" __global__ void arrival_phase(
     double velocity,
     double factor,
     double circumference,
+    double z_max,
     const double* old,
     const int* old_alive,
     int previous,
@@ -128,8 +131,8 @@ extern "C" __global__ void arrival_phase(
             maximum = fmax(maximum, fabs(u - old[j]));
         phase[j] = u;
         alive[j] = live;
-        double elapsed = -u, part = elapsed - floor(elapsed);
-        coordinate[j] = live ? (R)(-part * circumference) : (R)0;
+        double elapsed = z_max / circumference - u, part = elapsed - floor(elapsed);
+        coordinate[j] = live ? (R)(z_max - part * circumference) : (R)0;
     }
     if (invalid)
         atomicExch((unsigned long long*)status, __double_as_longlong(1.));

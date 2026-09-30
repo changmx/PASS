@@ -446,14 +446,17 @@ history produces a startup transient; allow the response memory to fill.
 image-count convergence, rather than evolving transient history.
 
 For evolving coasting profiles, use ``Coordinate=arrival_phase`` (or
-``Periodic=true``), ``equal_length`` and ``Explicit={"z min": -C, "z max": 0}``.
-At an explicit Slicer update, :math:`z_{phase}=-C[(-u)\bmod1]` with
+``Periodic=true``), ``equal_length`` and an explicit interval of length C,
+such as ``[-C,0]`` or ``[-C/2,C/2]``.
+At an explicit Slicer update, :math:`z_{phase}=z_{max}-C[(z_{max}/C-u)\bmod1]` with
 :math:`u=v_{obs}(T_{obs}-t_i)/C`. The prescribed clock selects the common
 observation event and velocity; see :doc:`slicer`. Bunch reference times and
 velocities may differ. All populations must share the saved observation window
 and circumference, and Slicer must be at the wake location.
 
-The bins cover :math:`[T_{obs},T_{obs}+C/v_{obs})`. An exact integer phase maps
+The bins cover :math:`[T_{obs}-z_{max}/v_{obs},T_{obs}-z_{min}/v_{obs})`.
+Slicer obtains both endpoints from consecutive integrated-clock boundaries,
+so accelerating windows remain contiguous. An exact seam phase maps
 to the window start and slice 0, rather than its excluded right endpoint.
 A new physical source passage
 requires a user Slicer update; reusing a periodic snapshot retains its old

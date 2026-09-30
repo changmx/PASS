@@ -117,7 +117,7 @@
      - ``"Periodic"``
      - bool
      - false
-     - 非聚束束流 WakeField 的全环到达相位投影，要求 equal_length、explicit [-C,0]。
+     - 非聚束束流 WakeField 的全环到达相位投影，要求 equal_length 及长度为 C 的显式区间。
    * - ``max_phase_slip``
      - ``"Max phase slip"``
      - float
@@ -373,20 +373,30 @@ WakeField 拒绝 ``z_periodic``，因为折叠中心不保留连续到达时间�
 非聚束束流尾场的周期到达切片
 ----------------------------
 
-``Coordinate=arrival_phase`` 要求 ``equal_length``、``explicit`` 及
-``Explicit={"z min": -C, "z max": 0}``。每次显式更新选择共同观测事件
-:math:`T_{obs}=\Psi^{-1}(n+s/C)`，观测速度为
-:math:`v_{obs}=C f_{rev}(T_{obs})`。CPU/GPU 构造
+``Coordinate=arrival_phase`` 要求 ``equal_length``、``explicit`` 及长度为 C 的
+区间 :math:`[z_{min},z_{max}]`，例如 ``Explicit={"z min": -C, "z max": 0}``
+或中心对称区间 ``[-C/2,C/2]``。每次显式更新令 :math:`a=n+s/C`，
+:math:`\Psi(t)` 为规定回旋频率的时间积分。物理窗口端点及线性坐标映射为
+
+.. math::
+
+   T_L=\Psi^{-1}(a-z_{max}/C),\qquad T_R=\Psi^{-1}(a-z_{min}/C),
+
+   v_{obs}=\frac{C}{T_R-T_L},\qquad T_{obs}=T_L+\frac{z_{max}}{v_{obs}}.
+
+加速时相邻窗口也在规定时钟的圈边界相接；若使用瞬时频率确定窗口长度，
+就会产生重叠或间隙。中心对称区间对应 :math:`T_{obs}=(T_L+T_R)/2`。
+CPU/GPU 构造
 
 .. math::
 
    u_i=\frac{v_{obs}}{C}(T_{obs}-t_i),\qquad
-   z_{phase,i}=-C[(-u_i)\bmod1].
+   z_{phase,i}=z_{max}-C[(z_{max}/C-u_i)\bmod1].
 
-切片表示窗口 :math:`[T_{obs},T_{obs}+C/v_{obs})`，直到下次用户更新前保留该
+切片表示窗口 :math:`[T_L,T_R)`，直到下次用户更新前保留该
 观测事件。允许不同束团参考时间和速度；参与同一周期尾场的全部粒子群必须拥有
 相同的已保存观测窗口与周长。切片 0 最早到达，损失粒子 ID 为 -1，存储 z 不折叠。
-恰好为整数圈的相位映射到 :math:`z_{phase}=0`，即窗口起点和切片 0。被排除的
+恰好位于周期接缝的相位映射到 :math:`z_{phase}=z_{max}`，即窗口起点和切片 0。被排除的
 右端点的相位按周期等价映射到窗口起点，不归入最后一片，也不额外生成源通过事件。相位滑移诊断继续使用连续、
 未取模的相位 :math:`u_i`。
 

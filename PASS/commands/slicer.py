@@ -571,8 +571,16 @@ class Slicer(Command):
         slices.coordinate_definition = "z_star in collision frame" if frame is not None else "z=beta*c*(T-t)"
         if slices.periodic:
             program = beam.reference_program
-            slices.observation_time = program.inverse_integral(float(turn) + self.s / bunch.circum)
-            slices.observation_velocity = bunch.circum * float(program.value(slices.observation_time))
+            cycles = float(turn) + self.s / bunch.circum
+            z_min, z_max = slices.explicit.z_min, slices.explicit.z_max
+            if not np.isclose(z_max - z_min, bunch.circum, rtol=1e-13, atol=0):
+                raise ValueError('Arrival-phase slices require an explicit interval of one circumference')
+            first = program.inverse_integral(cycles - z_max / bunch.circum)
+            last = program.inverse_integral(cycles - z_min / bunch.circum)
+            # Adjacent clock-cycle boundaries share one physical endpoint even
+            # during acceleration. Instantaneous C*f would overlap these windows.
+            slices.observation_velocity = bunch.circum / (last - first)
+            slices.observation_time = first + z_max / slices.observation_velocity
 
     def _workspace(self, bunch, slice_set: SliceSet, p, cp):
         """Return a capacity-reusable workspace for one bunch/slice set."""
