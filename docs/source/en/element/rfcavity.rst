@@ -75,7 +75,21 @@ Each component selects one frequency definition:
 * ``Frequency (Hz)``: prescribed positive carrier frequency, scalar or list.
 * ``Harmonic``: positive integer multiplying the shared ``Reference clock`` revolution frequency. It neither follows current bunch energy nor needs to be divisible by the grouping harmonic.
 
-``Voltage (V)`` and ``Phase (rad)`` default to zero and accept scalars or lists. Lists share finite, strictly increasing ``Time (s)`` samples. Programs are piecewise linear with held endpoints. See :ref:`en-reference-clock` for the reference clock and defaults.
+``Voltage (V)`` and ``Phase (rad)`` default to zero and accept scalars or lists.
+Lists share finite, strictly increasing ``Time (s)`` samples and use piecewise
+linear interpolation. For every component with supplied time samples, including
+scalar values on a time grid, its voltage is exactly zero outside the closed
+interval from the first to the last sample. Both endpoints retain their supplied
+values; a one-sample table is active only at that instant. A scalar component
+without ``Time (s)`` operates continuously. This also applies to program files;
+RF table voltages are not held outside their data range.
+
+Each particle uses its own arrival time :math:`t_i`, and the reference particle
+uses :math:`T_b`; particles in the same bunch can therefore lie on opposite
+sides of a data boundary. The frequency program, its integrated carrier phase,
+and the shared reference clock remain continuous and retain their existing
+endpoint extrapolation. Only the component voltage is gated by the data domain.
+See :ref:`en-reference-clock` for the reference clock and defaults.
 
 
 .. code-block:: json
@@ -172,6 +186,9 @@ Files and synchronous programs
 ------------------------------
 
 Use ``{"Program file": "rf.tfs"}`` for ``TIME, VOLTAGE, FREQUENCY, PHASE`` columns in s, V, Hz and rad. With ``{"Program file": "rf.tfs", "Harmonic": 2}``, the file contains ``TIME, VOLTAGE, PHASE`` and must not also define FREQUENCY. File mode cannot be mixed with inline waveform data.
+
+The file's first and last ``TIME`` samples define the component's voltage domain;
+outside it the voltage is zero, without any additional configuration parameter.
 
 RF tables use physical time. ``convert_rf_data(input_path, output_path)`` converts the table format without turning seconds into turn numbers.
 

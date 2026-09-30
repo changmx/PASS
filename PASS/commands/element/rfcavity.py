@@ -58,6 +58,10 @@ class RFWaveform:
                                      harmonic=parameters.harmonic,
                                      frequency=table.frequency.tolist() if parameters.harmonic is None else None)
         self.harmonic = parameters.harmonic or 1
+        # Preserve the supplied domain even when scalar programs collapse their
+        # time arrays. A one-node table is supported only at that event.
+        self.time_min = -np.inf if parameters.times is None else parameters.times[0]
+        self.time_max = np.inf if parameters.times is None else parameters.times[-1]
         self.frequency = reference if parameters.harmonic is not None else LinearProgram(
             parameters.frequency, parameters.times, origin=reference.origin)
         self.voltage = LinearProgram(parameters.voltage, parameters.times, origin=reference.origin)
@@ -68,7 +72,13 @@ class RFWaveform:
         phase = (self.phase.values[0] if len(self.phase.values) == 1 else self.phase.value(reference_time, offset, xp))
         angle = 2 * np.pi * xp.remainder(self.harmonic * cycles, 1.) + phase
         voltage = (self.voltage.values[0] if len(self.voltage.values) == 1 else self.voltage.value(reference_time, offset, xp))
-        return voltage * xp.sin(angle)
+        value = voltage * xp.sin(angle)
+        if np.isfinite(self.time_min):
+            # Compare local offsets to preserve small arrival differences at
+            # large epochs. Both supplied endpoints retain the waveform.
+            inside = (offset >= self.time_min - reference_time) & (offset <= self.time_max - reference_time)
+            value = xp.where(inside, value, 0.)
+        return value
 
 
 @Command.register('rfcavity')
@@ -233,7 +243,8 @@ def _prepare_rf_kernel(components, dtype, cp):
     """
     program_dtype = np.dtype([('data', np.uint64), ('count', np.int32), ('padding', np.int32), ('base', np.float64), ('value', np.float64)],
                              align=True)
-    component_dtype = np.dtype([('frequency', program_dtype), ('voltage', program_dtype), ('phase', program_dtype), ('harmonic', np.float64)],
+    component_dtype = np.dtype([('frequency', program_dtype), ('voltage', program_dtype), ('phase', program_dtype), ('harmonic', np.float64),
+                                ('time_min', np.float64), ('time_max', np.float64)],
                                align=True)
     parameters = np.zeros(1, dtype=np.dtype([('components', component_dtype, (len(components), ))], align=True))
     tables, stored = [], {}
@@ -241,6 +252,7 @@ def _prepare_rf_kernel(components, dtype, cp):
     for j, component in enumerate(components):
         row = parameters['components'][0, j]
         row['harmonic'] = component.harmonic
+        row['time_min'], row['time_max'] = component.time_min, component.time_max
         for name in ('frequency', 'voltage', 'phase'):
             program = getattr(component, name)
             record = row[name]
@@ -274,7 +286,7 @@ struct Program {
 };
 struct Component {
     Program frequency, voltage, phase;
-    double harmonic;
+    double harmonic, time_min, time_max;
 };
 struct Components {
     Component components[RF_COMPONENTS];
@@ -284,7 +296,7 @@ static_assert(
     "RF program ABI mismatch"
 );
 static_assert(
-    sizeof(Component) == 104,
+    sizeof(Component) == 120,
     "RF component ABI mismatch"
 );
 
@@ -375,6 +387,8 @@ extern "C" __global__ void track_rf(
 #endif
     for (int j = 0; j < RF_COMPONENTS; ++j) {
         const Component& c = parameters.components[j];
+        if (offset < c.time_min - reference || offset > c.time_max - reference)
+            continue;
 #if RF_SCALAR
         double cycles = unit_cycle(c.frequency.base + c.frequency.value * offset);
         double voltage = c.voltage.value, phase = c.phase.value;
