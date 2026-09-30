@@ -17,6 +17,7 @@ CrossingAngle, CrabCavity and FloatWaister are described in :doc:`../beam_beam`.
    octupole
    multipole
    solenoid
+   electron_cooler
    kicker
    bump
    elseparator

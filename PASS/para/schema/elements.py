@@ -12,9 +12,11 @@ Consumed by PASS.commands.element.* via Command.create(**kwargs).
 import math
 from typing import ClassVar, Literal
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator, StrictInt
+import numpy as np
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator, StrictBool, StrictInt
 
 from PASS.para.schema.space_charge import ElementSpaceCharge
+from PASS.utils.constants import const
 
 
 class ElementBase(BaseModel):
@@ -215,6 +217,216 @@ class SolenoidItem(MagneticElementBase):
 
     num_slices: int = Field(default=1, ge=1, alias="Num slices")
     integrator: str = Field(default="adaptive", alias="Integrator")
+
+
+def _normalize_cooler_fields(model, value):
+    """Accept generated aliases and the engine's case-normalized dictionaries."""
+    if not isinstance(value, dict):
+        return value
+    names = {}
+    for name, field in model.model_fields.items():
+        names[name.casefold()] = name
+        names[(field.alias or name).casefold()] = name
+    normalized = {}
+    for key, item in value.items():
+        name = names.get(str(key).casefold(), key)
+        if name in normalized:
+            raise ValueError(f"Duplicate electron-cooler field {name!r}")
+        if name == "command" and isinstance(item, str) and item.casefold() == "electroncooler":
+            item = "ElectronCooler"
+        normalized[name] = item
+    return normalized
+
+
+class ElectronBeamConfig(BaseModel):
+    """Prescribed electron reservoir; temperatures and covariance are in its rest frame."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
+
+    kinetic_energy: float = Field(gt=0, alias="Kinetic energy (eV)")
+    profile: Literal["uniform_round", "gaussian"] = Field(default="uniform_round", alias="Profile")
+    radius: float | None = Field(default=None, gt=0, alias="Radius (m)")
+    radius_exit: float | None = Field(default=None, gt=0, alias="Exit radius (m)")
+    sigma_x: float | None = Field(default=None, gt=0, alias="Sigma x (m)")
+    sigma_y: float | None = Field(default=None, gt=0, alias="Sigma y (m)")
+    sigma_x_exit: float | None = Field(default=None, gt=0, alias="Exit sigma x (m)")
+    sigma_y_exit: float | None = Field(default=None, gt=0, alias="Exit sigma y (m)")
+    mode: Literal["dc", "gaussian_bunch"] = Field(default="dc", alias="Mode")
+    current: float | None = Field(default=None, ge=0, alias="Current (A)")
+    bunch_charge: float | None = Field(default=None, ge=0, alias="Bunch charge (C)")
+    sigma_time: float | None = Field(default=None, gt=0, alias="Sigma time (s)")
+    repetition_frequency: float | None = Field(default=None, gt=0, alias="Repetition frequency (Hz)")
+    bunch_center_time: float = Field(default=0.0, alias="Bunch center time (s)")
+    center_x: float = Field(default=0.0, alias="Center x (m)")
+    center_y: float = Field(default=0.0, alias="Center y (m)")
+    angle_x: float = Field(default=0.0, gt=-math.pi / 2, lt=math.pi / 2, alias="Angle x (rad)")
+    angle_y: float = Field(default=0.0, gt=-math.pi / 2, lt=math.pi / 2, alias="Angle y (rad)")
+    temperature_transverse: float | None = Field(default=None, gt=0, alias="Transverse temperature (eV)")
+    temperature_longitudinal: float | None = Field(default=None, gt=0, alias="Longitudinal temperature (eV)")
+    velocity_covariance: list[list[float]] | None = Field(default=None, alias="Velocity covariance (m2/s2)")
+    velocity_gradient: list[list[float]] | None = Field(default=None, alias="Velocity gradient (1/s)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_fields(cls, value):
+        return _normalize_cooler_fields(cls, value)
+
+    @field_validator("velocity_covariance")
+    @classmethod
+    def _validate_velocity_covariance(cls, value):
+        if value is None:
+            return value
+        matrix = np.asarray(value, dtype=float)
+        if matrix.shape != (3, 3) or not np.all(np.isfinite(matrix)):
+            raise ValueError("Electron velocity covariance requires a finite 3 by 3 matrix")
+        scale = float(np.max(np.abs(matrix)))
+        if scale == 0 or not np.allclose(matrix / scale, matrix.T / scale, rtol=0, atol=1.e-12):
+            raise ValueError("Electron velocity covariance must be symmetric positive definite")
+        if np.min(np.linalg.eigvalsh(matrix / scale)) <= 0:
+            raise ValueError("Electron velocity covariance must be positive definite")
+        return value
+
+    @field_validator("velocity_gradient")
+    @classmethod
+    def _validate_velocity_gradient(cls, value):
+        if value is not None:
+            matrix = np.asarray(value, dtype=float)
+            if matrix.shape != (3, 2) or not np.all(np.isfinite(matrix)):
+                raise ValueError("Electron velocity gradient requires a finite 3 by 2 matrix")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_electron_beam(self):
+        if self.profile == "uniform_round":
+            if self.radius is None:
+                raise ValueError("uniform_round electron beams require Radius (m)")
+            if any(value is not None for value in (self.sigma_x, self.sigma_y, self.sigma_x_exit, self.sigma_y_exit)):
+                raise ValueError("uniform_round electron beams use Radius (m), not Gaussian widths")
+        else:
+            if self.sigma_x is None or self.sigma_y is None:
+                raise ValueError("gaussian electron beams require Sigma x (m) and Sigma y (m)")
+            if self.radius is not None or self.radius_exit is not None:
+                raise ValueError("gaussian electron beams use Gaussian widths, not Radius (m)")
+        if self.mode == "dc":
+            if self.current is None:
+                raise ValueError("DC electron beams require Current (A)")
+            if any(value is not None for value in (self.bunch_charge, self.sigma_time, self.repetition_frequency)) or self.bunch_center_time != 0:
+                raise ValueError("DC electron beams do not use Gaussian-bunch charge or timing fields")
+        else:
+            if self.bunch_charge is None or self.sigma_time is None:
+                raise ValueError("Gaussian electron bunches require Bunch charge (C) and Sigma time (s)")
+            if self.current is not None:
+                raise ValueError("Gaussian electron bunches use Bunch charge (C), not Current (A)")
+        temperatures = (self.temperature_transverse, self.temperature_longitudinal)
+        if self.velocity_covariance is None:
+            if any(value is None for value in temperatures):
+                raise ValueError("Supply both electron temperatures or a full Velocity covariance (m2/s2)")
+        elif any(value is not None for value in temperatures):
+            raise ValueError("Electron temperatures and Velocity covariance (m2/s2) are alternative inputs")
+        if self.velocity_covariance is None:
+            largest_variance = max(temperatures) * const.e / const.m_e_kg
+        else:
+            largest_variance = float(np.max(np.linalg.eigvalsh(np.asarray(self.velocity_covariance))))
+        if largest_variance > (0.05 * const.c)**2:
+            raise ValueError("Electron cooling requires nonrelativistic electron thermal speeds (rms <= 0.05 c)")
+        return self
+
+
+class ElectronCoolerItem(ElementBase):
+    """A physical cooling section with positive forward transport substeps."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
+
+    command: Literal["ElectronCooler"] = Field(default="ElectronCooler", alias="Command")
+    electron_beam: ElectronBeamConfig = Field(alias="Electron beam")
+    model: Literal["gaussian", "parkhomchuk", "magnetized_collision"] = Field(default="gaussian", alias="Model")
+    collisions: StrictBool = Field(default=True, alias="Collisions")
+    diffusion: StrictBool = Field(default=True, alias="Diffusion")
+    effective_velocity_spread: float = Field(default=0.0, ge=0, alias="Effective velocity spread (m/s)")
+    magnetic_field: float = Field(default=0.0, alias="Magnetic field (T)")
+    mean_space_charge: StrictBool = Field(default=False, alias="Mean space charge")
+    coulomb_log: float | None = Field(default=None, gt=0, alias="Coulomb log")
+    min_impact_parameter: float | None = Field(default=None, gt=0, alias="Min impact parameter (m)")
+    max_impact_parameter: float | None = Field(default=None, gt=0, alias="Max impact parameter (m)")
+    quadrature_order: StrictInt = Field(default=64, ge=8, alias="Quadrature order")
+    radial_order: StrictInt = Field(default=16, ge=4, alias="Radial order")
+    polar_order: StrictInt = Field(default=12, ge=4, alias="Polar order")
+    azimuthal_order: StrictInt = Field(default=16, ge=4, alias="Azimuthal order")
+    time_order: StrictInt = Field(default=64, ge=8, alias="Time order")
+    quadrature_rtol: float = Field(default=0.02, ge=1.e-6, le=0.1, alias="Quadrature relative tolerance")
+    max_refinements: StrictInt = Field(default=2, ge=1, alias="Max refinements")
+    num_slices: StrictInt = Field(default=1, ge=1, alias="Num slices")
+    max_substeps: StrictInt = Field(default=1000, ge=1, alias="Max substeps")
+    max_fractional_step: float = Field(default=0.05, gt=0, le=0.1, alias="Max fractional step")
+    random_seed: StrictInt | None = Field(default=None, ge=0, alias="Random Seed")
+    save_diagnostics: StrictBool = Field(default=False, alias="Save diagnostics")
+    save_turns: list[list[StrictInt]] | list[StrictInt] = Field(default_factory=list, alias="Save turns")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_fields(cls, value):
+        return _normalize_cooler_fields(cls, value)
+
+    @field_validator("save_turns")
+    @classmethod
+    def _validate_save_turns(cls, value):
+        if not value:
+            return []
+        items = [value] if all(isinstance(item, int) for item in value) else value
+        for item in items:
+            if len(item) not in {1, 3}:
+                raise ValueError("ElectronCooler Save turns entries must be [turn] or [start, end, step]")
+            if item[0] < 0 or len(item) == 3 and (item[1] < item[0] or item[2] <= 0):
+                raise ValueError("ElectronCooler Save turns requires 0 <= start <= end and step > 0")
+        return items
+
+    @model_validator(mode="after")
+    def _validate_cooling_model(self):
+        if self.model in {"parkhomchuk", "magnetized_collision"} and (self.electron_beam.angle_x != 0 or self.electron_beam.angle_y != 0):
+            raise ValueError("Magnetized cooling requires the electron mean direction parallel to the axial solenoid")
+        if self.model == "parkhomchuk":
+            if self.diffusion:
+                raise ValueError("Parkhomchuk provides a friction force only; set Diffusion=False")
+            if self.magnetic_field == 0:
+                raise ValueError("Parkhomchuk requires a nonzero Magnetic field (T)")
+        elif self.effective_velocity_spread != 0:
+            raise ValueError("Effective velocity spread (m/s) is supported only by parkhomchuk")
+        if self.model == "magnetized_collision":
+            if self.magnetic_field <= 0:
+                raise ValueError("magnetized_collision requires a positive Magnetic field (T)")
+            if self.min_impact_parameter is None or self.max_impact_parameter is None or self.max_impact_parameter <= self.min_impact_parameter:
+                raise ValueError("magnetized_collision requires explicit 0 < Min impact parameter (m) < Max impact parameter (m)")
+            if self.coulomb_log is not None:
+                raise ValueError("magnetized_collision integrates explicit impact-parameter cutoffs; omit Coulomb log")
+            covariance = self.electron_beam.velocity_covariance
+            if covariance is not None:
+                matrix = np.asarray(covariance)
+                scale = float(np.max(np.abs(matrix)))
+                if (not np.allclose(matrix - np.diag(np.diag(matrix)), 0, rtol=0, atol=1.e-12 * scale)
+                        or not np.isclose(matrix[0, 0], matrix[1, 1], rtol=1.e-10, atol=0)):
+                    raise ValueError("magnetized_collision requires a diagonal gyrotropic electron velocity covariance with Cxx=Cyy")
+            gradient = self.electron_beam.velocity_gradient
+            if gradient is not None and np.any(np.asarray(gradient)[:2] != 0):
+                raise ValueError("magnetized_collision supports longitudinal electron velocity gradients only")
+        elif self.min_impact_parameter is not None:
+            raise ValueError("Min impact parameter (m) is supported only by magnetized_collision")
+        if self.model != "gaussian" and self.quadrature_order != 64:
+            raise ValueError("Quadrature order is supported only by gaussian")
+        if self.model != "magnetized_collision":
+            if (self.radial_order, self.polar_order, self.azimuthal_order, self.time_order, self.quadrature_rtol,
+                    self.max_refinements) != (16, 12, 16, 64, 0.02, 2):
+                raise ValueError("Magnetized quadrature controls are supported only by magnetized_collision")
+        if self.coulomb_log is not None and self.max_impact_parameter is not None:
+            raise ValueError("A fixed Coulomb log does not use Max impact parameter (m)")
+        electron = self.electron_beam
+        if self.mean_space_charge and electron.mode == "gaussian_bunch":
+            maximum_size = max(value for value in (electron.radius, electron.radius_exit, electron.sigma_x, electron.sigma_x_exit, electron.sigma_y,
+                                                   electron.sigma_y_exit) if value is not None)
+            electron_gamma = 1 + electron.kinetic_energy / const.m_e_eV
+            rest_length = np.sqrt((electron_gamma - 1) * (electron_gamma + 1)) * const.c * electron.sigma_time
+            if rest_length < 10 * maximum_size:
+                raise ValueError("The long-beam mean field requires the electron rest-frame RMS bunch length >= 10 transverse beam sizes")
+        return self
 
 
 # Kicker
@@ -470,6 +682,7 @@ ELEMENT_REGISTRY: dict[str, type[ElementBase]] = {
     "octupole": OctupoleItem,
     "multipole": MultipoleItem,
     "solenoid": SolenoidItem,
+    "electroncooler": ElectronCoolerItem,
     "kicker": KickerItem,
     "bump": BumpItem,
     "elseparator": ElSeparatorItem,

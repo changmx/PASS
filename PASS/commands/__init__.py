@@ -14,6 +14,7 @@ from .element.sextupole import Sextupole
 from .element.octupole import Octupole
 from .element.multipole import Multipole
 from .element.solenoid import Solenoid
+from .element.electron_cooler import ElectronCooler
 from .element.kicker import Kicker
 from .element.bump import Bump
 from .element.elseparator import ElSeparator
@@ -50,6 +51,7 @@ __all__ = [
     "Octupole",
     "Multipole",
     "Solenoid",
+    "ElectronCooler",
     "Kicker",
     "Bump",
     "ElSeparator",

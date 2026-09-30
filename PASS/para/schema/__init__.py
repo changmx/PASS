@@ -53,6 +53,8 @@ from PASS.para.schema.elements import (
     OctupoleItem,
     MultipoleItem,
     SolenoidItem,
+    ElectronBeamConfig,
+    ElectronCoolerItem,
     KickerItem,
     BumpItem,
     ElSeparatorItem,
@@ -75,10 +77,10 @@ __all__ = [
     'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake', 'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake',
     'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity', 'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid',
     'FileWake', 'WakeFileConvention', 'ElementBase', 'DriftItem', 'MarkerItem', 'SBendItem', 'QuadrupoleItem', 'SextupoleItem', 'OctupoleItem',
-    'MultipoleItem', 'SolenoidItem', 'KickerItem', 'BumpItem', 'ElSeparatorItem', 'ExciterItem', 'RFCavityItem', 'RFComponent', 'ReferenceClock',
-    'ReorganizeBunchItem', 'StatMonitorItem', 'DistMonitorItem', 'PhaseAdvanceMonitorItem', 'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig',
-    'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge', 'BeamBeamConfig', 'BeamBeamConfiguration', 'BeamBeamSourceConfig',
-    'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem', 'CrabCavityItem', 'FloatWaisterItem', 'ElectronCloudConfig',
-    'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration', 'IBSItem',
-    'IBSOpticsConfig'
+    'MultipoleItem', 'SolenoidItem', 'ElectronBeamConfig', 'ElectronCoolerItem', 'KickerItem', 'BumpItem', 'ElSeparatorItem', 'ExciterItem',
+    'RFCavityItem', 'RFComponent', 'ReferenceClock', 'ReorganizeBunchItem', 'StatMonitorItem', 'DistMonitorItem', 'PhaseAdvanceMonitorItem',
+    'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge', 'BeamBeamConfig',
+    'BeamBeamConfiguration', 'BeamBeamSourceConfig', 'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem', 'CrabCavityItem', 'FloatWaisterItem',
+    'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
+    'IBSItem', 'IBSOpticsConfig'
 ]

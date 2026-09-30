@@ -13,7 +13,7 @@ from typing import Annotated, get_args, get_origin
 from pydantic import BaseModel, Field, StrictInt, TypeAdapter, ValidationError
 
 from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig
-from PASS.para.schema.elements import ELEMENT_REGISTRY
+from PASS.para.schema.elements import ELEMENT_REGISTRY, ElectronBeamConfig, ElectronCoolerItem
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
 from PASS.para.schema.slicer import SlicerItem
@@ -151,12 +151,13 @@ class Validator:
         if not isinstance(raw, dict):
             self.add(path, "field.object", "必须是对象")
             return {}
-        if model in {IBSItem, IBSOpticsConfig}:
+        if model in {IBSItem, IBSOpticsConfig, ElectronBeamConfig, ElectronCoolerItem}:
             try:
                 normalized = model._normalize_fields(raw)
                 raw = {(model.model_fields[key].alias if key in model.model_fields else key): value for key, value in normalized.items()}
             except ValueError as exc:
-                self.add(path, "ibs.configuration", str(exc))
+                self.add(path, "electron_cooler.configuration" if model in {ElectronBeamConfig, ElectronCoolerItem} else "ibs.configuration",
+                         str(exc))
                 return {}
         known = {f.alias or name: (name, f) for name, f in model.model_fields.items() if name not in excluded}
         for key in raw.keys() - known.keys():
@@ -185,7 +186,8 @@ class Validator:
                 return checked.model_dump(by_alias=True)
             except ValidationError as exc:
                 for issue in exc.errors():
-                    location = _electron_cloud_json_location(model, issue["loc"]) if model in {ElectronCloudItem, IBSItem} else issue["loc"]
+                    location = _electron_cloud_json_location(
+                        model, issue["loc"]) if model in {ElectronCloudItem, IBSItem, ElectronBeamConfig, ElectronCoolerItem} else issue["loc"]
                     self.add((*path, *json_location(raw, location)), "field.constraint", issue["msg"])
         # Successful model validation already constructs its defaults. Only partial
         # results need these fallbacks; never cache mutable values across inputs.
@@ -475,8 +477,8 @@ class Validator:
             self.add(p, "command.object", "command 必须是对象")
             return
         cloud_kind = next((value for key, value in raw.items() if str(key).casefold() == "command"), "")
-        if str(cloud_kind).casefold() in {"electroncloud", "ibs"}:
-            command_model = IBSItem if str(cloud_kind).casefold() == "ibs" else ElectronCloudItem
+        if str(cloud_kind).casefold() in {"electroncloud", "ibs", "electroncooler"}:
+            command_model = {"ibs": IBSItem, "electroncloud": ElectronCloudItem, "electroncooler": ElectronCoolerItem}[str(cloud_kind).casefold()]
             try:
                 normalized = command_model._normalize_fields(raw)
                 raw = {
@@ -485,7 +487,12 @@ class Validator:
                 }
                 raw["Command"] = command_model.model_fields["command"].default
             except ValueError as exc:
-                self.add(p, "ibs.configuration" if command_model is IBSItem else "electron_cloud.configuration", str(exc))
+                code = {
+                    IBSItem: "ibs.configuration",
+                    ElectronCloudItem: "electron_cloud.configuration",
+                    ElectronCoolerItem: "electron_cooler.configuration"
+                }
+                self.add(p, code[command_model], str(exc))
                 return
         kind = raw.get("Command")
         if not isinstance(kind, str) or kind not in MODELS:
@@ -533,6 +540,7 @@ class Validator:
             "Octupole": ["Length (m)"],
             "Multipole": ["Length (m)"],
             "Solenoid": ["Length (m)"],
+            "ElectronCooler": ["Length (m)"],
             "Exciter": ["Enable"]
         }
         self.require(raw, required.get(kind, []), p)
@@ -586,7 +594,7 @@ class Validator:
             if is_finite_number(s) and is_finite_number(previous) and (previous < 0 or previous > s):
                 self.add((*p, "S previous (m)"), "twiss.position", "要求 0 ≤ S previous ≤ S；反向间隔会产生反向漂移")
         if "Save turns" in v:
-            self.turns(v["Save turns"], (*p, "Save turns"), flat=kind in {"SpaceCharge", "ElectronCloud", "IBS"})
+            self.turns(v["Save turns"], (*p, "Save turns"), flat=kind in {"SpaceCharge", "ElectronCloud", "IBS", "ElectronCooler"})
         if kind == "PhaseAdvanceMonitor":
             self.turns(v.get("Turn ranges", 0), (*p, "Turn ranges"), analysis=True)
             self.numeric(v, "Min action", p, minimum=0)

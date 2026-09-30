@@ -21,6 +21,7 @@ COMMAND_PRIORITY = {
     "Octupole": 300,
     "Multipole": 300,
     "Solenoid": 300,
+    "ElectronCooler": 300,
     "Kicker": 300,
     "Bump": 300,
     "RFCavity": 300,

@@ -419,8 +419,8 @@ class ConfigPage(QWidget):
             "元件",
             (("导入 MAD-X 元件…", "读取 MAD-X 导出的 Twiss/TFS 表，转换为 PASS 元件并追加到 Sequence。", self.configure_madx_elements), ) + tuple(
                 (command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
-                for command in ("Marker", "Drift", "SBend", "Quadrupole", "Sextupole", "Octupole", "Multipole", "Solenoid", "Kicker", "Bump",
-                                "ElSeparator", "RFCavity", "Exciter")),
+                for command in ("Marker", "Drift", "SBend", "Quadrupole", "Sextupole", "Octupole", "Multipole", "Solenoid", "ElectronCooler",
+                                "Kicker", "Bump", "ElSeparator", "RFCavity", "Exciter")),
         )
         add_section(
             "监测与诊断",
@@ -956,7 +956,7 @@ class ConfigPage(QWidget):
                         "Direction": "forward"
                     })
                 return model_draft(element, required)
-            if command in {"Bump", "ElSeparator"}:
+            if command in {"Bump", "ElSeparator", "ElectronCooler"}:
                 return model_draft(element, required)
             if command == "RFCavity":
                 required["Components"] = [{"Voltage (V)": 0.0, "Harmonic": 1, "Phase (rad)": 0.0}]
@@ -1249,7 +1249,7 @@ class ConfigPage(QWidget):
             names.append(unique)
         renamed = sum(a != b for a, b in zip(proposed_names, names))
         overlaps = []
-        transport_commands = {"twiss", "drift", "sbend", "quadrupole", "sextupole", "octupole", "multipole", "solenoid"}
+        transport_commands = {"twiss", "drift", "sbend", "quadrupole", "sextupole", "octupole", "multipole", "solenoid", "electroncooler"}
         for name, item in sequence.items():
             if not isinstance(item, dict) or str(item.get("Command", "")).lower() not in transport_commands:
                 continue
@@ -3544,14 +3544,15 @@ class ConfigPage(QWidget):
         if key == "Groups" and getattr(self, "_field_context", {}).get("Command") == "WakeField":
             from PASS.para.schema.wake_field import WakeSolverGroup
             structured = make_editor(list[WakeSolverGroup], value or [], key, self.base_dir)
-        elif (getattr(self, "_field_context", {}).get("Command") in {"CrossingAngle", "CrabCavity", "FloatWaister"} and spec is not None
-              and get_origin(bare(spec.annotation)) is Literal):
+        elif (getattr(self, "_field_context", {}).get("Command") in {"CrossingAngle", "CrabCavity", "FloatWaister", "ElectronCooler"}
+              and spec is not None and get_origin(bare(spec.annotation)) is Literal):
             structured = make_editor(spec.annotation, value, key, self.base_dir)
-        elif key in {"Reference clock", "Groups"} and spec is not None:
+        elif key in {"Reference clock", "Groups", "Electron beam"} and spec is not None:
             structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif key == "Save turns":
-            if getattr(self, "_field_context", {}).get("Command") == "ElectronCloud" and value and all(type(item) is int for item in value):
-                # ElectronCloud's flat form is one [turn] or [start, end, step] selection.
+            if getattr(self, "_field_context", {}).get("Command") in {"ElectronCloud", "ElectronCooler"} and value and all(
+                    type(item) is int for item in value):
+                # These commands interpret a flat list as one turn/range selection.
                 value = [value]
             structured = TurnsEditor(value, total_turns)
         elif key == "Turn ranges":

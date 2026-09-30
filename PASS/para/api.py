@@ -72,7 +72,7 @@ from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResource
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
 from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOpticsConfig
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
-from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem
+from PASS.para.schema.elements import CrossingAngleItem, CrabCavityItem, FloatWaisterItem, ElectronBeamConfig, ElectronCoolerItem
 
 # Low-level: schema objects → JSON
 
@@ -430,5 +430,5 @@ __all__ = [
     'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
     'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem',
     'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
-    'IBSItem', 'IBSOpticsConfig'
+    'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem'
 ]

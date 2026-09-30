@@ -345,6 +345,11 @@ def make_editor(annotation, value, label, base_dir):
     if isinstance(typ, type) and issubclass(typ, BaseModel):
         return SchemaEditor(typ, value, base_dir)
     if get_origin(typ) in (list, tuple):
+        # These physical matrices have fixed column counts even in an empty draft.
+        if label == "Velocity covariance (m2/s2)":
+            typ = list[tuple[float, float, float]]
+        elif label == "Velocity gradient (1/s)":
+            typ = list[tuple[float, float]]
         item_type = bare(get_args(typ)[0])
         if isinstance(item_type, type) and issubclass(item_type, BaseModel):
             return ModelListEditor(item_type, value, label, base_dir)
