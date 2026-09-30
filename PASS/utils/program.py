@@ -1,6 +1,7 @@
 """Prescribed piecewise-linear time programs for CPU and GPU consumers."""
 
 from decimal import Decimal, localcontext
+from math import sqrt
 
 import numpy as np
 
@@ -26,6 +27,7 @@ class LinearProgram:
             raise ValueError("Program values and times must have equal lengths")
         self.slopes = np.r_[np.diff(self.values) / np.diff(self.times), 0.] if len(self.times) > 1 else np.zeros(1)
         self.integrals = np.r_[0., np.cumsum(np.diff(self.times) * (self.values[1:] + self.values[:-1]) / 2)]
+        self._positive_values = bool(np.all(self.values > 0))
         self._devices = {}
         self._phase_data = None
         self._phase_anchor = None
@@ -41,7 +43,16 @@ class LinearProgram:
 
     def _parts(self, reference, offset, xp):
         if xp is np and np.isscalar(offset):
-            index = (0 if len(self.times) == 1 else max(0, int(np.searchsorted(self.times - reference, offset, side='right')) - 1))
+            # Compare local differences without allocating a shifted table or
+            # rounding a small offset away when it is added to a large epoch.
+            start, end = 0, len(self.times)
+            while start < end:
+                middle = (start + end) // 2
+                if self.times[middle] - reference <= offset:
+                    start = middle + 1
+                else:
+                    end = middle
+            index = max(0, start - 1)
             dx = (reference - self.times[index]) + offset
             slope = 0. if (reference - self.times[0]) + offset < 0. else self.slopes[index]
             return self.values[index], slope, dx, self.integrals[index]
@@ -135,12 +146,32 @@ class LinearProgram:
 
     def inverse_integral(self, cycles):
         """Invert a strictly positive frequency program, in physical seconds."""
-        from scipy.optimize import brentq
-        if np.any(self.values <= 0):
+        if not self._positive_values:
             raise ValueError("Clock frequency must be positive")
-        span = abs(float(cycles)) / float(np.min(self.values)) + 1. / float(np.min(self.values))
-        return brentq(lambda t: float(self.integral(t)) - cycles,
-                      self.origin - span,
-                      self.origin + span,
-                      xtol=np.nextafter(0., 1.),
-                      rtol=4 * np.finfo(float).eps)
+        cycles = float(cycles)
+        if not np.isfinite(cycles):
+            raise ValueError("Clock cycles must be finite")
+        if cycles == 0.:
+            return self.origin
+        if len(self.times) == 1:
+            return self.origin + cycles / self.values[0]
+        start, end = 0, len(self.times)
+        while start < end:
+            middle = (start + end) // 2
+            if self.integrals[middle] - self.integral_origin <= cycles:
+                start = middle + 1
+            else:
+                end = middle
+        index = max(0, start - 1)
+        remaining = cycles - (self.integrals[index] - self.integral_origin)
+        slope = 0. if start == 0 else self.slopes[index]
+        if index + 1 < len(self.times) and start != 0:
+            upper_remaining = cycles - (self.integrals[index + 1] - self.integral_origin)
+            if abs(upper_remaining) < abs(remaining):
+                index += 1
+                remaining = upper_remaining
+        value = self.values[index]
+        # Anchor at the nearer integrated knot and rationalize the quadratic
+        # root to retain precision for weak chirps and near-knot times.
+        dx = (remaining / value if slope == 0. else 2 * remaining / (value + sqrt(value * value + 2 * slope * remaining)))
+        return self.times[index] + dx

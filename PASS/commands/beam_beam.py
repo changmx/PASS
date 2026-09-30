@@ -478,7 +478,7 @@ def _capture_command_state(command):
     kind = command.cmd_type
     if kind == "WakeField":
         return command.state_dict()
-    if kind == "ElectronCloud":
+    if kind in {"ElectronCloud", "IBS", "ElectronCooler"}:
         return command.state_dict() if command.is_enabled else None
     if kind == "Injection":
         if not command._finished or any(source.Np_injected != source.planned_count for source in command.inj_bunchs):
@@ -574,6 +574,16 @@ def capture_collision_state(sim, sequences):
 def _stage_command_state(command, data, next_turn, xp):
     """Validate all command state using detached objects before the commit."""
     kind = command.cmd_type
+    if kind in {"IBS", "ElectronCooler"}:
+        if not command.is_enabled:
+            if data is not None:
+                raise ValueError(f"Disabled {kind} cannot restore active random state")
+            return {}
+        if not isinstance(data, dict):
+            raise ValueError(f"Enabled {kind} requires checkpoint random state")
+        candidate = copy.copy(command)
+        candidate.load_state_dict(copy.deepcopy(data))
+        return {name: getattr(candidate, name) for name in ("_rngs", "_entropy", "_calls", "last_diagnostics")}
     if kind == "ElectronCloud":
         if not command.is_enabled:
             if data is not None:
