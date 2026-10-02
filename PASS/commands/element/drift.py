@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from PASS.commands.command import Command
+from PASS.commands.element.magnet_maps import _GpuBody
 from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
@@ -137,8 +138,11 @@ class Drift(Command):
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         if self._sc_nodes:
-            from PASS.utils.slicing import execute_element_body_gpu
-            execute_element_body_gpu(self, sim)
+            for bunch in beam.bunches:
+                if bunch.end_idx <= bunch.start_idx:
+                    continue
+                body = _GpuBody(self, beam, bunch, turn)
+                body.run(lambda ds, on_center: transport_with_center(body.drift, ds, on_center))
         else:
             p = beam.particles
             for bunch in beam.bunches:

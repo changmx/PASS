@@ -7,6 +7,7 @@
    :maxdepth: 2
 
    error
+   magnet_ramping
    marker
    drift
    dipole

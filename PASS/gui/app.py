@@ -2969,6 +2969,35 @@ class ConfigPage(QWidget):
         except (ValueError, OSError) as exc:
             QMessageBox.warning(self, "转换失败", str(exc))
 
+    def _edit_magnet_ramping(self):
+        if not self._tool_resources_ready():
+            return
+        try:
+            from PASS.gui.magnet_ramping import MagnetRampingDialog
+            command = self._field_context["Command"]
+            order = {"Quadrupole": 1, "Sextupole": 2, "Octupole": 3}.get(command)
+            keys = ("KiL", "KiSL") if order is None else (f"K{order}L", f"K{order}SL")
+            element = {"Command": command}
+            for key in ("Length (m)", *keys):
+                element[key] = self._read_field_value(key, self._form_fields[key], self._field_context.get(key))
+            if not math.isfinite(element["Length (m)"]) or element["Length (m)"] < 0:
+                raise ValueError("元件长度必须是有限非负数。")
+            dialog = MagnetRampingDialog(self, element=element)
+            try:
+                if dialog.exec() == QDialog.Accepted and dialog.exported_path:
+                    fields = self._form_fields
+                    fields["Ramping file"].setText(dialog.exported_path)
+                    for key, field in fields.items():
+                        if key != "Ramping file" and key.casefold().endswith("ramping file"):
+                            field.setText("")
+                    fields["Is ramping"].setChecked(True)
+                    self._mark_form_dirty()
+                    self.form_hint.setText("已回填 ramping 文件并清空旧分量文件字段；点击应用或插入元件保存此草稿。")
+            finally:
+                dialog.deleteLater()
+        except (ValueError, TypeError, KeyError, OSError) as exc:
+            QMessageBox.warning(self, "无法编辑磁铁 ramping", str(exc))
+
     def _populate_injection_form(
         self,
         title: str,
@@ -3288,11 +3317,27 @@ class ConfigPage(QWidget):
             fields["Save potential"].toggled.connect(output_mode)
             output_mode()
         if "Is ramping" in fields:
-            fields["Is ramping"].setToolTip("当前磁铁跟踪未实现 ramping；新配置不能启用。已有 true 可取消。")
-            fields["Is ramping"].setEnabled(fields["Is ramping"].isChecked())
-            for key, field in fields.items():
-                if key.endswith(" ramping file"):
-                    field.setEnabled(False)
+            supported = command in {"Quadrupole", "Sextupole", "Octupole", "Multipole"}
+            ramping = fields["Is ramping"]
+            ramping.setToolTip("按物理时间读取 TFS 中的绝对归一化 K / KL；正长度切片中心取样，端点外保持常数。" if supported else "当前元件未实现 ramping；新配置不能启用。已有 true 可取消。")
+            ramping.setEnabled(supported or ramping.isChecked())
+
+            def ramping_mode():
+                for key, field in fields.items():
+                    if key.casefold().endswith("ramping file"):
+                        field.setEnabled(supported and ramping.isChecked())
+                        if supported:
+                            field.setToolTip("标准 TFS：TIME（秒）与 K1L / K1SL 等强度列；在工具 → 数据转换 → 磁铁 ramping 中生成。\n"
+                                             "统一 Ramping file 与旧分量 ramping file 字段二选一，不可同时填写。")
+
+            ramping.toggled.connect(ramping_mode)
+            ramping_mode()
+            if supported:
+                generator = QPushButton("生成 / 导入 ramping 文件…")
+                generator.setObjectName("magnetRampingEditorButton")
+                generator.setToolTip("以当前元件强度初始化；成功导出后回填 Ramping file、启用 Is ramping，并清空旧分量文件字段。仍需应用或插入元件。")
+                generator.clicked.connect(self._edit_magnet_ramping)
+                fields["Ramping file"].parentWidget().layout().addRow(generator)
         if command == "Exciter":
             selector = PropertyComboBox()
             selector.addItems(["tune", "frequency"])

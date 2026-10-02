@@ -137,6 +137,7 @@ class Validator:
         self.last_injection = 0
         self.bunch_models = []
         self.file_cache = {}
+        self.magnet_ramp_cache = {}
 
     def add(self, path, code, message, warning=False):
         self.report.add(path, code, message, "warning" if warning else "error")
@@ -563,13 +564,17 @@ class Validator:
             for edge in ("E1 (rad)", "E2 (rad)"):
                 if is_finite_number(v.get(edge)) and abs(math.cos(v[edge])) < 1e-12:
                     self.add((*p, edge), "sbend.edge", "端面角的 cos 接近 0，边缘聚焦公式奇异")
-        if kind == "Multipole" and not v.get("KiL") and not v.get("KiSL"):
+        if kind == "Multipole" and not v.get("KiL") and not v.get("KiSL") and not v.get("Is ramping"):
             self.add(p, "multipole.empty", "KiL 与 KiSL 至少有一项包含分量")
-        if v.get("Is ramping"):
-            self.add((*p, "Is ramping"), "feature.unsupported", "当前磁铁跟踪未实现 ramping；此开关和 ramping 文件不会更新磁场，请关闭")
-        for key in v:
-            if key.endswith(" ramping file"):
-                self.file(v, key, p, "ramping", active=False)
+        if kind in {"Quadrupole", "Sextupole", "Octupole", "Multipole"}:
+            from .files import check_magnet_ramping
+            check_magnet_ramping(self, v, p, order={"Quadrupole": 1, "Sextupole": 2, "Octupole": 3}.get(kind))
+        else:
+            if v.get("Is ramping") or raw.get("Is ramping") or raw.get("is_ramping"):
+                self.add((*p, "Is ramping"), "feature.unsupported", "该元件尚不支持 ramping；请关闭此开关")
+            for key in v:
+                if key.endswith(" ramping file"):
+                    self.file(v, key, p, "ramping", active=False)
         if "Is field error" in v and not v["Is field error"] and (v.get("Field error KNL") or v.get("Field error KSL")):
             self.add((*p, "Is field error"), "field_error.disabled", "场误差系数已填写，但场误差开关关闭", True)
         if kind == "Bump":

@@ -34,6 +34,7 @@ class ConversionPage(QWidget):
         self._sdds_check = None
         self._preview_metadata = {}
         self._wake_dialog = None
+        self._magnet_ramping_dialog = None
         root = QVBoxLayout(self)
         header = QHBoxLayout()
         self.open_button = QPushButton("打开数据文件…")
@@ -43,6 +44,10 @@ class ConversionPage(QWidget):
         self.wake_import_button.setToolTip("将 CSV / TXT / HEADTAIL 尾场转换为含物理约定的标准 TFS。")
         self.wake_import_button.clicked.connect(self.open_wake_import)
         header.addWidget(self.wake_import_button)
+        self.magnet_ramping_button = QPushButton("磁铁 ramping…")
+        self.magnet_ramping_button.setToolTip("导入 CSV / TXT / TFS，或按时间断点生成归一化 K / KL ramping 文件。")
+        self.magnet_ramping_button.clicked.connect(self.open_magnet_ramping)
+        header.addWidget(self.magnet_ramping_button)
         self.source_label = QLabel("支持拖入 OMC3 SDDS、HDF5、TFS、CSV；原文件只读")
         self.source_label.setWordWrap(True)
         header.addWidget(self.source_label, 1)
@@ -251,6 +256,16 @@ class ConversionPage(QWidget):
         self._wake_dialog = None
         dialog.deleteLater()
 
+    def open_magnet_ramping(self):
+        if self.busy or self._magnet_ramping_dialog is not None:
+            return
+        from PASS.gui.magnet_ramping import MagnetRampingDialog
+        dialog = MagnetRampingDialog(self)
+        self._magnet_ramping_dialog = dialog
+        dialog.exec()
+        self._magnet_ramping_dialog = None
+        dialog.deleteLater()
+
     def choose_file(self):
         path, _ = QFileDialog.getOpenFileName(self, "打开数据文件", file_dialog_directory(self), "数据文件 (*.sdds *.h5 *.hdf5 *.tfs *.csv);;所有文件 (*)")
         if path:
@@ -285,6 +300,7 @@ class ConversionPage(QWidget):
     def _set_busy(self, busy):
         self.open_button.setEnabled(not busy)
         self.wake_import_button.setEnabled(not busy)
+        self.magnet_ramping_button.setEnabled(not busy)
         self.cancel_button.setEnabled(busy)
         self.preview_button.setEnabled(not busy and self.info is not None)
         self.export_button.setEnabled(not busy and self._can_export())

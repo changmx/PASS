@@ -5,8 +5,9 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.commands.element.magnet_maps import _GpuBody, _compile_stage_kernel, _launch_multipole_bunch, _prepare_multipole_coefficients
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
-from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
+from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_dkd
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -127,12 +128,9 @@ class SBend(Command):
         turn = sim.state.turn
         masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
         try:
-            if self.field_errors.active:
-                from PASS.commands.element.error import _track_field_errors_gpu
-                _track_field_errors_gpu(self, sim)
-            elif self._sc_nodes:
-                from PASS.utils.slicing import execute_element_body_gpu
-                execute_element_body_gpu(self, sim)
+            if self.field_errors.active or self._sc_nodes:
+                for bunch in beam.bunches:
+                    self._track_bend_body_gpu(beam, bunch, turn)
             else:
                 launch_dipole(self, sim)
         finally:
@@ -142,6 +140,30 @@ class SBend(Command):
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
+
+    def _track_bend_body_gpu(self, beam, bunch, turn):
+        if bunch.end_idx <= bunch.start_idx:
+            return
+        if not self.is_thick:
+            kn, ks, inv_fact = _prepare_multipole_coefficients(self, [self.k0l], [0.0])
+            _launch_multipole_bunch(self, beam, bunch, turn, kn, ks, inv_fact, 0)
+            return
+        body = _GpuBody(self, beam, bunch, turn)
+        params = np.array([self.h, self.k0, self.e1, self.e2, self.hgap, self.fint, self.fintx, int(self.model == "rot-kick-rot")])
+        launch_stage = body.stage(_bend_stage_kernel(*body.key), (params, np.zeros(1), np.zeros(1), np.ones(1)), use_double=True)
+
+        def launch(length, action):
+            if self.field_errors.active and action in (0, 1):
+                launch_stage(length, 1)
+                self.field_errors.kick_gpu(beam.particles, bunch.start_idx, bunch.end_idx, length / self.length)
+                if action == 0:
+                    launch_stage(length, 2)
+            else:
+                launch_stage(length, action)
+
+        launch(0.0, 3)
+        body.run(lambda ds, on_center: transport_dkd(launch, self.integrator, ds, on_center))
+        launch(0.0, 4)
 
     def _track_bend_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
 
@@ -1294,3 +1316,58 @@ def launch_dipole(element, sim):
                     np.int32(0 if element.integrator == "uniform" else 1), np.int32(0 if element.model == "drift-kick-drift-exact" else 1),
                     np.int32(0 if element.is_thick else 1))
             kernel((blocks, ), (threads, ), args)
+
+
+_GPU_STAGE_BEND = r"""
+pass_real_t h = params[0], k0 = params[1], momentum_ratio = 1 + dpi;
+pass_real_t particle_beta_gamma = momentum_ratio * reference_beta_gamma,
+            beta0_over_beta = beta0 * sqrt(1 + particle_beta_gamma * particle_beta_gamma) / particle_beta_gamma;
+pass_real_t time_factor = sqrt(momentum_ratio * momentum_ratio + 1 / (reference_beta_gamma * reference_beta_gamma));
+if (action == 3 || action == 4) {
+    pass_real_t e = params[action == 3 ? 2 : 3], sn = sin(-e), cs = cos(-e);
+    if (action == 3) {
+        if (fabs(e) > PASS_EPS)
+            alive = d_yrot(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, sn, cs, beta0, time_factor, s0, turn);
+        if (alive && fabs(k0) > PASS_EPS)
+            alive = d_fringe(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, params[5], params[4], k0, beta0, time_factor, s0, turn);
+        if (alive && fabs(e) > PASS_EPS)
+            alive = d_wedge(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, k0, sn, cs, beta0, beta0_over_beta, time_factor, s0, turn);
+    } else {
+        if (fabs(e) > PASS_EPS)
+            alive = d_wedge(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, k0, sn, cs, beta0, beta0_over_beta, time_factor, s0, turn);
+        if (alive && fabs(k0) > PASS_EPS)
+            alive = d_fringe(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, params[6], params[4], -k0, beta0, time_factor, s0, turn);
+        if (alive && fabs(e) > PASS_EPS)
+            alive = d_yrot(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, -e, sn, cs, beta0, time_factor, s0, turn);
+    }
+} else if (params[7] == 0) {
+    if (action != 2) {
+        alive = d_drift(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, beta0_over_beta, reference_beta_gamma, s0, turn);
+        if (alive)
+            d_kick(pxi, zi, xi, dpi, L, h, k0, beta0, beta0_over_beta);
+    }
+    if (action != 1 && alive)
+        d_drift(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, beta0_over_beta, reference_beta_gamma, s0, turn);
+} else {
+    pass_real_t rho = fabs(h) > PASS_EPS ? 1 / h : 0;
+    const double base = h * L / 4.0;
+    const double z1 = pass_yoshida_z1, z0 = pass_yoshida_z0;
+    pass_real_t sf, cf, shf, sm, cm, shm;
+    d_polar_trig(base * z1, sf, cf, shf);
+    d_polar_trig(base * (z1 + z0), sm, cm, shm);
+    if (action != 2) {
+        alive = d_rkr_drift(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, L / 2, h, k0, beta0, beta0_over_beta, reference_beta_gamma, rho, sf, cf, shf,
+                            sm, cm, shm, s0, turn);
+        if (alive)
+            pxi -= L * k0 * h * xi;
+    }
+    if (action != 1 && alive)
+        d_rkr_drift(xi, pxi, yi, zi, pyi, dpi, ti, lp, lt, i, L / 2, h, k0, beta0, beta0_over_beta, reference_beta_gamma, rho, sf, cf, shf, sm, cm,
+                    shm, s0, turn);
+}
+"""
+
+
+@lru_cache(maxsize=None)
+def _bend_stage_kernel(dtype, device):
+    return _compile_stage_kernel(CUDA_REAL_PREAMBLE + DIPOLE_BODY, _GPU_STAGE_BEND, dtype, device, use_double=True)

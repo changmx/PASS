@@ -5,8 +5,9 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.commands.element.magnet_maps import _GpuBody, _launch_multipole_bunch, _prepare_multipole_coefficients
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
-from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
+from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_dkd
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -106,12 +107,9 @@ class Kicker(Command):
         turn = sim.state.turn
         masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
         try:
-            if self.field_errors.active:
-                from PASS.commands.element.error import _track_field_errors_gpu
-                _track_field_errors_gpu(self, sim)
-            elif self._sc_nodes:
-                from PASS.utils.slicing import execute_element_body_gpu
-                execute_element_body_gpu(self, sim)
+            if self.field_errors.active or self._sc_nodes:
+                for bunch in beam.bunches:
+                    self._track_kicker_body_gpu(beam, bunch, turn)
             else:
                 p = beam.particles
                 kernel = _get_kicker_kernel(p.dtype.str)
@@ -138,6 +136,17 @@ class Kicker(Command):
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
+
+    def _track_kicker_body_gpu(self, beam, bunch, turn):
+        if bunch.end_idx <= bunch.start_idx:
+            return
+        kn, ks, inv_fact = _prepare_multipole_coefficients(self, [-self.hkick], [self.vkick])
+        if self._sc_nodes:
+            body = _GpuBody(self, beam, bunch, turn)
+            launch = body.multipole_stage(kn, ks, inv_fact)
+            body.run(lambda ds, on_center: transport_dkd(launch, self.integrator, ds, on_center))
+        else:
+            _launch_multipole_bunch(self, beam, bunch, turn, kn, ks, inv_fact, int(self.is_thick))
 
     def _track_kicker_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
 

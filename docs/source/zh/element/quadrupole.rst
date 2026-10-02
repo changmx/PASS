@@ -88,6 +88,12 @@ PASS 中的四极铁支持 **厚元件** （ ``length > 0`` ）和 **薄透镜**
      - ``[]``
      - 孔径参数值，默认 ``[]``
 
+正、斜分量的时变强度可设置 ``is_ramping=True`` 与
+``ramping_file="magnet_ramp.tfs"``（JSON：``Is ramping``、``Ramping file``）。
+TFS 列名、单位和入口采样约定见 :doc:`magnet_ramping`。每个非空 bunch 在入口
+采样一次，强度在整个元件内冻结。运行时名义强度保留最后执行的 bunch 入口值，
+场误差独立保存。同一页面也说明 ``update_strengths`` 的用法。
+
 使用示例
 --------
 

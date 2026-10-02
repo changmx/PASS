@@ -100,6 +100,21 @@ class MagneticElementBase(SlicedElementBase):
         return values
 
 
+class RampingMagneticElementBase(MagneticElementBase):
+    """Time programs of normalized strengths for straight multipole magnets."""
+
+    is_ramping: bool = Field(default=False, alias="Is ramping")
+    ramping_file: str = Field(default="", alias="Ramping file")
+
+    @model_validator(mode="after")
+    def validate_ramping_sources(self):
+        if self.is_ramping:
+            from PASS.utils.magnet_program import _ramping_sources
+            order = {"QuadrupoleItem": 1, "SextupoleItem": 2, "OctupoleItem": 3}.get(type(self).__name__)
+            _ramping_sources(self.model_dump(by_alias=True), order=order)
+        return self
+
+
 # Drift
 
 
@@ -141,7 +156,7 @@ class SBendItem(MagneticElementBase):
 # Quadrupole
 
 
-class QuadrupoleItem(MagneticElementBase):
+class QuadrupoleItem(RampingMagneticElementBase):
     command: str = Field(default="Quadrupole", alias="Command")
     k1l: float = Field(default=0.0, alias="K1L")
     k1sl: float = Field(default=0.0, alias="K1SL")
@@ -162,7 +177,7 @@ class QuadrupoleItem(MagneticElementBase):
 # Sextupole
 
 
-class SextupoleItem(MagneticElementBase):
+class SextupoleItem(RampingMagneticElementBase):
     command: str = Field(default="Sextupole", alias="Command")
     k2l: float = Field(default=0.0, alias="K2L")
     k2sl: float = Field(default=0.0, alias="K2SL")
@@ -178,7 +193,7 @@ class SextupoleItem(MagneticElementBase):
 # Octupole
 
 
-class OctupoleItem(MagneticElementBase):
+class OctupoleItem(RampingMagneticElementBase):
     command: str = Field(default="Octupole", alias="Command")
     k3l: float = Field(default=0.0, alias="K3L")
     k3sl: float = Field(default=0.0, alias="K3SL")
@@ -194,7 +209,7 @@ class OctupoleItem(MagneticElementBase):
 # Multipole
 
 
-class MultipoleItem(MagneticElementBase):
+class MultipoleItem(RampingMagneticElementBase):
     command: str = Field(default="Multipole", alias="Command")
     knl: list[float] = Field(default_factory=list, alias="KiL")
     ksl: list[float] = Field(default_factory=list, alias="KiSL")

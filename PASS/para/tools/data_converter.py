@@ -19,8 +19,10 @@ Output TFS format:
     1     1.23e-6   ...
     ...
 
-The engine reads ramping TFS files via tfs.read() and indexes by row
-(row 0 = turn 1). TURN column is for human readability; TIME (S) is optional.
+This legacy converter resamples data on turns for external workflows. Magnetic
+tracking requires physical seconds (TIME or legacy TIME_S) and interpolates by
+time, never by row number. Use PASS.para.tools.ramping.convert_magnet_ramping
+for direct physical-time magnet tables without turn resampling.
 """
 
 from pathlib import Path

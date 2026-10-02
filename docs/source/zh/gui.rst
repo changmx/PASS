@@ -193,7 +193,12 @@ Distribution File Mode 的输入框和展开列表按选项文本加宽，支持
 S 是出口，入口为 S-Length；零强度仍有材料损失，零长度支持一次 VL 薄冲量。
 
 Exciter 配置提供 tune/频率选择及 FM/AM 字段联动。
-普通磁铁的 ramping 尚未实现，界面不允许新启用。
+四极、六极、八极和多极铁开放 ``Is ramping`` 与 ``Ramping file``，
+读取以物理时间为自变量的归一化强度 TFS 表，见 :doc:`element/magnet_ramping`。
+**Ramping** 分组中的 **生成 / 导入 ramping 文件…** 支持上升–平台–下降模板和
+数值表粘贴；成功导出后在属性草稿中回填文件路径、启用 ramping 并清空旧分量文件字段，
+应用或插入元件后保存修改。具体操作见 :doc:`gui_tools`。
+其他磁铁元件暂不开放 ramping。
 
 尾场
 ----

@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
+from copy import deepcopy
 from typing import Literal
 from datetime import datetime
 from pathlib import Path
 import json
-import shutil
 import os
 import sys
 import socket
@@ -16,6 +16,7 @@ import numpy as np
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.helper import convert_keys_to_lower
 from PASS.utils.program import LinearProgram
+from PASS.utils.input_snapshot import json_bytes, resolve_output_base
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,7 @@ class Config:
             raw0 = json.load(f)
             from PASS.validation.files import resolve_input_paths
             resolve_input_paths(raw0, path0.resolve().parent)
+            parameters0 = deepcopy(raw0)
             from PASS.para.schema.wake_field import expand_wake_configurations
             expand_wake_configurations(raw0)
             space_charge0, space_charge_count0 = self._load_space_charge(raw0)
@@ -104,6 +106,7 @@ class Config:
             with open(path1, 'r', encoding='utf-8-sig') as f:
                 raw1 = json.load(f)
                 resolve_input_paths(raw1, path1.resolve().parent)
+                parameters1 = deepcopy(raw1)
                 expand_wake_configurations(raw1)
                 space_charge1, space_charge_count1 = self._load_space_charge(raw1)
                 electron_cloud1 = self._load_electron_cloud(raw1)
@@ -192,13 +195,11 @@ class Config:
 
         self.is_plot = data0.get("is plot figure")
 
-        output_base = data0.get("output directory")
-        if output_base is None or output_base.lower() == "default":
-            output_base = Path(__file__).resolve().parent.parent.parent / "output"
-        elif Path(output_base).is_absolute():
-            output_base = Path(output_base).resolve()
-        else:
-            output_base = (Path(beam0_path).resolve().parent / Path(output_base)).resolve()
+        output_base = resolve_output_base(data0.get("output directory"), beam0_path)
+        parameters = [parameters0] if beam1_path is None else [parameters0, parameters1]
+        for data in parameters:
+            output_key = next((key for key in data if key.casefold() == "output directory"), "Output directory")
+            data[output_key] = str(output_base)
 
         if flat_output:
             self.output_ymd = ""
@@ -207,12 +208,11 @@ class Config:
                 if name == "output_dir" or name.startswith("output_dir_"):
                     setattr(self, name, str(output_base))
             Path(output_base).mkdir(parents=True, exist_ok=True)
-            for index, source in enumerate([beam0_path, beam1_path]):
-                if source is not None:
-                    destination = Path(output_base) / f"run_beam{index}_snapshot.json"
-                    if destination.exists():
-                        raise FileExistsError(f"Flat run snapshot already exists: {destination}")
-                    shutil.copy(source, destination)
+            for index, data in enumerate(parameters):
+                destination = Path(output_base) / f"run_beam{index}_snapshot.json"
+                if destination.exists():
+                    raise FileExistsError(f"Flat run snapshot already exists: {destination}")
+                self._write_parameter_snapshot(destination, data)
             return
 
         now = datetime.now()
@@ -259,9 +259,17 @@ class Config:
         Path(self.output_dir_para).mkdir(parents=True, exist_ok=True)
         Path(self.output_dir_dist).mkdir(parents=True, exist_ok=True)
 
-        shutil.copy(beam0_path, Path(self.output_dir_para) / f"{self.output_hms}_beam0.json")
-        if beam1_path is not None:
-            shutil.copy(beam1_path, Path(self.output_dir_para) / f"{self.output_hms}_beam1.json")
+        for index, data in enumerate(parameters):
+            self._write_parameter_snapshot(Path(self.output_dir_para) / f"{self.output_hms}_beam{index}.json", data)
+
+    @staticmethod
+    def _write_parameter_snapshot(path, data):
+        """Save loaded parameters with resolved paths, without rereading inputs."""
+        content = json_bytes(data)
+        with Path(path).open("xb") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
 
     @staticmethod
     def _load_intrabeam_scattering(data: dict):

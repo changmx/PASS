@@ -10,6 +10,7 @@ INPUT_FILE_FIELDS = frozenset({
     "file path",
     "file_path",
     "program file",
+    "ramping file",
     "k0l ramping file",
     "k1l ramping file",
     "k1sl ramping file",
@@ -136,7 +137,7 @@ def check_table(check, value, path, kind, active, minimum_rows):
                     return
                 required.append(matched[0])
         else:
-            return  # No engine-defined magnetic ramping format exists yet.
+            return  # Specialized program readers validate their own formats.
         missing = [n for n in required if n not in names]
         if missing:
             check.add(path, "file.columns", f"缺少必需列：{missing}；现有列：{names}", not active)
@@ -196,3 +197,44 @@ def check_rf_files(check, values, path):
             check.report.checked_files.append(prepared['Program file'])
         except (OSError, ValueError, KeyError, TypeError) as exc:
             check.add((*path, 'Components', index, 'Program file'), 'rf.program', str(exc))
+
+
+def check_magnet_ramping(check, values, path, *, order=None):
+    """Use the runtime reader for enabled and inactive magnet program files."""
+    from copy import deepcopy
+    from tfs.errors import TfsFormatError
+    from PASS.utils.magnet_program import _ramping_sources, load_magnet_ramp
+
+    active = bool(values.get("Is ramping", False))
+    prepared = deepcopy(values)
+    resolve_input_paths(prepared, check.base)
+    declared = any(value for key, value in prepared.items() if key.lower() == "ramping file" or key.lower().endswith(" ramping file"))
+    if not active and not declared:
+        return
+    if not active:
+        check.add((*path, "Ramping file"), "file.unused", "磁铁 ramping 未启用，所选文件不会参与跟踪", True)
+    read_errors = (OSError, ValueError, KeyError, TypeError, OverflowError, TfsFormatError)
+    try:
+        sources = _ramping_sources(prepared, order=order)
+        if not check.check_files:
+            return
+        prepared["Is ramping"] = True
+        length = prepared.get("Length (m)", 0.)
+        cache_key = (sources, length, order)
+        # Cache only this validation pass, including length/order-specific errors.
+        # Store diagnostics, not large programs; every reference keeps its location.
+        if cache_key not in check.magnet_ramp_cache:
+            try:
+                load_magnet_ramp(prepared, length=length, order=order)
+                check.magnet_ramp_cache[cache_key] = None
+            except read_errors as exc:
+                check.magnet_ramp_cache[cache_key] = str(exc)
+        error = check.magnet_ramp_cache[cache_key]
+        if error is not None:
+            check.add((*path, "Ramping file"), "magnet.ramping", error, not active)
+            return
+        for source in sources:
+            if str(source) not in check.report.checked_files:
+                check.report.checked_files.append(str(source))
+    except read_errors as exc:
+        check.add((*path, "Ramping file"), "magnet.ramping", str(exc), not active)

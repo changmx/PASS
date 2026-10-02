@@ -9,7 +9,6 @@ import difflib
 import hashlib
 from importlib.metadata import PackageNotFoundError, version
 import json
-import os
 from pathlib import Path
 import platform
 import re
@@ -27,7 +26,8 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
 from PASS import __version__
 from PASS.gui.appearance import code_font
 from PASS.gui.widgets import file_dialog_directory
-from PASS.gui.project import atomic_write, file_references, json_bytes, read_json, resolved_file
+from PASS.gui.project import read_json
+from PASS.utils.input_snapshot import archive_input_documents, atomic_write, copy_input_file, json_bytes, resolved_file
 from PASS.gui.runner import RunExitCode
 from PASS.gui.widgets import BusyProgressBar, PropertyComboBox, button
 
@@ -61,16 +61,7 @@ class RunPreparation(QThread):
             raise PreparationCancelled()
 
     def _copy_file(self, source, destination):
-        digest = hashlib.sha256()
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        with source.open("rb") as source_stream, destination.open("xb") as target_stream:
-            for block in iter(lambda: source_stream.read(1024 * 1024), b""):
-                self._check()
-                target_stream.write(block)
-                digest.update(block)
-            target_stream.flush()
-            os.fsync(target_stream.fileno())
-        return digest.hexdigest()
+        return copy_input_file(source, destination, check=self._check)
 
     def _verify_record(self):
         path = Path(self.previous_record)
@@ -147,46 +138,14 @@ class RunPreparation(QThread):
                 self.record["package_versions"][package] = version(package)
             except PackageNotFoundError:
                 pass
-        copied = {}
-        paths = []
         self.progress.emit("复制依赖并计算快照校验和…")
-        for index, (name, original, base) in enumerate(self.documents):
-            self._check()
-            data = deepcopy(original)
-            original_path = snapshot / f"configuration{index}.json"
-            original_content = json_bytes(self._comparison_documents[index] if self._comparison_documents is not None else original)
-            atomic_write(original_path, original_content)
-            for mapping, key, _pointer in file_references(data):
-                self._check()
-                source = resolved_file(mapping[key], Path(base))
-                if source not in copied:
-                    target = snapshot / "assets" / str(len(copied)) / source.name
-                    digest = self._copy_file(source, target)
-                    copied[source] = target
-                    self.record["dependencies"].append({
-                        "file": target.relative_to(snapshot).as_posix(),
-                        "sha256": digest,
-                        "source": str(source),
-                        "size_bytes": target.stat().st_size
-                    })
-                mapping[key] = str(copied[source])
-            data["Output directory"] = str(output)
-            path = snapshot / f"beam{index}.json"
-            content = json_bytes(data)
-            atomic_write(path, content)
-            self.record["inputs"].append({
-                "name": name,
-                "file": path.name,
-                "sha256": hashlib.sha256(content).hexdigest(),
-                "configuration": original_path.name,
-                "configuration_sha256": hashlib.sha256(original_content).hexdigest(),
-                "backend": data.get("Backend (gpu/cpu)", "cpu"),
-                "turns": data.get("Number of turns")
-            })
-            for command_name, command in data.get("Sequence", {}).items():
-                if isinstance(command, dict) and command.get("Command") == "Injection":
-                    self.record["random_seeds"].append({"input": name, "command": command_name, "seed": command.get("Random Seed")})
-            paths.append(path)
+        paths = archive_input_documents(self.documents,
+                                        snapshot,
+                                        output,
+                                        comparison_documents=self._comparison_documents,
+                                        check=self._check,
+                                        copy_file=self._copy_file,
+                                        record=self.record)
         self._check()
         self.progress.emit("校验复制后的固定快照…")
         checked = validate_documents([(path.name, read_json(path.read_bytes()), path.parent) for path in paths])

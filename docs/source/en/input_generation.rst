@@ -81,6 +81,72 @@ The script writes ``input/beam0.json``. Its relative output directory resolves t
 
 For this uncoupled linear model, transverse RMS emittances should remain constant up to numerical rounding. The finite sampled initial values need not equal the requested emittances exactly. Longitudinal transfer is disabled here; this example does not model synchrotron oscillation or collective effects.
 
+Input snapshots for execution
+-----------------------------
+
+``PASS.main.main(beam0_path, beam1_path=None, ...)`` archives inputs by default
+(``archive_inputs=True``). After checking the original configuration, it copies
+the JSON configuration and referenced input files, validates the resulting
+snapshot, and initializes tracking from that snapshot. This includes particle
+distributions, RF programs, offset tables, wakefield models, and magnet ramping
+tables. Later changes to their original files do not affect the run.
+
+The command-line/Python workflow preserves its existing dated result layout:
+
+.. code-block:: text
+
+   <output>/input_snapshots/<run-id>/
+       configuration0.json         # original configuration values
+       beam0.json                  # actual execution input; optional beam1.json
+       assets/<index>/<filename>   # copied input dependencies
+       run.json                    # paths, SHA-256 hashes and run status
+   <output>/<YYYY_MMDD>/<HHMM_SS>/   # existing simulation result layout
+
+Two-input runs also save ``configuration1.json``. File references in execution
+JSON point to relative ``assets/...`` paths inside the snapshot, so the input
+directory can be moved together. ``Output directory`` is resolved against the
+original Beam 0 JSON directory before copying and stored as an absolute path;
+moving the snapshot does not redirect its results. The original JSON and input
+files remain unchanged. ``configurationN.json`` serializes the original
+configuration values; copied dependency files preserve their exact bytes.
+The GUI uses the same input-copying and hashing rules
+with its own result layout; see :doc:`project_files`.
+
+The parameter JSON saved alongside results retains its existing filename and
+stores absolute input and output paths. It is generated from the configuration
+already loaded, after resolving paths and before expanding named configurations,
+without rereading the source JSON. The main snapshot's ``beamN.json`` continues
+to use relative dependency paths.
+
+The format-version-1 ``run.json`` records the SHA-256 hashes of execution JSON,
+comparison configurations, and available dependencies. Dependency records include
+the original source path and copied byte count. Missing files belonging to
+disabled resources retain their validation warnings and are listed in
+``unavailable_dependencies``; missing required active inputs block execution.
+Missing references point to uncreated paths inside the snapshot, so restoring
+an original file later cannot make it an unarchived runtime input.
+The record follows preparation and execution status. ``output_directory`` stores
+the configured output root; ``results_directory`` stores the actual result
+directory after initialization. The ``on_initialized(cfg)`` callback can read
+``cfg.input_snapshot_path`` to locate this run's ``run.json``. A preparation
+failure is recorded as ``preparation_failed`` when a record has already been created.
+
+Running ``main()`` on a saved ``beam0.json`` starts again from its initial
+conditions and creates a new input snapshot and result directory. This is input
+reproduction, not checkpoint continuation. An input snapshot does not restore
+the previous Python environment, code version or random-generator state;
+``Random Seed: null`` retains nondeterministic sampling.
+
+For integrations that already prepared an input snapshot, ``archive_inputs=False``
+disables this additional copy; the GUI child process uses that setting. Automatic
+dependency archiving belongs to ``main()``; the lower-level ``Config.load_input()``
+does not archive dependencies itself.
+With ``flat_output=True``, results remain directly in the specified output
+directory and snapshots are placed in its parent's ``input_snapshots/<run-id>``.
+If the result directory itself is named ``input_snapshots``, the sibling
+``input_snapshots_archive/<run-id>`` is used instead, keeping the flat result
+directory free of snapshot subdirectories.
+
 JSON File Structure
 -------------------
 
@@ -564,77 +630,88 @@ Twiss transfer points and physical elements can be mixed within the same sequenc
 External Data File Conversion
 -----------------------------
 
-PASS uses the **TFS format** as the unified format for all ramping/RF/exciter data files. ``tools/data_converter.py`` provides a general conversion pipeline that transforms various external files (CSV/TXT/TFS) into PASS TFS.
+Magnet ramping, RF and exciter inputs use TFS tables. Quadrupole, Sextupole,
+Octupole and Multipole read normalized strengths against physical time in seconds;
+each nonempty bunch samples once at the element entrance and uses that strength
+throughout the element. See :doc:`element/magnet_ramping` for the supported columns
+and sampling model.
+RF uses its own ``TIME, VOLTAGE, FREQUENCY, PHASE`` interface, documented in
+:doc:`element/rfcavity`.
 
-RF files retain physical seconds and do not use the magnet-ramping turn conversion below. RF columns are ``TIME, VOLTAGE, FREQUENCY, PHASE``; see :doc:`element/rfcavity`.
+Generate a magnet program
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The magnet-ramping conversion helpers below prepare tables only. The current tracking engine rejects enabled magnetic-element ramping; creating a table does not enable that feature. RF physical-time tables are supported by RFCavity.
-
-Four-Step Pipeline
-~~~~~~~~~~~~~~~~~~
-
-.. code-block:: text
-
-   External file → load_raw_data → time_to_turn → interpolate → write_tfs
-
-1. **load_raw_data** : Reads the external file, auto-detects turn/time columns
-2. **time_to_turn** : If the external file provides time instead of turns, converts using the revolution frequency
-3. **interpolate_to_continuous_turns** : Automatically interpolates when turns are non-contiguous
-4. **write_tfs_ramping** : Writes to the PASS unified TFS format
-
-One-Step Conversion
-~~~~~~~~~~~~~~~~~~~
+Write a breakpoint table directly; the tracker performs piecewise-linear
+interpolation and holds endpoint values outside the listed interval:
 
 .. code-block:: python
 
-   from PASS.para.tools.data_converter import convert_external_to_tfs
+   from PASS.para.tools.ramping import write_magnet_ramping
+   from PASS.para.schema.elements import QuadrupoleItem
 
-   convert_external_to_tfs(
-       input_path="external_ramp.csv",     # external file
-       output_path="k1l_ramping.tfs",      # PASS TFS
-       data_cols=["k1l", "k1sl"],          # data column names
-       revolution_freq=1.76e6,             # revolution frequency (Hz)
-       num_turns=5000,                     # target number of turns
-       method="linear",                    # interpolation method
+   write_magnet_ramping(
+       "quadrupole_ramp.tfs",
+       times=[0.0, 0.05, 0.10],               # physical seconds
+       columns={"K1L": [0.20, 0.25, 0.22], "K1SL": [0.01, 0.0, -0.01]},
+   )
+   quad = QuadrupoleItem(
+       s=10.0, length=0.5, num_slices=8,
+       is_ramping=True, ramping_file="quadrupole_ramp.tfs",
    )
 
-Pre-packaged Wrappers
-~~~~~~~~~~~~~~~~~~~~~
+The writer validates the table and adds ``TIME_UNIT="s"``,
+``STRENGTH_CONVENTION="normalized"`` and strength-unit metadata. Supply absolute
+strengths, not multipliers. Non-integrated ``K1``, ``K2`` and similar columns
+require a positive magnet length; integrated ``K1L``, ``K2L`` and similar
+columns also support thin lenses. Normal and skew components can be supplied
+independently. Do not specify both K and KL for the same component.
 
-Thin wrappers for common element types:
+Convert an external file
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The dedicated converter reads CSV, whitespace-separated TXT or TFS. Map source
+column names to the required strength names and explicitly convert the time
+unit. It preserves the original sample times, without converting to turns or
+resampling a dense turn grid:
 
 .. code-block:: python
 
-   from PASS.para.tools.ramping import convert_k1l_ramping, convert_k2l_ramping
+   from PASS.para.tools.ramping import convert_magnet_ramping
+
+   convert_magnet_ramping(
+       input_path="external_ramp.csv",
+       output_path="quadrupole_ramp.tfs",
+       time_column="time_ms",
+       time_scale=1e-3,                       # milliseconds -> seconds
+       column_mapping={"normal": "K1L", "skew": "K1SL"},
+       delimiter=",",
+   )
+
+For unusual headers or skipped rows, use
+``read_magnet_ramping_source(input_path, delimiter=None, header=0, skiprows=0)``
+from the same module, extract the selected numeric columns, and call
+``write_magnet_ramping``. Time units in source TFS metadata must agree with the
+selected time conversion. Strength-unit metadata is checked when supplied;
+strengths are not implicitly converted from physical magnetic fields.
+
+The GUI offers both import/conversion and breakpoint generation under
+**Tools → Data conversion → Magnet ramping**; see :doc:`gui_tools`.
+After exporting, enable ramping and select the file in the supported element.
+
+Legacy ``convert_external_to_tfs``, ``convert_k1l_ramping`` and related helpers
+retain their historical turn-table behavior. The tracker can accept a legacy
+``TIME_S`` column only when it contains physical seconds; a ``TURN``-only table
+cannot drive magnet ramping. Do not infer elapsed time from a row number or an
+instantaneous revolution frequency during acceleration. Use the physical-time
+writer or converter above for new inputs.
+
+RF files remain separate:
+
+.. code-block:: python
+
    from PASS.para.tools.rf_data import convert_rf_data
 
-   # Quadrupole ramping
-   convert_k1l_ramping("external.csv", "k1l_ramping.tfs", revolution_freq=1.76e6)
-
-   # RF data
    convert_rf_data("llrf.csv", "rf_physical_time.tfs")
-
-Step-by-Step Invocation
-~~~~~~~~~~~~~~~~~~~~~~~
-
-When the external file format is non-standard, each function can be called step by step:
-
-.. code-block:: python
-
-   from PASS.para.tools.data_converter import (
-       interpolate_to_continuous_turns, write_tfs_ramping,
-   )
-   import numpy as np
-
-   # Prepare data manually
-   turn_arr = np.array([1, 50, 100, 500, 1000])
-   k2l = np.array([0.0, 0.5, 1.0, 2.5, 4.4])
-
-   turn_cont, data_cont = interpolate_to_continuous_turns(
-       turn_arr, {"K2L": k2l},
-       start_turn=1, end_turn=1000, method="linear",
-   )
-   write_tfs_ramping("k2l_ramping.tfs", turn_cont, None, data_cont)
 
 
 Parameter scans and validation

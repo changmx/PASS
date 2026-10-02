@@ -88,6 +88,14 @@ Interface Parameters
 
   The ``knl`` and ``ksl`` arrays do not need to have the same length; the shorter array is automatically zero-padded. The maximum order :math:`N` is determined by the longer array length (:math:`N = \max(\text{len}) - 1`).
 
+For time-dependent normal and skew strengths, set ``is_ramping=True`` and
+``ramping_file="magnet_ramp.tfs"`` (JSON: ``Is ramping`` and ``Ramping file``).
+See :doc:`magnet_ramping` for the TFS columns, units and entrance sampling.
+Each nonempty bunch samples once at entry; its strengths remain fixed over
+the entire element. Runtime nominal strengths retain the last executed
+bunch entrance values, with field errors kept separate. The same page
+documents ``update_strengths``.
+
 Usage Examples
 --------------
 

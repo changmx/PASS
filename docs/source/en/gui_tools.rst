@@ -6,6 +6,55 @@ Inputs persist while switching pages in the same window; calculations do not
 modify the active simulation input or saved project. Use **Detailed formulas**
 for equations and data sources, and **Copy formulas (LaTeX)** for editable formulas.
 
+Magnet ramping files
+--------------------
+
+Open **Tools → Data conversion → Magnet ramping**
+(``工具 → 数据转换 → 磁铁 ramping…``) to create the normalized-strength TFS tables
+used by Quadrupole, Sextupole, Octupole and Multipole.
+
+* **Import CSV / TXT / TFS**: select the source file, delimiter, header and skipped
+  rows; select the time column and its unit (s, ms, μs or ns); map each desired
+  source strength column to its target, for example ``K1L`` or ``K2SL``.
+  For TFS with ``TIME_UNIT`` metadata, the declared unit fixes the time-unit
+  selector; column-unit metadata is checked before export.
+* **Generate from time breakpoints**: add normal/skew K or KL columns and edit
+  ``TIME (s)`` and strength values in the table. Add or remove rows to describe
+  the required piecewise-linear program. Paste a rectangular numeric range from
+  Excel or another TSV source with **Paste cells (Ctrl+V)**, beginning at the
+  upper-left selected cell. Rows expand automatically; add and name any required
+  strength columns first. Headers, nonfinite values and ranges wider than the
+  existing table are rejected without changing the table.
+* **Rise–hold–fall template**: select a strength column, enter the start time,
+  rise/hold/fall durations and initial/plateau/final strengths, then apply the
+  template. Rise and fall durations must be positive; a zero hold duration gives
+  a triangular program. The selected component is replaced by the template,
+  including its endpoint holds. Existing time knots remain; new knots are merged
+  into the shared time grid and other components retain their piecewise-linear
+  programs. Template strengths use the selected column's units.
+
+Use **Read columns**, then **Preview and validate** to inspect a component
+before using **Export ramping TFS**. Times must increase
+strictly, all values must be finite, and a component cannot have both K and KL
+columns. Export converts time to seconds, preserves the selected strength units
+and records normalized-strength metadata. The preview displays one selected
+component at a time, so different strength units are not overlaid on one axis.
+Opening this tool from **Data conversion** does not change the active element:
+enable ``Is ramping`` and choose ``Ramping file`` in that element's editor.
+
+Alternatively, use **Generate / import ramping file** in the element editor's
+**Ramping** group. The generator starts from the current strength draft and
+checks the element order and thin-magnet KL requirement before export.
+**Export and use for current element** saves the TFS, fills ``Ramping file``,
+enables ``Is ramping`` and clears incompatible legacy component-file fields in
+the property draft. Apply or insert the element to save these changes. Closing
+without a successful export leaves the element draft unchanged.
+
+K and KL values are absolute normalized strengths, not physical fields or ramp
+multipliers. Thin magnets require KL columns. Runtime interpolation, endpoint
+holding, current-bunch momentum normalization and the entrance-frozen approximation
+are described in :doc:`element/magnet_ramping`.
+
 Particles and authoritative masses
 ----------------------------------
 

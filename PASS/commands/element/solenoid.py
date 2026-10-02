@@ -5,8 +5,9 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.commands.element.magnet_maps import _GpuBody, _compile_stage_kernel, _launch_multipole_bunch
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
-from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_with_center
+from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_dkd, transport_with_center
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -147,11 +148,11 @@ class Solenoid(Command):
         masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
         try:
             if not self.is_thick and self.has_multipoles:
-                from PASS.commands.element.multipole import launch_multipole
-                launch_multipole(self, sim, self.knl, self.ksl, self.inv_fact, 0)
+                for bunch in beam.bunches:
+                    _launch_multipole_bunch(self, beam, bunch, turn, self.knl, self.ksl, self.inv_fact, 0)
             elif self._sc_nodes:
-                from PASS.utils.slicing import execute_element_body_gpu
-                execute_element_body_gpu(self, sim)
+                for bunch in beam.bunches:
+                    self._track_solenoid_body_gpu(beam, bunch, turn)
             else:
                 if not self.is_thick:
                     mode = 0
@@ -167,6 +168,18 @@ class Solenoid(Command):
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
+
+    def _track_solenoid_body_gpu(self, beam, bunch, turn):
+        if bunch.end_idx <= bunch.start_idx:
+            return
+        body = _GpuBody(self, beam, bunch, turn)
+        # The stored transverse arrays already include absolute field errors.
+        coefficients = (np.array([self.ks]), self.kn, self.ksp, self.inv_fact)
+        launch = body.stage(_solenoid_stage_kernel(*body.key), coefficients)
+        if self.has_multipoles:
+            body.run(lambda ds, on_center: transport_dkd(launch, self.integrator, ds, on_center))
+        else:
+            body.run(lambda ds, on_center: transport_with_center(lambda length: launch(length, 3), ds, on_center))
 
     def _track_solenoid_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
 
@@ -335,7 +348,7 @@ class Solenoid(Command):
 
     def _multipole_kick_cpu(self, knl_eff, ksl_eff, x, px, y, py, tag, mask, chi):
         """Apply the common integrated multipole polynomial."""
-        from PASS.commands.element.multipole import _apply_multipole_kick_cpu
+        from PASS.commands.element.magnet_maps import _apply_multipole_kick_cpu
 
         _apply_multipole_kick_cpu(knl_eff, ksl_eff, self.inv_fact, x, px, y, py, tag, chi)
 
@@ -617,3 +630,23 @@ def launch_solenoid(element, sim, mode):
                        bunch.end_idx), real(bunch.beta), real(bunch.beta * bunch.gamma), np.float64(element.length), real(element.ks), real(
                            element.s), np.int32(turn), knl, ksl, inv, np.int32(len(knl) - 1), np.int32(
                                element.num_slice), np.int32(0 if element.integrator == "uniform" else 1), np.int32(mode)))
+
+
+_GPU_STAGE_SOLENOID = r"""
+if (action == 3)
+    sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L, params[0], beta0, reference_beta_gamma, s0, turn);
+else {
+    if (action != 2) {
+        alive = sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, params[0], beta0, reference_beta_gamma, s0, turn);
+        if (alive)
+            sol_kick(pxi, pyi, xi, yi, kn, ks, inv, order, L);
+    }
+    if (action != 1 && alive)
+        sol_exact(xi, pxi, yi, pyi, zi, dpi, ti, lp, lt, i, L / 2, params[0], beta0, reference_beta_gamma, s0, turn);
+}
+"""
+
+
+@lru_cache(maxsize=None)
+def _solenoid_stage_kernel(dtype, device):
+    return _compile_stage_kernel(CUDA_REAL_PREAMBLE + SOLENOID_BODY, _GPU_STAGE_SOLENOID, dtype, device)

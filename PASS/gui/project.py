@@ -16,11 +16,11 @@ import re
 import shutil
 import stat
 import tempfile
-from typing import Iterator
 from uuid import uuid4
 import zipfile
 
 from PASS import __version__
+from PASS.utils.input_snapshot import atomic_write, file_references, json_bytes, resolved_file
 
 FORMAT_VERSION = 1
 JSON_LIMIT = 64 * 1024 * 1024
@@ -42,10 +42,6 @@ class ProjectError(ValueError):
     """An incomplete, unsupported or malformed project."""
 
 
-def json_bytes(value: object) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode("utf-8")
-
-
 def read_json(content: bytes) -> dict:
     from PASS.validation.report import parse_json
     value, report = parse_json(content)
@@ -55,40 +51,6 @@ def read_json(content: bytes) -> dict:
             json.loads(content.decode("utf-8-sig"))
         raise ProjectError(report.text())
     return value
-
-
-def atomic_write(path: Path, content: bytes) -> None:
-    """Replace only after a complete, flushed write in the same directory."""
-    path = Path(path)
-    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    try:
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(content)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
-
-
-def file_references(value: object, pointer: str = "") -> Iterator[tuple[dict, str, str]]:
-    """Yield only schema-owned input paths, never output paths or arbitrary text."""
-    if isinstance(value, dict):
-        for key, item in value.items():
-            address = pointer + "/" + str(key).replace("~", "~0").replace("/", "~1")
-            if str(key).casefold() in input_file_fields() and isinstance(item, str) and item.strip():
-                yield value, key, address
-            elif isinstance(item, (dict, list)):
-                yield from file_references(item, address)
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            yield from file_references(item, f"{pointer}/{index}")
-
-
-def resolved_file(value: str, base: Path) -> Path:
-    path = Path(value).expanduser()
-    return (path if path.is_absolute() else base / path).resolve()
 
 
 def missing_files(data: dict, base: Path) -> list[str]:

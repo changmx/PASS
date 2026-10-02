@@ -288,7 +288,7 @@ class FieldErrors:
     def kick_cpu(self, x, px, y, py, tag, scale=1.0):
         if not self.active:
             return
-        from PASS.commands.element.multipole import _apply_multipole_kick_cpu
+        from PASS.commands.element.magnet_maps import _apply_multipole_kick_cpu
 
         _apply_multipole_kick_cpu(self.knl, self.ksl, self.inv_fact, x, px, y, py, tag, scale)
 
@@ -317,48 +317,11 @@ def _transport_matrix_errors(advance, kick, ds, length, integrator, on_center=No
         advance(step / 2)
 
 
-def _track_field_errors_gpu(element, sim):
-    """Dispatch magnetic transport only; the caller owns aperture and clock."""
-    from PASS.commands.element.multipole import launch_multipole
-
-    kind = element.cmd_type.lower()
-    if element.is_thick and (element._sc_nodes or kind == "sbend" or (kind == "quadrupole" and element.model == "mat-kick-mat")):
-        from PASS.utils.slicing import execute_element_body_gpu
-        return execute_element_body_gpu(element, sim)
-    knl, ksl, inv_fact = _prepare_field_error_multipoles(element)
-    launch_multipole(element, sim, knl, ksl, inv_fact, int(element.is_thick))
-    return True
-
-
-def _prepare_field_error_multipoles(element):
-    """Prepare fixed multipole coefficients once for the existing DKD map."""
-    coefficients = getattr(element, "_field_error_multipoles", None)
-    if coefficients is not None:
-        return coefficients
-    kind = element.cmd_type.lower()
-    if kind == "sbend":
-        knl, ksl = [element.k0l], [0.0]
-    elif kind == "kicker":
-        knl, ksl = [-element.hkick], [element.vkick]
-    else:
-        order = {"quadrupole": 1, "sextupole": 2, "octupole": 3}[kind]
-        knl, ksl = np.zeros(order + 1), np.zeros(order + 1)
-        knl[order], ksl[order] = getattr(element, f"k{order}l"), getattr(element, f"k{order}sl")
-    knl, ksl = element.field_errors.combine(knl, ksl)
-    inv_fact = np.ones(len(knl))
-    for i in range(1, len(knl)):
-        inv_fact[i] = inv_fact[i - 1] / i
-    if element.is_thick:
-        knl, ksl = knl / element.length, ksl / element.length
-    element._field_error_multipoles = (knl, ksl, inv_fact)
-    return element._field_error_multipoles
-
-
 @lru_cache(maxsize=None)
 def _field_error_kernel(dtype, device):
     import cupy as cp
 
-    from PASS.commands.element.multipole import CUDA_REAL_PREAMBLE, MULTIPOLE_KERNEL_BODY
+    from PASS.commands.element.magnet_maps import CUDA_REAL_PREAMBLE, MULTIPOLE_KERNEL_BODY
 
     source = r'''
 extern "C" __global__ void field_error_kick(

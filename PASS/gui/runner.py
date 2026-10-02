@@ -22,7 +22,8 @@ def run_inputs(beam0: str, beam1: str | None = None, *, stop_file: str | None = 
 
     def initialized(cfg):
         if record_path:
-            from PASS.gui.project import atomic_write, json_bytes, read_json
+            from PASS.gui.project import read_json
+            from PASS.utils.input_snapshot import atomic_write, json_bytes
             path = Path(record_path)
             record = read_json(path.read_bytes())
             record["results_directory"] = str(Path(cfg.output_dir).resolve())
@@ -49,6 +50,7 @@ def run_inputs(beam0: str, beam1: str | None = None, *, stop_file: str | None = 
                          stop_requested=stop_path.is_file if stop_path else None,
                          on_initialized=initialized,
                          flat_output=bool(record_path),
+                         archive_inputs=not bool(record_path),
                          raise_errors=True)
     except KeyboardInterrupt:
         logger.warning("Run interrupted; the current turn may be incomplete")

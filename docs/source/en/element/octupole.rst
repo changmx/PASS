@@ -81,6 +81,14 @@ Interface Parameters
      - ``[]``
      - Aperture parameter values, default ``[]``
 
+For time-dependent normal and skew strengths, set ``is_ramping=True`` and
+``ramping_file="magnet_ramp.tfs"`` (JSON: ``Is ramping`` and ``Ramping file``).
+See :doc:`magnet_ramping` for the TFS columns, units and entrance sampling.
+Each nonempty bunch samples once at entry; its strengths remain fixed over
+the entire element. Runtime nominal strengths retain the last executed
+bunch entrance values, with field errors kept separate. The same page
+documents ``update_strengths``.
+
 Usage Examples
 --------------
 

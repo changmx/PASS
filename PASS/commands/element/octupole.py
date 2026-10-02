@@ -4,8 +4,10 @@ import numpy as np
 
 from PASS.commands.command import Command
 from PASS.commands.element.error import AlignmentErrors, FieldErrors
+from PASS.commands.element.magnet_maps import _GpuBody, _launch_multipole_bunch, _prepare_multipole_coefficients
+from PASS.commands.element.ramping import configure_magnet_ramping, refresh_magnet_strengths, update_magnet_strengths
 from PASS.utils.aperture import check_aperture_cpu, check_aperture_gpu
-from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices
+from PASS.utils.slicing import print_element_slicing, configure_element_slicing, run_body_slices, transport_dkd
 from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
@@ -13,7 +15,6 @@ from PASS.core.particle import ParticlePool
 from PASS.core.config import Config
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
-from PASS.commands.element.multipole import launch_multipole
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ class Octupole(Command):
         self.field_errors = FieldErrors(kwargs)
         self.alignment_errors = AlignmentErrors(kwargs)
 
+        configure_magnet_ramping(self, kwargs, order=3)
+
         if self.length < 0.0:
             raise ValueError(f"The length of Octupole {self.cmd_name} is {self.length}, which should be >= 0")
         if self.length > const.eps:
@@ -42,15 +45,10 @@ class Octupole(Command):
 
         self.k3l = kwargs.get("k3l", 0.0)
         self.k3sl = kwargs.get("k3sl", 0.0)
-        if self.is_thick:
-            self.k3 = self.k3l / self.length
-            self.k3s = self.k3sl / self.length
-        else:
-            self.k3 = 0.0
-            self.k3s = 0.0
-        if abs(self.k3l) < const.eps and abs(self.k3sl) < const.eps:
+        refresh_magnet_strengths(self)
+        if self.ramp is None and abs(self.k3l) < const.eps and abs(self.k3sl) < const.eps:
             logger.warning(f"Octupole {self.cmd_name} has zero integrated strength (k3l=0, k3sl=0). It will act as a pure drift.")
-        if abs(self.k3l) > const.eps and abs(self.k3sl) > const.eps:
+        if self.ramp is None and abs(self.k3l) > const.eps and abs(self.k3sl) > const.eps:
             logger.warning(
                 f"Octupole {self.cmd_name} has both normal and skew components (k3l={self.k3l}, k3sl={self.k3sl}). It will act as a combined octupole."
             )
@@ -80,6 +78,9 @@ class Octupole(Command):
                     f"IsThick={self.is_thick}, K3L={self.k3l:.6f}, K3SL={self.k3sl:.6f}, "
                     f"NumSlice={self.num_slice:d}, Integrator={self.integrator:s}, "
                     f"ApertureType={self.aperture_type:s}, ApertureValue={self.aperture_value}")
+        if self.ramp is not None:
+            logger.info("  Ramping: %s; entry-time sampling; effective slices=%d; files=%s", self.ramp.summary(),
+                        self.slice_plan.num_slices if self.is_thick else 1, ", ".join(str(path) for path in self.ramp.sources))
         print_element_slicing(self)
         set_normal_logging()
 
@@ -89,6 +90,10 @@ class Octupole(Command):
         masks = self.alignment_errors.enter_frame(self, beam, turn)
         try:
             for bunch in beam.bunches:
+                if bunch.end_idx <= bunch.start_idx:
+                    continue
+                if self.ramp is not None:
+                    self.update_strengths(bunch.t0)
                 self._track_octupole_cpu(beam, bunch, turn)
         finally:
             self.alignment_errors.exit_frame(self, beam, turn, masks)
@@ -98,28 +103,26 @@ class Octupole(Command):
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
 
+    def update_strengths(self, reference_time, offset=0.):
+        """Update current nominal strengths from the prescribed physical time."""
+        update_magnet_strengths(self, reference_time, offset)
+
+    def _refresh_strengths(self):
+        """Derive per-length strengths from the current integrated strengths."""
+        self.k3 = self.k3l / self.length if self.is_thick else 0.
+        self.k3s = self.k3sl / self.length if self.is_thick else 0.
+
     def execute_gpu(self, sim):
         beam = sim.beams[self.beam_id]
         turn = sim.state.turn
         masks = self.alignment_errors.enter_frame(self, beam, turn, gpu=True)
         try:
-            if self.field_errors.active:
-                from PASS.commands.element.error import _track_field_errors_gpu
-                _track_field_errors_gpu(self, sim)
-            elif self._sc_nodes:
-                from PASS.utils.slicing import execute_element_body_gpu
-                execute_element_body_gpu(self, sim)
-            else:
-                if self.is_thick:
-                    all_zero = (abs(self.k3l) < const.eps and abs(self.k3sl) < const.eps)
-                    mode = 2 if all_zero else 1
-                    knl = np.array([0.0, 0.0, 0.0, self.k3], dtype=np.float64)
-                    ksl = np.array([0.0, 0.0, 0.0, self.k3s], dtype=np.float64)
-                else:
-                    mode = 0
-                    knl = np.array([0.0, 0.0, 0.0, self.k3l], dtype=np.float64)
-                    ksl = np.array([0.0, 0.0, 0.0, self.k3sl], dtype=np.float64)
-                launch_multipole(self, sim, knl, ksl, np.array([1.0, 1.0, 0.5, 1.0 / 6.0], dtype=np.float64), mode)
+            for bunch in beam.bunches:
+                if bunch.end_idx <= bunch.start_idx:
+                    continue
+                if self.ramp is not None:
+                    self.update_strengths(bunch.t0)
+                self._track_octupole_gpu(beam, bunch, turn)
         finally:
             self.alignment_errors.exit_frame(self, beam, turn, masks, gpu=True)
         for bunch in beam.bunches:
@@ -127,6 +130,19 @@ class Octupole(Command):
             if abs(self.length) >= const.eps:
                 bunch.t0 += self.length / (bunch.beta * const.c)
         return True
+
+    def _track_octupole_gpu(self, beam, bunch, turn):
+        normal, skew = np.zeros(4), np.zeros(4)
+        normal[3], skew[3] = self.k3l, self.k3sl
+        kn, ks, inv_fact = _prepare_multipole_coefficients(self, normal, skew)
+        if self._sc_nodes:
+            body = _GpuBody(self, beam, bunch, turn)
+            launch = body.multipole_stage(kn, ks, inv_fact)
+            body.run(lambda ds, on_center: transport_dkd(launch, self.integrator, ds, on_center))
+        else:
+            all_zero = abs(self.k3l) < const.eps and abs(self.k3sl) < const.eps and not self.field_errors.active
+            mode = 0 if not self.is_thick else 2 if all_zero else 1
+            _launch_multipole_bunch(self, beam, bunch, turn, kn, ks, inv_fact, mode)
 
     def _track_octupole_cpu(self, beam: Beam, bunch: BunchInfo, turn: int):
 
@@ -142,6 +158,8 @@ class Octupole(Command):
         z = p.z[start:end]
         dp = p.dp[start:end]
         tag = p.tag[start:end]
+        if end <= start:
+            return
 
         alive_before = tag > 0
 
@@ -219,33 +237,32 @@ class Octupole(Command):
 
         # A particle that becomes invalid at this drift exits immediately;
         # do not transport it with the stale entry mask.
-        L_mask = L * (alive & valid)
-
-        x += L_mask * px * inv_pz
-        y += L_mask * py * inv_pz
-        z += L_mask * slip
+        active = alive & valid
+        active = slice(None) if np.all(active) else active
+        x[active] += np.float64(L) * px[active] * inv_pz[active]
+        y[active] += np.float64(L) * py[active] * inv_pz[active]
+        z[active] += np.float64(L) * slip[active]
 
     def _octupole_kick_cpu(self, k3l_eff, k3sl_eff, x, px, y, py, tag, mask, chi):
         """Apply normal and skew kicks using integrated octupole strengths."""
         if abs(k3l_eff) < const.eps and abs(k3sl_eff) < const.eps:
             return
 
-        active = (tag > 0).astype(mask.dtype, copy=False)
-        k3l_mask = k3l_eff * active
+        active = tag > 0
+        active = slice(None) if np.all(active) else active
+        x_live, y_live = x[active], y[active]
+        x2 = x_live * x_live
+        y2 = y_live * y_live
 
-        x2 = x * x
-        y2 = y * y
-
-        re_c3 = x * (x2 - 3.0 * y2)
-        im_c3 = y * (3.0 * x2 - y2)
+        re_c3 = x_live * (x2 - 3.0 * y2)
+        im_c3 = y_live * (3.0 * x2 - y2)
 
         if abs(k3l_eff) > const.eps:
-            chi_k3l = chi * k3l_mask / 6.0
-            px -= chi_k3l * re_c3
-            py += chi_k3l * im_c3
+            chi_k3l = np.float64(chi * k3l_eff / 6.0)
+            px[active] -= chi_k3l * re_c3
+            py[active] += chi_k3l * im_c3
 
         if abs(k3sl_eff) > const.eps:
-            k3sl_mask = k3sl_eff * active
-            chi_k3sl = chi * k3sl_mask / 6.0
-            px += chi_k3sl * im_c3
-            py += chi_k3sl * re_c3
+            chi_k3sl = np.float64(chi * k3sl_eff / 6.0)
+            px[active] += chi_k3sl * im_c3
+            py[active] += chi_k3sl * re_c3
