@@ -72,6 +72,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss 参数输运（Twiss）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">慢引出（SlowExtraction）</a></li>
 </ul>
 
 <p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
@@ -99,6 +100,7 @@
 <li class="toctree-l2"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slow_extraction_monitor.html">慢引出 spill 监视器</a></li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
 </ul>
 </li>
@@ -145,6 +147,9 @@
 <a class="reference internal" href="../beam_beam.html"><span class="doc">BeamBeam 亮度</span></a> 的共享 <code class="docutils literal notranslate"><span class="pre">Luminosity</span></code> 配置则默认 <code class="docutils literal notranslate"><span class="pre">&quot;tfs&quot;</span></code>。
 格式选择不启用原本关闭的输出，
 也不改变配置的记录圈数。</p>
+<p><a class="reference internal" href="../slow_extraction.html"><span class="doc">SlowExtraction</span></a> 和
+<a class="reference internal" href="slow_extraction_monitor.html"><span class="doc">SlowExtractionMonitor</span></a> 仅支持两种 HDF5 选项，
+其事件表与直方图不提供 TFS 输出。</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 25.0%" />
@@ -173,6 +178,14 @@
 <tr class="row-odd"><td><p>StatMonitor</p></td>
 <td><p>每个束团、每个监视器位置一个统计历史文件</p></td>
 <td><p>包含相同行的 CSV</p></td>
+</tr>
+<tr class="row-even"><td><p>SlowExtraction</p></td>
+<td><p>每个 source、每次运行一个追加式逐粒子事件表</p></td>
+<td><p>仅 HDF5</p></td>
+</tr>
+<tr class="row-odd"><td><p>SlowExtractionMonitor</p></td>
+<td><p>每个 monitor 与 source 对应一份圈数和/或物理时间直方图</p></td>
+<td><p>仅 HDF5</p></td>
 </tr>
 <tr class="row-even"><td><p>Injection</p></td>
 <td><p>启用 <code class="docutils literal notranslate"><span class="pre">save_init_dist</span></code> 时保存初始分布；

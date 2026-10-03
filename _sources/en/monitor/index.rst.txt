@@ -22,6 +22,9 @@ Select a monitor by the data needed for analysis. Monitor positions use the same
    * - :doc:`phaseadvancemonitor`
      - Single-particle fractional tunes
      - Completed analysis windows
+   * - :doc:`slow_extraction_monitor`
+     - Spill from named extraction events
+     - Turn and/or physical-time bins
 
 .. toctree::
    :maxdepth: 1
@@ -31,6 +34,7 @@ Select a monitor by the data needed for analysis. Monitor positions use the same
    distmonitor
    particlemonitor
    phaseadvancemonitor
+   slow_extraction_monitor
 
 .. _en-reference-state:
 

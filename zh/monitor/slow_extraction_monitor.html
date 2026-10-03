@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-CN" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>慢引出 spill 监视器 &mdash; PASS 0.5.0 使用手册</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="索引" href="../../genindex.html" />
+    <link rel="search" title="搜索" href="../../search.html" />
+    <link rel="next" title="PASS User Manual" href="../../en/index.html" />
+    <link rel="prev" title="相移监视器（PhaseAdvanceMonitor）" href="phaseadvancemonitor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="搜索文档" aria-label="搜索文档" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.5.0</span>
+    
+      
+      
+    
+    <a href="#" lang="zh-CN" aria-current="page">中文</a>
+    <a href="../../en/monitor/slow_extraction_monitor.html" lang="en">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="导航菜单">
+  
+    <p class="caption" role="heading"><span class="caption-text">入门与操作</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">输入文件生成（命令行模式）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON 输入文件检测</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">图形界面</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">单文件项目</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI 工具</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">束流与传输</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">注入与粒子生成（Injection）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../element/index.html">元件（Element）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss 参数输运（Twiss）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">孔径（Aperture）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">束团重分组（ReorganizeBunch）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">慢引出（SlowExtraction）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">集体效应</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">纵向切片（Slicer）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">空间电荷效应（SpaceCharge）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">横向场求解器</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">尾场（WakeField）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">电子云（ElectronCloud）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">束内散射（IBS）</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">束束相互作用（BeamBeam）</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">诊断与输出</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">监视器与输出</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="table_output.html">表格输出格式</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statmonitor.html">统计监视器（StatMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distmonitor.html">分布监视器（DistMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">粒子监视器（ParticleMonitor）</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">相移监视器（PhaseAdvanceMonitor）</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">慢引出 spill 监视器</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">窗口与分箱定义</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">接口参数</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">配置示例</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">输出表</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#zh-reference-state">输出中的参考信息</a></li>
+</ul>
+</li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="移动版导航菜单" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="页面导航">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS 使用手册</a></li>
+          <li class="breadcrumb-item"><a href="index.html">监视器与输出</a></li>
+      <li class="breadcrumb-item active">慢引出 spill 监视器</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="spill">
+<h1>慢引出 spill 监视器<a class="headerlink" href="#spill" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">SlowExtractionMonitor</span></code> 读取指定 <a class="reference internal" href="../slow_extraction.html"><span class="doc">慢引出（SlowExtraction）</span></a> 命令产生的事件，
+按跟踪圈数、物理到达时间或两者同时累计 spill 直方图。它不从环内选择粒子，
+也不改变粒子状态。统计输入是 source 事件行，而不是反复扫描负 tag。
+对同一 source 批次重复执行时，不会重复计数。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Source</span></code> 必须精确匹配同束流 Sequence 中一个 <code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> 的名称。
+监视器必须与 source 位于相同 <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>，并在 source 后执行。
+默认优先级 850、860 满足这一顺序；同位置使用显式 <code class="docutils literal notranslate"><span class="pre">Order</span></code> 时，
+应为该处每条命令设置互不相同的值。</p>
+<section id="id1">
+<h2>窗口与分箱定义<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>圈数窗口和物理时间窗口均可独立配置，同时设置时取交集；两个窗口均为左闭右开。
+监视器窗口只筛选 source 已经收集的事件，不改变 source 的引出条件，
+也无法恢复 source 未曾收集的粒子。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Bin</span> <span class="pre">by=&quot;turn&quot;</span></code> 按 <code class="docutils literal notranslate"><span class="pre">Turn</span> <span class="pre">bin</span> <span class="pre">width</span></code> 指定的圈数宽度分箱，以 <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code>
+为分箱起点。<code class="docutils literal notranslate"><span class="pre">Bin</span> <span class="pre">by=&quot;time&quot;</span></code> 按 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">bin</span> <span class="pre">width</span> <span class="pre">(s)</span></code> 指定的秒数宽度分箱，
+以 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">origin</span> <span class="pre">(s)</span></code> 为时间网格原点。<code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code> 分别输出两类直方图。
+时间分箱始终采用 source 捕获的粒子到达时刻：</p>
+<div class="math notranslate nohighlight">
+\[t_i=t_{0,i}-\frac{z_i}{\beta_{0,i}c}.\]</div>
+<p>不使用固定回旋频率换算。同一圈的粒子可以落入不同时间 bin，较晚跟踪圈产生的事件
+也可能更新更早的时间 bin。因此，运行中的时间直方图始终是可更新状态，
+写出一次快照不代表关闭其时间 bin。</p>
+<p>名义边界 <code class="docutils literal notranslate"><span class="pre">bin_start</span></code>、<code class="docutils literal notranslate"><span class="pre">bin_end</span></code> 在不同快照之间保持固定。
+<code class="docutils literal notranslate"><span class="pre">observed_start</span></code>、<code class="docutils literal notranslate"><span class="pre">observed_end</span></code>、<code class="docutils literal notranslate"><span class="pre">observed_width</span></code> 单独表示当前观测所覆盖的部分。
+圈数覆盖范围是监视器圈数窗口内实际执行的圈号区间。时间覆盖范围是 source 参考时刻
+与所接受事件时刻的包络，再截取到监视器时间窗口。该包络不证明其中所有粒子到达事件
+都已完整结束。</p>
+<p>观测范围内会补齐零计数 bin，但不会把它们外推至整个请求的运行区间。
+<code class="docutils literal notranslate"><span class="pre">is_partial</span></code> 标识覆盖不足一个名义 bin 的区间。若最新事件恰好位于时间 bin 边界，
+可以暂时保留宽度为零的 partial bin，直到后续观测扩展覆盖范围。
+比较完整 bin 的 spill 均匀性时，应排除 partial bin，并在报告纹波指标时保留所用分箱宽度。</p>
+</section>
+<section id="id2">
+<h2>接口参数<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python 参数</p></th>
+<th class="head"><p>JSON 字段</p></th>
+<th class="head"><p>类型 / 默认值</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;SlowExtractionMonitor&quot;</span></code></p></td>
+<td><p>只读 spill 监视器类型。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>有限非负浮点数，必填</p></td>
+<td><p>必须与 source 位于同一跟踪截面。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p>严格整数或 null；null</p></td>
+<td><p>同位置顺序，默认优先级 860。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Source</span></code></p></td>
+<td><p>非空字符串，必填</p></td>
+<td><p>本束流中 <code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> 的精确 Sequence 名称。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bin_by</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bin</span> <span class="pre">by</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;turn&quot;</span></code>、<code class="docutils literal notranslate"><span class="pre">&quot;time&quot;</span></code> 或 <code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code>。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">turn_bin_width</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Turn</span> <span class="pre">bin</span> <span class="pre">width</span></code></p></td>
+<td><p>严格正整数；1</p></td>
+<td><p>名义圈数 bin 宽度，以 <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code> 为原点。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_bin_width</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">bin</span> <span class="pre">width</span> <span class="pre">(s)</span></code></p></td>
+<td><p>有限正浮点数；0.001</p></td>
+<td><p>名义物理时间 bin 宽度。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time_origin</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">origin</span> <span class="pre">(s)</span></code></p></td>
+<td><p>有限浮点数；0</p></td>
+<td><p>时间分箱网格原点，允许负 bin 索引。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
+<td><p>严格非负整数；0</p></td>
+<td><p>包含的统计起始圈。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
+<td><p>严格整数或 null；null</p></td>
+<td><p>不包含的终止圈；设置时必须大于起始圈。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>有限浮点数或 null；null</p></td>
+<td><p>包含的事件到达时间下界。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>有限浮点数或 null；null</p></td>
+<td><p>不包含的时间上界；两者均设置时必须大于下界。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Write</span> <span class="pre">interval</span> <span class="pre">(turns)</span></code></p></td>
+<td><p>严格正整数；100</p></td>
+<td><p>输出写盘间隔；finalize 时写出尚未发布的更新。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> 或无损压缩 <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>，不支持 TFS。</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id3">
+<h2>配置示例<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>以下片段假定同位置已经存在名为 <code class="docutils literal notranslate"><span class="pre">extract</span></code> 的引出动作。</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">SlowExtractionMonitorItem</span>
+
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"spill"</span><span class="p">,</span> <span class="n">SlowExtractionMonitorItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"extract"</span><span class="p">,</span> <span class="n">bin_by</span><span class="o">=</span><span class="s2">"both"</span><span class="p">,</span>
+    <span class="n">start_turn</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+    <span class="n">start_time</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="mf">1.20</span><span class="p">,</span>
+    <span class="n">turn_bin_width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">time_bin_width</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">time_origin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">write_interval_turns</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+<p>只有同时满足圈数和时间边界的 source 事件才参与计数。
+高层 API 的 monitors 列表也接受 <code class="docutils literal notranslate"><span class="pre">type=&quot;SlowExtractionMonitor&quot;</span></code>；
+引出动作应单独使用 <code class="docutils literal notranslate"><span class="pre">SlowExtractionItem</span></code>。</p>
+</section>
+<section id="id4">
+<h2>输出表<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>表格写在运行输出目录下的 <code class="docutils literal notranslate"><span class="pre">slow_extraction/</span></code>；flat-output 模式省略
+<code class="docutils literal notranslate"><span class="pre">slow_extraction</span></code> 子目录。文件名由 source 和 monitor 名称、摘要、运行标识及束流编号组成，
+<code class="docutils literal notranslate"><span class="pre">_turn.h5</span></code>、<code class="docutils literal notranslate"><span class="pre">_time.h5</span></code> 后缀分别标识两类直方图。完整圈数 bin 在每次写盘时仅追加一次，
+当前未完成的 partial 圈数 bin 仅在 finalize 时追加；内存中的 <code class="docutils literal notranslate"><span class="pre">get_histogram(&quot;turn&quot;)</span></code>
+也包含当前 partial bin。时间表在同一路径发布完整累计快照，允许后续事件更新早期 bin。
+source 的逐粒子事件表单独保存。</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>列名</p></th>
+<th class="head"><p>含义</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bin_start</span></code>、<code class="docutils literal notranslate"><span class="pre">bin_end</span></code></p></td>
+<td><p>固定名义边界，单位为圈或秒，左闭右开。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">observed_start</span></code>、<code class="docutils literal notranslate"><span class="pre">observed_end</span></code>、<code class="docutils literal notranslate"><span class="pre">observed_width</span></code></p></td>
+<td><p>相同单位下的已观测覆盖范围，宽度非负。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_partial</span></code></p></td>
+<td><p>是否尚未覆盖完整名义 bin 的布尔标记。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_extracted</span></code></p></td>
+<td><p>bin 内的宏粒子事件数。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">real_extracted</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">macro_weight</span></code> 之和，即代表的真实粒子数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">charge_extracted</span></code></p></td>
+<td><p>带符号的 <code class="docutils literal notranslate"><span class="pre">charge_number</span> <span class="pre">*</span> <span class="pre">e</span> <span class="pre">*</span> <span class="pre">macro_weight</span></code> 之和，单位 C。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cumulative_extracted</span></code>、<code class="docutils literal notranslate"><span class="pre">cumulative_real</span></code></p></td>
+<td><p>按 bin 递增顺序累计的宏粒子数与真实粒子数。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">particle_rate</span></code></p></td>
+<td><p>仅时间表：<code class="docutils literal notranslate"><span class="pre">real_extracted</span> <span class="pre">/</span> <span class="pre">observed_width</span></code>，单位粒子/s。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current</span></code></p></td>
+<td><p>仅时间表：<code class="docutils literal notranslate"><span class="pre">charge_extracted</span> <span class="pre">/</span> <span class="pre">observed_width</span></code>，单位 A，保留电荷符号。</p></td>
+</tr>
+</tbody>
+</table>
+<p>当 <code class="docutils literal notranslate"><span class="pre">observed_width</span></code> 为零时，速率列写 NaN。速率的分母为已观测宽度，不假定完整 bin
+都已被覆盖。partial bin 的速率不应直接参与完整 bin 的纹波统计比较。
+headers 保存 source 事件文件身份、时间定义、窗口以及参考/事件观测包络。</p>
+<p>CPU 与 GPU 路径均消费相同的独立主机事件批次，监视器不逐圈重读事件文件。
+默认每 100 圈写一次输出，并在运行结束或 finalize 时写出。
+正常处理中断时使用命令统一的 finalize 流程；进程突然结束可能丢失仍在内存中的更新。
+圈数表追加失败可能留下不完整表格；执行会停止，不会重试该次追加。时间快照仅替换此前完整
+发布的快照。当前实现没有恢复直方图状态与 source 事件历史的断点账本。</p>
+<p>可按 <a class="reference internal" href="table_output.html"><span class="doc">表格输出格式</span></a> 使用 <code class="docutils literal notranslate"><span class="pre">PASS.utils.table_io.read_table</span></code> 读取。
+需要六维分布、逐粒子到达时间或其他离线分箱时，使用独立的 source 事件表。</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="页脚">
+        <a href="phaseadvancemonitor.html" class="btn btn-neutral float-left" title="相移监视器（PhaseAdvanceMonitor）" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> 上一页</a>
+        <a href="../../en/index.html" class="btn btn-neutral float-right" title="PASS User Manual" accesskey="n" rel="next">下一页 <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; 版权所有 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences。</p>
+  </div>
+
+  利用 <a href="https://www.sphinx-doc.org/">Sphinx</a> 构建，使用的 
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">主题</a>
+    由 <a href="https://readthedocs.org">Read the Docs</a> 开发.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

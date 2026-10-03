@@ -15,6 +15,10 @@
 格式选择不启用原本关闭的输出，
 也不改变配置的记录圈数。
 
+:doc:`SlowExtraction <../slow_extraction>` 和
+:doc:`SlowExtractionMonitor <slow_extraction_monitor>` 仅支持两种 HDF5 选项，
+其事件表与直方图不提供 TFS 输出。
+
 .. list-table::
    :header-rows: 1
    :widths: 25 45 30
@@ -34,6 +38,12 @@
    * - StatMonitor
      - 每个束团、每个监视器位置一个统计历史文件
      - 包含相同行的 CSV
+   * - SlowExtraction
+     - 每个 source、每次运行一个追加式逐粒子事件表
+     - 仅 HDF5
+   * - SlowExtractionMonitor
+     - 每个 monitor 与 source 对应一份圈数和/或物理时间直方图
+     - 仅 HDF5
    * - Injection
      - 启用 ``save_init_dist`` 时保存初始分布；
        在各 ``BunchConfig`` / ``bunchN`` 中设置 ``output_format``

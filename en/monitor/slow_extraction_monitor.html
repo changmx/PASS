@@ -1,0 +1,388 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slow-extraction spill monitor &mdash; PASS 0.5.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="PhaseAdvanceMonitor" href="phaseadvancemonitor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.5.0</span>
+    
+      
+      
+    
+    <a href="../../zh/monitor/slow_extraction_monitor.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../element/index.html">Element</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../slow_extraction.html">Slow extraction (SlowExtraction)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Monitors and output</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="table_output.html">Table output formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statmonitor.html">StatMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distmonitor.html">DistMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="particlemonitor.html">ParticleMonitor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="phaseadvancemonitor.html">PhaseAdvanceMonitor</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Slow-extraction spill monitor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#windows-and-bin-definitions">Windows and bin definitions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interface-parameters">Interface parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#output-tables">Output tables</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#output-reference-information">Output reference information</a></li>
+</ul>
+</li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS User Manual</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Monitors and output</a></li>
+      <li class="breadcrumb-item active">Slow-extraction spill monitor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="slow-extraction-spill-monitor">
+<h1>Slow-extraction spill monitor<a class="headerlink" href="#slow-extraction-spill-monitor" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">SlowExtractionMonitor</span></code> reads events from one named <a class="reference internal" href="../slow_extraction.html"><span class="doc">Slow extraction (SlowExtraction)</span></a>
+command and accumulates spill histograms by tracking turn, physical arrival
+time, or both. It never selects particles from the ring or changes particle
+state. Source event rows, rather than a repeated scan of negative tags, are
+the counting input. Repeated execution for the same source batch does not
+count its events twice.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">Source</span></code> value must exactly match a <code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> sequence name
+in the same beam. The monitor must execute after that source at the same
+<code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code>. Default priorities 850 and 860 provide this order; if explicit
+<code class="docutils literal notranslate"><span class="pre">Order</span></code> is used at that position, set distinct values on every node there.</p>
+<section id="windows-and-bin-definitions">
+<h2>Windows and bin definitions<a class="headerlink" href="#windows-and-bin-definitions" title="Link to this heading"></a></h2>
+<p>Turn and physical-time windows are independently optional and intersect
+when both are configured. Each is left-closed and right-open. Monitor
+windows filter the source’s already captured events; they do not change the
+source’s extraction conditions. A monitor cannot recover particles that its
+source never captured.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">Bin</span> <span class="pre">by=&quot;turn&quot;</span></code>, bins of <code class="docutils literal notranslate"><span class="pre">Turn</span> <span class="pre">bin</span> <span class="pre">width</span></code> turns are anchored at
+<code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code>. With <code class="docutils literal notranslate"><span class="pre">Bin</span> <span class="pre">by=&quot;time&quot;</span></code>, bins of <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">bin</span> <span class="pre">width</span> <span class="pre">(s)</span></code> seconds
+are anchored at <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">origin</span> <span class="pre">(s)</span></code>. <code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code> writes the two histograms
+separately. Time bins always use the source’s captured particle times:</p>
+<div class="math notranslate nohighlight">
+\[t_i=t_{0,i}-\frac{z_i}{\beta_{0,i}c}.\]</div>
+<p>No fixed revolution-frequency conversion is used. Particles from one turn
+can occupy different time bins, and later tracking turns can add events to
+earlier time bins. Therefore time histograms remain provisional during a
+run; writing a snapshot does not close their bins.</p>
+<p>Nominal <code class="docutils literal notranslate"><span class="pre">bin_start</span></code> and <code class="docutils literal notranslate"><span class="pre">bin_end</span></code> stay fixed between snapshots.
+<code class="docutils literal notranslate"><span class="pre">observed_start</span></code>, <code class="docutils literal notranslate"><span class="pre">observed_end</span></code> and <code class="docutils literal notranslate"><span class="pre">observed_width</span></code> separately describe
+the portion covered by the observations so far. Turn coverage is the range
+of executed turns inside the monitor’s turn window. Time coverage is the
+envelope of the source reference times and accepted particle event times,
+clipped to the monitor’s time window. This envelope does not prove that all
+particle arrivals in it are complete.</p>
+<p>Zero-count bins are included within the observed range, not extrapolated
+over the entire requested run. <code class="docutils literal notranslate"><span class="pre">is_partial</span></code> marks bins whose observed
+range is smaller than their nominal range. An event exactly on the newest
+time boundary can produce a zero-width partial bin until later observations
+extend its coverage. Exclude partial bins when comparing full-bin spill
+uniformity, and retain the chosen bin width with any reported ripple metric.</p>
+</section>
+<section id="interface-parameters">
+<h2>Interface parameters<a class="headerlink" href="#interface-parameters" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 20.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python parameter</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type / default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Command</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;SlowExtractionMonitor&quot;</span></code></p></td>
+<td><p>Read-only spill monitor type.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">s</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">(m)</span></code></p></td>
+<td><p>finite nonnegative float, required</p></td>
+<td><p>Same tracking plane as the source.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Order</span></code></p></td>
+<td><p>strict int or null; null</p></td>
+<td><p>Same-position order; default priority 860.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Source</span></code></p></td>
+<td><p>nonempty str, required</p></td>
+<td><p>Exact sequence name of a <code class="docutils literal notranslate"><span class="pre">SlowExtraction</span></code> in this beam.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bin_by</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Bin</span> <span class="pre">by</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;turn&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;time&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;both&quot;</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">turn_bin_width</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Turn</span> <span class="pre">bin</span> <span class="pre">width</span></code></p></td>
+<td><p>strict positive int; 1</p></td>
+<td><p>Nominal turn-bin width; origin is <code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_bin_width</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">bin</span> <span class="pre">width</span> <span class="pre">(s)</span></code></p></td>
+<td><p>finite positive float; 0.001</p></td>
+<td><p>Nominal physical-time bin width.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time_origin</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">origin</span> <span class="pre">(s)</span></code></p></td>
+<td><p>finite float; 0</p></td>
+<td><p>Anchor of the time-bin grid; negative bin indices are allowed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">turn</span></code></p></td>
+<td><p>strict nonnegative int; 0</p></td>
+<td><p>Inclusive statistical starting turn.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_turn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">turn</span></code></p></td>
+<td><p>strict int or null; null</p></td>
+<td><p>Exclusive ending turn, greater than the start when supplied.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Start</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>finite float or null; null</p></td>
+<td><p>Inclusive event arrival-time bound.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">End</span> <span class="pre">time</span> <span class="pre">(s)</span></code></p></td>
+<td><p>finite float or null; null</p></td>
+<td><p>Exclusive arrival-time bound, greater than the start if both exist.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">write_interval_turns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Write</span> <span class="pre">interval</span> <span class="pre">(turns)</span></code></p></td>
+<td><p>strict positive int; 100</p></td>
+<td><p>Output cadence; finalization writes pending updates.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">output_format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">format</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hdf5&quot;</span></code> or lossless <code class="docutils literal notranslate"><span class="pre">&quot;hdf5-gzip1&quot;</span></code>; no TFS output.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>This snippet assumes an existing <code class="docutils literal notranslate"><span class="pre">extract</span></code> action at the same plane.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">SlowExtractionMonitorItem</span>
+
+<span class="n">seq</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">"spill"</span><span class="p">,</span> <span class="n">SlowExtractionMonitorItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"extract"</span><span class="p">,</span> <span class="n">bin_by</span><span class="o">=</span><span class="s2">"both"</span><span class="p">,</span>
+    <span class="n">start_turn</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+    <span class="n">start_time</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">end_time</span><span class="o">=</span><span class="mf">1.20</span><span class="p">,</span>
+    <span class="n">turn_bin_width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">time_bin_width</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">time_origin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">write_interval_turns</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+<p>Counts include only source events satisfying both the turn and time bounds.
+<code class="docutils literal notranslate"><span class="pre">SlowExtractionMonitor</span></code> is also accepted as the <code class="docutils literal notranslate"><span class="pre">type</span></code> in the high-level
+API’s monitor list. Use <code class="docutils literal notranslate"><span class="pre">SlowExtractionItem</span></code> separately for the action.</p>
+</section>
+<section id="output-tables">
+<h2>Output tables<a class="headerlink" href="#output-tables" title="Link to this heading"></a></h2>
+<p>Tables are written under <code class="docutils literal notranslate"><span class="pre">slow_extraction/</span></code> in the run output directory;
+flat-output mode omits the <code class="docutils literal notranslate"><span class="pre">slow_extraction</span></code> subdirectory. Source and monitor
+names, a digest, run identity and beam identifier form the filename stem.
+Suffixes <code class="docutils literal notranslate"><span class="pre">_turn.h5</span></code> and <code class="docutils literal notranslate"><span class="pre">_time.h5</span></code> identify the selected histogram types.
+Completed turn bins are appended once at each write interval; the active
+partial turn bin is appended only at finalization. The in-memory
+<code class="docutils literal notranslate"><span class="pre">get_histogram(&quot;turn&quot;)</span></code> result also includes the current partial bin.
+Time output publishes a complete cumulative snapshot at its file path,
+allowing later events to revise earlier bins. The source’s particle-event
+table remains separate.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bin_start</span></code>, <code class="docutils literal notranslate"><span class="pre">bin_end</span></code></p></td>
+<td><p>Fixed nominal edges, in turns or seconds; left-closed, right-open.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">observed_start</span></code>, <code class="docutils literal notranslate"><span class="pre">observed_end</span></code>, <code class="docutils literal notranslate"><span class="pre">observed_width</span></code></p></td>
+<td><p>Observed coverage in the same units; width is nonnegative.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_partial</span></code></p></td>
+<td><p>Boolean indicator of incomplete nominal-bin coverage.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_extracted</span></code></p></td>
+<td><p>Number of macro-particle events in the bin.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">real_extracted</span></code></p></td>
+<td><p>Sum of <code class="docutils literal notranslate"><span class="pre">macro_weight</span></code>: represented real particles.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">charge_extracted</span></code></p></td>
+<td><p>Sum of signed <code class="docutils literal notranslate"><span class="pre">charge_number</span> <span class="pre">*</span> <span class="pre">e</span> <span class="pre">*</span> <span class="pre">macro_weight</span></code>, in coulombs.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cumulative_extracted</span></code>, <code class="docutils literal notranslate"><span class="pre">cumulative_real</span></code></p></td>
+<td><p>Cumulative macro-particle and real-particle counts in increasing bin order.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">particle_rate</span></code></p></td>
+<td><p>Time table only: <code class="docutils literal notranslate"><span class="pre">real_extracted</span> <span class="pre">/</span> <span class="pre">observed_width</span></code>, in particles/s.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current</span></code></p></td>
+<td><p>Time table only: <code class="docutils literal notranslate"><span class="pre">charge_extracted</span> <span class="pre">/</span> <span class="pre">observed_width</span></code>, in amperes;
+the charge sign is retained.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Rates are NaN when <code class="docutils literal notranslate"><span class="pre">observed_width</span></code> is zero. They use the observed width,
+not an assumed full-bin exposure. A partial-bin rate should not be compared
+directly with a full-bin ripple statistic. Headers record source event-file
+identity, time definition, windows and observed reference/event envelopes.</p>
+<p>The CPU and GPU paths consume the same owned host event batches. The monitor
+does not reread event files on every turn. Writes normally occur every 100
+turns and at run completion or finalization; an interrupted
+run uses the normal command-finalization mechanism. Hard process failure can
+lose updates still held in memory. A failed turn-table append can leave an
+incomplete table; execution stops without retrying that append. Time
+snapshots replace only previously completed snapshots. Histogram state and source event history
+are not restored by a resume ledger in this implementation.</p>
+<p>Read tables with <code class="docutils literal notranslate"><span class="pre">PASS.utils.table_io.read_table</span></code> as described in
+<a class="reference internal" href="table_output.html"><span class="doc">Table output formats</span></a>. Use the separate source event table for six-dimensional
+distributions, particle-level arrival times or different offline binning.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="phaseadvancemonitor.html" class="btn btn-neutral float-left" title="PhaseAdvanceMonitor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
