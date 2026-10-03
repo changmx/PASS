@@ -47,6 +47,7 @@ from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, InjectionItem
 from PASS.para.schema.sequence import Sequence
 from PASS.para.schema.slicer import SlicerItem
+from PASS.para.schema.slow_extraction import SlowExtractionItem, SlowExtractionMonitorItem
 from PASS.para.schema.wake_field import (
     WakeFieldItem,
     WakeComponentConfig,
@@ -412,6 +413,7 @@ def _build_monitors(monitors: list[dict]) -> list:
         "phaseadvance": PhaseAdvanceMonitorItem,
         "particlemonitor": ParticleMonitorItem,
         "particle": ParticleMonitorItem,
+        "slowextractionmonitor": SlowExtractionMonitorItem,
     }
 
     result = []
@@ -430,5 +432,5 @@ __all__ = [
     'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
     'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem',
     'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
-    'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem'
+    'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem', 'SlowExtractionItem', 'SlowExtractionMonitorItem'
 ]

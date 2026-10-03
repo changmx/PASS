@@ -29,6 +29,7 @@ purpose, configuration, physical model, and limits in one place.
    twiss
    aperture
    reorganize
+   slow_extraction
 
 .. toctree::
    :maxdepth: 1

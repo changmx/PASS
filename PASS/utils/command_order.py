@@ -40,6 +40,8 @@ COMMAND_PRIORITY = {
     "DistMonitor": 800,
     "StatMonitor": 800,
     "ParticleMonitor": 800,
+    "SlowExtraction": 850,
+    "SlowExtractionMonitor": 860,
     "Other": 999,
 }
 

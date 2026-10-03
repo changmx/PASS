@@ -36,6 +36,7 @@ def check_relations(check):
         ordered = sort_commands(ordered, key=lambda row: row[2])
     except ValueError as exc:
         check.add(("Sequence", ), "sequence.order", str(exc))
+    check_slow_extraction(check, ordered)
     valid_slices, used, contributions = set(), set(), []
     slice_positions = {}
     for name, kind, v in ordered:
@@ -169,6 +170,48 @@ def check_relations(check):
             except (ValueError, OverflowError) as exc:
                 check.add(root, "sc.coverage_numeric", f"覆盖参数导致数值溢出或无效区间：{exc}")
     check_longitudinal(check)
+
+
+def check_slow_extraction(check, ordered):
+    """Require a real extraction boundary and an earlier source at that plane."""
+    from PASS.utils.command_order import command_position_key
+
+    sequence_indices = {name: index for index, (name, _kind, _values) in enumerate(ordered)}
+    thick_intervals = []
+    for name, (_kind, values) in check.commands.items():
+        end, length = values.get("S (m)"), values.get("Length (m)", 0)
+        if is_finite_number(end) and is_finite_number(length) and length > 0:
+            start = end - length
+            if math.isfinite(start):
+                thick_intervals.append((name, command_position_key({"S (m)": start}), command_position_key(values)))
+
+    for name, (kind, values) in check.commands.items():
+        if kind not in {"SlowExtraction", "SlowExtractionMonitor"}:
+            continue
+        path = ("Sequence", name)
+        position = values.get("S (m)")
+        position_key = command_position_key(values) if is_finite_number(position) else None
+        if kind == "SlowExtraction":
+            if position_key is not None:
+                for element_name, start, end in thick_intervals:
+                    if start < position_key < end:
+                        check.add((*path, "S (m)"), "slow_extraction.unsplit_element",
+                                  f"引出面位于未拆分厚元件 {element_name!r} 内部；请先拆分元件，在真实跟踪截面放置 SlowExtraction")
+            continue
+        source = values.get("Source")
+        if not isinstance(source, str):
+            continue
+        source_command = check.commands.get(source)
+        if source_command is None or source_command[0] != "SlowExtraction":
+            check.add((*path, "Source"), "slow_extraction.source", f"Source 必须精确引用本束流 Sequence 中的 SlowExtraction 名称；未找到 {source!r}")
+            continue
+        source_values = source_command[1]
+        if position_key is None or not is_finite_number(source_values.get("S (m)")):
+            continue
+        if command_position_key(source_values) != position_key:
+            check.add((*path, "S (m)"), "slow_extraction.source_position", "SlowExtractionMonitor 必须与 Source 位于同一跟踪截面")
+        elif source in sequence_indices and name in sequence_indices and sequence_indices[source] >= sequence_indices[name]:
+            check.add((*path, "Source"), "slow_extraction.source_order", "SlowExtractionMonitor 必须在 Source 之后执行；请检查同一 S 的 Order")
 
 
 def check_electron_cloud(check):

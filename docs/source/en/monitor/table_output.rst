@@ -16,6 +16,10 @@ Slicer. :doc:`BeamBeam luminosity <../beam_beam>` instead defaults to ``"tfs"``
 in its shared ``Luminosity`` configuration. Selecting a format does not
 enable a disabled output or change the configured recording turns.
 
+:doc:`SlowExtraction <../slow_extraction>` and
+:doc:`SlowExtractionMonitor <slow_extraction_monitor>` support only the two
+HDF5 options; their event and histogram tables do not offer TFS output.
+
 .. list-table::
    :header-rows: 1
    :widths: 25 45 30
@@ -35,6 +39,12 @@ enable a disabled output or change the configured recording turns.
    * - StatMonitor
      - One statistics history per bunch and monitor position
      - CSV with the same rows
+   * - SlowExtraction
+     - One append-only particle-event table per source and run
+     - HDF5 only
+   * - SlowExtractionMonitor
+     - One turn and/or physical-time histogram per monitor and source
+     - HDF5 only
    * - Injection
      - Initial distributions when ``save_init_dist`` is enabled;
        set ``output_format`` in each ``BunchConfig`` / ``bunchN`` block

@@ -66,6 +66,7 @@ from PASS.para.schema.elements import (
     FloatWaisterItem,
 )
 from PASS.para.schema.monitors import StatMonitorItem, DistMonitorItem, PhaseAdvanceMonitorItem, ParticleMonitorItem
+from PASS.para.schema.slow_extraction import SlowExtractionItem, SlowExtractionMonitorItem
 from PASS.para.schema.sequence import Sequence
 from PASS.para.schema.space_charge import SpaceChargeConfig, SpaceChargeResourceConfig, SpaceChargeItem, ElementSpaceCharge
 from PASS.para.schema.electron_cloud import ElectronCloudBuildUpConfiguration, ElectronCloudConfig, ElectronCloudConfiguration, ElectronCloudItem
@@ -82,5 +83,5 @@ __all__ = [
     'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge', 'BeamBeamConfig',
     'BeamBeamConfiguration', 'BeamBeamSourceConfig', 'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem', 'CrabCavityItem', 'FloatWaisterItem',
     'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
-    'IBSItem', 'IBSOpticsConfig'
+    'IBSItem', 'IBSOpticsConfig', 'SlowExtractionItem', 'SlowExtractionMonitorItem'
 ]

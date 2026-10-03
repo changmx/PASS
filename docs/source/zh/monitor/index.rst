@@ -22,6 +22,9 @@
    * - :doc:`phaseadvancemonitor`
      - 单粒子小数工作点
      - 完整分析窗口
+   * - :doc:`slow_extraction_monitor`
+     - 指定引出 source 的 spill
+     - 圈数和/或物理时间分箱
 
 .. toctree::
    :maxdepth: 1
@@ -31,6 +34,7 @@
    distmonitor
    particlemonitor
    phaseadvancemonitor
+   slow_extraction_monitor
 
 .. _zh-reference-state:
 
