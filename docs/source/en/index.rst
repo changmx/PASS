@@ -48,3 +48,4 @@ purpose, configuration, physical model, and limits in one place.
    :caption: Diagnostics and output
 
    monitor/index
+   spectral_analysis

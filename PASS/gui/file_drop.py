@@ -22,6 +22,8 @@ def identify_file(path):
                 return "hdf5"
             offset = 512 if offset == 0 else offset * 2
     suffix = path.suffix.lower()
+    if suffix in {".npy", ".npz", ".tsv", ".txt", ".dat"}:
+        return "analysis_data"
     if suffix == ".passproj" or head.startswith(b"PK\x03\x04"):
         with zipfile.ZipFile(path) as archive:
             info = archive.getinfo("manifest.json")
@@ -41,7 +43,7 @@ def identify_file(path):
         return "json"
     if suffix in {".csv", ".tfs"}:
         return suffix[1:]
-    raise ValueError("无法识别文件。支持 PASS 项目、输入 JSON、SDDS、HDF5、TFS 和 CSV。")
+    raise ValueError("无法识别文件。支持 PASS 项目、输入 JSON、SDDS、HDF5、TFS、CSV、TSV、TXT、DAT、NPY 和 NPZ。")
 
 
 class FileDropRouter(QObject):
@@ -69,28 +71,36 @@ class FileDropRouter(QObject):
             path = urls[0].toLocalFile()
             converter = self.owner.tools.conversion
             into_converter = converter is not None and (watched is converter or converter.isAncestorOf(watched))
-            QTimer.singleShot(0, lambda: self.open_path(path, into_converter=into_converter))
+            analysis = self.owner.analysis
+            into_analysis = watched is analysis or analysis.isAncestorOf(watched)
+            QTimer.singleShot(0, lambda: self.open_path(path, into_converter=into_converter, into_analysis=into_analysis))
         return True
 
-    def open_path(self, path, *, into_converter=False):
+    def open_path(self, path, *, into_converter=False, into_analysis=False):
         try:
             kind = identify_file(path)
             if kind == "project":
                 self.owner.open_project_path(path)
             elif kind == "json":
                 self.owner.open_json_path(path)
-            elif kind in {"sdds", "hdf5"} or into_converter:
+            elif kind == "analysis_data" or (into_analysis and kind in {"csv", "tfs", "hdf5"}):
                 self.owner._show_page(3)
+                self.owner.analysis.open_path(path)
+            elif kind in {"sdds", "hdf5"} or into_converter:
+                self.owner._show_page(4)
                 self.owner.tools.open_conversion(path)
             else:
-                action, ok = QInputDialog.getItem(self.owner, "选择文件用途", Path(path).name, ["预览与转换", "绘图"], 0, False)
+                action, ok = QInputDialog.getItem(self.owner, "选择文件用途", Path(path).name, ["预览与转换", "绘图", "频谱分析"], 0, False)
                 if not ok:
                     return
                 if action == "绘图":
                     self.owner.plot.load_paths_async([path])
                     self.owner._show_page(2)
-                else:
+                elif action == "频谱分析":
                     self.owner._show_page(3)
+                    self.owner.analysis.open_path(path)
+                else:
+                    self.owner._show_page(4)
                     self.owner.tools.open_conversion(path)
         except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
             QMessageBox.warning(self.owner, "无法打开文件", str(exc))

@@ -15,6 +15,9 @@ launch it with ``python -m PASS.gui`` or ``pass-gui``.
 The configuration page edits the same input used by the tracking engine.
 For project packaging, run snapshots, stopping, and rerunning, see :doc:`project_files`.
 Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
+The separate **Analysis** workspace provides FFT spectra and frequency maps
+from result files or external arrays; see :doc:`spectral_analysis` for the
+shared Python functions, supported files and numerical conventions.
 
 Startup and file drops
 ----------------------
@@ -52,8 +55,9 @@ These configurations are independent alternatives; **Beam 1** on the run page
 specifically means the optional second beam in a two-beam simulation.
 
 OMC3 SDDS/HDF5 drops open the conversion tool (see :ref:`gui-data-conversion-en`) without replacing beam parameters.
-CSV/TFS drops offer conversion or plotting; dropping them directly into the
-converter selects conversion. Only one file is accepted per drop. For another
+CSV/TFS drops offer conversion, plotting or spectral analysis; dropping them directly into the
+converter selects conversion. NPY/NPZ/TSV/TXT/DAT drops open Analysis. Dropping
+CSV/TFS/HDF5 directly onto Analysis selects analysis. Only one file is accepted per drop. For another
 project window, launch another ``pass-gui`` process from a terminal.
 
 Property ordering and sections

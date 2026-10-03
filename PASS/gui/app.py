@@ -62,6 +62,7 @@ from PySide6.QtWidgets import (
 )
 
 from PASS import __version__
+from PASS.gui.analysis import AnalysisPage
 from PASS.gui.appearance import THEMES, JsonHighlighter, apply_application_theme, code_font, icon
 from PASS.gui.help import HelpMenu
 from PASS.gui.widgets import file_dialog_directory
@@ -4509,7 +4510,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         header.addWidget(self.file_button)
         header.addSpacing(14)
         self.nav = []
-        for index, label in enumerate(("配置", "运行", "绘图", "工具")):
+        for index, label in enumerate(("配置", "运行", "绘图", "分析", "工具")):
             item = button(label, "nav")
             item.setCheckable(True)
             item.clicked.connect(lambda checked=False, i=index: self._show_page(i))
@@ -4550,9 +4551,11 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             layout.addStretch()
             self.stack.addWidget(page)
         self.plot = PlotPage()
+        self.analysis = AnalysisPage()
         self.tools = ToolsPage()
         self.tools.preloader.wait_for_configuration = defer_configuration
         self.stack.addWidget(self.plot)
+        self.stack.addWidget(self.analysis)
         self.stack.addWidget(self.tools)
         outer.addWidget(self.stack, 1)
         self.setCentralWidget(central)
@@ -4560,11 +4563,12 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.preload_status = QLabel("正在准备界面…")
         self.statusBar().addPermanentWidget(self.preload_status)
         self.tools.preparation_changed.connect(self.preload_status.setText)
-        self.tools.pause_preload = lambda: (self.run is not None and self.run.busy) or self._document_busy or self.plot.busy
+        self.tools.pause_preload = lambda: (self.run is not None and self.run.busy) or self._document_busy or self.plot.busy or self.analysis.busy
         self.tools.preloader.configuration_ready.connect(self._initialize_configuration)
         self.tools.preloader.finished.connect(self._configuration_finished)
         self.tools.preloader.finished.connect(self._finish_preload_close)
         self.plot.shutdown_finished.connect(self._finish_background_close)
+        self.analysis.shutdown_finished.connect(self._finish_background_close)
         self._close_force_button = button("强制结束运行")
         self._close_force_button.clicked.connect(lambda: self.run.force_stop() if self.run is not None else None)
         self._close_force_button.hide()
@@ -4636,6 +4640,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.settings.setValue("theme", preference)
         apply_application_theme(theme)
         self.tools.set_theme(theme)
+        self.analysis.set_theme(theme)
         self.theme_button.setText({"dark": "深色", "light": "浅色", "system": "跟随系统"}[preference])
         self.theme_button.setIcon(icon("moon" if theme == "dark" else "sun", THEMES[theme]["muted"]))
         for mode, action in self.theme_actions.items():
@@ -4662,6 +4667,8 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
             item.setChecked(i == index)
         if index == 1 and self.run is not None:
             self.run.refresh_inputs()
+        if index == 3:
+            self.analysis.activate()
 
     def closeEvent(self, event) -> None:
         if self.config is None:
@@ -4670,7 +4677,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
                 return
             self._close_confirmed = True
             self.help_menu.builder.shutdown()
-            ready = [self.plot.shutdown(), self.tools.shutdown()]
+            ready = [self.plot.shutdown(), self.analysis.shutdown(), self.tools.shutdown()]
             if not all(ready):
                 self.centralWidget().setEnabled(False)
                 self.preload_status.setText("正在等待后台准备结束…")
@@ -4696,7 +4703,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
                 return
         self._close_confirmed = True
         self.help_menu.builder.shutdown()
-        ready = [self.run.shutdown(), self.plot.shutdown(), self.recovery.shutdown(), self.tools.shutdown()]
+        ready = [self.run.shutdown(), self.plot.shutdown(), self.analysis.shutdown(), self.recovery.shutdown(), self.tools.shutdown()]
         if not all(ready):
             self.centralWidget().setEnabled(False)
             self.preload_status.setText("正在取消后台任务并等待运行收尾…")

@@ -62,6 +62,7 @@ python -m PASS.validation path/to/beam.json --report validation-report.json
 - [Space charge](https://changmx.github.io/PASS/en/space_charge.html), [wakefields](https://changmx.github.io/PASS/en/wake_field.html) and [electron clouds: frozen kicks and prescribed-beam build-up](https://changmx.github.io/PASS/en/electron_cloud.html)
 - [Intrabeam scattering](https://changmx.github.io/PASS/en/ibs.html): Gaussian growth rates, kinetic kicks and local binary collisions on CPU/GPU
 - [Monitors and output formats](https://changmx.github.io/PASS/en/monitor/index.html)
+- [Spectral analysis and FMA](https://changmx.github.io/PASS/en/spectral_analysis.html): standalone NumPy functions and the GUI **Analysis** workspace; CSV/TSV/TXT/DAT, TFS, HDF5, NPY and NPZ inputs.
 
 WakeField file models accept canonical wake TFS only. Convert CSV/TXT/HEADTAIL data with `python -m PASS.tool.wake_conversion` or **Import wake…** in the GUI conversion tool; the [wakefield guide](https://changmx.github.io/PASS/en/wake_field.html#wake-tfs-en) explains units, physical conventions and examples.
 

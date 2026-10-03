@@ -62,6 +62,7 @@ python -m PASS.validation path/to/beam.json --report validation-report.json
 - [元件](https://changmx.github.io/PASS/zh/element/index.html)与 [Twiss 传输映射](https://changmx.github.io/PASS/zh/twiss.html)
 - [空间电荷](https://changmx.github.io/PASS/zh/space_charge.html)、[尾场](https://changmx.github.io/PASS/zh/wake_field.html)与[电子云：静态踢角及预设束流驱动积累](https://changmx.github.io/PASS/zh/electron_cloud.html)
 - [监视器与输出格式](https://changmx.github.io/PASS/zh/monitor/index.html)
+- [频谱分析与 FMA](https://changmx.github.io/PASS/zh/spectral_analysis.html)：独立 NumPy 函数与 GUI **分析** 页面，支持 CSV/TSV/TXT/DAT、TFS、HDF5、NPY 和 NPZ 输入。
 
 WakeField 文件模型仅接受标准尾场 TFS。CSV/TXT/HEADTAIL 数据需通过 `python -m PASS.tool.wake_conversion` 或 GUI 转换工具中的 **导入尾场…** 转换；单位、物理约定与示例见[尾场指南](https://changmx.github.io/PASS/zh/wake_field.html#wake-tfs-zh)。
 
