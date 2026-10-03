@@ -584,7 +584,7 @@ class ElSeparator(Command):
                         self._advance_cpu(p, bunch, 0., s0, turn)
                         self._edge_cpu(p, bunch, k, action == 0, s0, turn)
                         self._advance_cpu(p, bunch, 0., s0, turn)
-                if action == 1:
+                if action in (1, 3):
                     offset += ds
                     bunch.t0 += ds / (bunch.beta * const.c)
 
@@ -603,6 +603,8 @@ class ElSeparator(Command):
                     advance(0.)
                     self._kick_cpu(p, bunch, total_kick)
                     advance(0.)  # Reject invalid post-kick momentum at the same plane.
+            elif gpu and not self._sc_nodes:
+                thick(3, self.length)
             else:
                 thick(0)
                 if self._sc_nodes:
@@ -684,6 +686,69 @@ __device__ inline bool separator_advance(
         lp = (float)(s0 + hit);
         lt = turn;
         return false;
+    }
+    return true;
+}
+__device__ inline bool separator_advance_straight(
+    R& x,
+    R& y,
+    R& z,
+    R px,
+    R py,
+    R dp,
+    int& tag,
+    float& lp,
+    int& lt,
+    R inv_g2,
+    double length,
+    double s0,
+    int turn,
+    double co,
+    double si,
+    double us,
+    double outer,
+    double counter
+) {
+    // Field-free motion leaves momenta unchanged. Reuse the stored-precision
+    // factors, retaining full ray tests and zero-step arithmetic at the exit.
+    if (tag <= 0)
+        return false;
+    R inv_ps, slip;
+    if (!pass_drift_factors(px, py, dp, inv_g2, inv_ps, slip) || !isfinite(x) || !isfinite(y) || !isfinite(z)) {
+        tag = -abs(tag);
+        lp = (float)s0;
+        lt = turn;
+        return false;
+    }
+    double dx = (double)px * (double)inv_ps, dy = (double)py * (double)inv_ps;
+    double du = dx * co - dy * si;
+#pragma unroll
+    for (int stage = 0; stage < 2; ++stage) {
+        double position = stage == 0 ? s0 : s0 + length;
+        double distance_limit = stage == 0 ? length : 0.;
+        if (stage != 0 && (!isfinite(x) || !isfinite(y) || !isfinite(z))) {
+            tag = -abs(tag);
+            lp = (float)position;
+            lt = turn;
+            return false;
+        }
+        double u = (double)x * co - (double)y * si;
+        const double epsilon = PASS_USE_FLOAT ? 0x1p-23 : 0x1p-52;
+        double tolerance = 4. * epsilon * (fabs((double)x * co) + fabs((double)y * si));
+        double hit = pass_aperture_hit((double)x, (double)y, dx, dy);
+        hit = fmin(hit, slab_entry(u, du, us, outer, tolerance));
+        hit = fmin(hit, slab_entry(u, du, counter, INFINITY, tolerance));
+        bool lost = hit <= distance_limit;
+        R distance = (R)(lost ? hit : distance_limit);
+        x += distance * px * inv_ps;
+        y += distance * py * inv_ps;
+        z += distance * slip;
+        if (lost) {
+            tag = -abs(tag);
+            lp = (float)(position + hit);
+            lt = turn;
+            return false;
+        }
     }
     return true;
 }
@@ -931,18 +996,17 @@ __device__ double curved_hit(
     return source + r'''
 return hit;
 }
-extern "C" __global__ void track_separator_thick(
-    R* x,
-    R* px,
-    R* y,
-    R* py,
-    R* z,
-    R* dp,
-    int* tag,
-    float* lp,
-    int* lt,
-    int start,
-    int end,
+template <bool check_entry = true>
+__device__ inline void separator_thick_stage(
+    R& X,
+    R& Y,
+    R& Z,
+    R& PX,
+    R& PY,
+    R& DP,
+    int& T,
+    float& LP,
+    int& LT,
     int turn,
     int action,
     double length,
@@ -956,13 +1020,10 @@ extern "C" __global__ void track_separator_thick(
     double outer,
     double counter
 ) {
-    int i = start + blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= end || tag[i] <= 0)
-        return;
-    R X = x[i], Y = y[i], Z = z[i], PX = px[i], PY = py[i], DP = dp[i];
-    int T = tag[i], LT = lt[i];
-    float LP = lp[i];
-    if (separator_advance(X, Y, Z, PX, PY, DP, T, LP, LT, (R)ig, 0, s0, turn, co, si, us, outer, counter)) {
+    // A preceding stage checked this rounded state. Preserve the next check if
+    // its zero-distance arithmetic produced nonfinite coordinates.
+    bool entry_validated = !check_entry && isfinite(X) && isfinite(Y) && isfinite(Z);
+    if (T > 0 && (entry_validated || separator_advance(X, Y, Z, PX, PY, DP, T, LP, LT, (R)ig, 0, s0, turn, co, si, us, outer, counter))) {
         double u = (double)X * co - (double)Y * si;
         bool field = u > outer && u < counter && k != 0;
         if (action != 1 && field) {
@@ -998,6 +1059,54 @@ extern "C" __global__ void track_separator_thick(
         }
         if (action == 1 && T > 0)
             separator_advance(X, Y, Z, PX, PY, DP, T, LP, LT, (R)ig, 0, s0 + length, turn, co, si, us, outer, counter);
+    }
+}
+extern "C" __global__ void track_separator_thick(
+    R* x,
+    R* px,
+    R* y,
+    R* py,
+    R* z,
+    R* dp,
+    int* tag,
+    float* lp,
+    int* lt,
+    int start,
+    int end,
+    int turn,
+    int action,
+    double length,
+    double k,
+    double s0,
+    double beta,
+    double ig,
+    double co,
+    double si,
+    double us,
+    double outer,
+    double counter
+) {
+    int i = start + blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= end || tag[i] <= 0)
+        return;
+    R X = x[i], Y = y[i], Z = z[i], PX = px[i], PY = py[i], DP = dp[i];
+    int T = tag[i], LT = lt[i];
+    float LP = lp[i];
+    if (action == 3) {
+        double u = (double)X * co - (double)Y * si;
+        if (!(u > outer && u < counter && k != 0)) {
+            // Reaching the field from the circulating side crosses absorbing
+            // material, so exact straight transport covers the complete path.
+            separator_advance_straight(X, Y, Z, PX, PY, DP, T, LP, LT, (R)ig, length, s0, turn, co, si, us, outer, counter);
+        } else {
+            // R-valued state preserves the storage rounding at each hard edge
+            // and body exit, including float32, without intermediate global IO.
+            separator_thick_stage(X, Y, Z, PX, PY, DP, T, LP, LT, turn, 0, 0., k, s0, beta, ig, co, si, us, outer, counter);
+            separator_thick_stage<false>(X, Y, Z, PX, PY, DP, T, LP, LT, turn, 1, length, k, s0, beta, ig, co, si, us, outer, counter);
+            separator_thick_stage<false>(X, Y, Z, PX, PY, DP, T, LP, LT, turn, 2, 0., k, s0 + length, beta, ig, co, si, us, outer, counter);
+        }
+    } else {
+        separator_thick_stage(X, Y, Z, PX, PY, DP, T, LP, LT, turn, action, length, k, s0, beta, ig, co, si, us, outer, counter);
     }
     x[i] = X;
     y[i] = Y;

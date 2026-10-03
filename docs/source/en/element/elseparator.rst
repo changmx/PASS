@@ -359,3 +359,11 @@ double precision for analytic field trajectories and curved collision bounds;
 particle arrays retain their configured float32 or float64 storage. Internal SC
 nodes materialize the particle state; compiled kernels are cached per element,
 device and storage dtype. No particle coordinate array is rotated in place.
+
+Without internal SC nodes, thick GPU tracking fuses entrance, body and exit into
+one kernel. Field-free particles use the exact straight trajectory with continuous
+material and aperture checks, including an endpoint check after storage rounding.
+A surviving field-free trajectory cannot enter the gap without first contacting
+an absorbing electrode. Particles in the field retain the analytic hard-edge
+stages and their configured storage-precision rounding. Internal SC nodes retain
+the split tracking path so that their kicks act on the intermediate state.
