@@ -27,6 +27,7 @@ PASS（Particle Accelerator Simulation Studio）用于六维粒子跟踪与束�
    twiss
    aperture
    reorganize
+   slow_extraction
 
 .. toctree::
    :maxdepth: 1

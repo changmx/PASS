@@ -28,10 +28,12 @@ from .space_charge import SpaceCharge
 from .wake_field import WakeField
 from .electron_cloud import ElectronCloud
 from .ibs import IBS
+from .slow_extraction import SlowExtraction
 from .monitor.statistic import StatMonitor
 from .monitor.distribution import DistMonitor
 from .monitor.phase_advance import PhaseAdvanceMonitor
 from .monitor.particle_monitor import ParticleMonitor
+from .monitor.slow_extraction_monitor import SlowExtractionMonitor
 
 __all__ = [
     "COMMAND_PRIORITY",
@@ -65,8 +67,10 @@ __all__ = [
     "WakeField",
     "ElectronCloud",
     "IBS",
+    "SlowExtraction",
     "StatMonitor",
     "DistMonitor",
     "PhaseAdvanceMonitor",
     "ParticleMonitor",
+    "SlowExtractionMonitor",
 ]
