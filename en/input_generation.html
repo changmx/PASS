@@ -61,6 +61,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Input File Generation (Command-Line Mode)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input-snapshots-for-execution">Input snapshots for execution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#json-file-structure">JSON File Structure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#core-components">Core Components</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mainconfig-global-parameters">MainConfig (Global Parameters)</a></li>
@@ -78,10 +79,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#external-data-file-conversion">External Data File Conversion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#four-step-pipeline">Four-Step Pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#one-step-conversion">One-Step Conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pre-packaged-wrappers">Pre-packaged Wrappers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-by-step-invocation">Step-by-Step Invocation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generate-a-magnet-program">Generate a magnet program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#convert-an-external-file">Convert an external file</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#parameter-scans-and-validation">Parameter scans and validation</a></li>
@@ -216,6 +215,64 @@
 </pre></div>
 </div>
 <p>For this uncoupled linear model, transverse RMS emittances should remain constant up to numerical rounding. The finite sampled initial values need not equal the requested emittances exactly. Longitudinal transfer is disabled here; this example does not model synchrotron oscillation or collective effects.</p>
+</section>
+<section id="input-snapshots-for-execution">
+<h2>Input snapshots for execution<a class="headerlink" href="#input-snapshots-for-execution" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.main.main(beam0_path,</span> <span class="pre">beam1_path=None,</span> <span class="pre">...)</span></code> archives inputs by default
+(<code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>). After checking the original configuration, it copies
+the JSON configuration and referenced input files, validates the resulting
+snapshot, and initializes tracking from that snapshot. This includes particle
+distributions, RF programs, offset tables, wakefield models, and magnet ramping
+tables. Later changes to their original files do not affect the run.</p>
+<p>The command-line/Python workflow preserves its existing dated result layout:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/input_snapshots/&lt;run-id&gt;/
+    configuration0.json         # original configuration values
+    beam0.json                  # actual execution input; optional beam1.json
+    assets/&lt;index&gt;/&lt;filename&gt;   # copied input dependencies
+    run.json                    # paths, SHA-256 hashes and run status
+&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/   # existing simulation result layout
+</pre></div>
+</div>
+<p>Two-input runs also save <code class="docutils literal notranslate"><span class="pre">configuration1.json</span></code>. File references in execution
+JSON point to relative <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> paths inside the snapshot, so the input
+directory can be moved together. <code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> is resolved against the
+original Beam 0 JSON directory before copying and stored as an absolute path;
+moving the snapshot does not redirect its results. The original JSON and input
+files remain unchanged. <code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> serializes the original
+configuration values; copied dependency files preserve their exact bytes.
+The GUI uses the same input-copying and hashing rules
+with its own result layout; see <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a>.</p>
+<p>The parameter JSON saved alongside results retains its existing filename and
+stores absolute input and output paths. It is generated from the configuration
+already loaded, after resolving paths and before expanding named configurations,
+without rereading the source JSON. The main snapshot’s <code class="docutils literal notranslate"><span class="pre">beamN.json</span></code> continues
+to use relative dependency paths.</p>
+<p>The format-version-1 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> records the SHA-256 hashes of execution JSON,
+comparison configurations, and available dependencies. Dependency records include
+the original source path and copied byte count. Missing files belonging to
+disabled resources retain their validation warnings and are listed in
+<code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code>; missing required active inputs block execution.
+Missing references point to uncreated paths inside the snapshot, so restoring
+an original file later cannot make it an unarchived runtime input.
+The record follows preparation and execution status. <code class="docutils literal notranslate"><span class="pre">output_directory</span></code> stores
+the configured output root; <code class="docutils literal notranslate"><span class="pre">results_directory</span></code> stores the actual result
+directory after initialization. The <code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> callback can read
+<code class="docutils literal notranslate"><span class="pre">cfg.input_snapshot_path</span></code> to locate this run’s <code class="docutils literal notranslate"><span class="pre">run.json</span></code>. A preparation
+failure is recorded as <code class="docutils literal notranslate"><span class="pre">preparation_failed</span></code> when a record has already been created.</p>
+<p>Running <code class="docutils literal notranslate"><span class="pre">main()</span></code> on a saved <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> starts again from its initial
+conditions and creates a new input snapshot and result directory. This is input
+reproduction, not checkpoint continuation. An input snapshot does not restore
+the previous Python environment, code version or random-generator state;
+<code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed:</span> <span class="pre">null</span></code> retains nondeterministic sampling.</p>
+<p>For integrations that already prepared an input snapshot, <code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code>
+disables this additional copy; the GUI child process uses that setting. Automatic
+dependency archiving belongs to <code class="docutils literal notranslate"><span class="pre">main()</span></code>; the lower-level <code class="docutils literal notranslate"><span class="pre">Config.load_input()</span></code>
+does not archive dependencies itself.
+With <code class="docutils literal notranslate"><span class="pre">flat_output=True</span></code>, results remain directly in the specified output
+directory and snapshots are placed in its parent’s <code class="docutils literal notranslate"><span class="pre">input_snapshots/&lt;run-id&gt;</span></code>.
+If the result directory itself is named <code class="docutils literal notranslate"><span class="pre">input_snapshots</span></code>, the sibling
+<code class="docutils literal notranslate"><span class="pre">input_snapshots_archive/&lt;run-id&gt;</span></code> is used instead, keeping the flat result
+directory free of snapshot subdirectories.</p>
 </section>
 <section id="json-file-structure">
 <h2>JSON File Structure<a class="headerlink" href="#json-file-structure" title="Link to this heading"></a></h2>
@@ -700,67 +757,75 @@ also accepts <code class="docutils literal notranslate"><span class="pre">is_ali
 </section>
 <section id="external-data-file-conversion">
 <h2>External Data File Conversion<a class="headerlink" href="#external-data-file-conversion" title="Link to this heading"></a></h2>
-<p>PASS uses the <strong>TFS format</strong> as the unified format for all ramping/RF/exciter data files. <code class="docutils literal notranslate"><span class="pre">tools/data_converter.py</span></code> provides a general conversion pipeline that transforms various external files (CSV/TXT/TFS) into PASS TFS.</p>
-<p>RF files retain physical seconds and do not use the magnet-ramping turn conversion below. RF columns are <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">FREQUENCY,</span> <span class="pre">PHASE</span></code>; see <a class="reference internal" href="element/rfcavity.html"><span class="doc">RFCavity</span></a>.</p>
-<p>The magnet-ramping conversion helpers below prepare tables only. The current tracking engine rejects enabled magnetic-element ramping; creating a table does not enable that feature. RF physical-time tables are supported by RFCavity.</p>
-<section id="four-step-pipeline">
-<h3>Four-Step Pipeline<a class="headerlink" href="#four-step-pipeline" title="Link to this heading"></a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>External file → load_raw_data → time_to_turn → interpolate → write_tfs
-</pre></div>
-</div>
-<ol class="arabic simple">
-<li><p><strong>load_raw_data</strong> : Reads the external file, auto-detects turn/time columns</p></li>
-<li><p><strong>time_to_turn</strong> : If the external file provides time instead of turns, converts using the revolution frequency</p></li>
-<li><p><strong>interpolate_to_continuous_turns</strong> : Automatically interpolates when turns are non-contiguous</p></li>
-<li><p><strong>write_tfs_ramping</strong> : Writes to the PASS unified TFS format</p></li>
-</ol>
-</section>
-<section id="one-step-conversion">
-<h3>One-Step Conversion<a class="headerlink" href="#one-step-conversion" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_external_to_tfs</span>
+<p>Magnet ramping, RF and exciter inputs use TFS tables. Quadrupole, Sextupole,
+Octupole and Multipole read normalized strengths against physical time in seconds;
+each nonempty bunch samples once at the element entrance and uses that strength
+throughout the element. See <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">Magnet ramping</span></a> for the supported columns
+and sampling model.
+RF uses its own <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">FREQUENCY,</span> <span class="pre">PHASE</span></code> interface, documented in
+<a class="reference internal" href="element/rfcavity.html"><span class="doc">RFCavity</span></a>.</p>
+<section id="generate-a-magnet-program">
+<h3>Generate a magnet program<a class="headerlink" href="#generate-a-magnet-program" title="Link to this heading"></a></h3>
+<p>Write a breakpoint table directly; the tracker performs piecewise-linear
+interpolation and holds endpoint values outside the listed interval:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_magnet_ramping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuadrupoleItem</span>
 
-<span class="n">convert_external_to_tfs</span><span class="p">(</span>
-    <span class="n">input_path</span><span class="o">=</span><span class="s2">"external_ramp.csv"</span><span class="p">,</span>     <span class="c1"># external file</span>
-    <span class="n">output_path</span><span class="o">=</span><span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span>      <span class="c1"># PASS TFS</span>
-    <span class="n">data_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">"k1l"</span><span class="p">,</span> <span class="s2">"k1sl"</span><span class="p">],</span>          <span class="c1"># data column names</span>
-    <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">,</span>             <span class="c1"># revolution frequency (Hz)</span>
-    <span class="n">num_turns</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>                     <span class="c1"># target number of turns</span>
-    <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>                    <span class="c1"># interpolation method</span>
+<span class="n">write_magnet_ramping</span><span class="p">(</span>
+    <span class="s2">"quadrupole_ramp.tfs"</span><span class="p">,</span>
+    <span class="n">times</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">],</span>               <span class="c1"># physical seconds</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"K1L"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">],</span> <span class="s2">"K1SL"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">]},</span>
+<span class="p">)</span>
+<span class="n">quad</span> <span class="o">=</span> <span class="n">QuadrupoleItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">num_slices</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">is_ramping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ramping_file</span><span class="o">=</span><span class="s2">"quadrupole_ramp.tfs"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>The writer validates the table and adds <code class="docutils literal notranslate"><span class="pre">TIME_UNIT=&quot;s&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">STRENGTH_CONVENTION=&quot;normalized&quot;</span></code> and strength-unit metadata. Supply absolute
+strengths, not multipliers. Non-integrated <code class="docutils literal notranslate"><span class="pre">K1</span></code>, <code class="docutils literal notranslate"><span class="pre">K2</span></code> and similar columns
+require a positive magnet length; integrated <code class="docutils literal notranslate"><span class="pre">K1L</span></code>, <code class="docutils literal notranslate"><span class="pre">K2L</span></code> and similar
+columns also support thin lenses. Normal and skew components can be supplied
+independently. Do not specify both K and KL for the same component.</p>
 </section>
-<section id="pre-packaged-wrappers">
-<h3>Pre-packaged Wrappers<a class="headerlink" href="#pre-packaged-wrappers" title="Link to this heading"></a></h3>
-<p>Thin wrappers for common element types:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_k1l_ramping</span><span class="p">,</span> <span class="n">convert_k2l_ramping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
+<section id="convert-an-external-file">
+<h3>Convert an external file<a class="headerlink" href="#convert-an-external-file" title="Link to this heading"></a></h3>
+<p>The dedicated converter reads CSV, whitespace-separated TXT or TFS. Map source
+column names to the required strength names and explicitly convert the time
+unit. It preserves the original sample times, without converting to turns or
+resampling a dense turn grid:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_magnet_ramping</span>
 
-<span class="c1"># Quadrupole ramping</span>
-<span class="n">convert_k1l_ramping</span><span class="p">(</span><span class="s2">"external.csv"</span><span class="p">,</span> <span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
+<span class="n">convert_magnet_ramping</span><span class="p">(</span>
+    <span class="n">input_path</span><span class="o">=</span><span class="s2">"external_ramp.csv"</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="s2">"quadrupole_ramp.tfs"</span><span class="p">,</span>
+    <span class="n">time_column</span><span class="o">=</span><span class="s2">"time_ms"</span><span class="p">,</span>
+    <span class="n">time_scale</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>                       <span class="c1"># milliseconds -&gt; seconds</span>
+    <span class="n">column_mapping</span><span class="o">=</span><span class="p">{</span><span class="s2">"normal"</span><span class="p">:</span> <span class="s2">"K1L"</span><span class="p">,</span> <span class="s2">"skew"</span><span class="p">:</span> <span class="s2">"K1SL"</span><span class="p">},</span>
+    <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>For unusual headers or skipped rows, use
+<code class="docutils literal notranslate"><span class="pre">read_magnet_ramping_source(input_path,</span> <span class="pre">delimiter=None,</span> <span class="pre">header=0,</span> <span class="pre">skiprows=0)</span></code>
+from the same module, extract the selected numeric columns, and call
+<code class="docutils literal notranslate"><span class="pre">write_magnet_ramping</span></code>. Time units in source TFS metadata must agree with the
+selected time conversion. Strength-unit metadata is checked when supplied;
+strengths are not implicitly converted from physical magnetic fields.</p>
+<p>The GUI offers both import/conversion and breakpoint generation under
+<strong>Tools → Data conversion → Magnet ramping</strong>; see <a class="reference internal" href="gui_tools.html"><span class="doc">GUI tools</span></a>.
+After exporting, enable ramping and select the file in the supported element.</p>
+<p>Legacy <code class="docutils literal notranslate"><span class="pre">convert_external_to_tfs</span></code>, <code class="docutils literal notranslate"><span class="pre">convert_k1l_ramping</span></code> and related helpers
+retain their historical turn-table behavior. The tracker can accept a legacy
+<code class="docutils literal notranslate"><span class="pre">TIME_S</span></code> column only when it contains physical seconds; a <code class="docutils literal notranslate"><span class="pre">TURN</span></code>-only table
+cannot drive magnet ramping. Do not infer elapsed time from a row number or an
+instantaneous revolution frequency during acceleration. Use the physical-time
+writer or converter above for new inputs.</p>
+<p>RF files remain separate:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
 
-<span class="c1"># RF data</span>
 <span class="n">convert_rf_data</span><span class="p">(</span><span class="s2">"llrf.csv"</span><span class="p">,</span> <span class="s2">"rf_physical_time.tfs"</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="step-by-step-invocation">
-<h3>Step-by-Step Invocation<a class="headerlink" href="#step-by-step-invocation" title="Link to this heading"></a></h3>
-<p>When the external file format is non-standard, each function can be called step by step:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">interpolate_to_continuous_turns</span><span class="p">,</span> <span class="n">write_tfs_ramping</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="c1"># Prepare data manually</span>
-<span class="n">turn_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
-<span class="n">k2l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">4.4</span><span class="p">])</span>
-
-<span class="n">turn_cont</span><span class="p">,</span> <span class="n">data_cont</span> <span class="o">=</span> <span class="n">interpolate_to_continuous_turns</span><span class="p">(</span>
-    <span class="n">turn_arr</span><span class="p">,</span> <span class="p">{</span><span class="s2">"K2L"</span><span class="p">:</span> <span class="n">k2l</span><span class="p">},</span>
-    <span class="n">start_turn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">write_tfs_ramping</span><span class="p">(</span><span class="s2">"k2l_ramping.tfs"</span><span class="p">,</span> <span class="n">turn_cont</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_cont</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

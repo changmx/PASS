@@ -143,7 +143,10 @@
 修改后，之前的全面检测状态会更新为参数预检；再次点击校验可获得最新完整报告。
 运行前会重新检查所选的全部输入。双束流输入的圈数、后端、精度、GPU 设置和
 Timing 必须一致，因为引擎共享这些设置。直接调用 <code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code> 也会在
-初始化之前执行同一套全面检测。</p>
+初始化之前执行同一套全面检测。
+默认运行流程随后复制输入依赖并生成运行快照，再校验快照后初始化跟踪。
+快照目录在这一步运行准备中创建；单独校验仍不创建仿真输出。
+具体流程见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a> 和 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
 </section>
 <section id="id2">
 <h2>检测范围<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
@@ -181,8 +184,10 @@ RF 谐波仍独立于 束团分组数，不要求相等或整数倍。</p></li>
 同一输入中的共享文件只读取一次。相对路径在校验和执行时都以 JSON 所在目录为基准；
 JSON 接受带 BOM 的 UTF-8 编码。</p></li>
 </ul>
-<p>当前引擎尚未实现磁铁元件的 ramping 和 BeamBeam 命令。启用这些功能会报告错误，
-避免设置被静默忽略；已实现的 RFCavity RF 数据表继续支持。
+<p>四极、六极、八极和多极铁支持归一化强度 ramping。启用后会检查文件的物理
+<code class="docutils literal notranslate"><span class="pre">TIME</span></code>、有限强度列、支持的阶数、重复分量，以及非积分强度要求的正长度；
+见 <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。其他磁铁启用 ramping 仍然报错。
+旧 BeamBeam 命令不可用；已实现的 RFCavity RF 数据表继续支持。
 ElSeparator 必须在有限的 <code class="docutils literal notranslate"><span class="pre">V</span> <span class="pre">(V)</span></code> 与 <code class="docutils literal notranslate"><span class="pre">VL</span> <span class="pre">(V</span> <span class="pre">m)</span></code> 中恰好提供一个，
 并提供正的间隙和有限隔板位置。零强度合法，非零 V 要求正长度，VL 也支持零长度薄冲量。
 几何参数须按 <a class="reference internal" href="element/elseparator.html"><span class="doc">静电偏转器（ElSeparator）</span></a> 的接口显式填写。</p>

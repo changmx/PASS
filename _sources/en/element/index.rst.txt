@@ -9,6 +9,7 @@ CrossingAngle, CrabCavity and FloatWaister are described in :doc:`../beam_beam`.
    :maxdepth: 2
 
    error
+   magnet_ramping
    marker
    drift
    dipole

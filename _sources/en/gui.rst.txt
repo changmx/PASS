@@ -255,8 +255,15 @@ septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.
 
-Exciter exposes tune/frequency selection and FM/AM-dependent fields. Ordinary
-magnet ramping remains unavailable in tracking and cannot be newly enabled.
+Exciter exposes tune/frequency selection and FM/AM-dependent fields.
+Quadrupole, Sextupole, Octupole and Multipole expose ``Is ramping`` and
+``Ramping file`` for normalized strengths from a physical-time TFS table.
+The **Ramping** group includes **Generate / import ramping file**. Successful
+export fills the file path and enables ramping in the property draft, clearing
+legacy component-file fields; apply or insert the element to save the change.
+The generator supports rise–hold–fall templates and numeric table pasting;
+see :doc:`gui_tools` for the workflow.
+See :doc:`element/magnet_ramping`; other magnetic elements keep ramping disabled.
 
 Exciter previews evaluate particle time as ``t = T_start + elapsed - z/(beta*c)``
 using continuous bunch-relative z and the local reference arrival time. Nominal

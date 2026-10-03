@@ -71,6 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../injection.html">注入与粒子生成（Injection）</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="error.html">元件误差</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magnet_ramping.html">磁铁 ramping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dipole.html">弯转磁铁（Dipole / SBend）</a></li>
@@ -232,7 +233,16 @@ U(t)=\sum_k V_k(t)\sin\!\left[2\pi\int_{t_*}^{t}f_k(u)du+\phi_k(t)\right].\]</di
 <li><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>：规定的实际载波频率，正标量或列表。</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code>：正整数，乘以共同 <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> 的回旋频率；不依赖当前束团能量，也不受分组谐波整除限制。</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 默认为 0，可为标量或列表。列表共享严格递增的有限 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code>。所有程序分段线性插值，区间外保持端点值。参考时钟与默认值见 <a class="reference internal" href="../input_generation.html#zh-reference-clock"><span class="std std-ref">规定的机器时钟与初始化</span></a>。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> 默认为 0，可为标量或列表。
+列表共享严格递增的有限 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code>，并采用分段线性插值。
+凡是提供时间采样的分量，包括在时间网格上指定标量值的情况，其电压在
+首末采样时刻构成的闭区间外严格为零；两个端点均保留给定值。
+只有一个时间节点的表仅在该时刻有效。未提供 <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code> 的标量分量连续工作。
+文件输入遵循相同规则；RF 表电压不在数据范围外保持端点值。</p>
+<p>每个粒子按自身到达时间 <span class="math notranslate nohighlight">\(t_i\)</span> 判断，参考粒子按 <span class="math notranslate nohighlight">\(T_b\)</span> 判断，
+因此同一束团内的粒子可以分别位于数据边界两侧。频率程序、积分得到的载波相位
+及共享参考时钟保持连续，并保留原有的端点外推；仅分量电压受数据时间域限制。
+参考时钟与默认值见 <a class="reference internal" href="../input_generation.html#zh-reference-clock"><span class="std std-ref">规定的机器时钟与初始化</span></a>。</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RFCavity"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Components"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -302,6 +312,8 @@ T_b'=T_b,\qquad z_i'=z_i\beta_b'/\beta_b.\]</div>
 <section id="id5">
 <h2>文件与同步程序<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
 <p>使用 <code class="docutils literal notranslate"><span class="pre">{&quot;Program</span> <span class="pre">file&quot;:</span> <span class="pre">&quot;rf.tfs&quot;}</span></code> 读取 <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">FREQUENCY,</span> <span class="pre">PHASE</span></code> 列，单位依次为 s、V、Hz、rad。使用 <code class="docutils literal notranslate"><span class="pre">{&quot;Program</span> <span class="pre">file&quot;:</span> <span class="pre">&quot;rf.tfs&quot;,</span> <span class="pre">&quot;Harmonic&quot;:</span> <span class="pre">2}</span></code> 时文件应只有 <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">PHASE</span></code>，禁止同时提供 FREQUENCY。文件模式不能混用内联波形值。</p>
+<p>文件首末 <code class="docutils literal notranslate"><span class="pre">TIME</span></code> 采样点直接确定分量电压的有效时间域；
+域外电压为零，无需额外配置参数。</p>
 <p>RF 表按物理时间给出；<code class="docutils literal notranslate"><span class="pre">convert_rf_data(input_path,</span> <span class="pre">output_path)</span></code> 转换时间表格式，不把秒转换为圈号。</p>
 <p><code class="docutils literal notranslate"><span class="pre">PASS.para.tools.rf_data.synchronous_rf_program</span></code> 从电压、目标通过相位及明确的设计粒子能量/飞行时间构造规定波形；它只生成输入，运行时不重置实际束团相位或能量。变频载波积分和附加相位程序共同保证设计采样点相位，采样点之间采用声明的线性插值。</p>
 </section>

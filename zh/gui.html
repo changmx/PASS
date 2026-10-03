@@ -309,7 +309,12 @@ V 单位为 V，VL 为电压差沿纵向的积分，单位为 V·m。
 Distribution File Mode 的输入框和展开列表按选项文本加宽，支持完整查看 sequential/repeat。
 S 是出口，入口为 S-Length；零强度仍有材料损失，零长度支持一次 VL 薄冲量。</p>
 <p>Exciter 配置提供 tune/频率选择及 FM/AM 字段联动。
-普通磁铁的 ramping 尚未实现，界面不允许新启用。</p>
+四极、六极、八极和多极铁开放 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code> 与 <code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code>，
+读取以物理时间为自变量的归一化强度 TFS 表，见 <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。
+<strong>Ramping</strong> 分组中的 <strong>生成 / 导入 ramping 文件…</strong> 支持上升–平台–下降模板和
+数值表粘贴；成功导出后在属性草稿中回填文件路径、启用 ramping 并清空旧分量文件字段，
+应用或插入元件后保存修改。具体操作见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。
+其他磁铁元件暂不开放 ramping。</p>
 </section>
 <section id="id6">
 <h2>尾场<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>

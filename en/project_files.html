@@ -183,8 +183,9 @@ A project can store more candidate configurations than the engine runs at once.
 Relative output directories are resolved beside the JSON or saved project; an
 unsaved project uses the current working directory.</p>
 <p>The GUI freezes the selected configurations, then validates them, copies their
-dependencies, and verifies the snapshot in a background worker before starting
-the child process. Preparation reports its current stage and can be cancelled;
+dependencies using the same snapshot service as <code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code>, and verifies
+the snapshot in a background worker before starting the child process.
+Preparation reports its current stage and can be cancelled;
 duplicate starts are disabled during preparation and execution. Failed or
 cancelled preparation leaves the previously displayed run intact. Individual
 validation calls finish before observing cancellation.</p>
@@ -198,10 +199,15 @@ validation calls finish before observing cancellation.</p>
 &lt;output&gt;/runs/&lt;run-id&gt;/          # simulation results for this run
 </pre></div>
 </div>
-<p>Runtime JSON uses absolute paths to copied assets and the dedicated result
-directory. Editing the project later does not change the running task, and a new
-run does not share the preceding run’s output directory. Both directories remain
-outside the temporary project cache.</p>
+<p>Runtime JSON uses relative paths to copied <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> files and an absolute
+path to the dedicated result directory. The child process reads these copied
+inputs without creating a second snapshot. Editing the project later does not
+change the running task, and a new run does not share the preceding run’s output
+directory. Both directories remain outside the temporary project cache.</p>
+<p>The command-line/Python entry point uses the same snapshot format while retaining
+its dated result directories; see <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a>. Missing dependencies
+of disabled resources are recorded in <code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code> with the
+existing validation warnings. Missing required active inputs prevent execution.</p>
 <p><strong>Stop</strong> requests a cooperative stop at a turn boundary: the current turn finishes,
 command finalizers write available output, and automatic post-run plotting is
 skipped. The run is recorded as <code class="docutils literal notranslate"><span class="pre">stopped</span></code>, with exit code 3. A long initialization
@@ -238,8 +244,9 @@ which can come from installed package metadata. <code class="docutils literal no
 the requested devices; <code class="docutils literal notranslate"><span class="pre">observed_gpu</span></code> is populated only after actual GPU
 selection and includes device name and runtime/driver versions. It remains null
 for CPU runs or before GPU initialization.</p>
-<p>A rerun records its predecessor in <code class="docutils literal notranslate"><span class="pre">source_run</span></code>. The snapshot preserves inputs,
-but does not restore the previous Python environment or source checkout.
+<p>A rerun records its predecessor in <code class="docutils literal notranslate"><span class="pre">source_run</span></code> and starts from the initial
+conditions; it does not continue a tracking checkpoint. The snapshot preserves
+inputs, but does not restore the previous Python environment or source checkout.
 <code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed:</span> <span class="pre">null</span></code> retains nondeterministic sampling; even with integer seeds,
 identical results are not guaranteed across changed code, libraries, precision,
 or hardware.</p>

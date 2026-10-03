@@ -71,6 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../injection.html">注入与粒子生成（Injection）</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">元件（Element）</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="error.html">元件误差</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magnet_ramping.html">磁铁 ramping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="marker.html">标记（Marker）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drift.html">漂移节（Drift）</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dipole.html">弯转磁铁（Dipole / SBend）</a></li>
@@ -262,6 +263,11 @@
 </tr>
 </tbody>
 </table>
+<p>正、斜分量的时变强度可设置 <code class="docutils literal notranslate"><span class="pre">is_ramping=True</span></code> 与
+<code class="docutils literal notranslate"><span class="pre">ramping_file=&quot;magnet_ramp.tfs&quot;``（JSON：``Is</span> <span class="pre">ramping</span></code>、<code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code>）。
+TFS 列名、单位和入口采样约定见 <a class="reference internal" href="magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。每个非空 bunch 在入口
+采样一次，强度在整个元件内冻结。运行时名义强度保留最后执行的 bunch 入口值，
+场误差独立保存。同一页面也说明 <code class="docutils literal notranslate"><span class="pre">update_strengths</span></code> 的用法。</p>
 </section>
 <section id="id2">
 <h2>使用示例<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>

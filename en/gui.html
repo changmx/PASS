@@ -371,8 +371,15 @@ The ES <strong>Hardware parameters</strong> (硬件参数) group labels V, VL, g
 septum position/thickness and tilt in Chinese, retaining
 their units and JSON keys. Bump preview validation and file errors are explained
 in Chinese, including path, TFS format, numeric data and unit errors.</p>
-<p>Exciter exposes tune/frequency selection and FM/AM-dependent fields. Ordinary
-magnet ramping remains unavailable in tracking and cannot be newly enabled.</p>
+<p>Exciter exposes tune/frequency selection and FM/AM-dependent fields.
+Quadrupole, Sextupole, Octupole and Multipole expose <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code> for normalized strengths from a physical-time TFS table.
+The <strong>Ramping</strong> group includes <strong>Generate / import ramping file</strong>. Successful
+export fills the file path and enables ramping in the property draft, clearing
+legacy component-file fields; apply or insert the element to save the change.
+The generator supports rise–hold–fall templates and numeric table pasting;
+see <a class="reference internal" href="gui_tools.html"><span class="doc">GUI tools</span></a> for the workflow.
+See <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">Magnet ramping</span></a>; other magnetic elements keep ramping disabled.</p>
 <p>Exciter previews evaluate particle time as <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">T_start</span> <span class="pre">+</span> <span class="pre">elapsed</span> <span class="pre">-</span> <span class="pre">z/(beta*c)</span></code>
 using continuous bunch-relative z and the local reference arrival time. Nominal
 bunch slots do not shift the preview.</p>

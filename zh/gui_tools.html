@@ -64,6 +64,7 @@
 <li class="toctree-l1"><a class="reference internal" href="gui.html">图形界面</a></li>
 <li class="toctree-l1"><a class="reference internal" href="project_files.html">单文件项目</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">GUI 工具</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#ramping">磁铁 ramping 文件</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id1">粒子输入与权威质量数据</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id2">运动学、单位与显示精度</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#id3">流强、功率与储能</a></li>
@@ -137,6 +138,38 @@
 <p><strong>工具</strong> 页面提供独立的物理计算与数据格式转换。在同一窗口中切换页面会保留输入，
 计算不会修改当前模拟配置或保存的工程。<strong>详细公式</strong> 显示方程与数据来源，
 <strong>复制公式（LaTeX）</strong> 提供可编辑的公式文本。</p>
+<section id="ramping">
+<h2>磁铁 ramping 文件<a class="headerlink" href="#ramping" title="Link to this heading"></a></h2>
+<p>打开 <strong>工具 → 数据转换 → 磁铁 ramping…</strong>，可创建四极、六极、八极和多极铁使用的
+归一化强度 TFS 表。</p>
+<ul class="simple">
+<li><p><strong>导入 CSV / TXT / TFS</strong>：选择源文件、分隔符、表头和跳过行数；指定时间列及其
+单位（s、ms、μs 或 ns）；把需要的源强度列映射为 <code class="docutils literal notranslate"><span class="pre">K1L</span></code>、<code class="docutils literal notranslate"><span class="pre">K2SL</span></code> 等目标列。
+若 TFS 含 <code class="docutils literal notranslate"><span class="pre">TIME_UNIT</span></code> 元数据，则按其声明锁定时间单位选择；导出前检查强度列单位。</p></li>
+<li><p><strong>按时间断点生成</strong>：添加正/斜 K 或 KL 列，在表格中编辑 <code class="docutils literal notranslate"><span class="pre">TIME</span> <span class="pre">(s)</span></code> 和强度值；
+增减行以描述所需的分段线性程序。可用 <strong>粘贴单元格 (Ctrl+V)</strong> 从 Excel 或其他 TSV
+来源粘贴矩形数值区域，以选区左上角为起点，自动增加所需行。请先添加并命名所需
+强度列；表头、非有限数值和超出已有列宽的粘贴会被拒绝，原表保持不变。</p></li>
+<li><p><strong>上升–平台–下降模板</strong>：选中一个强度列，填写开始时间、上升/平台/下降时长和
+起始/平台/结束强度后应用。上升和下降时长必须为正，平台时长为零时生成三角形程序。
+模板替换选中分量的波形及两端保持值；原有时间断点保留，新断点合并到共享时间网格，
+其他分量保持其分段线性程序。模板强度使用选中列的单位。</p></li>
+</ul>
+<p>使用 <strong>读取列</strong>、<strong>预览并校验</strong> 检查分量曲线后，点击 <strong>导出 ramping TFS…</strong>。
+时间必须严格递增，所有数值
+必须有限，同一分量不能同时含 K 和 KL 列。导出将时间换为秒，保持选定的强度单位，
+并写入归一化强度元数据。预览一次显示一个所选分量，不把不同单位的强度叠加到同一坐标轴。
+从 <strong>数据转换</strong> 打开时，导出不会自动修改当前元件：需要在元件编辑器中启用
+<code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code>，再选择 <code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code>。</p>
+<p>也可在元件编辑器的 <strong>Ramping</strong> 分组中点击 <strong>生成 / 导入 ramping 文件…</strong>。
+生成器使用当前强度草稿初始化，并在导出前检查元件阶数与薄磁铁的 KL 要求。
+<strong>导出并用于当前元件…</strong> 成功保存 TFS 后，回填属性草稿中的 <code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code>，
+启用 <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code>，并清空不兼容的旧分量文件字段。仍需应用或插入元件来保存这些修改；
+未成功导出就关闭窗口时，元件草稿保持不变。</p>
+<p>K 和 KL 是绝对归一化强度，不是实际磁场或 ramp 倍率。薄磁铁必须使用 KL 列。
+运行时插值、端点保持、当前 bunch 动量归一化和入口冻结近似见
+<a class="reference internal" href="element/magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。</p>
+</section>
 <section id="id1">
 <h2>粒子输入与权威质量数据<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
 <p>离子输入质量数 <strong>A</strong>、带符号电荷态 <strong>q</strong>、质子数 <strong>Z</strong>；也可以选择非离子粒子类型。

@@ -81,6 +81,57 @@ PASS 从 JSON 文件读取仿真输入。使用 Python 配置类定义全局参�
 
 该非耦合线性模型中，横向 RMS 发射度应在数值舍入误差范围内保持不变；有限采样得到的初始值不必精确等于输入目标。本例关闭纵向输运，不包含同步振荡或集体效应。
 
+执行所用的输入快照
+------------------
+
+``PASS.main.main(beam0_path, beam1_path=None, ...)`` 默认归档输入
+（``archive_inputs=True``）。检查原始配置后，复制 JSON 配置及引用的输入文件，
+校验生成的快照，再从快照初始化跟踪。依赖包括粒子分布、RF 程序、偏移表、
+尾场模型和磁铁 ramping 表。之后修改原始文件不会影响本次运行。
+
+命令行/Python 工作流保留原有按日期组织的结果目录：
+
+.. code-block:: text
+
+   <output>/input_snapshots/<run-id>/
+       configuration0.json         # 原始配置值
+       beam0.json                  # 实际执行输入；可选 beam1.json
+       assets/<index>/<filename>   # 已复制的输入依赖
+       run.json                    # 路径、SHA-256 校验和及运行状态
+   <output>/<YYYY_MMDD>/<HHMM_SS>/   # 原有仿真结果布局
+
+双输入运行还保存 ``configuration1.json``。执行 JSON 中的文件引用使用快照内的
+相对路径 ``assets/...``，因此可以整体移动输入快照目录。
+``Output directory`` 在复制前按原始 Beam 0 JSON 所在目录解析，并保存为绝对路径；
+移动快照不会改变结果目的地。原始 JSON 和输入文件保持不变。
+``configurationN.json`` 重新序列化原始配置值；依赖文件则逐字节原样复制。
+GUI 使用相同的依赖复制及哈希规则，但保留自己的结果布局，见 :doc:`project_files`。
+
+结果目录中的参数 JSON 保留原有文件名，并保存绝对输入路径和输出路径。
+它从已经载入的配置生成，使用解析路径后、展开命名配置前的内容，不再次读取源 JSON。
+主快照中的 ``beamN.json`` 仍使用相对依赖路径。
+
+格式版本为 1 的 ``run.json`` 记录执行 JSON、比较用配置及可用依赖的 SHA-256 校验和。
+依赖记录还包括原始来源路径和复制后的字节数。
+未启用资源的缺失文件保留原有校验警告，并列入 ``unavailable_dependencies``；
+已启用功能所需输入缺失则阻止运行。缺失引用指向快照内未创建的路径，
+之后恢复原始文件也不会使其成为未经归档的运行输入。记录随准备及执行过程更新状态。
+``output_directory`` 保存配置中的输出根目录，``results_directory`` 在初始化后保存实际结果目录。
+``on_initialized(cfg)`` 回调可通过 ``cfg.input_snapshot_path`` 定位本次运行的 ``run.json``。
+准备失败时，若记录已创建，则状态记为 ``preparation_failed``。
+
+对已保存的 ``beam0.json`` 调用 ``main()`` 会从初始条件重新运行，
+并创建新的输入快照及结果目录。这是输入复现，不是检查点续算。
+输入快照不会恢复之前的 Python 环境、源码版本或随机数生成器状态；
+``Random Seed: null`` 仍采用非确定性采样。
+
+已有输入快照的集成程序可用 ``archive_inputs=False`` 关闭再次复制；GUI 子进程使用此设置。
+依赖自动归档由 ``main()`` 负责，底层 ``Config.load_input()`` 本身不归档依赖。
+设置 ``flat_output=True`` 时，结果仍直接写入指定输出目录，
+快照则位于该目录的父目录下的 ``input_snapshots/<run-id>``。
+若结果目录本身名为 ``input_snapshots``，则改用旁边的 ``input_snapshots_archive/<run-id>``，
+使 flat 结果目录不包含快照子目录。
+
 JSON 文件结构
 -------------
 
@@ -546,77 +597,77 @@ twiss 传输点和物理元件可以在同一个序列中混合使用。例如�
 外部数据文件转换
 ----------------
 
-PASS 使用 **TFS 格式** 作为所有 ramping/RF/exciter 数据文件的统一格式。 ``tools/data_converter.py`` 提供了通用转换流水线，将各种外部文件（CSV/TXT/TFS）转为 PASS TFS。
+磁铁 ramping、RF 和 exciter 输入采用 TFS 表。四极、六极、八极和多极铁读取以
+物理秒为自变量的归一化强度；每个非空 bunch 在元件入口采样一次，整个元件使用该强度。
+支持的列和采样模型见 :doc:`element/magnet_ramping`。
+RF 使用独立的 ``TIME, VOLTAGE, FREQUENCY, PHASE`` 接口，见 :doc:`element/rfcavity`。
 
-RF 文件保留物理秒，不使用下面磁铁 ramping 的圈号转换管线。RF 列为 ``TIME, VOLTAGE, FREQUENCY, PHASE``，接口见 :doc:`element/rfcavity`。
+生成磁铁程序
+~~~~~~~~~~~~
 
-以下磁铁 ramping 转换函数仅用于准备数据表。当前跟踪引擎不支持启用磁铁元件的 ramping；生成数据表不会启用该功能。RFCavity 支持以物理时间为自变量的 RF 数据表。
-
-四步流水线
-~~~~~~~~~~
-
-.. code-block:: text
-
-   外部文件 → load_raw_data → time_to_turn → interpolate → write_tfs
-
-1. **load_raw_data** ：读取外部文件，自动检测 turn/time 列
-2. **time_to_turn** ：如外部文件给的是时间而非圈数，用回转频率转换
-3. **interpolate_to_continuous_turns** ：圈数不连续时自动插值
-4. **write_tfs_ramping** ：写入 PASS 统一 TFS 格式
-
-一步到位
-~~~~~~~~
+可以直接写入时间断点表，跟踪时进行分段线性插值，并在表格区间之外保持端点值：
 
 .. code-block:: python
 
-   from PASS.para.tools.data_converter import convert_external_to_tfs
+   from PASS.para.tools.ramping import write_magnet_ramping
+   from PASS.para.schema.elements import QuadrupoleItem
 
-   convert_external_to_tfs(
-       input_path="external_ramp.csv",     # 外部文件
-       output_path="k1l_ramping.tfs",      # PASS TFS
-       data_cols=["k1l", "k1sl"],          # 数据列名
-       revolution_freq=1.76e6,             # 回转频率 (Hz)
-       num_turns=5000,                     # 目标圈数
-       method="linear",                    # 插值方法
+   write_magnet_ramping(
+       "quadrupole_ramp.tfs",
+       times=[0.0, 0.05, 0.10],               # physical seconds
+       columns={"K1L": [0.20, 0.25, 0.22], "K1SL": [0.01, 0.0, -0.01]},
+   )
+   quad = QuadrupoleItem(
+       s=10.0, length=0.5, num_slices=8,
+       is_ramping=True, ramping_file="quadrupole_ramp.tfs",
    )
 
-预置封装
-~~~~~~~~
+写入器校验表格，并加入 ``TIME_UNIT="s"``、
+``STRENGTH_CONVENTION="normalized"`` 和强度单位元数据。
+输入是绝对强度而非倍率。非积分 ``K1``、``K2`` 等列要求正的磁铁长度；
+积分 ``K1L``、``K2L`` 等列也支持薄透镜。正、斜分量可以独立指定，
+同一分量不可同时提供 K 和 KL。
 
-针对常见元件类型的薄封装：
+转换外部文件
+~~~~~~~~~~~~
+
+专用转换器读取 CSV、空白分隔 TXT 或 TFS。将源列名映射为所需的强度列名，
+并明确指定时间单位换算。转换保留原始采样时刻，不转为圈号或重采样到逐圈网格：
 
 .. code-block:: python
 
-   from PASS.para.tools.ramping import convert_k1l_ramping, convert_k2l_ramping
+   from PASS.para.tools.ramping import convert_magnet_ramping
+
+   convert_magnet_ramping(
+       input_path="external_ramp.csv",
+       output_path="quadrupole_ramp.tfs",
+       time_column="time_ms",
+       time_scale=1e-3,                       # milliseconds -> seconds
+       column_mapping={"normal": "K1L", "skew": "K1SL"},
+       delimiter=",",
+   )
+
+对于特殊表头或需要跳过行的文件，可使用同一模块的
+``read_magnet_ramping_source(input_path, delimiter=None, header=0, skiprows=0)``，
+提取所需数值列后调用 ``write_magnet_ramping``。
+源 TFS 的时间单位元数据必须与选定的时间换算一致；若提供强度单位元数据，也会校验。
+强度不会从实际磁场隐式换算。
+
+GUI 在 **工具 → 数据转换 → 磁铁 ramping…** 中提供导入转换和时间断点生成，
+见 :doc:`gui_tools`。导出后，在支持的元件中启用 ramping 并选取文件。
+
+旧 ``convert_external_to_tfs``、``convert_k1l_ramping`` 等辅助函数保留历史圈号表
+行为。只有包含实际物理秒的旧 ``TIME_S`` 列才可以被跟踪器接受；仅含 ``TURN``
+的表不能驱动磁铁 ramping。加速过程中不能由行号或瞬时回转频率推断累计时间。
+新输入应使用上述物理时间写入器或转换器。
+
+RF 文件使用独立接口：
+
+.. code-block:: python
+
    from PASS.para.tools.rf_data import convert_rf_data
 
-   # 四极铁 ramping
-   convert_k1l_ramping("external.csv", "k1l_ramping.tfs", revolution_freq=1.76e6)
-
-   # RF 数据
    convert_rf_data("llrf.csv", "rf_physical_time.tfs")
-
-分步调用
-~~~~~~~~
-
-外部文件格式特殊时，可分步调用各函数：
-
-.. code-block:: python
-
-   from PASS.para.tools.data_converter import (
-       interpolate_to_continuous_turns, write_tfs_ramping,
-   )
-   import numpy as np
-
-   # 自行准备数据
-   turn_arr = np.array([1, 50, 100, 500, 1000])
-   k2l = np.array([0.0, 0.5, 1.0, 2.5, 4.4])
-
-   turn_cont, data_cont = interpolate_to_continuous_turns(
-       turn_arr, {"K2L": k2l},
-       start_turn=1, end_turn=1000, method="linear",
-   )
-   write_tfs_ramping("k2l_ramping.tfs", turn_cont, None, data_cont)
 
 
 参数扫描与校验

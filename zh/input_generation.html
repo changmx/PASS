@@ -61,8 +61,9 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">输入文件生成（命令行模式）</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#zh-minimal-input-example">最小示例</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">执行所用的输入快照</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#json">JSON 文件结构</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">核心组件</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id4">核心组件</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#mainconfig">MainConfig（全局参数）</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#zh-reference-clock">规定的机器时钟与初始化</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#injectionitem">InjectionItem（注入与分组）</a></li>
@@ -70,22 +71,20 @@
 <li class="toctree-l3"><a class="reference internal" href="#sequence">Sequence（序列容器）</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">晶格来源</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id6">晶格来源</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#madx-twiss">方式一：从 MADX twiss 文件读取</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">方式二：从 MADX twiss 文件读取为元件</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7">方式二：从 MADX twiss 文件读取为元件</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#twiss">方式三：平滑近似 twiss</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id7">混合模式</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">混合模式</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id8">外部数据文件转换</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id9">四步流水线</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">一步到位</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">预置封装</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">分步调用</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id9">外部数据文件转换</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id10">生成磁铁程序</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">转换外部文件</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#id13">参数扫描与校验</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id14">架构概览</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id12">参数扫描与校验</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id13">架构概览</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#api">API 入口</a></li>
 </ul>
 </li>
@@ -217,6 +216,49 @@
 </div>
 <p>该非耦合线性模型中，横向 RMS 发射度应在数值舍入误差范围内保持不变；有限采样得到的初始值不必精确等于输入目标。本例关闭纵向输运，不包含同步振荡或集体效应。</p>
 </section>
+<section id="id3">
+<h2>执行所用的输入快照<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PASS.main.main(beam0_path,</span> <span class="pre">beam1_path=None,</span> <span class="pre">...)</span></code> 默认归档输入
+（<code class="docutils literal notranslate"><span class="pre">archive_inputs=True</span></code>）。检查原始配置后，复制 JSON 配置及引用的输入文件，
+校验生成的快照，再从快照初始化跟踪。依赖包括粒子分布、RF 程序、偏移表、
+尾场模型和磁铁 ramping 表。之后修改原始文件不会影响本次运行。</p>
+<p>命令行/Python 工作流保留原有按日期组织的结果目录：</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;output&gt;/input_snapshots/&lt;run-id&gt;/
+    configuration0.json         # 原始配置值
+    beam0.json                  # 实际执行输入；可选 beam1.json
+    assets/&lt;index&gt;/&lt;filename&gt;   # 已复制的输入依赖
+    run.json                    # 路径、SHA-256 校验和及运行状态
+&lt;output&gt;/&lt;YYYY_MMDD&gt;/&lt;HHMM_SS&gt;/   # 原有仿真结果布局
+</pre></div>
+</div>
+<p>双输入运行还保存 <code class="docutils literal notranslate"><span class="pre">configuration1.json</span></code>。执行 JSON 中的文件引用使用快照内的
+相对路径 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code>，因此可以整体移动输入快照目录。
+<code class="docutils literal notranslate"><span class="pre">Output</span> <span class="pre">directory</span></code> 在复制前按原始 Beam 0 JSON 所在目录解析，并保存为绝对路径；
+移动快照不会改变结果目的地。原始 JSON 和输入文件保持不变。
+<code class="docutils literal notranslate"><span class="pre">configurationN.json</span></code> 重新序列化原始配置值；依赖文件则逐字节原样复制。
+GUI 使用相同的依赖复制及哈希规则，但保留自己的结果布局，见 <a class="reference internal" href="project_files.html"><span class="doc">单文件项目</span></a>。</p>
+<p>结果目录中的参数 JSON 保留原有文件名，并保存绝对输入路径和输出路径。
+它从已经载入的配置生成，使用解析路径后、展开命名配置前的内容，不再次读取源 JSON。
+主快照中的 <code class="docutils literal notranslate"><span class="pre">beamN.json</span></code> 仍使用相对依赖路径。</p>
+<p>格式版本为 1 的 <code class="docutils literal notranslate"><span class="pre">run.json</span></code> 记录执行 JSON、比较用配置及可用依赖的 SHA-256 校验和。
+依赖记录还包括原始来源路径和复制后的字节数。
+未启用资源的缺失文件保留原有校验警告，并列入 <code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code>；
+已启用功能所需输入缺失则阻止运行。缺失引用指向快照内未创建的路径，
+之后恢复原始文件也不会使其成为未经归档的运行输入。记录随准备及执行过程更新状态。
+<code class="docutils literal notranslate"><span class="pre">output_directory</span></code> 保存配置中的输出根目录，<code class="docutils literal notranslate"><span class="pre">results_directory</span></code> 在初始化后保存实际结果目录。
+<code class="docutils literal notranslate"><span class="pre">on_initialized(cfg)</span></code> 回调可通过 <code class="docutils literal notranslate"><span class="pre">cfg.input_snapshot_path</span></code> 定位本次运行的 <code class="docutils literal notranslate"><span class="pre">run.json</span></code>。
+准备失败时，若记录已创建，则状态记为 <code class="docutils literal notranslate"><span class="pre">preparation_failed</span></code>。</p>
+<p>对已保存的 <code class="docutils literal notranslate"><span class="pre">beam0.json</span></code> 调用 <code class="docutils literal notranslate"><span class="pre">main()</span></code> 会从初始条件重新运行，
+并创建新的输入快照及结果目录。这是输入复现，不是检查点续算。
+输入快照不会恢复之前的 Python 环境、源码版本或随机数生成器状态；
+<code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed:</span> <span class="pre">null</span></code> 仍采用非确定性采样。</p>
+<p>已有输入快照的集成程序可用 <code class="docutils literal notranslate"><span class="pre">archive_inputs=False</span></code> 关闭再次复制；GUI 子进程使用此设置。
+依赖自动归档由 <code class="docutils literal notranslate"><span class="pre">main()</span></code> 负责，底层 <code class="docutils literal notranslate"><span class="pre">Config.load_input()</span></code> 本身不归档依赖。
+设置 <code class="docutils literal notranslate"><span class="pre">flat_output=True</span></code> 时，结果仍直接写入指定输出目录，
+快照则位于该目录的父目录下的 <code class="docutils literal notranslate"><span class="pre">input_snapshots/&lt;run-id&gt;</span></code>。
+若结果目录本身名为 <code class="docutils literal notranslate"><span class="pre">input_snapshots</span></code>，则改用旁边的 <code class="docutils literal notranslate"><span class="pre">input_snapshots_archive/&lt;run-id&gt;</span></code>，
+使 flat 结果目录不包含快照子目录。</p>
+</section>
 <section id="json">
 <h2>JSON 文件结构<a class="headerlink" href="#json" title="Link to this heading"></a></h2>
 <p>以下为省略部分字段的结构示意；空束团对象及省略参数仅用于展示层次，不能直接作为完整输入运行。</p>
@@ -261,8 +303,8 @@
 <p>引擎在读取时会先调用 <code class="docutils literal notranslate"><span class="pre">convert_keys_to_lower()</span></code> 将所有 key 转为小写，因此 JSON key 的大小写不影响读取。</p>
 </div>
 </section>
-<section id="id3">
-<h2>核心组件<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<section id="id4">
+<h2>核心组件<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
 <section id="mainconfig">
 <h3>MainConfig（全局参数）<a class="headerlink" href="#mainconfig" title="Link to this heading"></a></h3>
 <table class="docutils align-default">
@@ -402,7 +444,7 @@
 增长率、作用时间和模型限制见 <a class="reference internal" href="ibs.html"><span class="doc">束内散射（IBS）</span></a>。</p>
 </section>
 <section id="zh-reference-clock">
-<span id="id4"></span><h3>规定的机器时钟与初始化<a class="headerlink" href="#zh-reference-clock" title="Link to this heading"></a></h3>
+<span id="id5"></span><h3>规定的机器时钟与初始化<a class="headerlink" href="#zh-reference-clock" title="Link to this heading"></a></h3>
 <p>顶层可选 <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> 定义正值回转频率 <span class="math notranslate nohighlight">\(f_{rev}(t)\)</span> 和基准时刻
 <span class="math notranslate nohighlight">\(t_*\)</span>：</p>
 <div class="math notranslate nohighlight">
@@ -559,8 +601,8 @@
 </ul>
 </section>
 </section>
-<section id="id5">
-<h2>晶格来源<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<section id="id6">
+<h2>晶格来源<a class="headerlink" href="#id6" title="Link to this heading"></a></h2>
 <p>PASS 支持三种晶格序列生成方式，可根据需要选择或混合使用：</p>
 <section id="madx-twiss">
 <h3>方式一：从 MADX twiss 文件读取<a class="headerlink" href="#madx-twiss" title="Link to this heading"></a></h3>
@@ -618,8 +660,8 @@ p_{tt} = \frac{h^2\alpha}{\pi\beta^2}.\]</div>
 若显式插入源光学已包含的设计聚焦，会再次叠加该作用；插入误差不会自动保持受扰机器
 的工作点。对应导入控件见 <a class="reference internal" href="gui.html"><span class="doc">图形界面</span></a>。</p>
 </section>
-<section id="id6">
-<h3>方式二：从 MADX twiss 文件读取为元件<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="id7">
+<h3>方式二：从 MADX twiss 文件读取为元件<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
 <p>读取 twiss 文件，但每个元件转为对应的物理元件对象（ <code class="docutils literal notranslate"><span class="pre">QuadrupoleItem</span></code> 、 <code class="docutils literal notranslate"><span class="pre">SBendItem</span></code> 等）。适用于 <strong>逐元件跟踪</strong> 模式。</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.madx</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_madx_elements</span>
 
@@ -652,8 +694,8 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 </pre></div>
 </div>
 </section>
-<section id="id7">
-<h3>混合模式<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<section id="id8">
+<h3>混合模式<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
 <p>twiss 传输点和物理元件可以在同一个序列中混合使用。例如在 twiss 序列中插入一个 RF 腔：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">RFCavityItem</span>
 
@@ -680,75 +722,72 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 </div>
 </section>
 </section>
-<section id="id8">
-<h2>外部数据文件转换<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
-<p>PASS 使用 <strong>TFS 格式</strong> 作为所有 ramping/RF/exciter 数据文件的统一格式。 <code class="docutils literal notranslate"><span class="pre">tools/data_converter.py</span></code> 提供了通用转换流水线，将各种外部文件（CSV/TXT/TFS）转为 PASS TFS。</p>
-<p>RF 文件保留物理秒，不使用下面磁铁 ramping 的圈号转换管线。RF 列为 <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">FREQUENCY,</span> <span class="pre">PHASE</span></code>，接口见 <a class="reference internal" href="element/rfcavity.html"><span class="doc">射频腔（RFCavity）</span></a>。</p>
-<p>以下磁铁 ramping 转换函数仅用于准备数据表。当前跟踪引擎不支持启用磁铁元件的 ramping；生成数据表不会启用该功能。RFCavity 支持以物理时间为自变量的 RF 数据表。</p>
 <section id="id9">
-<h3>四步流水线<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>外部文件 → load_raw_data → time_to_turn → interpolate → write_tfs
-</pre></div>
-</div>
-<ol class="arabic simple">
-<li><p><strong>load_raw_data</strong> ：读取外部文件，自动检测 turn/time 列</p></li>
-<li><p><strong>time_to_turn</strong> ：如外部文件给的是时间而非圈数，用回转频率转换</p></li>
-<li><p><strong>interpolate_to_continuous_turns</strong> ：圈数不连续时自动插值</p></li>
-<li><p><strong>write_tfs_ramping</strong> ：写入 PASS 统一 TFS 格式</p></li>
-</ol>
-</section>
+<h2>外部数据文件转换<a class="headerlink" href="#id9" title="Link to this heading"></a></h2>
+<p>磁铁 ramping、RF 和 exciter 输入采用 TFS 表。四极、六极、八极和多极铁读取以
+物理秒为自变量的归一化强度；每个非空 bunch 在元件入口采样一次，整个元件使用该强度。
+支持的列和采样模型见 <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">磁铁 ramping</span></a>。
+RF 使用独立的 <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">FREQUENCY,</span> <span class="pre">PHASE</span></code> 接口，见 <a class="reference internal" href="element/rfcavity.html"><span class="doc">射频腔（RFCavity）</span></a>。</p>
 <section id="id10">
-<h3>一步到位<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_external_to_tfs</span>
+<h3>生成磁铁程序<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>可以直接写入时间断点表，跟踪时进行分段线性插值，并在表格区间之外保持端点值：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_magnet_ramping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuadrupoleItem</span>
 
-<span class="n">convert_external_to_tfs</span><span class="p">(</span>
-    <span class="n">input_path</span><span class="o">=</span><span class="s2">"external_ramp.csv"</span><span class="p">,</span>     <span class="c1"># 外部文件</span>
-    <span class="n">output_path</span><span class="o">=</span><span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span>      <span class="c1"># PASS TFS</span>
-    <span class="n">data_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">"k1l"</span><span class="p">,</span> <span class="s2">"k1sl"</span><span class="p">],</span>          <span class="c1"># 数据列名</span>
-    <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">,</span>             <span class="c1"># 回转频率 (Hz)</span>
-    <span class="n">num_turns</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>                     <span class="c1"># 目标圈数</span>
-    <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>                    <span class="c1"># 插值方法</span>
+<span class="n">write_magnet_ramping</span><span class="p">(</span>
+    <span class="s2">"quadrupole_ramp.tfs"</span><span class="p">,</span>
+    <span class="n">times</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">],</span>               <span class="c1"># physical seconds</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">"K1L"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">],</span> <span class="s2">"K1SL"</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">]},</span>
+<span class="p">)</span>
+<span class="n">quad</span> <span class="o">=</span> <span class="n">QuadrupoleItem</span><span class="p">(</span>
+    <span class="n">s</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">num_slices</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="n">is_ramping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ramping_file</span><span class="o">=</span><span class="s2">"quadrupole_ramp.tfs"</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>写入器校验表格，并加入 <code class="docutils literal notranslate"><span class="pre">TIME_UNIT=&quot;s&quot;</span></code>、
+<code class="docutils literal notranslate"><span class="pre">STRENGTH_CONVENTION=&quot;normalized&quot;</span></code> 和强度单位元数据。
+输入是绝对强度而非倍率。非积分 <code class="docutils literal notranslate"><span class="pre">K1</span></code>、<code class="docutils literal notranslate"><span class="pre">K2</span></code> 等列要求正的磁铁长度；
+积分 <code class="docutils literal notranslate"><span class="pre">K1L</span></code>、<code class="docutils literal notranslate"><span class="pre">K2L</span></code> 等列也支持薄透镜。正、斜分量可以独立指定，
+同一分量不可同时提供 K 和 KL。</p>
 </section>
 <section id="id11">
-<h3>预置封装<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
-<p>针对常见元件类型的薄封装：</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_k1l_ramping</span><span class="p">,</span> <span class="n">convert_k2l_ramping</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
+<h3>转换外部文件<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<p>专用转换器读取 CSV、空白分隔 TXT 或 TFS。将源列名映射为所需的强度列名，
+并明确指定时间单位换算。转换保留原始采样时刻，不转为圈号或重采样到逐圈网格：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.ramping</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_magnet_ramping</span>
 
-<span class="c1"># 四极铁 ramping</span>
-<span class="n">convert_k1l_ramping</span><span class="p">(</span><span class="s2">"external.csv"</span><span class="p">,</span> <span class="s2">"k1l_ramping.tfs"</span><span class="p">,</span> <span class="n">revolution_freq</span><span class="o">=</span><span class="mf">1.76e6</span><span class="p">)</span>
+<span class="n">convert_magnet_ramping</span><span class="p">(</span>
+    <span class="n">input_path</span><span class="o">=</span><span class="s2">"external_ramp.csv"</span><span class="p">,</span>
+    <span class="n">output_path</span><span class="o">=</span><span class="s2">"quadrupole_ramp.tfs"</span><span class="p">,</span>
+    <span class="n">time_column</span><span class="o">=</span><span class="s2">"time_ms"</span><span class="p">,</span>
+    <span class="n">time_scale</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>                       <span class="c1"># milliseconds -&gt; seconds</span>
+    <span class="n">column_mapping</span><span class="o">=</span><span class="p">{</span><span class="s2">"normal"</span><span class="p">:</span> <span class="s2">"K1L"</span><span class="p">,</span> <span class="s2">"skew"</span><span class="p">:</span> <span class="s2">"K1SL"</span><span class="p">},</span>
+    <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>对于特殊表头或需要跳过行的文件，可使用同一模块的
+<code class="docutils literal notranslate"><span class="pre">read_magnet_ramping_source(input_path,</span> <span class="pre">delimiter=None,</span> <span class="pre">header=0,</span> <span class="pre">skiprows=0)</span></code>，
+提取所需数值列后调用 <code class="docutils literal notranslate"><span class="pre">write_magnet_ramping</span></code>。
+源 TFS 的时间单位元数据必须与选定的时间换算一致；若提供强度单位元数据，也会校验。
+强度不会从实际磁场隐式换算。</p>
+<p>GUI 在 <strong>工具 → 数据转换 → 磁铁 ramping…</strong> 中提供导入转换和时间断点生成，
+见 <a class="reference internal" href="gui_tools.html"><span class="doc">GUI 工具</span></a>。导出后，在支持的元件中启用 ramping 并选取文件。</p>
+<p>旧 <code class="docutils literal notranslate"><span class="pre">convert_external_to_tfs</span></code>、<code class="docutils literal notranslate"><span class="pre">convert_k1l_ramping</span></code> 等辅助函数保留历史圈号表
+行为。只有包含实际物理秒的旧 <code class="docutils literal notranslate"><span class="pre">TIME_S</span></code> 列才可以被跟踪器接受；仅含 <code class="docutils literal notranslate"><span class="pre">TURN</span></code>
+的表不能驱动磁铁 ramping。加速过程中不能由行号或瞬时回转频率推断累计时间。
+新输入应使用上述物理时间写入器或转换器。</p>
+<p>RF 文件使用独立接口：</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.rf_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_rf_data</span>
 
-<span class="c1"># RF 数据</span>
 <span class="n">convert_rf_data</span><span class="p">(</span><span class="s2">"llrf.csv"</span><span class="p">,</span> <span class="s2">"rf_physical_time.tfs"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
+</section>
 <section id="id12">
-<h3>分步调用<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
-<p>外部文件格式特殊时，可分步调用各函数：</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.tools.data_converter</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">interpolate_to_continuous_turns</span><span class="p">,</span> <span class="n">write_tfs_ramping</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="c1"># 自行准备数据</span>
-<span class="n">turn_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
-<span class="n">k2l</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="mf">4.4</span><span class="p">])</span>
-
-<span class="n">turn_cont</span><span class="p">,</span> <span class="n">data_cont</span> <span class="o">=</span> <span class="n">interpolate_to_continuous_turns</span><span class="p">(</span>
-    <span class="n">turn_arr</span><span class="p">,</span> <span class="p">{</span><span class="s2">"K2L"</span><span class="p">:</span> <span class="n">k2l</span><span class="p">},</span>
-    <span class="n">start_turn</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">end_turn</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"linear"</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">write_tfs_ramping</span><span class="p">(</span><span class="s2">"k2l_ramping.tfs"</span><span class="p">,</span> <span class="n">turn_cont</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_cont</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-</section>
-<section id="id13">
-<h2>参数扫描与校验<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
+<h2>参数扫描与校验<a class="headerlink" href="#id12" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">model_copy(update=...)</span></code> 不会重新校验更新值。参数扫描应从字段字典重新构造配置对象，再对生成的完整输入执行校验：</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PASS.para.schema.main</span><span class="w"> </span><span class="kn">import</span> <span class="n">MainConfig</span>
 
@@ -759,8 +798,8 @@ Twiss 传输及重采样 Twiss 导入拒绝准直误差，应使用这里的逐�
 </div>
 <p>Python 字段 <code class="docutils literal notranslate"><span class="pre">num_electron</span></code> 沿用历史命名，实际表示带符号电荷数，并非束缚电子数量。因此 <code class="docutils literal notranslate"><span class="pre">num_proton=1,</span> <span class="pre">num_neutron=0,</span> <span class="pre">num_electron=1</span></code> 表示质子。Python 字段名用于配置对象构造，JSON 文件使用表中的别名。</p>
 </section>
-<section id="id14">
-<h2>架构概览<a class="headerlink" href="#id14" title="Link to this heading"></a></h2>
+<section id="id13">
+<h2>架构概览<a class="headerlink" href="#id13" title="Link to this heading"></a></h2>
 <p>参数模块分别负责输入对象的构造、校验与序列化：</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>PASS/para/
 ├── schema/       参数定义（字段定义与别名）

@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magnet ramping &mdash; PASS 0.4.0 User Manual</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=70d277dc" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=6c02275b"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Marker" href="marker.html" />
+    <link rel="prev" title="Element errors" href="error.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            PASS
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+  <div class="pass-language-switch">
+    <span>PASS 0.4.0</span>
+    
+      
+      
+    
+    <a href="../../zh/element/magnet_ramping.html" lang="zh-CN">中文</a>
+    <a href="#" lang="en" aria-current="page">English</a>
+  </div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+  
+    <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../input_generation.html">Input File Generation (Command-Line Mode)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input_validation.html">JSON input validation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Graphical interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../project_files.html">Single-file projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui_tools.html">GUI tools</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Beam and transport</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="error.html">Element errors</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Magnet ramping</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#strength-convention">Strength convention</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#current-strength-state">Current strength state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tfs-format">TFS format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#entry-sampling-and-frozen-element-tracking">Entry sampling and frozen-element tracking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#evaluation-and-diagnostics">Evaluation and diagnostics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-files">Creating files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="marker.html">Marker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drift.html">Drift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quadrupole.html">Quadrupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sextupole.html">Sextupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="octupole.html">Octupole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multipole.html">Multipole</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solenoid.html">Solenoid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="electron_cooler.html">ElectronCooler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kicker.html">Kicker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bump.html">Bump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elseparator.html">ElSeparator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="exciter.html">Exciter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rfcavity.html">RFCavity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#integration-precision">Integration precision</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../twiss.html">Twiss Transport (Twiss)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aperture.html">Aperture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reorganize.html">Bunch Regrouping (ReorganizeBunch)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Collective effects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../slicer.html">Longitudinal slicing (Slicer)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../space_charge.html">Space-Charge Effect (SpaceCharge)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../field_solver.html">Transverse Field Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wake_field.html">WakeField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../electron_cloud.html">Electron Cloud (ElectronCloud)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ibs.html">Intrabeam Scattering (IBS)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beam_beam.html">Beam-Beam Interaction (BeamBeam)</a></li>
+</ul>
+
+<p class="caption" role="heading"><span class="caption-text">Diagnostics and output</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../monitor/index.html">Monitors and output</a></li>
+</ul>
+
+  
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PASS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">PASS User Manual</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Element</a></li>
+      <li class="breadcrumb-item active">Magnet ramping</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="magnet-ramping">
+<h1>Magnet ramping<a class="headerlink" href="#magnet-ramping" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">Quadrupole</span></code>, <code class="docutils literal notranslate"><span class="pre">Sextupole</span></code>, <code class="docutils literal notranslate"><span class="pre">Octupole</span></code> and <code class="docutils literal notranslate"><span class="pre">Multipole</span></code> support prescribed,
+piecewise-linear programs of normalized magnetic strength. Both normal and skew
+components can vary independently. <code class="docutils literal notranslate"><span class="pre">SBend</span></code>, <code class="docutils literal notranslate"><span class="pre">Kicker</span></code> and <code class="docutils literal notranslate"><span class="pre">Solenoid</span></code> do not
+support this interface.</p>
+<section id="strength-convention">
+<h2>Strength convention<a class="headerlink" href="#strength-convention" title="Link to this heading"></a></h2>
+<p>The program supplies the same normalized coefficients as the static element:
+<span class="math notranslate nohighlight">\(K_n\)</span> has units <span class="math notranslate nohighlight">\(\mathrm{m}^{-(n+1)}\)</span> and <span class="math notranslate nohighlight">\(K_nL\)</span> has units
+<span class="math notranslate nohighlight">\(\mathrm{m}^{-n}\)</span>. Here <span class="math notranslate nohighlight">\(n=1,2,3\)</span> denotes quadrupole, sextupole and
+octupole order. For a magnet of length <span class="math notranslate nohighlight">\(L\)</span>, a <code class="docutils literal notranslate"><span class="pre">K</span></code> column is converted to
+an integrated strength by multiplying by <span class="math notranslate nohighlight">\(L\)</span>; a <code class="docutils literal notranslate"><span class="pre">KL</span></code> column already
+contains that integral. Zero-length elements require integrated columns.</p>
+<p>Values are <strong>absolute strengths</strong>, not scale factors. A specified program
+component replaces its current nominal value; an omitted component retains its
+current nominal value. Enabled field errors remain separate absolute additive
+coefficients. They are added once during tracking and are not written into the
+nominal strengths or scaled with the ramp.</p>
+<p>Strengths are normalized to the current bunch reference momentum <span class="math notranslate nohighlight">\(P_0\)</span>, as
+in static tracking. A program does not supply a physical magnetic field or
+convert a fixed field using a changing magnetic rigidity. For example,
+<span class="math notranslate nohighlight">\(\Delta p_x=-K_1L(t)x\)</span> for a normal thin quadrupole; no additional
+<span class="math notranslate nohighlight">\(1/(1+\delta)\)</span> factor multiplies this kick because <span class="math notranslate nohighlight">\(p_x=P_x/P_0\)</span>.</p>
+</section>
+<section id="current-strength-state">
+<h2>Current strength state<a class="headerlink" href="#current-strength-state" title="Link to this heading"></a></h2>
+<p>The runtime element maintains one current set of nominal strengths. For a
+quadrupole these are <code class="docutils literal notranslate"><span class="pre">k1l</span></code>/<code class="docutils literal notranslate"><span class="pre">k1sl</span></code> and the derived per-unit-length
+<code class="docutils literal notranslate"><span class="pre">k1</span></code>/<code class="docutils literal notranslate"><span class="pre">k1s</span></code>; sextupoles and octupoles use the corresponding order-2 and
+order-3 attributes. <code class="docutils literal notranslate"><span class="pre">Multipole</span></code> uses <code class="docutils literal notranslate"><span class="pre">knl</span></code>/<code class="docutils literal notranslate"><span class="pre">ksl</span></code> and the derived
+<code class="docutils literal notranslate"><span class="pre">kn</span></code>/<code class="docutils literal notranslate"><span class="pre">ks</span></code> arrays. For thick elements, the per-unit-length coefficients are
+the integrated coefficients divided by the full element length.</p>
+<p>Tracking updates the programmed channels once at the entrance of each nonempty
+bunch. After execution, these attributes retain the entrance values of the last
+executed nonempty bunch. An empty bunch does not sample the program or change
+the current strengths. No original-strength backup is kept, and removing the
+runtime program does not restore the initial strengths.
+Channels absent from the program retain their current values, including a value
+changed since element construction. Input dictionaries, configuration objects
+and source TFS files are not rewritten by these runtime updates.</p>
+<p>Each of the four runtime element classes also provides
+<code class="docutils literal notranslate"><span class="pre">update_strengths(reference_time,</span> <span class="pre">offset=0.0)</span></code>. It samples the program at the
+specified physical reference time plus a separate local offset, updates the
+current nominal and derived strengths, and invalidates affected coefficient
+caches. It does not track particles or advance <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>. If the element has
+no active program, the call leaves its current strengths unchanged. For example,
+given a runtime quadrupole object:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">element</span><span class="o">.</span><span class="n">update_strengths</span><span class="p">(</span><span class="n">reference_time</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">k1l</span><span class="p">,</span> <span class="n">element</span><span class="o">.</span><span class="n">k1sl</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This method belongs to the tracking element, not the <code class="docutils literal notranslate"><span class="pre">QuadrupoleItem</span></code> input
+configuration model. The program table remains prescribed input data; it is
+not a backup of the element’s initial strengths. Automatic tracking calls this
+update with the bunch entrance <code class="docutils literal notranslate"><span class="pre">t0</span></code> and zero offset.</p>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 22.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 28.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Python field</p></th>
+<th class="head"><p>JSON key</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_ramping</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Enable a prescribed strength program.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ramping_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">str</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>TFS file containing <code class="docutils literal notranslate"><span class="pre">TIME</span></code> and strength columns.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Relative paths resolve against the input JSON directory. An element constructed
+with ramping disabled uses the strengths supplied in its configuration. Legacy
+per-component file fields, such as
+<code class="docutils literal notranslate"><span class="pre">K1L</span> <span class="pre">ramping</span> <span class="pre">file</span></code> and <code class="docutils literal notranslate"><span class="pre">K1SL</span> <span class="pre">ramping</span> <span class="pre">file</span></code>, remain accepted; use the single
+<code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code> for new inputs. The unified file cannot be combined with any
+legacy file field. Do not define one component twice through multiple legacy
+files or through both <code class="docutils literal notranslate"><span class="pre">K</span></code> and <code class="docutils literal notranslate"><span class="pre">KL</span></code> columns. Legacy <code class="docutils literal notranslate"><span class="pre">TIME_S</span></code> is accepted
+when it contains physical seconds.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Quadrupole"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">10.0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Length (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"K1L"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.2</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"K1SL"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Num slices"</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Is ramping"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"Ramping file"</span><span class="p">:</span><span class="w"> </span><span class="s2">"quadrupole_ramp.tfs"</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="tfs-format">
+<h2>TFS format<a class="headerlink" href="#tfs-format" title="Link to this heading"></a></h2>
+<p>The independent column is <code class="docutils literal notranslate"><span class="pre">TIME</span></code> in physical seconds. Times must be finite
+and strictly increasing; all strength values must be finite. Values between
+rows are interpolated linearly. Before the first row and after the last row,
+the corresponding endpoint value is held. A one-row file represents a constant
+program. A <code class="docutils literal notranslate"><span class="pre">TURN</span></code> column alone is not a time program. The headers below are
+optional for manually authored files, but are validated when present. The writer
+also records column units (for example <code class="docutils literal notranslate"><span class="pre">K1L_UNIT=&quot;m^-1&quot;</span></code>).</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>@ TIME_UNIT %s "s"
+@ STRENGTH_CONVENTION %s "normalized"
+* TIME K1L K1SL
+$ %le %le %le
+0.00 0.20  0.01
+0.05 0.25  0.00
+0.10 0.22 -0.01
+</pre></div>
+</div>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Supported strength columns</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 39.0%" />
+<col style="width: 39.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Element</p></th>
+<th class="head"><p>Per-unit-length columns</p></th>
+<th class="head"><p>Integrated columns</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Quadrupole</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K1</span></code>, <code class="docutils literal notranslate"><span class="pre">K1S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K1L</span></code>, <code class="docutils literal notranslate"><span class="pre">K1SL</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Sextupole</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K2</span></code>, <code class="docutils literal notranslate"><span class="pre">K2S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K2L</span></code>, <code class="docutils literal notranslate"><span class="pre">K2SL</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Octupole</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K3</span></code>, <code class="docutils literal notranslate"><span class="pre">K3S</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K3L</span></code>, <code class="docutils literal notranslate"><span class="pre">K3SL</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Multipole</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K0</span></code>, <code class="docutils literal notranslate"><span class="pre">K0S</span></code>, <code class="docutils literal notranslate"><span class="pre">K1</span></code>, <code class="docutils literal notranslate"><span class="pre">K1S</span></code>, …</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">K0L</span></code>, <code class="docutils literal notranslate"><span class="pre">K0SL</span></code>, <code class="docutils literal notranslate"><span class="pre">K1L</span></code>, <code class="docutils literal notranslate"><span class="pre">K1SL</span></code>, …</p></td>
+</tr>
+</tbody>
+</table>
+<p>For <code class="docutils literal notranslate"><span class="pre">Multipole</span></code>, the order in a column name indexes the nominal <code class="docutils literal notranslate"><span class="pre">KiL</span></code> or
+<code class="docutils literal notranslate"><span class="pre">KiSL</span></code> input array and the runtime <code class="docutils literal notranslate"><span class="pre">knl</span></code> or <code class="docutils literal notranslate"><span class="pre">ksl</span></code> array. A program can
+introduce a higher-order component absent from those arrays. Its zero-order
+component is an ordinary multipole kick; it does not enable bend geometry or
+ramping of the <code class="docutils literal notranslate"><span class="pre">SBend</span></code> element.</p>
+</section>
+<section id="entry-sampling-and-frozen-element-tracking">
+<h2>Entry sampling and frozen-element tracking<a class="headerlink" href="#entry-sampling-and-frozen-element-tracking" title="Link to this heading"></a></h2>
+<p>This interface uses a quasi-static magnet model with one prescribed strength
+per bunch passage. For each nonempty bunch, both a thick magnet and a thin kick
+sample the program once at the bunch reference particle’s entrance time:</p>
+<div class="math notranslate nohighlight">
+\[t_{\mathrm{sample}}=t_{0,\mathrm{entry}}.\]</div>
+<p>The resulting nominal coefficients remain fixed throughout that element’s
+tracking for this bunch. Body slices, internal space-charge nodes and Yoshida
+substeps all use the same entrance strengths; none resamples the program.
+Different bunches use their own actual entrance <code class="docutils literal notranslate"><span class="pre">bunch.t0</span></code>. All particles of
+one bunch share those strengths: particle <code class="docutils literal notranslate"><span class="pre">z</span></code> does not correct the sampling
+time, and <code class="docutils literal notranslate"><span class="pre">harmonic_id</span></code>/<code class="docutils literal notranslate"><span class="pre">z_center</span></code> grouping metadata does not shift it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Num</span> <span class="pre">slices</span></code> controls spatial integration of the magnetic map and internal
+space-charge scheduling. Increasing it can improve that integration, but does
+not change the ramp sampling time or resolve strength variation during transit
+through a single element. The chosen integrator’s order applies to the map with
+these frozen coefficients. The model assumes the prescribed strength changes
+slowly enough during the element traversal for one entrance value to represent
+that passage. Fast variation within an element or across a bunch is outside
+this approximation.</p>
+<p>This is an intentional change to the ramping model: tracking now freezes one
+entrance value over the whole element. Results can therefore change when a
+program varies appreciably during the element flight time. The configuration
+schema, TFS format and GUI workflow are unchanged.</p>
+<p>The ramp does not change reference energy, normalize particle momenta to a new
+reference, or introduce an additional clock. A thick magnet advances <code class="docutils literal notranslate"><span class="pre">t0</span></code> by
+its existing flight time <span class="math notranslate nohighlight">\(L/(\beta_0c)\)</span> after tracking. Continuous particle
+<code class="docutils literal notranslate"><span class="pre">z</span></code> follows the existing magnetic transport map. Induced electric fields from
+rapidly varying magnets are not included.</p>
+</section>
+<section id="evaluation-and-diagnostics">
+<h2>Evaluation and diagnostics<a class="headerlink" href="#evaluation-and-diagnostics" title="Link to this heading"></a></h2>
+<p>Programs are read once into owned snapshots. A component is constant only when
+every stored value is exactly equal; a one-row column is also constant. Small
+nonzero changes are preserved. Constant components bypass interval searches.
+Other components are interpolated at the bunch entrance, with the endpoint
+holding described above. Components sharing a time grid share its interval
+lookup; legacy files with different grids retain independent interpolation.
+A single query uses binary search without copying a complete long time table.</p>
+<p>CPU and GPU tracking use the current nominal strengths and the existing
+magnetic maps. The program utility binds and samples the prescribed data,
+updates nominal and derived strengths, and coordinates coefficient-cache
+invalidation; it does not implement separate particle maps. Field errors remain
+independent and are applied once. GPU coefficient caches are derived from the
+current strengths and refreshed when those strengths change.</p>
+<p>Internal space-charge nodes retain their original order and integration
+weights. Their callbacks observe the same entrance-frozen nominal strengths
+throughout a bunch’s passage. After tracking, the runtime element retains those
+entrance values until an explicit update or the next nonempty bunch’s entry.</p>
+<p>Element logging reports whether the program is constant or dynamic, its supplied
+components, file time range, endpoint behavior, entrance sampling and effective
+body-slice count. The slice count describes spatial transport only. The time
+range describes the table knots, not a tracking window: values outside that
+range are still held at their endpoints.</p>
+</section>
+<section id="creating-files">
+<h2>Creating files<a class="headerlink" href="#creating-files" title="Link to this heading"></a></h2>
+<p>Use <strong>Tools → Data conversion → Magnet ramping</strong> (<code class="docutils literal notranslate"><span class="pre">工具</span> <span class="pre">→</span> <span class="pre">数据转换</span> <span class="pre">→</span> <span class="pre">磁铁</span> <span class="pre">ramping…</span></code>)
+to import CSV/TXT/TFS data or generate a table from time breakpoints. Select the
+time column and units, map source columns to magnetic strength names, inspect
+the preview, and export the TFS file. In the element editor, enable ramping and
+select that file. See <a class="reference internal" href="../gui_tools.html"><span class="doc">GUI tools</span></a> and <a class="reference internal" href="../input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a> for the
+GUI workflow and Python file-generation API.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="error.html" class="btn btn-neutral float-left" title="Element errors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="marker.html" class="btn btn-neutral float-right" title="Marker" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025-2026 Institute of Modern Physics, Chinese Academy of Sciences.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

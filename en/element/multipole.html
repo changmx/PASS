@@ -71,6 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="error.html">Element errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magnet_ramping.html">Magnet ramping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="marker.html">Marker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drift.html">Drift</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
@@ -257,6 +258,13 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <p class="admonition-title">Note</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">knl</span></code> and <code class="docutils literal notranslate"><span class="pre">ksl</span></code> arrays do not need to have the same length; the shorter array is automatically zero-padded. The maximum order <span class="math notranslate nohighlight">\(N\)</span> is determined by the longer array length (<span class="math notranslate nohighlight">\(N = \max(\text{len}) - 1\)</span>).</p>
 </div>
+<p>For time-dependent normal and skew strengths, set <code class="docutils literal notranslate"><span class="pre">is_ramping=True</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ramping_file=&quot;magnet_ramp.tfs&quot;</span></code> (JSON: <code class="docutils literal notranslate"><span class="pre">Is</span> <span class="pre">ramping</span></code> and <code class="docutils literal notranslate"><span class="pre">Ramping</span> <span class="pre">file</span></code>).
+See <a class="reference internal" href="magnet_ramping.html"><span class="doc">Magnet ramping</span></a> for the TFS columns, units and entrance sampling.
+Each nonempty bunch samples once at entry; its strengths remain fixed over
+the entire element. Runtime nominal strengths retain the last executed
+bunch entrance values, with field errors kept separate. The same page
+documents <code class="docutils literal notranslate"><span class="pre">update_strengths</span></code>.</p>
 </section>
 <section id="usage-examples">
 <h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>

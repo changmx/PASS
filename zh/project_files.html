@@ -176,7 +176,8 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 项目可保存多份候选配置，不代表引擎一次执行全部配置。
 相对输出目录以 JSON 或已保存项目所在目录为基准；
 未保存项目以当前工作目录为基准。</p>
-<p>GUI 先固定所选配置，再在后台线程中依次校验输入、复制依赖和校验快照，
+<p>GUI 先固定所选配置，再在后台线程中依次校验输入、复制依赖和校验快照；
+依赖复制使用与 <code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code> 相同的快照服务，
 完成后才启动子进程。准备过程显示当前阶段并支持取消；准备和运行期间不能重复启动。
 准备失败或取消时，保留此前显示的运行记录。单次校验调用完成后才会响应取消请求。</p>
 <p>每次运行分别使用独立的快照目录和结果目录：</p>
@@ -189,9 +190,13 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 &lt;output&gt;/runs/&lt;run-id&gt;/          # 本次仿真结果
 </pre></div>
 </div>
-<p>运行 JSON 使用指向已复制资产的绝对路径，并指定本次独立结果目录。
+<p>运行 JSON 使用指向已复制 <code class="docutils literal notranslate"><span class="pre">assets/...</span></code> 文件的相对路径，并以绝对路径指定本次独立结果目录。
+子进程读取这些已复制的输入，不再创建第二份快照。
 之后编辑项目不会改变正在运行的任务，新运行也不共用前次结果目录。
 这两类目录均位于项目临时缓存之外。</p>
+<p>命令行/Python 入口使用相同快照格式，并保留原有按日期组织的结果目录，见 <a class="reference internal" href="input_generation.html"><span class="doc">输入文件生成（命令行模式）</span></a>。
+未启用资源的缺失依赖记录在 <code class="docutils literal notranslate"><span class="pre">unavailable_dependencies</span></code>，并保留原有校验警告；
+已启用功能所需输入缺失则阻止运行。</p>
 <p><strong>停止</strong> 在圈边界协作结束运行：先完成当前圈，再执行命令收尾以保存已有输出，
 并跳过运行后的自动绘图。运行记录标为 <code class="docutils literal notranslate"><span class="pre">stopped</span></code>，退出码为 3。
 耗时初始化或单圈计算结束后，停止请求才会生效。
@@ -220,8 +225,8 @@ WakeField 同时复制其 Slicer，并在名称冲突时同步更新切片集引
 后者可能来自已安装包的元数据。
 <code class="docutils literal notranslate"><span class="pre">configured_device_ids</span></code> 表示请求的设备，<code class="docutils literal notranslate"><span class="pre">observed_gpu</span></code> 则仅在实际选择 GPU 后填写，
 包含设备名称、运行时及驱动版本；CPU 运行或 GPU 初始化前保持 null。</p>
-<p>重跑通过 <code class="docutils literal notranslate"><span class="pre">source_run</span></code> 记录来源运行。快照保留输入，
-但不会自动恢复当时的 Python 环境或源码版本。
+<p>重跑通过 <code class="docutils literal notranslate"><span class="pre">source_run</span></code> 记录来源运行，从初始条件开始，不继续跟踪检查点。
+快照保留输入，但不会自动恢复当时的 Python 环境或源码版本。
 <code class="docutils literal notranslate"><span class="pre">Random</span> <span class="pre">Seed:</span> <span class="pre">null</span></code> 仍采用非确定性采样；即使种子为整数，
 代码、依赖库、精度或硬件变化后也不保证结果完全一致。</p>
 <p>已应用的参数修改支持撤销/重做；当前文本框和 JSON 编辑器保留各自的文本撤销/重做。

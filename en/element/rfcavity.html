@@ -71,6 +71,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../injection.html">Injection / Particle Generation</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Element</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="error.html">Element errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magnet_ramping.html">Magnet ramping</a></li>
 <li class="toctree-l2"><a class="reference internal" href="marker.html">Marker</a></li>
 <li class="toctree-l2"><a class="reference internal" href="drift.html">Drift</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dipole.html">Dipole (SBend)</a></li>
@@ -230,7 +231,20 @@ The key in <code class="docutils literal notranslate"><span class="pre">Sequence
 <li><p><code class="docutils literal notranslate"><span class="pre">Frequency</span> <span class="pre">(Hz)</span></code>: prescribed positive carrier frequency, scalar or list.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Harmonic</span></code>: positive integer multiplying the shared <code class="docutils literal notranslate"><span class="pre">Reference</span> <span class="pre">clock</span></code> revolution frequency. It neither follows current bunch energy nor needs to be divisible by the grouping harmonic.</p></li>
 </ul>
-<p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code> and <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> default to zero and accept scalars or lists. Lists share finite, strictly increasing <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code> samples. Programs are piecewise linear with held endpoints. See <a class="reference internal" href="../input_generation.html#en-reference-clock"><span class="std std-ref">Prescribed machine clock and initialization</span></a> for the reference clock and defaults.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Voltage</span> <span class="pre">(V)</span></code> and <code class="docutils literal notranslate"><span class="pre">Phase</span> <span class="pre">(rad)</span></code> default to zero and accept scalars or lists.
+Lists share finite, strictly increasing <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code> samples and use piecewise
+linear interpolation. For every component with supplied time samples, including
+scalar values on a time grid, its voltage is exactly zero outside the closed
+interval from the first to the last sample. Both endpoints retain their supplied
+values; a one-sample table is active only at that instant. A scalar component
+without <code class="docutils literal notranslate"><span class="pre">Time</span> <span class="pre">(s)</span></code> operates continuously. This also applies to program files;
+RF table voltages are not held outside their data range.</p>
+<p>Each particle uses its own arrival time <span class="math notranslate nohighlight">\(t_i\)</span>, and the reference particle
+uses <span class="math notranslate nohighlight">\(T_b\)</span>; particles in the same bunch can therefore lie on opposite
+sides of a data boundary. The frequency program, its integrated carrier phase,
+and the shared reference clock remain continuous and retain their existing
+endpoint extrapolation. Only the component voltage is gated by the data domain.
+See <a class="reference internal" href="../input_generation.html#en-reference-clock"><span class="std std-ref">Prescribed machine clock and initialization</span></a> for the reference clock and defaults.</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">"Command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"RFCavity"</span><span class="p">,</span><span class="w"> </span><span class="nt">"S (m)"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"Components"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -307,6 +321,8 @@ in place during tracking.</p>
 <section id="files-and-synchronous-programs">
 <h2>Files and synchronous programs<a class="headerlink" href="#files-and-synchronous-programs" title="Link to this heading"></a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">{&quot;Program</span> <span class="pre">file&quot;:</span> <span class="pre">&quot;rf.tfs&quot;}</span></code> for <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">FREQUENCY,</span> <span class="pre">PHASE</span></code> columns in s, V, Hz and rad. With <code class="docutils literal notranslate"><span class="pre">{&quot;Program</span> <span class="pre">file&quot;:</span> <span class="pre">&quot;rf.tfs&quot;,</span> <span class="pre">&quot;Harmonic&quot;:</span> <span class="pre">2}</span></code>, the file contains <code class="docutils literal notranslate"><span class="pre">TIME,</span> <span class="pre">VOLTAGE,</span> <span class="pre">PHASE</span></code> and must not also define FREQUENCY. File mode cannot be mixed with inline waveform data.</p>
+<p>The file’s first and last <code class="docutils literal notranslate"><span class="pre">TIME</span></code> samples define the component’s voltage domain;
+outside it the voltage is zero, without any additional configuration parameter.</p>
 <p>RF tables use physical time. <code class="docutils literal notranslate"><span class="pre">convert_rf_data(input_path,</span> <span class="pre">output_path)</span></code> converts the table format without turning seconds into turn numbers.</p>
 <p><code class="docutils literal notranslate"><span class="pre">PASS.para.tools.rf_data.synchronous_rf_program</span></code> builds a prescribed waveform from voltage, target passage phases and an explicit design-particle energy/flight-time trajectory. It generates input only; tracking does not reset actual bunch phases or energies. The integrated carrier and additive phase program jointly hit the requested design sample phases, with declared linear interpolation between samples.</p>
 </section>

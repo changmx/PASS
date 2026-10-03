@@ -148,7 +148,11 @@ does not read file contents. After edits, a previous full result is replaced by
 this precheck status. Click Validate for a fresh full report. Execution repeats
 full validation of every selected input; for two beams, shared turn count,
 backend, precision, GPU settings and timing settings must agree. Direct
-<code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code> calls use the same preflight before initialization.</p>
+<code class="docutils literal notranslate"><span class="pre">PASS.main.main</span></code> calls use the same preflight before initialization.
+By default, execution then copies input dependencies into a run snapshot and
+validates that snapshot before initializing tracking. This execution preparation
+creates the snapshot directories; validation alone still creates no simulation
+output. See <a class="reference internal" href="input_generation.html"><span class="doc">Input File Generation (Command-Line Mode)</span></a> and <a class="reference internal" href="project_files.html"><span class="doc">Single-file projects</span></a>.</p>
 </section>
 <section id="what-is-checked">
 <h2>What is checked<a class="headerlink" href="#what-is-checked" title="Link to this heading"></a></h2>
@@ -199,9 +203,12 @@ Shared files are read once per input check. Relative paths resolve against the
 containing JSON directory, both during validation and execution; UTF-8 BOM is
 accepted for input JSON.</p></li>
 </ul>
-<p>The current engine does not implement magnetic-element ramping or a BeamBeam
-command. Enabling these features is an error instead of silently ignoring the
-request. RFCavity’s implemented RF table remains supported. ElSeparator requires
+<p>Quadrupole, Sextupole, Octupole and Multipole support normalized-strength
+ramping. Enabled files are checked for physical <code class="docutils literal notranslate"><span class="pre">TIME</span></code> values, finite strength
+columns, supported orders, duplicate components and the positive length required
+by non-integrated strengths; see <a class="reference internal" href="element/magnet_ramping.html"><span class="doc">Magnet ramping</span></a>.
+Ramping of other magnetic elements remains an error. The legacy BeamBeam command
+is unavailable. RFCavity’s implemented RF table remains supported. ElSeparator requires
 exactly one finite <code class="docutils literal notranslate"><span class="pre">V</span> <span class="pre">(V)</span></code> or <code class="docutils literal notranslate"><span class="pre">VL</span> <span class="pre">(V</span> <span class="pre">m)</span></code>, a positive gap and a finite septum
 position. Zero strength is valid; nonzero V requires positive length, while VL
 also supports a zero-length kick. Specify the geometry explicitly using the current <a class="reference internal" href="element/elseparator.html"><span class="doc">ElSeparator</span></a> interface.</p>

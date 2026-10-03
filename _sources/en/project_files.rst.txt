@@ -65,8 +65,9 @@ Relative output directories are resolved beside the JSON or saved project; an
 unsaved project uses the current working directory.
 
 The GUI freezes the selected configurations, then validates them, copies their
-dependencies, and verifies the snapshot in a background worker before starting
-the child process. Preparation reports its current stage and can be cancelled;
+dependencies using the same snapshot service as ``PASS.main.main``, and verifies
+the snapshot in a background worker before starting the child process.
+Preparation reports its current stage and can be cancelled;
 duplicate starts are disabled during preparation and execution. Failed or
 cancelled preparation leaves the previously displayed run intact. Individual
 validation calls finish before observing cancellation.
@@ -83,10 +84,16 @@ Each run has separate snapshot and result directories:
        gui.log                     # complete process log
    <output>/runs/<run-id>/          # simulation results for this run
 
-Runtime JSON uses absolute paths to copied assets and the dedicated result
-directory. Editing the project later does not change the running task, and a new
-run does not share the preceding run's output directory. Both directories remain
-outside the temporary project cache.
+Runtime JSON uses relative paths to copied ``assets/...`` files and an absolute
+path to the dedicated result directory. The child process reads these copied
+inputs without creating a second snapshot. Editing the project later does not
+change the running task, and a new run does not share the preceding run's output
+directory. Both directories remain outside the temporary project cache.
+
+The command-line/Python entry point uses the same snapshot format while retaining
+its dated result directories; see :doc:`input_generation`. Missing dependencies
+of disabled resources are recorded in ``unavailable_dependencies`` with the
+existing validation warnings. Missing required active inputs prevent execution.
 
 **Stop** requests a cooperative stop at a turn boundary: the current turn finishes,
 command finalizers write available output, and automatic post-run plotting is
@@ -129,8 +136,9 @@ the requested devices; ``observed_gpu`` is populated only after actual GPU
 selection and includes device name and runtime/driver versions. It remains null
 for CPU runs or before GPU initialization.
 
-A rerun records its predecessor in ``source_run``. The snapshot preserves inputs,
-but does not restore the previous Python environment or source checkout.
+A rerun records its predecessor in ``source_run`` and starts from the initial
+conditions; it does not continue a tracking checkpoint. The snapshot preserves
+inputs, but does not restore the previous Python environment or source checkout.
 ``Random Seed: null`` retains nondeterministic sampling; even with integer seeds,
 identical results are not guaranteed across changed code, libraries, precision,
 or hardware.

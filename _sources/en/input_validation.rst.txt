@@ -30,6 +30,10 @@ this precheck status. Click Validate for a fresh full report. Execution repeats
 full validation of every selected input; for two beams, shared turn count,
 backend, precision, GPU settings and timing settings must agree. Direct
 ``PASS.main.main`` calls use the same preflight before initialization.
+By default, execution then copies input dependencies into a run snapshot and
+validates that snapshot before initializing tracking. This execution preparation
+creates the snapshot directories; validation alone still creates no simulation
+output. See :doc:`input_generation` and :doc:`project_files`.
 
 What is checked
 ---------------
@@ -81,9 +85,12 @@ commands there must supply distinct Order values. See :doc:`beam_beam`.
   containing JSON directory, both during validation and execution; UTF-8 BOM is
   accepted for input JSON.
 
-The current engine does not implement magnetic-element ramping or a BeamBeam
-command. Enabling these features is an error instead of silently ignoring the
-request. RFCavity's implemented RF table remains supported. ElSeparator requires
+Quadrupole, Sextupole, Octupole and Multipole support normalized-strength
+ramping. Enabled files are checked for physical ``TIME`` values, finite strength
+columns, supported orders, duplicate components and the positive length required
+by non-integrated strengths; see :doc:`element/magnet_ramping`.
+Ramping of other magnetic elements remains an error. The legacy BeamBeam command
+is unavailable. RFCavity's implemented RF table remains supported. ElSeparator requires
 exactly one finite ``V (V)`` or ``VL (V m)``, a positive gap and a finite septum
 position. Zero strength is valid; nonzero V requires positive length, while VL
 also supports a zero-length kick. Specify the geometry explicitly using the current :doc:`element/elseparator` interface.
