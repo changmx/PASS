@@ -33,6 +33,8 @@ class SlowExtractionMonitor(Command):
     earlier arrival time, so no bin is closed while tracking continues.
     Completed turn bins are appended once; the last partial turn bin is
     appended at finalization. Time output remains an atomic full snapshot.
+    Float64 time edges are always origin + index*width; assignment compares
+    against those edges without snapping nearby events across a boundary.
     """
 
     def __init__(self, beam_id, sim, **command_kwargs):
@@ -100,6 +102,28 @@ class SlowExtractionMonitor(Command):
     def execute_gpu(self, sim):
         return self._execute(sim)
 
+    def _time_bin_edges(self, indices):
+        with np.errstate(over="ignore", invalid="ignore"):
+            lower = self.time_origin + indices * self.time_bin_width
+            upper = self.time_origin + (indices + 1) * self.time_bin_width
+        if np.any(~np.isfinite(lower)) or np.any(~np.isfinite(upper)) or np.any(upper <= lower):
+            raise ValueError("SlowExtractionMonitor Time bin width (s) is below the floating-point time resolution or overflows")
+        return lower, upper
+
+    def _time_bin_indices(self, times):
+        """Correct division roundoff using the exact edges written to output."""
+        with np.errstate(over="ignore", invalid="ignore"):
+            raw_indices = np.floor((times - self.time_origin) / self.time_bin_width)
+        if np.any(~np.isfinite(raw_indices)) or np.any(raw_indices >= float(2**63)) or np.any(raw_indices <= -float(2**63)):
+            raise ValueError("SlowExtractionMonitor time-bin indices must fit int64; increase Time bin width (s)")
+        indices = raw_indices.astype(np.int64)
+        lower, upper = self._time_bin_edges(indices)
+        indices = indices - (times < lower).astype(np.int64) + (times >= upper).astype(np.int64)
+        lower, upper = self._time_bin_edges(indices)
+        if np.any(times < lower) or np.any(times >= upper):
+            raise ValueError("SlowExtractionMonitor cannot resolve time-bin assignment; increase Time bin width (s)")
+        return indices
+
     def _execute(self, sim):
         if self._finalized:
             raise RuntimeError(f"SlowExtractionMonitor '{self.cmd_name}' cannot execute after finalization")
@@ -112,18 +136,16 @@ class SlowExtractionMonitor(Command):
         serial = int(source.batch_serial)
         if serial == self._last_serial:
             return False
-        if self._last_serial is not None and serial != self._last_serial + 1:
+        expected_serial = 1 if self._last_serial is None else self._last_serial + 1
+        if serial != expected_serial:
             raise ValueError(f"SlowExtractionMonitor '{self.cmd_name}': Source batch serial is not consecutive; events may have been missed")
-        self._last_serial = serial
         if turn < self.start_turn or (self.end_turn is not None and turn >= self.end_turn):
+            self._last_serial = serial
             return False
 
-        self._turn_range = self._extend_range(self._turn_range, turn, turn + 1)
         reference_times = np.asarray(source.reference_times, dtype=np.float64)
-        if reference_times.size:
-            if not np.all(np.isfinite(reference_times)):
-                raise ValueError("SlowExtraction source reference times must be finite")
-            self._reference_range = self._extend_range(self._reference_range, float(reference_times.min()), float(reference_times.max()))
+        if not np.all(np.isfinite(reference_times)):
+            raise ValueError("SlowExtraction source reference times must be finite")
 
         events = source.last_events
         times = np.asarray(events["time"], dtype=np.float64)
@@ -136,28 +158,34 @@ class SlowExtractionMonitor(Command):
         if self.end_time is not None:
             selected &= times < self.end_time
         times, turns = times[selected], turns[selected]
+        updates = {}
         if len(times):
             if not np.all(np.isfinite(times)):
                 raise ValueError("SlowExtraction event times must be finite")
             weights = np.asarray(events["macro_weight"], dtype=np.float64)[selected]
             charges = np.asarray(events["charge_number"], dtype=np.float64)[selected] * const.e * weights
-            self._event_time_range = self._extend_range(self._event_time_range, float(times.min()), float(times.max()))
-            for kind, histogram in self._histograms.items():
+            for kind in self._histograms:
                 if kind == "turn":
                     indices = (turns - self.start_turn) // self.turn_bin_width
                 else:
-                    with np.errstate(over="ignore", invalid="ignore"):
-                        raw_indices = np.floor((times - self.time_origin) / self.time_bin_width)
-                    if np.any(~np.isfinite(raw_indices)) or np.any(raw_indices >= float(2**63)) or np.any(raw_indices < -float(2**63)):
-                        raise ValueError("SlowExtractionMonitor time-bin indices must fit int64; increase Time bin width (s)")
-                    indices = raw_indices.astype(np.int64)
+                    indices = self._time_bin_indices(times)
                 unique, inverse = np.unique(indices, return_inverse=True)
                 counts = np.bincount(inverse)
                 real = np.bincount(inverse, weights=weights)
                 charge = np.bincount(inverse, weights=charges)
-                for index, n_particles, n_real, extracted_charge in zip(unique, counts, real, charge):
-                    previous = histogram.get(int(index), (0, 0., 0.))
-                    histogram[int(index)] = (previous[0] + int(n_particles), previous[1] + float(n_real), previous[2] + float(extracted_charge))
+                updates[kind] = tuple(zip(unique, counts, real, charge))
+        # Validate all bin assignments before committing either histogram.
+        self._last_serial = serial
+        self._turn_range = self._extend_range(self._turn_range, turn, turn + 1)
+        if reference_times.size:
+            self._reference_range = self._extend_range(self._reference_range, float(reference_times.min()), float(reference_times.max()))
+        if len(times):
+            self._event_time_range = self._extend_range(self._event_time_range, float(times.min()), float(times.max()))
+        for kind, rows in updates.items():
+            histogram = self._histograms[kind]
+            for index, n_particles, n_real, extracted_charge in rows:
+                previous = histogram.get(int(index), (0, 0., 0.))
+                histogram[int(index)] = (previous[0] + int(n_particles), previous[1] + float(n_real), previous[2] + float(extracted_charge))
         self._dirty = True
         if (turn + 1) % self.write_interval_turns == 0 or turn == int(sim.cfg.num_turn) - 1:
             self._write_snapshots()
@@ -200,11 +228,15 @@ class SlowExtractionMonitor(Command):
             indices = np.empty(0, dtype=np.int64)
         else:
             lower, upper = observed
-            first_position, end_position = (lower - origin) / width, (upper - origin) / width
-            if not all(math.isfinite(position) and -float(2**63) <= position < float(2**63) for position in (first_position, end_position)):
-                raise ValueError("SlowExtractionMonitor observed bin indices must fit int64; increase the bin width")
-            first = math.floor(first_position)
-            last = max(first, math.ceil(end_position) - 1)
+            if bin_by == "turn":
+                first = (lower - origin) // width
+                last = (upper - origin - 1) // width
+            else:
+                limits = self._time_bin_indices(np.asarray((lower, upper)))
+                first, last = map(int, limits)
+                upper_edge = self.time_origin + last * self.time_bin_width
+                if upper == upper_edge and upper > lower:
+                    last -= 1
             if bin_by == "time" and histogram:
                 first, last = min(first, min(histogram)), max(last, max(histogram))
             if start_index is not None:
@@ -213,7 +245,9 @@ class SlowExtractionMonitor(Command):
                 last = min(last, stop_index - 1)
             indices = np.arange(first, last + 1, dtype=np.int64)
         nominal_start = origin + indices * width
-        nominal_end = nominal_start + width
+        nominal_end = origin + (indices + 1) * width
+        if bin_by == "time":
+            nominal_start, nominal_end = self._time_bin_edges(indices)
         observed_start = np.maximum(nominal_start, observed[0]) if observed is not None else nominal_start.copy()
         observed_end = np.minimum(nominal_end, observed[1]) if observed is not None else nominal_end.copy()
         observed_width = np.maximum(observed_end - observed_start, 0.)

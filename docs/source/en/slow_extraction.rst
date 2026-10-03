@@ -31,6 +31,14 @@ Later tracking skips the retired particles, so a particle is captured once.
 CPU and GPU execution use the same selection logic; GPU events are copied to
 host memory before the original tags change.
 
+The GPU path fuses selection, event packing and ring retirement into dedicated
+CUDA kernels and reuses device work buffers. Each selected bunch batch transfers
+its identity and six coordinates in one contiguous block. Cuts remain float64,
+coordinate storage precision and event order are retained, and capture reaches
+owned host memory before retirement. The spill monitor consumes these host
+events; this implementation still synchronizes to publish each invocation.
+``Buffer size (particles)`` controls disk batching, not GPU transfer cadence.
+
 These negative tags indicate termination of ring tracking, not necessarily
 material loss. Existing StatMonitor loss counts include extracted particles.
 Use the union of all extraction source event tables for the same run and
@@ -46,7 +54,9 @@ Position and execution order
 ``S (m)`` labels an already reached tracking plane. Setting it does not insert
 missing transport. Split a drift or thick element correctly before placing
 an extraction plane inside it; input validation rejects a cut inside an
-unsplit element body. Prefer existing element boundaries. Choose a plane and
+unsplit element body or inside a Twiss map's ``S previous (m)`` to ``S (m)``
+interval. At a transport endpoint, extraction must execute after that transport,
+including when explicit ``Order`` is supplied. Prefer existing element boundaries. Choose a plane and
 cut that represent the intended extraction channel: a large displacement
 elsewhere in the ring alone does not establish successful extraction.
 
@@ -203,3 +213,18 @@ table at finalization. The in-memory capture precedes ring retirement, but
 buffering is not crash-durable storage. No extraction ledger is restored by
 a simulation restart. Output errors stop execution rather than silently
 discarding events or automatically retrying an ambiguous append.
+
+Capture or ring-retirement errors also stop the source permanently. A batch is
+published to monitors only after capture and retirement both succeed. Unless
+output itself failed, finalization preserves buffered captures, including evidence
+from interrupted retirement. The disk and particle memory updates do not form an
+atomic transaction. Treat aborted-run tables as diagnostic data, not a completed
+extraction ledger.
+
+The event header ``SourceStatus`` starts as ``open`` and becomes ``finalized`` or
+``aborted-diagnostic`` at finalization. ``finalized`` describes this source only;
+it does not prove that all requested simulation turns ran. An aborted table may
+contain captures whose ring retirement was incomplete. ``SuccessfulExtracted``,
+``SuccessfulRealExtracted``, ``SuccessfulBatchSerial`` and ``LastSuccessfulTurn``
+record the successfully published source state. A write failure can leave an
+``open`` or incomplete file, which must not be treated as a finalized ledger.

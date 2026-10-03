@@ -177,13 +177,15 @@ def check_slow_extraction(check, ordered):
     from PASS.utils.command_order import command_position_key
 
     sequence_indices = {name: index for index, (name, _kind, _values) in enumerate(ordered)}
-    thick_intervals = []
-    for name, (_kind, values) in check.commands.items():
+    transport_intervals = []
+    for name, (kind, values) in check.commands.items():
         end, length = values.get("S (m)"), values.get("Length (m)", 0)
-        if is_finite_number(end) and is_finite_number(length) and length > 0:
-            start = end - length
-            if math.isfinite(start):
-                thick_intervals.append((name, command_position_key({"S (m)": start}), command_position_key(values)))
+        if kind == "Twiss":
+            start = values.get("S previous (m)")
+        else:
+            start = end - length if is_finite_number(end) and is_finite_number(length) and length > 0 else None
+        if is_finite_number(start) and is_finite_number(end) and start < end:
+            transport_intervals.append((name, kind, command_position_key({"S (m)": start}), command_position_key(values)))
 
     for name, (kind, values) in check.commands.items():
         if kind not in {"SlowExtraction", "SlowExtractionMonitor"}:
@@ -193,10 +195,18 @@ def check_slow_extraction(check, ordered):
         position_key = command_position_key(values) if is_finite_number(position) else None
         if kind == "SlowExtraction":
             if position_key is not None:
-                for element_name, start, end in thick_intervals:
+                for element_name, element_kind, start, end in transport_intervals:
                     if start < position_key < end:
-                        check.add((*path, "S (m)"), "slow_extraction.unsplit_element",
-                                  f"引出面位于未拆分厚元件 {element_name!r} 内部；请先拆分元件，在真实跟踪截面放置 SlowExtraction")
+                        if element_kind == "Twiss":
+                            check.add((*path, "S (m)"), "slow_extraction.unsplit_twiss",
+                                      f"引出面位于 Twiss 映射 {element_name!r} 的 S previous..S 区间内部；请先拆分映射，在真实跟踪截面放置 SlowExtraction")
+                        else:
+                            check.add((*path, "S (m)"), "slow_extraction.unsplit_element",
+                                      f"引出面位于未拆分厚元件 {element_name!r} 内部；请先拆分元件，在真实跟踪截面放置 SlowExtraction")
+                    elif (position_key == end and name in sequence_indices and element_name in sequence_indices
+                          and sequence_indices[name] < sequence_indices[element_name]):
+                        check.add((*path, "Order"), "slow_extraction.transport_order",
+                                  f"SlowExtraction 必须在到达该截面的传输 {element_name!r} 之后执行；请检查同一 S 的 Order")
             continue
         source = values.get("Source")
         if not isinstance(source, str):
