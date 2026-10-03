@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0] - 2026-10-03
+
+### Added
+
+- Beam-beam, electron-cloud, intrabeam scattering, and electron-cooling simulations.
+- Magnetic field and alignment errors.
+- Time-dependent magnet strengths.
+- HDF5/SDDS data conversion and wake-data import tools.
+
+### Changed
+
+- Standardized wake TFS input and default compressed HDF5 output.
+- Updated RF time-window handling, GUI workflows, and wake-field performance.
+- Updated dependencies and expanded documentation.
+
+### Fixed
+
+- Corrected periodic slicing and wake observation windows during acceleration.
+
+---
+
 ## [0.4.0] - 2026-09-17
 
 ### Added
