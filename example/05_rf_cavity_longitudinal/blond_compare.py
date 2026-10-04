@@ -12,11 +12,13 @@ import argparse, base64, importlib.util, importlib.metadata, io, json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+from PASS.utils.particle_monitor_read import read_particle_trajectories
 from PASS.utils.table_io import find_table_files, read_table
 from analyze_results import find_latest_output, measure_tune
 from generate_input import CASES, CIRCUM, GAMMA_T, NUM_CHARGE, NUM_PROTON, NUM_NEUTRON, build_case, SCRIPT_DIR
@@ -60,15 +62,15 @@ def run_pass(case):
 
 def read_particles(output):
     result = {}
-    files = find_table_files(output / 'particle', '*_tag*') or find_table_files(output, '*_tag*')
-    for path in files:
-        tag = int(path.stem.split('_tag')[-1].lstrip('_'))
+    files = find_table_files(output / 'particle', '*_beam*') or find_table_files(output, '*_beam*')
+    trajectories = read_particle_trajectories(files, max_tag=max(TAGS))
+    for tag, particle in trajectories.items():
         if tag not in TAGS:
             continue
-        table = read_table(path)
+        table = pd.DataFrame(particle)
         missing = {'referenceTime', 'referenceBeta', 'referenceMomentum'} - set(table.columns)
         if missing:
-            raise ValueError(f'{path}: missing reference columns {sorted(missing)}. '
+            raise ValueError(f'{output}: missing reference columns {sorted(missing)}. '
                              'Enable "Include reference": true in ParticleMonitor '
                              '(generate_input.py --include-reference) and rerun PASS before BLonD comparison.')
         if np.any(table.tag <= 0):

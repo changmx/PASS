@@ -9,7 +9,7 @@ three basic steps used by the other examples:
 1. `generate_input.py` generates `beam0_*.json` using the PASS Python API.
 2. `run_simulation.py` reads a JSON input, performs one injection, and saves the initial
    particle distribution.
-3. `analyze_results.py` reads the generated HDF5 files (or legacy TFS files), validates the distribution
+3. `analyze_results.py` reads the generated HDF5 files (or TFS files), validates the distribution
    types, calculates statistics, and compares them with theory.
 
 This example contains no transport elements. `Num Turns = 1` lets PASS finish
@@ -204,11 +204,12 @@ and the RF bucket theory.
 - Generated JSON, HDF5/TFS files, images, and CSV files are ignored by the local
   `.gitignore`.
 
-Diagnostic tables now default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
-accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
-monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
-Set `output_format="hdf5"` to write uncompressed HDF5; the default
-`output_format="hdf5-gzip1"` enables gzip level 1 and shuffle. Both use `.h5` files.
+ParticleMonitor and Injection default to uncompressed HDF5 (`.h5`);
+other diagnostic tables default to gzip-1 + shuffle HDF5. The analysis scripts
+accept current HDF5 and TFS output. Set `output_format="tfs"` on the monitor
+(or initial-distribution `BunchConfig`) for text output, or
+`output_format="hdf5-gzip1"` to enable gzip level 1 and shuffle.
+Both HDF5 settings use `.h5` files.
 StatMonitor also writes every recorded row to CSV in batches of 100 turns
 by default, configurable with `write_interval_turns`. Slicer slice summaries
 remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).

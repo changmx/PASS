@@ -20,7 +20,8 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PASS.utils.table_io import find_table_files, read_table
+from PASS.utils.particle_monitor_read import read_particle_trajectories
+from PASS.utils.table_io import find_table_files
 
 # ============================================================
 # Lattice parameters (must match generate_input.py)
@@ -281,27 +282,13 @@ def read_pass_tbt(output_dir, max_tag=12):
     if not particle_dir.exists():
         raise FileNotFoundError(f"Particle directory not found: {particle_dir}")
 
-    table_files = sorted(find_table_files(particle_dir, "*_beam*_tag*"))
+    table_files = sorted(find_table_files(particle_dir, "*_beam*"))
     if not table_files:
         raise FileNotFoundError(f"No particle HDF5/TFS files found in {particle_dir}")
 
-    data = {}
-    for f in table_files:
-        tag_str = f.stem.split("_tag")[-1].lstrip("_")
-        tag = int(tag_str)
-        if tag > max_tag:
-            continue
-
-        df = read_table(str(f))
-        data[tag] = {
-            "turn": df["turn"].to_numpy(),
-            "x": df["x"].to_numpy(),
-            "px": df["px"].to_numpy(),
-            "y": df["y"].to_numpy(),
-            "py": df["py"].to_numpy(),
-            "z": df["z"].to_numpy(),
-            "dp": df["dp"].to_numpy(),
-        }
+    trajectories = read_particle_trajectories(table_files, max_tag=max_tag)
+    columns = ("turn", "x", "px", "y", "py", "z", "dp")
+    data = {tag: {key: particle[key] for key in columns} for tag, particle in trajectories.items()}
     return data
 
 

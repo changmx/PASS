@@ -34,7 +34,8 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PASS.utils.table_io import find_table_files, read_table
+from PASS.utils.particle_monitor_read import read_particle_trajectories
+from PASS.utils.table_io import find_table_files
 
 from generate_input import (
     CASES,
@@ -79,13 +80,10 @@ def find_latest_output(case_name: str):
 def read_pass_tbt(output_dir, max_tag=20):
     """Read PASS ParticleMonitor HDF5/TFS files -> {tag: {turn,x,px,y,py,z,dp}}."""
     particle_dir = output_dir / "particle"
-    data = {}
-    for f in sorted(find_table_files(particle_dir, "*_beam*_tag*")):
-        tag = int(f.stem.split("_tag")[-1].lstrip("_"))
-        if tag > max_tag:
-            continue
-        df = read_table(str(f))
-        data[tag] = {k: df[k].to_numpy() for k in ["turn", "x", "px", "y", "py", "z", "dp"]}
+    table_files = sorted(find_table_files(particle_dir, "*_beam*"))
+    trajectories = read_particle_trajectories(table_files, max_tag=max_tag)
+    columns = ("turn", "x", "px", "y", "py", "z", "dp")
+    data = {tag: {key: particle[key] for key in columns} for tag, particle in trajectories.items()}
     return data
 
 

@@ -29,6 +29,7 @@ Usage:
     python generate_input.py
 """
 
+import math
 from pathlib import Path
 
 import tfs as tfs_lib
@@ -97,8 +98,10 @@ if __name__ == "__main__":
 
     # --- Read natural chromaticity ---
     natural = tfs_lib.read(natural_tfs)
-    dq1_nat = natural.headers["DQ1"]
-    dq2_nat = natural.headers["DQ2"]
+    natural_reference_beta = math.sqrt(1.0 - 1.0 / natural.headers["GAMMA"]**2)
+    # Native MAD-X TWISS differentiates in PT; explicit PASS inputs use delta.
+    dq1_nat = natural_reference_beta * natural.headers["DQ1"]
+    dq2_nat = natural_reference_beta * natural.headers["DQ2"]
     circum = natural.headers["LENGTH"]
     gamma_tr = natural.headers["GAMMATR"]
     ek_per_nucleon = (natural.headers["ENERGY"] - natural.headers["MASS"]) * 1e9  # GeV -> eV/u
@@ -109,9 +112,11 @@ if __name__ == "__main__":
 
     # --- Read corrected TFS headers for verification ---
     corrected = tfs_lib.read(corrected_tfs)
-    print(f"[Corrected] DQ1={corrected.headers['DQ1']:.6f}, DQ2={corrected.headers['DQ2']:.6f}")
-    print(f"[Expected sextupole contribution] dDQ1={corrected.headers['DQ1'] - dq1_nat:.6f}, "
-          f"dDQ2={corrected.headers['DQ2'] - dq2_nat:.6f}")
+    corrected_reference_beta = math.sqrt(1.0 - 1.0 / corrected.headers["GAMMA"]**2)
+    dq1_corrected = corrected_reference_beta * corrected.headers["DQ1"]
+    dq2_corrected = corrected_reference_beta * corrected.headers["DQ2"]
+    print(f"[Corrected] DQ1={dq1_corrected:.6f}, DQ2={dq2_corrected:.6f}")
+    print(f"[Expected sextupole contribution] dDQ1={dq1_corrected - dq1_nat:.6f}, dDQ2={dq2_corrected - dq2_nat:.6f}")
 
     # --- Build twiss sequence with natural chromaticity + sextupole thin lenses ---
     items, names, _ = read_madx_twiss(
@@ -162,8 +167,8 @@ if __name__ == "__main__":
         beta_y=natural.iloc[0]["BETY"],
         emit_x=EMIT_X,
         emit_y=EMIT_Y,
-        dx=natural.iloc[0]["DX"],
-        dpx=natural.iloc[0]["DPX"],
+        dx=natural_reference_beta * natural.iloc[0]["DX"],
+        dpx=natural_reference_beta * natural.iloc[0]["DPX"],
         sigma_z=1.0,
         dp=1e-3,
         dist_trans="kv",
@@ -201,5 +206,5 @@ if __name__ == "__main__":
     print(f"  {n_test} test particles + {NUM_DIST} distribution particles = {n_total} total")
     print(f"  {NUM_TURNS} turns")
     print(f"  Natural DQ1={dq1_nat:.4f}, DQ2={dq2_nat:.4f}")
-    print(f"  Corrected DQ1={corrected.headers['DQ1']:.4f}, DQ2={corrected.headers['DQ2']:.4f}")
+    print(f"  Corrected DQ1={dq1_corrected:.4f}, DQ2={dq2_corrected:.4f}")
     print(f"  Longitudinal: {LONGI_TRANSFER}")

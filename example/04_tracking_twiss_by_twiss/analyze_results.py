@@ -17,6 +17,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
+from PASS.utils.particle_monitor_read import read_particle_trajectories
 from PASS.utils.table_io import find_table_files, read_table
 
 # ============================================================
@@ -34,14 +35,13 @@ _nat = read_table(TFS_NATURAL)
 QX_EXPECTED = _tfs.headers["Q1"] % 1
 QY_EXPECTED = _tfs.headers["Q2"] % 1
 
-# Chromaticities
-# Note: MATCH,CHROM targets DQ1=DQ2=-1.0, but TWISS,CHROM reports different
-# values due to MADX's internal algorithm differences. We compare against
-# the MATCH target (the design intent), not the TWISS,CHROM header.
-DQX_NATURAL = _nat.headers["DQ1"]
-DQY_NATURAL = _nat.headers["DQ2"]
-DQX_CORRECTED = _tfs.headers["DQ1"]
-DQY_CORRECTED = _tfs.headers["DQ2"]
+# Native TWISS headers use PT; the measured tune slopes use delta=P/P0-1.
+REFERENCE_BETA = np.sqrt(1.0 - 1.0 / _tfs.headers["GAMMA"]**2)
+NATURAL_REFERENCE_BETA = np.sqrt(1.0 - 1.0 / _nat.headers["GAMMA"]**2)
+DQX_NATURAL = NATURAL_REFERENCE_BETA * _nat.headers["DQ1"]
+DQY_NATURAL = NATURAL_REFERENCE_BETA * _nat.headers["DQ2"]
+DQX_CORRECTED = REFERENCE_BETA * _tfs.headers["DQ1"]
+DQY_CORRECTED = REFERENCE_BETA * _tfs.headers["DQ2"]
 
 # Twiss at s=0 (first row)
 _row0 = _tfs.iloc[0]
@@ -49,8 +49,8 @@ ALPHA_X = _row0["ALFX"]
 ALPHA_Y = _row0["ALFY"]
 BETA_X = _row0["BETX"]
 BETA_Y = _row0["BETY"]
-DX_EXPECTED = _row0["DX"]
-DPX_EXPECTED = _row0["DPX"]
+DX_EXPECTED = REFERENCE_BETA * _row0["DX"]
+DPX_EXPECTED = REFERENCE_BETA * _row0["DPX"]
 CIRCUM = _tfs.headers["LENGTH"]
 
 # Distribution parameters (match generate_input.py)
@@ -176,27 +176,13 @@ def read_pass_tbt(output_dir, max_tag=12):
     if not particle_dir.exists():
         raise FileNotFoundError(f"Particle directory not found: {particle_dir}")
 
-    table_files = sorted(find_table_files(particle_dir, "*_beam*_tag*"))
+    table_files = sorted(find_table_files(particle_dir, "*_beam*"))
     if not table_files:
         raise FileNotFoundError(f"No particle HDF5/TFS files found in {particle_dir}")
 
-    data = {}
-    for f in table_files:
-        tag_str = f.stem.split("_tag")[-1].lstrip("_")
-        tag = int(tag_str)
-        if tag > max_tag:
-            continue
-
-        df = read_table(str(f))
-        data[tag] = {
-            "turn": df["turn"].to_numpy(),
-            "x": df["x"].to_numpy(),
-            "px": df["px"].to_numpy(),
-            "y": df["y"].to_numpy(),
-            "py": df["py"].to_numpy(),
-            "z": df["z"].to_numpy(),
-            "dp": df["dp"].to_numpy(),
-        }
+    trajectories = read_particle_trajectories(table_files, max_tag=max_tag)
+    columns = ("turn", "x", "px", "y", "py", "z", "dp")
+    data = {tag: {key: particle[key] for key in columns} for tag, particle in trajectories.items()}
     return data
 
 

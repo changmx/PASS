@@ -17,6 +17,14 @@ The transport model:
 `generate_input.py` fixes the Injection random seed to `2026`, making the generated
 distribution particles reproducible between runs.
 
+PASS uses `delta=P/P0-1`. Native MAD-X `TWISS` dispersion and chromaticities
+differentiate with respect to `PT`, so the generator and analyzer multiply
+those source values by the reference speed `beta0`. Explicit numerical
+`dqx`/`dqy` passed to the reader already use the PASS convention. Regenerate
+existing JSON inputs after this correction; the source TFS files retain their
+native units. The supplied ultrarelativistic example has beta0 very close to
+one, but this conversion matters when changing the reference energy.
+
 ## Run the example
 
 After installing PASS from the repository root, enter this example directory:
@@ -58,11 +66,18 @@ python analyze_results.py
 
 Plots are displayed interactively via `plt.show()` (not saved to disk).
 
-Diagnostic tables default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
-accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
-monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
-Set `output_format="hdf5"` to write uncompressed HDF5; the default
-`output_format="hdf5-gzip1"` enables gzip level 1 and shuffle. Both use `.h5` files.
+ParticleMonitor and Injection default to uncompressed HDF5 (`.h5`);
+other diagnostic tables default to gzip-1 + shuffle HDF5. The analysis scripts
+accept current HDF5 and TFS output. Set `output_format="tfs"` on the monitor
+(or initial-distribution `BunchConfig`) for text output, or
+`output_format="hdf5-gzip1"` to enable gzip level 1 and shuffle.
+Both HDF5 settings use `.h5` files.
+Each ParticleMonitor writes one `*_beam*_particles.h5` (or `.tfs`) containing all
+selected particles and recorded turns. `Write interval (turns)` controls
+buffering and retains every turn. HDF5 appends blocks during tracking;
+TFS uses private HDF5 storage during tracking and exports a standard text table
+at finalization. The trajectory reader selects individual IDs from one current
+PM file with `Layout="single_file"` and `FormatVersion=2`.
 StatMonitor also writes every recorded row to CSV in batches of 100 turns
 by default, configurable with `write_interval_turns`. Slicer slice summaries
 remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).

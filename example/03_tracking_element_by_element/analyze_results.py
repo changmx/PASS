@@ -23,6 +23,7 @@ from pathlib import Path
 
 import numpy as np
 
+from PASS.utils.particle_monitor_read import read_particle_trajectories
 from PASS.utils.table_io import find_table_files, read_table
 
 # ============================================================
@@ -73,30 +74,15 @@ def read_tbt_data(output_dir: Path, max_tag: int = 17) -> dict:
         raise FileNotFoundError(f"Particle directory not found: {particle_dir}")
 
     # Find all particle tables
-    table_files = sorted(find_table_files(particle_dir, "*_beam*_tag*"))
+    table_files = sorted(find_table_files(particle_dir, "*_beam*"))
     if not table_files:
         raise FileNotFoundError(f"No particle HDF5/TFS files found in {particle_dir}")
 
-    data = {}
-    for f in table_files:
-        # Extract tag from filename: ..._tagN.tfs or ..._tag_N.tfs
-        tag_str = f.stem.split("_tag")[-1].lstrip("_")
-        tag = int(tag_str)
-        if tag > max_tag:
-            continue
-
-        df = read_table(str(f))
-        data[tag] = {
-            "turn": df["turn"].to_numpy(),
-            "x": df["x"].to_numpy(),
-            "px": df["px"].to_numpy(),
-            "y": df["y"].to_numpy(),
-            "py": df["py"].to_numpy(),
-            "z": df["z"].to_numpy(),
-            "dp": df["dp"].to_numpy(),
-            "lost_turn": df["lostTurn"].to_numpy() if "lostTurn" in df.columns else None,
-        }
-
+    trajectories = read_particle_trajectories(table_files, max_tag=max_tag)
+    columns = ("turn", "x", "px", "y", "py", "z", "dp")
+    data = {tag: {key: particle[key] for key in columns} for tag, particle in trajectories.items()}
+    for tag, particle in trajectories.items():
+        data[tag]["lost_turn"] = particle.get("lostTurn")
     return data
 
 
@@ -442,6 +428,10 @@ def main():
     )
     parser.add_argument("--output-dir", type=str, default=None, help="Output directory (default: auto-detect latest)")
     parser.add_argument("--twiss", type=str, default="fodo_ptc.tfs", help="Twiss TFS file for MADX reference (default: fodo_ptc.tfs)")
+    parser.add_argument("--chromaticity-coordinate",
+                        choices=("pt", "delta"),
+                        default=None,
+                        help="Reference DQ coordinate; required for external PTC tables (PTC TIME mode is absent from TFS)")
     parser.add_argument("--dp-list", type=str, default="5e-5,1e-4,5e-4,1e-3", help="Comma-separated dp values for chromaticity fit")
     parser.add_argument("--adts-x", type=str, default="5e-3,10e-3", help="Comma-separated x amplitudes for ADTS")
     parser.add_argument("--adts-y", type=str, default="5e-3,10e-3", help="Comma-separated y amplitudes for ADTS")
@@ -467,21 +457,33 @@ def main():
     twiss_file = script_dir / args.twiss
     if twiss_file.exists():
         df = read_table(str(twiss_file))
+        derivative_coordinate = args.chromaticity_coordinate
+        if derivative_coordinate is None:
+            if str(df.headers.get("NAME", "")).upper() == "PTC_TWISS":
+                if twiss_file.resolve() != (script_dir / "fodo_ptc.tfs").resolve():
+                    parser.error("External PTC tables require --chromaticity-coordinate pt or delta; their TIME mode cannot be inferred.")
+                # The bundled fodo.madx uses PTC TIME=false, hence delta derivatives.
+                derivative_coordinate = "delta"
+            else:
+                derivative_coordinate = "pt"
+        reference_beta = np.sqrt(1.0 - 1.0 / df.headers["GAMMA"]**2)
+        derivative_scale = reference_beta if derivative_coordinate == "pt" else 1.0
         madx_ref = {
             "q1": df.headers["Q1"],
             "q2": df.headers["Q2"],
-            "dq1": df.headers["DQ1"],
-            "dq2": df.headers["DQ2"],
+            "dq1": derivative_scale * df.headers["DQ1"],
+            "dq2": derivative_scale * df.headers["DQ2"],
         }
         # Dispersion at s=0 from MADX Twiss (fodo.tfs, not fodo_ptc.tfs
         # which has DX=0 at s=0 due to PTC output convention)
         twiss_std = script_dir / "fodo.tfs"
         if twiss_std.exists():
             df_std = read_table(str(twiss_std))
+            dispersion_reference_beta = np.sqrt(1.0 - 1.0 / df_std.headers["GAMMA"]**2)
             s_col = df_std["S"].to_numpy()
             idx_s0 = np.argmin(np.abs(s_col))
-            madx_ref["dx"] = float(df_std.loc[idx_s0, "DX"])
-            madx_ref["dpx"] = float(df_std.loc[idx_s0, "DPX"])
+            madx_ref["dx"] = dispersion_reference_beta * float(df_std.loc[idx_s0, "DX"])
+            madx_ref["dpx"] = dispersion_reference_beta * float(df_std.loc[idx_s0, "DPX"])
         else:
             madx_ref["dx"] = None
             madx_ref["dpx"] = None

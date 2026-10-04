@@ -52,7 +52,7 @@ This reads `fodo.tfs` and writes `beam0.json` with 17 test particles, 1024 turns
 python run_simulation.py
 ```
 
-Output is saved to `output/YYYY_MMDD/HHMM_SS/` with per-tag TBT particle monitor files.
+Output is saved to `output/YYYY_MMDD/HHMM_SS/` with one TBT particle-monitor file per monitor and beam.
 
 ### 4. Analyze results
 
@@ -84,11 +84,27 @@ python analyze_results.py --dp-list 5e-5,1e-4,5e-4,1e-3
 python analyze_results.py --adts-x 5e-3,10e-3 --adts-y 5e-3,10e-3
 ```
 
-Diagnostic tables default to gzip-1 + shuffle HDF5 (`.h5`). The analysis scripts
-accept both HDF5 and legacy TFS output; set `output_format="tfs"` on the
-monitor (or initial-distribution `BunchConfig`) to request TFS explicitly.
-Set `output_format="hdf5"` to write uncompressed HDF5; the default
-`output_format="hdf5-gzip1"` enables gzip level 1 and shuffle. Both use `.h5` files.
+The analyzer compares derivatives with respect to `delta=P/P0-1`. It converts
+native MAD-X `TWISS` chromaticities and dispersion by multiplying by `beta0`.
+The bundled `fodo_ptc.tfs` is produced with PTC `TIME=false`, so its
+chromaticities already use delta. For an external PTC file, explicitly pass
+`--chromaticity-coordinate delta` for `TIME=false` or
+`--chromaticity-coordinate pt` for `TIME=true`; the TFS creation-time header
+does not identify that physics setting. If regenerating the bundled file with
+`TIME=true`, use the same explicit `pt` option.
+
+ParticleMonitor and Injection default to uncompressed HDF5 (`.h5`);
+other diagnostic tables default to gzip-1 + shuffle HDF5. The analysis scripts
+accept current HDF5 and TFS output. Set `output_format="tfs"` on the monitor
+(or initial-distribution `BunchConfig`) for text output, or
+`output_format="hdf5-gzip1"` to enable gzip level 1 and shuffle.
+Both HDF5 settings use `.h5` files.
+Each ParticleMonitor writes one `*_beam*_particles.h5` (or `.tfs`) containing all
+selected particles and recorded turns. `Write interval (turns)` controls
+buffering and retains every turn. HDF5 appends blocks during tracking;
+TFS uses private HDF5 storage during tracking and exports a standard text table
+at finalization. The trajectory reader selects individual IDs from one current
+PM file with `Layout="single_file"` and `FormatVersion=2`.
 StatMonitor also writes every recorded row to CSV in batches of 100 turns
 by default, configurable with `write_interval_turns`. Slicer slice summaries
 remain TFS/CSV. See [table output formats](../../docs/source/en/monitor/table_output.rst).
