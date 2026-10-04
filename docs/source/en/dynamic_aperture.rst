@@ -201,6 +201,9 @@ the boundaries of all initial dp groups, or a selected subset. Each group has
 its own colour, line style and legend entry; groups with no drawable boundary
 are identified explicitly. This view shows curves without superposing all
 groups' scatter points. Switch to a single-dp plot to inspect individual losses.
+Repeated boundary notes are combined; for more than twelve selected groups the
+legend moves outside the axes so it does not obscure curves. For substantially
+larger selections, increase the figure size or display a subset of dp groups.
 Outer contours, internal loss holes and disconnected stable islands are all
 retained. An isolated loss inside a surviving region remains a hole; it is not
 filled in or treated as noise. All boundaries use the same target monitor event.
@@ -232,6 +235,13 @@ dp groups and display settings, as PNG, PDF or SVG; it does not export Python
 source code or a GUI screenshot. Large scatter layers may be rasterized inside
 PDF/SVG. Preserve the sequence, reference, apertures, injection conditions and
 requested horizon alongside comparisons.
+
+Numeric exports are fully written to temporary files before replacing their
+destinations. If publishing the CSV/JSON pair fails, prior files are restored;
+if restoration is also blocked, the error identifies the retained recovery
+directory. This is recovery from caught write errors, not a multi-file
+transaction across a process or machine crash. NPZ extensions are case-insensitive
+and the requested filename is preserved.
 
 Portable Python file
 --------------------
@@ -314,3 +324,13 @@ single-dp colour and boundary controls apply only to the single-dp view.
 Data and figure exports use the
 same analysis and plotting functions as Python scripts. Reading runs in the
 background and supports cancellation.
+If the file contains no valid captured initial coordinates, the plot explicitly
+reports that no initial dp group is available instead of showing an empty figure.
+After changing the source file or end turn, a notice identifies the displayed
+and exportable result as the previous analysis until a new analysis succeeds.
+Export requires an analyzed result; a filename without an extension uses the
+selected export format. Before replacing existing outputs, the GUI confirms
+their resolved filenames, including the metadata JSON paired with CSV.
+Figure writes are staged before replacing an existing image.
+Close initial dp groups use enough label precision to remain distinct
+in both single-group plots and overlays.

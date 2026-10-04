@@ -1,9 +1,13 @@
 """Asynchronous dynamic-aperture result analysis inside the Analysis workspace."""
 
+import os
+from pathlib import Path
+import tempfile
+
 import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QListWidget,
-                               QListWidgetItem, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QSplitter, QVBoxLayout, QWidget)
+                               QListWidgetItem, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QSplitter, QVBoxLayout, QWidget)
 
 from PASS.gui.analysis import AnalysisWorker
 from PASS.gui.widgets import file_dialog_directory
@@ -29,6 +33,8 @@ class DynamicAperturePage(QWidget):
         self._closing = False
         self._worker = None
         self.result = None
+        self._result_settings = None
+        self._pending_settings = None
         self._root = QVBoxLayout(self)
         self._root.setContentsMargins(16, 12, 16, 12)
 
@@ -62,6 +68,12 @@ class DynamicAperturePage(QWidget):
         self.turn_notice.setWordWrap(True)
         self.turn_notice.hide()
         analyse_layout.addWidget(self.turn_notice)
+        self.result_notice = QLabel("输入已更改；当前图形和导出仍使用上次分析结果。请重新读取并分析。")
+        self.result_notice.setWordWrap(True)
+        self.result_notice.hide()
+        analyse_layout.addWidget(self.result_notice)
+        self.source.textChanged.connect(self._settings_changed)
+        self.requested_turn.valueChanged.connect(self._settings_changed)
         self.analyse_button = QPushButton("读取并分析")
         self.analyse_button.clicked.connect(self.analyse)
         analyse_layout.addWidget(self.analyse_button)
@@ -170,6 +182,8 @@ class DynamicAperturePage(QWidget):
             field.setText(value)
 
     def analyse(self):
+        if self.busy or self._closing:
+            return
         path = self.source.text().strip()
         requested = self.requested_turn.value()
 
@@ -185,12 +199,19 @@ class DynamicAperturePage(QWidget):
 
         self._start(operation, "analysis")
 
+    def _settings_key(self):
+        return self.source.text().strip(), self.requested_turn.value()
+
+    def _settings_changed(self, *_args):
+        stale = self.result is not None and self._result_settings is not None and self._settings_key() != self._result_settings
+        self.result_notice.setVisible(stale)
+        self.turn_notice.setVisible(bool(self.turn_notice.text()) and not stale)
+
     def _start(self, operation, kind):
         if self.busy or self._closing:
             return
         if kind == "analysis":
-            self.turn_notice.clear()
-            self.turn_notice.hide()
+            self._pending_settings = self._settings_key()
         self.analysis_controls.setEnabled(False)
         self.cancel_button.setEnabled(True)
         self.status.setText("正在后台处理…")
@@ -216,10 +237,14 @@ class DynamicAperturePage(QWidget):
             metadata = self.result["metadata"]
             requested = metadata.get("requested_turn_input")
             effective = metadata["requested_turn"]
+            self.turn_notice.clear()
+            self._result_settings = self._pending_settings
             if requested is not None and requested != effective:
-                self.requested_turn.setValue(effective)
+                if self._settings_key() == self._pending_settings:
+                    self.requested_turn.setValue(effective)
+                self._result_settings = (self._pending_settings[0], effective)
                 self.turn_notice.setText(f"终点圈数 {requested} 超出文件最后记录圈 {effective}，已自动调整为 {effective}。")
-                self.turn_notice.show()
+            self._settings_changed()
             initial = np.asarray(self.result["initial_coordinates"])
             self._set_dp_groups()
             states, counts = np.unique(self.result["status"], return_counts=True)
@@ -273,6 +298,10 @@ class DynamicAperturePage(QWidget):
             return
         self.figure.clear()
         if self.dp.currentIndex() < 0:
+            ax = self.figure.add_subplot()
+            ax.set_axis_off()
+            ax.text(0.5, 0.5, "No valid initial coordinates are available for plotting.", transform=ax.transAxes, ha="center", va="center", wrap=True)
+            self.dp_selection_note.setText("没有有效的注入初始坐标，无法绘制孔径；仍可导出分析数据检查粒子状态。")
             self._style()
             return
         from PASS.plot.plot_dynamic_aperture import plot_dynamic_aperture, plot_dynamic_aperture_boundaries
@@ -293,12 +322,35 @@ class DynamicAperturePage(QWidget):
             plot_dynamic_aperture(self.result, dp=self.dp.currentData(), mode=self.mode.currentData(), boundary=self.boundary.isChecked(), ax=ax)
         self._style()
 
+    def _confirm_export(self, paths):
+        if self.busy or self._closing:
+            return False
+        existing = [path for path in paths if path.exists() or path.is_symlink()]
+        if existing:
+            message = "以下文件已存在，是否替换？\n\n" + "\n".join(str(path) for path in existing)
+            if QMessageBox.question(self, "替换导出文件", message, QMessageBox.Yes | QMessageBox.No, QMessageBox.No) != QMessageBox.Yes:
+                return False
+        return not self.busy and not self._closing
+
     def export_result(self):
+        if self.busy or self._closing:
+            return
         if self.result is None:
             self.status.setText("请先读取并分析结果。")
             return
-        path, _ = QFileDialog.getSaveFileName(self, "导出动力学孔径分析数据", file_dialog_directory(self), "NumPy (*.npz);;CSV (*.csv)")
+        # Confirm after suffix resolution, including CSV's derived metadata path.
+        path, selected = QFileDialog.getSaveFileName(self, "导出动力学孔径分析数据", file_dialog_directory(self), "NumPy (*.npz);;CSV (*.csv)", "",
+                                                     QFileDialog.DontConfirmOverwrite)
         if not path:
+            return
+        if not Path(path).suffix:
+            path += ".csv" if selected.startswith("CSV") else ".npz"
+        if Path(path).suffix.lower() not in (".npz", ".csv"):
+            self.status.setText("分析数据导出支持 .npz 或 .csv。")
+            return
+        destination = Path(path)
+        targets = [destination, destination.with_suffix(".json")] if destination.suffix.lower() == ".csv" else [destination]
+        if not self._confirm_export(targets):
             return
         result = self.result
 
@@ -312,13 +364,36 @@ class DynamicAperturePage(QWidget):
         self._start(operation, "export")
 
     def export_image(self):
-        path, _ = QFileDialog.getSaveFileName(self, "导出图形", file_dialog_directory(self), "PNG (*.png);;PDF (*.pdf);;SVG (*.svg)")
-        if path:
-            try:
-                self.figure.savefig(path, dpi=180)
-                self.status.setText("已导出：" + path)
-            except OSError as exc:
-                self.status.setText(str(exc))
+        if self.busy or self._closing:
+            return
+        if self.result is None:
+            self.status.setText("请先读取并分析结果。")
+            return
+        path, selected = QFileDialog.getSaveFileName(self, "导出图形", file_dialog_directory(self), "PNG (*.png);;PDF (*.pdf);;SVG (*.svg)", "",
+                                                     QFileDialog.DontConfirmOverwrite)
+        if not path:
+            return
+        if not Path(path).suffix:
+            path += ".pdf" if selected.startswith("PDF") else ".svg" if selected.startswith("SVG") else ".png"
+        destination = Path(path)
+        if destination.suffix.lower() not in (".png", ".pdf", ".svg"):
+            self.status.setText("图形导出支持 .png、.pdf 或 .svg。")
+            return
+        if not self._confirm_export([destination]):
+            return
+        temporary = None
+        try:
+            descriptor, name = tempfile.mkstemp(prefix=".pass-da-", suffix=destination.suffix, dir=destination.parent)
+            os.close(descriptor)
+            temporary = Path(name)
+            self.figure.savefig(temporary, dpi=180)
+            temporary.replace(destination)
+            self.status.setText("已导出：" + str(destination))
+        except (OSError, ValueError) as exc:
+            self.status.setText(str(exc))
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
     def _style(self):
         from PASS.gui.analysis_data import style_figure

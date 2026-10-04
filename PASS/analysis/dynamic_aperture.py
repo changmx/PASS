@@ -5,6 +5,8 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
+import shutil
+import tempfile
 
 import numpy as np
 
@@ -61,6 +63,8 @@ def compute_dynamic_aperture(initial_coordinates,
     track particles, fit an outer hull, or assume symmetry or a simply connected
     stable region. Initial dp groups remain unchanged by subsequent RF kicks.
     """
+    if np.iscomplexobj(initial_coordinates):
+        raise ValueError("initial_coordinates must contain real coordinates")
     initial = np.asarray(initial_coordinates, dtype=float)
     if initial.ndim != 2 or initial.shape[1] != 6:
         raise ValueError("initial_coordinates must have shape (particles, 6)")
@@ -68,11 +72,14 @@ def compute_dynamic_aperture(initial_coordinates,
     ids = np.arange(1, n_particles + 1, dtype=np.int64) if particle_id is None else np.asarray(particle_id)
     if ids.shape != (n_particles, ) or ids.dtype.kind not in "iu" or np.any(ids <= 0) or len(np.unique(ids)) != n_particles:
         raise ValueError("particle_id must contain one unique positive integer per initial row")
-    ids = ids.astype(np.int64, copy=False)
+    ids = _integer_values(ids, "particle_id", minimum=1)
     turns = np.asarray(sample_turn)
-    if turns.ndim != 1 or turns.dtype.kind not in "iu" or np.any(turns < 0) or np.any(np.diff(turns) <= 0):
+    if turns.ndim != 1 or turns.dtype.kind not in "iu":
         raise ValueError("sample_turn must be strictly increasing nonnegative integers")
-    tags = np.asarray(tag)
+    turns = _integer_values(turns, "sample_turn", minimum=0)
+    if np.any(np.diff(turns) <= 0):
+        raise ValueError("sample_turn must be strictly increasing nonnegative integers")
+    tags = _integer_values(tag, "tag")
     if tags.shape != (len(turns), n_particles):
         raise ValueError("tag must have shape (samples, particles)")
     if not np.all(np.isfinite(tags)) or not np.all((tags == 0) | (np.abs(tags) == ids[None, :])):
@@ -89,6 +96,10 @@ def compute_dynamic_aperture(initial_coordinates,
             raise ValueError(f"{name} must have shape (particles,)")
         return array
 
+    if initial_valid is not None:
+        initial_valid = np.asarray(initial_valid)
+        if initial_valid.dtype.kind not in "biuf" or np.any((initial_valid != 0) & (initial_valid != 1)):
+            raise ValueError("initial_valid must contain booleans or numeric 0/1 values")
     valid = particle_array(initial_valid, True, bool, "initial_valid") & np.all(np.isfinite(initial), axis=1)
     born = particle_array(None if injection_turn is None else _integer_values(injection_turn, "injection_turn", minimum=-1), -1, np.int64,
                           "injection_turn")
@@ -111,6 +122,8 @@ def compute_dynamic_aperture(initial_coordinates,
     position_samples = sample_array(lost_position, "lost_position")
     if coordinates is not None:
         coordinates = np.asarray(coordinates)
+        if np.iscomplexobj(coordinates):
+            raise ValueError("coordinates must contain real coordinates")
         if coordinates.shape != tags.shape + (6, ):
             raise ValueError("coordinates must have shape (samples, particles, 6)")
     if selected >= 0:
@@ -307,26 +320,68 @@ def _resolve_turn(requested_turn, attrs, turns, *, clamp_to_available=False, las
 
 
 def export_dynamic_aperture(result, path):
-    """Export numeric points and metadata to NPZ, or CSV plus a JSON sidecar."""
+    """Stage numeric exports before publication; restore prior files on failure."""
     path = Path(path)
+    if path.suffix.lower() not in {".npz", ".csv"}:
+        raise ValueError("DA exports require .npz or .csv")
     metadata = json.dumps(result["metadata"],
                           ensure_ascii=False,
                           indent=2,
                           default=lambda value: value.tolist() if isinstance(value, np.ndarray) else str(value))
-    if path.suffix.lower() == ".npz":
-        np.savez(path, **{key: value for key, value in result.items() if key != "metadata"}, metadata_json=np.array(metadata))
-    elif path.suffix.lower() == ".csv":
-        names = ("particle_id", "x0", "px0", "y0", "py0", "z0", "dp0", "initial_valid", "injection_turn", "status", "observed_turn", "lost_turn",
-                 "lost_position")
-        with path.open("w", newline="", encoding="utf-8") as stream:
-            writer = csv.writer(stream)
-            writer.writerow(names)
-            for index, particle_id in enumerate(result["particle_id"]):
-                writer.writerow([
-                    particle_id, *result["initial_coordinates"][index], result["initial_valid"][index], result["injection_turn"][index],
-                    result["status"][index], result["observed_turn"][index], result["lost_turn"][index], result["lost_position"][index]
-                ])
-        path.with_suffix(".json").write_text(metadata, encoding="utf-8")
-    else:
-        raise ValueError("DA exports require .npz or .csv")
+    targets = [path] + ([path.with_suffix(".json")] if path.suffix.lower() == ".csv" else [])
+    for target in targets:
+        if target.exists() and not target.is_file():
+            raise ValueError(f"Export destination is not a file: {target}")
+    directory = Path(tempfile.mkdtemp(prefix=".pass-da-", dir=path.parent))
+    staged = directory / path.name
+    keep_recovery = False
+    try:
+        if path.suffix.lower() == ".npz":
+            # A file handle avoids NumPy appending .npz to an uppercase .NPZ path.
+            with staged.open("wb") as stream:
+                np.savez(stream, **{key: value for key, value in result.items() if key != "metadata"}, metadata_json=np.array(metadata))
+        else:
+            names = ("particle_id", "x0", "px0", "y0", "py0", "z0", "dp0", "initial_valid", "injection_turn", "status", "observed_turn", "lost_turn",
+                     "lost_position")
+            with staged.open("w", newline="", encoding="utf-8") as stream:
+                writer = csv.writer(stream)
+                writer.writerow(names)
+                for index, particle_id in enumerate(result["particle_id"]):
+                    writer.writerow([
+                        particle_id, *result["initial_coordinates"][index], result["initial_valid"][index], result["injection_turn"][index],
+                        result["status"][index], result["observed_turn"][index], result["lost_turn"][index], result["lost_position"][index]
+                    ])
+            staged.with_suffix(".json").write_text(metadata, encoding="utf-8")
+        backups, published = {}, []
+        keep_recovery = True
+        try:
+            for index, target in enumerate(targets):
+                if target.exists() or target.is_symlink():
+                    backup = directory / f"previous-{index}"
+                    # Register intent first: rename can succeed before an
+                    # interruption is delivered to the caller.
+                    backups[target] = backup
+                    target.replace(backup)
+                published.append(target)
+                (directory / target.name).replace(target)
+        except BaseException:
+            # Keep old data recoverable even if restoration itself is blocked.
+            recovery_failed = False
+            for target in reversed(targets):
+                try:
+                    if target in backups:
+                        if backups[target].exists() or backups[target].is_symlink():
+                            backups[target].replace(target)
+                    elif target in published:
+                        target.unlink(missing_ok=True)
+                except OSError:
+                    recovery_failed = True
+            if recovery_failed:
+                raise OSError(f"Export publication and recovery failed; recovery files retained in {directory}")
+            keep_recovery = False
+            raise
+        keep_recovery = False
+    finally:
+        if not keep_recovery:
+            shutil.rmtree(directory)
     return path

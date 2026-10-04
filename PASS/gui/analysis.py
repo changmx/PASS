@@ -379,7 +379,7 @@ class AnalysisPage(QWidget):
         value, error = worker.result, worker.error
         worker.deleteLater()
         if self._closing:
-            self.shutdown_finished.emit()
+            self._child_shutdown_finished()
             return
         self._set_busy(False)
         if (self._cancelled and not (kind == "export" and value is not None)) or isinstance(error, InterruptedError):

@@ -3,6 +3,15 @@
 import numpy as np
 
 
+def _dp_labels(values):
+    """Keep nearby exact groups distinguishable in every plot mode."""
+    labels = [f"{dp:.8g}" for dp in values]
+    _, label_indices, label_counts = np.unique(labels, return_inverse=True, return_counts=True)
+    for index in np.flatnonzero(label_counts[label_indices] > 1):
+        labels[index] = f"{values[index]:.17g}"
+    return labels
+
+
 def _draw_boundary(ax, x, y, status, fixed_coordinates, *, color="#273449", linestyle="--", label="Sampled aperture boundary", overlay=False):
     """Draw only transitions supported by fully classified Cartesian cells."""
     if not np.all(fixed_coordinates == fixed_coordinates[:1]):
@@ -114,7 +123,8 @@ def plot_dynamic_aperture(result, *, dp=None, mode="status", ax=None, boundary=T
     metadata = result.get("metadata", {})
     turn = metadata.get("requested_turn", "?")
     monitor = metadata.get("Monitor", "monitor")
-    ax.set_title(f"Initial dp = {dp:.8g}; turn {turn} at {monitor}")
+    label = _dp_labels(values)[int(np.flatnonzero(values == dp)[0])]
+    ax.set_title(f"Initial dp = {label}; turn {turn} at {monitor}")
     ax.set_xlabel("Initial x (mm)")
     ax.set_ylabel("Initial y (mm)")
     ax.set_aspect("equal", adjustable="box")
@@ -163,13 +173,11 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
     indices = np.flatnonzero(initial_valid)
     indices = indices[np.argsort(initial[indices, 5], kind="stable")]
     sorted_dp = initial[indices, 5]
-    labels = [f"{dp:.8g}" for dp in values]
-    _, label_indices, label_counts = np.unique(labels, return_inverse=True, return_counts=True)
-    for index in np.flatnonzero(label_counts[label_indices] > 1):
-        labels[index] = f"{values[index]:.17g}"
+    labels = _dp_labels(values)
     colors = plt.get_cmap("tab10" if len(values) <= 10 else "turbo")
     linestyles = ("-", "--", "-.", ":")
     notes = ["Sampled survival/loss boundaries; accuracy is limited by grid spacing."]
+    group_notes = {}
     for dp in selected:
         index = int(np.flatnonzero(values == dp)[0])
         color = colors(index) if len(values) <= 10 else colors(0.1 + 0.8 * index / (len(values) - 1))
@@ -197,7 +205,10 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
             line._pass_da_overlay = True
         if note:
             note = " ".join(note.splitlines())
-            notes.append(f"{label}: {note}")
+            group_notes.setdefault(note, []).append(label)
+    for note, groups in group_notes.items():
+        prefix = "All selected dp groups" if len(groups) == len(selected) else ", ".join(groups)
+        notes.append(f"{prefix}: {note}")
     metadata = result.get("metadata", {})
     turn = metadata.get("requested_turn", "?")
     monitor = metadata.get("Monitor", "monitor")
@@ -208,7 +219,8 @@ def plot_dynamic_aperture_boundaries(result, *, dp_values=None, ax=None):
     ax.grid(alpha=0.2)
     ax.autoscale_view()
     ax.text(0.0, -0.17, "\n".join(notes), transform=ax.transAxes, fontsize=8, va="top", wrap=True)
-    legend = ax.legend(loc="best", fontsize=8)
+    legend_options = {"loc": "lower left", "bbox_to_anchor": (1.02, 0.0)} if len(selected) > 12 else {"loc": "best"}
+    legend = ax.legend(fontsize=8, **legend_options)
     for handle in legend.get_lines():
         handle._pass_da_boundary = True
         handle._pass_da_overlay = True
