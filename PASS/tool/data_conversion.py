@@ -159,6 +159,11 @@ def _read_flat(path, column_types=None):
     notices = []
     if detect_format(path) == "tfs":
         import tfs
+        from PASS.utils.particle_monitor_read import particle_monitor_tfs_metadata, read_particle_monitor_tfs
+
+        if particle_monitor_tfs_metadata(path) is not None:
+            columns, headers = read_particle_monitor_tfs(path)
+            return DataTable(columns, {"parameters": headers}, "table", notices)
         frame = tfs.read(path)
         # Reparse tokens with Python/NumPy conversion: pandas' default float
         # parser can move a correctly written 17-digit value by one ULP.
@@ -403,8 +408,20 @@ def preview_file(path, selection=None, *, limit=500, check_sdds=False):
     return {"tables": tables, "limit": limit, "signature": before, "sdds_check": validation}
 
 
+def _table_export_metadata(metadata):
+    """Keep source provenance without labelling a flat export as a native stream."""
+    metadata = dict(metadata)
+    parameters = dict(metadata.get("parameters", {}))
+    if parameters.get("Name") == "PASS Particle Monitor" and parameters.get("Layout") == "single_file":
+        parameters.setdefault("SourceLayout", parameters["Layout"])
+        parameters["Layout"] = "table"
+        metadata["parameters"] = parameters
+    return metadata
+
+
 def _write_table(table, destination, kind, *, csv_metadata=True, sdds_mode="binary", sdds_columns=None):
     import pandas as pd
+    table = DataTable(table.columns, _table_export_metadata(table.metadata), table.label, table.notices)
     columns = table.columns
     frame = pd.DataFrame(columns)
     extra = []
@@ -508,7 +525,7 @@ def _write_container_chunks(source, destination, selection, kind, csv_metadata, 
             {
                 "format": "pass-table-metadata-v1",
                 "sha256": _digest_file(destination),
-                "metadata": _json_value(first.metadata),
+                "metadata": _json_value(_table_export_metadata(first.metadata)),
                 "dtypes": {
                     k: str(v.dtype)
                     for k, v in first.columns.items()

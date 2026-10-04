@@ -49,3 +49,4 @@ purpose, configuration, physical model, and limits in one place.
 
    monitor/index
    spectral_analysis
+   dynamic_aperture

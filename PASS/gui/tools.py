@@ -11,7 +11,7 @@ class ToolNavigation(QFrame):
     """Exclusive page buttons using the configuration library's section style."""
     currentRowChanged = Signal(int)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, items=None):
         super().__init__(parent)
         self.setObjectName("libraryPanel")
         self.setFixedWidth(220)
@@ -20,7 +20,10 @@ class ToolNavigation(QFrame):
         layout.setSpacing(2)
         self.group = QButtonGroup(self)
         self.buttons = []
-        for index, title in enumerate(("束流参数计算器", "共振线图", "RF bucket绘制", "相空间绘制及发射度计算", "磁铁参数换算", "激励计算", "数据格式转换")):
+        self.items = tuple(items) if items is not None else (("束流参数计算器", "calculator"), ("共振线图", "resonance"), ("RF bucket绘制", "rf_bucket"),
+                                                             ("相空间绘制及发射度计算", "phase_ellipse"), ("磁铁参数换算", "magnet"), ("激励计算", "exciter"), ("数据格式转换",
+                                                                                                                                           "folder"))
+        for index, (title, _glyph) in enumerate(self.items):
             button = QPushButton(title)
             button.setObjectName("librarySectionHeader")
             button.setProperty("depth", 0)
@@ -38,7 +41,7 @@ class ToolNavigation(QFrame):
             self.buttons[index].click()
 
     def set_theme(self, theme):
-        for button, glyph in zip(self.buttons, ("calculator", "resonance", "rf_bucket", "phase_ellipse", "magnet", "exciter", "folder")):
+        for button, (_title, glyph) in zip(self.buttons, self.items):
             button.setIcon(icon(glyph, THEMES[theme]["muted"]))
 
 

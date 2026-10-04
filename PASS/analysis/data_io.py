@@ -105,6 +105,17 @@ def _read_table(path, kind, delimiter, skip_rows, header):
     if kind == "tfs" or (kind == "csv" and Path(str(path) + ".metadata.json").exists()):
         if delimiter not in (None, "", ",") or skip_rows or header not in ("auto", "present", True):
             raise ValueError("TFS and CSV metadata sidecars require their original header and delimiter")
+        if kind == "tfs":
+            from PASS.utils.particle_monitor_read import particle_monitor_tfs_metadata, read_particle_monitor_tfs
+
+            if particle_monitor_tfs_metadata(path) is not None:
+                records, parameters = read_particle_monitor_tfs(path)
+                selected = records["record"] == 1
+                shape = (parameters["ValidSamples"], parameters["MaxTag"])
+                columns = {name: values[selected].reshape(shape) for name, values in records.items() if name not in {"record", "turn", "particle_id"}}
+                columns["turn"] = records["turn"][selected].reshape(shape)[:, 0]
+                columns["particle_id"] = np.arange(1, shape[1] + 1, dtype=np.int64)
+                return columns, {"parameters": parameters, "notices": ["Initial records excluded; samples grouped by particle_id"]}
         from PASS.tool.data_conversion import read_tables
 
         table = next(read_tables(path))
@@ -293,7 +304,7 @@ def _select_array(array, sample_axis, sample_range, object_range):
     return signal, object_ids, sample_axis, (start, end)
 
 
-def _sampling_coordinates(source, coordinate, n_original, bounds, sample_spacing):
+def _sampling_coordinates(source, coordinate, n_original, bounds, sample_spacing, *, allow_tail=False):
     start, end = bounds
     if coordinate is None:
         if isinstance(sample_spacing, (bool, np.bool_)) or not np.isscalar(sample_spacing):
@@ -306,7 +317,8 @@ def _sampling_coordinates(source, coordinate, n_original, bounds, sample_spacing
             raise ValueError("sample_spacing must be a finite positive number")
         return np.arange(start, end, dtype=float) * spacing, spacing
     values = _get_array(source, coordinate)
-    if values.shape != (n_original, ) or values.dtype.kind == "c":
+    shape_matches = values.ndim == 1 and (values.shape[0] >= n_original if allow_tail else values.shape[0] == n_original)
+    if not shape_matches or values.dtype.kind == "c":
         raise ValueError("The sample coordinate must be a real 1-D array matching the original sampling axis")
     coordinates = np.asarray(values[start:end], dtype=np.float64)
     if not np.all(np.isfinite(coordinates)):
@@ -355,6 +367,8 @@ def load_signal(path,
     samples cause an error; select a complete live interval to analyze them.
     NumPy object arrays are never unpickled. HDF5 and NPY selections are sliced
     before copying; compressed NPZ and text tables require loading the member.
+    Single-file PASS ParticleMonitor data always use axis 0 for samples;
+    their particle IDs replace generic object indices in the result.
     """
     path = Path(path)
     kind = _format(path)
@@ -362,9 +376,23 @@ def load_signal(path,
         array = _get_array(source, selection)
         if kind == "hdf5":
             metadata = _hdf5_selection_metadata(array, metadata)
-        signal, object_ids, axis, bounds = _select_array(array, sample_axis, sample_range, object_range)
         parameters = metadata.get("parameters", {})
         monitor = parameters.get("Name") == "PASS Particle Monitor"
+        single_file = monitor and parameters.get("Layout") == "single_file"
+        if monitor and parameters.get("Layout") not in {"single_file", "table"}:
+            raise ValueError("ParticleMonitor requires the current single-file format")
+        if single_file:
+            if array.ndim != 2 or (kind == "hdf5" and array.parent.name != "/"):
+                raise ValueError("Select a root turn-by-turn dataset from single-file ParticleMonitor output")
+            committed = parameters.get("ValidSamples", -1)
+            if (parameters.get("FormatVersion") != 2 or isinstance(committed, (bool, np.bool_)) or not isinstance(committed, (int, np.integer))
+                    or not 0 <= committed <= array.shape[0]):
+                raise ValueError("Unsupported or incomplete single-file ParticleMonitor output")
+            sample_range = _bounds(sample_range, committed, "sample_range")
+            sample_axis = 0
+        signal, object_ids, axis, bounds = _select_array(array, sample_axis, sample_range, object_range)
+        if single_file:
+            object_ids = np.asarray(source["particle_id"][int(object_ids[0]):int(object_ids[-1]) + 1])
         prefix = array.parent.name.rstrip("/") + "/" if kind == "hdf5" and array.parent.name != "/" else ""
         turn_selection = prefix + "turn"
         tag_selection = prefix + "tag"
@@ -373,12 +401,17 @@ def load_signal(path,
                 coordinate = turn_selection
             if alive_selection is None and tag_selection in source:
                 alive_selection = tag_selection
-        coordinates, spacing = _sampling_coordinates(source, coordinate, array.shape[axis], bounds, sample_spacing)
+        coordinates, spacing = _sampling_coordinates(source,
+                                                     coordinate,
+                                                     committed if single_file else array.shape[axis],
+                                                     bounds,
+                                                     sample_spacing,
+                                                     allow_tail=single_file)
         if alive_selection is not None:
             alive = _get_array(source, alive_selection)
             if alive.dtype.kind == "c":
                 raise ValueError("Alive masks must be real, with positive values marking live samples")
-            if alive.shape == array.shape:
+            if alive.shape == array.shape or (single_file and alive.ndim == 2 and alive.shape[0] >= committed and alive.shape[1] == array.shape[1]):
                 live_values = _select_array(alive, sample_axis, sample_range, object_range)[0]
             elif alive.shape == (array.shape[axis], ):
                 live_values = np.asarray(alive[bounds[0]:bounds[1]])
@@ -389,8 +422,9 @@ def load_signal(path,
         if not np.all(np.isfinite(signal)):
             raise ValueError("Selection contains nonfinite signal samples; choose a complete continuous interval (rows are never dropped)")
         if monitor:
-            tags = np.asarray(source[tag_selection][bounds[0]:bounds[1]]) if tag_selection in source else None
-            if tags is not None and np.any(tags != tags[0]):
+            tags = (live_values if alive_selection == tag_selection else _select_array(source[tag_selection], sample_axis, sample_range,
+                                                                                       object_range)[0]) if tag_selection in source else None
+            if tags is not None and np.any(tags != tags[..., :1]):
                 raise ValueError("A Particle Monitor signal must follow one particle tag; group trajectories explicitly")
         metadata.update({
             "source": str(path.resolve()),

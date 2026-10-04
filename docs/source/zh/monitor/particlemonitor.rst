@@ -62,7 +62,7 @@
     - false
     - 逐行追加参考时间、beta 和动量，用于物理时间/能量分析
 
-``output_format``（JSON 键 ``Output format``）默认为 ``hdf5-gzip1``，也可选择 ``hdf5`` 或 ``tfs``。命令名称由序列键给定。
+``output_format``（JSON 键 ``Output format``）默认为不压缩的 ``hdf5``，也可选择 ``hdf5-gzip1`` 或 ``tfs``。命令名称由序列键给定。
 
 粒子选择机制
 ------------
@@ -104,40 +104,41 @@ tag 标识在排序及损失前后保持不变。``max_tag`` 是 tag 上界，�
 输出文件
 --------
 
-每个粒子默认生成一个独立的 HDF5 文件：
+每个监视器、每个束流输出 **一个文件**，包含所选粒子的全部记录圈。
+通过 ``output_format`` 选择 ``hdf5-gzip1``、``hdf5`` 或 ``tfs``，无需选择布局。
 
-- **文件名** ： ``{hms}_beam{bid}_{monitor_name}_s{s:.3f}_tag{tag}.h5``
-- **输出目录** ： ``output_dir_particle``
+* 文件名：``{hms}_beam{bid}_{monitor_name}_s{s:.3f}_particles.h5``；
+  TFS 使用相同文件名主体和 ``.tfs`` 扩展名。
+* 输出目录：``output_dir_particle``。
+* HDF5 根属性或 TFS 文件头包含 ``Name="PASS Particle Monitor"``、
+  ``Layout="single_file"``、``FormatVersion=2``、监测位置、束流编号、
+  粒子 tag 上界和计划记录区间。
 
-元数据（HDF5 属性，文本模式下为 TFS 文件头）：
+PM 读取器要求当前第 2 版格式。输出配置仅包含格式与缓冲设置，不设布局字段。
 
-::
+写入间隔只改变缓冲方式，**仍然每圈采样**。
+例如 ``write_interval_turns=128`` 将 128 个记录圈一起追加到 HDF5 后复用缓冲区。
+TFS 输出在追踪期间使用私有 HDF5 文件，结束清理时导出完整文本表。
+记录结束或正常清理时会补写最后不足一块的数据，并非每 128 圈只保存一次采样。
 
-   @ Name             PASS Particle Monitor
-   @ Time             2026-07-14 00:11:03
-   @ Monitor          pm1
-   @ S                0.0
-   @ BeamId           0
-   @ Tag              1
-   @ NumTurn          1000
-   @ StartTurn        0
-   @ EndTurn          1000
+.. code-block:: python
 
-协作提前停止时，收尾只写出监视器已经采样的圈，
-不输出预分配缓冲区中尚未采样的未来行。
-``NumTurn`` 和 ``EndTurn`` 描述实际保存的行，其中 ``EndTurn`` 仍为不含端点。
-部分输出额外记录 ``RequestedEndTurn``，表示将 ``-1`` 解析并按仿真圈数裁剪后的计划终点。
-例如从第 200 圈开始记录、完成第 499 圈后停止，若原计划终点为 1000，
-则输出 ``NumTurn=300``、``EndTurn=500`` 和 ``RequestedEndTurn=1000``。
-完整区间保持原有元数据，不增加 ``RequestedEndTurn``；尚未开始记录时不写粒子表。
+   monitor = ParticleMonitorItem(
+       s=100.0, max_tag=10000, output_format="hdf5",
+       write_interval_turns=128,
+   )
 
-CPU 与 GPU 使用相同的收尾规则，重复收尾不会重写已经完成的表。
-GPU 在设备到主机拷贝之前先裁切缓冲区，因此传输量与得到的主机数组大小随实际记录圈数增长，
-初始化时的显存预分配仍覆盖计划区间。
-GUI 正常停止会等待完整一圈结束后收尾；强制结束不保证缓冲数据已经写出。
-GUI 停止控件及运行记录见 :doc:`../project_files`。
+``write_interval_turns``（JSON ``Write interval (turns)``）为正的严格整数，
+默认 128，对 HDF5 和 TFS 均有效。不压缩的 HDF5 避免文本格式化和压缩计算，
+并支持选择读取部分数组。Gzip1 能减少磁盘数据量，最快设置取决于存储吞吐量
+与数据的可压缩程度。TFS 适合文本交换，大规模扫描需要承担文本格式化与解析成本。
 
-默认输出列（共 11 列）：
+记录量
+------
+
+历史数据包含以下 11 个量；HDF5 每次采样仅保存一个 ``turn``，
+其他量按采样和粒子保存。TFS 还增加明确的记录类型与粒子 ID 列，见后文。
+
 
 .. list-table::
   :header-rows: 1
@@ -180,9 +181,10 @@ GUI 停止控件及运行记录见 :doc:`../project_files`。
     - m
     - 所属束团的名义槽位 :math:`z_{\mathrm{center}}`
 
-默认不保存参考量，数据列和 headers 中均不写入这三个值。
+默认不保存随圈变化的参考量；注入时参考量始终与历史数据分开记录。
 仅在 ``"Include reference": true`` 时，每行额外保存 ``referenceTime`` （s）、
-``referenceBeta`` （无量纲）、 ``referenceMomentum`` （eV/c 每核子），合计 14 列。
+``referenceBeta`` （无量纲）、 ``referenceMomentum`` （eV/c 每核子），
+历史暂存缓冲因此从 11 列增加至 14 列。
 参考量与同行粒子坐标对应同一次记录事件，此时存活粒子时间为
 
 .. math::
@@ -212,40 +214,109 @@ GUI 停止控件及运行记录见 :doc:`../project_files`。
        "Include reference": true
    }
 
-预分配策略
-----------
+有界缓冲与完成状态
+------------------
 
-``ParticleMonitor`` 在初始化时预分配完整 buffer ：
-
-.. math::
-
-   \mathrm{buffer} \in \mathbb{R}^{\mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}}}
-
-``Include reference`` 默认为 false，此时 :math:`N_{\mathrm{col}}=11`；
-开启后 :math:`N_{\mathrm{col}}=14`。关闭时 CPU 和 GPU 均不为参考列分配缓冲区。
-
-内存开销：
+CPU 批量选择粒子身份；GPU 使用融合采样核，暂存块保留在显存中。
+float64 历史缓冲的大小上限为
 
 .. math::
 
-   M = \mathrm{max\_tag} \times N_{\mathrm{record}} \times N_{\mathrm{col}} \times 8 \;\text{bytes}
+   M = \mathrm{max\_tag}\,\min(N_{\mathrm{record}},N_{\mathrm{write}})\,
+       N_{\mathrm{col}}\,8\;\mathrm{bytes}.
 
-典型场景（ 14 个测试粒子，记录 1000 圈） ：
+默认 :math:`N_{\mathrm{col}}=11`，启用 ``Include reference`` 后为 14。
+初值数据和索引工作区另占与 ``max_tag`` 成正比的空间。
+例如 10,000 个粒子、128 圈一块时，暂存缓冲为 112.64 MB；启用逐圈参考量后
+为 143.36 MB，不随更长运行的总圈数继续增大。GPU 每次写出仅传回待写块。
+写出时还需要该块的临时主机内存。结束时的 TFS 导出每块最多格式化 65,536 行，
+不会把完整历史读入内存。配置的历史缓冲大小不受额外自动上限调整。
 
-.. math::
+``ValidSamples`` 表示已提交的记录圈数，``EndTurn`` 为最近采样圈加一，
+``RequestedEndTurn`` 为计划终点（不含）。
+``Completed`` 只表示监视器覆盖自己的计划区间，不代表 sequence 中后续命令完成。
+收尾仅刷新已有样本，不在其他格点位置补采样。协作提前停止因此只保留已经采样的圈。
+GUI 正常停止会等待整圈完成再收尾；强制终止进程可能丢失尚未写出的块。
+停止操作见 :doc:`../project_files`。
 
-   M = 14 \times 1000 \times 11 \times 8 = 1.232 \;\text{MB}
+``NumTurn`` 保存实际样本数。最终 TFS 文件头包含全部最终计数，
+包括 ``ValidSamples``、``ValidRows``、``EndTurn`` 和 ``Completed``。
+正常提前停止会为已观测区间生成完整 TFS 表；未覆盖计划区间时 ``Completed=false``。
 
-开启参考列后，该示例占用 1.568 MB，比默认模式增加 27.3%。
+写入失败后，收尾不会重试状态不确定的块，也不会重复提交已有样本。
+原始错误继续传播，并拒绝使用该监视器继续追踪。HDF5 读取器仅使用已提交前缀。
+应在完成后或暂停于两次写入之间读取 HDF5；这不是 SWMR 实时读取接口。
+最终 TFS 文件在导出完成后可用。
 
-buffer 使用与束流相同的数组后端（ ``beam.particles.xp`` ）， CPU 用 numpy ， GPU 用 cupy 。预分配的优势：
+HDF5 数组与注入初值
+-------------------
 
-- 历史缓冲区在跟踪前分配，记录过程仍有计算开销；
-- GPU 场景下 buffer 全程驻留 GPU 显存，每圈直接从 GPU 粒子数组写入 GPU buffer ，仅在模拟结束时做一次 D2H 拷贝；
-- 固定内存布局，便于后处理分析。
+文件根目录包含：
 
+* ``particle_id``：(particle)，正整数身份，等于绝对 tag；
+* ``turn``：(sample)，实际采样圈；
+* ``x, px, y, py, z, dp``：(sample, particle)，按粒子精度保存；
+* ``zCenter``：(sample, particle)，float64 名义分组元数据；
+* ``tag, lostTurn, lostPosition``：(sample, particle)，类型依次为 int32、
+  int64、float32；
+* 可选 ``referenceTime, referenceBeta, referenceMomentum``：
+  (sample, particle)，float64。
 
-结果解释与限制
---------------
+完整块写入后才更新 ``ValidSamples``；已提交前缀之后的行不属于有效数据。
 
-尚未出现的粒子对应历史行保持零值，例如尚未注入的粒子；分析时应结合 tag 与损失信息筛选。损失坐标保持冻结，不能使用后续存活束团的参考量解释。完整历史缓冲区大小与 max_tag 和记录圈数的乘积成正比，较大规模运行前应合理设置这两个范围。通用格式及读取方法见 :doc:`table_output`，坐标定义见 :ref:`zh-longitudinal-reference`。
+``initial`` 组为每个所选粒子保存六维坐标，以及 ``particle_id``、``valid``、
+``injection_turn``。这些是 **完成参考转换后的实际注入坐标**，在后续追踪命令前
+捕获，即使 PM 从较晚圈开始记录也如此。注入事件的 ``referenceTime``、
+``referenceBeta`` 和 ``referenceMomentum`` 始终保存，与可选逐圈参考量独立。
+未捕获注入的条目为 ``valid=false``、NaN 坐标和 ``injection_turn=-1``。
+不会用监视器第一条轨迹记录代替未知初值。
+
+TFS 长表
+--------
+
+最终 TFS 文件为标准数值表，固定列顺序为：
+
+::
+
+   record turn particle_id x px y py z dp tag lostTurn lostPosition zCenter
+   referenceTime referenceBeta referenceMomentum
+
+上方分两行显示的是同一个表头。``record=0`` 表示注入记录，``turn`` 为注入圈；
+每个捕获到初值的粒子保存一行；全部初值行位于轨迹行之前。
+``record=1`` 表示轨迹样本，每个记录圈为每个
+所选粒子保存一行。即使丢失后的有符号 ``tag`` 为负数，或尚未出现粒子的 tag
+为零，``particle_id`` 始终保留正的身份编号。
+
+TFS 始终包含参考量列。注入行保留实际参考量；未启用 ``Include reference`` 时，
+轨迹行的参考列为 NaN。浮点文本保留 17 位有效数字。完整文件使用固定数值表结构，
+可直接通过 ``tfs.read(path)`` 或 ``PASS.utils.table_io.read_table(path)`` 读取。
+
+追踪期间，监视器将有界数据块写入私有的 ``.pass_pm_<uuid>.h5``，采用不压缩 HDF5。
+结束清理时先导出到私有 ``.tfs.partial``，关闭后再发布完整最终 TFS，且不覆盖已有目标。
+仅在发布成功后移除本次运行创建的临时 HDF5 与文本文件。导出失败时两者保留，
+错误信息给出可恢复的 HDF5 路径；再次结束清理可由此重试导出。
+未完成的文本不会出现在最终文件名下。标准 TFS 仅包含常规文件头、列名/类型行和数据行，
+不在数据中插入块提交注释。
+
+若发布成功但临时文件清理失败，最终 TFS 仍然有效；再次结束清理仅重试移除临时文件。
+清理范围仅限此监视器在本次运行中创建的临时文件。
+
+读取、检查点与结果解释
+----------------------
+
+DA 分析使用 ``PASS.analysis.read_dynamic_aperture(path)``；指定轨迹可使用
+``PASS.analysis.data_io.load_signal(path, "x", object_range=[0, 10])``。
+这些读取器识别实际圈号、粒子 ID 及初值与轨迹记录。频谱读取会拒绝丢失或缺失样本。
+多维 PM HDF5 文件不能交给普通一维 ``read_table`` 接口。
+DA 与轨迹读取器接受一个当前 PM 文件，文件自身包含捕获的注入初值。
+
+碰撞检查点同时捕获已写出的监视器文件、待写缓冲和注入初值。
+恢复后向新的输出文件写入此前完整历史，不依赖原输出路径。
+除常规有界缓冲外，创建检查点时还需临时容纳已保存文件的字节数据。
+PM 检查点使用 ``PASS-particle-monitor-state-2``，标记保存的文件字节属于
+运行中 HDF5 还是已完成的 TFS。仅支持此当前检查点版本。
+
+尚未出现的粒子 tag 为零，例如尚未注入的粒子。应结合 tag 与损失字段筛选数据；
+冻结的损失坐标不能用后续存活束团的参考量解释。
+研究完整圈存活时，应将监视器放在所有相关效应之后。
+通用格式见 :doc:`table_output`，坐标约定见 :ref:`zh-longitudinal-reference`。

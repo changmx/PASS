@@ -517,6 +517,10 @@ CSV can include a content-checked ``.metadata.json`` sidecar for units, types
 and parameters (including the exact acquisition timestamp). Keep it alongside
 the CSV for a round trip. TFS stores compatible headers plus PASS metadata.
 HDF5 output uses ``/table/<column>``; arbitrary source hierarchy is not recreated.
+Converted ParticleMonitor selections are ordinary tables marked ``Layout="table"``;
+``SourceLayout`` retains the original layout. These selected tables are read
+as generic tables. For spectral analysis of a TFS long-table export, select trajectory
+rows (``record=1``) and one particle ID before conversion.
 Changing selections requires another preview. Source-change checks also include
 the CSV metadata sidecar. Overwriting outputs needs
 confirmation, and the source cannot be overwritten. Multi-file publication is

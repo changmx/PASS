@@ -31,7 +31,7 @@ def table_path(path, output_format="hdf5-gzip1") -> Path:
 
 
 def find_table_files(directory, pattern="*", *, recursive=False) -> list[Path]:
-    """Find table stems, preferring HDF5 when a legacy TFS copy also exists."""
+    """Find table stems, preferring HDF5 when both formats exist."""
     directory = Path(directory)
     found = {}
     for suffix in (".tfs", ".hdf5", ".h5"):
@@ -128,17 +128,27 @@ def append_table(path, frame, headers, *, chunk_rows, output_format="hdf5-gzip1"
 
 
 def read_table(path):
-    """Read a numeric table as a TfsDataFrame, including legacy HDF5 snapshots."""
+    """Read a numeric table as a TfsDataFrame."""
     path = Path(path)
     if path.suffix.lower() not in (".h5", ".hdf5"):
+        if path.suffix.lower() == ".tfs":
+            from PASS.utils.particle_monitor_read import particle_monitor_tfs_metadata, read_particle_monitor_tfs
+
+            if particle_monitor_tfs_metadata(path) is not None:
+                columns, headers = read_particle_monitor_tfs(path)
+                return tfs.TfsDataFrame(pd.DataFrame(columns), headers=headers)
         return tfs.read(path)
     with h5py.File(path, "r") as stream:
+        if stream.attrs.get("Name") == "PASS Particle Monitor" and stream.attrs.get("Layout") != "table":
+            if stream.attrs.get("Layout") != "single_file" or stream.attrs.get("FormatVersion") != 2:
+                raise ValueError("ParticleMonitor requires the current single-file format version 2")
         names = json.loads(stream.attrs["_pass_table_columns"]) if "_pass_table_columns" in stream.attrs else list(stream.keys())
         columns = {}
         for name in names:
             dataset = stream[name]
             if not isinstance(dataset, h5py.Dataset) or dataset.ndim != 1:
-                raise ValueError("HDF5 table columns must be one-dimensional; use a field reader for multidimensional SpaceCharge data")
+                raise ValueError(
+                    "HDF5 table columns must be one-dimensional; use read_particle_trajectories for PM or a field reader for SpaceCharge")
             columns[name] = dataset[:]
         if not columns or len({len(values) for values in columns.values()}) != 1:
             raise ValueError("HDF5 file must contain nonempty column definitions of equal length")

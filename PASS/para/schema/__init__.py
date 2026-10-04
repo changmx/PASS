@@ -19,7 +19,7 @@ Models:
 
 from PASS.para.schema.main import MainConfig, TimingConfig
 from PASS.para.schema.rf import RFComponent, ReferenceClock
-from PASS.para.schema.bunch import BunchConfig, OffsetConfig, InjectionItem
+from PASS.para.schema.bunch import BunchConfig, OffsetConfig, ScanGridConfig, InjectionItem
 from PASS.para.schema.twiss import TwissItem
 from PASS.para.schema.slicer import SlicerItem
 from PASS.para.schema.wake_field import (
@@ -74,14 +74,15 @@ from PASS.para.schema.ibs import IBSConfig, IBSConfiguration, IBSItem, IBSOptics
 from PASS.commands.collision.config import BeamBeamConfig, BeamBeamConfiguration, BeamBeamSourceConfig, FrozenParameters, BeamBeamItem
 
 __all__ = [
-    'MainConfig', 'TimingConfig', 'BunchConfig', 'OffsetConfig', 'InjectionItem', 'TwissItem', 'SlicerItem', 'WakeFieldItem', 'WakeFieldConfig',
-    'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake', 'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake',
-    'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity', 'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid',
-    'FileWake', 'WakeFileConvention', 'ElementBase', 'DriftItem', 'MarkerItem', 'SBendItem', 'QuadrupoleItem', 'SextupoleItem', 'OctupoleItem',
-    'MultipoleItem', 'SolenoidItem', 'ElectronBeamConfig', 'ElectronCoolerItem', 'KickerItem', 'BumpItem', 'ElSeparatorItem', 'ExciterItem',
-    'RFCavityItem', 'RFComponent', 'ReferenceClock', 'ReorganizeBunchItem', 'StatMonitorItem', 'DistMonitorItem', 'PhaseAdvanceMonitorItem',
-    'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig', 'SpaceChargeItem', 'ElementSpaceCharge', 'BeamBeamConfig',
-    'BeamBeamConfiguration', 'BeamBeamSourceConfig', 'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem', 'CrabCavityItem', 'FloatWaisterItem',
-    'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
-    'IBSItem', 'IBSOpticsConfig', 'SlowExtractionItem', 'SlowExtractionMonitorItem'
+    'MainConfig', 'TimingConfig', 'BunchConfig', 'OffsetConfig', 'ScanGridConfig', 'InjectionItem', 'TwissItem', 'SlicerItem', 'WakeFieldItem',
+    'WakeFieldConfig', 'WakeResourceConfig', 'WakeComponentConfig', 'ConstantWake', 'ResonatorWake', 'ResistiveWallWake', 'TabulatedWake',
+    'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity', 'WakeSolverGroup', 'WakeSpatialTerm',
+    'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'ElementBase', 'DriftItem', 'MarkerItem', 'SBendItem', 'QuadrupoleItem',
+    'SextupoleItem', 'OctupoleItem', 'MultipoleItem', 'SolenoidItem', 'ElectronBeamConfig', 'ElectronCoolerItem', 'KickerItem', 'BumpItem',
+    'ElSeparatorItem', 'ExciterItem', 'RFCavityItem', 'RFComponent', 'ReferenceClock', 'ReorganizeBunchItem', 'StatMonitorItem', 'DistMonitorItem',
+    'PhaseAdvanceMonitorItem', 'ParticleMonitorItem', 'Sequence', 'SpaceChargeConfig', 'SpaceChargeResourceConfig', 'SpaceChargeItem',
+    'ElementSpaceCharge', 'BeamBeamConfig', 'BeamBeamConfiguration', 'BeamBeamSourceConfig', 'FrozenParameters', 'BeamBeamItem', 'CrossingAngleItem',
+    'CrabCavityItem', 'FloatWaisterItem', 'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem',
+    'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration', 'IBSItem', 'IBSOpticsConfig', 'SlowExtractionItem',
+    'SlowExtractionMonitorItem'
 ]

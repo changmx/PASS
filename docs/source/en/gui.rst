@@ -15,9 +15,51 @@ launch it with ``python -m PASS.gui`` or ``pass-gui``.
 The configuration page edits the same input used by the tracking engine.
 For project packaging, run snapshots, stopping, and rerunning, see :doc:`project_files`.
 Standalone calculations are available under **Tools**; see :doc:`gui_tools`.
-The separate **Analysis** workspace provides FFT spectra and frequency maps
-from result files or external arrays; see :doc:`spectral_analysis` for the
-shared Python functions, supported files and numerical conventions.
+The **Analysis** workspace uses the same icon-and-text sidebar as **Tools**,
+with three entries: **Spectrum**, **Frequency map analysis** and **Dynamic aperture**.
+FFT spectra and frequency maps accept result files or external arrays;
+see :doc:`spectral_analysis` for the shared Python functions, supported files
+and numerical conventions.
+**Analysis → Dynamic aperture** analyses the observed survival regions of
+scans configured in **Injection**.
+
+Dynamic-aperture workflow
+--------------------------
+
+In the selected **Injection** bunch's **Insert particles** section, enable
+**Generate x–y scan grid** and configure its x/y ranges in mm, their
+point counts and initial dp list. Every dp value receives the complete x/y grid;
+fixed ``px``, ``py`` and ``z`` default to zero. The form displays the total scan
+particle count and loads the saved grid when an existing bunch is selected.
+The summary displays ``Nx × Ny × Ndp = N particles``. Editing the grid does
+not change the configured macro-particle count or injection schedule.
+Apply the bunch edit through the normal Injection editor.
+See :doc:`injection` for coordinate and reference-transform conventions.
+
+Configure ParticleMonitor through its normal sequence editor: choose its
+position and same-position ``Order``, particle tag range, recorded turns, output
+format and write interval. It records selected particles in one file per beam
+and monitor. The write interval controls buffering; every recorded turn is saved.
+Scan generation belongs exclusively to Injection.
+
+On **Analysis → Dynamic aperture**, select one current PM HDF5 or finalized TFS
+file through **PM file**. Its injection records provide the initial coordinates.
+Read and classify the result in a
+cancellable background operation. Select initial dp, survival status or loss-turn
+colours. **Show aperture boundary** is enabled by default and can be switched off
+to display only the sampled points. Plot axes use actual initial
+x/y in mm. The target turn names a sample at the chosen monitor; it does not by
+itself certify a completed revolution. Missing initial coordinates or missing
+final samples are not classified as survival. Export all numeric points as
+CSV/NPZ and figures as PNG/PDF/SVG. Cancelling an export can leave a file that had
+already finished writing; successful completed exports are reported as such.
+
+**Plot mode → Multiple dp: boundary overlay** displays selected initial-dp
+boundaries together with distinct colours and line styles. All groups start
+checked; use the dp list or Select all/Clear to choose a subset. Internal loss
+holes and disconnected stable regions remain visible. Groups without a drawable
+boundary are reported explicitly. Return to the single-dp mode to inspect points
+and loss-turn colours. Image export saves the currently displayed view.
 
 Startup and file drops
 ----------------------
@@ -92,8 +134,26 @@ Other magnets use the same ordering for their supported parameters. RF data,
 Exciter frequency and amplitude modulation, Slicer ranges, and monitor reference
 optics and analysis ranges are grouped by purpose. Field, potential, density,
 and turn-selection outputs share a **Diagnostic output** section. Twiss retains
-its start/end optics and transfer settings sections; Injection retains its
-bunch editor.
+its start/end optics and transfer settings sections.
+
+Injection's bunch editor groups its fields into **Bunch and injection**,
+**Transverse distribution**, **Longitudinal distribution**, **Distribution file**,
+**Injection offsets**, **Insert particles**, and **Distribution output**.
+All sections remain expanded and use the same subtle borders as other forms.
+The injection summary sits beside the particle counts and schedule. Manual
+coordinates, the particle file and the scan grid share **Insert particles**;
+they remain alternative ways of specifying the inserted particles.
+**Distribution output** places the save switch and format together. Turning
+saving off disables the format control while retaining its selected value.
+
+Under **Injection offsets**, ``Momentum Offset dp`` (dimensionless dp/p) and
+``Kinetic Energy Offset (eV)`` display the same offset in two forms. Editing
+either field updates the other using the current particle species and bunch
+reference kinetic energy, with the relativistic energy–momentum relation.
+Changing the reference energy keeps the last edited offset fixed and refreshes
+its converted value. Loading an existing input also fills the converted display.
+Applying the form saves the last edited offset and sets the other JSON field
+to zero, so the offset is specified only once.
 
 Structured array parameters
 ---------------------------

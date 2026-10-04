@@ -47,3 +47,4 @@ PASS（Particle Accelerator Simulation Studio）用于六维粒子跟踪与束�
 
    monitor/index
    spectral_analysis
+   dynamic_aperture

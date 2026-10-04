@@ -75,16 +75,17 @@ class ParticleMonitorItem(BaseModel):
 
     Records particles with 1 <= |tag| <= max_tag every turn (within
     [start_turn, end_turn)) at the monitor's s-position.
-    Each particle's TBT data is saved to a separate HDF5 or TFS file at the
-    end of the simulation.
+    One file stores every selected particle and recorded turn. Runtime writes
+    use a bounded HDF5 buffer; TFS conversion occurs after recording stops.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     order: StrictInt | None = Field(default=None, alias="Order")
     s: float = Field(alias="S (m)")
     command: str = Field(default="ParticleMonitor", alias="Command")
-    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1", alias="Output format")
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5", alias="Output format")
+    write_interval_turns: StrictInt = Field(default=128, ge=1, alias="Write interval (turns)")
     include_reference: bool = Field(
         default=False,
         alias="Include reference",

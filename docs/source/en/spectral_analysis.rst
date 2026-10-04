@@ -140,8 +140,11 @@ Object arrays and pickle payloads are not loaded. For multidimensional arrays,
 choose the sampling axis explicitly. ``sample_range`` and ``object_range``
 use half-open index ranges. An explicit ``object_range`` flattens the leading
 object dimensions in C order; omitting it preserves those dimensions.
-Returned ``object_ids`` are positions in that original array, not physical
-particle identifiers. The caller must ensure that paired X/Y arrays follow
+For ordinary arrays, returned ``object_ids`` are positions in that original
+array, not physical particle identifiers. Native single-file ParticleMonitor
+HDF5/TFS instead returns the stored particle IDs and arranges the selected
+trajectory samples by turn and particle, excluding injection rows.
+The caller must ensure that paired X/Y arrays follow
 the same particle order.
 A supplied coordinate column/dataset must be
 strictly increasing and uniformly spaced; its spacing is used instead of a
@@ -160,13 +163,14 @@ the signed tag for identified ParticleMonitor files, including files converted
 with PASS metadata. It rejects a selection containing lost or nonfinite samples.
 For external files, an explicit alive/status selection can declare positive
 values live. Analyze an intact live interval; do not treat a frozen
-tail as an oscillation. A generic table containing repeated turns for
+tail as an oscillation. Native PM long tables are grouped automatically.
+A generic table containing repeated turns for
 different particles must be organized into separate trajectories first.
 
 GUI workflow
 ------------
 
-1. Open **Analysis**, choose **Spectrum** or **FMA**, then select a data file.
+1. Open **Analysis**, choose **Spectrum** or **Frequency map analysis** in the left sidebar, then select a data file.
 2. Inspect the columns/datasets and choose signal(s), sample axis, coordinate
    column or spacing, and the desired sample/object ranges.
 3. For a spectrum choose basic or refined FFT. Refined settings include the

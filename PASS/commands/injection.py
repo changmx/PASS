@@ -20,9 +20,11 @@ from PASS.core.simulation import Simulation
 from PASS.core.beam import Beam
 from PASS.core.bunch import BunchInfo
 from PASS.core.particle import ParticlePool, convert_array
+from PASS.para.schema.bunch import ScanGridConfig
 from PASS.utils.logger import set_simple_logging, set_normal_logging, center_string
 from PASS.utils.constants import const
 from PASS.utils.helper import get_current_time
+from PASS.utils.injection_io import DistributionBatchReader
 from PASS.utils.table_io import normalize_output_format, read_table, table_path, write_table
 
 logger = logging.getLogger(__name__)
@@ -184,15 +186,18 @@ class Injection(Command):
                 batch_particles = ParticlePool(count, np, dtype=p.dtype)
                 scratch = SimpleNamespace(particles=batch_particles)
                 local = SimpleNamespace(start_idx=0, end_idx=count)
-                if work.is_load_dist:
-                    self._load_dist(work, local, scratch, True)
-                else:
-                    transverse = {"kv": "kv", "gaussian": "gaussian", "uniform": "uniform", "waterbag": "waterbag", "parabolic": "parabolic"}
-                    longitudinal = {"gaussian": "gaussian", "coasting": "coasting", "matchz": "matchZ", "matchdp": "matchDp"}
-                    if work.dist_trans not in transverse or work.dist_longi not in longitudinal:
-                        raise ValueError("Unsupported injection distribution")
-                    getattr(self, "_generate_trans_" + transverse[work.dist_trans] + "_dist")(work, local, scratch, True)
-                    getattr(self, "_generate_longi_" + longitudinal[work.dist_longi] + "_dist")(work, local, scratch, True)
+                complete_override = (batch == 0 and work.num_insert_particles == count and work.insert_source in {"scan_grid", "file"}
+                                     and not work.is_load_dist)
+                if not complete_override:
+                    if work.is_load_dist:
+                        self._load_dist(work, local, scratch, True)
+                    else:
+                        transverse = {"kv": "kv", "gaussian": "gaussian", "uniform": "uniform", "waterbag": "waterbag", "parabolic": "parabolic"}
+                        longitudinal = {"gaussian": "gaussian", "coasting": "coasting", "matchz": "matchZ", "matchdp": "matchDp"}
+                        if work.dist_trans not in transverse or work.dist_longi not in longitudinal:
+                            raise ValueError("Unsupported injection distribution")
+                        getattr(self, "_generate_trans_" + transverse[work.dist_trans] + "_dist")(work, local, scratch, True)
+                        getattr(self, "_generate_longi_" + longitudinal[work.dist_longi] + "_dist")(work, local, scratch, True)
                 self._add_offset(work, local, scratch, True)
                 if batch == 0 and work.is_insert_particles:
                     if work.num_insert_particles > count:
@@ -228,6 +233,10 @@ class Injection(Command):
                 source.Np_injected += count
                 self._completed_batches.add((source.bunch_id, turn))
                 source.Np_inj_curTurn = count
+                # Monitors register on the beam before execution, independently
+                # of command construction order. Capture the actual live frame.
+                for observer in tuple(getattr(beam, "_initial_particle_observers", ())):
+                    observer(destination, turn)
                 did_execute = True
             # A zero-size final event still owns the requested save. Keep it
             # separate from activation so a failed save can also be retried.
@@ -242,16 +251,14 @@ class Injection(Command):
         return did_execute
 
     def _load_dist(self, inj_bunch, bunch_info, beam, use_cpu):
-        path = Path(inj_bunch.load_dist_filepath)
-        df = read_table(path)
         fields = ("x", "px", "y", "py", "z", "dp")
-        values = df[list(fields)].to_numpy(dtype=float)
         start = 0 if inj_bunch.load_dist_mode == "repeat" else inj_bunch.file_start
-        end = start + inj_bunch.Np_inj_curTurn
-        if end > len(values):
-            raise ValueError(f"Distribution {path} needs {end} rows; found {len(values)}")
+        reader = getattr(inj_bunch, "_distribution_reader", None)
+        if reader is None:
+            reader = inj_bunch._distribution_reader = DistributionBatchReader(inj_bunch.load_dist_filepath)
+        values = reader.read_rows(start, inj_bunch.Np_inj_curTurn)
         for col, name in enumerate(fields):
-            getattr(beam.particles, name)[:] = values[start:end, col]
+            getattr(beam.particles, name)[:] = values[:, col]
         beam.particles.dp[:] += inj_bunch.ddp
 
     def _generate_trans_kv_dist(self, inj_bunch: InjectionBunchInfo, bunch_info: BunchInfo, beam: Beam, use_cpu: bool):
@@ -1118,23 +1125,44 @@ class InjectionBunchInfo:
         self.load_dist_mode = kwargs.get("distribution file mode", "sequential")
         if self.load_dist_mode not in {"sequential", "repeat"}:
             raise ValueError("Distribution File Mode must be sequential or repeat")
+        self._distribution_reader = DistributionBatchReader(self.load_dist_filepath) if self.is_load_dist else None
         self.is_save_init_dist = kwargs.get("is save initial distribution", True)
-        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5-gzip1"))
+        self.output_format = normalize_output_format(kwargs.get("output format", "hdf5"))
         self._saved_init_dist = False
 
-        self.num_insert_particles = len(kwargs["insert particle coordinate"])
+        manual = kwargs.get("insert particle coordinate", [])
+        insert_file = kwargs.get("insert particle file")
+        if isinstance(insert_file, str) and not insert_file.strip():
+            insert_file = None
+        grid_input = kwargs.get("scan grid")
+        if sum((bool(manual), bool(insert_file), grid_input is not None)) > 1:
+            raise ValueError("Insert Particle Coordinate, Insert Particle File and Scan Grid are mutually exclusive")
+        first_count = self.planned_count // len(self.inj_turns) + self.planned_count % len(self.inj_turns)
+        self.scan_grid = None
+        self.insert_source = "manual"
+        if grid_input is not None:
+            self.scan_grid = ScanGridConfig.model_validate(grid_input)
+            if self.scan_grid.num_particles > first_count:
+                raise ValueError(f"Scan Grid needs {self.scan_grid.num_particles} particles but the first injection batch contains {first_count}")
+            self.insert_particles = self.scan_grid.generate()["coordinates"]
+            self.insert_source = "scan_grid"
+        elif insert_file:
+            self.insert_particles = read_table(Path(insert_file))[["x", "px", "y", "py", "z", "dp"]].to_numpy(dtype=float)
+            self.insert_source = "file"
+        else:
+            self.insert_particles = np.asarray(manual, dtype=float) if len(manual) else np.empty((0, 6), dtype=float)
+        self.num_insert_particles = len(self.insert_particles)
         self.is_insert_particles = self.num_insert_particles > 0
-        self.insert_particles = []
-        if self.is_insert_particles:
-            for i_insert in range(self.num_insert_particles):
-                x_tmp = kwargs["insert particle coordinate"][i_insert][0]
-                px_tmp = kwargs["insert particle coordinate"][i_insert][1]
-                y_tmp = kwargs["insert particle coordinate"][i_insert][2]
-                py_tmp = kwargs["insert particle coordinate"][i_insert][3]
-                z_tmp = kwargs["insert particle coordinate"][i_insert][4]
-                dp_tmp = kwargs["insert particle coordinate"][i_insert][5]
-
-                self.insert_particles.append([x_tmp, px_tmp, y_tmp, py_tmp, z_tmp, dp_tmp])
+        if self.insert_source == "file" and not self.num_insert_particles:
+            raise ValueError("Insert Particle File must contain at least one coordinate row")
+        if self.num_insert_particles > first_count:
+            raise ValueError(f"Explicit particles exceed the first injection batch of {first_count}")
+        if self.insert_particles.ndim != 2 or self.insert_particles.shape[1] != 6 or not np.all(np.isfinite(self.insert_particles)):
+            raise ValueError("Explicit particles require six finite coordinates per row: x, px, y, py, z, dp")
+        if self.num_insert_particles:
+            values = self.insert_particles
+            if np.any(1.0 + values[:, 5] <= np.hypot(values[:, 1], values[:, 3])):
+                raise ValueError("Explicit particles require dp > -1 and positive real longitudinal momentum")
 
         kwargs_offset_x = kwargs["offset x"]
         self.is_offset_x = kwargs_offset_x.get("is offset", False)
@@ -1181,9 +1209,11 @@ class InjectionBunchInfo:
         logger.info(f"\tLoad distribution from file: {self.is_load_dist} -> path='{self.load_dist_filepath}'")
         logger.info(f"\tSave initial distribution: {self.is_save_init_dist}")
         logger.info(f"\tInsert particles: num={self.num_insert_particles}, is_insert={self.is_insert_particles}")
-        if self.is_insert_particles and self.insert_particles:
-            for insert_p in self.insert_particles:
+        if self.is_insert_particles:
+            for insert_p in self.insert_particles[:8]:
                 logger.info(f"\t\t{insert_p}")
+            if self.num_insert_particles > 8:
+                logger.info(f"\t\t... {self.num_insert_particles - 8} additional explicit particles ({self.insert_source})")
 
         if self.is_offset_x:
             logger.info(f"\tOffset x: enabled, from_file={self.is_offset_x_fromfile}")

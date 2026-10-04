@@ -12,7 +12,7 @@ from typing import Annotated, get_args, get_origin
 
 from pydantic import BaseModel, Field, StrictInt, TypeAdapter, ValidationError
 
-from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig
+from PASS.para.schema.bunch import BunchConfig, InjectionItem, OffsetConfig, ScanGridConfig
 from PASS.para.schema.elements import ELEMENT_REGISTRY, ElectronBeamConfig, ElectronCoolerItem
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
@@ -432,9 +432,23 @@ class Validator:
                 else:
                     if row[5] <= -1 or 1 + row[5] <= math.hypot(row[1], row[3]):
                         self.add((*p, "Insert Particle Coordinate", i), "injection.momentum", "要求 dp > -1 且 px² + py² < (1+dp)²，以保证纵向动量为实数")
+            explicit_count = None
+            grid_input = b.get("Scan Grid")
+            if grid_input is not None:
+                try:
+                    grid = ScanGridConfig.model_validate(grid_input)
+                    explicit_count = grid.num_particles
+                except (ValueError, TypeError):
+                    pass  # The nested schema reports malformed grids.
+            insert_file = b.get("Insert Particle File")
+            if insert_file:
+                explicit_count = self.file(b, "Insert Particle File", p, "distribution", minimum_rows=1, maximum_rows=first)
+            all_explicit = n > 0 and explicit_count == n
+            if insert_file and not self.check_files:
+                all_explicit = True  # File-dependent completeness is checked at load time.
             self.choice(b, "Transverse dist", {"gaussian", "kv", "uniform", "waterbag", "parabolic"}, p)
             self.choice(b, "Longitudinal dist", {"gaussian", "coasting", "matchz", "matchdp"}, p)
-            if b.get("Transverse dist") == "gaussian" and not b.get("Is Load Distribution from File") and n:
+            if b.get("Transverse dist") == "gaussian" and not b.get("Is Load Distribution from File") and n and not all_explicit:
                 if any(b.get(f"Emittance {axis} (m'rad)", 0) <= 0 for axis in "xy"):
                     self.add(p, "injection.gaussian", "Gaussian generation requires positive Emittance x/y (m'rad); Gaussian 发射度必须大于 0")
             ddp, dde = b.get("Momentum Offset dp", 0), b.get("Kinetic Energy Offset (eV)", 0)
@@ -471,9 +485,9 @@ class Validator:
                 self.add(path, "injection.harmonic_ids", f"Harmonic ID 必须不重复并覆盖 [0, {harmonic})")
         return v
 
-    def file(self, values, key, path, kind, *, active=True, minimum_rows=0):
+    def file(self, values, key, path, kind, *, active=True, minimum_rows=0, maximum_rows=None):
         from .files import check_table
-        return check_table(self, values.get(key), (*path, key), kind, active, minimum_rows)
+        return check_table(self, values.get(key), (*path, key), kind, active, minimum_rows, maximum_rows)
 
     def command(self, name, raw):
         p = ("Sequence", name)

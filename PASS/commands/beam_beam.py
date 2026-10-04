@@ -501,7 +501,7 @@ def _capture_command_state(command):
         if command._output_failed or command._gpu_pending or any(command._pending_rows.values()) or command._tfs_dirty:
             raise ValueError("Flush StatMonitor output successfully before capturing a collision checkpoint")
     if kind == "ParticleMonitor":
-        return {"buffer": _host_checkpoint_array(command.buffer), "recorded_end": command._recorded_end}
+        return command.state_dict()
     if kind == "PhaseAdvanceMonitor":
         return {
             "written": [window.written for window in command.windows],
@@ -519,9 +519,9 @@ def _capture_command_state(command):
 def capture_collision_state(sim, sequences):
     """Capture an owned Python checkpoint at a common completed-turn boundary.
 
-    No files or GPU caches are serialized. All injection must have completed;
-    monitor output buffers must have been flushed by normal finalization.
-    Particle and tune-monitor accumulation needed for continuation is retained.
+    ParticleMonitor includes its committed output snapshot and pending buffer.
+    GPU caches are not serialized. All injection must have completed; statistic
+    monitor buffers must have been flushed by normal finalization.
     """
     coordinator = get_collision_coordinator(sim)
     collision = coordinator.state_dict()
@@ -657,15 +657,7 @@ def _stage_command_state(command, data, next_turn, xp):
             "_checkpoint_injection_sources": copy.deepcopy(data["sources"])
         }
     if kind == "ParticleMonitor":
-        buffer = np.asarray(data["buffer"])
-        recorded_end = data["recorded_end"]
-        if buffer.shape != command.buffer.shape or buffer.dtype != command.buffer.dtype:
-            raise ValueError("ParticleMonitor checkpoint buffer does not match")
-        expected_end = (max(command.start_turn, min(next_turn, command.end_turn))
-                        if command.max_tag >= 1 and command.num_record_turn > 0 else command.start_turn)
-        if type(recorded_end) is not int or recorded_end != expected_end:
-            raise ValueError("ParticleMonitor checkpoint has invalid recorded turns")
-        return {"buffer": xp.asarray(buffer.copy()), "_recorded_end": recorded_end, "_tables_written": False}
+        return command.stage_checkpoint(data, next_turn, xp)
     if kind == "PhaseAdvanceMonitor":
         from PASS.commands.monitor.phase_advance import _WindowRuntime
         if len(data["written"]) != len(command.windows) or any(type(value) is not bool for value in data["written"]):

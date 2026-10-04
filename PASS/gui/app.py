@@ -136,6 +136,7 @@ TIMING_MODE_OPTIONS = ("off", "turn", "command", "synchronized-command")
 _SCHEMA_HELP: dict[str, str] | None = None
 
 FIELD_HELP = {
+    "Write interval (turns)": "每圈采样，累计这些圈数后一次写入同一文件；不减少记录圈数。结束时写入剩余缓存。",
     "Coverage check": "跟踪前检查 SC 权重和区间：warn 警告，error 停止，off 不检查。",
     "Coverage mode": "full-ring 要求覆盖全环；partial 允许仅覆盖部分区段。",
     "Expected SC length (m)": "partial 模式可选的每圈 SC 总作用长度；full-ring 模式留空并使用环长。",
@@ -303,6 +304,7 @@ class ConfigPage(QWidget):
         self._pending_command: str | None = None
         self._form_fields: dict[str, QWidget] = {}
         self._bunch_fields: dict[tuple[str, str | None], QWidget] = {}
+        self._injection_offset_source: str | None = None
         self._name_field: QLineEdit | None = None
         self._bunch_selector: QComboBox | None = None
         self._active_bunch_key: str | None = None
@@ -982,7 +984,8 @@ class ConfigPage(QWidget):
             "StatMonitor": (StatMonitorItem, {}),
             "DistMonitor": (DistMonitorItem, {}),
             "ParticleMonitor": (ParticleMonitorItem, {
-                "Max tag": 1
+                "Max tag": 1,
+                "Output format": "hdf5",
             }),
             "PhaseAdvanceMonitor": (
                 PhaseAdvanceMonitorItem,
@@ -3075,39 +3078,60 @@ class ConfigPage(QWidget):
         actions_row.addWidget(delete)
         bunch_layout.addLayout(actions_row)
         if self._active_bunch_key and isinstance(target.get(self._active_bunch_key), dict):
-            fields = QFormLayout()
-            fields.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
-            fields.setRowWrapPolicy(QFormLayout.WrapLongRows)
-            fields.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-            fields.setHorizontalSpacing(8)
-            fields.setVerticalSpacing(6)
             bunch = deepcopy(defaults["bunch0"])
             bunch.update(target[self._active_bunch_key])
             for offset in ("Offset x", "Offset y"):
                 if isinstance(bunch.get(offset), dict):
                     bunch[offset] = defaults["bunch0"][offset] | bunch[offset]
-            for key, value in bunch.items():
-                self._field_model = BunchConfig
-                if key in ("Offset x", "Offset y") and isinstance(value, dict):
-                    self._field_model = OffsetConfig
-                    offset_box = QGroupBox(str(key))
-                    offset_layout = QFormLayout(offset_box)
-                    offset_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
-                    offset_layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
-                    offset_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-                    for child_key, child_value in value.items():
-                        field = self._make_field(str(child_key), child_value)
-                        self._bunch_fields[(str(key), str(child_key))] = field
-                        self._add_property_row(offset_layout, self._field_label(str(child_key), child_value), field)
-                    fields.addRow(offset_box)
-                    continue
-                field = self._make_field(str(key), value)
-                self._bunch_fields[(str(key), None)] = field
-                self._add_property_row(fields, self._field_label(str(key), value), field)
-            bunch_layout.addLayout(fields)
-            self._injection_summary = QLabel()
-            self._injection_summary.setWordWrap(True)
-            bunch_layout.addWidget(self._injection_summary)
+            for section, keys in self._injection_bunch_sections(bunch):
+                section_box = QGroupBox(section)
+                section_box.setObjectName("propertySection")
+                section_layout = QVBoxLayout(section_box)
+                section_layout.setContentsMargins(8, 8, 8, 8)
+                fields = QFormLayout()
+                fields.setContentsMargins(0, 0, 0, 0)
+                fields.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+                fields.setRowWrapPolicy(QFormLayout.WrapLongRows)
+                fields.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
+                fields.setHorizontalSpacing(8)
+                fields.setVerticalSpacing(6)
+                section_layout.addLayout(fields)
+                for key in keys:
+                    value = bunch[key]
+                    self._field_model = BunchConfig
+                    if key in ("Offset x", "Offset y") and isinstance(value, dict):
+                        self._field_model = OffsetConfig
+                        offset_box = QGroupBox(str(key))
+                        offset_layout = QFormLayout(offset_box)
+                        offset_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+                        offset_layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+                        offset_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
+                        for child_key, child_value in value.items():
+                            field = self._make_field(str(child_key), child_value)
+                            self._bunch_fields[(str(key), str(child_key))] = field
+                            self._add_property_row(offset_layout, self._field_label(str(child_key), child_value), field)
+                        fields.addRow(offset_box)
+                        continue
+                    field = self._make_field(str(key), value)
+                    self._bunch_fields[(str(key), None)] = field
+                    self._add_property_row(fields, self._field_label(str(key), value), field)
+                if section == "束团与注入":
+                    self._injection_summary = QLabel()
+                    self._injection_summary.setWordWrap(True)
+                    section_layout.addWidget(self._injection_summary)
+                elif section == "注入偏移":
+                    self._injection_offset_hint = QLabel()
+                    self._injection_offset_hint.setWordWrap(True)
+                    section_layout.addWidget(self._injection_offset_hint)
+                bunch_layout.addWidget(section_box)
+            offset_keys = ("Momentum Offset dp", "Kinetic Energy Offset (eV)")
+            self._infer_injection_offset_source()
+            for key in offset_keys:
+                field = self._bunch_fields[(key, None)]
+                field.setToolTip("动量与动能偏移自动换算；修改任一项，另一项同步显示。")
+                field.textChanged.connect(lambda _text, source=key: self._sync_injection_offsets(source))
+            self._bunch_fields[("Kinetic Energy per Nucleon (eV/u)", None)].textChanged.connect(lambda: self._sync_injection_offsets())
+            self._sync_injection_offsets()
             for field in self._bunch_fields.values():
                 if isinstance(field, QLineEdit):
                     field.textChanged.connect(self._update_injection_summary)
@@ -3118,6 +3142,27 @@ class ConfigPage(QWidget):
         self.form_apply.setEnabled(True)
         self.insert_button.setVisible(pending)
         self._update_action_visibility(pending=pending)
+
+    @staticmethod
+    def _injection_bunch_sections(values: dict) -> list[tuple[str, list[str]]]:
+        """Group bunch controls without changing their serialized field names."""
+        definitions = (
+            ("束团与注入", ("Kinetic Energy per Nucleon (eV/u)", "Number of Real Particles", "Number of Macro Particles", "Harmonic ID of this bunch",
+                       "Reference arrival time (s)", "Total Injection Turns", "Injection Interval")),
+            ("横向分布", ("Transverse dist", "Alpha x", "Beta x (m)", "Emittance x (m'rad)", "Alpha y", "Beta y (m)", "Emittance y (m'rad)", "Dx (m)",
+                      "Dpx")),
+            ("纵向分布", ("Longitudinal dist", "Sigma z (m)", "Sigma dp/p", "RF Voltage (V)", "RF Phase (rad)", "RF S Position Refer to Inj. Point (m)")),
+            ("分布文件", ("Is Load Distribution from File", "Distribution File Path", "Distribution File Mode")),
+            ("注入偏移", ("Momentum Offset dp", "Kinetic Energy Offset (eV)", "Offset x", "Offset y")),
+            ("插入粒子", ("Insert Particle Coordinate", "Insert Particle File", "Scan Grid")),
+            ("分布输出", ("Is Save Initial Distribution", "Output format")),
+        )
+        sections = [(title, [key for key in keys if key in values]) for title, keys in definitions]
+        grouped = {key for _, keys in sections for key in keys}
+        remaining = [key for key in values if key not in grouped]
+        if remaining:
+            sections.append(("其他参数", remaining))
+        return [(title, keys) for title, keys in sections if keys]
 
     @staticmethod
     def _injection_keys(target: dict) -> list[str]:
@@ -3376,8 +3421,80 @@ class ConfigPage(QWidget):
                 devices.setEnabled(backend.currentText() == "gpu")
                 backend.currentTextChanged.connect(lambda text: devices.setEnabled(text == "gpu"))
 
+    def _infer_injection_offset_source(self) -> None:
+        offset_keys = ("Momentum Offset dp", "Kinetic Energy Offset (eV)")
+        active_offsets = []
+        for key in offset_keys:
+            try:
+                if float(self._bunch_fields[(key, None)].text()) == 0.0:
+                    continue
+            except ValueError:
+                pass  # Preserve incomplete input as the editable source.
+            active_offsets.append(key)
+        self._injection_offset_source = active_offsets[0] if len(active_offsets) == 1 else offset_keys[0] if not active_offsets else None
+
+    def _convert_injection_offset(self) -> tuple[str, float]:
+        """Convert the edited offset with the same per-nucleon convention as BunchInfo."""
+        from PASS.utils.constants import const
+
+        source = self._injection_offset_source
+        energy = float(self._bunch_fields[("Kinetic Energy per Nucleon (eV/u)", None)].text())
+        value = float(self._bunch_fields[(source, None)].text())
+        if not math.isfinite(energy) or energy <= 0 or not math.isfinite(value):
+            raise ValueError("参考动能必须为正的有限值，偏移必须为有限值。")
+        # Match tracking masses, rather than the independent Tools mass catalog.
+        protons, neutrons = self.data.get("Number of Protons", 1), self.data.get("Number of Neutrons", 0)
+        mass = const.m_e_eV if protons == neutrons == 0 else const.m_p_eV if (protons, neutrons) == (1, 0) else const.m_u_eV
+        reference_energy = energy + mass
+        reference_momentum_squared = energy * (energy + 2.0 * mass)
+        if not math.isfinite(reference_momentum_squared) or reference_momentum_squared <= 0:
+            raise ValueError("参考动量超出有限数值范围。")
+        reference_momentum = math.sqrt(reference_momentum_squared)
+        if source == "Momentum Offset dp":
+            if value <= -1.0:
+                raise ValueError("动量偏移必须 > -1。")
+            particle_energy = math.hypot(mass, reference_momentum * (1.0 + value))
+            # Rationalized differences retain precision for small offsets.
+            converted = reference_momentum_squared * value * (2.0 + value) / (particle_energy + reference_energy)
+            other = "Kinetic Energy Offset (eV)"
+        else:
+            particle_kinetic_energy = energy + value
+            if particle_kinetic_energy <= 0:
+                raise ValueError("偏移后的动能必须大于 0。")
+            particle_momentum = math.sqrt(particle_kinetic_energy * (particle_kinetic_energy + 2.0 * mass))
+            if not math.isfinite(particle_momentum):
+                raise ValueError("偏移后的动量超出有限数值范围。")
+            converted = value * (2.0 * reference_energy + value) / (reference_momentum * (particle_momentum + reference_momentum))
+            other = "Momentum Offset dp"
+        if not math.isfinite(converted):
+            raise ValueError("偏移换算结果超出有限数值范围。")
+        return other, converted
+
+    def _sync_injection_offsets(self, source: str | None = None) -> None:
+        if source is not None:
+            self._injection_offset_source = source
+        source = self._injection_offset_source
+        if source is None:
+            self._injection_offset_hint.setText("已载入两个非零偏移；请修改任一项，按该项重新换算。")
+            return
+        other = "Kinetic Energy Offset (eV)" if source == "Momentum Offset dp" else "Momentum Offset dp"
+        try:
+            other, value = self._convert_injection_offset()
+            text = format(value, ".16g")
+            hint = "动量和动能偏移联动；修改任一项，另一项同步更新。"
+        except (ValueError, OverflowError, ZeroDivisionError):
+            text = ""
+            hint = "暂无法换算：请填写有效的参考动能和偏移；dp > -1，偏移后的动能 > 0。"
+        field = self._bunch_fields[(other, None)]
+        with QSignalBlocker(field):
+            field.setText(text)
+        self._injection_offset_hint.setText(hint)
+
     def _update_injection_summary(self):
         fields = self._bunch_fields
+        save = fields.get(("Is Save Initial Distribution", None))
+        if save is not None:
+            fields[("Output format", None)].setEnabled(save.isChecked())
         load = fields.get(("Is Load Distribution from File", None))
         if load is not None:
             for key in ("Distribution File Path", "Distribution File Mode"):
@@ -3491,6 +3608,11 @@ class ConfigPage(QWidget):
             "Save turns": "保存圈数",
             "Turn ranges": "分析圈数范围",
             "Insert Particle Coordinate": "手动插入粒子",
+            "Insert Particle File": "指定粒子文件",
+            "Scan Grid": "扫描粒子",
+            "Is Save Initial Distribution": "保存注入分布",
+            "Output format": "输出格式",
+            "Write interval (turns)": "每次写入圈数",
             "Dp aperture": "动量接受范围",
             "Device Id": "GPU 设备列表",
             "Explicit": "显式切片范围",
@@ -3593,6 +3715,9 @@ class ConfigPage(QWidget):
         elif (getattr(self, "_field_context", {}).get("Command") in {"CrossingAngle", "CrabCavity", "FloatWaister", "ElectronCooler"}
               and spec is not None and get_origin(bare(spec.annotation)) is Literal):
             structured = make_editor(spec.annotation, value, key, self.base_dir)
+        elif key == "Scan Grid":
+            from PASS.gui.scan_grid import ScanGridEditor
+            structured = ScanGridEditor(value)
         elif key in {"Reference clock", "Groups", "Electron beam"} and spec is not None:
             structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif key == "Save turns":
@@ -3919,6 +4044,10 @@ class ConfigPage(QWidget):
             target = after
             for part in path[:-1]:
                 target = target.setdefault(part, {})
+            if (len(path) == 2 and path[0] == self._active_bunch_key and self._injection_offset_source is not None
+                    and path[1] in {"Momentum Offset dp", "Kinetic Energy Offset (eV)"} and path[1] != self._injection_offset_source):
+                target[path[-1]] = 0.0
+                continue
             target[path[-1]] = draft_value(field, self._read_field_value, path[-1], target.get(path[-1]))
         if self._name_field is not None and selected and selected[0] == "Sequence":
             before["名称"] = selected[1]
@@ -3975,6 +4104,7 @@ class ConfigPage(QWidget):
             "configuration_renames": deepcopy(self._configuration_renames),
             "pending_command": self._pending_command,
             "active_bunch": self._active_bunch_key,
+            "injection_offset_source": self._injection_offset_source,
             "active_space_charge": self._active_space_charge_configuration,
             "form_title": self.form_title.text(),
             "editor_text": self.editor.toPlainText(),
@@ -4046,7 +4176,17 @@ class ConfigPage(QWidget):
         for item in state.get("fields", []):
             field = fields.get(tuple(item["path"]))
             if field is not None:
-                restore_field(field, item["state"])
+                if item["path"][-1] in {"Momentum Offset dp", "Kinetic Energy Offset (eV)", "Kinetic Energy per Nucleon (eV/u)"}:
+                    with QSignalBlocker(field):
+                        restore_field(field, item["state"])
+                else:
+                    restore_field(field, item["state"])
+        if self._bunch_fields:
+            if "injection_offset_source" in state:
+                self._injection_offset_source = state["injection_offset_source"]
+            else:
+                self._infer_injection_offset_source()
+            self._sync_injection_offsets()
         for name, entries in state.get("auxiliary", {}).items():
             fields = getattr(self, name, {})
             for key, value in entries.items():
@@ -4182,8 +4322,15 @@ class ConfigPage(QWidget):
         if not isinstance(original, dict):
             return
         bunch = deepcopy(original)
+        derived_offset = None
+        if self._injection_offset_source is not None:
+            derived_offset, _ = self._convert_injection_offset()
         for (key, child_key), field in self._bunch_fields.items():
             if child_key is None:
+                if key == derived_offset:
+                    # The linked value is display-only; JSON offsets remain mutually exclusive.
+                    bunch[key] = 0.0
+                    continue
                 bunch[key] = self._read_field_value(key, field, bunch.get(key))
                 continue
             nested = bunch.setdefault(key, {})
@@ -4389,6 +4536,7 @@ class ConfigPage(QWidget):
         self.form_command.hide()
         self.form_command.clear()
         self._bunch_fields = {}
+        self._injection_offset_source = None
         self._name_field = None
         self._bunch_selector = None
         self._active_bunch_key = None
@@ -4563,7 +4711,7 @@ class MainWindow(DocumentWindowMixin, QMainWindow):
         self.preload_status = QLabel("正在准备界面…")
         self.statusBar().addPermanentWidget(self.preload_status)
         self.tools.preparation_changed.connect(self.preload_status.setText)
-        self.tools.pause_preload = lambda: (self.run is not None and self.run.busy) or self._document_busy or self.plot.busy or self.analysis.busy
+        self.tools.pause_preload = lambda: ((self.run is not None and self.run.busy) or self._document_busy or self.plot.busy or self.analysis.busy)
         self.tools.preloader.configuration_ready.connect(self._initialize_configuration)
         self.tools.preloader.finished.connect(self._configuration_finished)
         self.tools.preloader.finished.connect(self._finish_preload_close)

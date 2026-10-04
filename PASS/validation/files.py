@@ -7,6 +7,7 @@ import numpy as np
 INPUT_FILE_FIELDS = frozenset({
     "waveform file",
     "distribution file path",
+    "insert particle file",
     "file path",
     "file_path",
     "program file",
@@ -77,7 +78,7 @@ def check_wake_files(check, values, path):
                 check.add(location, "wake.file", f"Wake file validation failed: {exc}", not values.get("Is enabled", True))
 
 
-def check_table(check, value, path, kind, active, minimum_rows):
+def check_table(check, value, path, kind, active, minimum_rows, maximum_rows=None):
     if value is None or value == "":
         if active:
             check.add(path, "file.required", "此功能已启用，必须选择输入文件")
@@ -159,6 +160,8 @@ def check_table(check, value, path, kind, active, minimum_rows):
         if kind == "distribution":
             if len(frame) < minimum_rows:
                 check.add(path, "distribution.rows", f"该 bunch 在粒子池中的索引要求文件至少 {minimum_rows} 行，实际 {len(frame)} 行；不足部分不会正确初始化", not active)
+            if maximum_rows is not None and len(frame) > maximum_rows:
+                check.add(path, "injection.insert_count", f"显式坐标文件含 {len(frame)} 行，不能超过首次注入的宏粒子数 {maximum_rows}", not active)
             dp, px, py = arrays["dp"], arrays["px"], arrays["py"]
             with np.errstate(over="ignore", invalid="ignore"):
                 bad = np.flatnonzero((dp <= -1) | ((1 + dp)**2 <= px**2 + py**2))
@@ -172,6 +175,7 @@ def check_table(check, value, path, kind, active, minimum_rows):
                 check.add(path, "offset.turn", "偏移文件 turn 列必须为整数", not active)
             if time[0] > 0:
                 check.add(path, "offset.coverage", "偏移表从 0 之后开始；最初阶段将使用第一行", True)
+        return len(frame)
     except (OSError, ValueError, OverflowError) as exc:
         check.add(path, "file.read", str(exc), not active)
 

@@ -1,4 +1,4 @@
-"""Injection parameters (BunchConfig, OffsetConfig, InjectionItem).
+"""Injection parameters and explicit Cartesian scan coordinates.
 
 Consumed by:
     - PASS.commands.injection.InjectionBunchInfo  (bunch0/bunch1/...)
@@ -8,9 +8,10 @@ The injection JSON node is nested inside Sequence as:
     "Injection": {"S (m)": 0.0, "Command": "Injection", "bunch0": {...}}
 """
 
+import math
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
 
 class OffsetConfig(BaseModel):
@@ -42,6 +43,59 @@ class OffsetConfig(BaseModel):
         default=0.0,
         alias="Offset Momentum (rad)",
     )
+
+
+class ScanGridConfig(BaseModel):
+    """A Cartesian x/y grid repeated for every initial momentum deviation."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", allow_inf_nan=False)
+
+    x_range: list[float] = Field(alias="X range (m)", min_length=2, max_length=2)
+    y_range: list[float] = Field(alias="Y range (m)", min_length=2, max_length=2)
+    num_x: StrictInt = Field(alias="Number of x points", ge=1)
+    num_y: StrictInt = Field(alias="Number of y points", ge=1)
+    dp_values: list[float] = Field(alias="dp values", min_length=1)
+    px: float = Field(default=0.0, alias="px")
+    py: float = Field(default=0.0, alias="py")
+    z: float = Field(default=0.0, alias="z (m)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_fields(cls, values):
+        if not isinstance(values, dict):
+            return values
+        aliases = {(field.alias or name).casefold(): name for name, field in cls.model_fields.items()}
+        return {aliases.get(str(key).casefold(), key): value for key, value in values.items()}
+
+    @model_validator(mode="after")
+    def _validate_grid(self):
+        for name, bounds, count in (("x", self.x_range, self.num_x), ("y", self.y_range, self.num_y)):
+            if count == 1 and bounds[0] != bounds[1]:
+                raise ValueError(f"A one-point {name} range must have identical endpoints")
+            if count > 1 and bounds[0] >= bounds[1]:
+                raise ValueError(f"A multi-point {name} range must have increasing endpoints")
+        if len(set(self.dp_values)) != len(self.dp_values):
+            raise ValueError("dp values must not contain duplicates")
+        if any(1.0 + dp <= math.hypot(self.px, self.py) for dp in self.dp_values):
+            raise ValueError("Scan momenta require dp > -1 and positive real longitudinal momentum")
+        if self.num_particles > 2147483647:
+            raise ValueError("Scan grid exceeds the int32 particle identity capacity")
+        return self
+
+    @property
+    def num_particles(self):
+        return self.num_x * self.num_y * len(self.dp_values)
+
+    def generate(self):
+        import numpy as np
+        from PASS.utils.scan_grid import generate_scan_grid
+
+        return generate_scan_grid(np.linspace(*self.x_range, self.num_x),
+                                  np.linspace(*self.y_range, self.num_y),
+                                  self.dp_values,
+                                  px=self.px,
+                                  py=self.py,
+                                  z=self.z)
 
 
 class BunchConfig(BaseModel):
@@ -167,7 +221,7 @@ class BunchConfig(BaseModel):
         default=False,
         alias="Is Save Initial Distribution",
     )
-    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5-gzip1",
+    output_format: Literal["tfs", "hdf5", "hdf5-gzip1"] = Field(default="hdf5",
                                                                 alias="Output format",
                                                                 description="Initial distribution output format")
     insert_particle: list[list[float]] = Field(
@@ -175,6 +229,26 @@ class BunchConfig(BaseModel):
         alias="Insert Particle Coordinate",
         description="Manual particle coordinates [[x,px,y,py,z,dp], ...]",
     )
+    insert_particle_file: str | None = Field(default=None,
+                                             alias="Insert Particle File",
+                                             description="Six-column TFS/HDF5 coordinates replacing first-batch rows after injection offsets")
+    scan_grid: ScanGridConfig | None = Field(default=None,
+                                             alias="Scan Grid",
+                                             description="Cartesian coordinates replacing first-batch rows after injection offsets")
+
+    @model_validator(mode="after")
+    def _validate_insert_source(self):
+        if self.insert_particle_file is not None and not self.insert_particle_file.strip():
+            self.insert_particle_file = None
+        selected = bool(self.insert_particle) + bool(self.insert_particle_file) + (self.scan_grid is not None)
+        if selected > 1:
+            raise ValueError("Insert Particle Coordinate, Insert Particle File and Scan Grid are mutually exclusive")
+        if self.scan_grid is not None:
+            events = (self.injection_turns + self.injection_interval - 1) // self.injection_interval
+            first_count = self.num_macro_particles // events + self.num_macro_particles % events
+            if self.scan_grid.num_particles > first_count:
+                raise ValueError(f"Scan Grid needs {self.scan_grid.num_particles} particles but the first injection batch contains {first_count}")
+        return self
 
 
 class InjectionItem(BaseModel):

@@ -280,6 +280,18 @@ Distribution parameters
     - —
     - ``[]``
     - Replace the first rows of the first batch after offsets are applied, using ``[[x, px, y, py, z, dp], ...]``; these rows are included in the planned particle count
+  * - ``insert_particle_file``
+    - ``Insert Particle File``
+    - str or null
+    - —
+    - ``null``
+    - TFS/HDF5 table with ``x, px, y, py, z, dp`` columns, replacing first-batch rows after offsets
+  * - ``scan_grid``
+    - ``Scan Grid``
+    - object or null
+    - —
+    - ``null``
+    - Cartesian x/y grid for every initial dp value; replaces first-batch rows after offsets
 
 
 Offset parameters
@@ -355,7 +367,7 @@ Additional bunch options
    * - ``output_format``
      - ``Output format``
      - ``str``
-     - ``'hdf5-gzip1'``
+     - ``'hdf5'``
      - Initial-distribution table format: hdf5-gzip1, hdf5 or tfs.
    * - ``offset_x``
      - ``Offset x``
@@ -588,17 +600,67 @@ injection turn or incoming reference passage time, according to its ``turn`` or
 or ``y (m)`` / ``py (rad)``. Nodes must increase strictly, values must be finite,
 and the table must cover every requested injection event.
 
-``Insert Particle Coordinate`` replaces the first rows of the first batch after
-these offsets, before conversion to the circulating reference. The batch must
-contain enough rows for these explicitly specified particles. Missing input rows,
-non-finite coordinates, or nonpositive longitudinal momentum cause an error before
-the affected batch is activated.
+``Insert Particle Coordinate``, ``Insert Particle File`` and ``Scan Grid`` are
+mutually exclusive ways to replace the first rows of the first batch after these
+offsets, before conversion to the circulating reference. The batch must contain
+enough rows for these explicitly specified particles; they replace reserved rows
+and do not increase the planned count or change macro-particle weights. The file
+option accepts the same six lowercase coordinate columns as a distribution file,
+but does not apply momentum, dispersion or transverse offsets to its rows. It
+reads all rows once, only for the first batch; input tags are not imported.
+Missing input rows, non-finite coordinates, or nonpositive longitudinal momentum
+cause an error before the affected batch is activated. If a grid or explicit file
+fills the entire first batch and distribution-file loading is disabled, the
+unused random generation is skipped. Partial replacements leave the other rows
+generated and offset as usual.
 
 The incoming physical momentum remains determined by the specified injection
 energy even when the circulating beam has accelerated. Injection converts the
 incoming momenta and longitudinal coordinate to the destination bunch reference
 while preserving physical momentum and arrival time, as defined in
 :ref:`en-longitudinal-reference`.
+
+Cartesian scan coordinates
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Scan Grid`` generates the full Cartesian product of the x and y axes and the
+``dp values`` list in one bunch. Every dp value receives the entire x/y grid.
+The x index changes fastest, followed by y and then dp. This is initial-coordinate
+generation only: the user still chooses every tracking command and effect.
+
+.. code-block:: json
+
+   "Scan Grid": {
+       "X range (m)": [-0.01, 0.01],
+       "Y range (m)": [-0.008, 0.008],
+       "Number of x points": 21,
+       "Number of y points": 17,
+       "dp values": [-0.01, 0.0, 0.01],
+       "px": 0.0,
+       "py": 0.0,
+       "z (m)": 0.0
+   }
+
+This grid contains 1071 particles, so the first injection batch must have at least
+1071 reserved particles. Ranges include both endpoints. A one-point axis requires
+identical endpoints; a multi-point axis requires increasing endpoints. Point
+counts are positive integers, dp values are finite and distinct, and every point
+must satisfy :math:`1+\delta>\sqrt{p_x^2+p_y^2}`. The fixed ``px``, ``py`` and
+``z (m)`` fields default to zero. Here ``px`` and ``py`` mean mechanical momenta
+divided by the incoming reference momentum, not geometric slopes.
+
+Python callers can construct ``ScanGridConfig`` or use
+``PASS.utils.scan_grid.generate_scan_grid(x_values, y_values, dp_values)``.
+The latter returns ``coordinates`` with columns ``[x, px, y, py, z, dp]``,
+``indices`` with columns ``[dp_index, y_index, x_index]``, and the three axes.
+It also accepts fixed ``px``, ``py`` and ``z`` keyword arguments.
+
+The supplied coordinates are exact in the incoming reference. Converting to a
+different circulating momentum or clock can change their stored ``dp`` and
+``z`` while preserving physical momentum and arrival time. Analyse actual
+post-injection initial coordinates and group scans by initial dp, since RF can
+subsequently change dp. All scan particles retain the normal beam weight and
+participate in the configured collective effects.
 
 Transverse painting with Bump magnets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1357,8 +1419,23 @@ Initial distribution output format
 ----------------------------------
 
 When ``save_init_dist`` is enabled, each ``BunchConfig`` accepts
-``output_format="hdf5-gzip1"`` (default, gzip-1 + shuffle),
-``"hdf5"`` (uncompressed), or ``"tfs"``. The JSON key is
+``output_format="hdf5"`` (default, uncompressed),
+``"hdf5-gzip1"`` (gzip-1 + shuffle), or ``"tfs"``. The JSON key is
 ``"Output format"`` inside the corresponding ``bunchN`` block.
 This selects the initial-distribution output only; loading detects the
 input format from its extension. See :doc:`monitor/table_output`.
+
+The saved file is a snapshot of the current bunch at the last scheduled
+injection event. With multi-turn injection, earlier batches may already have
+been transported or lost; this file does not preserve each particle's birth
+coordinates. ParticleMonitor captures those coordinates separately at each
+injection event for DA analysis. Loading a distribution reads its six coordinate
+columns as a new incoming distribution; saved tags, loss history and reference
+metadata are not a beam-state restore operation.
+
+HDF5 loading reads only the current batch's six coordinate slices and closes
+the file after each batch. TFS loading caches column indices and byte offsets
+at batch boundaries, then reads only the requested batch; file-size or
+modification-time changes invalidate that cache. Neither path retains an open
+file handle or caches the complete coordinate table. ``sequential`` advances
+through the source rows; ``repeat`` restarts at the first row for each batch.

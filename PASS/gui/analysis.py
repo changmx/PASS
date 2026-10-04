@@ -169,7 +169,8 @@ class AnalysisPage(QWidget):
         self._cancelled = False
         self._inventory_key = None
         self.result = None
-        self._layout = QVBoxLayout(self)
+        self.dynamic_aperture = None
+        self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(12, 12, 12, 12)
 
     def activate(self):
@@ -178,12 +179,25 @@ class AnalysisPage(QWidget):
         from PASS.gui.analysis_data import AnalysisResultView, SourceControls
         from PASS.gui.analysis_fma import FmaControls
         from PASS.gui.analysis_spectrum import SpectrumControls
+        from PASS.gui.dynamic_aperture import DynamicAperturePage
+        from PASS.gui.tools import ToolNavigation
 
         self._activated = True
+        self.navigation = ToolNavigation(items=(("频谱分析", "spectrum"), ("频率图分析", "resonance"), ("动力学孔径", "dynamic_aperture")))
+        self._layout.addWidget(self.navigation)
+        self.stack = QStackedWidget()
+        signal_page = QWidget()
+        signal_layout = QVBoxLayout(signal_page)
+        signal_layout.setContentsMargins(16, 12, 16, 12)
+        self.stack.addWidget(signal_page)
+        self.dynamic_aperture = DynamicAperturePage()
+        self.dynamic_aperture.shutdown_finished.connect(self._child_shutdown_finished)
+        self.stack.addWidget(self.dynamic_aperture)
+        self._layout.addWidget(self.stack, 1)
         header = QHBoxLayout()
-        title = QLabel("信号分析")
-        title.setObjectName("formTitle")
-        header.addWidget(title)
+        self.analysis_title = QLabel("频谱分析")
+        self.analysis_title.setObjectName("formTitle")
+        header.addWidget(self.analysis_title)
         header.addStretch()
         self.copy_button = QPushButton("复制本次 Python 调用")
         self.export_button = QPushButton("导出数值…")
@@ -194,16 +208,17 @@ class AnalysisPage(QWidget):
         self.copy_button.clicked.connect(self.copy_python)
         self.export_button.clicked.connect(self.export_data)
         self.image_button.clicked.connect(self.export_image)
-        self._layout.addLayout(header)
+        signal_layout.addLayout(header)
         splitter = QSplitter()
         splitter.setChildrenCollapsible(False)
         controls = QWidget()
         self.controls_layout = QVBoxLayout(controls)
         self.controls_layout.setContentsMargins(0, 0, 8, 0)
-        self.task = QComboBox()
+        # Retain programmatic mode selection; the sidebar is the only visible selector.
+        self.task = QComboBox(self)
         self.task.addItem("频谱分析", "spectrum")
         self.task.addItem("频率图分析 FMA", "fma")
-        self.controls_layout.addWidget(self.task)
+        self.task.hide()
         self.source = SourceControls()
         self.controls_layout.addWidget(self.source)
         self.settings = QStackedWidget()
@@ -221,7 +236,7 @@ class AnalysisPage(QWidget):
         splitter.addWidget(self.view)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([370, 700])
-        self._layout.addWidget(splitter, 1)
+        signal_layout.addWidget(splitter, 1)
         footer = QHBoxLayout()
         self.run_button = QPushButton("运行分析")
         self.cancel_button = QPushButton("取消")
@@ -231,7 +246,7 @@ class AnalysisPage(QWidget):
         footer.addWidget(self.run_button)
         footer.addWidget(self.cancel_button)
         footer.addWidget(self.status, 1)
-        self._layout.addLayout(footer)
+        signal_layout.addLayout(footer)
         self.source.browse.clicked.connect(self.choose_file)
         self.source.inspect_requested.connect(self.inspect_source)
         self.source.changed.connect(self._settings_changed)
@@ -239,13 +254,29 @@ class AnalysisPage(QWidget):
         self.spectrum.changed.connect(self._settings_changed)
         self.fma.changed.connect(self._settings_changed)
         self.task.currentIndexChanged.connect(self._task_changed)
+        self.navigation.currentRowChanged.connect(self._select_analysis)
         self.run_button.clicked.connect(self.run_analysis)
         self.cancel_button.clicked.connect(self.cancel)
+        self.navigation.setCurrentRow(0)
         self.set_theme(self.theme)
+
+    def _select_analysis(self, index):
+        if index == 2:
+            self.stack.setCurrentWidget(self.dynamic_aperture)
+            self.dynamic_aperture.activate()
+        else:
+            self.stack.setCurrentIndex(0)
+            self.analysis_title.setText(self.navigation.buttons[index].text())
+            self.task.setCurrentIndex(index)
+
+    def _child_shutdown_finished(self):
+        if self._closing and not self.busy:
+            self.shutdown_finished.emit()
 
     def _task_changed(self):
         self.settings.setCurrentIndex(self.task.currentIndex())
         self.source.set_fma(self.task.currentData() == "fma")
+        self.navigation.setCurrentRow(self.task.currentIndex())
         self._settings_changed()
 
     def _settings_changed(self):
@@ -268,6 +299,7 @@ class AnalysisPage(QWidget):
             if self._activated:
                 self.status.setText("请等待当前操作结束后再打开文件。")
             return False
+        self.navigation.setCurrentRow(self.task.currentIndex())
         self.source.path.setText(str(Path(path).resolve()))
         self.inspect_source()
         return True
@@ -332,6 +364,8 @@ class AnalysisPage(QWidget):
 
     def _set_busy(self, enabled):
         self.control_scroll.setEnabled(not enabled)
+        for button in self.navigation.buttons[:2]:
+            button.setEnabled(not enabled)
         self.run_button.setEnabled(not enabled)
         self.cancel_button.setEnabled(enabled)
         for button in (self.copy_button, self.export_button, self.image_button):
@@ -442,16 +476,21 @@ class AnalysisPage(QWidget):
 
     @property
     def busy(self):
-        return self._worker is not None
+        return self._worker is not None or (self.dynamic_aperture is not None and self.dynamic_aperture.busy)
 
     def shutdown(self):
         self._closing = True
         self.cancel()
+        if self.dynamic_aperture is not None:
+            self.dynamic_aperture.shutdown()
         return not self.busy
 
     def set_theme(self, theme):
         self.theme = theme
+        if self.dynamic_aperture is not None:
+            self.dynamic_aperture.set_theme(theme)
         if self._activated:
+            self.navigation.set_theme(theme)
             if self.result is not None:
                 self._display_result()
             else:

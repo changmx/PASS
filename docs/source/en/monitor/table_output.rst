@@ -11,8 +11,9 @@ compression selector:
 - ``"hdf5"``: uncompressed HDF5, with no shuffle.
 - ``"tfs"``: TFS text output.
 
-Omitting the option selects ``"hdf5-gzip1"`` for the monitors, Injection and
-Slicer. :doc:`BeamBeam luminosity <../beam_beam>` instead defaults to ``"tfs"``
+Omitting the option selects uncompressed ``"hdf5"`` for ParticleMonitor and
+Injection, and ``"hdf5-gzip1"`` for the other monitors and Slicer.
+:doc:`BeamBeam luminosity <../beam_beam>` defaults to ``"tfs"``
 in its shared ``Luminosity`` configuration. Selecting a format does not
 enable a disabled output or change the configured recording turns.
 
@@ -34,8 +35,8 @@ HDF5 options; their event and histogram tables do not offer TFS output.
      - One table per bunch and completed window
      - None
    * - ParticleMonitor
-     - One turn-history file per selected particle
-     - None
+     - One file per monitor and beam, containing all selected particles and recorded turns
+     - HDF5 arrays or a TFS long table; both include injection coordinates
    * - StatMonitor
      - One statistics history per bunch and monitor position
      - CSV with the same rows
@@ -63,11 +64,10 @@ and does not offer TFS export.
 HDF5 layout and metadata
 ------------------------
 
-Each numeric or boolean table column is a separate **one-dimensional
+For the ordinary table layout, each numeric or boolean column is a separate **one-dimensional
 dataset at the file root**, with the original column name and data type.
 All columns have the same length. A distribution row represents one
-particle; a StatMonitor row represents one recorded turn; a ParticleMonitor
-row represents one recorded turn for the particle identified by its file.
+particle; a StatMonitor row represents one recorded turn.
 For example, a statistics file contains::
 
    /turn                  (N,)
@@ -82,15 +82,27 @@ Table headers are stored as **root attributes**, including
 names, units embedded in existing metadata, reference conventions and
 monitor positions. Varying StatMonitor reference values remain per-row
 columns, preserving their full history. Snapshot reference attributes
-describe only that snapshot. ParticleMonitor still saves reference columns
-only when ``"Include reference": true``.
+describe only that snapshot. ParticleMonitor saves turn-by-turn reference columns
+only when ``"Include reference": true``; its HDF5 ``initial`` group
+always includes injection reference values.
+
+The :doc:`ParticleMonitor <particlemonitor>` HDF5 file
+uses two-dimensional (sample, particle) datasets, one-dimensional
+``turn`` and ``particle_id`` axes, and an ``initial`` group. It uses
+``FormatVersion=2`` and ``ValidSamples`` metadata and dedicated DA/spectral readers;
+the ordinary ``read_table`` function is not its reader. Its TFS output instead
+uses a long table with explicit ``record``, ``turn`` and ``particle_id`` columns.
+Record 0 contains injection coordinates and record 1 contains a trajectory
+sample. Both preserve every recorded turn with bounded buffers. HDF5 appends
+blocks during tracking; TFS uses private HDF5 storage during tracking and
+exports a standard text table at finalization. The PM readers require one
+current version-2 file. See the ParticleMonitor page for completion metadata
+and format-specific readers.
 
 Two reserved root attributes describe the table format:
 ``_pass_table_version=1`` and ``_pass_table_columns`` (a JSON array of column
 names in output order). User headers must not start with ``_pass_table_``.
-The common reader also accepts older PASS HDF5 distribution snapshots
-without these attributes. Multidimensional SpaceCharge files require a
-field-specific reader.
+Multidimensional SpaceCharge files require a field-specific reader.
 
 ``"hdf5-gzip1"`` uses lossless gzip level 1 compression with shuffle.
 Shuffle rearranges bytes before compression without changing stored values
