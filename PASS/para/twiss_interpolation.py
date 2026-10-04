@@ -122,7 +122,7 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
     """Build a uniform Twiss sequence with splits at kicks and optical jumps."""
     import tfs
     from PASS.utils.command_order import command_position_key, sort_commands
-    from PASS.para.madx import _insert_elements, _make_match_key, read_madx_errors
+    from PASS.para.madx import _get_madx_reference_beta, _insert_elements, _make_match_key, read_madx_errors
     from PASS.para.schema.elements import MultipoleItem
     from PASS.para.schema.twiss import TwissItem
 
@@ -133,10 +133,11 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
     if longitudinal_transfer not in ("off", "drift", "matrix"):
         raise ValueError("Invalid longitudinal_transfer; use off, drift or matrix.")
     table = tfs.read(twiss_file)
+    reference_beta = _get_madx_reference_beta(table.headers)
     optics = RingTwissInterpolator(table)
     circumference = optics.circumference
-    dqx = float(table.headers["DQ1"] if dqx == "from_file" else dqx)
-    dqy = float(table.headers["DQ2"] if dqy == "from_file" else dqy)
+    dqx = float(reference_beta * table.headers["DQ1"] if dqx == "from_file" else dqx)
+    dqy = float(reference_beta * table.headers["DQ2"] if dqy == "from_file" else dqy)
     muz = float(muz)
     if not np.all(np.isfinite([dqx, dqy, muz])):
         raise ValueError("DQx, DQy and Mu z must be finite.")
@@ -174,6 +175,9 @@ def resample_madx_twiss(twiss_file, num_interp_slice, error_file, muz, dqx, dqy,
     def append_transport(s, previous_s, current, previous):
         values = {key: float(value) for key, value in zip(fields, current)}
         values.update({key + "_previous": float(value) for key, value in zip(fields, previous)})
+        # Keep interpolation in source units; convert once at the PASS boundary.
+        for key in ("dx", "dpx", "dx_previous", "dpx_previous"):
+            values[key] *= reference_beta
         item = TwissItem(s=float(s),
                          s_previous=float(previous_s),
                          **values,

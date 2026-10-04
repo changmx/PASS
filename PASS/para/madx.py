@@ -12,6 +12,7 @@ Element naming convention:
 """
 
 import re
+import warnings
 
 import numpy as np
 import tfs
@@ -20,6 +21,30 @@ from PASS.para.schema.twiss import TwissItem
 from PASS.para.schema.elements import DriftItem, MarkerItem, SBendItem, QuadrupoleItem, SextupoleItem, OctupoleItem, MultipoleItem, KickerItem, SolenoidItem
 
 # Helpers
+
+
+def _get_madx_reference_beta(headers: dict) -> float:
+    """Resolve the reference speed for native TWISS PT derivatives."""
+    if str(headers.get("NAME", "")).upper() == "PTC_TWISS":
+        raise ValueError("PTC_TWISS derivatives depend on the PTC TIME mode, which its TFS headers do not identify. "
+                         "The native MAD-X Twiss readers require a TWISS table; export TWISS, CHROM instead.")
+    if "GAMMA" in headers:
+        gamma = float(headers["GAMMA"])
+    elif "ENERGY" in headers and "MASS" in headers:
+        energy, mass = float(headers["ENERGY"]), float(headers["MASS"])
+        if not np.isfinite(energy) or not np.isfinite(mass) or mass <= 0:
+            raise ValueError("MAD-X TFS ENERGY and MASS must be finite, with MASS > 0.")
+        gamma = energy / mass
+    else:
+        warnings.warn(
+            "MAD-X TFS has neither GAMMA nor ENERGY/MASS; assuming beta0=1 for legacy optics. "
+            "Supply reference-energy headers to convert PT dispersion and chromaticity to momentum deviation.",
+            RuntimeWarning,
+            stacklevel=3)
+        return 1.0
+    if not np.isfinite(gamma) or gamma <= 1:
+        raise ValueError("MAD-X TFS reference GAMMA must be finite and greater than one.")
+    return float(np.sqrt(((gamma - 1) / gamma) * ((gamma + 1) / gamma)))
 
 
 def _make_name(elem_name: str, s: float) -> str:
@@ -82,7 +107,7 @@ def _extract_multipole_kl(row, columns) -> tuple[list, list]:
 
 
 def _read_tfs_headers(twiss_file: str) -> dict:
-    """Read MADX twiss TFS headers + first-row twiss parameters."""
+    """Read raw MADX TFS headers and first-row optics, retaining PT derivatives."""
     df = tfs.read(twiss_file)
     headers = df.headers
     row0 = df.iloc[0]
@@ -418,8 +443,8 @@ def read_madx_twiss(
         twiss_file: path to the MADX twiss TFS file.
         error_file: path to the MADX error TFS file (for field errors).
         muz: longitudinal tune (default 0.0).
-        dqx: chromaticity Qx. Float or "from_file" to read from headers.
-        dqy: chromaticity Qy. Float or "from_file" to read from headers.
+        dqx: dQx/d(delta). Float or "from_file" to convert the native PT derivative.
+        dqy: dQy/d(delta). Float or "from_file" to convert the native PT derivative.
         is_field_error: if True, read field errors and attach as multipole elements.
         is_merge_drift: merge consecutive Drift elements if present in the result.
         is_alignment_error: unsupported here; use read_madx_elements.
@@ -435,13 +460,15 @@ def read_madx_twiss(
         raise ValueError("Alignment errors require read_madx_elements; Twiss transfer import cannot move physical magnetic fields")
     twiss_table = tfs.read(twiss_file)
     headers = twiss_table.headers
+    reference_beta = _get_madx_reference_beta(headers)
     num_elem = twiss_table.shape[0]
 
     circumference = headers["LENGTH"]
     qx = headers["Q1"]
     qy = headers["Q2"]
-    dqx_file = headers["DQ1"]
-    dqy_file = headers["DQ2"]
+    # MAD-X differentiates with respect to PT; PASS tracks delta=P/P0-1.
+    dqx_file = reference_beta * headers["DQ1"]
+    dqy_file = reference_beta * headers["DQ2"]
 
     if dqx == "from_file":
         dqx = dqx_file
@@ -460,8 +487,8 @@ def read_madx_twiss(
     bety = twiss_table["BETY"]
     alfx = twiss_table["ALFX"]
     alfy = twiss_table["ALFY"]
-    dx = twiss_table["DX"]
-    dpx = twiss_table["DPX"]
+    dx = reference_beta * twiss_table["DX"]
+    dpx = reference_beta * twiss_table["DPX"]
     mux = twiss_table["MUX"]
     muy = twiss_table["MUY"]
     s = twiss_table["S"]
@@ -682,7 +709,9 @@ def read_madx_twiss_interpolated(
     require N+1 points. Original rows are replaced; kicks, field errors and
     optical discontinuities add split points. Source phases and their full
     tune are preserved. No extrapolation is allowed. Only
-    ``interp_kind='phase_hermite'`` is supported. DQx/DQy default to TFS headers.
+    ``interp_kind='phase_hermite'`` is supported. File DQx/DQy and dispersion
+    are converted from MAD-X PT derivatives to PASS momentum derivatives.
+    Explicit DQx/DQy values already use the PASS convention and are unchanged.
     Alignment errors require physical element maps; use read_madx_elements.
     """
     if is_alignment_error:
