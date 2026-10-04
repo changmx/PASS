@@ -37,6 +37,7 @@ def check_relations(check):
     except ValueError as exc:
         check.add(("Sequence", ), "sequence.order", str(exc))
     check_slow_extraction(check, ordered)
+    check_transverse_feedback(check, ordered)
     valid_slices, used, contributions = set(), set(), []
     slice_positions = {}
     for name, kind, v in ordered:
@@ -222,6 +223,73 @@ def check_slow_extraction(check, ordered):
             check.add((*path, "S (m)"), "slow_extraction.source_position", "SlowExtractionMonitor 必须与 Source 位于同一跟踪截面")
         elif source in sequence_indices and name in sequence_indices and sequence_indices[source] >= sequence_indices[name]:
             check.add((*path, "Source"), "slow_extraction.source_order", "SlowExtractionMonitor 必须在 Source 之后执行；请检查同一 S 的 Order")
+
+
+def check_transverse_feedback(check, ordered):
+    """Validate pickup pairs, fixed grouping, and actual transport boundaries."""
+    from PASS.utils.command_order import command_position_key
+
+    pickups = {name: values for name, (kind, values) in check.commands.items() if kind == "TransversePickup"}
+    feedbacks = [(name, values) for name, (kind, values) in check.commands.items() if kind == "TransverseFeedback"]
+    if not pickups and not feedbacks:
+        return
+    users = {name: [] for name in pickups}
+    harmonic_number = next((values.get("Harmonic Number") for kind, values in check.commands.values() if kind == "Injection"), None)
+    for name, values in feedbacks:
+        path = ("Sequence", name)
+        reference = values.get("Pickup")
+        if not isinstance(reference, str) or reference not in pickups:
+            check.add((*path, "Pickup"), "feedback.pickup", f"Pickup 必须精确引用本束流 Sequence 中的 TransversePickup 名称；未找到 {reference!r}")
+            continue
+        users[reference].append(name)
+        planes = pickups[reference].get("Plane", "x")
+        if not isinstance(planes, str) or planes not in ("x", "y", "xy"):
+            planes = None
+        for plane in ("x", "y"):
+            if planes is None:
+                continue
+            coefficients = values.get(f"FIR coefficients {plane}")
+            if plane in planes and not coefficients:
+                check.add((*path, f"FIR coefficients {plane}"), "feedback.coefficients", f"Pickup 测量 {plane} 方向，必须提供非空 FIR 系数")
+            elif plane not in planes and coefficients is not None:
+                check.add((*path, f"FIR coefficients {plane}"), "feedback.plane", f"Pickup 不测量 {plane} 方向，不能提供该方向 FIR 系数")
+            if plane not in planes and values.get(f"Gain {plane} (1/m)", 0) != 0:
+                check.add((*path, f"Gain {plane} (1/m)"), "feedback.plane", f"Pickup 不测量 {plane} 方向，该方向增益必须为 0")
+        bunch_ids = values.get("Harmonic IDs")
+        if isinstance(bunch_ids, list) and is_integer(harmonic_number):
+            if any(is_integer(slot) and slot >= harmonic_number for slot in bunch_ids):
+                check.add((*path, "Harmonic IDs"), "feedback.harmonic_id", f"Harmonic IDs 必须位于初始分组范围 [0, {harmonic_number})")
+        if values.get("Enable", True) is not True:
+            continue
+        end_turn = values.get("End turn")
+        end_turn = min(end_turn, check.turn_count) if is_integer(end_turn) else check.turn_count
+        start_turn = values.get("Start turn", 0)
+        if is_integer(start_turn) and start_turn >= end_turn:
+            check.add(path, "feedback.inactive", "本次运行不会到达反馈启用圈数", True)
+        for regroup_name, (kind, regroup_values) in check.commands.items():
+            regroup_turn = regroup_values.get("Start turn", 0)
+            if kind == "ReorganizeBunch" and is_integer(regroup_turn) and 0 <= regroup_turn < end_turn:
+                check.add(path, "feedback.regroup", f"反馈预热/活动区间与 ReorganizeBunch {regroup_name!r} 冲突；第一版要求固定分组")
+    for name, references in users.items():
+        if len(references) != 1:
+            check.add(("Sequence", name), "feedback.pair", "每个 TransversePickup 必须恰好对应一个 TransverseFeedback；独立统计请使用 StatMonitor")
+
+    sequence_indices = {name: index for index, (name, _kind, _values) in enumerate(ordered)}
+    intervals = []
+    for name, (kind, values) in check.commands.items():
+        end, length = values.get("S (m)"), values.get("Length (m)", 0)
+        start = values.get("S previous (m)") if kind == "Twiss" else end - length if is_finite_number(end) and is_finite_number(length) else None
+        if is_finite_number(start) and is_finite_number(end) and start < end:
+            intervals.append((name, command_position_key({"S (m)": start}), command_position_key(values)))
+    for name, kind, values in ordered:
+        if kind not in {"TransversePickup", "TransverseFeedback"}:
+            continue
+        position = command_position_key(values)
+        for transport_name, start, end in intervals:
+            if start < position < end:
+                check.add(("Sequence", name, "S (m)"), "feedback.unsplit_transport", f"节点位于未拆分传输 {transport_name!r} 内部；请先拆分 Twiss 映射或厚元件")
+            elif position == end and sequence_indices[name] < sequence_indices.get(transport_name, -1):
+                check.add(("Sequence", name, "Order"), "feedback.transport_order", f"节点必须在到达该截面的传输 {transport_name!r} 之后执行")
 
 
 def check_electron_cloud(check):

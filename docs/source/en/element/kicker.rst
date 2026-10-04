@@ -398,6 +398,7 @@ Application Scenarios
 - **Orbit correction**: Place kickers at key beamline positions to correct orbit deviations or create local orbit bumps
 
 The Kicker model applies constant configured strengths. For a prescribed injection waveform, see :doc:`bump`; for transverse excitation, see :doc:`exciter`. A pickup-feedback controller is not included in this element.
+For a delayed bunch-centroid FIR loop, use the dedicated nodes in :doc:`../transverse_feedback`.
 
 References
 ----------

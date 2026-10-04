@@ -47,6 +47,7 @@ from PASS.para.schema.main import MainConfig
 from PASS.para.schema.bunch import BunchConfig, InjectionItem
 from PASS.para.schema.sequence import Sequence
 from PASS.para.schema.slicer import SlicerItem
+from PASS.para.schema.transverse_feedback import TransversePickupItem, TransverseFeedbackItem, design_feedback_fir
 from PASS.para.schema.slow_extraction import SlowExtractionItem, SlowExtractionMonitorItem
 from PASS.para.schema.wake_field import (
     WakeFieldItem,
@@ -432,5 +433,6 @@ __all__ = [
     'ResistiveWallWake', 'TabulatedWake', 'UltrarelativisticWallWake', 'ImpedanceWake', 'FittedImpedanceWake', 'ModalWake', 'WakeVelocity',
     'WakeSolverGroup', 'WakeSpatialTerm', 'WakeConvolutionGrid', 'WakeTimeGrid', 'FileWake', 'WakeFileConvention', 'SlicerItem',
     'ElectronCloudConfig', 'ElectronCloudConfiguration', 'ElectronCloudItem', 'ElectronCloudBuildUpConfiguration', 'IBSConfig', 'IBSConfiguration',
-    'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem', 'SlowExtractionItem', 'SlowExtractionMonitorItem'
+    'IBSItem', 'IBSOpticsConfig', 'ElectronBeamConfig', 'ElectronCoolerItem', 'SlowExtractionItem', 'SlowExtractionMonitorItem',
+    'TransversePickupItem', 'TransverseFeedbackItem', 'design_feedback_fir'
 ]

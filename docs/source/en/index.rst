@@ -39,6 +39,7 @@ purpose, configuration, physical model, and limits in one place.
    space_charge
    field_solver
    wake_field
+   transverse_feedback
    electron_cloud
    ibs
    beam_beam

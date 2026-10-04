@@ -333,6 +333,17 @@ Exciter previews evaluate particle time as ``t = T_start + elapsed - z/(beta*c)`
 using continuous bunch-relative z and the local reference arrival time. Nominal
 bunch slots do not shift the preview.
 
+Transverse feedback
+-------------------
+
+The **Transverse feedback** component section provides ``TransversePickup`` and
+``TransverseFeedback``. Add the pickup first, then select its sequence name in
+the feedback's ``Pickup`` field. Each pickup requires exactly one feedback.
+The feedback draft starts with zero coefficients and gain; enter the FIR
+coefficients, turn delay, gains and optional kick limits before tracking.
+Both nodes must be placed at actual transport boundaries. See
+:doc:`transverse_feedback` for phase conventions, filter design and diagnostics.
+
 WakeField
 ---------
 

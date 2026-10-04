@@ -228,6 +228,9 @@ class Injection(Command):
                     p.dp[dest] = xp.asarray(incoming_delta * factor + reference_delta)
                     p.z[dest] = xp.asarray(batch_particles.z[rows].astype(np.float64) * (bunch.beta / source.beta) + bunch.beta * const.c *
                                            (bunch.t0 - injection_time))
+                    if len(dest):
+                        for observer in tuple(getattr(beam, "_bunch_injection_observers", ())):
+                            observer(bunch.harmonic_id, turn)
                 p.tag[destination] = state.reserved_ids[destination]
                 p.lost_turn[destination], p.lost_position[destination] = -1, -1
                 state.record_batch(first, count, turn, batch)

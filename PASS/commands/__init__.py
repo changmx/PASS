@@ -26,6 +26,7 @@ from .element.float_waister import FloatWaister
 from .beam_beam import BeamBeam
 from .space_charge import SpaceCharge
 from .wake_field import WakeField
+from .transverse_feedback import TransversePickup, TransverseFeedback
 from .electron_cloud import ElectronCloud
 from .ibs import IBS
 from .slow_extraction import SlowExtraction
@@ -65,6 +66,8 @@ __all__ = [
     "BeamBeam",
     "SpaceCharge",
     "WakeField",
+    "TransversePickup",
+    "TransverseFeedback",
     "ElectronCloud",
     "IBS",
     "SlowExtraction",

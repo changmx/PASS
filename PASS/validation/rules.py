@@ -17,6 +17,7 @@ from PASS.para.schema.elements import ELEMENT_REGISTRY, ElectronBeamConfig, Elec
 from PASS.para.schema.main import MainConfig
 from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
 from PASS.para.schema.slicer import SlicerItem
+from PASS.para.schema.transverse_feedback import TransversePickupItem, TransverseFeedbackItem
 from PASS.para.schema.slow_extraction import SlowExtractionItem, SlowExtractionMonitorItem
 from PASS.para.schema.wake_field import WakeFieldItem, WakeFieldConfig, resolve_wake_point
 from PASS.para.schema.space_charge import SpaceChargeItem, SpaceChargeConfig, SpaceChargeResourceConfig, validate_loss_aperture
@@ -50,6 +51,8 @@ MODELS.update(Injection=InjectionItem,
               SlowExtraction=SlowExtractionItem,
               SlowExtractionMonitor=SlowExtractionMonitorItem,
               Slicer=SlicerItem,
+              TransversePickup=TransversePickupItem,
+              TransverseFeedback=TransverseFeedbackItem,
               SpaceCharge=SpaceChargeItem,
               ElectronCloud=ElectronCloudItem,
               IBS=IBSItem,

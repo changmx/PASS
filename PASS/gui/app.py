@@ -430,6 +430,13 @@ class ConfigPage(QWidget):
             tuple((command, "浏览默认参数；确认后才插入 Sequence。", lambda checked=False, cmd=command: self.select_command(cmd))
                   for command in ("StatMonitor", "ParticleMonitor", "DistMonitor", "PhaseAdvanceMonitor")),
         )
+        add_section(
+            "横向反馈",
+            (
+                ("TransversePickup", "在真实跟踪截面测量逐束团质心；与一个反馈节点配对。", lambda: self.select_command("TransversePickup")),
+                ("TransverseFeedback", "引用拾取器，设置逐圈 FIR、延迟、增益与限幅。", lambda: self.select_command("TransverseFeedback")),
+            ),
+        )
         add_section("物理效应", ())
         physics_layout = self.library_sections["物理效应"].body_layout
         self.space_charge_menu = CollapsibleSection("空间电荷", depth=1)
@@ -948,6 +955,7 @@ class ConfigPage(QWidget):
         from PASS.para.schema.elements import ELEMENT_REGISTRY
         from PASS.para.schema.monitors import DistMonitorItem, ParticleMonitorItem, PhaseAdvanceMonitorItem, StatMonitorItem
         from PASS.para.schema.slicer import SlicerItem
+        from PASS.para.schema.transverse_feedback import TransversePickupItem, TransverseFeedbackItem
 
         element = ELEMENT_REGISTRY.get(command.casefold())
         if element is not None:
@@ -981,6 +989,7 @@ class ConfigPage(QWidget):
                 })
             return element(**required).model_dump(by_alias=True)
         monitor_models = {
+            "TransversePickup": (TransversePickupItem, {}),
             "StatMonitor": (StatMonitorItem, {}),
             "DistMonitor": (DistMonitorItem, {}),
             "ParticleMonitor": (ParticleMonitorItem, {
@@ -1000,6 +1009,18 @@ class ConfigPage(QWidget):
                 "Slice set": "slices"
             }),
         }
+        if command == "TransverseFeedback":
+            sequence = self.data.get("Sequence", {})
+            used = {item.get("Pickup") for item in sequence.values() if isinstance(item, dict) and item.get("Command") == "TransverseFeedback"}
+            pickup = next(
+                ((name, item)
+                 for name, item in sequence.items() if isinstance(item, dict) and item.get("Command") == "TransversePickup" and name not in used),
+                ("transversepickup_1", {}))
+            planes = pickup[1].get("Plane", "x")
+            return TransverseFeedbackItem(s=position,
+                                          pickup=pickup[0],
+                                          coefficients_x=[0.0] if "x" in planes else None,
+                                          coefficients_y=[0.0] if "y" in planes else None).model_dump(by_alias=True)
         if command == "WakeField":
             from PASS.para.schema.wake_field import WakeFieldItem
             configurations = self.data.get("Wake field", {}).get("Configurations", {})
@@ -2847,6 +2868,10 @@ class ConfigPage(QWidget):
             self.form_hint.setText("保存当前切片区间与成员；RF 不会自动重切片。SortBunch/ReorganizeBunch 后必须再次执行 Slicer。")
         elif target.get("Command") == "WakeField":
             self.form_hint.setText("Configuration 引用尾场全局配置；选择“本点内联配置”可保留独立输入。Slice set 使用 z_rel 或 arrival_phase。共享配置不会共享各点的历史状态。")
+        elif target.get("Command") == "TransversePickup":
+            self.form_hint.setText("每个拾取器配对一个 TransverseFeedback；测量活粒子质心并减去固定参考位置。不需要 Slicer。")
+        elif target.get("Command") == "TransverseFeedback":
+            self.form_hint.setText("FIR 系数按最新延迟采样在前排列；Delay turns 至少为 1。初始系数和增益为零，请按 tune 与拾取器到踢点相移设置；Max kick 限制 Δpx/Δpy。")
         self.form_hint.setToolTip(self.form_hint.text())
         if pending or name_value is not None:
             default_name = "injection" if target.get("Command") == "Injection" else f"{str(target.get('Command', 'command')).lower()}_1"
@@ -3672,6 +3697,7 @@ class ConfigPage(QWidget):
                 SpaceChargeResourceConfig,
             )
             from PASS.para.schema.slicer import SlicerItem
+            from PASS.para.schema.transverse_feedback import TransversePickupItem, TransverseFeedbackItem
             from PASS.para.schema.twiss import TwissItem
 
             models = [
@@ -3684,6 +3710,8 @@ class ConfigPage(QWidget):
                 SpaceChargeResourceConfig,
                 SpaceChargeItem,
                 SlicerItem,
+                TransversePickupItem,
+                TransverseFeedbackItem,
                 TwissItem,
                 StatMonitorItem,
                 DistMonitorItem,
@@ -3712,6 +3740,9 @@ class ConfigPage(QWidget):
         if key == "Groups" and getattr(self, "_field_context", {}).get("Command") == "WakeField":
             from PASS.para.schema.wake_field import WakeSolverGroup
             structured = make_editor(list[WakeSolverGroup], value or [], key, self.base_dir)
+        elif getattr(self, "_field_context", {}).get("Command") in {"TransversePickup", "TransverseFeedback"
+                                                                    } and spec is not None and key != "Pickup":
+            structured = make_editor(spec.annotation, value, key, self.base_dir)
         elif (getattr(self, "_field_context", {}).get("Command") in {"CrossingAngle", "CrabCavity", "FloatWaister", "ElectronCooler"}
               and spec is not None and get_origin(bare(spec.annotation)) is Literal):
             structured = make_editor(spec.annotation, value, key, self.base_dir)
@@ -3754,6 +3785,17 @@ class ConfigPage(QWidget):
         if structured is not None:
             self._track_field(structured)
             return structured
+        if key == "Pickup" and getattr(self, "_field_context", {}).get("Command") == "TransverseFeedback":
+            field = PropertyComboBox()
+            names = [
+                name for name, item in self.data.get("Sequence", {}).items() if isinstance(item, dict) and item.get("Command") == "TransversePickup"
+            ]
+            field.addItems(names)
+            field.setEditable(True)
+            field.setCurrentText(str(value or ""))
+            field.setToolTip("精确引用本束流 Sequence 中的 TransversePickup 名称；每个拾取器只能配对一个反馈节点。")
+            self._track_field(field)
+            return field
         if key in {"Configuration", "Slice set"} and getattr(self, "_field_context", {}).get("Command") == "ElectronCloud":
             field = PropertyComboBox()
             field.setProperty("usesItemData", True)

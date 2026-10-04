@@ -37,6 +37,7 @@ PASS（Particle Accelerator Simulation Studio）用于六维粒子跟踪与束�
    space_charge
    field_solver
    wake_field
+   transverse_feedback
    electron_cloud
    ibs
    beam_beam

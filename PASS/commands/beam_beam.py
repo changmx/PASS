@@ -476,6 +476,9 @@ def _host_checkpoint_array(value):
 
 def _capture_command_state(command):
     kind = command.cmd_type
+    if kind == "TransverseFeedback" and command.is_enabled:
+        raise ValueError(
+            "Joint collision checkpoints with active transverse feedback are not supported; feedback state alone is not a complete checkpoint")
     if kind == "WakeField":
         return command.state_dict()
     if kind in {"ElectronCloud", "IBS", "ElectronCooler"}:
@@ -574,6 +577,8 @@ def capture_collision_state(sim, sequences):
 def _stage_command_state(command, data, next_turn, xp):
     """Validate all command state using detached objects before the commit."""
     kind = command.cmd_type
+    if kind == "TransverseFeedback" and command.is_enabled:
+        raise ValueError("Joint collision checkpoints with active transverse feedback are not supported")
     if kind in {"IBS", "ElectronCooler"}:
         if not command.is_enabled:
             if data is not None:
